@@ -228,6 +228,8 @@ static Rask.Cqrs.Dispatcher.Send<TResult>(Rask.Cqrs.ICommand<TResult>! command, 
 Rask.Cqrs.IRemoteDispatch.Publish(Rask.Cqrs.RemoteContract! contract, object! e, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
 Rask.Cqrs.RaskValidationException.RaskValidationException() -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Cqrs.RequestValidationError>! errors, System.Exception! innerException) -> void
+Rask.Cqrs.RaskValidationException.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
+Rask.Cqrs.RaskValidationException.RaskValidationException(System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>! failures, System.Exception? innerException = null) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message) -> void
 Rask.Cqrs.RaskValidationException.RaskValidationException(string! message, System.Exception! innerException) -> void
 Rask.Cqrs.DurableEvents
