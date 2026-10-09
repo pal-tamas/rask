@@ -71,8 +71,7 @@ internal static class DeclaredUniqueRules
 
         foreach (var index in Rules(entityType))
         {
-            if (Predicate(entityType, index, valueOf, selfKey) is { } taken &&
-                await ExistsAsync(context, entityType.ClrType, taken, cancellationToken).ConfigureAwait(false))
+            if (await TakenAsync(context, entityType, index, valueOf, selfKey, cancellationToken).ConfigureAwait(false))
             {
                 (failures ??= []).Add(UniqueViolation.FailureOf(index));
             }
@@ -80,6 +79,20 @@ internal static class DeclaredUniqueRules
 
         return failures ?? [];
     }
+
+    /// <summary>
+    ///     Whether another row already holds what <paramref name="valueOf" /> gives for <paramref name="rule" />'s
+    ///     columns. False without a query when any of them is NULL.
+    /// </summary>
+    internal static async Task<bool> TakenAsync(
+        DbContext context,
+        IEntityType entityType,
+        IIndex rule,
+        Func<string, object?> valueOf,
+        IReadOnlyList<object?>? selfKey,
+        CancellationToken cancellationToken) =>
+        Predicate(entityType, rule, valueOf, selfKey) is { } taken &&
+        await ExistsAsync(context, entityType.ClrType, taken, cancellationToken).ConfigureAwait(false);
 
     /// <summary>The unique rules of <paramref name="entityType" /> that can be asked as a query.</summary>
     internal static IEnumerable<IIndex> Rules(IEntityType entityType) =>

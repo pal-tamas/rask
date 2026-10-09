@@ -9,6 +9,30 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
+  value object an aggregate holds, with a `Validate` and none that qualifies (not public, not static, generic,
+  not exactly one parameter of the held value's type, or not returning the messages), is reported on the method
+  with what is wrong and the signature that would qualify — a rule that never runs looks exactly like one that
+  passed. Not reported: a `Validate` implementing an interface or overriding a base member, a value object of
+  several values, and any other type. **For an existing app** that builds warnings-as-errors and has such a
+  method: give it the signature, rename it, or silence it at that site.
+
+- **A form bound to a Rask.Data aggregate's generated model asks the aggregate's rules by itself.** Two kinds,
+  with no step on the field and none on the form. (1) A value object that holds one value and has a
+  `public static Validate` taking that value and returning the messages (`IEnumerable<string>`, or a
+  `ValueTask`/`Task` of it) is asked by the field that holds it, before any `.Validate(…)` written there. No
+  interface, no attribute; any other shape of `Validate` is left alone. (2) Every unique index the aggregate's
+  `Configure` declares with a message — `IsUnique("…")` — is asked of the database when a bound field is
+  committed and again on submit, and the message shows under the field (under each, for an index over several)
+  before the save is tried: for the current tenant's rows only, leaving out the row an edit form was filled
+  from, once per pair of values for an index over two fields, and on every host that has Rask.Data. It is a
+  courtesy and never the rule — the save still refuses a duplicate, the same way. A model written by hand gets
+  neither. **For an existing app:** a form over `XModel` whose aggregate declares `IsUnique("…")` now waits for
+  a query when such a field is committed, and a field holding a one-value value object with such a `Validate`
+  now shows its messages. The
+  generated model gains an `internal` `__Key` (the row it was filled from), which is not a field and is never
+  posted. See `docs/data.md` — *What a form over the model asks by itself*.
+
 - **`Go.Out("/tenants")` leaves the app for a page of the same site it does not render.** An app mapped under a
   path base (`MapRask<App>(pathBase: "/new")`) could not send the reader to the old application beside it from
   code: `Go.To("/tenants")` always meant `/new/tenants`. `Go.Out` uses the address as written — a `302` on a first
@@ -162,7 +186,7 @@ them until tagged releases begin.
   `.Live()` field, and `page.On(sel).Change(v)` is how a waiting field's value arrives. A ten-field form
   typed into and saved used to send a frame a keystroke; it now sends one frame when Save is pressed —
   the ten changes and the submit, answered with one render. `rask.js` and `rask.wasm.js` grow by 510
-  and 474 bytes (95,825 and 84,554). `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
+  and 474 bytes (95,978 and 84,796 with main's `Go.Out`). `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
   sits in the one `send` both runtimes have instead of in each listener, and controlled inputs
   (`.Value(x).OnInput(…)`) are untouched.
 
