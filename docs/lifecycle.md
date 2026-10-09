@@ -181,6 +181,30 @@ protected override async Task OnRendered() =>
     // re-render from another component won't re-fire this — no loop
 ```
 
+## Asking another component to render, from a hook
+
+A page often has something to tell the layout above it — its title for a breadcrumb, say — and tells it as it
+mounts: it sets a value on a scoped service, and whoever shows that value re-renders on the service's event.
+
+```csharp
+// the page
+protected override async Task OnMount() => heading.Set("Orders");
+
+// a crumb in the layout
+protected override async Task OnMount() => heading.Changed += StateHasChanged;
+protected override Component? Render() => Text[heading.Text];
+```
+
+By then the layout's crumb has already rendered, with the old value: a layout is walked before the page
+inside it mounts. That is fine. `StateHasChanged()` on a component the pass in flight has already rendered —
+the crumb, or the layout itself — is never lost: the pass finishes, and one more follows that renders exactly
+what asked. It works the same from `OnMount`, `OnUpdated` and an event handler, on the component itself or on
+any other.
+
+On the **Server host the first response includes that follow-up render**, so the crumb arrives filled in
+rather than being corrected a moment later over the socket. It is bounded: a component that asks again on
+every render gets two follow-ups per request, and the rest goes over the live connection.
+
 ## Gotcha: a faulted async hook takes the page, not the component
 
 **If an async hook faults, it trips the nearest `ErrorBoundary` — and in a live app there is always one.** The host

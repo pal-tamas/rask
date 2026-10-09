@@ -22,6 +22,11 @@ built out of them — plus the `[...]` collection expression, which groups sibli
 
 <!-- demo:primitives-text -->
 
+It takes its words the way every tag takes children, or as a value — `Text["Orders"]` and
+`Text.Value("Orders")` are the same text node. A component may render nothing but text
+(`Render() => Text[heading.Text]`): it has no element of its own, so its words appear, change and go inside
+whichever element holds it, and a `StateHasChanged()` patches them there like any other node.
+
 `Raw` is the escape hatch: verbatim, un-encoded HTML. Use it when you control the source (Markdown
 output, sanitised snippets) — **never on user input**.
 
