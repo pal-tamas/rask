@@ -49,6 +49,7 @@ internal static class HookBundleTag
         "data-rask-confirm-leave",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",
+        "data-rask-scroll-to",
     ];
 
     // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and

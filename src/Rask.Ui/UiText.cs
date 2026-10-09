@@ -35,6 +35,7 @@ public sealed partial class UiText : UiElement
         UiClass.Compose(
             SizeClass(Size),
             Color is { } color && ColorClass(color) is { Length: > 0 } hue ? hue : VariantClass(Variant),
+            Weight,
             Class);
 
     /// <inheritdoc />
@@ -42,6 +43,11 @@ public sealed partial class UiText : UiElement
         Color is { } color && ColorName(color) is { Length: > 0 } name
             ? Marker.With(Data, "color", name)
             : Marker.With(Data);
+
+    // Text is regular weight wherever it stands — inline in a heading, in a callout's heading — and yields to
+    // a weight the call site hands it, which is why the rule carries no specificity (measured on Flux's
+    // timeline page: 400 inside a 500 heading, 500 with `font-medium`).
+    private const string Weight = "[:where(&)]:font-normal";
 
     private static string SizeClass(Ui.TextSize? size) => size switch
     {

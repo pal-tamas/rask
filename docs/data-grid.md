@@ -106,6 +106,11 @@ Ui.DataGrid.Data(_rows).RowKey(r => r.Id)
 `PageHref` counts from zero like `Page`, whatever the address counts from. The page you are on is not a
 link: it says `aria-current="page"` instead. `Ui.Pagination.Href` does the same for a pager on its own.
 
+The pager under a grid is [`Ui.Pagination`](ui-kit.md#pagination) — Flux UI's — given the grid's page,
+`PageSize` and total: "Showing 26 to 50 of 240 results", Previous and Next, and the pages numbered once
+the pager has 640px to itself. It counts pages from one; the grid's `Page`, `OnPage` and `PageHref` go on
+counting from zero, and the grid converts between them.
+
 ## Controlled and uncontrolled, one axis at a time
 
 Say nothing and the grid holds its own sort, page, selection, grouping and column layout in fields and

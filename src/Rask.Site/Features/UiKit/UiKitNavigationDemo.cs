@@ -16,7 +16,8 @@ public sealed partial class UiKitNavigationDemo : Component
     [
         TabsSection(),
         TabGroupSection(),
-        MenuStepsAndDockSection()
+        MenuStepsAndDockSection(),
+        PaginationSection()
     ];
 
     private static Component TabsSection() =>
@@ -70,7 +71,7 @@ public sealed partial class UiKitNavigationDemo : Component
 
     private static Component MenuStepsAndDockSection() =>
         Section(
-            "Nav list, steps, breadcrumbs, pagination and the dock",
+            "Nav list, steps, breadcrumbs and the dock",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
                 Ui.Navlist[
@@ -89,16 +90,15 @@ public sealed partial class UiKitNavigationDemo : Component
                     Ui.BreadcrumbsItem.Key("home").Href("#home")["Home"],
                     Ui.BreadcrumbsItem.Key("orders").Href("#orders")["Orders"],
                     Ui.BreadcrumbsItem.Key("order")["ord_18f"]
-                ],
-                // Pages as links: each is the address that page lives at, so it can be shared and answers
-                // the back button. The page you are on is not a link either — it says aria-current instead.
-                Div.Data(Testid("ui-pagination-links"))[
-                    Ui.Pagination
-                        .Pages(4)
-                        .Current(1)
-                        .Href(page => PageMeta.LinkTo(Routes.UiKitNavigationPage() with { QueryString = $"?page={page}" }))
                 ]
             ]);
+
+    private static Component PaginationSection() =>
+        Section(
+            "Pagination",
+            "Flux's pager: a summary, Previous and Next, and the pages numbered where there is room. Buttons "
+            + "that report the page chosen, or links where each page has an address.",
+            UiKitPaginationDemo);
 
     private static AttrBag Testid(string value) => new("testid", value);
 

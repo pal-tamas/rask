@@ -14,7 +14,7 @@ public sealed partial class UiKitNavigationPage : Component
         PageMeta.For(
             "Tabs, nav lists, steps and breadcrumbs in C# — Rask",
             "Navigation components in C#: tabs that are real links, a nav list, steps, breadcrumbs and "
-            + "pagination, with no state held in C#.",
+            + "Flux UI's pagination.",
             Routes.UiKitNavigationPage());
 
     /// <inheritdoc />
@@ -28,8 +28,9 @@ public sealed partial class UiKitNavigationPage : Component
             "opens from a button is Ui.Navmenu in a Ui.Dropdown, on the Actions page."
         ],
         CodeSample
-            .Files(["UiKitNavigationDemo.cs"])
-            .Notes("Nothing on this page has to hold state in C#: every tab, crumb and page number is an <a href>.")
+            .Files(["UiKitNavigationDemo.cs", "UiKitPaginationDemo.cs"])
+            .Notes("Nothing on this page has to hold state in C#: every tab and crumb is an <a href>. The pagers "
+                + "are the one exception: each keeps the page it is on in a field.")
             .Result(UiKitNavigationDemo),
         H2.Class("text-2xl font-bold mt-10 mb-1")["Flux navigation"],
         P.Class("text-ui-muted")[

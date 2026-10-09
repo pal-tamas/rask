@@ -43,6 +43,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
         CardsFiguresEmptySection(),
         ChartSection(),
         TableSection(),
+        TimelineSection(),
         RestOfCategorySection()
     ];
 
@@ -232,6 +233,13 @@ public sealed partial class UiKitDataDisplayDemo : Component
                     ]
                 ]
             ]);
+
+    private static Component TimelineSection() =>
+        Section(
+            "Timeline",
+            "Flux's timeline: events or steps in order, down the page or across it, with the line drawn "
+            + "between their indicators. A list, so there is nothing to hold in C#.",
+            UiKitTimelineDemo);
 
     private static Component RestOfCategorySection() =>
         Section(

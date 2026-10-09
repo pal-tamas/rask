@@ -133,7 +133,6 @@ public sealed class LogsPageTests
 
         Assert.Contains("page=2", html, StringComparison.Ordinal);
         Assert.Contains("aria-current=\"page\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("join-item btn\" disabled", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,7 +151,7 @@ public sealed class LogsPageTests
 
         // Newest first, two to a page: the third and last page holds the oldest entry, and says it is current.
         Assert.Contains("entry 0", html, StringComparison.Ordinal);
-        Assert.Contains(">3</span>", html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\">3</div>", html, StringComparison.Ordinal);
     }
 
     // ── The query-string → store-query mapping ──────────────────────────────────────────────────────

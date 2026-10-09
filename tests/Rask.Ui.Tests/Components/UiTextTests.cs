@@ -12,7 +12,7 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
 
         var html = text.ToHtml();
 
-        Assert.Equal("<p class=\"text-sm text-zinc-500 dark:text-white/70\" data-ui-text>Body</p>", html);
+        Assert.Equal("<p class=\"text-sm text-zinc-500 dark:text-white/70 [:where(&amp;)]:font-normal\" data-ui-text>Body</p>", html);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
 
         var html = text.ToHtml();
 
-        Assert.Contains("\"text-sm " + expected + "\"", html, StringComparison.Ordinal);
+        Assert.Contains("\"text-sm " + expected + " ", html, StringComparison.Ordinal);
     }
 
     [Theory]

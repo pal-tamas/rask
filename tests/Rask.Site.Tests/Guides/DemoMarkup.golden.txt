@@ -3444,7 +3444,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .flex .flex-col
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead
@@ -3500,7 +3500,7 @@ span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
 div .-mx-[calc(var(--ui-bleed-x)&#x2B;1px)] .first:-mt-[calc(var(--ui-bleed-top)&#x2B;1px)] .first:rounded-t-[calc(var(--ui-bleed-top-radius)&#x2B;1px)] .last:-mb-[calc(var(--ui-bleed-bottom)&#x2B;1px)] .last:rounded-b-[calc(var(--ui-bleed-bottom-radius)&#x2B;1px)] .overflow-hidden
-div .flex .flex-col
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
 table .[&amp;_tbody_tr:hover]:bg-ui-well .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead .bg-ui-well
@@ -3800,7 +3800,7 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
 div .block .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .flex .flex-col .mt-2
+div .*:data-ui-pagination:shrink-0 .flex .flex-col .mt-2
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead
@@ -3868,7 +3868,7 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .flex .flex-col
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead
@@ -3936,7 +3936,7 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
 form .flex .flex-col .gap-3
-div .flex .flex-col
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead
@@ -4682,7 +4682,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-div .flex .flex-col
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
 table .border-separate .border-spacing-0 .isolate .min-w-full .table-fixed .text-zinc-800 .whitespace-nowrap
 thead

@@ -188,7 +188,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline` today, plus the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -369,7 +369,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   the floating example. The Dashboard's queue sheet writes two layout
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, the heading/text lines whose variant was
-  not looked up — its switches are the real `Ui.Switch` now), table page (avatar, the dropdown and menu around the row button, pager), progress page
+  not looked up — its switches are the real `Ui.Switch` now), table page (avatar, the dropdown and menu around the row button — its pager is the real `Ui.Pagination` now), timeline page (the avatars, the reaction button and the composer of the comment thread), progress page
   (none: its slider is the real `Ui.Slider` now), dropdown page (the profile trigger and the two icon-only triggers,
   whose icon the snippets do not name). The field page's inputs and select and the input page's buttons are real
   now; the input page's `flux:select` inside a group is still a stand-in.
@@ -582,6 +582,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
 | Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
+| Pagination `scroll-to` | root `data-rask-scroll-to="<selector>"` (`rask-scroll.ts`) | a press on a button or link inside brings the selector's element into view; the press still runs |
 
 Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
 resumes the remainder (shown 1000 ms, hovered 3000 ms, gone 4359 ms after the pointer left; 5390 would be a
@@ -634,6 +635,19 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   **Round two built both**: the hook measures with `data-rask-measuring` on the stack (write the cutting rule
   as `[data-rask-stack]:not([data-rask-measuring]):not(:hover) > * > .card { height: var(--rask-stack-front) }`)
   and writes `--rask-stack-front` on every child. The component is still to be converted.
+
+- Pagination (2026-10-08): `UiPaginator` (`Page`, `PerPage`, `Total`, `HasMore`) stands in for the Laravel paginator
+  Flux's `paginator` prop is handed. ARIA is Flux's live DOM and differs between the two forms: a COUNTED pager
+  names its steps `aria-label="&laquo; Previous"` / `"Next &raquo;"` — the entity unresolved, which is what Flux's
+  DOM says — and a spent one is a `<div aria-disabled="true">`; the SIMPLE pager writes no `aria-label` and its
+  spent step is a bare `<div>`. The numbers show once the pager's OWN box is 640px (`@container`), which Flux's
+  606px previews never reach, so `parity.mjs pagination` compares the narrow form and `UiPaginationTests` holds
+  the numbered one. `PaginationParity` writes "1 to 75 of" over the large example's summary: Flux's demo data
+  is not a list a paginator could describe. Flux's "Scroll to top" section renders no example, so `ScrollTo`
+  (`data-rask-scroll-to`) is built on the Reference and pinned by `RuntimeHookScrollTests`.
+- Timeline (2026-10-08): the track is CSS in `ui.css` (one grid, a subgrid per item); daisyUI's component of
+  that name is kept out of the sheet by `exclude: … timeline` on the `@plugin` line, as the tooltip's is.
+  `Ui.Color`'s five greys are `Translations` rows on the indicator and draw the plain one.
 
 ## One stylesheet per app (merged 2026-10-07)
 - `Styles/ui.css` is the kit as Tailwind SOURCE (theme, `dark` variant, daisyUI, the `@layer rask` blocks):

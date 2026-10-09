@@ -27,6 +27,7 @@ import "./rask-toast.js";    // data-rask-dismiss-scope, data-rask-stack
 import "./rask-leave.js";    // data-rask-confirm-leave
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
+import "./rask-scroll.js";   // data-rask-scroll-to
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

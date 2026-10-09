@@ -546,7 +546,7 @@ out-specified it.
 `Ui.TableColumn` per heading, and `Ui.TableRows` holds a `Ui.TableRow` of `Ui.TableCell`s per record.
 
 ```csharp
-Ui.Table.Paginate(Ui.Pagination.Pages(pages).Current(page).OnPage(Go))[
+Ui.Table.Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = 10, Total = total }).OnPage(Go))[
     Ui.TableColumns[
         Ui.TableColumn["Customer"],
         Ui.TableColumn.Sortable().Sorted(sortBy == "date").Direction(direction).OnSort(() => Sort("date"))["Date"],
@@ -815,6 +815,151 @@ what the element does.) `subscript`, `superscript` and `highlight` are held to F
 Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
 `superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
 icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
+
+## Pagination
+
+`Ui.Pagination` is Flux UI's `flux:pagination`. Flux hands it a Laravel paginator; Rask hands it a
+`UiPaginator`, which is what a paginator knows: the page being shown (counted from one), how many
+results a page holds, and how many there are in all.
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = _page, PerPage = 15, Total = orders.Total })
+    .OnPage(page => _page = page)
+```
+
+It draws a summary — "Showing 16 to 30 of 240 results" — and the pager: Previous, Next and the pages
+between them. Below fourteen pages every page is numbered. From fourteen it numbers the first two, the
+last two and the current page with three either side, and writes `...` where pages are left out; within
+seven pages of either end the window holds ten pages from that end instead, so the pager does not shrink
+as you approach it. The numbers need room: the pager measures its **own** width (a container query, not
+the viewport), and under 640px draws Previous and Next alone, as 32px targets on a phone.
+
+**The simple paginator.** Leave `Total` out for a list too large to count. There is no summary and no
+numbers, only Previous and Next, and `HasMore` says whether Next leads anywhere:
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = _page, PerPage = 15, HasMore = rows.Count > 15 })
+    .OnPage(page => _page = page)
+```
+
+**Buttons or links.** With `OnPage` each page is a `<button>` that reports the page chosen. With `Href`
+each is a link to where that page lives — shareable, bookmarkable, working before the runtime boots —
+and `OnPage` is not called:
+
+```csharp
+Ui.Pagination
+    .Paginator(new UiPaginator { Page = Page ?? 1, PerPage = 25, Total = total })
+    .Href(page => Routes.LogsPage(Page: page))
+```
+
+That is how the page goes in the **query string**. A generated route (`Routes.LogsPage(…)`, or one `with
+{ QueryString = $"?page={page}" }`) is an in-app link and takes the app's path base, so it is right
+wherever the app is mounted. A string — `.Href(page => $"/logs?page={page}")` — is an ordinary `<a>`
+written exactly as given, with no path base added: the rule every linking component of the kit follows.
+
+**Paging on the server.** The pager pages nothing itself: ask the store for one page and for the count,
+and hand it the three numbers.
+
+```csharp
+var total = await Orders.Count();
+var rows = await Orders.OrderBy(o => o.Date).Skip((page - 1) * PerPage).Take(PerPage).ToList();
+
+Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = PerPage, Total = total }).OnPage(Load)
+```
+
+**Under a table.** `Ui.Table.Paginate(…)` takes the pager and draws it where Flux does — under the rows,
+outside the scroll area, full width with its rule above — and it keeps its height when the box scrolls:
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Load)).Id("orders")[ … ]
+```
+
+**Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
+paginator's `PerPage`, and the choice is a `Ui.Select` of your own beside the pager. Go back to the first
+page when it changes — the page you were on may not exist any more.
+
+```csharp
+Div.Class("flex items-center justify-between gap-4")[
+    Ui.Select.Value(_perPage).OnChange(size => { _perPage = size; _page = 1; }).Sm.Class("w-24")[
+        Ui.SelectOption.Value(10)["10"],
+        Ui.SelectOption.Value(25)["25"],
+        Ui.SelectOption.Value(50)["50"]
+    ],
+    Ui.Pagination
+        .Paginator(new UiPaginator { Page = _page, PerPage = _perPage, Total = total })
+        .OnPage(page => _page = page)
+        .Class("flex-1")
+]
+```
+
+Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
+is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
+
+The names are Flux's, exactly. A counted pager labels its arrows `&laquo; Previous` and `Next &raquo;` —
+the entity as text, which is what Flux's own page carries. The simple paginator's arrows carry no label,
+and its spent arrow says nothing at all; a test finds them by position.
+
+**`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long
+table: `.ScrollTo("body")` for the top of the document, `.ScrollTo("#orders")` for the table. It is a
+CSS selector, written as `data-rask-scroll-to` for the runtime, which scrolls on a press of any button
+or link inside the pager.
+
+## Timeline
+
+`Ui.Timeline` is Flux UI's `flux:timeline`: events or steps in order, with a line drawn between their
+indicators. Each `Ui.TimelineItem` holds a `Ui.TimelineIndicator` — an icon, a number, a word — and a
+`Ui.TimelineContent` beside it.
+
+```csharp
+Ui.Timeline[
+    Ui.TimelineItem[
+        Ui.TimelineIndicator[Ui.Icon.Name(Ui.IconName.Eye).Micro],
+        Ui.TimelineContent["curtisss requested a review · 4 days ago"]
+    ],
+    Ui.TimelineItem[
+        Ui.TimelineIndicator.Color(Ui.Color.Green)[Ui.Icon.Name(Ui.IconName.Check).Micro],
+        Ui.TimelineContent["james_rob approved these changes"]
+    ]
+]
+```
+
+| | |
+| --- | --- |
+| `Ui.Timeline.Horizontal()` | Across the page: indicators in a row, the content under each. |
+| `Ui.Timeline.Lg` | 48px indicators on a 2px line with wider gaps, for numbered steps. `Ui.TimelineItem.Lg` enlarges one indicator. |
+| `.Start` `.Baseline` `.Center` `.End` | Where the content sits beside its indicator (`Ui.TimelineAlign`; centre by default). On the timeline for every item, on an item for itself. |
+| `Ui.TimelineItem.Complete` `.Current` `.Incomplete` | Progress (`Ui.TimelineStatus`): a filled indicator and a dark line on to the next item; a dark ring; a faint ring with the content dimmed. `Ui.TimelineIndicator.Status(…)` overrides the item's for the indicator alone. |
+| `Ui.TimelineIndicator.Color(Ui.Color.Red)` | A coloured circle, in any of the seventeen hues. A status is drawn instead of a colour. |
+| `Ui.TimelineIndicator.Bare` | No circle and no size: a larger icon standing on its own. |
+
+**A block instead of an indicator.** `Ui.TimelineBlock` makes an item of a card or a callout, spanning
+the timeline's width with the line running into it and out again. Inside one, `Ui.TimelineSubgrid` puts
+its first child back in the indicators' column and its second in the content's — a comment thread whose
+avatars line up with the events around it:
+
+```csharp
+Ui.TimelineItem[
+    Ui.TimelineBlock.Class("rounded-xl border overflow-hidden")[
+        Ui.TimelineSubgrid.Class("p-3")[avatar, comment],
+        Ui.TimelineSubgrid.Class("p-3")[avatar, replyBox]
+    ]
+]
+```
+
+**Baseline alignment** lines the content's first line up with the indicator's text. An indicator
+holding an icon has no text, so every indicator carries a hidden, empty first line
+(`data-ui-timeline-baseline`) to stand in for it. Give that line the content's font size when it is not
+the default: `Ui.TimelineItem.Baseline.Class("[&_[data-ui-timeline-baseline]]:text-2xl")`.
+
+**Spacing** is two CSS variables on the timeline: `--ui-timeline-item-gap` between items and
+`--ui-timeline-content-gap` between an indicator and its content — Flux's `--flux-timeline-item-gap` and
+`--flux-timeline-content-gap`:
+
+```csharp
+Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[ … ]
+```
 
 ## Buttons and links that go somewhere
 
@@ -1092,7 +1237,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | | |
 | --- | --- |
 | **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.Tabs` `Ui.Tab` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
 | **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileInput` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
@@ -1100,7 +1245,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
 | **Chrome** | `Ui.Grid` `Ui.MetricRow` `Ui.Metric` `Ui.DetailList` `Ui.DetailRow` `Ui.Code` `Ui.Search` |
-| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
+| **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `UiPaginator`, `Ui.Breakpoint`, `UiStyles`, `UiStylesheet` |
 
 ## Who owns the state
 

@@ -46,7 +46,7 @@
   background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
 
   exclude rootscrollgutter, which paints the document for its own reasons — and the components the kit has
-  replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle).
+  replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle, the old vertical track).
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
   scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
@@ -71,7 +71,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range;
+  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline;
 }
 
 @theme {
@@ -1801,5 +1801,328 @@
     height: 0;
     color: rgb(161 161 170);
     pointer-events: none;
+  }
+}
+
+/*
+  FLUX'S TIMELINE (UiTimeline and its parts) — the track, which no utility can say.
+
+  One grid for the whole list and a subgrid per item, so every indicator shares a column however wide the
+  widest is, and a block item can span them all and still hand the columns on to a UiTimelineSubgrid. An item
+  is five tracks along the timeline — line, slack, indicator, slack, line — and `align` decides which slack
+  takes the spare room. The alignment travels as variables rather than selectors: a timeline states them, an
+  item that names its own restates them, and inheritance does the rest.
+
+  The lines are siblings' business: an item hides the one leading into the first and out of the last, and a
+  complete item darkens its own trailing line AND the next item's leading one. Size `lg` thickens the lines
+  and closes the 4px gap beside the indicator; it also paints them zinc-100 in both schemes, as Flux does.
+
+  What an indicator looks like — size, fill, status, colour — is classes on the indicator (UiTimelineIndicator).
+
+  --ui-timeline-item-gap and --ui-timeline-content-gap are the call site's to set, as Flux's
+  --flux-timeline-item-gap and --flux-timeline-content-gap are.
+*/
+@layer rask {
+  [data-ui-timeline] {
+    --ui-timeline-item-gap: 1rem;
+    --ui-timeline-content-gap: 0.75rem;
+    --ui-timeline-indicator-size: 2rem;
+    --ui-timeline-line: 1px;
+    --ui-timeline-line-gap: 4px;
+    display: grid;
+    grid-template-columns: 0px auto var(--ui-timeline-content-gap) 1fr;
+  }
+
+  /* A block runs edge to edge; the indicators step in from it. */
+  [data-ui-timeline]:has(> [data-ui-timeline-item] > [data-ui-timeline-block]) {
+    grid-template-columns: 0.75rem auto var(--ui-timeline-content-gap) 1fr;
+  }
+
+  [data-ui-timeline][data-ui-timeline-size="lg"] {
+    --ui-timeline-item-gap: 2rem;
+    --ui-timeline-content-gap: 1rem;
+    --ui-timeline-indicator-size: 3rem;
+    --ui-timeline-line: 2px;
+    --ui-timeline-line-gap: 0px;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] {
+    --ui-timeline-item-gap: 1rem;
+    --ui-timeline-content-gap: 0.5rem;
+    grid-template-columns: none;
+    grid-template-rows: auto var(--ui-timeline-content-gap) 1fr;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal][data-ui-timeline-size="lg"] {
+    --ui-timeline-content-gap: 0.75rem;
+  }
+
+  [data-ui-timeline-item][data-ui-timeline-size="lg"] {
+    --ui-timeline-indicator-size: 3rem;
+  }
+
+  /* On the timeline for every item, on an item for itself. */
+  [data-ui-timeline-align="center"] {
+    --ui-timeline-tracks: auto 1fr auto 1fr auto;
+    --ui-timeline-content-align: center;
+    --ui-timeline-content-from: 2;
+    --ui-timeline-indicator-align: auto;
+  }
+
+  [data-ui-timeline-align="start"] {
+    --ui-timeline-tracks: auto auto auto 1fr auto;
+    --ui-timeline-content-align: start;
+    --ui-timeline-content-from: 2;
+    --ui-timeline-indicator-align: auto;
+  }
+
+  /* The indicator's hidden first line (data-ui-timeline-baseline) is what the content's first line meets. */
+  [data-ui-timeline-align="baseline"] {
+    --ui-timeline-tracks: auto auto auto 1fr auto;
+    --ui-timeline-content-align: baseline;
+    --ui-timeline-content-from: 3;
+    --ui-timeline-indicator-align: baseline;
+  }
+
+  [data-ui-timeline-align="end"] {
+    --ui-timeline-tracks: auto 1fr auto auto auto;
+    --ui-timeline-content-align: end;
+    --ui-timeline-content-from: 2;
+    --ui-timeline-indicator-align: auto;
+  }
+
+  /* Across the page there is no first line to meet, so baseline reads as start. */
+  [data-ui-timeline][data-ui-timeline-horizontal][data-ui-timeline-align="baseline"],
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item][data-ui-timeline-align="baseline"] {
+    --ui-timeline-content-align: start;
+  }
+
+  /* ---- down the page ---- */
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-template-rows: var(--ui-timeline-tracks);
+    grid-column: 2 / -1;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-line-leading] {
+    grid-column-start: 1;
+    grid-row: 1 / 3;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:not(:first-child) > [data-ui-timeline-line-leading] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-line-trailing] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: end;
+    grid-column-start: 1;
+    grid-row: 4 / -1;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:not(:first-child) > [data-ui-timeline-line-leading] > div,
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-line-trailing] > div {
+    width: var(--ui-timeline-line);
+    height: calc(100% - var(--ui-timeline-line-gap));
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-gap-leading] {
+    grid-column-start: 3;
+    grid-row-start: 1;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-gap-trailing] {
+    grid-column-start: 3;
+    grid-row-start: 5;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-indicator] {
+    grid-column-start: 1;
+    grid-row-start: 3;
+    justify-self: center;
+    align-self: var(--ui-timeline-indicator-align);
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item] > [data-ui-timeline-content] {
+    min-width: 0;
+    grid-column-start: 3;
+    grid-row: var(--ui-timeline-content-from) / 5;
+    align-self: var(--ui-timeline-content-align);
+  }
+
+  /* A block item: no indicator column of its own, a full gap above and below, and lines that reach the block. */
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:has(> [data-ui-timeline-block]) {
+    grid-column: 1 / -1;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:has(> [data-ui-timeline-block]) > [data-ui-timeline-line-leading] {
+    grid-column-start: 2;
+    grid-row: 1 / 2;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:has(> [data-ui-timeline-block]) > [data-ui-timeline-line-trailing] {
+    grid-column-start: 2;
+    grid-row: 5 / -1;
+  }
+
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:has(> [data-ui-timeline-block]):not(:first-child) > [data-ui-timeline-line-leading] > div,
+  [data-ui-timeline]:not([data-ui-timeline-horizontal]) > [data-ui-timeline-item]:has(> [data-ui-timeline-block]) > [data-ui-timeline-line-trailing] > div {
+    height: 100%;
+  }
+
+  [data-ui-timeline-item]:has(> [data-ui-timeline-block]) > [data-ui-timeline-gap-leading],
+  [data-ui-timeline-item]:has(> [data-ui-timeline-block]) > [data-ui-timeline-gap-trailing] {
+    height: var(--ui-timeline-item-gap);
+  }
+
+  /* ---- across it ---- */
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] {
+    display: grid;
+    grid-template-columns: var(--ui-timeline-tracks);
+    grid-template-rows: subgrid;
+    grid-row: 1 / -1;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-line-leading] {
+    grid-column: 1 / 3;
+    grid-row-start: 1;
+    justify-self: stretch;
+    align-items: start;
+    justify-content: center;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item]:not(:first-child) > [data-ui-timeline-line-leading] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-line-trailing] {
+    display: flex;
+    flex-direction: column;
+    grid-column: 4 / -1;
+    grid-row-start: 1;
+    justify-self: stretch;
+    align-items: end;
+    justify-content: center;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-line-leading] > div,
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-line-trailing] > div {
+    width: calc(100% - var(--ui-timeline-line-gap));
+    height: var(--ui-timeline-line);
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-gap-leading] {
+    grid-column-start: 1;
+    grid-row-start: 3;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-gap-trailing] {
+    grid-column-start: 5;
+    grid-row-start: 3;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item]:not(:first-child) > [data-ui-timeline-gap-leading],
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item]:not(:last-child) > [data-ui-timeline-gap-trailing] {
+    min-width: calc(var(--ui-timeline-item-gap) / 2);
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-indicator] {
+    grid-column-start: 3;
+    grid-row-start: 1;
+    align-self: center;
+  }
+
+  [data-ui-timeline][data-ui-timeline-horizontal] > [data-ui-timeline-item] > [data-ui-timeline-content] {
+    min-width: 0;
+    grid-column: 2 / 5;
+    grid-row-start: 3;
+    justify-self: var(--ui-timeline-content-align);
+  }
+
+  /* ---- either way ---- */
+  [data-ui-timeline-item]:first-child > [data-ui-timeline-line-leading],
+  [data-ui-timeline-item]:last-child > [data-ui-timeline-line-trailing] {
+    opacity: 0;
+  }
+
+  [data-ui-timeline-item]:not(:first-child) > [data-ui-timeline-gap-leading],
+  [data-ui-timeline-item]:not(:last-child) > [data-ui-timeline-gap-trailing] {
+    min-height: calc(var(--ui-timeline-item-gap) / 2);
+  }
+
+  [data-ui-timeline-line-leading] > div,
+  [data-ui-timeline-line-trailing] > div {
+    background-color: var(--color-zinc-200);
+
+    @variant dark {
+      background-color: var(--color-zinc-700);
+    }
+  }
+
+  [data-ui-timeline-item][data-ui-timeline-status="complete"] > [data-ui-timeline-line-trailing] > div,
+  [data-ui-timeline-item][data-ui-timeline-status="complete"] + [data-ui-timeline-item] > [data-ui-timeline-line-leading] > div {
+    background-color: var(--color-zinc-800);
+
+    @variant dark {
+      background-color: var(--color-white);
+    }
+  }
+
+  [data-ui-timeline-item][data-ui-timeline-status="incomplete"] > [data-ui-timeline-content] {
+    opacity: 0.75;
+  }
+
+  /* The indicator's content and its hidden first line share one cell. */
+  [data-ui-timeline-indicator] > * {
+    grid-column-start: 1;
+    grid-row-start: 1;
+  }
+
+  [data-ui-timeline-baseline] {
+    opacity: 0;
+  }
+
+  [data-ui-timeline-block] {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    grid-row: 2 / 5;
+  }
+
+  [data-ui-timeline-block] > * {
+    grid-column: 1 / -1;
+  }
+
+  /* Back onto the timeline's columns: the first child under the indicators, the second under the content. */
+  [data-ui-timeline-subgrid] {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  [data-ui-timeline-subgrid] > :first-child {
+    grid-column-start: 2;
+    justify-self: center;
+  }
+
+  [data-ui-timeline-subgrid] > :nth-child(2) {
+    grid-column-start: 4;
+  }
+}
+
+/*
+  Flux's large timeline draws its lines zinc-100 whatever the scheme and whatever an item's status. Last, and
+  as specific as the complete rule above, so source order is what lets it win.
+*/
+@layer rask {
+  [data-ui-timeline][data-ui-timeline-size="lg"] > [data-ui-timeline-item] > [data-ui-timeline-line-leading] > div,
+  [data-ui-timeline][data-ui-timeline-size="lg"] > [data-ui-timeline-item] > [data-ui-timeline-line-trailing] > div {
+    background-color: var(--color-zinc-100);
   }
 }

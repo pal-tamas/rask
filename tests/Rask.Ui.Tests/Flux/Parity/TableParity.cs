@@ -6,8 +6,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     A table's cells hold OTHER Flux components — avatars, badges, a row menu — and its page sets it in a
-///     card and under a pager. The card, its heading and text, and every button are the real ones. The avatar,
-///     the badge, the dropdown around a row's button and the pager are not rebuilt yet, so each is a plain box
+///     card and under a pager. The card, its heading and text, the pager and every button are the real ones.
+///     The avatar, the badge and the dropdown around a row's button are not rebuilt yet, so each is a plain box
 ///     marked <c>data-parity-skip</c>: the comparison holds it to the room it takes and looks no further.
 ///     Everything that is the table's own is compared whole.
 ///     </para>
@@ -246,10 +246,9 @@ public sealed partial class TableParity : FluxParity
             Div.Style("display:none").Attributes(("data-ui-menu", ""), ("data-parity-skip", ""))
         ];
 
-    // flux:pagination: a stand-in. The table places it; the pager draws itself.
-    private static Component Pager() =>
-        Div.Style("display:flex;flex-shrink:0;align-items:center;justify-content:space-between;height:41px;padding-top:12px;border-top:1px solid #f4f4f5;font-size:12px")
-            .Attributes(("data-ui-pagination", ""), ("data-parity-skip", ""))["Showing 1 to 5 of 24 results"];
+    // flux:pagination, as the docs page's table is handed it: 24 orders, five to a page.
+    private static UiPagination Pager() =>
+        Ui.Pagination.Paginator(new UiPaginator { Page = 1, PerPage = 5, Total = 24 });
 
     private sealed record Order(string Customer, string Date, string Status, string Amount, int Id = 0, string Email = "");
 }
