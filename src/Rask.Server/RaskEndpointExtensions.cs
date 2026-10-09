@@ -2020,10 +2020,12 @@ public static partial class RaskEndpointExtensions
             return new FrameOutcome(FrameStatus.Handled, null);
         }
 
-        var handlerId = root.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
-            ? idEl.GetString()
-            : null;
-        if (handlerId is null)
+        if (hasType && type.ValueEquals("batch"u8))
+        {
+            return ProcessBatch(session, root, payloadLength, store, limits, metrics, ct);
+        }
+
+        if (EventBatch.HandlerIdOf(root) is not { } handlerId)
         {
             return new FrameOutcome(FrameStatus.Handled, null);
         }
@@ -2053,6 +2055,63 @@ public static partial class RaskEndpointExtensions
             session,
             handlerId,
             capturedRoot,
+            payloadBytes,
+            metrics,
+            limits.HandlerTimeout,
+            ct));
+
+        return new FrameOutcome(FrameStatus.Handled, null);
+    }
+
+    // The events one browser task produced, in one frame: every handler runs in the order its event happened,
+    // each seeing what the one before left, and the page is rendered ONCE after the last. A link of its own on
+    // the handler chain, so it keeps arrival order with the frames around it exactly as a single event does.
+    private static FrameOutcome ProcessBatch(
+        LiveSession session,
+        JsonElement root,
+        int payloadLength,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        RaskMetrics? metrics,
+        CancellationToken ct)
+    {
+        if (!root.TryGetProperty("events", out var events) || events.ValueKind != JsonValueKind.Array)
+        {
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        var count = EventBatch.CountEvents(events);
+        if (count == 0)
+        {
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        // A batch is one frame to the transport's rate cap, so what it carries is counted here: framing a flood
+        // as batches must not multiply how many handlers a client may run in a second.
+        if (count > EventBatch.MaxEvents
+            || (limits.MaxInboundFramesPerSecond > 0
+                && !session.AdmitBatchedEvents(count, limits.MaxInboundFramesPerSecond)))
+        {
+            metrics?.FrameRejected("rate");
+            return new FrameOutcome(FrameStatus.Refused, "event batch");
+        }
+
+        // ONE dispatch to the backlog caps, which bound what is queued: a batch is one link on the chain and one
+        // cloned payload, however many events it carries. Counted per event, a page of sixty charts would trip a
+        // host whose cap is lower than sixty, where sixty frames run one after another never did.
+        var payloadBytes = (long)payloadLength;
+        if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
+        {
+            return new FrameOutcome(FrameStatus.Refused, "handler backlog");
+        }
+
+        var capturedEvents = events.Clone();
+        session.EnqueueOnHandlerChain(previous => ChainBatchDispatchAsync(
+            previous,
+            store,
+            session,
+            capturedEvents,
+            count,
             payloadBytes,
             metrics,
             limits.HandlerTimeout,
@@ -2398,6 +2457,145 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    // One batch's link on the handler chain. The session's lock is held from the first event to the render after
+    // the last: nothing else of this session — a navigation, a timer's render — runs between two of its events,
+    // which is also what leaves the handler ids the browser sent meaning what they meant when it sent them.
+    private static async Task ChainBatchDispatchAsync(
+        Task previous,
+        LiveSessionStore store,
+        LiveSession session,
+        JsonElement events,
+        int count,
+        long payloadBytes,
+        RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
+        CancellationToken ct)
+    {
+        try
+        {
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+            var acked = await DispatchBatchAsync(session, events, count, metrics, handlerTimeout, ct)
+                .ConfigureAwait(false);
+
+            // One ack, for the newest event: the client reads an ack for seq N as every seq up to N being done,
+            // and it is sent after the render that answers them all.
+            if (acked >= 0)
+            {
+                await SendHandlerAckAsync(session, acked).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            session.DecrementPendingHandlers();
+            store.HandlerDequeued();
+            session.SubtractPendingHandlerBytes(payloadBytes);
+        }
+    }
+
+    // Runs a batch's handlers in order under one hold of the session's lock, and answers the newest seq it saw.
+    private static async Task<long> DispatchBatchAsync(
+        LiveSession session,
+        JsonElement events,
+        int count,
+        RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
+        CancellationToken ct)
+    {
+        long acked = -1;
+        if (!await EnterSessionAsync(session, ct).ConfigureAwait(false))
+        {
+            return acked;
+        }
+
+        try
+        {
+            var remaining = count;
+            foreach (var e in events.EnumerateArray())
+            {
+                if (EventBatch.HandlerIdOf(e) is not { } handlerId)
+                {
+                    continue;
+                }
+
+                var last = --remaining == 0;
+                acked = Math.Max(acked, SeqOf(e));
+
+                // A sign-in one of them started has handed the browser to a reconnect: what follows is dropped,
+                // as the frames after a sign-in's are.
+                if (!session.SuppressEventsUntilReconnect)
+                {
+                    await DispatchBatchedAsync(session, handlerId, e, last, metrics, handlerTimeout, ct)
+                        .ConfigureAwait(false);
+                }
+            }
+        }
+        finally
+        {
+            session.EndBatch();
+            session.InHandlerScope = false;
+            session.Lock.Release();
+            _ = session.DrainRenderRequestedAfterScope();
+        }
+
+        return acked;
+    }
+
+    // One event of a batch, under the lock the batch holds.
+    private static async Task DispatchBatchedAsync(
+        LiveSession session,
+        string handlerId,
+        JsonElement root,
+        bool last,
+        RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
+        CancellationToken ct)
+    {
+        // A render made now would rebuild this handler — an earlier event of the batch dirtied its component or
+        // one above it — so the page is rendered first and the handler that runs is the one that render
+        // registers, exactly as when each event was a frame of its own.
+        if (session.RenderOwed && !session.HandlerOutlivesRender(handlerId))
+        {
+            await RenderOwedAsync(session, metrics).ConfigureAwait(false);
+        }
+
+        await RunInSessionAsync(
+            session,
+            "rask.handler.dispatch",
+            handlerId,
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            metrics,
+            handlerTimeout,
+            lockHeld: true,
+            deferRender: !last,
+            ct).ConfigureAwait(false);
+
+        // The last handler ran nothing, or threw: what the ones before it changed is still to be shown.
+        if (last && session.RenderOwed)
+        {
+            await RenderOwedAsync(session, metrics).ConfigureAwait(false);
+        }
+    }
+
+    private static long SeqOf(JsonElement e) =>
+        e.TryGetProperty("seq", out var seqEl) && seqEl.ValueKind == JsonValueKind.Number && seqEl.TryGetInt64(out var seq)
+            ? seq
+            : -1;
+
+    // The render a batch owes, made on its own: between two of its events, or after a last one that rendered
+    // nothing. A fault in it is reported like a handler's, and the batch goes on.
+    private static async Task RenderOwedAsync(LiveSession session, RaskMetrics? metrics)
+    {
+        try
+        {
+            await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ReportHandlerFaulted(metrics, null, "batch render", ex);
+        }
+    }
+
     // Tiny out-of-band frame that closes the round-trip for a handler the client tagged
     // with a `seq`. Lets the browser's pending-action bar (rask.js) clear without the
     // server having to emit a render — the dedup path produces no frame, so the ack is
@@ -2443,6 +2641,8 @@ public static partial class RaskEndpointExtensions
             token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
             metrics,
             handlerTimeout,
+            lockHeld: false,
+            deferRender: false,
             ct);
 
     /// <summary>
@@ -2457,23 +2657,15 @@ public static partial class RaskEndpointExtensions
         Func<CancellationToken, ValueTask<bool>> invoke,
         RaskMetrics? metrics,
         TimeSpan handlerTimeout,
+        bool lockHeld,
+        bool deferRender,
         CancellationToken ct)
     {
-        if (session.IsDisposed)
+        // A batch holds the lock and the handler scope across all of its events (DispatchBatchAsync).
+        if (!lockHeld && !await EnterSessionAsync(session, ct).ConfigureAwait(false))
         {
             return;
         }
-
-        try
-        {
-            await session.Lock.WaitAsync(ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
-        {
-            return;
-        }
-
-        session.InHandlerScope = true;
 
         // The one gate every handler passes through, under the session lock —
         // so the session's services are ambient for exactly the work, and released when it ends.
@@ -2495,7 +2687,7 @@ public static partial class RaskEndpointExtensions
             try
             {
                 await InvokeHandlerAsync(
-                    session, navigator, authSignIn, ticketStore, invoke, handlerCts?.Token ?? default, ct)
+                    session, navigator, authSignIn, ticketStore, invoke, deferRender, handlerCts?.Token ?? default, ct)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -2512,11 +2704,36 @@ public static partial class RaskEndpointExtensions
         }
         finally
         {
-            session.InHandlerScope = false;
-            session.Lock.Release();
-            _ = session.DrainRenderRequestedAfterScope();
+            if (!lockHeld)
+            {
+                session.InHandlerScope = false;
+                session.Lock.Release();
+                _ = session.DrainRenderRequestedAfterScope();
+            }
+
             metrics?.RecordHandlerDuration(Stopwatch.GetElapsedTime(dispatchStart).TotalMilliseconds);
         }
+    }
+
+    // Takes the session's lock and opens the handler scope; false when the session is gone or the wait was cancelled.
+    private static async ValueTask<bool> EnterSessionAsync(LiveSession session, CancellationToken ct)
+    {
+        if (session.IsDisposed)
+        {
+            return false;
+        }
+
+        try
+        {
+            await session.Lock.WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            return false;
+        }
+
+        session.InHandlerScope = true;
+        return true;
     }
 
     // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
@@ -2546,6 +2763,7 @@ public static partial class RaskEndpointExtensions
         AuthSignIn authSignIn,
         IAuthTicketStore ticketStore,
         Func<CancellationToken, ValueTask<bool>> invoke,
+        bool deferRender,
         CancellationToken dispatchToken,
         CancellationToken ct)
     {
@@ -2573,6 +2791,14 @@ public static partial class RaskEndpointExtensions
 
             var authInstruction = TakeNavigation(
                 session, navigator, authSignIn, ticketStore, out var historyUrl, out var historyReplace);
+
+            // More of a batch follows, and this handler asked the browser to go nowhere: its render is left to the
+            // one the batch makes later. A navigation or a sign-in is sent now, as it always was.
+            if (deferRender && authInstruction is null && historyUrl is null)
+            {
+                session.OweRender();
+                return;
+            }
 
             await EnforceAuthAndRenderAsync(
                     session, historyUrl, historyReplace, authInstruction)

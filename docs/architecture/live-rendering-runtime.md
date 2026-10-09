@@ -101,6 +101,53 @@ across the awaited handler (`WasmLiveSession.cs`). The render walk is single-thr
 per session; `InHandlerScope` is a plain instance bool (deliberately *not* `AsyncLocal`)
 because the lock is owned by the session as a whole.
 
+### Events of one task: one frame, one render
+
+The events a browser task produces leave together. Sixty charts measured by one `ResizeObserver` callback
+announce sixty sizes in one task; a typed value flushed ahead of a click leaves with that click. Both clients
+hold handler events until the task ends (a microtask — `rask-batch.ts`) and send them as one frame:
+
+```json
+{"type":"batch","events":[{"id":"h4","type":"input","value":"150 50","seq":1}, …]}
+```
+
+An event alone in its task travels as the frame it always was, byte for byte. Anything that is not a handler
+event — a navigation, an interop reply — goes at once, *behind* whatever was waiting, so nothing overtakes an
+event that happened before it. At the end of the task rather than at the next animation frame: a click still
+leaves in the task it happened in, and no patch can land between an event being read off the page and its being
+sent.
+
+The session answers a batch under **one** hold of its lock (`ChainBatchDispatchAsync` on the Server, one link of
+the handler chain; `WasmLiveSession.DispatchBatchAsync` on WASM): the handlers run in the order their events
+happened, each seeing the state the one before it left, and the page is rendered once after the last. One ack
+goes back, for the newest `seq`, after that render — and on WASM the promise that holds typed text back resolves
+only then.
+
+**What a handler can tell stays as it was.** A render re-runs the components that are dirty and, through
+changed props, the ones below them; a component that runs again makes its handlers again, closing over what
+that render computed. So before each event of a batch the session asks whether a render made now would rebuild
+that handler (`Component.HandlerOutlivesRender`): is its component, or any component above it, dirty? If so the
+page is rendered first — exactly as when each event was a frame of its own — and the handler that runs is the
+one that render registers. Only a handler whose whole path to the root is clean runs ahead of the render. In
+practice: events that land in *different* components (charts, rows, cells that each own their state) are one
+render; events that land in the *same* component, or under one an earlier event dirtied, are rendered between,
+as before. These still render at once, mid-batch:
+
+- a handler that navigates or signs in or out — the frame with the address is sent before the next event runs;
+- a handler that awaits — the render made while it waits is sent as it always was (`RenderInScopeAsync`);
+- a handler that throws into an error boundary — the boundary is dirty, so the fallback is rendered before the
+  next event, which then finds no handler, as before.
+
+One thing does differ, and only for a handler that ran ahead of a render: side effects of *another*
+component's lifecycle hooks (`OnRendered`, a mount) that the skipped render would have run first have not
+happened yet when it runs. State the handlers themselves wrote is always there.
+
+A batch is bounded like the frames it replaces: at most 256 events (`EventBatch.MaxEvents`, what the client sends at
+most — the rest go in a frame of their own), and each event is counted against `MaxInboundFramesPerSecond`, so
+framing a flood as batches does not multiply how many handlers a client may run in a second. To
+`MaxPendingHandlers` and `MaxPendingHandlerBytes`, which bound what is queued, a batch is one dispatch of its
+frame's size. A longer batch ends the connection the way any tripped breaker does.
+
 ## Slow-connection affordances
 
 Both transports give honest feedback on a slow link without changing the fast-path

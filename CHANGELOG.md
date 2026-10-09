@@ -59,6 +59,25 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Events that arrive together are answered with one render.** Every client event used to be its own
+  dispatch, handler, walk of the page, diff and patch — so sixty charts measured by one `ResizeObserver` callback
+  were sixty renders of a page that needed one. Both client runtimes now hold the handler events a browser task
+  produces until that task ends and send them as ONE frame (`{"type":"batch","events":[…]}`, one WebSocket
+  message, one POST on the HTTP fallback, one JSExport call on WASM); the session runs their handlers in the
+  order the events happened, each seeing the state the one before it left, and renders once. An event alone in
+  its task is the frame it always was, byte for byte, and a navigation or an interop reply still goes at once,
+  behind whatever was waiting. What a handler can observe is unchanged: before each event of a batch the session
+  asks whether a render made now would rebuild that handler — its component, or one above it, is dirty — and if
+  so renders first, exactly as before. So events landing in different components (charts, rows, cells) are one
+  render, and events landing in the same component are rendered between, as they were; a handler that navigates,
+  signs in, awaits or throws into a boundary is still rendered at once. A page of sixty unsized 50-point charts
+  on a Server host: 60 frames out and 60 patches back → 1 and 1; plotted at its real size 1.06–3.46 s after
+  navigation (median 1.92 s) → 0.20–1.33 s (median 0.43 s), five runs each on a machine at load 80–110; the
+  same page in a WASM app (Debug, interpreted): 2.09 s → 0.58 s, sixty local renders → one. A batch
+  carries at most 256 events; its events count against `MaxInboundFramesPerSecond`, and it is one dispatch to
+  `MaxPendingHandlers`. A single live update still allocates 2,504 B (the exact gate), the wire-byte baselines
+  are unmoved. `docs/architecture/live-rendering-runtime.md` has the rules.
+
 - **A `Ui.Chart` is a third of the markup and a third of the work.** Every row used to carry its own strip, its
   own cursor and its own copy of the whole tooltip; there is one tooltip and one cursor now, and each part
   carries what it reads per row as one short line. Sixty charts of fifty points, with axes, a cursor and a
