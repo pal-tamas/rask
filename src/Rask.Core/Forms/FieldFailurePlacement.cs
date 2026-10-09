@@ -19,7 +19,9 @@ internal static class FieldFailurePlacement
     };
 
     /// <summary>Places every failure it can, and says whether each one has somewhere its message is read.</summary>
-    internal static bool Place(EditContext form, IFieldFailures failures) => Place(form, failures.Failures, null);
+    // An exception that names no failure has told the reader nothing, so it is not placed: it stays a fault.
+    internal static bool Place(EditContext form, IFieldFailures failures) =>
+        failures.Failures.Count > 0 && Place(form, failures.Failures, null);
 
     /// <summary>The same for what a check found before the save, remembered against the field whose commit asked.</summary>
     internal static bool Place(EditContext form, IReadOnlyList<FieldFailure> failures, FieldIdentifier? checkedFor)
