@@ -1333,9 +1333,18 @@ public abstract partial class SharedSmokeTests
         await itinerary.Locator("#bt-traveller").PressSequentiallyAsync("Ada");
         await itinerary.Locator("#bt-name").FillAsync("Porto");
         await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Ada”, “Porto” and “A long weekend.”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        // The chosen controls follow the same rule: the live switch is read back as it is flipped, and the
+        // list shows the cabin at once while the model hears it with the Save.
+        await itinerary.GetByLabel("Insured").CheckAsync();
+        await Expect(itinerary.Locator("#bt-choices")).ToHaveTextAsync("Cabin “”, insured: yes.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await itinerary.Locator("#bt-cabin").ClickAsync();
+        await itinerary.Locator("[data-ui-option]").Filter(new LocatorFilterOptions { HasText = "Business" }).ClickAsync();
+        await Expect(itinerary.Locator("#bt-cabin")).ToContainTextAsync("Business", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(itinerary.Locator("#bt-choices")).ToHaveTextAsync("Cabin “”, insured: yes.");
         await itinerary.Locator("#bt-name").PressAsync("Enter");
         await Expect(Page.GetByText("Saved: Porto, for Ada"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(itinerary.Locator("#bt-choices")).ToHaveTextAsync("Cabin “Business”, insured: yes.");
 
         // Validation: an empty submit surfaces [Required]; a valid submit reaches the success banner;
         // the async validator answers "taken" as the name is typed — its field is Live, so nothing is

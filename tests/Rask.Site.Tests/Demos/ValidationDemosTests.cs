@@ -61,6 +61,18 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
         Assert.Matches("<textarea[^>]*id=\"bt-notes\"[^>]*data-rask-bind-on=\"blur\"", html);
     }
 
+    [Fact]
+    public void BindTimingDemo_shows_a_list_that_waits_beside_a_switch_that_writes_as_it_is_flipped()
+    {
+        var html = new LiveHost(() => BindTimingDemo, TestServices.Default()).RenderAsLiveRoot();
+
+        var flip = System.Text.RegularExpressions.Regex.Match(html, "<input[^>]*id=\"bt-insured\"[^>]*>").Value;
+
+        Assert.Matches("<button[^>]*id=\"bt-cabin\"[^>]*data-ui-select-button", html);
+        Assert.Contains("data-rask-on-change", flip, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-bind-on", flip, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("", "A destination needs a name.")]
     [InlineData("9 lives", "A name starts with a letter.")]
