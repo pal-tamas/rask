@@ -19,7 +19,7 @@
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
 
-import {disown, isShown, listen, near, own, page, setShown} from "./rask-owned.js";
+import {disown, drive, isShown, listen, near, own, page, setShown, stands} from "./rask-owned.js";
 
 type Dialog = HTMLDialogElement & { requestClose?: (value?: string) => void; closedBy?: string };
 
@@ -123,17 +123,18 @@ function dismiss(dialog: Dialog): void {
 const opened = new WeakSet<Element>();
 
 function reconcile(el: Element): void {
-    if (!(el instanceof HTMLDialogElement)) {
+    // The reader's own close of it comes first: a render older than that is not carried out (rask-owned.ts).
+    if (!(el instanceof HTMLDialogElement) || stands(el, reconcile)) {
         return;
     }
     const want = el.getAttribute(MODAL_OPEN);
     if (want === "true") {
         opened.add(el);
-        showModal(el);
+        drive(el, function () { showModal(el); });
     } else if (opened.has(el)) {
         // "false", or the render stopped saying anything: either way it no longer wants it open.
         opened.delete(el);
-        close(el);
+        drive(el, function () { close(el); });
     }
 }
 

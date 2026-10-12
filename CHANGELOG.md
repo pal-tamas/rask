@@ -329,6 +329,28 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A list, a menu or a dialog the reader just shut stays shut.** A popover a render opens
+  (`data-rask-popover-open` — the kit's select, combobox, autocomplete, pillbox, date and time pickers,
+  dropdown, menu, navmenu, popover, toast), a dialog a render opens (`data-rask-modal-open`) and a
+  `<details open>` are opened and shut by the reader too, in the browser, at once. A reply rendered BEFORE the
+  server heard the reader's toggle still said the old state: the runtime carried it out — a listbox shut with
+  Escape opened again over the fields being filled in — and the toggle that raised was sent back as the
+  reader's, which the control followed, whose render raised the next, for as long as the page was up (1,092
+  frames counted in one test window). Two rules now: (1) from the moment the browser opens or shuts one of
+  these until the server has answered that event, no render drives it — what a render was refused meanwhile is
+  carried out once the answer is on the page; (2) the toggle the runtime raises by opening or shutting one to
+  match a render is not reported back: `toggle` and `beforetoggle` reach your handler for what the READER did
+  (a press, Escape, a press outside, an invoker button, a hover), no longer for the page's own `Open(true)`.
+  A dialog's `close` is unchanged — `OnClose` still hears every close.
+  **For an existing app:** an `OnToggle` that did clean-up after the page itself changed the state no longer
+  runs then — do it where the state is changed. The kit's searchable listbox now forgets its
+  search in the render that shuts the list, and its time picker its cursor.
+- **A handler whose repaint between two awaits throws still runs to its end.** A handler that awaits is
+  repainted before each continuation. When that repaint threw — a frame lost as the connection dropped, a
+  render fault no boundary took — the continuation was never run: the handler's task never ended, it kept
+  its session's lock, and that session answered nothing again (the server sets no handler timeout by
+  default). The code after the `await` runs now; the repaint's fault is then the handler's own, and reaches
+  the error boundary and the log a handler's exception reaches. Both hosts.
 - **A number, date or time field holding text the browser will not hand over is no longer an empty field.**
   A lone minus, `1e400`, a date with only its month typed: the browser reports the value as empty, so a
   required field said "required" to a reader who had typed, and a browser's own bubble refused the submit in

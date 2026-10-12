@@ -1,6 +1,14 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-12 with the reader's last word on open and shut (rask-owned.ts, the one module both bundles
+# carry: a popover, a dialog or a details the reader toggled is not driven by a render until the server has
+# answered that toggle, what a render was refused is carried out then, and the toggle the runtime's own show
+# or hide raises is not sent back; asked by rask-dom.ts's popover reconcile and attribute ops, the morph, and
+# rask-events.ts's toggle listeners, and let go by the hosts' ack): rask.js +2,268 and rask.wasm.js +2,099.
+# rask-hooks.js +531: the dialog reconcile in rask-overlay.ts asks the same, through its own copy.
+# This change's own delta only, measured on main at 97,330 / 86,147 / 49,951: 99,598 / 88,246 / 50,482.
+#
 # Refreshed 2026-10-12 with the field that says what it could not read (rask-input.ts, shared by both runtimes:
 # the frame of a number, date or time input holding text it reports as "" says so; a field bound on blur is
 # sent as it is left, since the browser fires no change for it; and the browser's own refusal of a submit over
@@ -189,7 +197,8 @@
 # (rask-autofocus.ts, asked after every frame by both runtimes): rask.js 97,330 -> 98,090 (+760) and
 # rask.wasm.js 86,147 -> 86,907 (+760). rask-hooks.js is unchanged.
 # And on top of the loading scope (main at 97,920 / 86,880): rask.js 98,680, rask.wasm.js 87,640.
+# And on top of the reader's last word on open and shut (main at 100,188 / 88,979): rask.js 100,948, rask.wasm.js 89,739.
 bundle,bytes
-rask.js,98680
-rask.wasm.js,87640
-rask-hooks.js,49951
+rask.js,100948
+rask.wasm.js,89739
+rask-hooks.js,50482

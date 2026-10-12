@@ -17,6 +17,7 @@ import { inRoot, send } from "./rask-host.js";
 import { closestFrom } from "./rask-morph.js";
 import { domEvents } from "./generated/rask-dom-events.js";
 import { raskDomPayload } from "./rask-dom-payload.js";
+import { begun, isOurs, said, unsaid } from "./rask-owned.js";
 
 // Events with a listener of their own below or in a host: click (the hosts' submit/popover/loading guards),
 // keydown/keyup (the `data-rask-keys` filter), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
@@ -35,13 +36,29 @@ domEvents.forEach(function (row) {
         var target = closestFrom(e.target, "[" + attr + "]");
         if (!target || !inRoot(target)) { return; }
         if (!bubbles && target !== e.target) { return; }
+        // Open and shut: a toggle the runtime made to match a render is not sent back to the page that rendered
+        // it, and what the reader did holds against every render older than the page's answer (rask-owned.ts).
+        // A dialog's `close` is told however it closed — OnClose hears every close — and holds only as the reader's.
+        var opens = name === "toggle" || name === "close" || name === "beforetoggle";
+        var ours = opens && isOurs(target, e);
+        if (ours && name !== "close") { return; }
         if (prevent) { e.preventDefault(); }
         var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
-        send(msg);
+        var answer = send(msg);
+        if (opens && !ours && name !== "beforetoggle") { said(target, typeof msg.seq === "number" ? msg.seq : answer); }
     }, { capture: true, passive: !prevent });
 });
+
+// Open and shut is the reader's from the moment the browser acts — a task before `toggle` says so — until the
+// page has answered. After the listener above, so a `toggle` that was sent has taken the word over by then.
+document.addEventListener("beforetoggle", function (e) {
+    if (e.target instanceof Element) { begun(e.target); }
+}, true);
+document.addEventListener("toggle", function (e) {
+    if (e.target instanceof Element) { unsaid(e.target); }
+}, true);
 
 // mouseenter/leave and pointerenter/leave don't propagate to ancestors (not even in the capture phase),
 // so a delegated listener can't observe them. Simulate via the bubbling over/out events plus a

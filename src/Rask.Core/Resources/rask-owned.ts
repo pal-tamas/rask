@@ -24,13 +24,46 @@ interface Seam {
     missed: Event[] | null;
     /** Asks the reader about a guarded form's unsaved edits; false when they stay. Set by rask-leave.ts. */
     leave?: (again: () => void) => boolean;
+    /** What the reader last opened or shut, until the page has answered it. */
+    said: WeakMap<Element, Word>;
+    /** The elements in `said`: a WeakMap cannot be walked. */
+    waiting: Set<Element>;
+    /** The events still to come from what the runtime opened or shut itself. */
+    ours: WeakMap<Element, Ours>;
+    /** The element the runtime is opening or shutting right now. */
+    acting?: Element | null;
+}
+
+/**
+ * The reader's last word on one element: the seq of the event that carries it — not `told` yet while that
+ * event is still to be raised — and what a render was refused meanwhile.
+ */
+interface Word {
+    until: number;
+    told: boolean;
+    late: ((el: Element) => void) | null;
+}
+
+/** What the runtime's own show or hide will raise on one element. */
+interface Ours {
+    toggle?: string;
+    close?: boolean;
 }
 
 const scope = globalThis as typeof globalThis & {__raskHookSeam?: Seam};
 
 /** What the runtime and the hooks bundle share. */
 export const seam: Seam = scope.__raskHookSeam
-    || (scope.__raskHookSeam = {owned: new WeakMap<Element, Set<string>>(), reserved: {}, missed: null});
+    || (scope.__raskHookSeam = {
+        owned: new WeakMap<Element, Set<string>>(), reserved: {}, missed: null,
+        said: new WeakMap<Element, Word>(), waiting: new Set<Element>(), ours: new WeakMap<Element, Ours>(),
+    });
+
+// A page that stays open across a deploy may get the two bundles from different builds, and the seam is made
+// by the one that ran first: what an older copy did not put on it is put on it here.
+seam.said ||= new WeakMap<Element, Word>();
+seam.waiting ||= new Set<Element>();
+seam.ours ||= new WeakMap<Element, Ours>();
 
 const owned = seam.owned;
 
@@ -177,4 +210,172 @@ export function setShown(el: Element | null, open: boolean): void {
     } catch (e) {
         // not connected, or mid-transition — the next event reconciles
     }
+}
+
+// ----- Open and shut: the reader's last word ----------------------------------------------------------
+//
+// A popover, a dialog and a <details> are opened and shut by two hands. The reader's — a press, Escape — acts
+// in the browser at once, and the page hears of it as an event. The page's is a render that says open or
+// shut, which the runtime carries out. A render made BEFORE the page heard the reader's last toggle is older
+// than what the reader is looking at: carried out, it opened a list the reader had just shut, over the fields
+// being filled in.
+//
+//   * `begun`: the browser is opening or shutting it, and not because the runtime asked. The `toggle` that
+//     tells the page is a task away, and a render carried out in between undid an Escape nobody had heard of.
+//   * `said`: the reader toggled it. Until the page has answered THAT event, no render drives it.
+//   * `stands`: asked by whoever carries a render out. What it is refused, it does once the answer is in.
+//   * `drive`: the runtime carries a render out. The toggle this raises is no news to the page that asked for
+//     it, and `isOurs` keeps it from being sent: followed as the reader's, a late one opened the list again,
+//     whose own toggle shut it, and so on for as long as the page was up. (A dialog's `close` is still sent:
+//     OnClose hears every close. It is only not held as the reader's.)
+
+/** How long a toggle the browser began may go untold before it stops holding anything. */
+const UNTOLD_MS = 1000;
+
+function isOpen(el: Element): boolean {
+    return el.hasAttribute("open") || isShown(el);
+}
+
+function release(el: Element, word: Word): void {
+    seam.said.delete(el);
+    seam.waiting.delete(el);
+    if (word.late) {
+        word.late(el);
+    }
+}
+
+/**
+ * The reader opened or shut `el`, and the page is being told. `answer` is how the host says when the page has
+ * answered: the event's seq (the Server host, see `answered`) or a promise (WASM). Anything else is an event
+ * nobody will answer, and nothing is held for it.
+ */
+export function said(el: Element, answer: unknown): void {
+    const before = seam.said.get(el);
+    const promised = answer as PromiseLike<unknown> | null | undefined;
+    const waits = typeof answer !== "number" && !!promised && typeof promised.then === "function";
+    if (typeof answer !== "number" && !waits) {
+        unsaid(el);
+        return;
+    }
+    const word: Word = {until: waits ? Infinity : answer as number, told: true, late: before ? before.late : null};
+    if (waits) {
+        const done = function () {
+            if (seam.said.get(el) === word) release(el, word);
+        };
+        promised!.then(done, done);
+    }
+    seam.said.set(el, word);
+    seam.waiting.add(el);
+}
+
+/**
+ * The browser is about to open (or shut) `el`. When that is not the runtime's doing it is the reader's, and
+ * holds from here: `said` takes over when the `toggle` is sent, `unsaid` lets go when nobody is told.
+ */
+export function begun(el: Element): void {
+    if (seam.acting === el) {
+        return;
+    }
+    const before = seam.said.get(el);
+    const word: Word = {until: Infinity, told: false, late: before ? before.late : null};
+    seam.said.set(el, word);
+    seam.waiting.add(el);
+    // A word nobody was told of in a second was never going to be: an opening a listener refused changes
+    // nothing and raises no `toggle` to let go at.
+    setTimeout(function () {
+        if (seam.said.get(el) === word) release(el, word);
+    }, UNTOLD_MS);
+}
+
+/** The `toggle` of `el` has been raised. A word no event carried to the page is not waited on. */
+export function unsaid(el: Element): void {
+    const word = seam.said.get(el);
+    if (word && !word.told) {
+        release(el, word);
+    }
+}
+
+/** Whether the reader's word on `el` still stands. `again` is run once the page has answered it. */
+export function stands(el: Element, again: (el: Element) => void): boolean {
+    const word = seam.said.get(el);
+    if (!word) {
+        return false;
+    }
+    word.late = again;
+    return true;
+}
+
+/** Every event up to `seq` is answered, and the render that answers it is on the page. */
+export function answered(seq: number): void {
+    seam.waiting.forEach(function (el) {
+        const word = seam.said.get(el);
+        if (word && word.until <= seq) release(el, word);
+    });
+}
+
+// Only a change raises an event, so only a change is waited for: an expectation nothing meets would swallow
+// the reader's next toggle. A dialog's `close` may still be on its way from an earlier one.
+function expect(el: Element, before: boolean, after: boolean): void {
+    if (before === after) {
+        return;
+    }
+    const earlier = seam.ours.get(el);
+    seam.ours.set(el, {
+        toggle: after ? "open" : "closed",
+        close: (!after && el.tagName === "DIALOG") || (!!earlier && !!earlier.close),
+    });
+}
+
+/** Runs `act`, the runtime opening or shutting `el` to match a render. */
+export function drive(el: Element, act: () => void): void {
+    const before = isOpen(el);
+    seam.acting = el;
+    try {
+        act();
+    } finally {
+        seam.acting = null;
+        expect(el, before, isOpen(el));
+    }
+}
+
+/**
+ * Whether `e` on `el` is the runtime's own doing. Asked once per event: the browser raises one `toggle` for
+ * all that happened since the last, so one the reader had a hand in says something else and is theirs.
+ */
+export function isOurs(el: Element, e: Event): boolean {
+    if (e.type === "beforetoggle") {
+        return seam.acting === el;
+    }
+    const mine = seam.ours.get(el);
+    if (!mine) {
+        return false;
+    }
+    if (e.type === "close") {
+        const closed = !!mine.close;
+        mine.close = false;
+        return closed;
+    }
+    const expected = mine.toggle;
+    mine.toggle = undefined;
+    return expected === ((e as ToggleEvent).newState || (isOpen(el) ? "open" : "closed"));
+}
+
+/**
+ * Whether a render may not write `open` on this <details> yet. Its `open` attribute IS its state, so the
+ * render that is refused is remembered and written once the page has answered the reader.
+ */
+export function keepsOpen(el: Element, name: string, open: boolean): boolean {
+    if (name !== "open" || el.tagName !== "DETAILS") {
+        return false;
+    }
+    if (stands(el, function (details) { setDetails(details, open); })) {
+        return true;
+    }
+    expect(el, el.hasAttribute("open"), open);
+    return false;
+}
+
+function setDetails(details: Element, open: boolean): void {
+    expect(details, details.hasAttribute("open"), open);
+    if (open) details.setAttribute("open", ""); else details.removeAttribute("open");
 }

@@ -225,7 +225,9 @@ is the combobox pattern instead: focus stays in its search box, the commands are
 controls, the highlighted one is `aria-activedescendant` and says `aria-selected="true"`, and Enter presses it.
 
 A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
-changes — how a controlled menu opens from C#, which cannot call `showPopover()`.
+changes — how a controlled menu opens from C#, which cannot call `showPopover()`. Escape and a press outside
+are the browser's and win until the server has answered them: a reply rendered before it heard of one does not
+open the popover again, and the toggle the runtime's own show or hide raises is not reported as the reader's.
 
 ## Tooltips
 

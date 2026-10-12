@@ -49,6 +49,7 @@ import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
+import { answered } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -495,6 +496,13 @@ import {
         // bar up after the round-trip has actually completed.
         if (data.type === "ack") {
             satisfySeq(data.seq);
+            // What the reader opened or shut is the render's again once the answer to it is on the page — and
+            // that render is in the queue ahead of this, not necessarily applied (rask-owned.ts).
+            const seq = data.seq;
+            if (typeof seq === "number") {
+                const answer = () => { answered(seq); };
+                _renderQueue = _renderQueue.then(answer, answer);
+            }
             return;
         }
         // A refreshed resume record rides the render payload rather than arriving as its own
@@ -1266,6 +1274,7 @@ import {
         // can't wedge the next session.
         ackedSeq = outstandingSeq = seqCounter;
         navInFlight = false;
+        answered(seqCounter);
         clearPending();
         loadingBySeq.clear();
         endAllLoading();
@@ -1311,6 +1320,7 @@ import {
         // Backstop: no ack came back for an outstanding handler (lost frame or a hung
         // handler). Settle and hide rather than leave the bar wedged.
         ackedSeq = outstandingSeq = seqCounter;
+        answered(seqCounter);
         clearPending();
     }
 

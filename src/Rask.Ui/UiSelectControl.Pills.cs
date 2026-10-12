@@ -213,7 +213,13 @@ public abstract partial class UiSelectControl<T>
             return;
         }
 
-        _open = !_open;
+        if (_open)
+        {
+            await ShutAsync().ConfigureAwait(false);
+            return;
+        }
+
+        _open = true;
         _cursor = Unset;
     }
 
