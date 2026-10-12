@@ -62,8 +62,8 @@ public class NavigationCoalescingTests
         // (Rask.Wasm.Tests/Session/NavigationPublishRerenderTests.cs): even when
         // the rebuild loop fires, the captured historyUrl/replace must be
         // re-threaded so the actually-sent payload preserves it. The Server's
-        // RenderAndSendCoalescingAsync re-passes those args on every iteration
-        // — without that, navigation would silently lose its pushState.
+        // RenderAndSendCoalescingAsync re-passes those args until a frame has
+        // carried them — without that, navigation would silently lose its pushState.
         await using var fixture = await ConnectedSession.Connect<NavigateInHandlerStateHasChangedApp>();
 
         await fixture.Ws.SendJsonAsync(new { type = "navigate", path = "/destination", query = "" }, ct: TestContext.Current.CancellationToken);
