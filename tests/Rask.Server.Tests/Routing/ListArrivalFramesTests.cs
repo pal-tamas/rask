@@ -51,7 +51,7 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         var frames = await arrival.Until(LastRow);
 
         Assert.DoesNotContain(LastRow, first, StringComparison.Ordinal);
-        Assert.Equal("page", Kind(Assert.Single(frames)));
+        Assert.Contains(LastRow, Assert.Single(frames), StringComparison.Ordinal);
     }
 
     [Fact]
