@@ -31,9 +31,9 @@ public sealed partial class UiKitDataGridDemo : Component
     private int _page;
 
     /// <summary>The page of the last grid, counted from one, as the docs page read it from <c>?page=</c>.</summary>
-    public int? UrlPage { get; set; }
+    public int UrlPage { get; set; }
 
-    private int UrlPageIndex => Math.Clamp((UrlPage ?? 1) - 1, 0, (Catalog.Length - 1) / UrlPageSize);
+    private int UrlPageIndex => Math.Clamp(UrlPage - 1, 0, (Catalog.Length - 1) / UrlPageSize);
 
     /// <inheritdoc />
     protected override Component? Render() =>
