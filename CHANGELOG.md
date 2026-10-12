@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A query parameter its page cannot read is absent, not a 500.** `/parcels?weightFrom=abc` on a page with
+  `[QueryParam("weightFrom")] public int? WeightFrom` failed to bind: `RouteBindException`, the error page, a
+  500 on a first request and an error on a live navigation — for a link somebody mailed, kept or edited by
+  hand. A value the property cannot hold (`abc`, `1.5`, an empty one, digits past an `int`, a date that is
+  none) is now read as if the parameter were not in the URL: the property gets what it gets without it, the
+  parameters beside it are bound as usual, the page answers 200 and the address is left as written. **A
+  behaviour change**: a page that relied on the exception to refuse a bad query value now renders with the
+  type's default, for a non-nullable property too. In Development the ignored parameter is named once on the
+  `Rask.Routing` log category, without its value. A path segment is unchanged: one the page cannot read does
+  not match, and not-found answers.
+
 - **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
   whatever the page sent next carried it — including the press the runtime makes on a toast's close button
   when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,

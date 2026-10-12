@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Rask.Core.Diagnostics;
+using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
 
@@ -29,15 +31,9 @@ internal static class PageBinder
             // it stays sticky with the previous URL's value (e.g., Id=guidA carrying
             // across /todos/{guidA}/edit → /todos, which keeps EditingItem populated
             // and the dialog stuck open).
-            object? converted;
-            if (TryGetRawValue(property, values, query, out var raw))
-            {
-                converted = ConvertValue(raw, property.Property.PropertyType, property.Property.Name);
-            }
-            else
-            {
-                converted = DefaultValue(property.Property.PropertyType);
-            }
+            var converted = TryRead(page, property, values, query, out var read)
+                ? read
+                : DefaultValue(property.Property.PropertyType);
 
             var previous = property.Property.GetValue(page);
             if (!Equals(previous, converted))
@@ -118,8 +114,67 @@ internal static class PageBinder
         return result.ToArray();
     }
 
-    private static bool TryGetRawValue(BindablePropertyInfo info, IReadOnlyDictionary<string, string?> values,
-        IQueryCollection query, out object? raw)
+    private static bool TryRead(Component page, BindablePropertyInfo property,
+        IReadOnlyDictionary<string, string?> values, IQueryCollection query, out object? read)
+    {
+        if (TryGetSegment(property, values, out var segment))
+        {
+            read = ConvertValue(segment, property.Property.PropertyType, property.Property.Name);
+            return true;
+        }
+
+        if (TryGetQueryValue(property, query, out var text))
+        {
+            return ReadQueryValueOrAbsent(page, property, text, out read);
+        }
+
+        read = null;
+        return false;
+    }
+
+    /// <summary>
+    ///     The one rule for a query value: what its property cannot hold — <c>?weightFrom=abc</c> for an
+    ///     <c>int?</c> — is read as if the parameter were not in the URL. Links with filters get mailed around
+    ///     and edited by hand, so this is a visitor's input and never an exception.
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "As Bind: RASK011 guarantees every [QueryParam] property type is string or IParsable<T>.")]
+    private static bool ReadQueryValueOrAbsent(Component page, BindablePropertyInfo property, string? text,
+        out object? read)
+    {
+        if (text is null)
+        {
+            read = null;
+            return true;
+        }
+
+        if (RouteValueParser.TryParse(property.Property.PropertyType, text, out read))
+        {
+            return true;
+        }
+
+        if (LiveOptions.IsDevelopment == true)
+        {
+            SayIgnored(page.GetType(), property);
+        }
+
+        read = null;
+        return false;
+    }
+
+    // Once for a page's parameter, and without the value: that is a visitor's input.
+    private static void SayIgnored(Type page, BindablePropertyInfo property)
+    {
+        var type = Nullable.GetUnderlyingType(property.Property.PropertyType) ?? property.Property.PropertyType;
+        RaskDiagnostics.ReportOnce(
+            $"query-ignored:{page.FullName}:{property.BindingName}",
+            RaskLogLevel.Information, "Rask.Routing",
+            () => $"Rask routing: {page.Name} ignored the query parameter '{property.BindingName}' — its value " +
+                  $"cannot be read as {type.Name}, so {property.Property.Name} is bound as if it were absent.");
+    }
+
+    private static bool TryGetSegment(BindablePropertyInfo info, IReadOnlyDictionary<string, string?> values,
+        out string? segment)
     {
         if (info.IsRouteParam)
         {
@@ -127,22 +182,28 @@ internal static class PageBinder
             {
                 if (string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
                 {
-                    raw = value;
+                    segment = value;
                     return true;
                 }
             }
         }
 
+        segment = null;
+        return false;
+    }
+
+    private static bool TryGetQueryValue(BindablePropertyInfo info, IQueryCollection query, out string? text)
+    {
         if (info.IsQueryParam
             && query.Keys.FirstOrDefault(key => string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
                 is { } queryKey)
         {
             var stringValues = query[queryKey];
-            raw = stringValues.Count == 0 ? null : stringValues[0];
+            text = stringValues.Count == 0 ? null : stringValues[0];
             return true;
         }
 
-        raw = null;
+        text = null;
         return false;
     }
 

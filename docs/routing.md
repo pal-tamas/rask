@@ -209,6 +209,17 @@ Both attributes take an optional name to bind a segment/key whose name differs f
 [RASK011](diagnostics.md#rask011). When a route template constrains a segment (`{id:int}`), the bound property's CLR
 type must match the constraint, or you get [RASK005](diagnostics.md#rask005).
 
+**A query value the page cannot read is read as absent.** `?weightFrom=abc`, `?weightFrom=1.5`, `?weightFrom=`
+or digits past what an `int` holds bind `[QueryParam("weightFrom")] public int? WeightFrom` exactly as a URL
+with no `weightFrom` does, and the page renders — a link with filters in it is mailed around, kept for a year
+and edited by hand, so its values are a visitor's input and never an error. That holds for every bindable
+type, nullable or not, on a first request and on a live navigation alike. An absent parameter binds the
+type's default — `null`, `0`, `false` — and not the property's initializer, so a default of your own is
+`Page ?? 1` over a nullable property. The readable parameters beside an unreadable one are bound as usual, a
+repeated key (`?page=two&page=2`) is read from its first value only, and the address stays as the visitor
+wrote it. In Development the ignored parameter is named once on the `Rask.Routing` log category, without its
+value. (A path *segment* the page cannot read is different: it [does not match](#registering-routes).)
+
 Other binding-related analyzers worth knowing:
 
 - [RASK006](diagnostics.md#rask006) — `[QueryParam]` placed on a property that's actually a path segment.
