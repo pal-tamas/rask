@@ -77,8 +77,9 @@ them until tagged releases begin.
   reconnect. The second click of a double click on a row the first click removed does nothing. Dropped events
   are counted in the new `rask.handlers.stale` metric and logged on `Rask.Live` in Development. Cost: `"v":N`
   on every event, on every whole-page payload, and on a diff only when a handler moved; nothing is allocated
-  per render. Limits and the advice that follows from them — capture a row's id rather than the row object, key
-  the rows — are in `docs/js-interop-runtime.md`.
+  per render. What counts as the same handler, its limits and the advice that follows — capture what identifies
+  a row, never its position; key rows that are components; one button over "the current item" is one handler —
+  are in `docs/js-interop-runtime.md`.
 - **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
   page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
   to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:

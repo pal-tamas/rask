@@ -9,6 +9,7 @@ public abstract partial class Component
     internal int? HandlerVersionToSend(bool whole)
     {
         var state = Live.HandlerState ??= new HandlerState();
+        state.Unsent = true;
         var version = state.Moved ? state.Version + 1 : state.Version;
         return whole || state.Moved ? version - state.Floor : null;
     }
@@ -16,10 +17,28 @@ public abstract partial class Component
     /// <summary>The page the last walk rendered was sent to the browser.</summary>
     internal void HandlersSent()
     {
-        if (_live?.HandlerState is { Moved: true } state)
+        if (_live?.HandlerState is not { } state)
+        {
+            return;
+        }
+
+        state.Unsent = false;
+        if (state.Moved)
         {
             state.Version++;
             state.Moved = false;
+        }
+    }
+
+    /// <summary>
+    ///     The page built for the last walk repeats the one the browser has, so it was not sent: what the browser
+    ///     shows is that walk's page, under the number it already had.
+    /// </summary>
+    internal void HandlersRepeated()
+    {
+        if (_live?.HandlerState is { } state)
+        {
+            state.Unsent = false;
         }
     }
 

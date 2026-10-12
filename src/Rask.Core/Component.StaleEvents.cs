@@ -12,9 +12,10 @@ namespace Rask.Core;
 // browser was sent whose handlers had moved), and each slot remembers since which page it has held what it holds.
 //
 //   * from that page or a later one: the slot's handler is the one the reader saw.
-//   * from the page before: the slot's previous handler is. The handler that runs is the one in the page as it is
-//     now that is the SAME as it — the same method over equal captured values (HandlerSameness) — in that slot or,
-//     when the slot was taken by another, in another slot of the same component.
+//   * from one of the two pages before: one of the two handlers the slot remembers is. The handler that runs is
+//     the one in the page as it is now that is the SAME as it (HandlerSameness): in that slot, or in another slot
+//     of the same component when the slot was taken by another, or — among the handlers one lambda made — the
+//     one its siblings are told apart from it by.
 //   * older than that, or nothing the same is left: nothing runs.
 //
 // What runs is always a handler the page has now, so `v` reaches nothing a click could not. An event that names no
@@ -57,6 +58,8 @@ public abstract partial class Component
             return;
         }
 
+        slot.Older = slot.Before;
+        slot.OlderSince = slot.BeforeSince;
         slot.Before = held;
         slot.BeforeSince = slot.Since;
         slot.Since = next;
@@ -93,28 +96,102 @@ public abstract partial class Component
 
         ref var slot = ref SlotAt(state, at.Slot);
         var seen = (long)version + root.Floor;
-        if (seen >= slot.Since)
+        if (seen < root.Version)
         {
-            return (map.TryGetValue(id, out entry) && ReferenceEquals(entry.Handler, slot.Handler))
-                   || (slot.Handler is { } vacated && TryFindMoved(state, map, vacated, at.Slot, out entry))
-                   || Missed(at.Component, at.Slot, version, root);
+            // More from that page are likely on their way: the next walks keep every slot's history connected.
+            root.EagerThrough = root.Version + EagerWalks;
         }
 
-        root.EagerThrough = root.Version + EagerWalks;
-        if (slot.Before is not { } before || seen < slot.BeforeSince)
+        // The browser has the last page it was sent, and nothing built since is on its way: a walk since then
+        // rendered that same page, so the handler under this id now is the one the reader pressed.
+        var current = seen >= slot.Since || (seen >= root.Version && !root.Unsent);
+        if (current && map.TryGetValue(id, out entry) && ReferenceEquals(entry.Handler, slot.Handler))
         {
-            return Missed(at.Component, at.Slot, version, root);
-        }
-
-        if (map.TryGetValue(id, out entry) && HandlerSameness.Same(before, entry.Handler))
-        {
-            // Proven once: the slot has held the same handler since its predecessor took it.
-            slot.Since = slot.BeforeSince;
-            slot.Before = null;
             return true;
         }
 
-        return TryFindMoved(state, map, before, at.Slot, out entry) || Missed(at.Component, at.Slot, version, root);
+        return ((current ? slot.Handler : HeldAt(ref slot, seen)) is { } sought
+                && ((!current && TryFindInPlace(ref slot, map, id, sought, out entry))
+                    || TryFindMoved(state, map, sought, at.Slot, out entry)
+                    || TryFindAmongSiblings(state, map, sought, seen, out entry)))
+               || Missed(at.Component, at.Slot, version, root);
+    }
+
+    // No handler of the page captured exactly what this one did: a lambda also closes over what its render
+    // worked out — a view of the list, a count — and that is new in every render. It is still the same handler
+    // when it is the one its siblings, the handlers the same lambda made in the same walk, are told apart from
+    // it by: the row, not the view every row shares (HandlerSameness.Pick).
+    private static bool TryFindAmongSiblings(
+        HandlerState state, Dictionary<string, (Component Owner, Delegate Handler)> map, Delegate sought, long seen,
+        out (Component Owner, Delegate Handler) entry)
+    {
+        entry = default;
+        var then = new List<Delegate>();
+        var now = new List<(Component Owner, Delegate Handler)>();
+        var issued = Math.Min(1 + (state.Rest?.Length ?? 0), MaxSlotsSearched);
+        for (var i = 0; i < issued; i++)
+        {
+            ref var slot = ref i == 0 ? ref state.Slot0 : ref state.Rest![i - 1];
+            if ((seen >= slot.Since ? slot.Handler : HeldAt(ref slot, seen)) is { } held
+                && HandlerSameness.FromOneLambda(sought, held))
+            {
+                then.Add(held);
+            }
+
+            if (i < state.LocalCount
+                && slot.Id is { } id
+                && map.TryGetValue(id, out var here)
+                && HandlerSameness.FromOneLambda(sought, here.Handler))
+            {
+                now.Add(here);
+            }
+        }
+
+        var picked = HandlerSameness.Pick(sought, then, now.ConvertAll(static found => found.Handler));
+        if (picked < 0)
+        {
+            return false;
+        }
+
+        entry = now[picked];
+        return true;
+    }
+
+    // What the slot held in the page numbered `seen`, when that is one of the two handlers it remembers.
+    private static Delegate? HeldAt(ref HandlerSlot slot, long seen)
+    {
+        if (slot.Before is { } before && seen >= slot.BeforeSince)
+        {
+            return before;
+        }
+
+        return slot.Older is { } older && seen >= slot.OlderSince ? older : null;
+    }
+
+    // The slot still holds the same handler: proven once, and remembered as held since the older one took it.
+    private static bool TryFindInPlace(
+        ref HandlerSlot slot, Dictionary<string, (Component Owner, Delegate Handler)> map, string id, Delegate sought,
+        out (Component Owner, Delegate Handler) entry)
+    {
+        if (!map.TryGetValue(id, out entry) || !HandlerSameness.Same(sought, entry.Handler))
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(sought, slot.Before))
+        {
+            slot.Since = slot.BeforeSince;
+            slot.Before = slot.Older;
+            slot.BeforeSince = slot.OlderSince;
+        }
+        else
+        {
+            slot.Since = slot.OlderSince;
+            slot.Before = null;
+        }
+
+        slot.Older = null;
+        return true;
     }
 
     // A handler that left its slot because one before it left or arrived is in another slot of the same component.

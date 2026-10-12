@@ -576,6 +576,12 @@ public abstract partial class Component
         public bool Moved;
 
         /// <summary>
+        ///     A page was built for the browser and is not known to have reached it. Until it has, a slot a walk
+        ///     moved may hold a handler the browser's page does not show.
+        /// </summary>
+        public bool Unsent;
+
+        /// <summary>
         ///     The last <see cref="Version" /> whose walk compares closures as it registers them: an event has just
         ///     arrived from an older page, so more are likely on their way.
         /// </summary>
@@ -632,5 +638,14 @@ public abstract partial class Component
 
         /// <summary>The page version from which it held <see cref="Before" />.</summary>
         public int BeforeSince;
+
+        /// <summary>
+        ///     The handler it held before <see cref="Before" />. Two back, because a handler that awaits is rendered
+        ///     twice — while it waits and when it is done — before the next event is looked at.
+        /// </summary>
+        public Delegate? Older;
+
+        /// <summary>The page version from which it held <see cref="Older" />.</summary>
+        public int OlderSince;
     }
 }

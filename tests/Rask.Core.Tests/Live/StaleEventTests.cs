@@ -449,6 +449,140 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
         Assert.Equal(0, version);
     }
 
+    // What a render works out for all of its rows, made again by every render.
+    private sealed class View(int cursor)
+    {
+        public int Cursor { get; } = cursor;
+    }
+
+    [Fact]
+    public async Task A_click_on_a_row_reaches_it_though_every_row_closes_over_a_view_the_render_made_again()
+    {
+        var rows = new List<Row> { new(1, "a"), new(2, "b"), new(3, "c") };
+        var cursor = 0;
+        var picked = new List<(int Row, int Cursor)>();
+        var view = new StubComponent(() =>
+        {
+            var seen = new View(cursor);
+            return Div[rows.Select(row => Button.Key(row.Id).Class($"row{row.Id}").OnClick(() => picked.Add((row.Id, seen.Cursor)))["pick"])];
+        });
+        var third = IdOn(Ship(view), "row3");
+        rows.RemoveAt(0);
+        cursor = 7;
+        Ship(view);
+
+        var ran = await Send(view, third, version: 0);
+
+        Assert.True(ran);
+        Assert.Equal([(3, 7)], picked);
+    }
+
+    [Fact]
+    public async Task A_click_on_a_row_that_has_left_runs_nothing_though_every_row_shares_a_view()
+    {
+        var rows = new List<Row> { new(1, "a"), new(2, "b"), new(3, "c") };
+        var cursor = 0;
+        var picked = new List<int>();
+        var view = new StubComponent(() =>
+        {
+            var seen = new View(cursor);
+            return Div[rows.Select(row => Button.Key(row.Id).Class($"row{row.Id}").OnClick(() => picked.Add(row.Id + seen.Cursor))["pick"])];
+        });
+        var first = IdOn(Ship(view), "row1");
+        rows.RemoveAt(0);
+        cursor = 7;
+        Ship(view);
+
+        var ran = await Send(view, first, version: 0);
+
+        Assert.False(ran);
+        Assert.Empty(picked);
+    }
+
+    [Fact]
+    public async Task A_handler_written_once_that_closes_over_what_its_render_worked_out_is_still_reached()
+    {
+        var count = 0;
+        var log = new List<int>();
+        var view = new StubComponent(() =>
+        {
+            var rendered = count;
+            return Div[Button.Class("snap").OnClick(() => log.Add(rendered))[$"snap {rendered}"]];
+        });
+        var id = IdOn(Ship(view), "snap");
+        count = 5;
+        Ship(view);
+
+        var ran = await Send(view, id, version: 0);
+
+        Assert.True(ran);
+        Assert.Equal([5], log);
+    }
+
+    // PINNED, AND SAID IN THE GUIDE. One button over "the current item" is one handler whatever item it shows: no
+    // sibling tells it apart from anything. A second click sent before the next item arrived acts on that item.
+    [Fact]
+    public async Task A_lone_button_over_an_item_that_was_replaced_acts_on_the_item_that_is_there_now()
+    {
+        var current = new Row(1, "a");
+        var approved = new List<int>();
+        var view = new StubComponent(() =>
+        {
+            var item = current;
+            return Div[Button.Class("approve").OnClick(() => approved.Add(item.Id))["approve"]];
+        });
+        var id = IdOn(Ship(view), "approve");
+        current = new Row(2, "b");
+        Ship(view);
+
+        await Send(view, id, version: 0);
+
+        Assert.Equal([2], approved);
+    }
+
+    [Theory]
+    [InlineData(2, true)]
+    [InlineData(3, false)]
+    public async Task A_row_handler_is_followed_through_two_pages_and_no_further(int pages, bool reached)
+    {
+        var rows = new List<Row> { new(1, "a"), new(2, "b"), new(3, "c") };
+        var picked = new List<int>();
+        var view = new StubComponent(() => Div[rows.Select(row => Button.Key(row.Id).Class($"row{row.Id}").OnClick(() => picked.Add(row.Id))["pick"])]);
+        var third = IdOn(Ship(view), "row3");
+        for (var page = 0; page < pages; page++)
+        {
+            rows.RemoveAt(0);
+            rows.Insert(0, new Row(10 + page, "new"));
+            Ship(view);
+        }
+
+        var ran = await Send(view, third, version: 0);
+
+        Assert.Equal(reached, ran);
+        Assert.Equal(reached ? [3] : [], picked);
+    }
+
+    private sealed class Draft
+    {
+        public string Name { get; set; } = "";
+    }
+
+    [Fact]
+    public async Task What_is_typed_into_a_bound_field_reaches_it_after_the_form_was_rendered_again()
+    {
+        var draft = new Draft();
+        var label = 0;
+        var view = new StubComponent(() => Div[P[$"renders {label}"], Input.Bind(() => draft.Name).Class("name")]);
+        var id = IdOn(Ship(view), "name", "input");
+        label++;
+        Ship(view);
+
+        var ran = await Send(view, id, version: 0, "input", "Ada");
+
+        Assert.True(ran);
+        Assert.Equal("Ada", draft.Name);
+    }
+
     // PINNED, NOT WANTED. Child components without a key are the same instances by position, so the second
     // row's component is the second row's component whatever record it is handed: its handler is the same method
     // of the same instance, and nothing about the handler moved. The event reaches the row that now sits second.

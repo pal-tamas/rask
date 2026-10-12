@@ -412,6 +412,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     {
         if (_writeBuffer.WrittenCount == 0)
         {
+            View.HandlersRepeated();
             return false;
         }
 
@@ -419,6 +420,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             && _lastSentBuffer is not null
             && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
         {
+            View.HandlersRepeated();
             return false;
         }
 

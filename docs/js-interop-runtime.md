@@ -318,24 +318,39 @@ handler that page had under that id as the page has it now:
   answered, so a button waiting on it stops waiting, and no error is shown. The second click of a double click
   on a row that the first click removed does nothing.
 
-"The same handler" means the same method, over the same component or over a lambda that captured **equal**
-values: the same instance, or a type that says two instances are equal (a number, a string, a record).
-Two things follow for a list of rows:
+"The same handler" is the same lambda or method of the same component. Where one lambda makes several handlers
+in a render — a row's button, written once and rendered per row — the one an event was sent to is found by what
+tells those handlers apart: the values they captured that differ from row to row. A value every row shares (a
+view of the list the render worked out, a page number) is not which row it is, and may change between renders.
+Captured values are compared for **equality**: the same instance, a type that says two instances are equal (a
+number, a string, a record), or a plain object whose own fields are all equal.
 
-- **Capture the row's id, not the row object, when the rows are read again on every render.** Take the id into
-  a local first — `var id = row.Id;` … `.OnClick(() => Remove(id))` — and the lambda captures a number, which
-  is equal across renders. `.OnClick(() => Remove(row))`, and `.OnClick(() => Remove(row.Id))` just the same,
-  capture the row object: after a reload from the store it is a new instance, not equal to the one before
-  unless it is a record, and a click that raced the reload is dropped rather than risked.
-- **Key the rows** (`.Key(row.Id)`). A row that is a component of its own and carries no key is the same
-  *instance* by position, whatever record it is handed — so after the first row is removed, the instance in
-  second place shows the third record, and a click sent to "the second row" reaches it. A key ties the instance
-  to its record, and that click then reaches its own row or nothing.
+What follows for a list of rows:
 
-One more case is dropped rather than risked: a lambda handler in a component that the *server* re-rendered twice
-or more — a ticking page — while a single click was on its way. Handlers that are methods of the component
-(`.OnClick(Save)`), and lambdas that capture only the component, are not affected: they are the same handler in
-every render.
+- **Capture what identifies the row.** `.OnClick(() => Remove(row))` works when `row` is the same object, an
+  equal record, or an object with equal fields after a reload. A row whose captured object changed in any field
+  between the two renders — its name was edited while the click was on its way — is not found, and the click is
+  dropped rather than risked. Taking the id into a local first — `var id = row.Id;` …
+  `.OnClick(() => Remove(id))` — captures only what never changes.
+- **Do not capture a position.** `.OnClick(() => RemoveAt(i))` is the same handler in every render: after the
+  first row is removed, `i` names the next row, and no rule can tell that it should not.
+- **Key rows that are components** (`.Key(row.Id)`). A row that is a component of its own and carries no key is
+  the same *instance* by position, whatever record it is handed — so after the first row is removed, the
+  instance in second place shows the third record, and a click sent to "the second row" reaches it. A key ties
+  the instance to its record, and that click then reaches its own row or nothing.
+
+Three cases are worth knowing:
+
+- **One button over "the current item"** — a lambda rendered once that captures the item on screen — is one
+  handler whatever item it shows. A second click sent before the next item arrived acts on the item that is
+  there now. A handler that must not run twice checks for itself (`if (item.Id != _current.Id) return;`), or
+  renders one keyed button per item.
+- **Older than two pages.** Rask remembers what a place held for the last two pages sent whose handlers moved —
+  enough for a handler that awaits, which is rendered while it waits and again when it is done. A click that was
+  on its way through three such renders (a page that ticks several times a second on a slow link) is dropped.
+  Handlers that are methods of the component (`.OnClick(Save)`), and lambdas that capture only the component,
+  are the same handler in every render and are never dropped for this.
+- **A list longer than 4,096 handlers in one component** is not searched for a handler that moved.
 
 A dropped event is counted in the `rask.handlers.stale` metric ([observability](observability.md)), and in
 Development it is logged on `Rask.Live` at Information, naming the component, the handler's position, the page

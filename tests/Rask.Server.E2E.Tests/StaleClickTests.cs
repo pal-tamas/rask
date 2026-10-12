@@ -30,25 +30,27 @@ public sealed class StaleClickTests(PlaywrightFixture playwright) : IClassFixtur
     private static readonly LocatorAssertionsToHaveTextOptions Settled = new() { Timeout = 15_000 };
 
     [Fact]
-    public async Task A_click_on_the_last_row_s_bin_sent_while_a_row_is_being_removed_asks_about_that_row()
+    public async Task A_click_on_another_row_s_bin_sent_while_a_row_is_being_removed_asks_about_that_row()
     {
         var gate = LedgerJourneyPage.NewGate();
         await using var session = await HookSession.OpenAsync<LedgerJourneyPage>(playwright);
         var page = session.Page;
         await page.ClickAsync("#bin1");
         await Expect(page.Locator("#state")).ToHaveTextAsync("rows=1,2,3;removing=1;removed=;closed=0;", Settled);
-        var idBefore = await page.GetAttributeAsync("#bin3", "data-rask-on-click");
+        var idBefore = await page.GetAttributeAsync("#bin2", "data-rask-on-click");
         await page.ClickAsync("#yes");
         await gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
 
-        await page.DispatchEventAsync("#bin3", "click");
+        await page.DispatchEventAsync("#bin2", "click");
         var stateWhenSent = await page.TextContentAsync("#state");
         gate.Open.SetResult();
 
-        await Expect(page.Locator("#state")).ToHaveTextAsync("rows=2,3;removing=3;removed=1;closed=0;", Settled);
+        await Expect(page.Locator("#state")).ToHaveTextAsync("rows=2,3;removing=2;removed=1;closed=0;", Settled);
         Assert.Equal("rows=1,2,3;removing=1;removed=;closed=0;", stateWhenSent);
-        Assert.NotEqual(idBefore, await page.GetAttributeAsync("#bin3", "data-rask-on-click"));
-        Assert.Equal(idBefore, await page.GetAttributeAsync("#no", "data-rask-on-click"));
+
+        // The id the click carried is the next row's now: this is the click that used to ask about row 3.
+        Assert.Equal(idBefore, await page.GetAttributeAsync("#bin3", "data-rask-on-click"));
+        Assert.NotEqual(idBefore, await page.GetAttributeAsync("#bin2", "data-rask-on-click"));
     }
 
     [Fact]
