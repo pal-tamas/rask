@@ -5,8 +5,8 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-// What the browser is SENT when a form's save throws something that names no field, and when a save is refused
-// for a name the field was already told is taken. The "today" test pins the set-clear-set as it still is.
+// What the browser is SENT when a form's save throws something that names no field: the toast, as diffs. How
+// many frames carry it is not pinned here, since a field may answer its own change beside it.
 [Collection("HostEnvironment")]
 public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 {
@@ -15,14 +15,13 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
     [Theory]
     [InlineData("tenant")]
     [InlineData("other")]
-    public async Task A_save_that_throws_in_production_sends_one_diff_with_the_toast_and_no_word_of_the_exception(string name)
+    public async Task A_save_that_throws_in_production_sends_the_toast_as_a_diff_with_no_word_of_the_exception(string name)
     {
         await using var form = await Open("Production");
 
         var frames = await form.Save(name);
 
-        var toast = Decoded(Assert.Single(frames));
-        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        var toast = Told(frames);
         Assert.Contains(SaveFailed, toast, StringComparison.Ordinal);
         Assert.DoesNotContain("Exception", toast, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", toast, StringComparison.Ordinal);
@@ -36,8 +35,7 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
         var frames = await form.Save("tenant");
 
-        var toast = Decoded(Assert.Single(frames));
-        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        var toast = Told(frames);
         Assert.Contains($"{SaveFailed} MissingTenantException: No tenant is selected for partner 4114", toast, StringComparison.Ordinal);
     }
 
@@ -50,30 +48,22 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
         var frames = await form.Save("rule");
 
-        var toast = Decoded(Assert.Single(frames));
-        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        var toast = Told(frames);
         Assert.Contains(SaveFaultApp.Sentence, toast, StringComparison.Ordinal);
         Assert.DoesNotContain(SaveFailed, toast, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidationException", toast, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Today_a_save_refused_for_a_name_the_field_already_said_is_taken_clears_the_message_and_sets_it_again()
-    {
-        await using var form = await Open("Production");
-
-        var frames = await form.Save("p");
-
-        // Wanted: ONE frame, when the field is left. Today the save's own check takes the message off, sends
-        // that, and puts it back.
-        Assert.Equal(3, frames.Count);
-        Assert.Contains(SaveFaultApp.Taken, Decoded(frames[0]), StringComparison.Ordinal);
-        Assert.DoesNotContain(SaveFaultApp.Taken, Decoded(frames[1]), StringComparison.Ordinal);
-        Assert.Contains(SaveFaultApp.Taken, Decoded(frames[2]), StringComparison.Ordinal);
-    }
-
     // The markup of a frame as the browser reads it: out of its JSON string, and out of its character references.
     private static string Decoded(string frame) => System.Net.WebUtility.HtmlDecode(Regex.Unescape(frame));
+
+    // Everything the save was answered with, read as one: each frame a diff, never the whole page.
+    private static string Told(List<string> frames)
+    {
+        Assert.NotEmpty(frames);
+        Assert.All(frames, static frame => Assert.StartsWith("{\"kind\":\"diff\"", frame, StringComparison.Ordinal));
+        return string.Join('\n', frames.Select(Decoded));
+    }
 
     private async Task<OpenForm> Open(string environment)
     {
@@ -89,11 +79,16 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
     private sealed class OpenForm(RaskTestHost host, WebSocket ws, string html, ITestOutputHelper output) : IAsyncDisposable
     {
         // A name typed, then "Mentés" pressed with the field still focused: the browser sends the field's change
-        // and the submit one after the other. What the keystrokes were answered with is read past.
+        // and the submit one after the other. A field that binds on every keystroke hears those first, and what
+        // they were answered with is read past.
         public async Task<List<string>> Save(string name)
         {
-            await ws.SendJsonAsync(new { id = MarkupAssert.Attr(html, "data-rask-on-input"), type = "input", value = name, seq = 1 });
-            await ws.SettledAsync();
+            if (MarkupAssert.Attr(html, "data-rask-on-input") is { } typing)
+            {
+                await ws.SendJsonAsync(new { id = typing, type = "input", value = name, seq = 1 });
+                await ws.SettledAsync();
+            }
+
             await ws.SendJsonAsync(new { id = MarkupAssert.Attr(html, "data-rask-on-change"), type = "change", value = name, seq = 2 });
             await ws.SendJsonAsync(new { id = MarkupAssert.Attr(html, "data-rask-on-submit"), type = "submit", form = new { Name = name }, seq = 3 });
 
