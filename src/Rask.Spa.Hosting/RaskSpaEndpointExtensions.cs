@@ -449,7 +449,8 @@ public static class RaskSpaEndpointExtensions
         StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
         {
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-            await context.Response.WriteAsync($"The single-page app is unavailable: {reason}.", context.RequestAborted)
+            // Why is on stderr above: it names a folder on this machine, which is not a visitor's to read.
+            await context.Response.WriteAsync("The single-page app is unavailable.", context.RequestAborted)
                 .ConfigureAwait(false);
         });
     }

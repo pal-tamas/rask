@@ -129,7 +129,7 @@ public partial class HandlerRefusalTests : global::Rask.Core.RaskMarkup
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task A_handler_that_throws_anything_else_still_trips_its_boundary_and_raises_no_toast(bool subclass)
+    public async Task A_handler_that_throws_anything_else_trips_its_boundary_is_logged_once_and_raises_no_toast(bool subclass)
     {
         Exception thrown = subclass ? new TariffRuleException() : new InvalidOperationException("Server=db;Password=hunter2");
         var page = new TrailerPage(thrown);
@@ -139,7 +139,10 @@ public partial class HandlerRefusalTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("<p id=\"boundary-fallback\">", page.Html, StringComparison.Ordinal);
         toasts.Shown(thrown.Message).Never();
-        Assert.Empty(reported);
+        var line = Assert.Single(reported);
+        Assert.Equal(RaskLogLevel.Error, line.Level);
+        Assert.Contains("an error boundary from an event handler. Reference ", line.Message, StringComparison.Ordinal);
+        Assert.Same(thrown, line.Exception);
     }
 
     [Fact]

@@ -699,8 +699,9 @@ the state that produced the bug, so it is the state worth keeping. Dismiss the p
 counts repeats, so a handler throwing on every click is visible as such.
 
 A fault during *render* still replaces the page, in development as in production: re-rendering the subtree
-that just threw would only throw again. In production every fault gets the styled error page and a `500`,
-and no stack ever reaches the browser.
+that just threw would only throw again. In production every fault gets the styled error page (a first response
+answers `500`), and nothing of the exception reaches the browser — no type, no message, no stack: the page
+carries a reference, and the Error log line carries the same one beside the exception.
 
 > **If nothing ever applies, suspect the path.** `dotnet watch` produces an empty hot-reload delta —
 > silently, reporting success at every step — when the project path traverses a symlink. `rask dev`

@@ -29,8 +29,9 @@ public static class LiveOptions
     ///     reading the standard ASP.NET environment variables itself.
     /// </summary>
     /// <remarks>
-    ///     This decides whether an error page shows a stack trace and a source excerpt or just a type and
-    ///     a message, so getting it wrong is expensive in exactly the moment it matters. Core cannot ask
+    ///     This decides whether an error page shows the exception — type, message, stack, source — or only
+    ///     a reference to the log line that holds it, so getting it wrong is expensive in exactly the moment
+    ///     it matters. Unresolved and with neither variable saying Development, it is NOT Development. Core cannot ask
     ///     the host directly — it takes no dependency on <c>Microsoft.Extensions.Hosting</c>, deliberately
     ///     — and the environment-variable fallback it used instead is only correct when the environment
     ///     arrived that way. <c>dotnet run --environment Development</c>, <c>appsettings.json</c>,

@@ -179,6 +179,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ValidationDate", 0),
         ("ValidationTime", 0),
         ("FormSaveFailed", 0),
+        ("ErrorReference", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

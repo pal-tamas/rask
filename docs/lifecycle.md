@@ -245,8 +245,52 @@ Two things follow:
 The initial GET for a page whose render faulted answers **500**, not 200 — the body is still the error page, so both
 buttons work.
 
-`Console.Error` only comes into it when there is genuinely no boundary — a component rendered outside a live render
-context. In a live app that path is unreachable, so do not go looking there for a fault you can see on screen.
+### What a visitor sees when something throws
+
+Outside Development, **nothing of the exception**. The built-in error page — the root one, and a nested
+`ErrorBoundary` with no `Fallback` — shows a heading, `Try again` where the boundary can recover, `Reload this
+page`, and one sentence with a reference:
+
+```text
+Something went wrong
+[Try again] [Reload this page]
+The problem has been recorded. If it keeps happening, quote this reference: K7WQ2MZP
+```
+
+No exception type, no message, no inner exception, no stack and no source reach the response or the live frame: a
+message routinely carries a connection string, a query, a path or a user's data. The texts are `RaskString.ErrorHeading`,
+`ErrorTryAgain`, `ErrorReload` and `ErrorReference` ([localization](localization.md)).
+
+The reference is how support finds it. Every exception a boundary takes — the root one or your own, whatever its
+fallback draws — is logged **once at Error** on the `Rask.Errors` category, with the exception attached and the same
+reference in the message:
+
+```text
+fail: Rask.Errors[0]
+      An unhandled exception reached an error boundary from an event handler. Reference K7WQ2MZP
+      System.InvalidOperationException: Login failed for user 'sa' …
+         at …
+```
+
+It is eight random characters, made on the host when the exception is first seen, and derived from nothing: not the
+exception, not the visitor, not the request. One exception keeps one reference however many times its page is drawn.
+With request tracing on, the same log line carries the host's trace id as usual. A build-time
+[prerender](prerendering.md) shows its pages to nobody: what a boundary takes there — typically a hook reaching for a
+browser that is not there — is one Information line, and the pass itself reports a page it could not write.
+
+In **Development** the page shows everything it always has — type, message, each cause, the stack with source
+excerpts — and the reference beside them. A handler or lifecycle fault is shown over the running app instead
+([`rask dev`](cli.md)).
+
+**What decides Development:** the host's own `IHostEnvironment`, which `MapRask`/`RaskApp` read once at startup. A host
+that never says — a hand-wired host with no `IHostEnvironment`, a component rendered outside a host — falls back to
+`ASPNETCORE_ENVIRONMENT`, then `DOTNET_ENVIRONMENT`, and with neither set to `Development` it is **not** Development.
+A browser (WASM) app has no such variables, so it shows the Production page unless its own startup sets
+`LiveOptions.IsDevelopment = true`; the exception is in the browser console either way.
+
+**Your own `Fallback` is handed the exception — do not print it.** `ex.Message` and `ex.GetType().Name` on a page are
+exactly what the built-in page no longer shows. Say what the visitor can do, as the example above does, and branch on
+the exception's type if the wording depends on it. It is already in the log.
 
 ## Gotcha: don't `StateHasChanged()` in unmount
 
