@@ -433,7 +433,7 @@ public abstract partial class Component
                 a();
                 return true;
             case Action<string> a:
-                a(ExtractString(payload, "value"));
+                InvokeValue(a, payload);
                 return true;
             case Action<IReadOnlyList<string>> a:
                 a(ExtractStringList(payload));
@@ -472,7 +472,7 @@ public abstract partial class Component
     private static Func<Task>? AsyncInvocation(Delegate handler, JsonElement payload) => handler switch
     {
         Func<Task> f => f,
-        Func<string, Task> f => Bind(f, ExtractString(payload, "value")),
+        Func<string, Task> f => BindValue(f, payload),
         Func<IReadOnlyList<string>, Task> f => Bind<IReadOnlyList<string>>(f, ExtractStringList(payload)),
         Func<FormData, Task> f => Bind(f, FormData.FromJson(payload)),
         Func<JsonElement, Task> f => Bind(f, payload),
@@ -480,6 +480,26 @@ public abstract partial class Component
     };
 
     private static Func<Task> Bind<T>(Func<T, Task> handler, T argument) => () => handler(argument);
+
+    // A control's value, and beside it what the browser said it held back (UnreadInput): a frame that says
+    // nothing of the kind — every frame but a number's or a date's gone wrong — costs one property probe.
+    private static Func<Task> BindValue(Func<string, Task> handler, JsonElement payload)
+    {
+        var value = ExtractString(payload, "value");
+        return UnreadInput.Of(payload) is { } input ? () => UnreadInput.Run(handler, value, input) : Bind(handler, value);
+    }
+
+    private static void InvokeValue(Action<string> handler, JsonElement payload)
+    {
+        var value = ExtractString(payload, "value");
+        if (UnreadInput.Of(payload) is { } input)
+        {
+            UnreadInput.Run(handler, value, input);
+            return;
+        }
+
+        handler(value);
+    }
 
     // Parameterless delegate shapes outside the fast-path lists can still arrive through a typed handler
     // slot (e.g. a method group typed Func<Task<T>> or Func<ValueTask> wired to a drag handler). Invoke

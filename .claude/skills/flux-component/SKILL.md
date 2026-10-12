@@ -54,6 +54,15 @@ unset prop).
 Rendered attributes are not in that gate: compare them with Flux's live DOM (marker and ARIA names per
 `[data-flux-*]` node) when a component changes.
 
+**Owner-approved departures from Flux's behaviour** — the whole list; anything not on it is a parity bug.
+`FluxConformanceTests.Translations` cannot hold these: it is keyed by a prop the component carries, and a
+departure in behaviour carries none.
+- **2026-10-12 — typed `Ui.DatePicker` / `Ui.TimePicker` left with parts that make no value.** Flux keeps the
+  last whole value behind the parts (measured: erase a part, or all of them, and `value` is still the old
+  date) and marks nothing. The kit refuses: half filled says "Enter a valid date." / "Enter a valid time." and
+  blocks the save, every part emptied is nothing chosen. Reason: a form must not save a value the reader can
+  no longer see. Look and keys unchanged. `rask-segments.ts`, `UiPickerUnreadTests`, `PickerUnreadTests`.
+
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
 - **Props are Flux's**, one property per documented prop: `icon:trailing` → `IconTrailing`,
