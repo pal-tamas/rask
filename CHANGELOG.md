@@ -68,6 +68,19 @@ them until tagged releases begin.
   the page the reader was leaving; where that page loads and then calls `Go()`, Back sent them round to its
   destination again. The address now travels in the first frame that goes out, and in no later one.
 
+- **A host mapped through endpoint routing says why a reply was the whole page, and every such reply has a
+  reason.** `endpoints.MapRask<TApp>()` — the overload a host that composes its own pipeline calls — never learned
+  the host's environment or its logger: `LiveOptions.IsDevelopment` stayed unset, so the Development-only line
+  that names a refused diff was never written, the development error page was the production one, and framework
+  diagnostics went to stderr instead of the app's log. Both overloads now take the same facts from the host's
+  services. The line is a **warning** now (a host that logs warnings and up still shows it), and the replies it
+  used to stay silent about are named too: a session with no earlier render to compare with, a render that
+  carries a sign-in handoff or a file download, and a reply in which the differ found nothing to patch. Still
+  nothing is formatted outside Development.
+- **A handler that only calls script is answered with a diff.** A press whose handler changed nothing on the
+  page and called JavaScript (`ShowModal()`, a focus, any `IJSRuntime` call) was answered with the whole
+  document carrying the call, because a diff with no ops was taken for "nothing to send". The call now rides an
+  empty diff: about a hundred bytes where the page was tens of kilobytes.
 - **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
   page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
   to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:

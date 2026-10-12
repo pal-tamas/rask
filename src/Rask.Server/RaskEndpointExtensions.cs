@@ -420,6 +420,7 @@ public static partial class RaskEndpointExtensions
         string pathBase = "")
         where TApp : Component
     {
+        AdoptHost(endpoints.ServiceProvider);
         var pathBaseNormalized = ApplyLiveOptions(endpoints, pathBase);
 
         // How a session's tree is built, captured once here because two call sites need it: the GET that
@@ -446,12 +447,9 @@ public static partial class RaskEndpointExtensions
 
     private static void PrepareHost(WebApplication app)
     {
-        // Route every framework diagnostic (Rask.Core + this host) into the application's logging
-        // pipeline. No-ops when no ILoggerFactory is registered, leaving the stderr default in place.
-        var loggerFactory = app.Services.GetService<ILoggerFactory>();
-        RaskServerDiagnostics.Install(loggerFactory);
+        AdoptHost(app.Services);
 
-        var logger = loggerFactory?.CreateLogger("Rask");
+        var logger = app.Services.GetService<ILoggerFactory>()?.CreateLogger("Rask");
         if (logger is not null)
             Starting(logger, RaskVersion.Current);
         else
@@ -459,17 +457,32 @@ public static partial class RaskEndpointExtensions
 
         WarnOnTightShutdownLadder(app.Services, logger);
 
+        app.UseWebSockets();
+    }
+
+    // What a host tells Rask about itself, taken from its services so the endpoint-routing overload learns it
+    // too. That overload has no WebApplication, and a host mapped through it used to stay unclaimed: its
+    // diagnostics went to stderr instead of its log, and nothing gated on Development was ever on.
+    private static void AdoptHost(IServiceProvider services)
+    {
+        // Route every framework diagnostic (Rask.Core + this host) into the application's logging
+        // pipeline. No-ops when no ILoggerFactory is registered, leaving the stderr default in place.
+        RaskServerDiagnostics.Install(services.GetService<ILoggerFactory>());
+
+        if (services.GetService<IHostEnvironment>() is not { } environment)
+        {
+            return;
+        }
+
         // Resolve the scoped-CSS minification default from the host environment unless an explicit
         // true/false was already set (via AddRask or directly): minify outside Development, and keep it
         // readable + hot-reloadable in Development.
-        LiveOptions.MinifyScopedAssets ??= !app.Environment.IsDevelopment();
+        LiveOptions.MinifyScopedAssets ??= !environment.IsDevelopment();
 
         // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
         // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
         // an IDE profile — used to give you the production error page while developing (#605).
-        LiveOptions.IsDevelopment ??= app.Environment.IsDevelopment();
-
-        app.UseWebSockets();
+        LiveOptions.IsDevelopment ??= environment.IsDevelopment();
     }
 
     /// <summary>
