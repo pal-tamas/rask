@@ -17,7 +17,7 @@ import { inRoot, send } from "./rask-host.js";
 import { closestFrom } from "./rask-morph.js";
 import { domEvents } from "./generated/rask-dom-events.js";
 import { raskDomPayload } from "./rask-dom-payload.js";
-import { begun, isOurs, said, unsaid } from "./rask-owned.js";
+import { begun, isOurs, said, unasked, unsaid } from "./rask-owned.js";
 
 // Events with a listener of their own below or in a host: click (the hosts' submit/popover/loading guards),
 // keydown/keyup (the `data-rask-keys` filter), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
@@ -29,8 +29,17 @@ var raskOwnListener = new Set(["click", "keydown", "keyup", "dragstart", "dragov
 // carrying `data-rask-on-<event>`. An event that does not bubble (focus, toggle, a dialog's close, every media
 // event) is delivered only to the element it fired ON, as the DOM itself delivers it: capture-phase delegation
 // would otherwise hand an ancestor every descendant's event. Passive whenever Rask does not prevent the default.
+//
+// WHOSE DOING. An event of an input device's interface is the reader's hand, and so are the few plain ones a
+// press or a key raises on a form, a dialog or a selection. Every other row is the browser's own: an animation
+// ending, media playing on, an image arriving, a box resized. Those are sent as nobody's action (`unasked`,
+// rask-owned.ts), and so is the `close` of a dialog the runtime shut itself.
+var raskReadersInterface = /^(Pointer|Mouse|Keyboard|Input|Focus|Drag|Wheel|Touch|Composition|Clipboard|Command|Toggle)Event$/;
+var raskReadersPlain = new Set(["cancel", "close", "invalid", "reset", "select", "selectionchange"]);
+
 domEvents.forEach(function (row) {
     var name = row[0], bubbles = row[2], prevent = row[3], attr = "data-rask-on-" + name;
+    var readers = raskReadersInterface.test(row[1]) || raskReadersPlain.has(name);
     if (raskOwnListener.has(name)) { return; }
     document.addEventListener(name, function (e) {
         var target = closestFrom(e.target, "[" + attr + "]");
@@ -46,7 +55,8 @@ domEvents.forEach(function (row) {
         var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
-        var answer = send(msg);
+        var answer: unknown;
+        if (readers && !ours) { answer = send(msg); } else { unasked(function () { answer = send(msg); }); }
         if (opens && !ours && name !== "beforetoggle") { said(target, typeof msg.seq === "number" ? msg.seq : answer); }
     }, { capture: true, passive: !prevent });
 });

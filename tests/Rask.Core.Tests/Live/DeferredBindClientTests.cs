@@ -97,9 +97,9 @@ public sealed class DeferredBindClientTests
     [InlineData("beforeATableEvent", "change:Eve", "dblclick:twice")]
     [InlineData("beforeAPointerEntering", "change:Fay", "mouseenter:over")]
     [InlineData("beforeADrag", "change:Gus", "dragstart:drag")]
-    [InlineData("beforeAScroll", "change:Hal", "scroll:scrolled")]
-    [InlineData("beforeAHooksEvent", "change:Ida", "toggle:hook")]
-    public void Every_other_event_the_page_sends_is_preceded_by_what_was_typed(string family, string value, string after)
+    [InlineData("beforeAToggle", "change:Ida", "toggle:opened")]
+    [InlineData("aReplayedPress", "change:Ian", "click:row")]
+    public void Every_other_event_the_reader_raises_is_preceded_by_what_was_typed(string family, string value, string after)
     {
         if (Run() is not { } root)
         {
@@ -199,19 +199,37 @@ public sealed class DeferredBindClientTests
         Assert.Equal(["change:Mo", "click:save"], thenTheCorrection);
     }
 
-    [Fact]
-    public void The_reply_to_an_interop_call_carries_nothing_ahead_of_it()
+    [Theory]
+    [InlineData("aToastsOwnPress", "click:close~")]
+    [InlineData("aMeasuredBox", "input:640x480~")]
+    [InlineData("aScroll", "scroll:scrolled~")]
+    [InlineData("mediaPlayingOn", "timeupdate:playing~")]
+    [InlineData("anAnimationEnding", "animationend:faded~")]
+    [InlineData("anImageArriving", "load:arrived~")]
+    [InlineData("anInteropReply", "jsResult:7")]
+    public void What_the_runtime_does_by_itself_is_sent_alone_and_marked_with_nothing_typed_ahead_of_it(string doing, string alone)
     {
         if (Run() is not { } root)
         {
             return;
         }
 
-        var anInteropReply = Sent(root, "anInteropReply");
-        var stillSentWithTheAction = Sent(root, "stillSentWithTheAction");
+        var sent = Sent(root, doing);
 
-        Assert.Equal(["jsResult:7"], anInteropReply);
-        Assert.Equal(["change:Ned", "click:save"], stillSentWithTheAction);
+        Assert.Equal([alone], sent);
+    }
+
+    [Fact]
+    public void What_waited_through_everything_the_runtime_did_by_itself_goes_with_the_readers_next_action()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var sent = Sent(root, "stillSentWithTheAction");
+
+        Assert.Equal(["change:Hal", "click:save"], sent);
     }
 
     [Fact]

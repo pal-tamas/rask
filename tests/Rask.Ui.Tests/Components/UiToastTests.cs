@@ -257,6 +257,32 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_toast_the_runtime_closes_when_its_time_is_up_goes_and_writes_no_pick_that_waits()
+    {
+        var trip = new Trip();
+        var page = Page.Render(
+            () => [
+                Ui.Select.Bind(() => trip.Room).Listbox.Label("Room")[Ui.SelectOption.Key("Attic")["Attic"]],
+                Button.OnClick(() => Toast.Info("Saved"))["Save"],
+                Ui.Toast
+            ],
+            Session());
+        await page.Click("Save");
+        await page.On("[popover=\"auto\"]").Raise("toggle", """{"oldState":"closed","newState":"open"}""");
+        await page.On("[data-ui-option]:has-text(\"Attic\")").Click();
+
+        await page.On("[data-rask-dismiss]").Raise("click", """{"unasked":true}""");
+
+        Assert.DoesNotContain("data-ui-toast-dialog", page.Html, StringComparison.Ordinal);
+        Assert.Equal("", trip.Room);
+    }
+
+    private sealed class Trip
+    {
+        public string Room { get; set; } = "";
+    }
+
+    [Fact]
     public void With_no_toast_the_host_is_on_the_page_closed_empty_and_without_a_class_to_lay_it_out()
     {
         var page = Page.Render(() => [Ui.Toast.TopEnd, Ui.ToastGroup[Ui.Toast]], Session());

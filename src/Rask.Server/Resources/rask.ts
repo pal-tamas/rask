@@ -48,7 +48,7 @@ import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
-import { answered } from "../../Rask.Core/Resources/rask-owned.js";
+import { answered, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -312,8 +312,11 @@ import {
         queue.length = 0;
         // Values the field restore put back into the DOM at boot, pushed to the server now that there is a
         // connection to push them over — so the model ends up holding what the page shows rather than the
-        // pristine values it rendered. Sent after the hello, so the session exists.
-        for (const payload of pendingConverge) send(payload);
+        // pristine values it rendered. Sent after the hello, so the session exists. The runtime's doing, not an
+        // action: a restored field that waits goes on waiting (rask-owned.ts).
+        unasked(() => {
+            for (const payload of pendingConverge) send(payload);
+        });
         pendingConverge.length = 0;
         // Auth reconnect completed — restore the default message for any future drop.
         if (authInProgress) {
@@ -1838,7 +1841,8 @@ import {
         } else {
             msg.error = error || "JS invocation failed";
         }
-        send(msg);
+        // The server asked, and is answered: not the reader's doing.
+        unasked(() => send(msg));
     }
 
     // ----- DotNet shim (mirror of Blazor's window.DotNet) --------------------
@@ -1853,13 +1857,15 @@ import {
             const callId = String(nextDotNetCallId++);
             return new Promise((resolve, reject) => {
                 dotNetPending.set(callId, {resolve, reject});
-                send({
+                // Code calling code — a sensor's reading, a script's callback, a result coming back — and no
+                // event of the page: nothing rides ahead of it, as nothing does on the WASM host.
+                unasked(() => send({
                     type: "dotNetInvoke",
                     callId,
                     assemblyName,
                     methodIdentifier,
                     argsJson: JSON.stringify(args)
-                });
+                }));
             });
         },
         disposeJSObjectReferenceById,

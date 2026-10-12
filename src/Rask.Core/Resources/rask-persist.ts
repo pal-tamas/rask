@@ -22,7 +22,7 @@
 // localStorage can throw (a private window, a blocked origin); every touch of it is guarded and a failure
 // means the box behaves like any other.
 
-import {listen, own, page, seam} from "./rask-owned.js";
+import {listen, own, page, seam, unasked} from "./rask-owned.js";
 
 const PERSIST = "data-rask-persist";
 const UNCHECK = "[data-rask-uncheck-on-navigate]";
@@ -83,8 +83,10 @@ if (page) {
         const boxes = doc.querySelectorAll<HTMLInputElement>(UNCHECK);
         for (let i = 0; i < boxes.length; i++) {
             if (boxes[i].checked) {
-                boxes[i].checked = false;
-                boxes[i].dispatchEvent(new Event("change", {bubbles: true}));
+                const box = boxes[i];
+                box.checked = false;
+                // It follows a navigation, which took what waited with it; this is the runtime tidying up.
+                unasked(function () { box.dispatchEvent(new Event("change", {bubbles: true})); });
             }
         }
     };

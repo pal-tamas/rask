@@ -186,6 +186,26 @@ public partial class PendingBindsTests : global::Rask.Core.RaskMarkup
         Assert.Equal(("", ""), (m.Size, m.Colour));
         Assert.Equal("small", page.TextOf("#size .shown"));
     }
+
+    [Fact]
+    public async Task An_event_the_runtime_raised_by_itself_writes_nothing_and_the_readers_own_press_does()
+    {
+        var m = new Order();
+        var closed = 0;
+        var page = Page.Render(() => Fragment[
+            WaitingPicker.Bind(() => m.Size).Name("size"),
+            Button.Id("close").OnClick(() => closed++)["Close"]
+        ]);
+        await page.On("#size .small").Click();
+
+        await page.On("#close").Raise("click", """{"unasked":true}""");
+        var afterTheRuntimes = m.Size;
+        await page.On("#close").Click();
+
+        Assert.Equal(2, closed);
+        Assert.Equal("", afterTheRuntimes);
+        Assert.Equal("small", m.Size);
+    }
 }
 
 /// <summary>A control of two buttons that commits what was pressed the way the kit's drawn controls do.</summary>

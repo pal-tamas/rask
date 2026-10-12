@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
+  whatever the page sent next carried it — including the press the runtime makes on a toast's close button
+  when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,
+  the half-typed name went with it, and the unique rule spoke under a field the reader was still in. Now only
+  what the reader did carries what waits. What the runtime does by itself is sent alone and marked
+  (`"unasked":true`), so the page writes nothing its drawn controls hold either: a toast's timed dismissal, a
+  chart's measured size, the drawer a navigation unchecks, a `scroll`, a media, animation, transition, `load`
+  or `error` event, focus a render moved, a field restored after a reload, the reply to an interop call. On
+  the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
+  WebAssembly.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.
