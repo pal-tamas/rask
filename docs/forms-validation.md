@@ -93,8 +93,9 @@ as `Ui.Input` does.
 **A [Rask.Data](data.md#what-a-form-over-the-model-asks-by-itself) aggregate's model is such a model.**
 A value object that holds one value and has a public static `Validate` taking that value — the
 `DestinationName` above — is asked by every field bound to it on the aggregate's generated model
-(`DestinationModel.Name`), with nothing written on the field. An empty field is not put to it: that is
-`[Required]`'s to say.
+(`DestinationModel.Name`), with nothing written on the field. A property the aggregate declares non-nullable
+is required by its type: the rule is asked about the empty value too, so the words for "required" are the value
+object's own, with no `[Required]` and with the automatic validators on or off.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type

@@ -304,42 +304,6 @@ public sealed partial class ModelInputGenerator
     // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
     // emptied that field; a non-nullable scalar cannot be null here, since __Validate has refused the model first. A
     // nested value-object model merges what it gives over the value object the aggregate holds.
-    // The server's own check of what a form posted: the attributes the form validates with, run directly — no
-    // reflection, so a trimmed app keeps every one — before anything is written.
-    private static void AppendValidate(StringBuilder s, Entity entity)
-    {
-        var modelType = FormModelType(entity);
-        s.Append("    internal static void __Validate(").Append(modelType).AppendLine(" model)");
-        s.AppendLine("    {");
-        s.AppendLine("        global::System.Collections.Generic.List<string>? errors = null;");
-        foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.Write is not null))
-        {
-            foreach (var check in member.Checks)
-            {
-                s.Append("        __Check(").Append(check).Append(", model.").Append(member.Name).Append(", \"")
-                    .Append(member.Name).AppendLine("\", model, ref errors);");
-            }
-        }
-
-        s.AppendLine("        if (errors is not null)");
-        s.AppendLine("        {");
-        s.AppendLine("            throw new global::System.ComponentModel.DataAnnotations.ValidationException(string.Join(\" \", errors));");
-        s.AppendLine("        }");
-        s.AppendLine("    }");
-        s.AppendLine();
-        s.Append("    private static void __Check(global::System.ComponentModel.DataAnnotations.ValidationAttribute check, ")
-            .Append("object? value, string name, ").Append(modelType)
-            .AppendLine(" model, ref global::System.Collections.Generic.List<string>? errors)");
-        s.AppendLine("    {");
-        s.AppendLine("        // The trim-safe context: it names the model without reflecting over it.");
-        s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, name, null, null) { MemberName = name };");
-        s.AppendLine("        if (check.GetValidationResult(value, context) is { ErrorMessage: { } error })");
-        s.AppendLine("        {");
-        s.AppendLine("            (errors ??= []).Add(error);");
-        s.AppendLine("        }");
-        s.AppendLine("    }");
-        s.AppendLine();
-    }
 
     private static void AppendApply(StringBuilder s, Entity entity)
     {
