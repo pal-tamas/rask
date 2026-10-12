@@ -30,6 +30,9 @@ internal sealed class RaskServerLimits
     /// <summary>How long the GET waits for async lifecycle work to settle. Zero = off. See <see cref="RaskServerOptions.QuiescenceTimeout" />.</summary>
     public TimeSpan InitialRenderQuiescenceTimeout { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>How long a page reached in place is waited for before it is sent. Zero = off. See <see cref="RaskServerOptions.NavigationQuiescenceTimeout" />.</summary>
+    public TimeSpan NavigationQuiescenceTimeout { get; init; } = TimeSpan.FromMilliseconds(150);
+
     /// <summary>Close a connected socket that sends no inbound frame for this long. Zero = off.</summary>
     public TimeSpan IdleSocketTimeout { get; init; } = TimeSpan.Zero;
 
@@ -63,6 +66,7 @@ internal sealed class RaskServerLimits
         SessionGracePeriod = o.SessionGracePeriod,
         UnconnectedSessionGracePeriod = o.UnconnectedSessionGracePeriod,
         InitialRenderQuiescenceTimeout = o.QuiescenceTimeout,
+        NavigationQuiescenceTimeout = o.NavigationQuiescenceTimeout,
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,

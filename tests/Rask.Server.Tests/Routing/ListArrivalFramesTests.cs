@@ -10,14 +10,21 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Routing;
 
-// What a page reached IN PLACE costs today, frame by frame, on the app the report came from (ListArrivalApp):
-// a page whose OnUpdated awaits is sent before the await is back, and sent again after it. Each test PINS what
-// happens now and says what it should become; the ones named "today" flip when the navigation waits.
+// What a page reached IN PLACE costs, frame by frame, on the app the report came from (ListArrivalApp): a
+// navigation waits for the page it goes to — its OnMount and OnUpdated — within the navigation budget, and the
+// page is sent once. The reads are held and released by the test, and the budget is either longer than a test
+// may run or over before the read is let go, so nothing here depends on how fast the machine is.
 [Collection("HostEnvironment")]
 public sealed class ListArrivalFramesTests(ITestOutputHelper output)
 {
     private const string LastRow = "Viszonylat 15";
     private const string Heading = "Viszonylatok</";
+
+    // Longer than any wait here may last: a page is sent because its reads came back, never because time ran out.
+    private static void Patient(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromMinutes(5);
+
+    // Over while the test still holds the read.
+    private static void Brief(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
 
     [Fact]
     public async Task A_first_request_for_the_list_waits_for_both_reads_and_is_one_document_with_its_rows()
@@ -48,116 +55,170 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task Today_a_list_reached_by_a_link_is_sent_before_its_reads_and_again_after_as_two_whole_pages()
+    public async Task A_list_reached_by_a_link_arrives_once_with_its_rows_and_its_address()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
         store.Hold();
 
         await arrival.Go("link", "/destinations");
-        var before = await arrival.Next();
+        await store.ReadStarted();
         store.Release();
-        var after = await arrival.Until(LastRow);
+        var frame = Assert.Single(await arrival.Settled());
 
-        // Wanted: ONE frame, with the rows. Today the heading goes first and the table follows.
-        Assert.Equal("page", Kind(before));
-        Assert.Contains(Heading, before, StringComparison.Ordinal);
-        Assert.DoesNotContain(LastRow, before, StringComparison.Ordinal);
-        Assert.Equal("/destinations", LiveFrames.HistoryUrl(before));
-        Assert.Equal("page", Kind(Assert.Single(after)));
-        Assert.Contains("is by position, replaced by <div class=\"block overflow-auto\"><table", arrival.Why[^1], StringComparison.Ordinal);
+        Assert.Equal("page", Kind(frame));
+        Assert.Contains(Heading, frame, StringComparison.Ordinal);
+        Assert.Contains(LastRow, frame, StringComparison.Ordinal);
+        Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
     }
 
     [Fact]
-    public async Task Today_a_save_that_goes_to_the_list_is_three_frames_and_the_address_moves_after_the_page()
+    public async Task A_save_that_goes_to_the_list_is_one_frame_with_the_list_and_its_address()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
         store.Hold();
 
         await arrival.Go("save", "/destinations");
-        var before = await arrival.Next();
-        var address = await arrival.Next();
+        await store.ReadStarted();
         store.Release();
-        var after = await arrival.Until(LastRow);
+        var frame = Assert.Single(await arrival.Settled());
 
-        // Wanted: ONE frame, with the rows and the address. Today the handler's own repaint sends the list
-        // before the dispatch has taken the address, which then travels alone.
-        Assert.Equal("page", Kind(before));
-        Assert.Null(LiveFrames.HistoryUrl(before));
-        Assert.DoesNotContain(LastRow, before, StringComparison.Ordinal);
-        Assert.StartsWith("{\"kind\":\"diff\",\"ops\":[],\"history\":", address, StringComparison.Ordinal);
-        Assert.Equal("/destinations", LiveFrames.HistoryUrl(address));
-        Assert.Equal("page", Kind(Assert.Single(after)));
+        // The handler's own repaint is withheld once it has navigated, so the list never travels without its address.
+        Assert.Equal("page", Kind(frame));
+        Assert.Contains(LastRow, frame, StringComparison.Ordinal);
+        Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
     }
 
     [Fact]
-    public async Task A_table_that_arrives_at_the_end_of_its_level_follows_its_page_as_a_diff()
+    public async Task A_list_whose_reads_outlast_the_budget_is_sent_without_rows_at_the_budget_and_the_rows_follow()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Brief);
         store.Hold();
 
-        await arrival.Go("link", "/destinations-tail");
-        var before = await arrival.Next();
+        await arrival.Go("link", "/destinations");
+        var atTheBudget = await arrival.Next();
         store.Release();
         var after = await arrival.Until(LastRow);
 
-        Assert.Equal("page", Kind(before));
+        // Spending the budget cancels nothing: the reads are still running, and what follows arrives as before.
+        Assert.Equal("page", Kind(atTheBudget));
+        Assert.Contains(Heading, atTheBudget, StringComparison.Ordinal);
+        Assert.DoesNotContain(LastRow, atTheBudget, StringComparison.Ordinal);
+        Assert.Equal("/destinations", LiveFrames.HistoryUrl(atTheBudget));
+        Assert.Null(LiveFrames.HistoryUrl(Assert.Single(after)));
+    }
+
+    [Fact]
+    public async Task A_table_that_arrives_after_the_budget_at_the_end_of_its_level_follows_its_page_as_a_diff()
+    {
+        var store = new ListArrivalStore();
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Brief);
+        store.Hold();
+
+        await arrival.Go("link", "/destinations-tail");
+        var atTheBudget = await arrival.Next();
+        store.Release();
+        var after = await arrival.Until(LastRow);
+
+        Assert.Equal("page", Kind(atTheBudget));
         Assert.Equal("diff", Kind(Assert.Single(after)));
     }
 
     [Fact]
-    public async Task Today_a_list_that_says_loading_where_its_table_will_be_is_two_whole_pages_too()
+    public async Task A_list_that_says_loading_where_its_table_will_be_never_shows_it_when_the_read_is_within_the_budget()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
         store.Hold();
 
         await arrival.Go("link", "/destinations-loading");
-        var before = await arrival.Next();
+        await store.ReadStarted();
         store.Release();
-        var after = await arrival.Until(LastRow);
+        var frame = Assert.Single(await arrival.Settled());
 
-        Assert.Equal("page", Kind(before));
-        Assert.Contains("Bet&#xF6;lt&#xE9;s", before, StringComparison.Ordinal);
-        Assert.Equal("page", Kind(Assert.Single(after)));
-        Assert.Contains("RemoveSubtree at /1/1/3/1 is by position, replaced by", arrival.Why[^1], StringComparison.Ordinal);
+        Assert.DoesNotContain("Bet&#xF6;lt&#xE9;s", frame, StringComparison.Ordinal);
+        Assert.Contains(LastRow, frame, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Today_an_edit_page_reached_by_a_link_shows_no_such_record_until_its_read_is_back()
+    public async Task An_edit_page_reached_by_a_link_arrives_as_its_record_with_its_title_and_never_as_no_such_record()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
         store.Hold();
 
         await arrival.Go("link", "/destinations/3");
-        var before = await arrival.Next();
+        await store.ReadStarted();
         store.Release();
-        var after = await arrival.Until("Viszonylat 3 m");
+        var frame = Assert.Single(await arrival.Settled());
 
-        // Wanted: the record's page in one frame. Today the "no such record" branch is painted first.
-        Assert.Equal("page", Kind(before));
-        Assert.Contains("Nincs ilyen viszonylat", before, StringComparison.Ordinal);
-        Assert.Contains(">PPTA</title>", before, StringComparison.Ordinal);
-        var second = Assert.Single(after);
-        Assert.Equal("page", Kind(second));
-        Assert.DoesNotContain("Nincs ilyen viszonylat", second, StringComparison.Ordinal);
+        Assert.DoesNotContain("Nincs ilyen viszonylat", frame, StringComparison.Ordinal);
+        Assert.Contains("Viszonylat 3 m&#xF3;dos&#xED;t&#xE1;sa | PPTA</title>", frame, StringComparison.Ordinal);
+        Assert.Equal("/destinations/3", LiveFrames.HistoryUrl(frame));
     }
 
     [Fact]
-    public async Task Today_a_page_that_sends_the_reader_on_after_an_await_is_painted_before_it_does()
+    public async Task A_page_that_sends_the_reader_on_after_an_await_is_never_sent_and_its_destination_arrives_once()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations/new", output);
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
 
         await arrival.Go("link", "/moved");
-        var frames = await arrival.Until(LastRow);
+        var frame = Assert.Single(await arrival.Settled());
 
-        // Wanted: the list, once. Today the page that is about to leave is sent first.
-        Assert.Contains(frames, static f => f.Contains("id=\\\"moved\\\"", StringComparison.Ordinal));
-        Assert.Equal("/destinations", LiveFrames.HistoryUrl(frames[^1]) ?? LiveFrames.HistoryUrl(frames[^2]));
+        Assert.DoesNotContain("id=\\\"moved\\\"", frame, StringComparison.Ordinal);
+        Assert.Contains(LastRow, frame, StringComparison.Ordinal);
+        Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
+    }
+
+    [Fact]
+    public async Task A_second_link_pressed_while_the_first_page_is_awaited_is_the_only_page_sent()
+    {
+        var store = new ListArrivalStore();
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Patient);
+        store.Hold();
+
+        await arrival.Go("link", "/destinations");
+        await store.ReadStarted();
+        await arrival.Go("link", "/destinations/new");
+        var frame = Assert.Single(await arrival.Settled());
+        store.Release();
+
+        // The reader did not sit out the first page's budget: its wait ended when the second link was read.
+        Assert.Equal("/destinations/new", LiveFrames.HistoryUrl(frame));
+        Assert.DoesNotContain(Heading, frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_page_whose_read_never_comes_back_is_painted_at_the_budget_and_the_session_keeps_answering()
+    {
+        var store = new ListArrivalStore();
+        await using var arrival = await Arrival.Open(store, "/destinations/new", output, Brief);
+        store.Hold();
+
+        await arrival.Go("link", "/destinations");
+        var atTheBudget = await arrival.Next();
+        await arrival.Go("link", "/destinations/new");
+        var next = Assert.Single(await arrival.Settled());
+
+        Assert.Equal("/destinations", LiveFrames.HistoryUrl(atTheBudget));
+        Assert.DoesNotContain(LastRow, atTheBudget, StringComparison.Ordinal);
+        Assert.Equal("/destinations/new", LiveFrames.HistoryUrl(next));
+    }
+
+    [Fact]
+    public async Task A_page_with_nothing_to_wait_for_is_sent_without_waiting_however_long_the_budget()
+    {
+        var store = new ListArrivalStore();
+        await using var arrival = await Arrival.Open(store, "/destinations", output, Patient);
+
+        await arrival.Go("link", "/destinations/new");
+        var frame = await arrival.Next();
+
+        // The budget here is longer than this wait may last: a navigation that sat it out would never be read.
+        Assert.Equal("/destinations/new", LiveFrames.HistoryUrl(frame));
     }
 
     [Fact]
@@ -235,6 +296,14 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
             var handler = Regex.Match(
                 Html, $"id=\"{Regex.Escape(by)}\"[^>]*data-rask-on-click=\"([^\"]+)\"", RegexOptions.None, TimeSpan.FromSeconds(1));
             return ws.SendJsonAsync(new { id = handler.Groups[1].Value, type = "click" });
+        }
+
+        // Every frame the session sent for what it has been sent so far, once it has finished all of it.
+        public async Task<List<string>> Settled()
+        {
+            var frames = await ws.SettledAsync();
+            frames.ForEach(Note);
+            return frames;
         }
 
         public async Task<string> Next()

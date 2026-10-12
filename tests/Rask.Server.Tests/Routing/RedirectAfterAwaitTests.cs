@@ -8,25 +8,28 @@ using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Routing;
 
-// "Record not found, back to the list": a page that loads and THEN calls Go(). Its placeholder was on screen while
-// it loaded, so the destination replaces it — in the document and in the history, where the page that sent the
-// reader on is not a place to go back to.
+// "Record not found, back to the list": a page that loads and THEN calls Go(). Reached in place, the navigation
+// waits for it, so the reader never sees it: its destination arrives in its place, under the address and the
+// history step of the navigation that led there. Where its load outlasts the wait — the first response, or the
+// navigation budget — its placeholder was on screen, and the destination replaces it.
 public sealed class RedirectAfterAwaitTests
 {
     private const string Home = "/redirect/home";
 
+    // Longer than a test may run: the page is waited for until it has sent the reader on.
+    private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
+
     [Fact]
-    public async Task A_link_to_a_page_that_loads_and_then_redirects_lands_on_its_destination_replacing_its_address()
+    public async Task A_link_to_a_page_that_loads_and_then_redirects_lands_on_its_destination_and_that_page_is_never_sent()
     {
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
 
-        await redirects.Send(new { type = "navigate", path = "/redirect/late", query = "" });
-        var loading = await redirects.Ws.ReceiveNavigationToAsync("/redirect/late");
-        var landing = await redirects.Ws.ReceiveNavigationToAsync(Home);
+        var landing = Assert.Single(await redirects.Navigate("/redirect/late"));
 
-        Assert.Equal("push", HistoryAction(loading));
-        Assert.Contains("late-content", loading);
-        Assert.Equal("replace", HistoryAction(landing));
+        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
+        Assert.Equal("push", HistoryAction(landing));
+        Assert.DoesNotContain("late-content", landing);
         Assert.Contains("home-content", landing);
         Assert.Contains(">Home</title>", Html(landing));
         Assert.Contains("crumb:Home", Html(landing));
@@ -37,12 +40,14 @@ public sealed class RedirectAfterAwaitTests
     [InlineData("save-then-late")]
     public async Task A_handler_that_goes_to_a_page_that_loads_and_then_redirects_lands_on_its_destination(string button)
     {
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
 
-        await redirects.Press(button);
-        var landing = await redirects.Ws.ReceiveNavigationToAsync(Home);
+        var landing = Assert.Single(await redirects.Click(button));
 
-        Assert.Equal("replace", HistoryAction(landing));
+        // One step in the history, as the handler's own Go() asked: the page in between never had an address.
+        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
+        Assert.Equal("push", HistoryAction(landing));
         Assert.Contains("home-content", landing);
         Assert.DoesNotContain("late-content", landing);
     }
