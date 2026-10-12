@@ -617,6 +617,20 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("[data-testid='inner-1']")).ToHaveCountAsync(0,
             new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
 
+        // Every column but one has a width, so a sort moves the rows and never the columns.
+        const string orderColumnWidths =
+            "[...document.querySelectorAll('#md-orders > thead th')].map(th => th.getBoundingClientRect().width).join()";
+        var widthsBefore = await Page.EvaluateAsync<string>(orderColumnWidths);
+        Assert.True(
+            await Page.EvaluateAsync<bool>(
+                "(() => { const t = document.querySelector('#md-orders'); return getComputedStyle(t).display === 'table' && t.getBoundingClientRect().width >= t.parentElement.clientWidth - 2; })()"),
+            "the orders table should be a table at least as wide as its box, or its column widths are only hints");
+        var byCustomer = Page.Locator("#md-orders > thead th button:has-text('Customer')");
+        await byCustomer.ClickAsync();
+        await byCustomer.ClickAsync();
+        await Expect(Page.Locator("#md-orders tbody tr.md-row").First).ToContainTextAsync("Tony Hoare", contains);
+        Assert.Equal(widthsBefore, await Page.EvaluateAsync<string>(orderColumnWidths));
+
         // Drag & drop: native HTML5 drag events fire the C# handlers; the live diff morphs the DOM.
         await Expect(Page.Locator("#dd-fruit-list .dd-item")).ToHaveCountAsync(5,
             new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
@@ -1197,7 +1211,8 @@ public abstract partial class SharedSmokeTests
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
         await floatingForm.Locator("#ff-Age").FillAsync("30");
-        await floatingForm.Locator("#ff-Plan").SelectOptionAsync("pro");
+        await floatingForm.Locator("#ff-Plan").ClickAsync();
+        await floatingForm.Locator("[data-ui-option]").Filter(new LocatorFilterOptions { HasText = "Pro" }).ClickAsync();
         await floatingForm.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.Locator(".sample-result-body [role='status']")
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
@@ -1219,11 +1234,13 @@ public abstract partial class SharedSmokeTests
         // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
         // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
 
-        // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
-        await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
+        // Select — controlled + bound, each Flux's listbox: a button, and the option picked from its open list.
+        await Page.Locator("#fc-select-controlled").ClickAsync();
+        await Page.Locator("[data-ui-option]:visible").Filter(new LocatorFilterOptions { HasText = "Blazor" }).ClickAsync();
         await Expect(Page.Locator("#fc-select-controlled-out")).ToContainTextAsync("Blazor",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#fc-select-bound").SelectOptionAsync("htmx");
+        await Page.Locator("#fc-select-bound").ClickAsync();
+        await Page.Locator("[data-ui-option]:visible").Filter(new LocatorFilterOptions { HasText = "htmx" }).ClickAsync();
         await Expect(Page.Locator("#fc-select-bound-out")).ToContainTextAsync("htmx",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 

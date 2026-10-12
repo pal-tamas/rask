@@ -158,13 +158,13 @@ public sealed partial class QueuePage(
                 .Detail(Filter == QueueFilter.Failed
                     ? "No dead letters. This is the number you want at zero."
                     : "Nothing in this slice right now."))[c => [
-                c.Field(r => r.Id).Title("#").Mono(),
+                c.Field(r => r.Id).Title("#").Mono().Class("sm:w-28"),
                 c.Field(r => r.Type).Title(TypeColumnLabel()),
-                c.Field(r => r.CreatedAt).Title("When").Cell(r =>
+                c.Field(r => r.CreatedAt).Title("When").Class("sm:w-36").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
-                c.Field(r => r.Attempts).Title("Attempts").ShowFrom(Ui.Breakpoint.Md),
-                c.Column().Title("Status").Cell(r => StatusBadge(r, IsDead(r), now)),
-                c.Column().Cell(r => [.. RowButtons(r, IsDead(r))]),
+                c.Field(r => r.Attempts).Title("Attempts").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Md),
+                c.Column().Title("Status").Class("sm:w-40").Cell(r => StatusBadge(r, IsDead(r), now)),
+                c.Column().Class("sm:w-64").Cell(r => [.. RowButtons(r, IsDead(r))]),
             ]];
     }
 

@@ -18,8 +18,7 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
         var html = page.Render();
         Assert.Contains("Picked: <strong>Rask</strong>", html);
 
-        var id = HandlerIn(html, "id=\"fc-select-controlled\"", "data-rask-on-change");
-        await page.Invoke(id, Value("Blazor"));
+        await page.On("div.col-span-12 > div.min-w-0 [data-ui-option]:has-text(\"Blazor\")").Click();
 
         Assert.Contains("Picked: <strong>Blazor</strong>", page.Render());
     }
@@ -28,10 +27,9 @@ public sealed partial class FormControlsDemoTests : global::Rask.Core.RaskMarkup
     public async Task A_bound_Select_updates_the_readout_on_change()
     {
         var page = Page.Render(() => FormControlsSelectDemo, TestServices.Default());
-        var html = page.Render();
+        page.Render();
 
-        var id = HandlerIn(html, "id=\"fc-select-bound\"", "data-rask-on-change");
-        await page.Invoke(id, Value("htmx"));
+        await page.On("form [data-ui-option]:has-text(\"htmx\")").Click();
 
         var html2 = page.Render();
         Assert.Contains("fc-select-bound-out", html2);

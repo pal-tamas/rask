@@ -334,10 +334,10 @@ public sealed partial class LogsPage(
         // hiding it between sm and lg would lose a fact the old table kept; on a phone each column becomes its own
         // labelled line.
         return grid[c => [
-            c.Field(r => r.Timestamp).Title("When").Cell(r =>
+            c.Field(r => r.Timestamp).Title("When").Class("sm:w-36").Cell(r =>
                 Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]),
-            c.Field(r => r.Level).Title("Level").Cell(r => LevelBadge(r.Level)),
-            c.Field(r => r.Category).Title("Category").Mono(),
+            c.Field(r => r.Level).Title("Level").Class("sm:w-32").Cell(r => LevelBadge(r.Level)),
+            c.Field(r => r.Category).Title("Category").Mono().Class("sm:w-64"),
             c.Field(r => r.Message).Title("Message").Cell(MessageCell),
         ]];
     }

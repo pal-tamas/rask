@@ -19,7 +19,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
     [QueryParam]
     public string? Token { get; set; }
 
-    protected override Component? HeadAssets => Title["Confirm your email"];
+    protected override string? PageTitle => "Confirm your email";
 
     protected override Component? Content =>
         _confirmed ? Confirmed
