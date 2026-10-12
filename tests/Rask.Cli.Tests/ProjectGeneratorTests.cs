@@ -190,6 +190,21 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
+    public void A_scaffolded_page_names_itself_and_the_shell_writes_the_title()
+    {
+        var (files, _) = Generate(pwa: true, cqrs: true, data: true);
+
+        var shell = files["Features/Shared/App.cs"];
+        var login = files["Features/Auth/LoginPage.cs"];
+
+        Assert.Contains("Title[route.Title is { } page ? $\"{page} | App\" : \"App\"]", shell, StringComparison.Ordinal);
+        Assert.Contains("protected override string? PageTitle => \"Sign in\";", login, StringComparison.Ordinal);
+        Assert.DoesNotContain(files, file => file.Key.StartsWith("Features/", StringComparison.Ordinal)
+            && file.Key != "Features/Shared/App.cs"
+            && file.Value.Contains("HeadAssets =>", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void The_shell_and_welcome_page_are_feature_slices_and_no_demo_files_are_scaffolded()
     {
         var (files, _) = Generate(pwa: true, cqrs: true, docker: true);
@@ -201,7 +216,7 @@ public sealed class ProjectGeneratorTests
 
         // The shell is the Features/Shared bucket; it hosts the Router but not the welcome page.
         var shell = files["Features/Shared/App.cs"];
-        Assert.Contains("public sealed partial class App : Component", shell, StringComparison.Ordinal);
+        Assert.Contains("public sealed partial class App(RouteState route) : Component", shell, StringComparison.Ordinal);
         Assert.Contains("Render() => Router;", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("public sealed partial class HomePage", shell, StringComparison.Ordinal);
 

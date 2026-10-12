@@ -27,7 +27,7 @@ namespace Shop.Features.Products;
 
 public sealed class Product : Aggregate<Guid>
 {
-    [Required, MaxLength(200)]
+    [MaxLength(200)]
     public string Name { get; private set; } = "";
 
     [Range(0, 1_000_000)]
@@ -58,8 +58,9 @@ Two rules shape the class, and the build enforces both:
 - **No constructor.** The implicit one is what EF Core builds rows with and what a new form starts from. When an
   aggregate needs a domain way to be created, it gets a static factory; chapter 7 gives `Order` one.
 
-`[Required, MaxLength(200)]` is read twice: EF Core makes the column `NOT NULL` and 200 characters, and the
-form checks it when it is saved. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
+`Name` is a `string`, not a `string?`, and that is what makes it required: the column is `NOT NULL`, and a form
+that leaves it empty is told *This field is required.* `[MaxLength(200)]` is read twice — EF Core makes the
+column 200 characters, and the form checks it when it is saved. `[Range]` is only for the form. `InStock`'s `= true` is the default a new
 product starts with, on the create form too.
 
 **Reading needs nothing more.** The build generates a **read face** beside the aggregate —
@@ -81,7 +82,8 @@ A form edits something mutable, and `Product` isn't. So the build generates a **
 - it has a settable copy of `Name`, `Price` and `InStock`, plus the `Version` an edit was loaded at, and never
   the `Id`;
 - **every property is nullable**, because a form field can be empty whatever the column is;
-- `[Required]`, `[MaxLength]` and `[Range]` are copied onto it, so the form validates by the aggregate's rules;
+- `[MaxLength]` and `[Range]` are copied onto it, and a property the aggregate declares non-nullable is required,
+  so the form validates by the aggregate's rules;
 - **`new ProductModel()`** starts with the aggregate's defaults (`InStock` is `true`), and **`product.ToModel()`**
   fills one from a row for an edit form.
 
@@ -109,7 +111,7 @@ public sealed partial class CreateProduct : Component
 {
     private readonly ProductModel _model = new();
 
-    protected override Component? HeadAssets => Title["New Product"];
+    protected override string? PageTitle => "New product";
 
     protected override Component? Render()
     {
@@ -119,7 +121,7 @@ public sealed partial class CreateProduct : Component
         return
         [
             Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Xl["New product"],
+                Ui.Heading.Level(1).Xl[PageTitle],
                 Ui.Spacer,
                 Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
             ],
@@ -141,6 +143,10 @@ public sealed partial class CreateProduct : Component
     }
 }
 ```
+
+`PageTitle` is what the page is called: the `App` that `rask new` wrote reads it as `route.Title` and puts
+*New product | Shop* in the browser's tab, and the heading here reads the same member. See
+[a page's title](../routing.md#a-pages-title--pagetitle-and-routetitle).
 
 `Routes.ProductsPage()` is generated from the `[Route]` on the list page you're about to write — a typed
 URL, so renaming a route breaks the build instead of the link. See [routing](../routing.md).
@@ -190,7 +196,7 @@ public sealed partial class UpdateProduct : Component
 
     [RouteParam] public Guid Id { get; set; }
 
-    protected override Component? HeadAssets => Title["Edit Product"];
+    protected override string? PageTitle => "Edit product";
 
     protected override Component? Render()
     {
@@ -220,7 +226,7 @@ public sealed partial class UpdateProduct : Component
         return
         [
             Div.Class("flex flex-wrap items-center gap-3")[
-                Ui.Heading.Level(1).Xl["Edit product"],
+                Ui.Heading.Level(1).Xl[PageTitle],
                 Ui.Spacer,
                 Ui.Button.Ghost.Href(Routes.ProductsPage())["Cancel"]
             ],
@@ -328,7 +334,7 @@ public sealed partial class ProductsPage : Component
     // SQL — each time it renders, and each run opens and disposes its own context.
     private readonly IQueryable<ProductRead> _products = Product.OrderBy(p => p.Name).AsQueryable();
 
-    protected override Component? HeadAssets => Title["Products"];
+    protected override string? PageTitle => "Products";
 
     protected override Component? Render()
     {
@@ -345,10 +351,10 @@ public sealed partial class ProductsPage : Component
         ],
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
             c.Field(p => p.Name).Title("Name").Sortable(),
-            c.Field(p => p.Price).Title("Price").Sortable(),
-            c.Field(p => p.InStock).Title("In stock"),
-            c.Field(p => p.UpdatedAt).Title("Updated").Sortable(),
-            c.Column().Title("Actions").Cell(p => Div[
+            c.Field(p => p.Price).Title("Price").Sortable().Class("sm:w-32"),
+            c.Field(p => p.InStock).Title("In stock").Class("sm:w-28"),
+            c.Field(p => p.UpdatedAt).Title("Updated").Sortable().Class("sm:w-52"),
+            c.Column().Title("Actions").Class("sm:w-44").Cell(p => Div[
                 Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
                 // The grid re-runs its query on every render, so asking for one is the whole refresh.
                 DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
@@ -362,7 +368,8 @@ public sealed partial class ProductsPage : Component
 `Product.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
 shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
 becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
-it is what the grid identifies a row by when it redraws. The grid shows read faces, read-only by
+it is what the grid identifies a row by when it redraws. Every column but `Name` has a width, so the columns
+[stay where they are](../data-grid.md#columns-that-stay-put) from one page or sort order to the next. The grid shows read faces, read-only by
 construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
 
 Note what the page doesn't have: an `OnMount`. The grid runs its `IQueryable` when it renders, and the

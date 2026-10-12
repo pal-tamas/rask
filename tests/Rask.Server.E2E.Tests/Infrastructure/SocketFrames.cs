@@ -37,6 +37,9 @@ internal sealed class SocketFrames
     /// <summary>The largest reply so far, in bytes.</summary>
     public int LargestReply => _frames.Where(frame => !frame.Sent).Select(frame => frame.Text.Length).DefaultIfEmpty().Max();
 
+    /// <summary>Everything the server sent, whole: for what must not be in any of it.</summary>
+    public string Replies() => string.Join(Environment.NewLine, _frames.Where(frame => !frame.Sent).Select(frame => frame.Text));
+
     /// <summary>The whole exchange, one line a frame: for a failure message, or a trace while writing a journey.</summary>
     public string Trace() =>
         string.Join(Environment.NewLine, _frames.Select(frame => (frame.Sent ? "> " : "< ") + frame.Text.Length + " " + Cut(frame.Text)));

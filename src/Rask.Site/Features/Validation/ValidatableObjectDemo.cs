@@ -36,11 +36,11 @@ public sealed partial class ValidatableObjectDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.Name)
             ],
             Div[
-                Ui.Input.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
+                Ui.DatePicker.Bind(() => _model.Departure).Label("Departure").Id("v11-departure").ShowValidation(false),
                 Validation.Message.Template(FieldError).For(() => _model.Departure)
             ],
             Div[
-                Ui.Input.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
+                Ui.DatePicker.Bind(() => _model.Arrival).Label("Arrival").Id("v11-arrival").ShowValidation(false),
                 Validation.Message.Template(FieldError).For(() => _model.Arrival)
             ],
             Div[

@@ -28,7 +28,7 @@ public sealed partial class ValidationFieldsDemo : Component
                 Validation.Message.Template(FieldError).For(() => _model.Age)
             ],
             Div[
-                Ui.Select.Bind(() => _model.Plan)
+                Ui.Select.Bind(() => _model.Plan).Listbox
                     .Placeholder("— choose —")
                     .Label("Plan")
                     .Id("v1-plan")

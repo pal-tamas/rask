@@ -27,7 +27,7 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
     [QueryParam]
     public string? Token { get; set; }
 
-    protected override Component? HeadAssets => Title["Choose a new password"];
+    protected override string? PageTitle => "Choose a new password";
 
     protected override Component? Content =>
         _done ? Done

@@ -194,6 +194,24 @@ still list the column, because one line per fact has room for every one. `Ui.Bre
 no change at all: the table starts there. The class it writes (`sm:max-md:hidden`) is a variant, for the
 same cross-sheet reason as above.
 
+## Columns that stay put
+
+A grid sizes its columns to what is in them, so they shift when a page, a sort or a filter brings other
+values. Give every column but one a width and they hold:
+
+```csharp
+Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20)[c => [
+    c.Field(p => p.Name).Title("Name").Sortable(),                            // no width: takes the rest
+    c.Field(p => p.Price).Title("Price").Sortable().Class("sm:w-32"),
+    c.Field(p => p.UpdatedAt).Title("Updated").Sortable().Class("sm:w-48"),
+]]
+```
+
+`Class` lands on the column's heading and on each of its cells. The width is an `sm:` variant because below
+`sm` a cell is a stacked line as wide as its card. A value longer than its column wraps inside it. A plain
+`Ui.Table` gets the same from `table-fixed` and `truncate` — see
+[columns that stay put](ui-kit.md#columns-that-stay-put).
+
 ## Grouping, and the chrome above the table
 
 `Groupable(true)` on a column puts a group button in its header. `GroupPanel(true)` shows the panel that
@@ -217,7 +235,7 @@ wrapper of your own:
 ```csharp
 .Toolbar([
     Ui.Tabs[ … ],
-    Ui.Select.Value(_category).Label("Category").OnChange(Filter)[
+    Ui.Select.Value(_category).Listbox.Label("Category").OnChange(Filter)[
         _categories.Select(name => Ui.SelectOption.Key(name)[name])
     ],
     Ui.Input.Value(_query).Icon(Ui.IconName.MagnifyingGlass).Placeholder("Search").OnChange(Search),

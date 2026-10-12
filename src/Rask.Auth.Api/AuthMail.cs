@@ -147,7 +147,8 @@ internal sealed partial class AuthMail(
         // whatever the sender typed: a reset requested with Host: evil.example mails the victim a genuine token on
         // the attacker's domain. The email is not sent; that is logged, never thrown, because the account it is
         // about is already committed (see SendAsync).
-        if (services.GetService<IHostEnvironment>() is { } environment && !environment.IsDevelopment())
+        // A host that never said which environment it runs in is not in Development.
+        if (services.GetService<IHostEnvironment>()?.IsDevelopment() != true)
         {
             NoPublicOrigin(logger);
             return null;

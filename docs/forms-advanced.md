@@ -154,9 +154,9 @@ Ui.CheckboxGroup.Values(_interests).Label("Interests").OnChange(next => _interes
 (`Ui.SelectOption`) and renders the platform's `<select>` by default; `.Listbox` draws the list itself
 instead — a native `popover` `role="listbox"` under a `role="combobox"` button, with the arrow keys, Enter,
 type-ahead and an `aria-activedescendant` cursor that skips unavailable options — and `.Combobox` makes the
-box a text input that filters it. Reach for one when an option has to carry more than the platform will
-show (an icon, a description, an avatar) or the list has to be searched. The drawn list needs the runtime;
-the native one does not.
+box a text input that filters it. `.Listbox` is what a form normally writes — `.Searchable()` for a long
+list — and an option of it can carry more than words (an icon, a description, an avatar). The drawn list
+needs the runtime; the native one does not.
 
 **A plain `<select multiple>` bound to a collection.** `Select.Bind(() => …).Multiple()` binds the
 whole selection when `T` is a string collection — `string[]`, `List<string>`, `HashSet<string>`, or the

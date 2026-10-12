@@ -232,6 +232,10 @@ Select.Bind(() => _model.Favorite)[Option.Value("Red")["Red"], Option.Value("Blu
 Textarea.Bind(() => _model.Notes).Rows(3)
 ```
 
+Those are the browser's own controls. An app normally writes the [UI kit](ui-kit.md)'s, which bind the same
+way: `Ui.DatePicker` for a date, `Ui.TimePicker` for a time (the two side by side for a date and a time),
+`Ui.Select.Bind(…).Listbox[…]` for a choice and `Ui.Input` for text and numbers.
+
 <!-- demo:binding-multi -->
 
 <!-- demo:binding-textarea -->

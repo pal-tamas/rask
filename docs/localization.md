@@ -532,6 +532,7 @@ they say when you set nothing.
 | `ValidationDate` | Validation | `Enter a valid date.` |
 | `ValidationTime` | Validation | `Enter a valid time.` |
 | `FormSaveFailed` | Form | `The save failed. Please try again.` |
+| `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 
 ## Docker
 

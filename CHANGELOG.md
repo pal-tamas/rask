@@ -34,6 +34,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scaffolded app's pages say what they are called, and `App` writes the tab title.** `rask new` (server,
+  wasm, wasm-hosted) now scaffolds `App(RouteState route)` with one `HeadAssets` line —
+  `Title[route.Title is { } page ? $"{page} | Shop" : "Shop"]` — and the sign-in, registration, devices and error
+  pages declare `protected override string? PageTitle => "Sign in";` instead of a `<title>` of their own. A tab
+  now reads *Sign in | Shop*. An app scaffolded earlier is untouched and keeps working.
+- **The console's tables keep their columns.** The queue, log, cache and storage grids at `/_rask` give every
+  column but one a width, so paging, a filter or a retry no longer shifts the columns under the pointer. Below
+  `sm` the stacked lines are unchanged.
 - **A refusal that names no field says its own sentence as a toast — in a form and in any handler.** A refusal is
   an exception that carries field failures (`IFieldFailures` with at least one failure — `RaskValidationException`
   is one) or an exact DataAnnotations `ValidationException`, also inside an `AggregateException` or
@@ -80,6 +88,19 @@ them until tagged releases begin.
   the fields its write refuses unfilled (`RaskValidation.RegisterRequiredFields`), root, nested value-object
   model and row alike. A `[Required]` you wrote on the aggregate yourself is kept with its message, and is then
   what says it. The value-object sentence for a number, date or id now comes from the catalog too.
+
+### Docs
+
+- **The guides lead with Flux's controls and the conventions an app is written by.** The tutorial's pages declare
+  `PageTitle` and its grid gives every column but one a width; the data grid guide has
+  [columns that stay put](docs/data-grid.md#columns-that-stay-put) (`c.Field(p => p.Price).Class("sm:w-32")`);
+  an aggregate's `string Name` is shown required by its type, without `[Required]`; examples of a choice are the
+  listbox (`Ui.Select.Bind(…).Listbox[…]`), and the forms guide's sections on the browser's own `Input` and
+  `Select` point to `Ui.DatePicker`, `Ui.TimePicker` and the listbox as what an app normally writes.
+- **The site's demos use them too.** Every demo outside the kit's own reference pages picks from the listbox and
+  the date picker instead of the browser's `<select>` and date field, and the master-detail tables follow
+  [columns that stay put](docs/ui-kit.md#columns-that-stay-put). A demo's table inside a guide is drawn as the
+  kit draws it — full width — where the guide's rule for prose tables used to shrink it to its content.
 
 ### Changed
 
@@ -212,6 +233,38 @@ them until tagged releases begin.
 
 ### Security
 
+- **A Production error page showed the exception's type and message. It now shows neither.** When a render, an
+  event handler or a lifecycle hook threw, the built-in error page — the root one, and an `ErrorBoundary` with no
+  `Fallback` — printed the outermost exception's full type name and its `Message` in every environment, in the
+  first response and in the live frame alike; only the stack, the source excerpt and the inner exceptions were
+  Development-only. A message such as *Login failed for user 'sa' with password '…'* reached the visitor.
+  Outside Development the page now carries a heading, `Try again`, `Reload this page` and one sentence with a
+  reference (`RaskString.ErrorReference`: *The problem has been recorded. If it keeps happening, quote this
+  reference: K7WQ2MZP*), and nothing of the exception. **Every exception a boundary takes is now logged once at
+  Error on the new `Rask.Errors` category**, exception attached, the same reference in the message — until now a
+  fault a boundary caught was not logged at all. The reference is eight random characters made on the host.
+  A build-time prerender shows its pages to nobody, so there the line is Information, without the stack.
+  Development shows what it did, plus the reference. A host that never names its environment is not in
+  Development, as before; a browser (WASM) app therefore shows the Production page unless it sets
+  `LiveOptions.IsDevelopment`. **Breaking** for anything that read the type or message off the page (a test, a
+  scraper): read the log line. An app's own `Fallback` still receives the exception and must not print it. The
+  kit's Hungarian catalog gains the error page's four texts.
+- **Three more places said more than a visitor should read.** A controller body that would not deserialize was
+  answered with the serializer's own sentence in the 400's `errors` map, naming the CLR type it was reading
+  (`AddRaskApiValidation` now turns `AllowInputFormatterExceptionMessages` off; the entry says *The value is not
+  valid.*). `MapRaskSpa`'s Production 503 for a missing bundle named the folder it looked in; the body is now
+  *The single-page app is unavailable.* and the path stays on stderr. And `Rask.Auth`'s mail, with no
+  `AuthOptions.PublicOrigin` set, built reset and confirmation links from the request's `Host` header when the
+  host had registered no `IHostEnvironment` at all — an unknown environment was read as Development; it is now
+  read as Production, and the mail is not sent.
+- **Three more places said more than a visitor should read.** A controller body that would not deserialize was
+  answered with the serializer's own sentence in the 400's `errors` map, naming the CLR type it was reading
+  (`AddRaskApiValidation` now turns `AllowInputFormatterExceptionMessages` off; the entry says *The value is not
+  valid.*). `MapRaskSpa`'s Production 503 for a missing bundle named the folder it looked in; the body is now
+  *The single-page app is unavailable.* and the path stays on stderr. And `Rask.Auth`'s mail, with no
+  `AuthOptions.PublicOrigin` set, built reset and confirmation links from the request's `Host` header when the
+  host had registered no `IHostEnvironment` at all — an unknown environment was read as Development; it is now
+  read as Production, and the mail is not sent.
 - **An event sent before a re-render no longer runs another handler.** A handler id is a position in its
   component, so when an earlier button left or arrived, a click already on its way ran whichever handler held
   the id by then — after a row was deleted, a click on the last row's bin could land on the confirmation's
