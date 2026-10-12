@@ -285,11 +285,11 @@ public sealed partial class FormStoreFailureTests : IDisposable
         return ws;
     }
 
-    // What a browser sends as a field is typed into, and the page as it is once the server has finished with it.
+    // What a browser sends for a field ahead of the next action, and the page once the server has finished with it.
     private static async Task<string> TypeAsync(WebSocket ws, string page, string id, string value)
     {
-        var handler = InputHandler().Match(page[page.IndexOf($"<input id=\"{id}\"", StringComparison.Ordinal)..]).Groups[1].Value;
-        await ws.SendJsonAsync(new { id = handler, type = "input", value }, ct: TestContext.Current.CancellationToken);
+        var handler = ChangeHandler().Match(page[page.IndexOf($"<input id=\"{id}\"", StringComparison.Ordinal)..]).Groups[1].Value;
+        await ws.SendJsonAsync(new { id = handler, type = "change", value }, ct: TestContext.Current.CancellationToken);
 
         return LastHtml(await ws.SettledAsync()) ?? page;
     }
@@ -411,6 +411,6 @@ public sealed partial class FormStoreFailureTests : IDisposable
         await legacy.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
     }
 
-    [GeneratedRegex("data-rask-on-input=\"([^\"]+)\"")]
-    private static partial Regex InputHandler();
+    [GeneratedRegex("data-rask-on-change=\"([^\"]+)\"")]
+    private static partial Regex ChangeHandler();
 }

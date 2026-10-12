@@ -52,12 +52,25 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void BindTimingDemo_debounces_the_name_and_binds_the_notes_on_blur()
+    public void BindTimingDemo_shows_a_field_that_waits_beside_a_live_one_and_one_bound_on_blur()
     {
         var html = new LiveHost(() => BindTimingDemo, TestServices.Default()).RenderAsLiveRoot();
 
-        Assert.Matches("<input[^>]*id=\"bt-name\"[^>]*data-rask-debounce=\"300\"", html);
+        Assert.Matches("<input[^>]*id=\"bt-traveller\"[^>]*data-rask-bind-on=\"action\"", html);
+        Assert.Matches("<input[^>]*id=\"bt-name\"[^>]*data-rask-debounce=\"150\"", html);
         Assert.Matches("<textarea[^>]*id=\"bt-notes\"[^>]*data-rask-bind-on=\"blur\"", html);
+    }
+
+    [Fact]
+    public void BindTimingDemo_shows_a_list_that_waits_beside_a_switch_that_writes_as_it_is_flipped()
+    {
+        var html = new LiveHost(() => BindTimingDemo, TestServices.Default()).RenderAsLiveRoot();
+
+        var flip = System.Text.RegularExpressions.Regex.Match(html, "<input[^>]*id=\"bt-insured\"[^>]*>").Value;
+
+        Assert.Matches("<button[^>]*id=\"bt-cabin\"[^>]*data-ui-select-button", html);
+        Assert.Contains("data-rask-on-change", flip, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-bind-on", flip, StringComparison.Ordinal);
     }
 
     [Theory]

@@ -101,6 +101,32 @@ public sealed class LegacyQuayContext(DbContextOptions<LegacyQuayContext> option
 
 public sealed class QuayDomainContext(DbContextOptions<QuayDomainContext> options) : RaskDbContext(options);
 
+/// <summary>
+///     The same form with a field sent at every keystroke: the one binding whose value reaches the model before
+///     it is committed, so a submit can find a name the store was never asked about.
+/// </summary>
+public sealed partial class BerthEveryKeyFormApp : Component
+{
+    private readonly BerthModel _model = new();
+    private int _saves;
+
+    protected override Component? Render() =>
+        Form.Model(_model).OnSubmit(Save)[f =>
+        [
+            Markup.P[$"fault={f.Error?.GetType().Name ?? "none"}"],
+            Markup.P[$"saves={_saves}"],
+            Input.Bind(() => _model.Name).Debounce(TimeSpan.Zero).Id("name"),
+            Validation.Message.Template(messages => Markup.P.Class("name-error")[string.Join(" + ", messages)]).For(() => _model.Name),
+            Button["save"],
+        ]];
+
+    private async Task Save(BerthModel berth)
+    {
+        _saves++;
+        await Berth.Create(berth);
+    }
+}
+
 /// <summary>A form over the aggregate's GENERATED model: a bound field, no rule written, a save that just saves.</summary>
 public sealed partial class BerthFormApp : Component
 {
@@ -261,6 +287,56 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     public async Task A_taken_name_never_committed_is_told_on_submit_and_does_not_reach_the_save()
     {
         using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var refused = await TypeThenSubmitAsync(ws, page, "name", "Budapest");
+
+        Assert.Contains($"<p class=\"name-error\">{Shown(Berth.NameTaken)}</p>", refused, StringComparison.Ordinal);
+        Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+        Assert.Contains("fault=none", refused, StringComparison.Ordinal);
+        Assert.Equal(TypedThenSubmittedQuestions, _questions.Count);
+    }
+
+    [Fact]
+    public async Task A_refused_save_of_a_name_typed_and_never_sent_sets_the_message_once_in_its_last_frame()
+    {
+        using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var renders = Renders(await TypeThenSubmitFramesAsync(ws, page, "name", "Budapest"));
+
+        // The submit repaints while the store is asked (a form in flight says so), and then with the answer.
+        // The message is in the answer alone: it is not set by the value, taken back and set again.
+        var told = renders.Where(frame => frame.Contains("name-error", StringComparison.Ordinal)).ToList();
+        Assert.Equal(2, renders.Count);
+        Assert.Same(renders[^1], Assert.Single(told));
+        Assert.Contains(Shown(Berth.NameTaken), LastHtml([told[0]]), StringComparison.Ordinal);
+        Assert.Equal(1, _questions.Count);
+    }
+
+    [Fact]
+    public async Task A_name_committed_alone_is_still_put_to_the_store_and_the_submit_after_it_asks_afresh()
+    {
+        using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var committed = await CommitAsync(ws, page, "name", "Budapest");
+        var askedByTheField = _questions.Count;
+        var refused = await SubmitAsync(ws, committed);
+
+        Assert.Contains($"<p class=\"name-error\">{Shown(Berth.NameTaken)}</p>", committed, StringComparison.Ordinal);
+        Assert.Equal(1, askedByTheField);
+        Assert.Equal(2, _questions.Count);
+        Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_taken_name_typed_into_a_field_sent_at_every_key_is_told_on_submit_and_does_not_reach_the_save()
+    {
+        using var host = await StartAsync<BerthEveryKeyFormApp>();
         var page = await OpenAsync(host, tenant: 7);
         using var ws = await AttachAsync(host, page);
 
@@ -436,6 +512,28 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
 
         return LastHtml(await ws.SettledAsync()) ?? page;
     }
+
+    // The value arrives in the frame of its form's submit, so its own question is left to the submit, which
+    // asks the store about the whole model: once.
+    private const int TypedThenSubmittedQuestions = 1;
+
+    // What the browser sends for a field that waits, typed into and never left, when Save is pressed: one
+    // frame, the value first and the submit behind it.
+    private static async Task<string> TypeThenSubmitAsync(WebSocket ws, string page, string id, string value) =>
+        LastHtml(await TypeThenSubmitFramesAsync(ws, page, id, value)) ?? page;
+
+    private static async Task<List<string>> TypeThenSubmitFramesAsync(WebSocket ws, string page, string id, string value)
+    {
+        var change = ChangeHandler().Match(Field(page, id)).Groups[1].Value;
+        var submit = new { id = MarkupAssert.RequireAttr(page, "data-rask-on-submit"), type = "submit", form = new { } };
+        await ws.SendTypedThenAsync(change, value, submit, TestContext.Current.CancellationToken);
+
+        return await ws.SettledAsync();
+    }
+
+    // The frames that draw the page: an ack and a script carry no markup.
+    private static List<string> Renders(List<string> frames) =>
+        frames.Where(frame => LastHtml([frame]) is not null).ToList();
 
     private static async Task<string> SubmitAsync(WebSocket ws, string page)
     {

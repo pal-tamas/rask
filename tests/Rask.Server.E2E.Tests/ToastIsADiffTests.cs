@@ -31,6 +31,7 @@ public sealed class ToastIsADiffTests(PlaywrightFixture playwright) : IClassFixt
             return Task.CompletedTask;
         });
         await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
+        // The field is Live, so the name is with the page before Save: the frames counted after this are the toast's alone.
         await session.Page.GetByLabel("Name").FillAsync("taken");
         await session.Page.Keyboard.PressAsync("Tab");
         await Expect(session.Page.Locator("#heard")).ToHaveTextAsync("taken");
@@ -109,7 +110,7 @@ public sealed partial class OneFieldToastPage : Component
             Form.Model(_form).OnSubmit(() => Toast.Error("That name is taken.").For(TimeSpan.FromSeconds(1))).ConfirmLeave("Leave without saving?")[
                 Ui.Field[
                     Ui.Label.Badge("Required")["Name"],
-                    Ui.Input.Bind(() => _form.Name).MaxLength(40).ShowValidation(false).Validate(name => name.Length > 0 ? [] : ["Required"]),
+                    Ui.Input.Bind(() => _form.Name).Live().MaxLength(40).ShowValidation(false).Validate(name => name.Length > 0 ? [] : ["Required"]),
                     Ui.Error
                 ],
                 Ui.Button.Primary.Submit.Id("save")["Save"]

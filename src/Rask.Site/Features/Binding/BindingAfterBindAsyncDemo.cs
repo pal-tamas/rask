@@ -19,7 +19,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
     protected override Component? Render() =>
     [
         Div.Class("mb-3")[
-            Ui.Select.Bind(() => _model.Track)
+            Ui.Select.Bind(() => _model.Track).Live()
                 // The placeholder is selected while Track is still null. Without it the <select> would
                 // visually default to "Frontend" while the model holds nothing — and re-picking the
                 // already-shown first option fires no change event, so the async load would never trigger.
@@ -62,7 +62,7 @@ public sealed partial class BindingAfterBindAsyncDemo : Component
             ]
         ],
         Div.Class("mb-3")[
-            Ui.Select.Bind(() => _model.Language)
+            Ui.Select.Bind(() => _model.Language).Live()
                 .Placeholder("— pick a track —")
                 .Label(_loading ? "Language (loading…)" : "Language")
                 .Id("bind-async-lang")

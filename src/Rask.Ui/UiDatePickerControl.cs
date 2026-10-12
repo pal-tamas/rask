@@ -21,7 +21,7 @@ namespace Rask;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day or a range.</typeparam>
-public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock
+public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind
 {
     private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal)
     {
@@ -158,6 +158,13 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     /// <inheritdoc />
     public Callback<T> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.DatePicker.Bind(() =&gt; m.From).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     /// <inheritdoc />
     DateOnly? IUiClock.Today { get; set; }

@@ -531,6 +531,8 @@ Rask.UiAutocomplete.Kbd.get -> string?
 Rask.UiAutocomplete.Kbd.set -> void
 Rask.UiAutocomplete.Label.get -> string?
 Rask.UiAutocomplete.Label.set -> void
+Rask.UiAutocomplete.Live.get -> bool?
+Rask.UiAutocomplete.Live.set -> void
 Rask.UiAutocomplete.Mask.get -> string?
 Rask.UiAutocomplete.Mask.set -> void
 Rask.UiAutocomplete.Multiple.get -> bool?
@@ -735,6 +737,8 @@ Rask.UiCalendarControl<T>.ForceOpenTo.get -> bool?
 Rask.UiCalendarControl<T>.ForceOpenTo.set -> void
 Rask.UiCalendarControl<T>.Id.get -> string?
 Rask.UiCalendarControl<T>.Id.set -> void
+Rask.UiCalendarControl<T>.Live.get -> bool?
+Rask.UiCalendarControl<T>.Live.set -> void
 Rask.UiCalendarControl<T>.Locale.get -> string?
 Rask.UiCalendarControl<T>.Locale.set -> void
 Rask.UiCalendarControl<T>.Max.get -> System.DateOnly?
@@ -1140,6 +1144,8 @@ Rask.UiCheckbox.Invalid.get -> bool?
 Rask.UiCheckbox.Invalid.set -> void
 Rask.UiCheckbox.Label.get -> string?
 Rask.UiCheckbox.Label.set -> void
+Rask.UiCheckbox.Live.get -> bool?
+Rask.UiCheckbox.Live.set -> void
 Rask.UiCheckbox.Name.get -> string?
 Rask.UiCheckbox.Name.set -> void
 Rask.UiCheckbox.OnChange.get -> Rask.Core.Callback<bool>
@@ -1178,6 +1184,8 @@ Rask.UiCheckboxGroup<T>.Invalid.get -> bool?
 Rask.UiCheckboxGroup<T>.Invalid.set -> void
 Rask.UiCheckboxGroup<T>.Label.get -> string?
 Rask.UiCheckboxGroup<T>.Label.set -> void
+Rask.UiCheckboxGroup<T>.Live.get -> bool?
+Rask.UiCheckboxGroup<T>.Live.set -> void
 Rask.UiCheckboxGroup<T>.OnChange.get -> Rask.Core.Callback<System.Collections.Generic.ICollection<T>!>
 Rask.UiCheckboxGroup<T>.OnChange.set -> void
 Rask.UiCheckboxGroup<T>.ShowValidation.get -> bool?
@@ -1409,6 +1417,8 @@ Rask.UiDatePickerControl<T>.Invalid.get -> bool?
 Rask.UiDatePickerControl<T>.Invalid.set -> void
 Rask.UiDatePickerControl<T>.Label.get -> string?
 Rask.UiDatePickerControl<T>.Label.set -> void
+Rask.UiDatePickerControl<T>.Live.get -> bool?
+Rask.UiDatePickerControl<T>.Live.set -> void
 Rask.UiDatePickerControl<T>.Locale.get -> string?
 Rask.UiDatePickerControl<T>.Locale.set -> void
 Rask.UiDatePickerControl<T>.Max.get -> System.DateOnly?
@@ -1567,6 +1577,8 @@ Rask.UiEditor.Invalid.get -> bool?
 Rask.UiEditor.Invalid.set -> void
 Rask.UiEditor.Label.get -> string?
 Rask.UiEditor.Label.set -> void
+Rask.UiEditor.Live.get -> bool?
+Rask.UiEditor.Live.set -> void
 Rask.UiEditor.OnChange.get -> Rask.Core.Callback<string!>
 Rask.UiEditor.OnChange.set -> void
 Rask.UiEditor.Placeholder.get -> string?
@@ -1729,6 +1741,8 @@ Rask.UiFilter<T>.Class.get -> string?
 Rask.UiFilter<T>.Class.set -> void
 Rask.UiFilter<T>.Group.get -> string!
 Rask.UiFilter<T>.Group.set -> void
+Rask.UiFilter<T>.Live.get -> bool?
+Rask.UiFilter<T>.Live.set -> void
 Rask.UiFilter<T>.OnChange.get -> Rask.Core.Callback<T>
 Rask.UiFilter<T>.OnChange.set -> void
 Rask.UiFilter<T>.Options.get -> System.Collections.Generic.IReadOnlyList<(T Value, string! Text)>!
@@ -1971,6 +1985,8 @@ Rask.UiMenu.Id.get -> string?
 Rask.UiMenu.Id.set -> void
 Rask.UiMenu.KeepOpen.get -> bool?
 Rask.UiMenu.KeepOpen.set -> void
+Rask.UiMenuCheckbox.Live.get -> bool?
+Rask.UiMenuCheckbox.Live.set -> void
 Rask.UiMenuCheckboxGroup
 Rask.UiMenuCheckboxGroup.Class.get -> string?
 Rask.UiMenuCheckboxGroup.Class.set -> void
@@ -1998,6 +2014,8 @@ Rask.UiMenuRadio.OnClick.set -> void
 Rask.UiMenuRadio.UiMenuRadio() -> void
 Rask.UiMenuRadio.Value.get -> object?
 Rask.UiMenuRadio.Value.set -> void
+Rask.UiMenuRadioGroup<T>.Live.get -> bool?
+Rask.UiMenuRadioGroup<T>.Live.set -> void
 Rask.UiMenuSubmenu
 Rask.UiMenuSubmenu.Class.get -> string?
 Rask.UiMenuSubmenu.Class.set -> void
@@ -2101,6 +2119,8 @@ Rask.UiOtp.Id.set -> void
 Rask.UiOtp.Label.get -> string?
 Rask.UiOtp.Label.set -> void
 Rask.UiOtp.Length.get -> int?
+Rask.UiOtp.Live.get -> bool?
+Rask.UiOtp.Live.set -> void
 Rask.UiOtp.Mode.get -> Rask.Ui.OtpMode?
 Rask.UiOtp.Mode.set -> void
 Rask.UiOtp.Name.get -> string?
@@ -2137,6 +2157,8 @@ Rask.UiPaginator.PerPage.init -> void
 Rask.UiPaginator.Total.get -> int?
 Rask.UiPaginator.Total.init -> void
 Rask.UiPaginator.UiPaginator() -> void
+Rask.UiPillbox<T>.Live.get -> bool?
+Rask.UiPillbox<T>.Live.set -> void
 Rask.UiProfile.Avatar.get -> Rask.Core.Component?
 Rask.UiProfile.AvatarColor.get -> Rask.Ui.Color?
 Rask.UiProfile.AvatarColor.set -> void
@@ -2302,6 +2324,8 @@ Rask.UiRadioGroup<T>.Invalid.get -> bool?
 Rask.UiRadioGroup<T>.Invalid.set -> void
 Rask.UiRadioGroup<T>.Label.get -> string?
 Rask.UiRadioGroup<T>.Label.set -> void
+Rask.UiRadioGroup<T>.Live.get -> bool?
+Rask.UiRadioGroup<T>.Live.set -> void
 Rask.UiRadioGroup<T>.Name.get -> string?
 Rask.UiRadioGroup<T>.Name.set -> void
 Rask.UiRadioGroup<T>.OnChange.get -> Rask.Core.Callback<T>
@@ -2320,6 +2344,8 @@ Rask.UiRadioIndicator
 Rask.UiRadioIndicator.Class.get -> string?
 Rask.UiRadioIndicator.Class.set -> void
 Rask.UiRadioIndicator.UiRadioIndicator() -> void
+Rask.UiRating.Live.get -> bool?
+Rask.UiRating.Live.set -> void
 Rask.UiSelect<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiSelect<T>.AfterBind.set -> void
 Rask.UiSelect<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
@@ -2371,6 +2397,8 @@ Rask.UiSelectControl<T>.Invalid.get -> bool?
 Rask.UiSelectControl<T>.Invalid.set -> void
 Rask.UiSelectControl<T>.Label.get -> string?
 Rask.UiSelectControl<T>.Label.set -> void
+Rask.UiSelectControl<T>.Live.get -> bool?
+Rask.UiSelectControl<T>.Live.set -> void
 Rask.UiSelectControl<T>.Multiple.get -> bool?
 Rask.UiSelectControl<T>.Multiple.set -> void
 Rask.UiSelectControl<T>.Name.get -> string?
@@ -2574,6 +2602,8 @@ Rask.UiSlider<T>.Disabled.get -> bool?
 Rask.UiSlider<T>.Disabled.set -> void
 Rask.UiSlider<T>.Id.get -> string?
 Rask.UiSlider<T>.Id.set -> void
+Rask.UiSlider<T>.Live.get -> bool?
+Rask.UiSlider<T>.Live.set -> void
 Rask.UiSlider<T>.Max.get -> double?
 Rask.UiSlider<T>.Max.set -> void
 Rask.UiSlider<T>.Min.get -> double?
@@ -2626,6 +2656,8 @@ Rask.UiSwitch.Id.get -> string?
 Rask.UiSwitch.Id.set -> void
 Rask.UiSwitch.Label.get -> string?
 Rask.UiSwitch.Label.set -> void
+Rask.UiSwitch.Live.get -> bool?
+Rask.UiSwitch.Live.set -> void
 Rask.UiSwitch.Name.get -> string?
 Rask.UiSwitch.Name.set -> void
 Rask.UiSwitch.OnChange.get -> Rask.Core.Callback<bool>
@@ -2657,6 +2689,8 @@ Rask.UiTabPanel.Selected.get -> bool?
 Rask.UiTabPanel.Selected.set -> void
 Rask.UiTabs.Bind.get -> System.Linq.Expressions.Expression<System.Func<string!>!>?
 Rask.UiTabs.Bind.set -> void
+Rask.UiTabs.Live.get -> bool?
+Rask.UiTabs.Live.set -> void
 Rask.UiTabs.OnChange.get -> Rask.Core.Callback<string!>
 Rask.UiTabs.OnChange.set -> void
 Rask.UiTabs.Scrollable.get -> bool?
@@ -2774,6 +2808,8 @@ Rask.UiTimePicker<T>.Invalid.get -> bool?
 Rask.UiTimePicker<T>.Invalid.set -> void
 Rask.UiTimePicker<T>.Label.get -> string?
 Rask.UiTimePicker<T>.Label.set -> void
+Rask.UiTimePicker<T>.Live.get -> bool?
+Rask.UiTimePicker<T>.Live.set -> void
 Rask.UiTimePicker<T>.Locale.get -> string?
 Rask.UiTimePicker<T>.Locale.set -> void
 Rask.UiTimePicker<T>.Max.get -> System.TimeOnly?
@@ -4841,6 +4877,50 @@ static RaskBuilderSettersRask_Ui.Label(this Rask.UiFileUpload! __b, string? valu
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiTimePicker<T>! __b, string? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Leave(this Rask.UiConfirmLeave! __b, string? value) -> Rask.UiConfirmLeave!
 static RaskBuilderSettersRask_Ui.Length(this Rask.UiOtp! __b, int? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendarMultiple! __b) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendarMultiple! __b, bool? value) -> Rask.UiCalendarMultiple!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendarRange! __b) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCalendarRange! __b, bool? value) -> Rask.UiCalendarRange!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiCheckbox! __b, bool? value) -> Rask.UiCheckbox!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiEditor! __b) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiEditor! __b, bool? value) -> Rask.UiEditor!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiMenuCheckbox! __b) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiMenuCheckbox! __b, bool? value) -> Rask.UiMenuCheckbox!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiOtp! __b) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiOtp! __b, bool? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiRating! __b) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiRating! __b, bool? value) -> Rask.UiRating!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiSwitch! __b) -> Rask.UiSwitch!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiSwitch! __b, bool? value) -> Rask.UiSwitch!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiTabs! __b) -> Rask.UiTabs!
+static RaskBuilderSettersRask_Ui.Live(this Rask.UiTabs! __b, bool? value) -> Rask.UiTabs!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiCheckboxGroup<T>! __b) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiCheckboxGroup<T>! __b, bool? value) -> Rask.UiCheckboxGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiFilter<T>! __b) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiFilter<T>! __b, bool? value) -> Rask.UiFilter<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiMenuRadioGroup<T>! __b) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiMenuRadioGroup<T>! __b, bool? value) -> Rask.UiMenuRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiPillbox<T>! __b) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiPillbox<T>! __b, bool? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiRadioGroup<T>! __b, bool? value) -> Rask.UiRadioGroup<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSelectMultiple<T>! __b) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSelectMultiple<T>! __b, bool? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSlider<T>! __b) -> Rask.UiSlider<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiSlider<T>! __b, bool? value) -> Rask.UiSlider<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendar! __b, string? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendarMultiple! __b, string? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Locale(this Rask.UiCalendarRange! __b, string? value) -> Rask.UiCalendarRange!
@@ -9262,3 +9342,11 @@ static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCardHeader! __b) -> Rask.UiCardHe
 ~override Rask.UiTextareaRows.ToString() -> string
 ~override Rask.UiTimeRange.Equals(object obj) -> bool
 ~override Rask.UiTimeRange.ToString() -> string
+Rask.UiInput<T>.Live.get -> bool?
+Rask.UiInput<T>.Live.set -> void
+Rask.UiTextarea<T>.Live.get -> bool?
+Rask.UiTextarea<T>.Live.set -> void
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
+static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!

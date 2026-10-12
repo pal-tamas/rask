@@ -215,8 +215,41 @@ public partial class Page
 
     // ---- doing things -----------------------------------------------------------------------------------------
 
+    // A bound control says nothing until the next action (`data-rask-bind-on="action"`), in a browser and here:
+    // what was typed, picked or ticked is kept, and goes ahead of the next click — or of a control that does
+    // speak at once. So a test that reads the model straight after typing fails as the page would.
+    private readonly List<(string Label, string Payload)> _waiting = [];
+
+    private static bool WaitsForAction(HtmlNode field) =>
+        string.Equals(field.Attribute("data-rask-bind-on"), "action", StringComparison.Ordinal);
+
+    private void Keep(string label, string payload)
+    {
+        _waiting.RemoveAll(kept => string.Equals(kept.Label, label, StringComparison.Ordinal));
+        _waiting.Add((label, payload));
+    }
+
+    // Sends what waits, in the order it was last touched. Each one re-renders, so each field is found afresh.
+    internal async Task SendWhatWaits()
+    {
+        while (_waiting.Count > 0)
+        {
+            var (label, payload) = _waiting[0];
+            _waiting.RemoveAt(0);
+            await Raise(Field(label), "change", payload).ConfigureAwait(false);
+        }
+    }
+
     private async Task Enter(HtmlNode field, string text, string label)
     {
+        if (WaitsForAction(field))
+        {
+            Keep(label, Payload(text));
+            return;
+        }
+
+        await SendWhatWaits().ConfigureAwait(false);
+        field = Field(label);
         var input = await Raise(field, "input", Payload(text)).ConfigureAwait(false);
         var change = await Raise(Field(label), "change", Payload(text)).ConfigureAwait(false);
         if (!input && !change)
@@ -236,6 +269,14 @@ public partial class Page
                 $"\"{label}\" has no option \"{option}\". Its options are: {Describe(options.Select(o => Normalize(o.TextContent)))}.");
 
         var value = chosen.Attribute("value") ?? Normalize(chosen.TextContent);
+        if (WaitsForAction(select))
+        {
+            Keep(label, Payload(value));
+            return;
+        }
+
+        await SendWhatWaits().ConfigureAwait(false);
+        select = Field(label);
         var change = await Raise(select, "change", Payload(value)).ConfigureAwait(false);
         var input = await Raise(Field(label), "input", Payload(value)).ConfigureAwait(false);
         if (!change && !input)
@@ -254,7 +295,14 @@ public partial class Page
             throw new PageException($"\"{label}\" is a {FieldName(box)}, not a checkbox.");
         }
 
-        if (!await Raise(box, "change", Payload(on ? "true" : "false")).ConfigureAwait(false))
+        if (WaitsForAction(box))
+        {
+            Keep(label, Payload(on ? "true" : "false"));
+            return;
+        }
+
+        await SendWhatWaits().ConfigureAwait(false);
+        if (!await Raise(Field(label), "change", Payload(on ? "true" : "false")).ConfigureAwait(false))
         {
             throw new PageException($"The checkbox \"{label}\" has no change handler, so ticking it changes nothing.");
         }
@@ -262,6 +310,7 @@ public partial class Page
 
     private async Task Press(string text, string? region)
     {
+        await SendWhatWaits().ConfigureAwait(false);
         var target = Target(text, region);
         if (await Raise(target, "click", null).ConfigureAwait(false))
         {

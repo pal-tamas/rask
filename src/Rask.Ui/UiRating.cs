@@ -21,7 +21,7 @@ namespace Rask;
 /// <see cref="Value" /> with <see cref="OnChange" /> leaves it with the parent.
 /// </para>
 /// </remarks>
-public sealed partial class UiRating : Component, IFormControl<int>
+public sealed partial class UiRating : Component, IFormControl<int>, IDeferredBind
 {
     /// <summary>The name the radios share. Must be unique on the page.</summary>
     public required string Group { get; set; }
@@ -56,6 +56,13 @@ public sealed partial class UiRating : Component, IFormControl<int>
 
     /// <inheritdoc />
     public Callback<int> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Rating.Bind(() =&gt; m.Stars).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
 
     /// <inheritdoc />

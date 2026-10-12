@@ -19,7 +19,7 @@ namespace Rask;
 /// ]
 /// </code>
 /// </remarks>
-public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
+public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>, IDeferredBind
 {
     /// <summary>Keeps the menu open after a row in the group is picked.</summary>
     public bool? KeepOpen { get; set; }
@@ -41,6 +41,13 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.MenuRadioGroup.Bind(() =&gt; m.Sort).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     // The scope is rebuilt around the value this render resolved.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
@@ -51,7 +58,8 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>
         var (accessor, context, current) = UiFormCommit.Resolve<T>(this);
         var scope = new UiMenuRadioScope(
             value => value is T candidate && EqualityComparer<T?>.Default.Equals(candidate, current),
-            value => value is T chosen ? UiFormCommit.CommitAsync(this, accessor, context, chosen) : Task.CompletedTask);
+            value => value is T chosen ? UiFormCommit.CommitAsync(this, accessor, context, chosen) : Task.CompletedTask,
+            Live);
 
         return Div.Role("group").Class(UiClass.Compose("inline", Class)).Data(KeepOpen == true ? KeepsOpen : Group)[
             Context.Provide(scope)[Children ?? []]
