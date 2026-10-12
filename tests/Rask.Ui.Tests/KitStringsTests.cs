@@ -115,6 +115,27 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_error_page_tells_a_hungarian_visitor_in_hungarian_and_nothing_of_the_exception()
+    {
+#pragma warning disable RASK014 // the page is [SkipFactory]: the framework draws it, and here so does the test
+        var page = new global::Rask.Core.Components.DefaultErrorPage(
+            new InvalidOperationException("Password=hunter2", new TimeoutException("db.internal")), isDevelopment: false, () => { });
+#pragma warning restore RASK014
+
+        var english = KitCulture.In("en-US", page.ToHtml).AsText();
+        var hungarian = KitCulture.In("hu-HU", page.ToHtml).AsText();
+
+        Assert.Contains("Something went wrong", english, StringComparison.Ordinal);
+        Assert.Contains("The problem has been recorded. If it keeps happening, quote this reference: ", english, StringComparison.Ordinal);
+        Assert.Contains("Hiba történt", hungarian, StringComparison.Ordinal);
+        Assert.Contains("A hibát rögzítettük. Ha újra előfordul, erre az azonosítóra hivatkozzon: ", hungarian, StringComparison.Ordinal);
+        Assert.Contains(">Újrapróbálom<", hungarian, StringComparison.Ordinal);
+        Assert.Contains(">Az oldal újratöltése<", hungarian, StringComparison.Ordinal);
+        Assert.All((string[])[english, hungarian], html => Assert.DoesNotContain("hunter2", html, StringComparison.Ordinal));
+        Assert.All((string[])[english, hungarian], html => Assert.DoesNotContain("Exception", html, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_key_in_the_apps_own_catalog_is_used_over_the_kits()
     {
         // Slovakia's Hungarian, which no other test reads: the app's source is process-wide.
@@ -220,6 +241,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationRequired), nameof(RaskString.ValidationWholeNumber), nameof(RaskString.ValidationNumber),
         nameof(RaskString.ValidationNumberRange), nameof(RaskString.ValidationDate), nameof(RaskString.ValidationTime),
         nameof(RaskString.FormSaveFailed),
+        nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

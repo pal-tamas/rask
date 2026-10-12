@@ -575,6 +575,16 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `<dialog popover>` would otherwise hand it to its first control). Unmeasured, no example on Flux's pages:
   calendar sizes `Lg` / `Xxl`, every date-picker size but the default, `with-inputs`, `clearable` on the date
   picker, the SHOWN confirmation footer, the time picker's `Sm` / `Xs` / invalid / disabled / clearable looks.
+  `Clearable` on both pickers is BUILT all the same (2026-10-12), from the reference and the time picker's ✕
+  (`UiPickerClear`: 32px, 30px from the trigger's end; a date picker's is always drawn and `hidden` while nothing
+  is chosen, beside the trigger in a `relative` box of its own — a button in the typed field would open the
+  calendar). **A place and a look never share an element**: `absolute …` joined to a look that begins `relative`
+  is decided by Tailwind's print order (`relative` wins) — `OnePositionPerElementTests` reads every parity page
+  for it. The pickers' and the listbox's slot hangs from `top-0` with the TRIGGER's height, never `bottom-0`: a
+  flex row or a grid cell stretches the control's root to its tallest neighbour. `Ui.Input`'s slots keep
+  `top-0 bottom-0` — the owner, 2026-10-12: Flux's own input drifts 40px there, and the input stays Flux's.
+  `node scripts/flux/clear-placement.mjs` holds every clear button to its trigger on the pseudo-page
+  `clear-placement` (`ClearPlacementParity`: alone, labelled, in a row, grown, in a grid cell; 1920 and 390).
   The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
   ja-JP: Flux's button reads `2026年10月20日`, which is what the kit writes (measured; the earlier note of a
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks

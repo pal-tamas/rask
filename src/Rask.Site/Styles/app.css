@@ -144,7 +144,9 @@
     border-radius: 0.7rem;
   }
 
-  & :where(table) {
+  /* A table written in the guide's prose. A demo's table is the kit's and sizes itself: made a block, it
+     would lay its columns out by their content whatever widths they were given. */
+  & :where(table:not(.sample-card table)) {
     display: block;
     width: max-content;
     max-width: 100%;

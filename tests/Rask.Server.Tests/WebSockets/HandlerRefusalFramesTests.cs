@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text.RegularExpressions;
+using Rask.Core.Diagnostics;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -7,7 +8,7 @@ namespace Rask.Server.Tests.WebSockets;
 // What the browser is SENT when a handler outside a form — a list's delete — is refused by the store: its
 // sentence in the toast, as diffs, and the page it was on still answering.
 [Collection("HostEnvironment")]
-public sealed class HandlerRefusalFramesTests
+public sealed partial class HandlerRefusalFramesTests
 {
     [Theory]
     [InlineData("Production")]
@@ -38,17 +39,57 @@ public sealed class HandlerRefusalFramesTests
     }
 
     [Fact]
-    public async Task A_handler_that_throws_anything_else_is_answered_with_the_error_page_and_no_toast_as_before()
+    public async Task A_handler_that_throws_anything_else_is_answered_in_production_with_a_page_that_says_nothing_of_it()
     {
         await using var list = await Open("Production");
+
+        var (frames, logged) = await Logged(() => list.Click("fail"));
+
+        var told = string.Join('\n', frames.Select(Decoded));
+        Assert.Contains("rask-error-boundary", told, StringComparison.Ordinal);
+        Assert.Contains("The problem has been recorded.", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-toast-dialog", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("devError", told, StringComparison.Ordinal);
+        var line = Assert.Single(logged);
+        Assert.Equal(RaskLogLevel.Error, line.Level);
+        Assert.EndsWith($"Reference {Reference().Match(told).Groups[1].Value}", line.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_same_handler_in_development_keeps_the_page_and_names_the_exception_beside_it()
+    {
+        await using var list = await Open("Development");
 
         var frames = await list.Click("fail");
 
         var told = string.Join('\n', frames.Select(Decoded));
-        Assert.Contains("rask-error-boundary", told, StringComparison.Ordinal);
+        Assert.Contains("\"devError\"", told, StringComparison.Ordinal);
         Assert.Contains("InvalidOperationException", told, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-ui-toast-dialog", told, StringComparison.Ordinal);
+        Assert.Contains("hunter2", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask-error-boundary", told, StringComparison.Ordinal);
     }
+
+    // What `act` was answered with, and the lines logged for the exception that carries the secret.
+    private static async Task<(List<string> Frames, List<RaskDiagnosticEvent> Logged)> Logged(Func<Task<List<string>>> act)
+    {
+        var captured = new System.Collections.Concurrent.ConcurrentQueue<RaskDiagnosticEvent>();
+        var previous = RaskDiagnostics.Sink;
+        RaskDiagnostics.Sink = captured.Enqueue;
+        try
+        {
+            var frames = await act();
+            return (frames, captured.Where(static line => line.Exception?.Message.Contains("hunter2", StringComparison.Ordinal) == true).ToList());
+        }
+        finally
+        {
+            RaskDiagnostics.Sink = previous;
+        }
+    }
+
+    [GeneratedRegex("quote this reference: ([A-Z0-9]{8})", RegexOptions.CultureInvariant, 1000)]
+    private static partial Regex Reference();
 
     // The markup of a frame as the browser reads it: out of its JSON string, and out of its character references.
     private static string Decoded(string frame) => System.Net.WebUtility.HtmlDecode(Regex.Unescape(frame));

@@ -19,13 +19,13 @@ public sealed partial class BindingNullableDemo : Component
                 .Description("Leave it empty for null.")
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.StartDate).Live().Label("Optional start date (DateOnly?)")
+            Ui.DatePicker.Bind(() => _model.StartDate).Live().Label("Optional start date (DateOnly?)")
                 .Id("bind-null-start")
         ],
         Div.Class("mb-3")[
             // "— none —" is a real option rather than a Placeholder: choosing it clears the value back to null,
             // which is the point of this demo. A placeholder cannot be chosen.
-            Ui.Select.Bind(() => _model.Favorite).Live()
+            Ui.Select.Bind(() => _model.Favorite).Listbox.Live()
                 .Label("Optional colour (Color?)")
                 .Id("bind-null-color")[
                 Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])

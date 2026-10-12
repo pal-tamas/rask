@@ -53,7 +53,8 @@ public partial class ErrorBoundaryTests : global::Rask.Core.RaskMarkup
         var html = boundary.ToHtml();
         Assert.Contains("rask-error-boundary", html);
         Assert.Contains("Something went wrong", html);
-        Assert.Contains("dflt", html);
+        Assert.Contains("quote this reference: ", html);
+        Assert.DoesNotContain("dflt", html);
     }
 
     [Fact]

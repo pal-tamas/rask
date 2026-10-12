@@ -38,7 +38,7 @@ public sealed class DevErrorOverlayTests
     }
 
     [Fact]
-    public async Task In_production_the_same_fault_still_replaces_the_page_and_carries_no_stack()
+    public async Task In_production_the_same_fault_replaces_the_page_and_carries_nothing_of_the_exception()
     {
         // Unchanged behaviour, deliberately: an end user gets the styled error page, and the payload must
         // not carry a stack trace to a browser that isn't a developer's.
@@ -48,10 +48,10 @@ public sealed class DevErrorOverlayTests
         var payload = await FaultAsync(host);
 
         Assert.Contains("Something went wrong", payload, StringComparison.Ordinal);
-        // The production error page names the exception type by design, so the claim here is narrower
-        // and exact: no devError record, which is what would carry the stack trace.
         Assert.DoesNotContain("devError", payload, StringComparison.Ordinal);
         Assert.DoesNotContain("   at ", payload, StringComparison.Ordinal);
+        Assert.DoesNotContain("InvalidOperationException", payload, StringComparison.Ordinal);
+        Assert.DoesNotContain("boom", payload, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,6 +66,37 @@ public sealed class DevErrorOverlayTests
         var html = await (await host.Http.GetAsync("/start", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("Something went wrong", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_first_response_of_a_page_that_throws_names_the_exception_in_development()
+    {
+        using var host = RaskTestHost.Create<ThrowingOnRenderApp>(
+            diffMode: LiveDiffMode.DisabledFull, environment: "Development");
+
+        var response = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Contains("System.InvalidOperationException", html, StringComparison.Ordinal);
+        Assert.Contains("render-boom", html, StringComparison.Ordinal);
+        Assert.Contains(nameof(ThrowingOnRenderApp), html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_first_response_of_a_page_that_throws_says_nothing_of_the_exception_in_production()
+    {
+        using var host = RaskTestHost.Create<ThrowingOnRenderApp>(
+            diffMode: LiveDiffMode.DisabledFull, environment: "Production");
+
+        var response = await host.Http.GetAsync("/start", TestContext.Current.CancellationToken);
+
+        var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(System.Net.HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Contains("The problem has been recorded. If it keeps happening, quote this reference: ", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("render-boom", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(nameof(ThrowingOnRenderApp), html, StringComparison.Ordinal);
     }
 
     [Fact]

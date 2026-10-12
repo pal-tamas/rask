@@ -1,14 +1,16 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using Rask.Core.Diagnostics;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
 /// <summary>
-///     The built-in error page, rendered when a request fails. It shows diagnostics in development and a
-///     bare apology in production — never leak the detailed variant to real users.
+///     The built-in error page, rendered when a request fails. In Development it shows the exception: type,
+///     message, causes, stack and source. Anywhere else it shows a heading, the actions and a reference that
+///     is also in the Error log line beside the exception — and nothing of the exception itself.
 /// </summary>
 [SkipFactory]
 public sealed class DefaultErrorPage : Component
@@ -35,6 +37,11 @@ public sealed class DefaultErrorPage : Component
     private const string ReloadButtonStyle =
         "margin:0.25rem 0 1rem;padding:0.5rem 1rem;border:1px solid #b42323;border-radius:0.375rem;"
         + "background:#b42323;color:#fff;font:inherit;font-size:0.9rem;cursor:pointer;";
+
+    private const string ReferenceStyle = "margin:0 0 1rem;font-size:0.9rem;color:#4b5563;";
+
+    private const string ReferenceEnglish =
+        "The problem has been recorded. If it keeps happening, quote this reference: {0}";
 
     // How many source lines to show on each side of the throwing line.
     private const int SourceRadius = 5;
@@ -138,24 +145,15 @@ public sealed class DefaultErrorPage : Component
             .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reload"] = "" })[
                 RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);
 
-        var chain = Unwind(_error);
+        children.Add(P.Style(ReferenceStyle)[
+            RaskStrings.Get(RaskString.ErrorReference, ReferenceEnglish, ErrorReference.Of(_error))]);
 
-        // Outermost exception: type + message always (production shows this much); the stack + source
-        // excerpts are development-only. In production the chain stops here — inner exceptions, frames,
-        // and file paths never reach the response.
-        children.AddRange(RenderException(chain[0]));
-
+        // The exception itself — its type, its message, what caused it, where it was thrown — is written
+        // for the person who can read the code. A visitor in Production gets the reference above and nothing
+        // else: a message routinely carries a connection string, a query or a path.
         if (_isDevelopment)
         {
-            for (var i = 1; i < chain.Count; i++)
-            {
-                children.Add(Details.Open(true)[
-                    Summary.Style(CausedByStyle)[
-                        $"Caused by: {TypeName(chain[i])}"],
-                    Div.Style("padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
-                        RenderException(chain[i])]
-                ]);
-            }
+            children.AddRange(RenderChain(Unwind(_error)));
         }
 
         return Div
@@ -165,18 +163,30 @@ public sealed class DefaultErrorPage : Component
             [children];
     }
 
-    // The type + message, plus (development only) a parsed stack with source excerpts. All text is
-    // passed as string children, so Rask's Text encodes it — source lines and exception messages can
-    // never inject markup.
-    private IEnumerable<Component> RenderException(Exception ex)
+    // Development only. All text is passed as string children, so Rask's Text encodes it — source lines and
+    // exception messages can never inject markup.
+    private static IEnumerable<Component> RenderChain(List<Exception> chain)
+    {
+        foreach (var child in RenderException(chain[0]))
+        {
+            yield return child;
+        }
+
+        for (var i = 1; i < chain.Count; i++)
+        {
+            yield return Details.Open(true)[
+                Summary.Style(CausedByStyle)[
+                    $"Caused by: {TypeName(chain[i])}"],
+                Div.Style("padding-left:0.75rem;border-left:2px solid #f5c2c0;margin-top:0.5rem;")[
+                    RenderException(chain[i])]
+            ];
+        }
+    }
+
+    private static IEnumerable<Component> RenderException(Exception ex)
     {
         yield return P.Style(TypeStyle)[TypeName(ex)];
         yield return Pre.Style(MessageStyle)[ex.Message];
-
-        if (!_isDevelopment)
-        {
-            yield break;
-        }
 
         foreach (var child in RenderStack(ex))
         {

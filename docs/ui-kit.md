@@ -851,7 +851,8 @@ Ui.Editor.Class("**:data-[slot=content]:min-h-[100px]!")       // the area is 20
 ```
 
 The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — and an empty document is the
-empty string. `Bind` writes it to the model on every change and validates the field; `Value` with
+empty string. `Bind` writes it to the model with the next action (`.Live()`: on every change) and validates
+the field then; `Value` with
 `OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
 
 **Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
@@ -2573,6 +2574,7 @@ Ui.DatePicker.Range.Bind(() => report.Range)
     .Presets([Ui.DateRangePreset.Today, Ui.DateRangePreset.Last30Days, Ui.DateRangePreset.Custom])
 Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
     Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
+Ui.DatePicker.Bind(() => booking.Departure).Clearable()                            // DateOnly? — the ✕ makes it null again
 ```
 
 It takes the calendar's steps (`Min`, `Max`, `Unavailable`, `MinRange`, `MaxRange`, `Months`, `OpenTo`,
@@ -2583,6 +2585,15 @@ date"), `WithPresets()` / `Presets([..])`, and `Trigger(…)` for a trigger of y
 `Ui.DatePickerButton` or `Ui.DatePickerInput`. A preset writes `UiDateRange.Of(preset, today, startDay, Min)`,
 whose `Preset` names it, and the button then shows the preset's label. There is no multiple mode, as in Flux:
 several days are `Ui.Calendar`'s.
+
+`Clearable()` — on the picker, or on a `Ui.DatePickerButton` / `Ui.DatePickerInput` in its `Trigger` — puts a
+button in the trigger, before its chevron, while a date is chosen. A press empties the picker: a bound `DateOnly?`
+or `UiDateRange?` becomes `null`, one that cannot be null goes back to its unset value (`default`, which is also
+what `OnChange` hears on a picker the parent owns), the typed fields are emptied, and a choice still waiting for
+"Select date" is dropped. A range is emptied whole. A disabled picker shows no button. Flux documents the prop and
+draws it on none of its public pages, so the button is the time picker's: the same 32px ✕, 30px from the trigger's
+end. The pickers' and the listbox's ✕ stay inside the trigger wherever the control is laid out; a `Ui.Input` that a
+row or a grid cell stretches taller than its box centres its ✕, icons and buttons in that room, as Flux's own input does.
 
 **Keys and presses, as measured on Flux.** Enter, Space and either vertical arrow open the closed button. The
 open popup holds the page behind it still — no scroll, no pointer (`data-rask-lock`). The presets are a radio

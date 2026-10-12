@@ -10,7 +10,7 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
     [QueryParam]
     public string? ReturnUrl { get; set; }
 
-    protected override Component? HeadAssets => Title["Sign out"];
+    protected override string? PageTitle => "Sign out";
 
     protected override Component? Content =>
         users.Current.Identity?.IsAuthenticated == true

@@ -373,6 +373,122 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(new UiDateRange(Jan(4), Jan(9)), model.Stay);
     }
 
+    [Fact]
+    public void A_clearable_picker_draws_its_button_out_of_sight_until_a_day_is_chosen()
+    {
+        var plain = Single(Jan(20)).ToHtml();
+
+        var chosen = Single(Jan(20)).Clearable().ToHtml();
+        var unset = Single(default).Clearable().ToHtml();
+        var disabled = Single(Jan(20)).Clearable().Disabled().ToHtml();
+
+        Assert.DoesNotContain("aria-label=\"Clear\"", plain, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-10\"><button", chosen, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"absolute top-0 end-9 hidden items-center h-10\"><button", unset, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"absolute top-0 end-9 hidden items-center h-10\"><button", disabled, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_clear_button_is_placed_against_a_box_that_holds_the_trigger_and_nothing_else()
+    {
+        var picker = Single(Jan(20)).Clearable();
+
+        var html = picker.ToHtml();
+
+        Assert.Matches("<div class=\"relative\"><button id=[^>]*data-ui-date-picker-button", html);
+        Assert.Matches("</button><div class=\"absolute top-0 end-9 flex items-center h-10\"><button class=\"relative ", html);
+    }
+
+    [Fact]
+    public void The_clear_button_stands_beside_a_typed_field_and_not_inside_what_opens_the_calendar()
+    {
+        var picker = Single(Jan(20)).Type(Ui.DatePickerType.Input).Clearable();
+
+        var html = picker.ToHtml();
+
+        Assert.Matches("<div class=\"relative\"><div id=[^>]*data-rask-toggle", html);
+        Assert.Contains("</svg></div><div class=\"absolute top-0 end-9 flex items-center h-10\"><button", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_trigger_in_the_slot_asks_for_the_button_itself_at_its_own_height()
+    {
+        var picker = Single(Jan(20)).Trigger(Ui.DatePickerButton.Size(Ui.DatePickerButtonSize.Sm).Clearable());
+
+        var html = picker.ToHtml();
+
+        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-8\"><button", html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Clear\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_clear_button_takes_a_day_that_may_be_unset_back_to_null()
+    {
+        var model = new Trip { Departure = Jan(20) };
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Departure).Clearable().Locale("en-US").On(Today));
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+        await Acting.Act(page);
+
+        Assert.Null(model.Departure);
+        Assert.Contains(">Select a date</span>", page.Html, StringComparison.Ordinal);
+        Assert.Contains("end-9 hidden items-center", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_clear_button_takes_a_day_that_cannot_be_null_back_to_its_unset_value()
+    {
+        var model = new Trip { Arrival = Jan(20) };
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Clearable().Locale("en-US").On(Today));
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+        await Acting.Act(page);
+
+        Assert.Equal(default, model.Arrival);
+        Assert.Contains(">Select a date</span>", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_clear_button_hands_the_parent_that_owns_the_day_an_unset_one()
+    {
+        var held = Jan(20);
+        var page = Page.Render(() => Single(held).OnChange(day => held = day).Clearable());
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+
+        Assert.Equal(default, held);
+        Assert.Contains(">Select a date</span>", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_clear_button_empties_a_whole_range_and_both_of_its_typed_fields()
+    {
+        var model = new Trip { Stay = new UiDateRange(Jan(4), Jan(6)) };
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today)
+            .Trigger(Div[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End").Clearable()]));
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+        await Acting.Act(page);
+
+        Assert.Equal(default, model.Stay);
+        Assert.Equal(2, Regex.Matches(page.Html, "<input[^>]*type=\"hidden\"[^>]*value=\"\"|<input[^>]*value=\"\"[^>]*type=\"hidden\"").Count);
+        Assert.DoesNotContain("value=\"2026-", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_clear_button_drops_a_choice_still_waiting_to_be_confirmed()
+    {
+        var model = new Trip { Departure = Jan(8) };
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Departure).WithConfirmation().Clearable().Locale("en-US").On(Today));
+
+        await page.On(Day(20)).Click();
+        await page.On("[aria-label=\"Clear\"]").Click();
+        await page.On("div[role=\"button\"]").Click();
+        await Acting.Act(page);
+
+        Assert.Null(model.Departure);
+    }
+
     private static string[] Segments(string html) =>
         [.. Regex.Matches(html, "<input[^>]*aria-label=\"(Month|Day|Year)\"").Select(m => m.Groups[1].Value)];
 

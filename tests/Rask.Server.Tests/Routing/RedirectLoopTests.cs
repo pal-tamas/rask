@@ -46,12 +46,14 @@ public sealed class RedirectLoopTests
 
         await redirects.Send(new { type = "navigate", path = "/redirect/slow-ping", query = "" });
         var stopped = await redirects.Ws.ReceiveUntilAsync(
-            f => f.Contains("Too many redirects", StringComparison.Ordinal), "the frame that shows the loop was refused");
+            f => f.Contains("rask-error-boundary", StringComparison.Ordinal), "the frame that shows the loop was refused");
         var after = await redirects.Ws.SettledAsync();
 
         // The navigation waited through every hop, so the page the loop stopped on is the first one sent, with
         // its own address.
+        // The reader is told that it failed, never why: the sentence is the log's, like any exception's.
         Assert.Matches("^/redirect/slow-p[io]ng$", LiveFrames.HistoryUrl(stopped));
+        Assert.DoesNotContain("Too many redirects", stopped, StringComparison.Ordinal);
         Assert.DoesNotContain(after, f => LiveFrames.HistoryUrl(f) is not null);
     }
 
