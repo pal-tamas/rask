@@ -1383,6 +1383,8 @@ Rask.UiDatePicker.UiDatePicker() -> void
 Rask.UiDatePickerButton
 Rask.UiDatePickerButton.Class.get -> string?
 Rask.UiDatePickerButton.Class.set -> void
+Rask.UiDatePickerButton.Clearable.get -> bool?
+Rask.UiDatePickerButton.Clearable.set -> void
 Rask.UiDatePickerButton.Disabled.get -> bool?
 Rask.UiDatePickerButton.Disabled.set -> void
 Rask.UiDatePickerButton.Invalid.get -> bool?
@@ -1401,6 +1403,8 @@ Rask.UiDatePickerControl<T>.Bind.get -> System.Linq.Expressions.Expression<Syste
 Rask.UiDatePickerControl<T>.Bind.set -> void
 Rask.UiDatePickerControl<T>.Class.get -> string?
 Rask.UiDatePickerControl<T>.Class.set -> void
+Rask.UiDatePickerControl<T>.Clearable.get -> bool?
+Rask.UiDatePickerControl<T>.Clearable.set -> void
 Rask.UiDatePickerControl<T>.Description.get -> string?
 Rask.UiDatePickerControl<T>.Description.set -> void
 Rask.UiDatePickerControl<T>.DescriptionTrailing.get -> string?
@@ -1471,6 +1475,8 @@ Rask.UiDatePickerControl<T>.WithToday.set -> void
 Rask.UiDatePickerInput
 Rask.UiDatePickerInput.Class.get -> string?
 Rask.UiDatePickerInput.Class.set -> void
+Rask.UiDatePickerInput.Clearable.get -> bool?
+Rask.UiDatePickerInput.Clearable.set -> void
 Rask.UiDatePickerInput.Description.get -> string?
 Rask.UiDatePickerInput.Description.set -> void
 Rask.UiDatePickerInput.Disabled.get -> bool?
@@ -4101,6 +4107,14 @@ static RaskBuilderSettersRask_Ui.Clear<T>(this Rask.UiSelect<T>! __b, Rask.Ui.Se
 static RaskBuilderSettersRask_Ui.Clear<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectClear? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiAutocomplete! __b, bool? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerButton! __b) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerButton! __b, bool? value) -> Rask.UiDatePickerButton!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerInput! __b) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerInput! __b, bool? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
+static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxSearch! __b) -> Rask.UiPillboxSearch!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxSearch! __b, bool? value) -> Rask.UiPillboxSearch!
 static RaskBuilderSettersRask_Ui.Clearable(this Rask.UiPillboxTrigger! __b) -> Rask.UiPillboxTrigger!

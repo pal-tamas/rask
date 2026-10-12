@@ -156,7 +156,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
                 // written after the list it is laid over, so the times keep the handlers they had.
                 Div.Key("trigger").Class("inline")[Typed ? TypedTrigger(view) : ButtonTrigger(view, cursor)],
                 Options(view, cursor),
-                clears ? ClearButton(view) : null
+                clears ? UiPickerClear.Render(UiTimePickerLook.Height(Size ?? Ui.TimePickerSize.Base), () => CommitAsync(view, [])) : null
             ]);
     }
 
@@ -276,17 +276,6 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             Div.Attributes(("dir", "ltr"))[Written(time)]
         ];
     }
-
-    private Component ClearButton(View view) =>
-        Button
-            .Key("clear")
-            .Type(ButtonType.Button)
-            .Class(UiTimePickerLook.Clear)
-            .Aria("label", RaskStrings.Get(RaskString.PickerClear, "Clear"))
-            .Data("ui-button", null)
-            .OnClick(() => CommitAsync(view, []))[
-            Ui.Icon.Name(Ui.IconName.XMark).Mini
-        ];
 
     private string Written(TimeOnly time) => UiTimePickerLook.Format(time, Format, Culture);
 
