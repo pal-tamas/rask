@@ -20,6 +20,10 @@ them until tagged releases begin.
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
 
+- **The error page's tab title is translated.** The built-in error page said `Application error` in the tab
+  over a Hungarian body. The title is a string of the catalog now, `RaskString.ErrorTitle` (the kit's
+  Hungarian: `Alkalmazáshiba`); the English is unchanged.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.

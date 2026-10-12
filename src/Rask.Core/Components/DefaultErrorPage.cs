@@ -112,7 +112,7 @@ public sealed class DefaultErrorPage : Component
         [
             Meta.Charset("utf-8"),
             Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
-            Title["Application error"]
+            Title[RaskStrings.Get(RaskString.ErrorTitle, "Application error")]
         ]
         : null;
 

@@ -433,4 +433,7 @@ public enum RaskString
     ///     written into its <c>{0}</c>.
     /// </summary>
     ErrorReference,
+
+    /// <summary>The title of the tab while the error page stands in for the whole app.</summary>
+    ErrorTitle,
 }
