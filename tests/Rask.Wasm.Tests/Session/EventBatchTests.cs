@@ -76,7 +76,9 @@ public sealed class EventBatchTests : ResettingTestBase, IDisposable
         var (session, page) = await StartAsync();
 
         var batch = session.DispatchAsync(Batch([Event(page, "hit0"), Event(page, "slow"), Event(page, "hit1")]));
-        await WaitForAsync(() => _frames.Count > 0);
+        // The render is made on a pool thread (the session yields before it builds the payload), so on a machine
+        // with every core taken it can be seconds away: wait for it by name, under the suite's one hang ceiling.
+        await WaitFor.True(() => _frames.Count > 0, "the render a batch makes while its handler waits");
         var waiting = HtmlOf(_frames[0]);
         EventBatchStubApp.Gate.TrySetResult();
         await batch;
@@ -167,17 +169,6 @@ public sealed class EventBatchTests : ResettingTestBase, IDisposable
         var page = HtmlOf(Encoding.UTF8.GetString(await session.InitialRenderAsync()));
         _frames.Clear();
         return (session, page);
-    }
-
-    private static async Task WaitForAsync(Func<bool> met)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
-        while (!met() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-        }
-
-        Assert.True(met());
     }
 
     private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);

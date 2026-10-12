@@ -133,7 +133,7 @@ internal static class DelegateOwner
     // and its outer display class — the one holding the captured `<>4__this` — is generic too. Excluding
     // generic types here stopped the walk before reaching that `<>4__this`, so Resolve returned null, the
     // callback went unwrapped, and the generic component never re-rendered after its own event fired.
-    private static bool IsDisplayClass(Type type) =>
+    internal static bool IsDisplayClass(Type type) =>
         type.IsClass && type.Name.StartsWith("<>c", StringComparison.Ordinal);
 
     private const int MaxClosureDepth = 4;
