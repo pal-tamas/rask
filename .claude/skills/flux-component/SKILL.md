@@ -54,6 +54,15 @@ unset prop).
 Rendered attributes are not in that gate: compare them with Flux's live DOM (marker and ARIA names per
 `[data-flux-*]` node) when a component changes.
 
+**Owner-approved departures from Flux's behaviour** — the whole list; anything not on it is a parity bug.
+`FluxConformanceTests.Translations` cannot hold these: it is keyed by a prop the component carries, and a
+departure in behaviour carries none.
+- **2026-10-12 — typed `Ui.DatePicker` / `Ui.TimePicker` left with parts that make no value.** Flux keeps the
+  last whole value behind the parts (measured: erase a part, or all of them, and `value` is still the old
+  date) and marks nothing. The kit refuses: half filled says "Enter a valid date." / "Enter a valid time." and
+  blocks the save, every part emptied is nothing chosen. Reason: a form must not save a value the reader can
+  no longer see. Look and keys unchanged. `rask-segments.ts`, `UiPickerUnreadTests`, `PickerUnreadTests`.
+
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
 - **Props are Flux's**, one property per documented prop: `icon:trailing` → `IconTrailing`,
@@ -571,8 +580,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   is chosen, beside the trigger in a `relative` box of its own — a button in the typed field would open the
   calendar). **A place and a look never share an element**: `absolute …` joined to a look that begins `relative`
   is decided by Tailwind's print order (`relative` wins) — `OnePositionPerElementTests` reads every parity page
-  for it. And a slot laid over a box hangs from `top-0` with the BOX's height, never `bottom-0`: a flex row or a
-  grid cell stretches the control's root to its tallest neighbour (Flux's own input drifts 40px there).
+  for it. The pickers' and the listbox's slot hangs from `top-0` with the TRIGGER's height, never `bottom-0`: a
+  flex row or a grid cell stretches the control's root to its tallest neighbour. `Ui.Input`'s slots keep
+  `top-0 bottom-0` — the owner, 2026-10-12: Flux's own input drifts 40px there, and the input stays Flux's.
   `node scripts/flux/clear-placement.mjs` holds every clear button to its trigger on the pseudo-page
   `clear-placement` (`ClearPlacementParity`: alone, labelled, in a row, grown, in a grid cell; 1920 and 390).
   The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).

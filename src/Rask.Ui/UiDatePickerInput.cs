@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Linq.Expressions;
+using Rask.Core.Forms;
 
 namespace Rask;
 
@@ -102,7 +103,7 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             .Role("group")
             .Aria(aria)[
             Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
-            Div.Class(UiDatePickerLook.Segments).Data(Inputs).Attributes(("dir", "ltr"))[
+            Div.Class(UiDatePickerLook.Segments).Data(Inputs).Attributes([("dir", "ltr"), .. scope.FirstEdit])[
                 Segments(scope, locked),
                 Whole(scope, slot)
             ],
@@ -158,9 +159,10 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
     private static HTMLInputElement<string> Whole(UiDatePickerScope scope, int slot) =>
         Input
             .Value(scope.Dates[slot]?.ToString(Iso, CultureInfo.InvariantCulture) ?? string.Empty)
+            // No date: the parts were left half filled, which the frame says beside its empty value, or emptied.
             .OnChange(text => DateOnly.TryParseExact(text, Iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
                 ? scope.Typed(slot, day)
-                : Task.CompletedTask)
+                : scope.Left(slot, UnreadInput.Current is not null))
             .Key("whole")
             .Type(InputType.Hidden);
 

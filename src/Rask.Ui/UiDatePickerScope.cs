@@ -43,6 +43,18 @@ internal sealed class UiDatePickerScope
     /// <summary>Writes a typed date into its slot.</summary>
     internal required Func<int, DateOnly, Task> Typed { get; init; }
 
+    /// <summary>
+    ///     Hears that a typed field was left holding no date — its slot, whether it is half filled rather than
+    ///     emptied, and how many typed fields the trigger has.
+    /// </summary>
+    internal required Func<int, bool, int, Task> Untyped { get; init; }
+
+    /// <summary>What a typed field's parts carry while a message shows: the mark that hears the first key of a correction.</summary>
+    internal (string Name, string? Value)[] FirstEdit { get; init; } = [];
+
+    /// <summary>A typed field was left with no date in it: half filled, or with every part emptied.</summary>
+    internal Task Left(int slot, bool half) => Untyped(slot, half, Math.Max(1, _claimed));
+
     /// <summary>Opens the calendar from a key on the trigger, where the browser has no gesture of its own for it.</summary>
     internal required Action Show { get; init; }
 

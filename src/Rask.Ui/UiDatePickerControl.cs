@@ -46,6 +46,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private string? _ownId;
     private (bool Held, T? Value, T? Given) _own;
     private (bool Held, T? Value) _pending;
+
+    // The typed fields the reader emptied, a bit a slot: a range is nothing chosen once both are.
+    private int _emptied;
     private bool _open;
 
     /// <inheritdoc cref="IUiFormControl.Label" />
@@ -215,19 +218,11 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         Task Commit(T value)
         {
             _own = (Bind is null, value, Value);
+            _emptied = 0;
             return UiFormCommit.CommitAsync(this, acc, ctx, value);
         }
 
-        Task Choose(T value)
-        {
-            if (!Confirms)
-            {
-                return Commit(value);
-            }
-
-            _pending = (true, value);
-            return Task.CompletedTask;
-        }
+        Task Choose(T value) => Confirms ? Hold(value) : Commit(value);
 
         var scope = new UiDatePickerScope
         {
@@ -245,6 +240,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Clear = () => ClearAsync(acc, ctx),
             Dates = Dates(committed),
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
+            Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
+            FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
             Show = () => _open = true,
         };
 
@@ -262,6 +259,45 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     /// <inheritdoc />
     protected override Task OnRendered() => _state.RenameAsync(StateHasChanged);
+
+    // A choice waiting for the popup's confirming button.
+    private Task Hold(T value)
+    {
+        _pending = (true, value);
+        return Task.CompletedTask;
+    }
+
+    // A typed field left with no date in it. Half filled is no date at all; emptied is nothing chosen — once
+    // every field of the trigger is, since a range with one end is no range either.
+    private Task UntypedAsync(
+        int slot, bool half, int fields, ExpressionAccessor.Accessor? accessor, EditContext? context, T? committed)
+    {
+        var every = (1 << fields) - 1;
+        _emptied = half ? _emptied & ~(1 << slot) : _emptied | (1 << slot);
+        if (half || (_emptied & every) != every)
+        {
+            return UiFormCommit.UnreadAsync(this, accessor, context, committed, RaskString.ValidationDate);
+        }
+
+        return EmptyAsync(accessor, context);
+    }
+
+    // The clear button's: every typed field counts as emptied, and a choice still waiting to be confirmed goes
+    // with the one that was written.
+    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
+        _emptied = ~0;
+        _pending = default;
+        return EmptyAsync(accessor, context);
+    }
+
+    // Nothing chosen, however the reader said so — the clear button, or every part of every field erased: null
+    // where the bound member can say so, the type's unset value where it cannot.
+    private Task EmptyAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
+        _own = (Bind is null, default, Value);
+        return UiFormCommit.ClearAsync(this, accessor, context);
+    }
 
     /// <summary>What "chosen" means for this picker, over the value as it stands.</summary>
     private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> choose);
@@ -346,33 +382,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
             ]
         ];
-
-    // The clear button's: nothing chosen — null where the bound member can say so, the type's unset value where
-    // it cannot — and a choice still waiting to be confirmed goes with it.
-    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
-    {
-        var self = (IFormControl<T>)this;
-        _own = (Bind is null, default, Value);
-        _pending = default;
-        if (accessor is null)
-        {
-            return self.InvokeOnChange(default!);
-        }
-
-        return PendingBinds.Commit(this, accessor.Field, context, default(T), Write, SettleAsync);
-
-        bool Write()
-        {
-            accessor.Setter(Nullable.GetUnderlyingType(accessor.PropertyType) is null ? default(T) : null);
-            return true;
-        }
-
-        async Task SettleAsync()
-        {
-            await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
-            await self.InvokeAfterBind(default!).ConfigureAwait(false);
-        }
-    }
 
     private UiCalendarOptions Options()
     {
