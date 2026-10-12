@@ -219,6 +219,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     [
         nameof(RaskString.ValidationRequired), nameof(RaskString.ValidationWholeNumber), nameof(RaskString.ValidationNumber),
         nameof(RaskString.ValidationNumberRange), nameof(RaskString.ValidationDate), nameof(RaskString.ValidationTime),
+        nameof(RaskString.FormSaveFailed),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

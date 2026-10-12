@@ -19,7 +19,7 @@ namespace Rask;
 /// checkboxes as cards, pills or buttons; each still holds a real <c>&lt;input type="checkbox"&gt;</c>.
 /// </para>
 /// </remarks>
-public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollection<T>>, IUiFormControl
+public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollection<T>>, IUiFormControl, IDeferredBind
 {
     private string? _ownId;
 
@@ -61,6 +61,13 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<ICollection<T>> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.CheckboxGroup.Bind(() =&gt; m.Channels).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
@@ -109,7 +116,8 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
                 : Task.CompletedTask,
             open.Count != 0 && ticked == open.Count,
             ticked != 0 && ticked != open.Count,
-            on => Commit(Selected(picked, choices, open, on), accessor, context));
+            on => Commit(Selected(picked, choices, open, on), accessor, context),
+            Live);
 
         // A plain `group`: ARIA has no "checkboxgroup", and `group` is what carries the heading's name.
         var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);

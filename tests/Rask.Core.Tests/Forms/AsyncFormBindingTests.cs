@@ -74,8 +74,6 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => model.Username)
         ]);
 
-        // Mirror the browser: OnInput sets the value, OnChange (blur) touches and validates.
-        await page.On("input").Input("admin");
         await page.On("input").Change("admin");
 
         var fid = new FieldIdentifier(model, "Username");
@@ -94,7 +92,7 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
     public async Task The_post_handler_render_shows_the_async_message_and_no_indicator()
     {
         // Mirrors the failing E2E test Validation_AsyncDemo_ShowsCheckingThenTakenMessage:
-        // fill the bound input with "admin" and fire OnChange (blur). After the async validator
+        // fill the bound input with "admin" and fire OnChange (its value arriving). After the async validator
         // completes, the next RenderAsLiveRoot — i.e. what the WS dispatcher emits as the
         // post-handler frame — must show the "taken" message and must NOT still show the
         // "Checking…" indicator.
@@ -115,11 +113,8 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot();
-        var inputId = MarkupAssert.Attr(initial, "data-rask-on-input");
         var changeId = MarkupAssert.Attr(initial, "data-rask-on-change");
 
-        using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement);
         using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
         await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement);
 
@@ -154,13 +149,9 @@ public partial class AsyncFormBindingTests : global::Rask.Core.RaskMarkup
         view.RenderHandle = handle;
 
         var initial = view.RenderAsLiveRoot(sp);
-        var inputId = MarkupAssert.Attr(initial, "data-rask-on-input");
         var changeId = MarkupAssert.Attr(initial, "data-rask-on-change");
-        Assert.NotNull(inputId);
         Assert.NotNull(changeId);
 
-        using var inputDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
-        await view.TryInvokeHandlerAsync(inputId!, inputDoc.RootElement, sp, TestContext.Current.CancellationToken);
         using var changeDoc = JsonDocument.Parse("{\"value\":\"admin\"}");
         await view.TryInvokeHandlerAsync(changeId!, changeDoc.RootElement, sp, TestContext.Current.CancellationToken);
 

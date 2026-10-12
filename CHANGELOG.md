@@ -29,6 +29,19 @@ them until tagged releases begin.
   the handler is quick — the pressed button's own busy mark (200 ms) is unchanged. Set the option to zero to
   get every intermediate frame back exactly as before. See
   [routing](docs/routing.md#a-handlers-work-reaches-the-screen-once).
+- **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used
+  to change nothing on the page unless the form was written `f => …` and drew `f.Error`; only the log said so.
+  The form now raises an error toast — *The save failed. Please try again.* — or, when it draws its own messages
+  with `Validation.Summary`, says the sentence there and raises no toast. The exception's text is never shown; a
+  server app in Development adds its type and message. Unchanged: the values stay in the fields, the submit is
+  released, the error boundary is not tripped, `f.Error` holds the exception, the error is logged, and a cancelled
+  save is silent. **For an existing app:** a form that already told the reader from `f.Error` now says it twice —
+  drop one, or catch the exception inside the handler (what the handler catches never reaches the form). A
+  hand-wired host whose layout mounts no `Ui.Toast`/`ToastOutlet` shows no toast, as before.
+- **A `System.ComponentModel.DataAnnotations.ValidationException` thrown by a save is a refusal, not a fault.**
+  Its message is shown under the bound fields its `ValidationResult.MemberNames` name, else in the form's own
+  messages, else as the toast's text; it is logged at Information and is no longer `f.Error`. Exactly that type
+  (also inside an `AggregateException` or `TargetInvocationException`); a class derived from it is still a fault.
 - **BREAKING: a plain property that cannot be null is required by its type, not by a generated `[Required]`.**
   The form model of an aggregate used to carry a generated `[Required]` for every non-nullable property
   (`int Weight`, `decimal Price`, `DateOnly`, `Guid`, `bool`, `string Name`, and a one-value value object with no
@@ -82,6 +95,9 @@ them until tagged releases begin.
   no refused press) while a dispatch that started inside it is unanswered. `Ui.Pagination` writes it on its
   root, a sortable `Ui.TableColumn` writes the bare opt-in on its `<th>`, and a table of your own can use
   either. See [tables](docs/ui-kit.md#a-slow-page-change-dims-the-rows).
+- **`RaskString.FormSaveFailed`: what a form says when its save throws.** English "The save failed. Please try
+  again.", Hungarian "A mentés nem sikerült. Kérjük, próbálja újra." built into `Rask.Ui`; an app's own
+  `RaskStrings.{culture}.json` overrides it. See `docs/forms-validation.md#a-save-that-fails`.
 - **`RaskValidation.RegisterRequiredFields` and `RaskValidation.IsRequired`: one question says whether a field
   must be filled.** `RegisterRequiredFields(typeof(DestinationModel), property => property is "Name")` is the
   seam a data layer's generator plugs into, once per model type, beside `RegisterFieldRules`; it covers the
@@ -405,6 +421,64 @@ them until tagged releases begin.
   `PaginationNext` carry it, and the kit's Hungarian says `« Előző` / `Következő »`.
 
 ### Changed
+
+- **A value that arrives with its form's submit leaves the store's rules to the submit.** A waiting field's
+  value travels in the frame of the Save that follows it, and used to be put to the store on arrival
+  (`IStoreRules.Check` for the field) milliseconds before the submit asked the store about the whole
+  model — two questions, and on a refused save a message set, taken back and set again. A batch is now
+  read once before its first event runs (`EventBatch.AnnounceSubmits`): a form whose own submit is in it
+  runs only the rules that cost nothing for the values ahead of that submit, and the submit asks the store
+  once. The same holds for a kit control's waiting pick written for a submit of its form. A change with no
+  submit of its form behind it in the batch — a `.Live()` or `.Blur()` field, a click on something else, a
+  submit of another form — asks as before, and a submit always asks afresh.
+- **BREAKING: every bound control of the kit waits for the next action too; `.Live()` writes as it is
+  chosen.** `Ui.Checkbox`, `Ui.Switch`, `Ui.Select` (native, listbox, combobox, multiple), `Ui.Pillbox`,
+  `Ui.Autocomplete`, `Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Rating`, `Ui.Filter`,
+  `Ui.Calendar`, `Ui.DatePicker`, `Ui.TimePicker`, `Ui.Editor`, `Ui.Tabs`, `Ui.MenuCheckbox` and
+  `Ui.MenuRadioGroup` used to write the bound member, run its rules and call `AfterBind` at every pick. A
+  plain `.Bind(…)` on them now does that with the next action, as Flux's `wire:model` does. A control of one
+  element (`Ui.Checkbox`, `Ui.Switch`, the native `Ui.Select`) waits in the browser and sends nothing. A
+  control the kit draws in C# still sends its own event — the list shows the option, the calendar the day —
+  and Core holds the write in the session (`PendingBinds`): it goes, in the order the controls were last
+  touched, before the next handler that is not such a control drawing itself — a button of the page, a
+  submit, another control's `.Live()` change, a callback the control raises into the page (`OnComplete`, a
+  tab's `OnClick`). No handler of the page reads a model that has not heard a pick, and nothing the page
+  wrote runs per pick: the page is not rendered for one, only the control. **Say `.Live()` wherever the
+  page reacts to the pick at once** — `Ui.Select.Bind(() => m.Country).Live()` filling a second select, a
+  checkbox that shows a section, an `AfterBind` that copies a value, a filter, tabs whose page content
+  follows the bound name. `.Live()` is a new step on each of these controls (Flux's `wire:model.live`). A
+  message under a waiting control goes when the reader picks again, the pick marks the field modified at
+  once, and a control a render removes takes its unwritten pick with it. Two waiting controls do not write
+  each other: a pick in one leaves the other's waiting. A listbox's bound pick is also validated when it
+  is written now; it used to be checked on submit only. A pick that waits lives in the
+  session, so a reconnect to a new session forgets it, and so does following a link away from the form. In a test, read the model after the page's own
+  button was clicked, or say `.Live()`. Not covered: a callback written as a lambda that captures no
+  component (`static`, or locals only) is not preceded by the waiting picks.
+- **BREAKING: a bound control waits for the next action, as Livewire's `wire:model` does; `.Live()` types
+  through.** `Input.Bind(() => m.Name)` used to write the model on every keystroke (a number or a date on
+  leaving the field, a checkbox or a select as it was chosen) and validate then. Now typing into a bound
+  control, choosing in it and leaving it send nothing and run no rule: the value travels with the next
+  action — a press on a button, a submit, Enter, a key a handler hears, another control's change that is
+  sent, a navigation, any event a kit component raises — first, in the order the controls were last touched,
+  so no handler reads a model that has not heard what was entered. **The fix for a control you read while
+  the reader is still in the form — a greeting, a counter, a total, a select that fills another, a filter —
+  is `.Live()`**: as it is typed, 150 ms after the last key (Livewire's `wire:model.live`), at once for a
+  checkbox, a radio, a select or a range. `.Live().Debounce(300.Milliseconds)` names the pause,
+  `.Debounce(x)` alone still works and implies live, `.Debounce(TimeSpan.Zero)` sends every keystroke
+  (it used to mean "no step"), and `.Blur()` keeps its meaning. This is Core's binding — `Input`,
+  `Textarea` and `Select` — and `Ui.Input` / `Ui.Textarea`, which forward to it; the kit's chosen controls
+  follow the same rule (next entry). A plain form therefore shows no message while it is typed into:
+  the messages come with Save, and each goes at the first key of its correction. A render the server
+  starts (a timer, a push) sees the model as of the last action and leaves what the reader has typed,
+  ticked or picked since where it is. The unsaved-changes guard still counts the first keystroke.
+  `AfterBind` runs when the value is written. In a test, `page.Type(…).Into(…)`, `Pick` and `Check` keep
+  the value and send it ahead of the next `Click`, as the browser does; `page.On(sel).Input(v)` needs a
+  `.Live()` field, and `page.On(sel).Change(v)` is how a waiting field's value arrives. A ten-field form
+  typed into and saved used to send a frame a keystroke; it now sends one frame when Save is pressed —
+  the ten changes and the submit, answered with one render. `rask.js` and `rask.wasm.js` grow by 510
+  and 474 bytes (95,978 and 84,796 with main's `Go.Out`). `data-rask-bind-on="action"` marks the control (`docs/js-interop-runtime.md`), the flush
+  sits in the one `send` both runtimes have instead of in each listener, and controlled inputs
+  (`.Value(x).OnInput(…)`) are untouched.
 
 - **A second `.Validate(…)` adds a rule; it no longer replaces the first. Behaviour change.**
   `Input.Bind(() => m.Name).Validate(a).Validate(b)` used to keep only `b`, silently: a control holds one

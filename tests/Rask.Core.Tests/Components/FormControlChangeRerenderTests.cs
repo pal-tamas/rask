@@ -133,11 +133,11 @@ public partial class FormControlChangeRerenderTests : global::Rask.Core.RaskMark
         Assert.Equal(1, host.Consumer.RenderCount);
         Assert.Contains("Name: rask", html);
 
-        var inputId = MarkupAssert.Attr(html, "data-rask-on-input");
-        Assert.NotNull(inputId);
+        var boundId = MarkupAssert.Attr(html, "data-rask-on-change");
+        Assert.NotNull(boundId);
 
         using var doc = JsonDocument.Parse("{\"value\":\"neo\"}");
-        Assert.True(await host.TryInvokeHandlerAsync(inputId!, doc.RootElement));
+        Assert.True(await host.TryInvokeHandlerAsync(boundId!, doc.RootElement));
 
         var updated = host.RenderAsLiveRoot(sp);
         Assert.Equal(2, host.Consumer.RenderCount); // consumer re-rendered via the binding owner

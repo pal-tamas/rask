@@ -338,6 +338,9 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             // pair is only observable for the async ones — which is exactly when it is wanted.
             _submitting = true;
 
+            // The submit a batch announced has arrived: from here every rule is asked afresh, the store's too.
+            ctx.SubmitFollows = false;
+
             // Cleared as the next submit starts, not as it ends: a form showing "something went wrong"
             // beside a spinner for the retry would be reporting the attempt before the one running.
             _submitError = null;
@@ -359,14 +362,14 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                if (ShowsUnderItsFields(ex, ctx))
+                if (ShowsUnderItsFields(ex, ctx) || SaveRefusal.Show(ex, ctx, GetType().Name))
                 {
                     return;
                 }
 
                 // Held for the children to render — `f.Error` — INSTEAD of leaving the handler to fault.
-                // A save that fails is an ordinary thing for a form to show, and a page that says nothing
-                // about it is the one bug this cannot fix.
+                // A save that fails is an ordinary thing for a form to show, and a page that draws nothing
+                // for it is still told: SaveFault says it once, below.
                 _submitError = ex;
 
                 // And still reported, so catching it here does not cost the dev overlay or the log entry.
@@ -375,6 +378,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 if (ex is not OperationCanceledException)
                 {
                     ReportSubmitFault(ex);
+                    SaveFault.Tell(ctx, ex);
                 }
             }
             finally
@@ -421,6 +425,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         {
             var ctx = ResolveContext();
             submit = BuildSubmitBridge(ctx);
+            ctx.SubmitHandler = submit;
         }
         else
         {

@@ -10,7 +10,12 @@
 // rather than a runtime one.
 
 import { inRoot, send } from "./rask-host.js";
-import { raskNoteDirtyField, raskNotePendingFormState } from "./rask-morph.js";
+import {
+    raskChangeFrameValue,
+    raskChangeFrameValues,
+    raskNoteDirtyField,
+    raskNotePendingFormState,
+} from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
 
 /** Any element this module reads a `value` off. */
@@ -20,11 +25,10 @@ type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 // transport per second per input. Coalesce per-element with rAF: the same element typed into
 // multiple times within one frame produces a single outgoing message carrying the latest value
 // at flush time. The element itself is the de-duping key — multiple inputs in the same frame
-// each get one message. flushInputsNow() is called at the top of every other event handler
-// (change, submit, click, navigate, keydown) so the host always processes input events before
-// the subsequent action that depends on them — without this, a change event triggered
-// immediately after typing reaches the host BEFORE the coalesced input, and any validator the
-// change kicks off reads the stale model value.
+// each get one message. Whatever a host sends next goes AFTER them (sendTypedFirst, below), so the
+// host always processes what was typed before the action that depends on it — without this, a
+// change event triggered immediately after typing reaches the host BEFORE the coalesced input,
+// and any validator the change kicks off reads the stale model value.
 const inputPending = new Set<ValueElement>();
 let inputRaf = 0;
 
@@ -50,7 +54,7 @@ function answered(el: ValueElement): void {
     const value = held.get(el);
     if (value !== undefined) {
         held.delete(el);
-        dispatchInput(el, value);
+        sendOwn(function () { dispatchInput(el, value); });
     }
 }
 
@@ -71,32 +75,67 @@ function sendInput(el: ValueElement): void {
     else dispatchInput(el, el.value);
 }
 
-// A FIELD THAT WAITS. `.Debounce(…)` renders data-rask-debounce="<ms>" beside data-rask-on-input: what is
-// typed is sent once typing has paused that long. `.Blur()` renders data-rask-bind-on beside
-// data-rask-on-change: it is sent by the `change` the browser fires on leaving. Either way, whatever has to
-// come after the value — Enter's submit, a click or key handler, a navigation — sends it first
-// (flushInputsNow), and a `change` fired afterwards for a value already sent is not sent again.
+// A BOUND CONTROL SAYS NOTHING UNTIL THE NEXT ACTION. That is `data-rask-bind-on="action"` beside
+// data-rask-on-change, and it is what a plain `.Bind(…)` renders, as Livewire's `wire:model` does: typing into
+// it, choosing in it and leaving it send nothing. The control is remembered here instead, and the next thing a
+// host sends — a click, a submit, a key a handler hears, another control's change, a navigation, anything a
+// behaviour hook dispatches — is preceded by the change of every control remembered, in the order they were
+// last touched (sendTypedFirst). `.Blur()` renders data-rask-bind-on="blur": remembered the same way, and
+// sent by the `change` the browser fires on leaving it, whichever comes first. `.Live()` and `.Debounce(…)`
+// render data-rask-debounce="<ms>" beside data-rask-on-input: what is typed is sent once typing has paused
+// that long, or ahead of whatever follows.
 const PAUSE = "data-rask-debounce";
+const BIND_ON = "data-rask-bind-on";
 // A paused field and its timer — 0 while a character is being composed, when no pause is counted.
 const paused = new Map<ValueElement, number>();
-// Fields bound on blur that were typed into and have said nothing yet.
+// Controls that wait (for an action, or to be left) and have been changed since they last spoke.
 const unsent = new Set<ValueElement>();
 // What a field bound on blur was sent as, ahead of the `change` the browser has still to fire for it.
 const committed = new WeakMap<Element, string>();
 
-function pause(el: ValueElement): void {
-    clearTimeout(paused.get(el));
-    paused.set(el, window.setTimeout(function () {
-        paused.delete(el);
-        sendInput(el);
-    }, Number(el.getAttribute(PAUSE))));
+/** Whether a control's own `change` is not sent: it waits for the next action. */
+export function waitsForAction(el: Element | null): boolean {
+    return !!el && el.getAttribute(BIND_ON) === "action";
+}
+
+// Remembered last, whatever it was before: a radio pressed again after its neighbour is the group's answer.
+// What the server had rendered is noted the first time (rask-morph.ts), so a render that knows nothing newer —
+// a push, the reply to another event — does not write it back over what the reader chose.
+/** Notes a control that waits as changed: its value goes ahead of the next thing sent. */
+export function remember(el: ValueElement): void {
+    raskNoteDirtyField(el);
+    if (!unsent.delete(el)) raskNotePendingFormState(el);
+    unsent.add(el);
+}
+
+/** The frame a control's `change` travels as. Both hosts send this one, and so does a control that waited. */
+export function changeFrame(el: Element): Record<string, unknown> {
+    const field = el as ValueElement;
+    // What a lagging render would have to carry to be stale, recorded before the echo rewrites it.
+    raskNoteDirtyField(field);
+    raskNotePendingFormState(field);
+    const frame: Record<string, unknown> = {
+        id: field.getAttribute("data-rask-on-change"), type: "change", value: raskChangeFrameValue(field),
+    };
+    // Only a <select multiple> has more than one value, and its `.value` is the first of them.
+    const values = raskChangeFrameValues(field);
+    if (values !== null) frame.values = values;
+    return frame;
 }
 
 function commit(el: ValueElement): void {
-    const id = el.getAttribute("data-rask-on-change");
-    if (!id || !el.isConnected) return;
+    if (!el.isConnected || !el.hasAttribute("data-rask-on-change")) return;
+    // A radio that was pressed and then left for another one has nothing to say: the one now checked does.
+    if ((el as HTMLInputElement).type === "radio" && !(el as HTMLInputElement).checked) return;
     committed.set(el, el.value);
-    send({ id, type: "change", value: el.value });
+    send(changeFrame(el));
+}
+
+function commitUnsent(): void {
+    if (unsent.size === 0) return;
+    const waiting = Array.from(unsent);
+    unsent.clear();
+    waiting.forEach(commit);
 }
 
 /** Whether this field's value already went, ahead of the `change` now being heard for it. */
@@ -106,31 +145,72 @@ export function changeSent(el: Element): boolean {
     return sent;
 }
 
+// Every send below passes through the host, which asks for what waits to go first (sendTypedFirst). While
+// this module is itself sending, that has been seen to already: nothing is flushed from inside a flush.
+let sending = false;
+
+function sendOwn(run: () => void): void {
+    if (sending) {
+        run();
+        return;
+    }
+    sending = true;
+    try {
+        commitUnsent();
+        run();
+    } finally {
+        sending = false;
+    }
+}
+
+function pause(el: ValueElement): void {
+    clearTimeout(paused.get(el));
+    paused.set(el, window.setTimeout(function () {
+        paused.delete(el);
+        sendOwn(function () { sendInput(el); });
+    }, Number(el.getAttribute(PAUSE))));
+}
+
 function flushInputs(): void {
     inputRaf = 0;
-    inputPending.forEach(sendInput);
-    inputPending.clear();
+    sendOwn(function () {
+        inputPending.forEach(sendInput);
+        inputPending.clear();
+    });
 }
 
 export function flushInputsNow(): void {
+    if (sending) return;
     if (inputRaf) {
         cancelAnimationFrame(inputRaf);
         inputRaf = 0;
     }
-    if (inputPending.size > 0) flushInputs();
-    paused.forEach(function (timer, el) {
-        clearTimeout(timer);
-        sendInput(el);
+    sendOwn(function () {
+        inputPending.forEach(sendInput);
+        inputPending.clear();
+        paused.forEach(function (timer, el) {
+            clearTimeout(timer);
+            sendInput(el);
+        });
+        paused.clear();
+        if (held.size > 0) {
+            // What follows — a key, a click, the change — must find the page knowing what was typed.
+            const waiting = Array.from(held);
+            held.clear();
+            waiting.forEach(function (entry) { dispatchInput(entry[0], entry[1]); });
+        }
     });
-    paused.clear();
-    unsent.forEach(commit);
-    unsent.clear();
-    if (held.size > 0) {
-        // What follows — a key, a click, the change — must find the page knowing what was typed.
-        const waiting = Array.from(held);
-        held.clear();
-        waiting.forEach(function (entry) { dispatchInput(entry[0], entry[1]); });
-    }
+}
+
+/**
+ * What a host calls with everything it is about to send, before it sends it: what the reader typed or chose
+ * and has not been sent goes first, so no handler runs against a model that has not heard it.
+ *
+ * The reply to an interop call is not the reader's doing — the server asked — and carries nothing ahead of it.
+ */
+export function sendTypedFirst(payload: unknown): void {
+    if (sending || (payload as { type?: unknown } | null)?.type === "jsResult") return;
+    flushInputsNow();
 }
 
 function queueInput(el: ValueElement): void {
@@ -149,15 +229,21 @@ document.addEventListener("input", (e) => {
     // change. The page hears that once — the attribute goes with it — and takes the message away.
     const edited = target.closest("[data-rask-on-edit]");
     if (edited && inRoot(edited)) {
-        send({ id: edited.getAttribute("data-rask-on-edit"), type: "edit" });
+        // Sent alone: it says a message is stale, and carries no value ahead of it.
+        const id = edited.getAttribute("data-rask-on-edit");
         edited.removeAttribute("data-rask-on-edit");
+        sending = true;
+        try {
+            send({ id, type: "edit" });
+        } finally {
+            sending = false;
+        }
     }
 
-    const leaving = target.closest<ValueElement>("[data-rask-bind-on]");
-    if (leaving && inRoot(leaving)) {
-        raskNoteDirtyField(leaving);
-        committed.delete(leaving);
-        unsent.add(leaving);
+    const waiting = target.closest<ValueElement>("[" + BIND_ON + "]");
+    if (waiting && inRoot(waiting)) {
+        committed.delete(waiting);
+        remember(waiting);
         return;
     }
 
@@ -188,7 +274,7 @@ document.addEventListener("input", (e) => {
     }
 
     if (t.hasAttribute("data-rask-on-change")) {
-        sendInput(t);
+        sendOwn(function () { sendInput(t); });
         return;
     }
 
@@ -200,11 +286,17 @@ document.addEventListener("compositionend", (e) => {
     if (paused.get(t) === 0) pause(t);
 });
 
-// Ahead of the hosts' own `change` listeners. A field bound on blur is theirs to send, as any change is. A
-// paused field has no change handler, so leaving it sends what the pause was still holding — and the frame
-// that was already on its way is told what it must not write back (rask-morph.ts).
+// Ahead of the hosts' own `change` listeners. A control that waits for an action is remembered and not sent —
+// a checkbox, a select and a date say `change` where a text field says `input`. A field bound on blur is the
+// hosts' to send, as any change is. A paused field has no change handler, so leaving it sends what the pause
+// was still holding — and the frame that was already on its way is told what it must not write back
+// (rask-morph.ts).
 document.addEventListener("change", (e) => {
     const t = e.target as ValueElement;
+    if (waitsForAction(t)) {
+        if (inRoot(t)) remember(t);
+        return;
+    }
     if (unsent.delete(t) || !paused.has(t)) return;
     raskNotePendingFormState(t);
     flushInputsNow();

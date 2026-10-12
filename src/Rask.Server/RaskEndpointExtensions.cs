@@ -2624,6 +2624,7 @@ public static partial class RaskEndpointExtensions
             return acked;
         }
 
+        var submits = EventBatch.AnnounceSubmits(session.View, events);
         try
         {
             var remaining = count;
@@ -2648,6 +2649,7 @@ public static partial class RaskEndpointExtensions
         }
         finally
         {
+            EventBatch.Withdraw(submits);
             session.EndBatch();
             session.InHandlerScope = false;
             ReleaseDispatchLock(session);

@@ -25,7 +25,7 @@ public sealed partial class UiKitDataInputDemo
     private Component[] CheckboxLists() =>
     [
         Ui.Field.Key("terms").Variant(Ui.FieldVariant.Inline)[
-            Ui.Checkbox.Bind(() => _choices.Terms).Id("cb-terms"),
+            Ui.Checkbox.Bind(() => _choices.Terms).Live().Id("cb-terms"),
             Ui.Label["I agree to the terms and conditions"],
             Ui.Error
         ],
@@ -33,13 +33,13 @@ public sealed partial class UiKitDataInputDemo
             Ui.Checkbox.Id("cb-checked").Checked().Label("Enable notifications"),
             Ui.Checkbox.Id("cb-disabled").Disabled().Label("Read and write")
         ],
-        Ui.CheckboxGroup.Bind(() => _choices.Notifications).Key("group").Id("cb-notifications").Label("Notifications")[
+        Ui.CheckboxGroup.Bind(() => _choices.Notifications).Live().Key("group").Id("cb-notifications").Label("Notifications")[
             Ui.Checkbox.Value("push").Label("Push notifications"),
             Ui.Checkbox.Value("email").Label("Email"),
             Ui.Checkbox.Value("app").Label("In-app alerts"),
             Ui.Checkbox.Value("sms").Label("SMS")
         ],
-        Ui.CheckboxGroup.Bind(() => _choices.Subscription).Key("described").Id("cb-described")
+        Ui.CheckboxGroup.Bind(() => _choices.Subscription).Live().Key("described").Id("cb-described")
             .Label("Subscription preferences")[
             Ui.Checkbox.Value("newsletter").Label("Newsletter")
                 .Description("Receive our monthly newsletter with the latest updates and offers."),
@@ -56,7 +56,7 @@ public sealed partial class UiKitDataInputDemo
                 Ui.Checkbox.Bind(() => _choices.German).Id("cb-german").Label("German")
             ]
         ],
-        Ui.CheckboxGroup.Bind(() => _choices.People).Key("all").Id("cb-people")[
+        Ui.CheckboxGroup.Bind(() => _choices.People).Live().Key("all").Id("cb-people")[
             Table.Class("w-full max-w-64 text-sm")[
                 Thead[Tr.Class("border-b border-zinc-800/10 dark:border-white/20")[
                     Th.Class("w-10 py-3 ps-1")[Ui.CheckboxAll],
@@ -126,19 +126,19 @@ public sealed partial class UiKitDataInputDemo
             + "differently: the arrow keys move and choose in every one of them, because each holds a real input "
             + "that shares the group's name.",
             Div.Data(Testid("ui-radio")).Class("grid max-w-4xl items-start gap-8 sm:grid-cols-2")[
-                Ui.RadioGroup.Bind(() => _choices.Payment).Key("payment").Id("rd-payment").Label("Select your payment method")[
+                Ui.RadioGroup.Bind(() => _choices.Payment).Live().Key("payment").Id("rd-payment").Label("Select your payment method")[
                     Ui.Radio.Value("cc").Label("Credit Card"),
                     Ui.Radio.Value("paypal").Label("Paypal"),
                     Ui.Radio.Value("ach").Label("Bank transfer")
                 ],
-                Ui.RadioGroup.Bind(() => _choices.Role).Key("described").Id("rd-described").Label("Role")[Roles()],
+                Ui.RadioGroup.Bind(() => _choices.Role).Live().Key("described").Id("rd-described").Label("Role")[Roles()],
                 Ui.Fieldset.Key("fieldset").Legend("Role")[
-                    Ui.RadioGroup.Bind(() => _choices.Role).Id("rd-fieldset")[Roles()]
+                    Ui.RadioGroup.Bind(() => _choices.Role).Live().Id("rd-fieldset")[Roles()]
                 ],
                 Div.Key("segmented").Class("space-y-8")[
-                    Ui.RadioGroup.Bind(() => _choices.Role).Id("rd-segmented").Label("Role").Segmented[Segments(icons: false)],
-                    Ui.RadioGroup.Bind(() => _choices.Role).Id("rd-segmented-sm").Label("Role").Segmented.Sm[Segments(icons: false)],
-                    Ui.RadioGroup.Bind(() => _choices.Role).Id("rd-segmented-icons").Label("Role").Segmented[Segments(icons: true)]
+                    Ui.RadioGroup.Bind(() => _choices.Role).Live().Id("rd-segmented").Label("Role").Segmented[Segments(icons: false)],
+                    Ui.RadioGroup.Bind(() => _choices.Role).Live().Id("rd-segmented-sm").Label("Role").Segmented.Sm[Segments(icons: false)],
+                    Ui.RadioGroup.Bind(() => _choices.Role).Live().Id("rd-segmented-icons").Label("Role").Segmented[Segments(icons: true)]
                 ],
                 Wide("cards", Shipping("rd-cards").Class("max-sm:flex-col")[ShippingCards(icons: false)]),
                 Shipping("rd-vertical").Key("vertical").Class("flex-col")[ShippingCards(icons: false)],
@@ -149,13 +149,13 @@ public sealed partial class UiKitDataInputDemo
                 ],
                 Wide("icons", Shipping("rd-icons").Class("max-sm:flex-col")[ShippingCards(icons: true)]),
                 Wide("bare", Shipping("rd-bare").Indicator(false).Class("max-sm:flex-col")[ShippingCards(icons: true)]),
-                Ui.RadioGroup.Bind(() => _choices.Priority).Key("pills").Id("rd-priority").Label("Priority").Pills[
+                Ui.RadioGroup.Bind(() => _choices.Priority).Live().Key("pills").Id("rd-priority").Label("Priority").Pills[
                     Ui.Radio.Value("low").Label("Low"),
                     Ui.Radio.Value("medium").Label("Medium"),
                     Ui.Radio.Value("high").Label("High"),
                     Ui.Radio.Value("critical").Label("Critical")
                 ],
-                Ui.RadioGroup.Bind(() => _choices.Feedback).Key("buttons").Id("rd-feedback").Label("Feedback type").Buttons
+                Ui.RadioGroup.Bind(() => _choices.Feedback).Live().Key("buttons").Id("rd-feedback").Label("Feedback type").Buttons
                     .Class("w-full flex-wrap")[
                     Ui.Radio.Value("bug").Icon(Ui.IconName.BugAnt).Class("flex-1")["Bug report"],
                     Ui.Radio.Value("suggestion").Icon(Ui.IconName.LightBulb).Class("flex-1")["Suggestion"],
@@ -177,16 +177,16 @@ public sealed partial class UiKitDataInputDemo
                 Div.Key("inline").Class("sm:col-span-2")[
                     Ui.Field.Variant(Ui.FieldVariant.Inline).Class("max-w-xs")[
                         Ui.Label["Enable notifications"],
-                        Ui.Switch.Bind(() => _choices.Notify).Id("sw-notify"),
+                        Ui.Switch.Bind(() => _choices.Notify).Live().Id("sw-notify"),
                         Ui.Error
                     ]
                 ],
                 Ui.Fieldset.Key("fieldset").Legend("Email notifications")[
                     Div.Class("space-y-4")[
-                        Ui.Switch.Bind(() => _choices.Communication).Id("sw-communication").Label("Communication emails")
+                        Ui.Switch.Bind(() => _choices.Communication).Live().Id("sw-communication").Label("Communication emails")
                             .Description("Receive emails about your account activity."),
                         Rule(),
-                        Ui.Switch.Bind(() => _choices.Marketing).Id("sw-marketing").Label("Marketing emails")
+                        Ui.Switch.Bind(() => _choices.Marketing).Live().Id("sw-marketing").Label("Marketing emails")
                             .Description("Receive emails about new products, features, and more."),
                         Rule(),
                         Ui.Switch.Bind(() => _choices.Social).Id("sw-social").Label("Social emails")
@@ -198,8 +198,8 @@ public sealed partial class UiKitDataInputDemo
                 ],
                 Ui.Fieldset.Key("left").Legend("Email notifications")[
                     Div.Class("space-y-3")[
-                        Ui.Switch.Bind(() => _choices.Communication).Id("sw-left-communication").Label("Communication emails").Left,
-                        Ui.Switch.Bind(() => _choices.Marketing).Id("sw-left-marketing").Label("Marketing emails").Left,
+                        Ui.Switch.Bind(() => _choices.Communication).Live().Id("sw-left-communication").Label("Communication emails").Left,
+                        Ui.Switch.Bind(() => _choices.Marketing).Live().Id("sw-left-marketing").Label("Marketing emails").Left,
                         Ui.Switch.Bind(() => _choices.Social).Id("sw-left-social").Label("Social emails").Left,
                         Ui.Switch.Value(true).Id("sw-left-security").Label("Security emails").Left.Disabled()
                     ]
@@ -211,11 +211,11 @@ public sealed partial class UiKitDataInputDemo
             ]);
 
     private UiCheckboxGroup<string> Cards(string id) =>
-        Ui.CheckboxGroup.Bind(() => _choices.Subscription).Id("cb-" + id).Label("Subscription preferences")
+        Ui.CheckboxGroup.Bind(() => _choices.Subscription).Live().Id("cb-" + id).Label("Subscription preferences")
             .Variant(Ui.CheckboxGroupVariant.Cards);
 
     private UiRadioGroup<string> Shipping(string id) =>
-        Ui.RadioGroup.Bind(() => _choices.Shipping).Id(id).Label("Shipping").Cards;
+        Ui.RadioGroup.Bind(() => _choices.Shipping).Live().Id(id).Label("Shipping").Cards;
 
     // The field a group draws is the grid's item, so a group that wants the whole row is wrapped to say so.
     private static Component Wide(string key, Component group) => Div.Key(key).Class("sm:col-span-2")[group];

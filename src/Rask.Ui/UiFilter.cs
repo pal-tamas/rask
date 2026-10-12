@@ -17,7 +17,7 @@ namespace Rask;
 /// Flux's radio group.
 /// </para>
 /// </remarks>
-public sealed partial class UiFilter<T> : Component, IFormControl<T>
+public sealed partial class UiFilter<T> : Component, IFormControl<T>, IDeferredBind
 {
     /// <summary>The radio group's name, so two filters on one page do not fight.</summary>
     public required string Group { get; set; }
@@ -55,6 +55,13 @@ public sealed partial class UiFilter<T> : Component, IFormControl<T>
 
     /// <inheritdoc />
     public Callback<T> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Filter.Bind(() =&gt; m.Status).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
 
     /// <inheritdoc />

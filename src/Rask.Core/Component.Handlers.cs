@@ -255,7 +255,7 @@ public abstract partial class Component
         owner.Live.StateDirty = true;
         try
         {
-            return await DispatchAsync(handler, payload, owner).ConfigureAwait(false);
+            return await DispatchAfterPicksAsync(handler, payload, owner).ConfigureAwait(false);
         }
         catch (Exception ex) when (IsCancellationOfALeftComponent(owner, ex))
         {
@@ -275,6 +275,35 @@ public abstract partial class Component
             boundary.Trip(ex, ErrorSource.Action);
             return true;
         }
+    }
+
+    // What a batch's look-ahead reads off the session's root (EventBatch.AnnounceSubmits).
+    internal Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedForms => _live?.PersistedEditContexts;
+
+    internal Delegate? HandlerOf(string id) =>
+        _live?.Handlers is { } handlers && handlers.TryGetValue(id, out var entry) ? entry.Item2 : null;
+
+    // What controls drawn in C# chose and have not written goes first, unless this is such a control drawing
+    // itself (PendingBinds): no handler of the page reads a model that has not heard a pick. Forwarding, so
+    // an event with nothing waiting anywhere pays one static read.
+    private ValueTask<bool> DispatchAfterPicksAsync(Delegate handler, JsonElement payload, Component owner) =>
+        PendingBinds.AnyWaiting && RenderHandle?.PendingBinds is { } binds
+            ? DispatchAroundPicksAsync(binds, handler, payload, owner)
+            : DispatchAsync(handler, payload, owner);
+
+    private async ValueTask<bool> DispatchAroundPicksAsync(
+        PendingBinds binds, Delegate handler, JsonElement payload, Component owner)
+    {
+        if (!binds.IsOwn(owner))
+        {
+            await binds.FlushAsync(handler).ConfigureAwait(false);
+        }
+
+        var handled = await DispatchAsync(handler, payload, owner).ConfigureAwait(false);
+
+        // A callback the control raised into the page wrote them ahead of itself: their rules end here.
+        await binds.SettledAsync().ConfigureAwait(false);
+        return handled;
     }
 
     // A cancellation in a provider's wrapping, from a handler whose component has left the page. A bare

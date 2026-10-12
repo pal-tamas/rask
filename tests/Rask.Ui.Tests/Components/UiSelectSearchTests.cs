@@ -44,7 +44,7 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
 
     private static async Task<Page> OpenAsync(Func<Component> select)
     {
-        var page = Page.Render(select);
+        var page = Acting.Render(select);
         await page.On("[popover]").Raise("toggle", Opened);
 
         return page;
@@ -254,6 +254,9 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         await tags.On("[data-ui-option]:has-text(\"ui\")").Click();
         await roles.On("[data-ui-option]:has-text(\"editor\")").Click();
         await ids.On("[data-ui-option]:has-text(\"Three\")").Click();
+        await Acting.Act(tags);
+        await Acting.Act(roles);
+        await Acting.Act(ids);
 
         Assert.Equal(["ui"], model.Tags);
         Assert.Equal(["editor"], model.Roles);

@@ -19,7 +19,7 @@ namespace Rask;
 /// ends, with no script.
 /// </para>
 /// </remarks>
-public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFormControl
+public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
 {
     private string? _ownId;
 
@@ -71,6 +71,13 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.RadioGroup.Bind(() =&gt; m.Plan).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(Id, Bind, Label);
@@ -96,7 +103,8 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
             Indicator != false,
             field.Invalid,
             current,
-            value => value is T typed ? UiFormCommit.CommitAsync(this, accessor, context, typed) : Task.CompletedTask);
+            value => value is T typed ? UiFormCommit.CommitAsync(this, accessor, context, typed) : Task.CompletedTask,
+            Live);
 
         // The radios are grouped by name already; the GROUP has a name of its own to announce — the heading.
         var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);
