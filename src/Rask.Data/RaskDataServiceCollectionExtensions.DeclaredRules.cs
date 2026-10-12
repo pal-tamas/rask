@@ -28,7 +28,7 @@ public static partial class RaskDataServiceCollectionExtensions
         var check = ServiceDescriptor.Singleton<ISaveChangesInterceptor, DeclaredRuleCheckInterceptor>();
         var translator = services
             .Select(static (descriptor, at) => (descriptor, at))
-            .FirstOrDefault(static d => d.descriptor.ImplementationType == typeof(UniqueViolationInterceptor));
+            .FirstOrDefault(static d => d.descriptor.ImplementationType == typeof(ViolationMessageInterceptor));
 
         if (translator.descriptor is null)
         {

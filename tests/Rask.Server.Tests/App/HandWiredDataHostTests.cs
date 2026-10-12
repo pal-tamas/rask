@@ -229,8 +229,8 @@ public sealed class HandWiredDataHostTests : IDisposable
             .ToList();
 
         Assert.True(order.IndexOf("AuditingInterceptor") < order.IndexOf("DeclaredRuleCheckInterceptor"));
-        Assert.True(order.IndexOf("DeclaredRuleCheckInterceptor") < order.IndexOf("UniqueViolationInterceptor"));
-        Assert.Equal("UniqueViolationInterceptor", order[^1]);
+        Assert.True(order.IndexOf("DeclaredRuleCheckInterceptor") < order.IndexOf("ViolationMessageInterceptor"));
+        Assert.Equal("ViolationMessageInterceptor", order[^1]);
     }
 
     [Fact]

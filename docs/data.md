@@ -469,7 +469,8 @@ update just names the row first:
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
 - **`Product.Delete(id)`** loads the row and **removes** it. An aggregate that declares
   `public const Deletion Deletes = Deletion.Soft;` keeps the row instead: `DeletedAt` is stamped and every read
-  stops seeing it.
+  stops seeing it. A row that is still referenced is refused by the database —
+  [with the sentence you declared](#what-deleting-a-referenced-row-says); a soft delete never asks it.
 
 Each write is one unit of work for one aggregate, and each goes through EF Core's change tracker, so the
 interceptors run exactly as for a hand-written save: `CreatedAt`/`UpdatedAt` are stamped, `Version` is bumped,
@@ -1403,6 +1404,55 @@ pass it, and only a real unique index closes that. Where the index does exist th
 word, reported the same way. An index declared with plain `IsUnique()` has no message to fail with and is not
 checked.
 
+### What deleting a referenced row says
+
+A row that other rows still point at cannot go, and only the database knows. Say what that means once, on the
+aggregate being deleted:
+
+```csharp
+public static void Configure(EntityTypeBuilder<Trailer> b)
+{
+    // a relationship the model maps: its own sentence
+    b.HasMany<DeliveryNote>().WithOne()
+     .HasForeignKey(n => n.TrailerId)
+     .OnDelete(DeleteBehavior.Restrict, "The trailer is on a delivery note and cannot be deleted.");
+
+    // every other reference — a table another context owns, one this app never reads
+    b.WhenReferenced("The trailer is still in use and cannot be deleted.");
+}
+
+await Trailer.Delete(id);   // nothing else at the call site
+```
+
+A delete the database refuses then fails as a `RaskValidationException` with ONE failure that names **no
+field** — it is about the delete, not about anything on a form — where the provider's `DbUpdateException`
+would have named tables and constraints. `Errors` holds the sentence under the empty key. Every delete through
+the context does this: `Trailer.Delete(id)` and plain `db.Remove(…)` + `SaveChangesAsync`.
+
+Which sentence, in this order:
+
+| The database says | The failure carries |
+|---|---|
+| which constraint (PostgreSQL, SQL Server), and it is a relationship in the model | that relationship's sentence, else the entity's `WhenReferenced` |
+| which constraint, and the model does not know it — a table that is not mapped | the entity's `WhenReferenced` |
+| nothing (SQLite), and exactly one relationship onto the deleted entity has a sentence | that sentence |
+| nothing (SQLite), and no relationship has a sentence, or several do | the entity's `WhenReferenced` |
+| anything, and no sentence fits | the provider's exception, untouched |
+
+- **Only a refused DELETE is translated.** A row inserted or updated with a key that points nowhere fails with
+  the same provider code and keeps the provider's exception.
+- **`OnDelete(behavior)` with no string is still EF Core's own**, and such a relationship has no sentence. The
+  string is also accepted when the relationship is written from the other end (`HasOne<Trailer>().WithMany()`)
+  and on a one-to-one.
+- **The message is a constant**, shown as written; the original exception is the `InnerException`, for the log.
+- **Recognised by the provider's own error**, with no provider package of Rask's: SQLSTATE `23503` on
+  PostgreSQL, error `547` on SQL Server, and SQLite's `FOREIGN KEY constraint failed`. On a table that already
+  exists the constraint's name in the database has to be the one in the model
+  (`FK_{Dependent}_{Principal}_{Column}`, or `HasConstraintName("…")`) for the relationship's sentence to be
+  found; under any other name the entity's `WhenReferenced` answers.
+- **A soft delete is never refused.** An aggregate that declares `Deletes = Deletion.Soft` keeps its row, so
+  the database is not asked and the rows that reference it stay as they are.
+
 ## Value objects
 
 A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
@@ -1646,6 +1696,8 @@ public sealed class Destination : Aggregate<int>             // an int key is th
 | `TenantId` in front of every index | indexes in the order they were created | name `TenantId` in the index and it is [left exactly as written](multi-tenancy.md#indexes-are-prefixed-for-you) |
 
 Column names, lengths, precision, conversions and relationships are ordinary EF Core in the same `Configure`.
+Tables this context does not map still hold foreign keys onto the ones it does: `b.WhenReferenced("…")` is
+[what a delete they refuse says](#what-deleting-a-referenced-row-says).
 
 ### A second context, beside the one you have
 

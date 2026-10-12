@@ -3,14 +3,16 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Rask.Data;
 
 /// <summary>
-///     Turns the violation of a unique index that carries a message (<c>IsUnique("…")</c>) into the
-///     failure a validator produces, for every save through the context — Rask's own and plain EF Core's.
+///     Turns a refusal of the database's that the model has a sentence for into the failure a validator
+///     produces, for every save through the context — Rask's own and plain EF Core's: the violation of a unique
+///     index (<c>IsUnique("…")</c>), and the delete of a row that is still referenced
+///     (<c>OnDelete(behavior, "…")</c>, <c>WhenReferenced("…")</c>).
 /// </summary>
 /// <remarks>
 ///     Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and an interceptor after it
 ///     would not be told the save failed.
 /// </remarks>
-internal sealed class UniqueViolationInterceptor : SaveChangesInterceptor
+internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
 {
     /// <inheritdoc />
     public override void SaveChangesFailed(DbContextErrorEventData eventData)
@@ -31,7 +33,10 @@ internal sealed class UniqueViolationInterceptor : SaveChangesInterceptor
     {
         ArgumentNullException.ThrowIfNull(eventData);
 
-        if (UniqueViolation.Translate(eventData.Context, eventData.Exception) is { } violation)
+        var violation = UniqueViolation.Translate(eventData.Context, eventData.Exception)
+            ?? ReferencedDelete.Translate(eventData.Exception);
+
+        if (violation is not null)
         {
             throw violation;
         }
