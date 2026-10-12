@@ -82,8 +82,8 @@ public sealed partial class UiKitDataInputDemo
                     Example("Clearable, beside a clearable time picker", "ui-picker-clear-state",
                         (_clearDay == default ? "No day" : Iso(_clearDay)) + ", " + (_clearTime is null ? "no time" : "a time"),
                         Div.Class("flex flex-wrap gap-2").Data(Testid("ui-picker-clear"))[
-                            Ui.DatePicker.Value(_clearDay).Key("day").Clearable().Class("grow").OnChange(d => { _clearDay = d; }),
-                            Ui.TimePicker.Value(_clearTime).Key("time").Id("demo-time-clear").Clearable().OnChange(t => { _clearTime = t; })
+                            Ui.DatePicker.Value(_clearDay).Key("clear-day").Clearable().Class("grow").OnChange(d => { _clearDay = d; }),
+                            Ui.TimePicker.Value(_clearTime).Key("clear-time").Id("demo-time-clear").Clearable().OnChange(t => { _clearTime = t; })
                         ])
                 ]
             ]);

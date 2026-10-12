@@ -79,6 +79,8 @@ globals.document = {
     getElementById: () => null,
     createElement: (tag: string) => makeStubElement(tag),
     querySelector: (sel: string) => sel === "[data-rask-root]" ? body : null,
+    // No element of these pages carries `autofocus`, which the runtime asks about after every frame.
+    querySelectorAll: () => [],
     addEventListener: () => { },
 };
 globals.window = globalThis;

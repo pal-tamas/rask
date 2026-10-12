@@ -301,14 +301,41 @@ Client-side (SPA) route changes on the Server live runtime are handled accessibl
 
 - **Progress.** A slow server-side route render surfaces the top progress bar (the same one a slow
   handler round-trip uses), after a ~300 ms grace so a fast navigation never flashes it.
-- **Focus.** A forward, whole-page navigation moves focus into the new page's `<main>` (or its first
+- **Focus.** A forward navigation moves focus into the new page's `<main>` (or its first
   `<h1>`), so a keyboard user continues from the new page instead of the now-removed nav link at the top
-  of the document. Give your layout a `<main>` (`Main[...]`) to anchor this.
+  of the document. Give your layout a `<main>` (`Main[...]`) to anchor this. A page that asks for focus
+  itself gets it instead — see [`autofocus`](#autofocus-on-a-page-reached-in-place) below.
 - **Announcement.** The new page's `<title>` is announced through a polite `aria-live` region, so a
-  screen-reader user hears the route changed.
+  screen-reader user hears the route changed — wherever focus went.
 
-Back/Forward (popstate) navigation leaves focus and scroll to the browser's native restoration. (Server
-host today; the WASM navigation path is a follow-up.)
+Back/Forward (popstate) navigation leaves scroll to the browser's native restoration, and moves focus only
+to an `autofocus` field that arrives with the page. (The progress bar, the move to `<main>` and the
+announcement are the Server host's today; the WASM navigation path is a follow-up. `autofocus` is acted on
+by both hosts.)
+
+### `autofocus` on a page reached in place
+
+A browser acts on `autofocus` when it **loads** a document. A page reached in place — a `NavLink`, `Go()`
+from a handler, a redirect — is a patch of the document that is already open, where the attribute would be
+only an attribute. So the runtime acts on it, on the Server host and in WebAssembly:
+
+```csharp
+Ui.Input.Bind(() => Model.Name).Label("Name").Autofocus(true)   // focused by a load AND by a link to the page
+```
+
+- **After a navigation**, the first `autofocus` element in document order that is on screen and enabled has
+  focus, as it has after a load — in place of the move to `<main>`. The route is still announced. A link to a
+  `#fragment` focuses the fragment's element, as a browser loading that address does.
+- **On the page the reader is on**, an element that *arrives* with `autofocus` — a row a handler added, a
+  section a condition revealed, a field in a dialog that is already open — is focused once, as it arrives. An
+  element that merely keeps the attribute from one render to the next is never focused again.
+- **A reader who is typing is not interrupted.** While focus is in a text field, a `<textarea>`, a `<select>`
+  or editable content, an arrival does not take it (and is not owed it later). A navigation does.
+- **What is not on screen is the browser's.** A closed `<dialog>` or `[popover]` gives focus to its own
+  `autofocus` element when it opens, natively, so the runtime leaves an element that arrives hidden alone.
+  (`Ui.Modal` therefore opens as [described above](#focus-trapping-overlays): with focus on nothing.)
+- **Back and Forward** focus an `autofocus` field that arrives with the page — a browser going back to a
+  document does — without scrolling to it, so the restored scroll position stands.
 
 ## What's not covered yet
 

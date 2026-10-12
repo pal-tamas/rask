@@ -643,14 +643,18 @@ public abstract partial class SharedSmokeTests
         // Error boundaries: a handler-throw and a render-throw each trip the nearest boundary's fallback
         // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
         await Page.Locator("#boom-throw").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo", contains);
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("This part stopped working.", contains);
+        // The fallback is handed the exception and shows a visitor none of it: not the message, not the type.
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("kaboom");
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("Exception");
         await Expect(Page.Locator(".app-navbar .app-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // Render-time throw: the serializer rewinds the partial output and the boundary catches it once.
         await Page.Locator("#boom-render-trigger").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo", contains);
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("This part could not be shown.", contains);
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("kaboom");
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -1494,10 +1498,11 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         // Escape closes. A non-modal <dialog> fires no `cancel` event, so the page reads the key from a
         // keydown handler ON THE DIALOG and routes back through the same cancel the backdrop uses — no
-        // client script. Focus has to be inside the dialog for that handler to hear the key, which any
-        // interaction gives it: `autofocus` is rendered but browsers only honour it for elements present
-        // at parse time, not ones the live diff inserts. Click the field first, as a user would.
-        await Page.Locator("dialog[open] #todo-title").ClickAsync();
+        // client script. Focus has to be inside the dialog for that handler to hear the key, and it is:
+        // the title carries `autofocus`, which the runtime acts on for a page reached in place as the
+        // browser does for one it loads.
+        await Expect(Page.Locator("dialog[open] #todo-title")).ToBeFocusedAsync(
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });

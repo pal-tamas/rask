@@ -132,7 +132,7 @@ public sealed partial class UiKitDataInputDemo
                     Ui.Radio.Value("ach").Label("Bank transfer")
                 ],
                 Ui.RadioGroup.Bind(() => _choices.Role).Live().Key("described").Id("rd-described").Label("Role")[Roles()],
-                Ui.Fieldset.Key("fieldset").Legend("Role")[
+                Ui.Fieldset.Key("radio-fieldset").Legend("Role")[
                     Ui.RadioGroup.Bind(() => _choices.Role).Live().Id("rd-fieldset")[Roles()]
                 ],
                 Div.Key("segmented").Class("space-y-8")[
@@ -181,7 +181,7 @@ public sealed partial class UiKitDataInputDemo
                         Ui.Error
                     ]
                 ],
-                Ui.Fieldset.Key("fieldset").Legend("Email notifications")[
+                Ui.Fieldset.Key("switch-fieldset").Legend("Email notifications")[
                     Div.Class("space-y-4")[
                         Ui.Switch.Bind(() => _choices.Communication).Live().Id("sw-communication").Label("Communication emails")
                             .Description("Receive emails about your account activity."),

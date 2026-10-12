@@ -35,10 +35,10 @@ public sealed partial class UiKitDataInputDemo
             + "one, and Ui.SelectGroup organises related options under a label.",
             Div.Data(Testid("ui-select")).Class("grid max-w-3xl gap-6 sm:grid-cols-3")[
                 Ui.Select.Key("native").Value(_industry).OnChange(picked => _industry = picked).Placeholder("Choose industry...").Id("ui-select-native")[
-                    Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                    Industries.Select(name => Ui.SelectOption.Key("native-" + name)[name])
                 ],
                 Ui.Select.Key("small").Value(_industry).OnChange(picked => _industry = picked).Sm.Placeholder("Choose industry...")[
-                    Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                    Industries.Select(name => Ui.SelectOption.Key("small-" + name)[name])
                 ],
                 Ui.Select.Key("groups").Value(_grouped).OnChange(picked => _grouped = picked).Placeholder("Choose an industry...")[
                     Ui.SelectGroup.Label("Creative")[
@@ -68,7 +68,7 @@ public sealed partial class UiKitDataInputDemo
             + "its button, and Clearable for a way back to nothing chosen.",
             Div.Data(Testid("ui-listbox")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-3")[
                 Ui.Select.Key("listbox").Value(_listed).OnChange(picked => _listed = picked).Listbox.Clearable().Placeholder("Choose industry...").Id("ui-select-listbox")[
-                    Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                    Industries.Select(name => Ui.SelectOption.Key("listbox-" + name)[name])
                 ],
                 Ui.Select.Key("prefix").Value(_comparison).OnChange(picked => _comparison = picked).Listbox.Prefix("Compare to")[
                     Ui.SelectOption.Value("previous-period")["Previous period"],
@@ -114,7 +114,7 @@ public sealed partial class UiKitDataInputDemo
             + "into a collection and leaves the list open while you do.",
             Div.Data(Testid("ui-select-search")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-3")[
                 Ui.Select.Key("search").Value(_searched).OnChange(picked => _searched = picked).Listbox.Searchable().Placeholder("Choose industries...").Id("ui-select-searchable")[
-                    Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                    Industries.Select(name => Ui.SelectOption.Key("search-" + name)[name])
                 ],
                 Ui.Select.Key("keywords").Value(_category).OnChange(picked => _category = picked).Listbox.Searchable().Placeholder("Choose category...")[
                     Ui.SelectOption.Value("fruit").Keywords("apple orange pear")["Fruit"],
@@ -124,7 +124,7 @@ public sealed partial class UiKitDataInputDemo
                 Div.Data(Testid("ui-multiselect"))[
                     Ui.Select.Key("multiple").Values(_industries).OnChange(picked => _industries = [.. picked]).Listbox.Multiple().Placeholder("Choose industries...")
                         .Id("ui-select-multiple")[
-                        Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                        Industries.Select(name => Ui.SelectOption.Key("multiple-" + name)[name])
                     ]
                 ],
                 P.Class("text-sm text-ui-muted sm:col-span-2").Data(Testid("ui-select-search-state"))[
@@ -143,16 +143,16 @@ public sealed partial class UiKitDataInputDemo
             + "typed once it names none that exists.",
             Div.Data(Testid("ui-combobox")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-3")[
                 Ui.Select.Key("combobox").Value(_typed).OnChange(picked => _typed = picked).Combobox.Placeholder("Choose industry...").Id("ui-select-combobox")[
-                    Industries.Select(name => Ui.SelectOption.Key(name)[name])
+                    Industries.Select(name => Ui.SelectOption.Key("combobox-" + name)[name])
                 ],
                 Ui.Select.Key("create").Value(_project).OnChange(picked => _project = picked).Combobox.Id("ui-select-create")[
                     Ui.SelectInput.Placeholder("Start typing..."),
-                    _projects.Select(project => Ui.SelectOption.Key(project.Id).Value(project.Id)[project.Name]),
+                    _projects.Select(project => Ui.SelectOption.Key("create-" + project.Id).Value(project.Id)[project.Name]),
                     Ui.SelectOptionCreate.MinLength(2).OnClick(CreateProject)["Create new project"]
                 ],
                 Ui.Select.Key("backend").Value(_found).OnChange(picked => _found = picked).Combobox.Filter(false)[
                     Ui.SelectInput.Placeholder("Start typing...").OnInput(text => _projectSearch = text),
-                    _projects.Where(Named).Select(project => Ui.SelectOption.Key(project.Id).Value(project.Id)[project.Name]),
+                    _projects.Where(Named).Select(project => Ui.SelectOption.Key("backend-" + project.Id).Value(project.Id)[project.Name]),
                     Ui.SelectOptionEmpty.WhenLoading("Loading projects...")["No projects found."]
                 ],
                 P.Class("text-sm text-ui-muted sm:col-span-3").Data(Testid("ui-combobox-state"))[

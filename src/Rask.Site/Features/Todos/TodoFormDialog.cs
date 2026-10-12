@@ -46,11 +46,8 @@ public sealed partial class TodoFormDialog : Component
                 })[
                 H2.Class("mb-3 text-lg font-semibold")[IsAdding ? "Add todo" : "Edit todo"],
                 Form.Model(Model).OnSubmit(OnSave).Class("flex flex-col gap-3")[
-                    // autofocus fires when the browser PARSES the element -- a deep link to /todos/new
-                    // lands in the field. Opening the dialog through the live diff inserts it after
-                    // parse, where browsers ignore the attribute, so that path still needs a click.
-                    // Reliable focus-on-open would need ElementRef + IJSRuntime; this page is a routed
-                    // CRUD flow, not a dialog implementation.
+                    // The field has focus however the dialog is reached: the browser acts on autofocus
+                    // for a deep link to /todos/new, and the runtime does for the button that goes there.
                     Ui.Input.Bind(() => Model.Title).Label("Title").Id("todo-title").Autofocus().ShowValidation(false),
                     Validation.Message.Template(FieldError).For(() => Model.Title),
                     Div.Class("flex justify-end gap-2")[

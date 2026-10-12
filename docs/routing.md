@@ -377,6 +377,9 @@ private async Task Save()
   loading gets that page; nothing of the first is sent.
 - **A page that sends the reader on is never shown**, whether it calls `Go()` before its first `await` or after
   it: the wait reaches the redirect, and the destination arrives in its place.
+- **The page's `autofocus` field has focus when it arrives**, as it has when the address is loaded: the first
+  one on screen, in place of the move to the page's `<main>`, with the route announced all the same
+  ([accessibility](accessibility.md#autofocus-on-a-page-reached-in-place)). A page with none is focused as before.
 - **A save's own repaint waits for the address.** A handler that has called `Go()` is not repainted while it is
   still running, so the destination never appears before the address bar says it.
 - **A page that reads through `Rask.Query` is waited for the same way.** A query read while the page renders
