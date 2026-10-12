@@ -226,7 +226,7 @@ them until tagged releases begin.
   once, and a control a render removes takes its unwritten pick with it. Two waiting controls do not write
   each other: a pick in one leaves the other's waiting. A listbox's bound pick is also validated when it
   is written now; it used to be checked on submit only. A pick that waits lives in the
-  session, so a reconnect to a new session forgets it. In a test, read the model after the page's own
+  session, so a reconnect to a new session forgets it, and so does following a link away from the form. In a test, read the model after the page's own
   button was clicked, or say `.Live()`. Not covered: a callback written as a lambda that captures no
   component (`static`, or locals only) is not preceded by the waiting picks.
 - **BREAKING: a bound control waits for the next action, as Livewire's `wire:model` does; `.Live()` types

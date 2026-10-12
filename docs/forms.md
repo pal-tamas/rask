@@ -147,7 +147,9 @@ Ui.DatePicker.Bind(() => m.From).Live()          // a price that follows the dat
 - **A message under a control that waits** goes when the reader picks again, as it goes under a field at
   the first key. The pick marks the field modified at once.
 - **A control a render removes takes its unwritten pick with it.** One that goes because the action itself
-  replaces the page is written first.
+  replaces the page is written first. Following a link is not a handler of the page: it leaves the form,
+  and a pick that was never written leaves with it — where a waiting input's text is still sent ahead of
+  the navigation, because the browser holds it.
 - A pick that waits lives in the session. A reconnect to a new session — a restarted server — forgets it,
   where a waiting input keeps what was typed in the browser.
 

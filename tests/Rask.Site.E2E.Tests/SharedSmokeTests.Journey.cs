@@ -1335,7 +1335,7 @@ public abstract partial class SharedSmokeTests
         await Expect(itinerary.Locator("#bt-model")).ToHaveTextAsync("The model holds “Ada”, “Porto” and “A long weekend.”.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         // The chosen controls follow the same rule: the live switch is read back as it is flipped, and the
         // list shows the cabin at once while the model hears it with the Save.
-        await itinerary.GetByLabel("Insured").CheckAsync();
+        await itinerary.Locator("label[data-ui-switch]:has(#bt-insured)").ClickAsync();
         await Expect(itinerary.Locator("#bt-choices")).ToHaveTextAsync("Cabin “”, insured: yes.", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await itinerary.Locator("#bt-cabin").ClickAsync();
         await itinerary.Locator("[data-ui-option]").Filter(new LocatorFilterOptions { HasText = "Business" }).ClickAsync();

@@ -32,7 +32,7 @@ public sealed partial class BindTimingDemo : Component
                 Ui.Select.Bind(() => _model.Cabin).Listbox.Label("Cabin")
                     .Id("bt-cabin")
                     .Placeholder("Choose a cabin...")
-                    .Description("Shown in the list at once, written and checked with Save.")
+                    .Description("Shown at once, written with the next action.")
                     .Validate(cabin => cabin.Length > 0 ? [] : ["Pick a cabin."])[
                     Cabins.Select(cabin => Ui.SelectOption.Key(cabin)[cabin])
                 ],
