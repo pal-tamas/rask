@@ -11,10 +11,29 @@
 //   * aria-expanded follows the popover: whenever one opens or closes — however it was asked to — every
 //     element that invokes it (popovertarget, commandfor, data-rask-toggle) AND already carries aria-expanded
 //     is rewritten. The attribute is never added where the render did not put it.
+//   * data-open follows a popover that asks for it (data-rask-open-mark): there while it shows, in the task
+//     that opens it, and gone in the one that closes it — as it is on a dialog (rask-overlay.ts), and as Flux
+//     UI writes it on an open panel, whose own examples lay the panel out by it (`data-open:flex`). A render
+//     cannot say it in time: the page hears of a press a round trip after the browser has opened the panel.
 
-import {isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
+import {disown, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
 const TOGGLE = "data-rask-toggle";
+const MARK = "data-rask-open-mark";
+
+// Held against the render while it is there: no render carries it.
+function mark(panel: Element, open: boolean): void {
+    if (open === panel.hasAttribute("data-open")) {
+        return;
+    }
+    if (open) {
+        own(panel, "data-open");
+        panel.setAttribute("data-open", "");
+    } else {
+        panel.removeAttribute("data-open");
+        disown(panel, "data-open");
+    }
+}
 const FIELD = "input, textarea, select, [contenteditable]";
 
 if (page) {
@@ -102,6 +121,9 @@ if (page) {
         if (!open) {
             opened.delete(panel);
         }
+        if (panel.hasAttribute(MARK)) {
+            mark(panel, isShown(panel));
+        }
         const invokers = doc.querySelectorAll("[aria-expanded]");
         for (let i = 0; i < invokers.length; i++) {
             const el = invokers[i];
@@ -113,4 +135,21 @@ if (page) {
             }
         }
     }, true);
+
+    // The same task as the open or the close, which `toggle` is not. It is cancelable, so what it wrote is
+    // looked at again once the popover has opened, or has not.
+    listen("beforetoggle", function (e) {
+        const panel = e.target;
+        if (!(panel instanceof HTMLElement) || !panel.hasAttribute(MARK) || !panel.hasAttribute("popover")) {
+            return;
+        }
+        mark(panel, (e as ToggleEvent).newState === "open");
+        setTimeout(function () { mark(panel, isShown(panel)); }, 0);
+    }, true);
+
+    // One that was open before the hooks arrived: a render opened it with the page.
+    const marked = doc.querySelectorAll("[" + MARK + "]");
+    for (let i = 0; i < marked.length; i++) {
+        mark(marked[i], isShown(marked[i]));
+    }
 }

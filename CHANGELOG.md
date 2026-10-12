@@ -29,6 +29,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
+  on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
+  idiom laid the panel out late. The runtime writes it now: a `[popover]` carrying `data-rask-open-mark` gets
+  `data-open` in the task that opens it and loses it in the one that closes it, held against the render, as a
+  dialog's is. `Ui.Popover` writes the attribute and no longer renders `data-open` itself (the dropdown and
+  the trigger still do). `rask-hooks.js` is 487 bytes larger.
 - **A panel the pointer opens can be reached with a real mouse.** `data-rask-hover` (`Ui.Dropdown.Hover()`, the
   hover card, the sidebar rail's menus) closed its panel in the `pointerout`, so the first pointer event in the
   gap between the trigger and the panel shut it. It closes as measured on Flux now: a pointer move is looked at

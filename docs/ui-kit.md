@@ -2117,7 +2117,8 @@ layer and closes it on Escape and on a press anywhere else. It is no menu and sa
 trigger as it opens — the panel takes none — and Tab walks from there into the panel; Shift+Tab off the trigger,
 or Tab past the panel's last control, closes it. While one a press opened is up, the page behind neither scrolls
 nor takes the pointer (`data-rask-lock`), so a press on anything else only closes it; one the pointer opened
-locks nothing. An open panel carries `data-open` once the page has heard it open, which is what Flux's own
+locks nothing. An open panel carries `data-open` from the moment it opens — the runtime writes it in the browser
+(`data-rask-open-mark`), so no round trip stands between the press and the layout — which is what Flux's own
 `data-open:flex` styles by, and a closed one is never displayed whatever layout its `Class` gives it.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every

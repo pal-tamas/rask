@@ -215,7 +215,9 @@
 # rask-hooks.js 50,763 -> 51,137 (+374). The two runtimes are unchanged.
 # 2026-10-13, a panel the pointer walked away from hands focus to nobody (rask-hover.ts, rask-menu-keys.ts):
 # rask-hooks.js 51,137 -> 51,200 (+63). The two runtimes are unchanged.
+# 2026-10-13, data-open on a popover that asks for it, in the task that opens it (data-rask-open-mark,
+# rask-toggle.ts): rask-hooks.js 51,200 -> 51,687 (+487). The two runtimes are unchanged.
 bundle,bytes
 rask.js,101379
 rask.wasm.js,90163
-rask-hooks.js,51200
+rask-hooks.js,51687

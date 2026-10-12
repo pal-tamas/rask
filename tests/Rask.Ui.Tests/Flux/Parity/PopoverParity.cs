@@ -188,11 +188,10 @@ public sealed partial class PopoverParity : FluxParity
             Button.Type(ButtonType.Button).Data("parity-skip", "self")
                 .Style("width:13.5rem;border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;background:var(--color-zinc-100)"),
             opened);
-        // `data-open:flex` is said by the panel's own mark, which the page writes once it has heard the
-        // toggle. A static page hears nothing, so the dropdown that is measured open is rendered as open.
-        var dropdown = opened ? Ui.Dropdown.Bottom.Center.Open(true) : Ui.Dropdown.Bottom.Center;
 
-        return dropdown[
+        // `data-open:flex` is said by the panel's own mark, which the runtime writes as the panel opens
+        // (rask-toggle.ts): parity-popover.mjs gives the page the hooks before it is measured.
+        return Ui.Dropdown.Bottom.Center[
             trigger[
                 Div.Class("pp-bar").Style("align-self:stretch;width:2px;border-radius:calc(infinity * 1px)"),
                 Div[Ui.Heading["Team sync"], Ui.Text.Class("mt-1")["10:00 AM"]]

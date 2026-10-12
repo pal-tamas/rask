@@ -30,6 +30,7 @@ public partial class HookBundleContractTests
     private static readonly Dictionary<string, string> _notAReasonToLoad = new(StringComparer.Ordinal)
     {
         ["data-rask-hover-if"] = "on a data-rask-hover",
+        ["data-rask-open-mark"] = "on a popover, which is what loads the hooks",
         ["data-rask-segment"] = "inside a data-rask-segments",
         ["data-rask-plot-area"] = "inside a data-rask-plot",
         ["data-rask-plot-row"] = "inside a data-rask-plot",
