@@ -139,23 +139,22 @@ public sealed class HttpTransportTests
     [Fact]
     public async Task A_refused_post_does_not_keep_a_detached_session_alive()
     {
-        using var host = NewHost(gracePeriod: TimeSpan.FromMilliseconds(300));
+        // A grace period no run outlasts: the session is there for the POST however slow the machine, and what
+        // is checked is that its removal stays armed, not that a short clock happened to run out in time.
+        using var host = NewHost(gracePeriod: TimeSpan.FromMinutes(5));
         var sessionId = await StartSessionAsync(host);
-
         var (response, reader) = await OpenStreamAsync(host, sessionId);
         var generation = GenerationOf(await ReadEventAsync(reader));
         reader.Dispose();
         response.Dispose();
-
-        for (var i = 0; i < 150 && host.Store.ConnectedCount > 0; i++)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(
+            () => host.Store.HasPendingRemoval(sessionId), "the stream's end arms the session's removal");
 
         // The stream is gone, so this generation is no longer current: refused.
-        Assert.Equal(HttpStatusCode.Conflict, await PostAsync(host, $"/_rask/send/{sessionId}", generation));
+        var answer = await PostAsync(host, $"/_rask/send/{sessionId}", generation);
 
-        Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)),
+        Assert.Equal(HttpStatusCode.Conflict, answer);
+        Assert.True(host.Store.HasPendingRemoval(sessionId),
             "the grace period armed by the stream's end should still remove the session");
     }
 

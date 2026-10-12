@@ -136,6 +136,14 @@ Ui.DatePicker.Bind(() => m.From).Live()          // a price that follows the dat
   button of the page, a submit, another control's `.Live()` change, a controlled control's `OnChange`, and
   a callback the control itself raises into the page — `Ui.Otp`'s `OnComplete`, a tab's `OnClick`, a
   select's `OnInput` — which finds the model written.
+- **Two controls that wait do not write each other.** A pick in the calendar leaves the listbox's pick
+  waiting: a waiting control drawing itself is never an action, whichever control it is.
+- **A listbox's pick is checked when it is written.** A bound `Ui.Select.Listbox` used to run its member's
+  rules on submit only; they now run when the value arrives, like any bound control's.
+- **Not preceded: a callback that captures no component.** The waiting picks are written ahead of a callback
+  by way of the component that wrote it. A `static` lambda, or one that closes over locals only
+  (`.OnComplete(_ => row.Done = true)` in a loop over rows), belongs to no component and runs without them;
+  write it so that it touches the component (`_ => Finish(row)`).
 - **A message under a control that waits** goes when the reader picks again, as it goes under a field at
   the first key. The pick marks the field modified at once.
 - **A control a render removes takes its unwritten pick with it.** One that goes because the action itself

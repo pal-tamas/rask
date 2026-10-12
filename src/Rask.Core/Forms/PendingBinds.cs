@@ -1,3 +1,5 @@
+using Rask.Core.Live;
+
 namespace Rask.Core.Forms;
 
 // What the reader chose in controls that draw themselves in C# and has not been written to the model yet.
@@ -167,9 +169,20 @@ internal sealed class PendingBinds(Component root)
         _entries.Clear();
 
         // A control a render removed takes its pick with it. One removed by the action itself is still here.
-        var written = waiting.Where(static entry => entry.Control is { IsTornDown: false } && entry.Write()).ToList();
+        var written = waiting.Where(static entry => entry.Control is { IsTornDown: false } control && WriteUnder(control, entry)).ToList();
 
         _settling = SettleAsync(_settling, written, waiting.Length);
+    }
+
+    // A pick is its control's work, whoever acts next: its write, its rules and its AfterBind run under the
+    // lifetime of the control that holds it (CallbackOwnerScope), within the time the action's handler was
+    // given — not under the lifetime of the component whose handler or callback happened to come next.
+    private static bool WriteUnder(Component control, Entry entry)
+    {
+        using (CallbackOwnerScope.Enter(control))
+        {
+            return entry.Write();
+        }
     }
 
     private static async Task SettleAsync(Task earlier, List<Entry> written, int held)
@@ -179,7 +192,10 @@ internal sealed class PendingBinds(Component root)
             await earlier.ConfigureAwait(false);
             foreach (var entry in written)
             {
-                await entry.Settle().ConfigureAwait(false);
+                using (CallbackOwnerScope.Enter(entry.Control!))
+                {
+                    await entry.Settle().ConfigureAwait(false);
+                }
             }
         }
         finally

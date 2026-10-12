@@ -61,6 +61,49 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A navigation that renders more than once tells the browser its address once.** On the Server host, a
+  `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
+  its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that
+  frame repeated the navigation's address. The browser pushed the same history entry twice, so Back stayed on
+  the page the reader was leaving; where that page loads and then calls `Go()`, Back sent them round to its
+  destination again. The address now travels in the first frame that goes out, and in no later one.
+
+- **A host mapped through endpoint routing says why a reply was the whole page, and every such reply has a
+  reason.** `endpoints.MapRask<TApp>()` — the overload a host that composes its own pipeline calls — never learned
+  the host's environment or its logger: `LiveOptions.IsDevelopment` stayed unset, so the Development-only line
+  that names a refused diff was never written, the development error page was the production one, and framework
+  diagnostics went to stderr instead of the app's log. Both overloads now take the same facts from the host's
+  services. The line is a **warning** now (a host that logs warnings and up still shows it), and the replies it
+  used to stay silent about are named too: a session with no earlier render to compare with, a render that
+  carries a sign-in handoff or a file download, and a reply in which the differ found nothing to patch. Still
+  nothing is formatted outside Development.
+- **A handler that only calls script is answered with a diff.** A press whose handler changed nothing on the
+  page and called JavaScript (`ShowModal()`, a focus, any `IJSRuntime` call) was answered with the whole
+  document carrying the call, because a diff with no ops was taken for "nothing to send". The call now rides an
+  empty diff: about a hundred bytes where the page was tens of kilobytes.
+- **A callback runs under the lifetime of the component that wrote it. Behaviour change.** A page's
+  `Editor.OnSaved(async () => { _editing = false; await Reload(); })` is the page's code, but it ran under
+  the lifetime of the component whose handler invoked it — the editor, which its first line unmounts. So
+  the reads in `Reload()` that pass no token (`await Product.Where(…)`) were cancelled: the editor closed
+  and the list kept its old rows, with an `OperationCanceledException` in the log. While a callback set
+  through a chain step runs — its synchronous part and every continuation — `Current.Cancellation`, the
+  token-less data calls and the owner's `CancellationToken` are now the *owner's*: unmounting the invoker
+  no longer cancels it, the owner leaving the page does, and the invoker's own code is back under its own
+  lifetime when the callback returns. It holds for `Callback`, `Callback<T>` and `Callback<T1, T2>`, for a
+  callback handed down through several components (the owner is whoever wrote the lambda), for one raised
+  from a child's lifecycle hook, and for the kit components that raise from their own handlers
+  (`Ui.Pagination.OnPage`, `Ui.Tabs.OnChange`, a save button inside a `Ui.Modal`). With
+  `RaskServerOptions.HandlerTimeout` set, the callback is cancelled by its owner leaving or by that same
+  timeout, whichever is first. Unchanged: a handler's own code after it unmounted its own component still
+  sees a cancelled token; a static lambda, one over plain locals, or a `new Callback(…)` built by hand has
+  no owner and runs for its invoker.
+  **What an app notices:** the reload after "close the editor, then refresh" completes. Code that relied
+  on a parent's callback being cancelled when the child closed must now pass that child's token itself.
+- **A cancellation a data provider wraps, raised by a handler whose component has left the page, no longer
+  trips the error boundary.** Leaving cancels the reads in flight and EF's execution strategy reports that
+  as an `InvalidOperationException`; from a handler it replaced the page the visitor had gone to with the
+  error fallback. It is logged at Information (`Rask.Handler`), as the same fault from a lifecycle hook
+  already was. A fault that carries no cancellation still reaches the boundary.
 - **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
   page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
   to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:
@@ -180,8 +223,9 @@ them until tagged releases begin.
   checkbox that shows a section, an `AfterBind` that copies a value, a filter, tabs whose page content
   follows the bound name. `.Live()` is a new step on each of these controls (Flux's `wire:model.live`). A
   message under a waiting control goes when the reader picks again, the pick marks the field modified at
-  once, and a control a render removes takes its unwritten pick with it. A listbox's bound pick is also
-  validated when it is written now; it used to be checked on submit only. A pick that waits lives in the
+  once, and a control a render removes takes its unwritten pick with it. Two waiting controls do not write
+  each other: a pick in one leaves the other's waiting. A listbox's bound pick is also validated when it
+  is written now; it used to be checked on submit only. A pick that waits lives in the
   session, so a reconnect to a new session forgets it. In a test, read the model after the page's own
   button was clicked, or say `.Live()`. Not covered: a callback written as a lambda that captures no
   component (`static`, or locals only) is not preceded by the waiting picks.

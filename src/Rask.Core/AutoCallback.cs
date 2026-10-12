@@ -1,3 +1,5 @@
+using Rask.Core.Live;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -14,6 +16,11 @@ namespace Rask.Core;
 ///         straight into the child's prop. The returned delegate runs the original and then calls
 ///         <see cref="Component.StateHasChanged()" /> on the component that <em>owns</em> the original
 ///         (its <c>Target</c>), after awaiting any returned <see cref="System.Threading.Tasks.Task" />.
+///     </para>
+///     <para>
+///         The original is its owner's code, so it runs under its owner's lifetime
+///         (<see cref="CallbackOwnerScope" />): the calls it makes that take no token are cancelled when
+///         the owner leaves the page, and not when the component that invoked it does.
 ///     </para>
 ///     <para>
 ///         The receiver is captured once at wrap time from <c>original.Target as Component</c> — the
@@ -48,7 +55,11 @@ public static class AutoCallback
         return () =>
         {
             Forms.PendingBinds.Precede(r);
-            d();
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d();
+            }
+
             r.StateHasChanged();
         };
     }
@@ -69,7 +80,11 @@ public static class AutoCallback
         return arg =>
         {
             Forms.PendingBinds.Precede(r);
-            d(arg);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d(arg);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -89,9 +104,13 @@ public static class AutoCallback
 
         return async () =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d().ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d().ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -111,9 +130,13 @@ public static class AutoCallback
 
         return async arg =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d(arg).ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -133,9 +156,13 @@ public static class AutoCallback
 
         return async () =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d().ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d().ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -155,9 +182,13 @@ public static class AutoCallback
 
         return async arg =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d(arg).ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -185,7 +216,11 @@ public static class AutoCallback
         return (arg1, arg2) =>
         {
             Forms.PendingBinds.Precede(r);
-            d(arg1, arg2);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d(arg1, arg2);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -205,9 +240,13 @@ public static class AutoCallback
 
         return async (arg1, arg2) =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d(arg1, arg2).ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg1, arg2).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -227,9 +266,13 @@ public static class AutoCallback
 
         return async (arg1, arg2) =>
         {
-            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
-            await d(arg1, arg2).ConfigureAwait(false);
+            Forms.PendingBinds.Precede(r);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg1, arg2).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -277,11 +320,14 @@ public static class AutoCallback
         {
             return new Func<object?, Task>(async arg =>
             {
+                r.MarkDirtyForAsyncHandler();
                 Forms.PendingBinds.Precede(r);
-            r.MarkDirtyForAsyncHandler();
-                if (d.DynamicInvoke(arg) is Task t)
+                using (CallbackOwnerScope.Enter(r))
                 {
-                    await t.ConfigureAwait(false);
+                    if (d.DynamicInvoke(arg) is Task t)
+                    {
+                        await t.ConfigureAwait(false);
+                    }
                 }
 
                 r.StateHasChanged();
@@ -291,7 +337,11 @@ public static class AutoCallback
         return new Action<object?>(arg =>
         {
             Forms.PendingBinds.Precede(r);
-            d.DynamicInvoke(arg);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d.DynamicInvoke(arg);
+            }
+
             r.StateHasChanged();
         });
     }

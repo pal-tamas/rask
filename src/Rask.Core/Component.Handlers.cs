@@ -256,6 +256,11 @@ public abstract partial class Component
         {
             return await DispatchAfterPicksAsync(handler, payload, owner).ConfigureAwait(false);
         }
+        catch (Exception ex) when (IsCancellationOfALeftComponent(owner, ex))
+        {
+            ReportCancelledAfterLeaving(owner, ex);
+            return true;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
         {
             // Route handler exceptions to the boundary that logically contains the handler.
@@ -294,6 +299,39 @@ public abstract partial class Component
         return handled;
     }
 
+    // A cancellation in a provider's wrapping, from a handler whose component has left the page. A bare
+    // OperationCanceledException is not this: that one goes to the host, which tells a timeout from a close.
+    private static bool IsCancellationOfALeftComponent(Component owner, Exception ex)
+    {
+        if (ex is OperationCanceledException || !owner.IsTornDown)
+        {
+            return false;
+        }
+
+        for (var inner = ex.InnerException; inner is not null; inner = inner.InnerException)
+        {
+            if (inner is OperationCanceledException)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Leaving cancels the reads in flight, and a provider may report that as a failure of its own (EF's
+    // execution strategy does). The component has nothing to show it on: recorded, as a lifecycle hook's is
+    // (ReportLifecycleFault), and the boundary keeps the page the visitor went to.
+    private static void ReportCancelledAfterLeaving(Component owner, Exception ex)
+    {
+        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: false);
+        Diagnostics.RaskDiagnostics.Report(
+            Diagnostics.RaskLogLevel.Information,
+            "Rask.Handler",
+            $"Rask handler on {owner.GetType().Name} was cancelled after it left the page",
+            ex);
+    }
+
     // When the host supplied a cancellable dispatch token (a handler timeout is configured), make
     // owner.CancellationToken observe it during this handler by publishing a token linked with the
     // owner's lifetime token. With no timeout we push nothing — CancellationToken then resolves to
@@ -308,7 +346,7 @@ public abstract partial class Component
         }
 
         var linked = CancellationTokenSource.CreateLinkedTokenSource(owner.LifetimeToken, dispatchToken);
-        eventTokenScope = DispatchEventTokenScope.Push(linked.Token);
+        eventTokenScope = DispatchEventTokenScope.Push(owner, dispatchToken, linked.Token);
         return linked;
     }
 
