@@ -14,6 +14,17 @@ them until tagged releases begin.
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
   leaving the button for anything but its panel closes it now (`rask-overlay.ts`), as measured on Flux.
   `rask-hooks.js` is 147 bytes larger.
+- **A query parameter its page cannot read is absent, not a 500.** `/parcels?weightFrom=abc` on a page with
+  `[QueryParam("weightFrom")] public int? WeightFrom` failed to bind: `RouteBindException`, the error page, a
+  500 on a first request and an error on a live navigation — for a link somebody mailed, kept or edited by
+  hand. A value the property cannot hold (`abc`, `1.5`, an empty one, digits past an `int`, a date that is
+  none) is now read as if the parameter were not in the URL: the property gets what it gets without it, the
+  parameters beside it are bound as usual, the page answers 200 and the address is left as written. **A
+  behaviour change**: a page that relied on the exception to refuse a bad query value now renders with the
+  type's default, for a non-nullable property too. In Development the ignored parameter is named once on the
+  `Rask.Routing` log category, without its value. A path segment is unchanged: one the page cannot read does
+  not match, and not-found answers.
+
 - **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
   whatever the page sent next carried it — including the press the runtime makes on a toast's close button
   when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,
@@ -24,6 +35,12 @@ them until tagged releases begin.
   or `error` event, focus a render moved, a field restored after a reload, the reply to an interop call. On
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
+
+- **DevTools counts a handler that failed into a toast once.** Since a handler's fault keeps its page and says
+  so in a toast, one failed click on a page that draws toasts put `2` on the pill and two entries on the Errors
+  tab: the toast's reference was logged with the exception before the fault itself was listed, so the log line
+  was listed as a diagnostic and the fault after it. The fault is listed first now, on both hosts: one entry,
+  the handler's, with its component and the exception.
 
 - **A route segment its page cannot read is not found, not a 500.** `/destinations/99999999999999999999`
   matched `/destinations/{id:int}` — the router never held a constraint to anything — and the page then

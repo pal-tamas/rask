@@ -167,7 +167,8 @@ mistake, the rule notes the ID.
 - **`[Route]` registers a page; bind URL pieces with `[RouteParam]` / `[QueryParam]`.** Path
   segments use `[RouteParam]`, query keys use `[QueryParam]` — swapping them is **RASK006**. Bound
   types must be `string` or `IParsable<T>` (**RASK011** otherwise), and must match a route constraint
-  (`{id:int}`) when present. Link with the generated, refactor-proof `Routes.Page(...)` builder, not
+  (`{id:int}`) when present. A query value the property cannot hold (`?page=two`) is read as absent, never
+  an error — give a filter a nullable property. Link with the generated, refactor-proof `Routes.Page(...)` builder, not
   hand-written paths. See [routing](routing.md).
 - **Navigate from event handlers only.** `Go.To`, `Go.With` and a route's `.Go()` throw if called during `Render()`
   — it would mid-render the page out from under itself. Load-time redirects belong in `OnMount` or a route
