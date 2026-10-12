@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Messaging;
@@ -87,6 +89,31 @@ public partial class FormSubmitFaultTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(page.Before, page.Html);
         Assert.Single(reported, static e => e.Level == RaskLogLevel.Error);
+    }
+
+    [Fact]
+    public async Task A_session_that_draws_no_toasts_is_not_left_one_to_show_on_a_later_page()
+    {
+        var toaster = new Toaster();
+        var services = new ServiceCollection().AddSingleton<IToaster>(toaster).BuildServiceProvider();
+        var page = new PartnerPage(new MissingTenantException(), services: services);
+
+        var reported = await Reported(page.Submit);
+
+        Assert.Empty(toaster.Consume());
+        Assert.Single(reported, static e => e.Level == RaskLogLevel.Error);
+    }
+
+    [Fact]
+    public async Task A_session_whose_layout_draws_toasts_is_handed_the_sentence_at_error_level()
+    {
+        var toaster = new Toaster();
+        var services = new ServiceCollection().AddSingleton<IToaster>(toaster).BuildServiceProvider();
+        var page = new PartnerPage(new MissingTenantException(), services: services, outlet: true);
+
+        await page.Submit();
+
+        Assert.Contains("<li data-rask-key=\"0\">Error: The save failed. Please try again.</li>", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -242,18 +269,23 @@ public partial class FormSubmitFaultTests : global::Rask.Core.RaskMarkup
         private readonly bool _readsError;
         private readonly bool _fieldMessage;
         private readonly bool _catches;
+        private readonly bool _outlet;
+        private readonly IServiceProvider? _services;
 
         internal PartnerPage(
-            Exception? thrown, bool summary = false, bool readsError = false, bool fieldMessage = false, bool catches = false)
+            Exception? thrown, bool summary = false, bool readsError = false, bool fieldMessage = false, bool catches = false,
+            IServiceProvider? services = null, bool outlet = false)
         {
             Thrown = thrown;
             _summary = summary;
             _readsError = readsError;
             _fieldMessage = fieldMessage;
             _catches = catches;
+            _services = services;
+            _outlet = outlet;
             Form = new EditContext(Model);
-            _view = new StubComponent(Draw);
-            Html = Before = _view.RenderAsLiveRoot();
+            _view = new StubComponent(() => Div[Draw(), _outlet ? Toasts() : null]);
+            Html = Before = Render();
         }
 
         internal Partner Model { get; } = new();
@@ -272,10 +304,15 @@ public partial class FormSubmitFaultTests : global::Rask.Core.RaskMarkup
         {
             using var payload = JsonDocument.Parse("{\"form\":{}}");
 
-            await _view.TryInvokeHandlerAsync(MarkupAssert.Attr(Html, "data-rask-on-submit")!, payload.RootElement);
+            await _view.TryInvokeHandlerAsync(MarkupAssert.Attr(Html, "data-rask-on-submit")!, payload.RootElement, _services);
 
-            Html = _view.RenderAsLiveRoot();
+            Html = Render();
         }
+
+        private string Render() => _services is null ? _view.RenderAsLiveRoot() : _view.RenderAsLiveRoot(_services);
+
+        private static Component Toasts() =>
+            ToastOutlet.Template(static (toasts, _) => Ul[toasts.Select(static t => (Component)Li.Key(t.Id)[$"{t.Level}: {t.Message}"])]);
 
         private Component Draw() =>
             ErrorBoundary.Fallback(static (_, _) => P.Id("boundary-fallback")["failed"])[

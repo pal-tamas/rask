@@ -31,6 +31,9 @@ public sealed class Toaster : IToaster, IToastQueue
 
     public event EventHandler? Changed;
 
+    /// <summary>Whether anything is listening for a toast to draw: the app's outlet, or the host's own.</summary>
+    internal bool HasOutlet => Changed is not null;
+
     public void Add(ToastLevel level, string message, string? title = null)
     {
         ArgumentNullException.ThrowIfNull(message);

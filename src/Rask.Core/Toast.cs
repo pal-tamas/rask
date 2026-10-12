@@ -61,7 +61,9 @@ public static class Toast
             return true;
         }
 
-        if (Ambient.Services?.GetService<IToaster>() is not { } toaster)
+        // A session that draws no toasts is passed over as well: one queued now would turn up, long after its
+        // save, on whichever page first mounts an outlet.
+        if (Ambient.Services?.GetService<IToaster>() is not { } toaster || toaster is Toaster { HasOutlet: false })
         {
             return false;
         }

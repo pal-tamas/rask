@@ -6,24 +6,55 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.WebSockets;
 
 // What the browser is SENT when a form's save throws something that names no field, and when a save is refused
-// for a name the field was already told is taken. Pinned as it is today; "today" tests flip with the fix.
+// for a name the field was already told is taken. The "today" test pins the set-clear-set as it still is.
 [Collection("HostEnvironment")]
 public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 {
+    private const string SaveFailed = "The save failed. Please try again.";
+
     [Theory]
-    [InlineData("Production", "tenant")]
-    [InlineData("Production", "rule")]
-    [InlineData("Production", "other")]
-    [InlineData("Development", "tenant")]
-    [InlineData("Development", "rule")]
-    public async Task Today_a_save_that_throws_sends_the_browser_nothing_but_its_acknowledgement(string environment, string name)
+    [InlineData("tenant")]
+    [InlineData("other")]
+    public async Task A_save_that_throws_in_production_sends_one_diff_with_the_toast_and_no_word_of_the_exception(string name)
     {
-        await using var form = await Open(environment);
+        await using var form = await Open("Production");
 
         var frames = await form.Save(name);
 
-        // Wanted: a frame that tells the reader the save failed. Today the socket is silent, in Development too.
-        Assert.Empty(frames);
+        var toast = Decoded(Assert.Single(frames));
+        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        Assert.Contains(SaveFailed, toast, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", toast, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", toast, StringComparison.Ordinal);
+        Assert.DoesNotContain("4114", toast, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_save_that_throws_in_development_says_which_exception_in_the_toast_as_well()
+    {
+        await using var form = await Open("Development");
+
+        var frames = await form.Save("tenant");
+
+        var toast = Decoded(Assert.Single(frames));
+        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        Assert.Contains($"{SaveFailed} MissingTenantException: No tenant is selected for partner 4114", toast, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("Development")]
+    public async Task A_validation_sentence_thrown_by_the_save_is_the_toast_as_it_was_written(string environment)
+    {
+        await using var form = await Open(environment);
+
+        var frames = await form.Save("rule");
+
+        var toast = Decoded(Assert.Single(frames));
+        Assert.StartsWith("{\"kind\":\"diff\"", toast, StringComparison.Ordinal);
+        Assert.Contains(SaveFaultApp.Sentence, toast, StringComparison.Ordinal);
+        Assert.DoesNotContain(SaveFailed, toast, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidationException", toast, StringComparison.Ordinal);
     }
 
     [Fact]
