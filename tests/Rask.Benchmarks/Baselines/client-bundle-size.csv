@@ -1,6 +1,14 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-12 with whose doing an event is (`unasked` in rask-owned.ts, the module both bundles carry:
+# what the runtime does by itself carries no waiting value ahead of it and says so on the wire — asked by
+# rask-input.ts's one flush, taken by the toast's timed press and a render's focus in rask-dom.ts, the table's
+# browser-raised rows in rask-events.ts, the scroll frame, and the Server host's converge, jsResult and
+# dotNetInvoke): rask.js +416 and rask.wasm.js +409. rask-hooks.js +134: a measured size (rask-plot.ts) and
+# the drawer a navigation unchecks (rask-persist.ts) say it through their own copy.
+# This change's own delta only, measured on main at 100,188 / 88,979 / 50,482: 100,604 / 89,388 / 50,616.
+#
 # Refreshed 2026-10-12 with the reader's last word on open and shut (rask-owned.ts, the one module both bundles
 # carry: a popover, a dialog or a details the reader toggled is not driven by a render until the server has
 # answered that toggle, what a render was refused is carried out then, and the toggle the runtime's own show
@@ -194,6 +202,6 @@
 # Both of the above together (the bound control that waits + every event naming its page): 95,978 + 84 and
 # 84,796 + 84.
 bundle,bytes
-rask.js,100188
-rask.wasm.js,88979
-rask-hooks.js,50482
+rask.js,100604
+rask.wasm.js,89388
+rask-hooks.js,50616
