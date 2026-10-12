@@ -1309,6 +1309,17 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.GetByText("Saved: Wien – Graz"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
+        // A save that throws: the demo handles nothing, and the form's own toast tells the reader. What was
+        // typed stays, and the exception's words stay in the log.
+        var failing = Page.Locator("form:has(#v14-name)");
+        await failing.Locator("#v14-name").FillAsync("Wien – Linz");
+        await failing.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator("[data-ui-toast]").GetByText("The save failed. Please try again."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(failing.Locator("#v14-name")).ToHaveValueAsync("Wien – Linz");
+        await Expect(failing.Locator("button[type=submit]")).ToBeEnabledAsync();
+        await Expect(Page.Locator("[data-ui-toast]")).Not.ToContainTextAsync("30 seconds");
+
         // Bind timing: the debounced field says nothing to the model while it is typed into and binds at the
         // pause; its second rule — the lookup — answers for a name the value object accepted; the message goes
         // at the first key of the correction; and Enter saves what was typed without waiting for the pause.

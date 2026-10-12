@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used
+  to change nothing on the page unless the form was written `f => …` and drew `f.Error`; only the log said so.
+  The form now raises an error toast — *The save failed. Please try again.* — or, when it draws its own messages
+  with `Validation.Summary`, says the sentence there and raises no toast. The exception's text is never shown; a
+  server app in Development adds its type and message. Unchanged: the values stay in the fields, the submit is
+  released, the error boundary is not tripped, `f.Error` holds the exception, the error is logged, and a cancelled
+  save is silent. **For an existing app:** a form that already told the reader from `f.Error` now says it twice —
+  drop one, or catch the exception inside the handler (what the handler catches never reaches the form). A
+  hand-wired host whose layout mounts no `Ui.Toast`/`ToastOutlet` shows no toast, as before.
+- **A `System.ComponentModel.DataAnnotations.ValidationException` thrown by a save is a refusal, not a fault.**
+  Its message is shown under the bound fields its `ValidationResult.MemberNames` name, else in the form's own
+  messages, else as the toast's text; it is logged at Information and is no longer `f.Error`. Exactly that type
+  (also inside an `AggregateException` or `TargetInvocationException`); a class derived from it is still a fault.
 - **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
   value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
   `public static Validate`:
@@ -33,6 +46,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskString.FormSaveFailed`: what a form says when its save throws.** English "The save failed. Please try
+  again.", Hungarian "A mentés nem sikerült. Kérjük, próbálja újra." built into `Rask.Ui`; an app's own
+  `RaskStrings.{culture}.json` overrides it. See `docs/forms-validation.md#a-save-that-fails`.
 - **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
   of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
   app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.
