@@ -5,8 +5,8 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-// What the browser is SENT when a handler outside a form — a list's delete — is refused by the store: its
-// sentence in the toast, as diffs, and the page it was on still answering.
+// What the browser is SENT when a handler outside a form — a list's delete — is refused by the store, or
+// fails: a sentence in the toast, as diffs, and the page it was on still answering.
 [Collection("HostEnvironment")]
 public sealed partial class HandlerRefusalFramesTests
 {
@@ -39,35 +39,50 @@ public sealed partial class HandlerRefusalFramesTests
     }
 
     [Fact]
-    public async Task A_handler_that_throws_anything_else_is_answered_in_production_with_a_page_that_says_nothing_of_it()
+    public async Task A_handler_that_throws_anything_else_is_answered_in_production_with_a_toast_that_says_nothing_of_it()
     {
         await using var list = await Open("Production");
 
         var (frames, logged) = await Logged(() => list.Click("fail"));
 
-        var told = string.Join('\n', frames.Select(Decoded));
-        Assert.Contains("rask-error-boundary", told, StringComparison.Ordinal);
-        Assert.Contains("The problem has been recorded.", told, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-ui-toast-dialog", told, StringComparison.Ordinal);
+        var told = Told(frames);
+        Assert.Contains("That did not work. Please try again. The problem has been recorded.", told, StringComparison.Ordinal);
+        Assert.Contains("data-variant=\"danger\"", told, StringComparison.Ordinal);
+        Assert.Contains("attempts=1", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("rask-error-boundary", told, StringComparison.Ordinal);
         Assert.DoesNotContain("Exception", told, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", told, StringComparison.Ordinal);
         Assert.DoesNotContain("devError", told, StringComparison.Ordinal);
         var line = Assert.Single(logged);
         Assert.Equal(RaskLogLevel.Error, line.Level);
+        Assert.Equal("Rask.Errors", line.Category);
         Assert.EndsWith($"Reference {Reference().Match(told).Groups[1].Value}", line.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_same_handler_in_development_keeps_the_page_and_names_the_exception_beside_it()
+    public async Task The_click_after_a_failed_one_is_answered_on_the_same_session()
+    {
+        await using var list = await Open("Production");
+        await list.Click("fail");
+
+        var frames = await list.Click("fail");
+
+        Assert.Contains("attempts=2", Told(frames), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_same_handler_in_development_keeps_the_page_and_names_the_exception_in_the_toast_and_beside_it()
     {
         await using var list = await Open("Development");
 
         var frames = await list.Click("fail");
 
-        var told = string.Join('\n', frames.Select(Decoded));
+        var told = Told(frames);
         Assert.Contains("\"devError\"", told, StringComparison.Ordinal);
-        Assert.Contains("InvalidOperationException", told, StringComparison.Ordinal);
-        Assert.Contains("hunter2", told, StringComparison.Ordinal);
+        Assert.Contains("\"kind\":\"handler\"", told, StringComparison.Ordinal);
+        Assert.Matches(
+            "quote this reference: [A-Z0-9]{8} InvalidOperationException: Login failed for user 'sa' with password 'hunter2'\\.", told);
+        Assert.Contains("attempts=1", told, StringComparison.Ordinal);
         Assert.DoesNotContain("rask-error-boundary", told, StringComparison.Ordinal);
     }
 

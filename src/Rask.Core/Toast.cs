@@ -61,9 +61,7 @@ public static class Toast
             return true;
         }
 
-        // A session that draws no toasts is passed over as well: one queued now would turn up, long after its
-        // save, on whichever page first mounts an outlet.
-        if (Ambient.Services?.GetService<IToaster>() is not { } toaster || toaster is Toaster { HasOutlet: false })
+        if (DrawnToaster() is not { } toaster)
         {
             return false;
         }
@@ -71,6 +69,16 @@ public static class Toast
         toaster.Add(ToastLevel.Error, message);
         return true;
     }
+
+    /// <summary>Whether <see cref="TryError" /> would be taken, for a caller whose sentence costs something to make.</summary>
+    internal static bool IsDrawn => Faked.Value is not null || DrawnToaster() is not null;
+
+    // A session that draws no toasts is passed over as well: one queued now would turn up, long after its
+    // save, on whichever page first mounts an outlet.
+    private static IToaster? DrawnToaster() =>
+        Ambient.Services?.GetService<IToaster>() is { } toaster && toaster is not Toaster { HasOutlet: false }
+            ? toaster
+            : null;
 
     private static ShowingToast Show(ToastLevel level, string message)
     {

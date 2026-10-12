@@ -35,11 +35,15 @@ public sealed class CqrsServerOptions
     public int MaxFileCount { get; set; } = 8;
 
     /// <summary>
-    ///     Whether a handler's exception message reaches the client in the problem document.
-    ///     <b>False by default</b> — an exception message is written for an operator, not for a
-    ///     browser, and routinely names tables, paths and internal identifiers. Turn it on in
-    ///     development only.
+    ///     Whether a handler's exception reaches the client in the problem document — <b>in the Development
+    ///     environment only</b>. False by default: an exception message is written for an operator, not for a
+    ///     browser, and routinely names tables, paths and internal identifiers.
     /// </summary>
+    /// <remarks>
+    ///     Outside Development the setting is ignored, with a warning when the endpoints are mapped, and a host
+    ///     that names no environment counts as Production. A 500 then carries a <c>reference</c> and nothing
+    ///     of the exception, which is logged at Error under <c>Rask.Errors</c> with the same reference.
+    /// </remarks>
     public bool IncludeExceptionDetail { get; set; }
 
     /// <summary>

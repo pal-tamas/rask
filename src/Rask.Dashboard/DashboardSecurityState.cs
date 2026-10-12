@@ -18,8 +18,8 @@ public sealed class DashboardSecurityState
     public bool UsingFallbackPolicy { get; internal set; }
 
     /// <summary>
-    /// <c>true</c> when that fallback lets everyone in — Development, or
-    /// <see cref="OpsOptions.AllowAnonymousAccess"/>. <c>false</c> means it denies everyone.
+    /// <c>true</c> when that fallback lets everyone in, which is Development alone. <c>false</c> means it
+    /// denies everyone: no setting opens the dashboard anywhere else.
     /// </summary>
     public bool FallbackIsOpen { get; internal set; }
 

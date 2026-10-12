@@ -1,11 +1,11 @@
 using Rask.Core.Globalization;
-using Rask.Core.Live;
+using Rask.Core.Messaging;
 
 namespace Rask.Core.Forms;
 
 // What the person who pressed Save is told when the save threw: one sentence, said once. Where the form
-// draws its own messages it goes there, otherwise into a toast. The sentence never carries the exception's
-// text outside Development, since that text is written for the log and may name a server or a password.
+// draws its own messages it goes there, otherwise into a toast. What it carries of the exception is
+// FaultSentence's to decide, as for a handler outside a form (HandlerFault).
 internal static class SaveFault
 {
     private const string English = "The save failed. Please try again.";
@@ -26,11 +26,6 @@ internal static class SaveFault
         Toast.TryError(sentence);
     }
 
-    private static string Sentence(Exception thrown)
-    {
-        var sentence = RaskStrings.Get(RaskString.FormSaveFailed, English);
-        return LiveOptions.IsDevelopment == true
-            ? $"{sentence} {thrown.GetType().Name}: {thrown.Message}"
-            : sentence;
-    }
+    private static string Sentence(Exception thrown) =>
+        FaultSentence.Of(RaskStrings.Get(RaskString.FormSaveFailed, English), thrown);
 }

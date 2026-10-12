@@ -53,6 +53,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR: a handler that throws no longer replaces the page.** A click, a change or any callback whose
+  handler threw a real fault used to trip the nearest `ErrorBoundary` — in an app that wrote none, the host's own,
+  so one failed click swapped the whole app for the error page. Now, when no boundary of the app's own is around
+  the component that wrote the handler, **the page stays as the handler left it** (what it set before the throw is
+  rendered, as with a refusal) and an error toast says *That did not work. Please try again.*
+  (`RaskString.HandlerFailed`, Hungarian in the kit) followed by the reference sentence of the error page; the
+  exception is logged once at Error on `Rask.Errors` with that reference, and the next click is answered. In
+  Development the toast adds the exception's type and message and the overlay still shows the rest; in
+  Production nothing of the exception is in the frame. Unchanged: a handler inside an `ErrorBoundary` you wrote
+  trips that boundary, a `Render` or lifecycle fault is the boundary's, a refusal says its own sentence, a
+  cancelled handler says nothing, a form's submit keeps *The save failed*, and a host that draws no toasts
+  keeps the boundary — a fault is never swallowed. Both hosts. An app that relied on the root error page after a
+  failed click — a test that looks for `.rask-error-boundary`, a `Try again` flow — sees the toast instead; wrap
+  the part in an `ErrorBoundary` to keep a fallback. See
+  [a handler that fails](docs/composition-lists.md#a-handler-that-fails).
+
 - **BEHAVIOUR: a handler's work reaches the screen once.** Nothing changes on screen until the handler has
   answered, as in Livewire. (1) **What a handler sets between its awaits is no longer sent at once.** It is
   withheld until the handler has run for the handler budget; a handler that finishes in time is ONE frame, its
@@ -291,6 +307,23 @@ them until tagged releases begin.
   taking its value or a parameterless constructor and its property, either of which may be private.
 
 ### Security
+
+- **`Rask:Ops:AllowAnonymousAccess` no longer opens the Dashboard outside Development.** The setting served
+  `/_rask` — job payloads, stored mail, log lines, the actions — to anyone, in every environment, and it binds
+  from configuration, so one environment variable on a deployed server published the operator console. It is
+  now honoured in Development only, where the console is open already. In every other environment, and on a
+  host that names none, the Dashboard always requires the `RaskDashboard` policy (deny-all when the app defines
+  none) and the host logs one warning at startup saying the setting was ignored. **If you relied on it** for an
+  internal tool, define the policy: `o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin"))`.
+
+- **`Rask:Cqrs:Server:IncludeExceptionDetail` no longer takes effect outside Development.** The option put
+  `ex.ToString()` — message, stack, inner exceptions — into the remote dispatch endpoint's 500 body in every
+  environment, and it binds from configuration, so one environment variable on a deployed server published
+  every handler's stack trace to any caller. It is now honoured only when the host's `IHostEnvironment` says
+  Development (a host that names none is Production); elsewhere it is ignored and a warning at startup says
+  so. The 500 is the generic problem document plus a `reference`, and **the catch-all now logs the exception**
+  at Error on `Rask.Errors` with that reference — it logged nothing before, so a failing handler behind remote
+  dispatch left no trace on the server. A malformed message's parser text follows the same switch.
 
 - **A Production error page showed the exception's type and message. It now shows neither.** When a render, an
   event handler or a lifecycle hook threw, the built-in error page — the root one, and an `ErrorBoundary` with no
