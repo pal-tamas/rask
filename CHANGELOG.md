@@ -138,6 +138,12 @@ them until tagged releases begin.
   missing unless every package of the version is served. The run page names the version and the commit it
   was packed from. **For an existing app:** nothing to change; a version that is only partly published no
   longer breaks a restore, and a new nightly now takes the better part of an hour to appear.
+- **A sortable table heading aligned to the end keeps its label by that edge.** `Ui.TableColumn.End.Sortable()`
+  drew the chevron after the label, so the heading's words ended 28 px short of the right-aligned numbers under
+  them. As Flux does for `<flux:table.column sortable align="end">`, the button now runs the other way — chevron
+  first, then the label — and hangs the chevron into the space before it (`flex-row-reverse`, `-ms-8`), which
+  also stops the chevron widening a narrow number column. The label ends 8 px from the cell's edge, the button's
+  own padding, exactly as Flux's does. Start- and centre-aligned headings are unchanged.
 
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
