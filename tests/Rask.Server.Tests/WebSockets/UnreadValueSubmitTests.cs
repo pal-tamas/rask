@@ -55,6 +55,25 @@ public class UnreadValueSubmitTests
         Assert.DoesNotContain("The number is out of range.", saved, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("weight", "number", "Enter a whole number.")]
+    [InlineData("share", "number", "Enter a number.")]
+    [InlineData("day", "date", "Enter a valid date.")]
+    public async Task Text_the_browser_held_back_arrives_as_an_empty_value_that_says_so_and_refuses_the_save(
+        string field, string input, string sentence)
+    {
+        using var host = RaskTestHost.Create<EditTankApp>(diffMode: LiveDiffMode.DisabledFull);
+        var (page, ws) = await OpenAsync(host);
+        await using var connection = ws;
+
+        await ws.SendJsonAsync(new { type = "batch", events = new[] { HeldBack(page, field, input), Submit(page, seq: 1) } });
+        var html = await ReadUntilAckAsync(ws);
+
+        Assert.Contains(sentence, html, StringComparison.Ordinal);
+        Assert.Contains("saved=;", html, StringComparison.Ordinal);
+        Assert.Contains("stored=6500|27.5|2026-10-12;", html, StringComparison.Ordinal);
+    }
+
     private static async Task<(string Page, ILiveTestConnection Ws)> OpenAsync(RaskTestHost host)
     {
         var page = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
@@ -62,11 +81,18 @@ public class UnreadValueSubmitTests
         return (page, ws);
     }
 
-    private static object Change(string page, string field, string value)
+    private static object Change(string page, string field, string value) =>
+        new { id = HandlerOf(page, field), type = "change", value };
+
+    // What rask-input.ts sends for a number or date input holding text it reports as "".
+    private static object HeldBack(string page, string field, string input) =>
+        new { id = HandlerOf(page, field), type = "change", value = "", bad = input };
+
+    private static string HandlerOf(string page, string field)
     {
         var id = Regex.Match(page, $"id=\"{field}\"[^>]*data-rask-on-change=\"([^\"]+)\"");
         Assert.True(id.Success, $"field '{field}' not found");
-        return new { id = id.Groups[1].Value, type = "change", value };
+        return id.Groups[1].Value;
     }
 
     private static object Submit(string page, int seq) =>

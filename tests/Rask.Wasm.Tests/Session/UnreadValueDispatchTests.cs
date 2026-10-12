@@ -32,6 +32,22 @@ public class UnreadValueDispatchTests() : ResettingTestBase(LiveDiffMode.Disable
         Assert.Empty(afterSubmit);
     }
 
+    [Fact]
+    public async Task Text_the_browser_held_back_is_not_the_empty_field_its_frame_carries()
+    {
+        var (session, _) = NewSession<StoredWeightApp>(diffMode: DiffMode);
+        var initial = Html(await session.InitialRenderAsync());
+        var change = MarkupAssert.RequireAttr(initial, "data-rask-on-change");
+        var submit = MarkupAssert.RequireAttr(initial, "data-rask-on-submit");
+
+        var said = Html(await session.DispatchAsync(Frame(new { id = change, type = "change", value = "", bad = "number" })));
+        var afterSubmit = await session.DispatchAsync(Frame(new { id = submit, type = "submit", form = new { } }));
+
+        Assert.Contains("<p class=\"said\">Enter a whole number.</p>", said, StringComparison.Ordinal);
+        Assert.Contains("saved=none;stored=6500;", said, StringComparison.Ordinal);
+        Assert.Empty(afterSubmit);
+    }
+
     private static byte[] Frame(object frame) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(frame));
 
     private static string Html(byte[] payload)

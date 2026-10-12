@@ -161,7 +161,7 @@ public partial class UnreadValueTests : global::Rask.Core.RaskMarkup
         var saved = 0;
         EditContext? ctx = null;
         var page = Page.Render(() => Form.Model(m).OnSubmit(_ => saved++)[
-            Input.Bind(() => m.Weight).Blur(), Test.EditContextProbe(c => ctx = c)]);
+            Input.Bind(() => m.Weight), Test.EditContextProbe(c => ctx = c)]);
         await page.On("input").Change("1.5");
         var asksForTheFirstEdit = page.HandlerId("edit");
 
@@ -283,6 +283,147 @@ public partial class UnreadValueTests : global::Rask.Core.RaskMarkup
         await page.On("input").Change("1.5");
 
         Assert.Empty(heard);
+    }
+
+    // What the browser sends for a number, date or time input holding text it will not hand over: an empty
+    // value, and beside it the input's type (rask-input.ts).
+    private static string HeldBack(string input, string type = "change") =>
+        $$"""{"type":"{{type}}","value":"","bad":"{{input}}"}""";
+
+    [Theory]
+    [InlineData(nameof(Tank.Weight), "number", Whole)]
+    [InlineData(nameof(Tank.Count), "number", Whole)]
+    [InlineData(nameof(Tank.Price), "number", Number)]
+    [InlineData(nameof(Tank.Ratio), "number", Number)]
+    [InlineData(nameof(Tank.Day), "date", Date)]
+    [InlineData(nameof(Tank.When), "datetime-local", Date)]
+    [InlineData(nameof(Tank.At), "time", Time)]
+    public async Task Text_the_browser_held_back_is_not_an_empty_field(string member, string input, string sentence)
+    {
+        var m = new Tank();
+        var before = m.ToString();
+        EditContext? ctx = null;
+        var page = Field(m, member, c => ctx = c);
+
+        await page.On("input").Raise("change", HeldBack(input));
+
+        Assert.Equal(before, m.ToString());
+        Assert.Equal([sentence], ctx!.GetValidationMessages());
+    }
+
+    [Theory]
+    [InlineData("number", Number)]
+    [InlineData("date", Date)]
+    [InlineData("time", Time)]
+    public async Task Text_held_back_behind_a_member_of_another_type_is_answered_by_the_kind_of_input(string input, string sentence)
+    {
+        var m = new Label();
+        EditContext? ctx = null;
+        var page = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Code).Type(InputType.Number), Test.EditContextProbe(c => ctx = c)]);
+
+        await page.On("input").Raise("change", HeldBack(input));
+
+        Assert.Equal("x", m.Code);
+        Assert.Equal([sentence], ctx!.GetValidationMessages());
+    }
+
+    [Fact]
+    public async Task A_kind_of_input_nobody_has_a_sentence_for_is_the_empty_field_it_says_it_is()
+    {
+        var m = new Label();
+        EditContext? ctx = null;
+        var page = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Code), Test.EditContextProbe(c => ctx = c)]);
+
+        await page.On("input").Raise("change", HeldBack("email"));
+
+        Assert.Equal("", m.Code);
+        Assert.Empty(ctx!.GetValidationMessages());
+    }
+
+    [Fact]
+    public async Task Held_back_text_is_said_ahead_of_required_on_a_new_form_and_the_save_does_not_run()
+    {
+        var m = new Tank { Weight = null };
+        var saved = 0;
+        EditContext? ctx = null;
+        var page = Page.Render(() => Form.Model(m).OnSubmit(_ => saved++)[
+            Input.Bind(() => m.Weight), Test.EditContextProbe(c => ctx = c)]);
+
+        await page.On("input").Raise("change", HeldBack("number"));
+        await page.On("form").Submit();
+
+        Assert.Equal([Whole], ctx!.GetValidationMessages());
+        Assert.Equal(0, saved);
+    }
+
+    [Fact]
+    public async Task A_live_field_and_one_bound_on_blur_say_it_as_the_frame_arrives()
+    {
+        var m = new Tank();
+        EditContext? live = null;
+        EditContext? blur = null;
+        var typed = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Weight).Live(), Test.EditContextProbe(c => live = c)]);
+        var left = Page.Render(() => Form.Model(m)[Input.Bind(() => m.Count).Blur(), Test.EditContextProbe(c => blur = c)]);
+
+        await typed.On("input").Raise("input", HeldBack("number", "input"));
+        await left.On("input").Raise("change", HeldBack("number"));
+
+        Assert.Equal([Whole], live!.GetValidationMessages());
+        Assert.Equal([Whole], blur!.GetValidationMessages());
+        Assert.Equal(7, m.Weight);
+        Assert.Equal(3, m.Count);
+    }
+
+    [Fact]
+    public async Task A_controlled_input_hears_nothing_of_text_the_browser_held_back()
+    {
+        var heard = new List<int>();
+        var page = Page.Render(() => Input.Of<int>().OnChange(heard.Add));
+
+        await page.On("input").Raise("change", HeldBack("number"));
+
+        Assert.Empty(heard);
+    }
+
+    [Fact]
+    public void Only_a_form_whose_handler_takes_what_was_posted_says_the_browsers_own_refusal_stands()
+    {
+        var m = new Tank();
+
+        var modelled = Page.Render(() => Form.Model(m).OnSubmit(_ => { })[Input.Bind(() => m.Weight)]);
+        var posted = Page.Render(() => Form.Model(m).OnAnySubmit(_ => { })[Input.Bind(() => m.Weight)]);
+
+        Assert.Null(modelled.Find("form").Attribute("data-rask-unvalidated"));
+        Assert.NotNull(posted.HandlerId("submit"));
+        Assert.NotNull(posted.Find("form").Attribute("data-rask-unvalidated"));
+    }
+
+    [Fact]
+    public async Task A_save_that_would_refuse_the_same_field_is_never_asked_while_the_field_is_unread()
+    {
+        var m = new Tank();
+        var saves = 0;
+        EditContext? ctx = null;
+        var page = Page.Render(() => Form.Model(m).OnSubmit(_ =>
+        {
+            saves++;
+            throw new ValidationException(new ValidationResult("The store says no.", [nameof(Tank.Weight)]), null, null);
+        })[Input.Bind(() => m.Weight), Test.EditContextProbe(c => ctx = c)]);
+
+        await page.On("input").Change("1.5");
+        await page.On("form").Submit();
+        var whileUnread = ctx!.GetValidationMessages().ToArray();
+        await page.On("input").Change("12");
+        await page.On("form").Submit();
+
+        Assert.Equal([Whole], whileUnread);
+        Assert.Equal(1, saves);
+        Assert.Equal(["The store says no."], ctx.GetValidationMessages());
+    }
+
+    private sealed class Label
+    {
+        public string Code { get; set; } = "x";
     }
 
     private sealed class Tank

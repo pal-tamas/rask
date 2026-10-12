@@ -423,7 +423,8 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     {
         base.WriteAttributes(sb);
         Delegate? submit;
-        if (Model is not null || Context is not null)
+        var validated = Model is not null || Context is not null;
+        if (validated)
         {
             var ctx = ResolveContext();
             submit = BuildSubmitBridge(ctx);
@@ -437,6 +438,13 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)
         {
             AppendAttr(sb, "data-rask-on-submit", liveCtx.RegisterHandler(submit));
+            if (!validated || OnAnySubmit.HasValue)
+            {
+                // A handler that takes what was posted runs whatever the rules said, and a form with no
+                // model has none: nothing of the page's stands between a field the browser calls invalid
+                // and that handler, so the browser's own refusal of the submit is left standing (rask-input.ts).
+                AppendAttr(sb, "data-rask-unvalidated", null);
+            }
         }
 
         if (ConfirmLeave is { } message)

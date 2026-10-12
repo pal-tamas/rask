@@ -79,7 +79,7 @@ public sealed class RuntimeHookSegmentsTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
-    public async Task Backspace_empties_a_part_and_on_an_empty_one_steps_back_without_taking_the_value_away()
+    public async Task Backspace_empties_a_part_and_steps_back_and_the_value_goes_once_the_group_is_left_half_filled()
     {
         await using var session = await HookSession.OpenAsync<SegmentsHookPage>(playwright);
         var page = session.Page;
@@ -90,11 +90,16 @@ public sealed class RuntimeHookSegmentsTests(PlaywrightFixture playwright) : ICl
         var emptied = await page.EvaluateAsync<string>(Part);
         await page.Keyboard.PressAsync("Backspace");
         var steppedBack = await page.EvaluateAsync<string>(Part);
+        var whileInTheGroup = await page.EvaluateAsync<string>(Date);
         await page.FocusAsync("#elsewhere");
+        var saysItHoldsNoDate = await page.EvaluateAsync<string>(
+            "() => document.querySelector('#date input[type=hidden]').getAttribute('data-rask-unread')");
 
         Assert.Equal("year", emptied);
         Assert.Equal("day", steppedBack);
-        Assert.Equal("12/15/ = 2026-12-15", await page.EvaluateAsync<string>(Date));
+        Assert.Equal("12/15/ = 2026-12-15", whileInTheGroup);
+        Assert.Equal("12/15/ = ", await page.EvaluateAsync<string>(Date));
+        Assert.Equal("date", saysItHoldsNoDate);
     }
 
     [Fact]

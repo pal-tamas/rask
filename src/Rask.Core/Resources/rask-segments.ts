@@ -10,13 +10,21 @@
 // and no handler, in whatever order the reader's locale puts them. The group holds ONE bound field
 // (rask-bound.ts) which carries the whole value once every part is there — "yyyy-mm-dd", "HH:mm" (24-hour),
 // or the two joined by "T" — announced with `input` and `change`. Emptying a part afterwards does not take
-// the value back, as it does not there. When the page writes the field, the parts are refilled from it.
+// the value back while the reader is still in the group. When the page writes the field, the parts are
+// refilled from it.
+//
+// LEFT HALF FILLED. Flux keeps the last whole value behind parts that no longer show it: a month erased and
+// the form saved stores the old date. Here the group says what it holds when the reader leaves it. Parts
+// half filled — a day and no month, an hour and no minute — carry no value, and the bound field says so
+// beside its empty value (`data-rask-unread`, read by rask-input.ts into the frame), so the page can say
+// "enter a valid date" under the field instead of saving what was there before. Every part emptied is
+// nothing chosen, and the field says that: an empty value.
 //
 // An empty part that has focus shows its placeholder as selected text, so the reader sees which part the next
 // digit goes to; it is taken out again on the way out.
 
-import {announce, bind} from "./rask-bound.js";
-import {listen, page} from "./rask-owned.js";
+import {announce, bind, boundOf, restate} from "./rask-bound.js";
+import {disown, listen, own, page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-segments]";
 const MAX: Record<string, number> = {month: 12, day: 31, hour: 23, minute: 59};
@@ -167,6 +175,52 @@ function value(group: Element): string | null {
     return out.length ? out.join("T") : null;
 }
 
+// The mark on the bound field of a group left half filled, and what the page had said the value was by then:
+// the page saying that again is no news, and must not be written back over what the reader is typing.
+const UNREAD = "data-rask-unread";
+const before = new WeakMap<Element, string>();
+
+function unmark(group: Element): void {
+    const bound = boundOf(group);
+    if (bound && bound.hasAttribute(UNREAD)) {
+        bound.removeAttribute(UNREAD);
+        disown(bound, UNREAD);
+    }
+    before.delete(group);
+}
+
+// Some part holds something and the whole is no value. AM or PM alone is nothing typed: an hour brings it.
+function half(group: Element): boolean {
+    return value(group) === null && partsOf(group).some(function (p) {
+        return kindOf(p) !== "meridiem" && read(p) !== "";
+    });
+}
+
+// The reader has left the group. Whole, it has said so already (commit). Half filled, or emptied, it says so now.
+function leave(group: Element): void {
+    const bound = boundOf(group);
+    if (!bound || value(group) !== null) {
+        return;
+    }
+    const marked = bound.hasAttribute(UNREAD);
+    if (half(group)) {
+        if (!marked) {
+            before.set(group, bound.getAttribute("value") || "");
+            own(bound, UNREAD);
+        }
+        bound.setAttribute(UNREAD, part(group, "year") || part(group, "month") || part(group, "day") ? "date" : "time");
+    } else if (marked || bound.value !== "") {
+        unmark(group);
+    } else {
+        return;
+    }
+    if (bound.value === "") {
+        restate(group);
+    } else {
+        announce(group, "");
+    }
+}
+
 // Says the value once it is whole. A day the month does not have becomes its last one first.
 function commit(group: Element): void {
     const day = part(group, "day");
@@ -175,7 +229,10 @@ function commit(group: Element): void {
         if (Number(read(day)) > most) show(day, pad(most));
     }
     const whole = value(group);
-    if (whole !== null) announce(group, whole);
+    if (whole !== null) {
+        unmark(group);
+        announce(group, whole);
+    }
 }
 
 // A part is being left: a year of one to three digits is read as a year, and a typed hour as a time of day.
@@ -253,6 +310,9 @@ bind(GROUP, function (group) {
     fill("hour", "");
     fill("meridiem", "");
     if (time) showHour(group, Number(time[1]), false);
+    unmark(group);
+}, function (group, rendered) {
+    return before.get(group) === rendered;
 });
 
 if (page) {
@@ -277,9 +337,20 @@ if (page) {
         }
     };
 
+    // A message shows under the field (data-rask-on-edit): a key that changes a part is the first key of a
+    // correction, and the page hears it as it hears one in any field — an `input` (rask-input.ts).
+    const correcting = function (el: HTMLInputElement, k: string): void {
+        const changes = (k >= "0" && k <= "9" && k.length === 1) || k === "ArrowUp" || k === "ArrowDown"
+            || k === "Backspace" || (kindOf(el) === "meridiem" && /^[aApP]$/.test(k));
+        if (changes && el.closest("[data-rask-on-edit]")) {
+            el.dispatchEvent(new Event("input", {bubbles: true}));
+        }
+    };
+
     const key = function (group: Element, el: HTMLInputElement, k: string): void {
         const parts = partsOf(group);
         const to = parts[parts.indexOf(el) + (k === "ArrowLeft" ? -1 : 1)];
+        correcting(el, k);
         if (k >= "0" && k <= "9" && k.length === 1) {
             digit(group, el, k);
         } else if (k === "ArrowLeft" || k === "ArrowRight") {
@@ -361,6 +432,11 @@ if (page) {
             if (ghost.has(el)) {
                 ghost.delete(el);
                 el.value = "";
+            }
+            const group = el.closest(GROUP);
+            const to = (e as FocusEvent).relatedTarget;
+            if (group && !(to instanceof Node && group.contains(to))) {
+                leave(group);
             }
         }
     }, true);

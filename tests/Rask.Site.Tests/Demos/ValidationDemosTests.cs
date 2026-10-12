@@ -62,6 +62,19 @@ public sealed partial class ValidationDemosTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task BindTimingDemo_says_what_its_whole_number_field_could_not_read_and_does_not_save()
+    {
+        var page = Rask.Testing.Page.Render(() => BindTimingDemo);
+
+        await page.On("#bt-travellers").Change("1.5");
+        await page.On("form").Submit();
+
+        Assert.Equal("Enter a whole number.", page.TextOf("#bt-travellers-error"));
+        Assert.Matches("<input[^>]*id=\"bt-travellers\"[^>]*type=\"number\"", page.Html);
+        Assert.DoesNotContain("Saved:", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BindTimingDemo_shows_a_list_that_waits_beside_a_switch_that_writes_as_it_is_flipped()
     {
         var html = new LiveHost(() => BindTimingDemo, TestServices.Default()).RenderAsLiveRoot();
