@@ -90,7 +90,7 @@ public sealed partial class ComponentFactoryGenerator
 
     // Which props participate in the propsChanged diff, asked of a builder setter. Mirrors the
     // factory's foldProps exactly (EmitFactory / EmitBoundOverload) so both surfaces report the same
-    // flag to NotifyParameters: Key is a reconciliation identity rather than a reactive prop;
+    // flag to NotifyParameters: Key is a reconciliation identity rather than a reactive prop, and
     // auto-wrapped callbacks and raw delegates are a fresh closure every render, so folding them would
     // force propsChanged: true on every frame and defeat the render cache for any callback-taking
     // component.
