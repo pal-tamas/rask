@@ -365,8 +365,8 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 }
 
                 // Held for the children to render — `f.Error` — INSTEAD of leaving the handler to fault.
-                // A save that fails is an ordinary thing for a form to show, and a page that says nothing
-                // about it is the one bug this cannot fix.
+                // A save that fails is an ordinary thing for a form to show, and a page that draws nothing
+                // for it is still told: SaveFault says it once, below.
                 _submitError = ex;
 
                 // And still reported, so catching it here does not cost the dev overlay or the log entry.
