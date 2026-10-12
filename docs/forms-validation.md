@@ -353,11 +353,15 @@ held. The model is left as it was, the field says what it could not read, and th
 
 | Bound type | Typed | The field says |
 |---|---|---|
-| `int`, `long`, `short`, `byte` and their unsigned kin | `1.5`, `-`, `abc` | `Enter a whole number.` |
-| `decimal`, `double`, `float` | `-`, `12.5.0` | `Enter a number.` |
-| any number | `99999999999` in an `int`, `-5` in a `uint`, `1e400` | `The number is out of range.` |
+| `int`, `long`, `short`, `byte` and their unsigned kin | `1.5`, `-`, `abc`, `1e400` | `Enter a whole number.` |
+| `decimal`, `double`, `float` | `-`, `12.5.0`, `1e400` | `Enter a number.` |
+| any number | `99999999999` in an `int`, `-5` in a `uint`, `1e30` in an `int` or a `decimal` | `The number is out of range.` |
 | `DateOnly`, `DateTime`, `DateTimeOffset` | a date half typed, `2026-02-31` | `Enter a valid date.` |
 | `TimeOnly`, `TimeSpan` | a time half typed, `25:99` | `Enter a valid time.` |
+
+`1e400` is more than a number input can hold at all: the browser hands it over as text it could not read,
+not as a number too large, so the field says the number sentence. Out of range is a number the browser did
+read and the member cannot hold.
 
 ```csharp
 Form.Model(_tank).OnSubmit(Save)[
