@@ -106,10 +106,12 @@ public sealed class OneRunDiffKeepsTypingTests(PlaywrightFixture playwright) : I
         var page = session.Page;
         await page.FillAsync("#email", "ada@");
         await page.EvaluateAsync(Mark, "email");
+        await page.EvaluateAsync("() => { window.__hint = document.getElementById('email-hint'); }");
 
         await page.ClickAsync("#refuse");
         await Expect(page.Locator("#email-error")).ToHaveTextAsync("Enter an email address.");
         var keptWithTheError = await page.EvaluateAsync<bool>(Kept, "email");
+        var hintKept = await page.EvaluateAsync<bool>("() => window.__hint === document.getElementById('email-hint')");
         await page.ClickAsync("#accept");
         await Expect(page.Locator("#email-error")).ToHaveCountAsync(0);
         var keptWithoutIt = await page.EvaluateAsync<bool>(Kept, "email");
@@ -117,6 +119,7 @@ public sealed class OneRunDiffKeepsTypingTests(PlaywrightFixture playwright) : I
         await Expect(page.Locator("#email")).ToHaveValueAsync("ada@");
         await Expect(page.Locator("#email-hint")).ToHaveTextAsync("Never shared.");
         Assert.True(keptWithTheError, "the field is not the node it was once the error arrived");
+        Assert.True(hintKept, "the hint below the error was turned into the error, and a new hint built after it");
         Assert.True(keptWithoutIt, "the field is not the node it was once the error left");
         Assert.True(frames.FullPages.Count == 0, frames.Trace());
     }
