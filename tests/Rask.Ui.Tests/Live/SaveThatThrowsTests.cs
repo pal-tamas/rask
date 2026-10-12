@@ -32,9 +32,9 @@ public partial class SaveThatThrowsTests : global::Rask.Core.RaskMarkup
     public async Task What_was_typed_is_still_in_the_field_and_the_button_can_be_pressed_again()
     {
         var page = Draw();
-        await page.On("input").Input("Glock 17");
+        await page.Type("Glock 17").Into("Name");
 
-        await page.On("form").Submit();
+        await page.Click("Save");
 
         Assert.Equal("Glock 17", page.Find("input").Attribute("value"));
         Assert.DoesNotContain("disabled", page.Find("button[type=\"submit\"]").Attributes.Keys);

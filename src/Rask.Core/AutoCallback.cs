@@ -54,6 +54,7 @@ public static class AutoCallback
 
         return () =>
         {
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 d();
@@ -78,6 +79,7 @@ public static class AutoCallback
 
         return arg =>
         {
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 d(arg);
@@ -103,6 +105,7 @@ public static class AutoCallback
         return async () =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d().ConfigureAwait(false);
@@ -128,6 +131,7 @@ public static class AutoCallback
         return async arg =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d(arg).ConfigureAwait(false);
@@ -153,6 +157,7 @@ public static class AutoCallback
         return async () =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d().ConfigureAwait(false);
@@ -178,6 +183,7 @@ public static class AutoCallback
         return async arg =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d(arg).ConfigureAwait(false);
@@ -209,6 +215,7 @@ public static class AutoCallback
 
         return (arg1, arg2) =>
         {
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 d(arg1, arg2);
@@ -234,6 +241,7 @@ public static class AutoCallback
         return async (arg1, arg2) =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d(arg1, arg2).ConfigureAwait(false);
@@ -259,6 +267,7 @@ public static class AutoCallback
         return async (arg1, arg2) =>
         {
             r.MarkDirtyForAsyncHandler();
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 await d(arg1, arg2).ConfigureAwait(false);
@@ -312,6 +321,7 @@ public static class AutoCallback
             return new Func<object?, Task>(async arg =>
             {
                 r.MarkDirtyForAsyncHandler();
+                Forms.PendingBinds.Precede(r);
                 using (CallbackOwnerScope.Enter(r))
                 {
                     if (d.DynamicInvoke(arg) is Task t)
@@ -326,6 +336,7 @@ public static class AutoCallback
 
         return new Action<object?>(arg =>
         {
+            Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
                 d.DynamicInvoke(arg);

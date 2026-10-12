@@ -43,9 +43,10 @@ public partial class UiRadioTests : global::Rask.Core.RaskMarkup
     public async Task Choosing_a_radio_writes_its_value_to_the_bound_member()
     {
         var model = new Account();
-        var page = Page.Render(() => Plans(model));
+        var page = Acting.Render(() => Plans(model));
 
         await page.On("#f-plan-team").Change("Team");
+        await Acting.Act(page);
 
         Assert.Equal(Plan.Team, model.Plan);
     }

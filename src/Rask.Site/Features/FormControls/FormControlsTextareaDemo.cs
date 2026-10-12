@@ -4,7 +4,8 @@ namespace Rask.Site.Features;
 // UiTextarea<T> — Rask.Core's HTMLTextAreaElement<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur) and
 //     re-renders this consumer so the character-count readout updates (the controlled-OnChange fix).
-//   • Bound — Textarea.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
+//   • Bound — Ui.Textarea.Bind(() => model.X): two-way binds through the EditContext. A bound field waits
+//     for the next action; Live() writes the model as it is typed, so the character count follows.
 public sealed partial class FormControlsTextareaDemo : Component
 {
     private string _controlled = "";
@@ -24,7 +25,7 @@ public sealed partial class FormControlsTextareaDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    Ui.Textarea.Bind(() => _model.Bio).Label("Bound (two-way)")
+                    Ui.Textarea.Bind(() => _model.Bio).Live().Label("Bound (two-way)")
                         .Rows(3)
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],

@@ -26,7 +26,7 @@ namespace Rask;
 ///     <c>Raw</c>.
 ///     </para>
 /// </remarks>
-public sealed partial class UiEditor : Component, IUiFieldControl
+public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
 {
     private static readonly UiPartMarker Marker = new UiPartMarker("ui-editor").And("ui-control");
 
@@ -45,6 +45,13 @@ public sealed partial class UiEditor : Component, IUiFieldControl
 
     /// <summary>The property the editor's HTML is bound to: read to start with, written on every change.</summary>
     public Expression<Func<string?>>? Bind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Editor.Bind(() =&gt; m.Body).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     /// <summary>Initial content for the editor. Used when not binding.</summary>
     public string? Value { get; set; }
@@ -93,7 +100,11 @@ public sealed partial class UiEditor : Component, IUiFieldControl
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
-    private string? Current => Bind is { } bind ? ExpressionAccessor.Parse(bind).Getter() as string : Value;
+    private string? Current => Bind is { } bind ? Held(ExpressionAccessor.Parse(bind)) : Value;
+
+    // What was written in the editor and not yet in the model is what it holds (PendingBinds), then the model's.
+    private string? Held(ExpressionAccessor.Accessor bound) =>
+        (PendingBinds.TryPeek(this, bound.Field, out var written) ? written : bound.Getter()) as string;
 
     /// <inheritdoc />
     protected override Component? Render()
@@ -177,12 +188,23 @@ public sealed partial class UiEditor : Component, IUiFieldControl
         if (Bind is { } bind)
         {
             var bound = ExpressionAccessor.Parse(bind);
-            bound.Setter(html);
+            var context = BindingHelpers.ResolveBindingContext(bound.Target);
             _given = html;
-            await BindingHelpers.NotifyAndValidateField(BindingHelpers.ResolveBindingContext(bound.Target), bound.Field);
-            if (Consumer(bind) is { } consumer)
+            await PendingBinds.Commit(this, bound.Field, context, html, Write, SettleAsync);
+
+            bool Write()
             {
-                await consumer.StateHasChangedAsync();
+                bound.Setter(html);
+                return true;
+            }
+
+            async Task SettleAsync()
+            {
+                await BindingHelpers.NotifyAndValidateField(context, bound.Field);
+                if (Consumer(bind) is { } consumer)
+                {
+                    await consumer.StateHasChangedAsync();
+                }
             }
         }
 

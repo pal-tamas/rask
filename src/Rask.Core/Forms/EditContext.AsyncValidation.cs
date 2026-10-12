@@ -100,7 +100,7 @@ public sealed partial class EditContext
 
         // A value the reader has committed — a change, a blur, the pause of a debounced field — unless a
         // live field said it is still being typed. A store's rules are asked about a committed value only.
-        var committed = !IsTypedInto(field);
+        var committed = !IsTypedInto(field) && !SubmitFollows;
 
         // Latest-wins: cancel any prior in-flight run for this field.
         // Note on the CTS lifecycle (looks racy, isn't): the live transports serialize handler

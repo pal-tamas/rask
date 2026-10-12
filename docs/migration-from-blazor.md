@@ -26,6 +26,7 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `@page "/path"` | `[Route("/path")]` on the class — **Rask's `Route`, from `Rask.Core.Routing`**; Blazor's attribute of the same name leaves the page unregistered ([RASK071](diagnostics.md#rask071)) |
 | route/query binding | `[RouteParam]` / `[QueryParam]` on a property |
 | `<EditForm>` + `InputText`/`InputNumber` | `Form.Model(model).OnSubmit(…)` + `Input.Bind(() => model.X)` |
+| `@bind` (writes on `change`) / `@bind:event="oninput"` | `.Bind(…)` writes with the next action; `.Blur()` on leaving the field; `.Live()` as it is typed |
 | `<DataAnnotationsValidator>` | nothing — a `Form` validates its model itself |
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize` — its `.Authorized(user => …)` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |

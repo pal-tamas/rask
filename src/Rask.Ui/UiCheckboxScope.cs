@@ -10,6 +10,7 @@ namespace Rask;
 /// <param name="All">Whether every checkbox that can be ticked is.</param>
 /// <param name="Some">Whether some are and some are not.</param>
 /// <param name="SetAll">Ticks every checkbox that can be ticked, or clears them.</param>
+/// <param name="Live">The group's <c>Live</c>: whether a choice is written as it is made.</param>
 internal sealed record UiCheckboxScope(
     string GroupId,
     Ui.CheckboxGroupVariant Variant,
@@ -19,7 +20,8 @@ internal sealed record UiCheckboxScope(
     Func<object?, bool, Task> Set,
     bool All,
     bool Some,
-    Func<bool, Task> SetAll)
+    Func<bool, Task> SetAll,
+    bool? Live = null)
 {
     /// <summary>
     ///     No group: what <see cref="UiCheckboxAll" /> hands the checkbox it draws, which belongs to the group

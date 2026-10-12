@@ -66,7 +66,7 @@ public partial class FormConfirmLeaveTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(new DraftPage());
 
-        await page.On("#title").Input("Notes");
+        await page.On("#title").Change("Notes");
 
         Assert.Equal("Leave without saving?", page.Attr("data-rask-confirm-leave"));
         Assert.Null(page.Attr("data-rask-saved"));
@@ -77,7 +77,7 @@ public partial class FormConfirmLeaveTests : global::Rask.Core.RaskMarkup
     {
         var draft = new DraftPage();
         var page = Page.Render(draft);
-        await page.On("#title").Input("Notes");
+        await page.On("#title").Change("Notes");
 
         await page.On("form").Submit();
         var afterTheFirst = page.Attr("data-rask-saved");
@@ -105,7 +105,7 @@ public partial class FormConfirmLeaveTests : global::Rask.Core.RaskMarkup
     {
         var draft = new DraftPage { SaveFails = true };
         var page = Page.Render(draft);
-        await page.On("#title").Input("Notes");
+        await page.On("#title").Change("Notes");
 
         await page.On("form").Submit();
 

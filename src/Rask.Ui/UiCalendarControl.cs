@@ -23,7 +23,7 @@ namespace Rask;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day, a collection of days, or a range.</typeparam>
-public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>, IUiClock
+public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>, IUiClock, IDeferredBind
 {
     private readonly UiCalendarState _state = new();
     private (bool Held, T? Value, T? Given) _own;
@@ -108,6 +108,13 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
 
     /// <inheritdoc />
     public Callback<T> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Calendar.Bind(() =&gt; m.Day).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     /// <inheritdoc />
     DateOnly? IUiClock.Today { get; set; }

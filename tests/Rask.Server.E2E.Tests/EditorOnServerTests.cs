@@ -118,7 +118,7 @@ public sealed partial class EditorPage : Component
 
     protected override Component? Render() =>
     [
-        Ui.Editor.Bind(() => _post.Body).Label("Notes"),
+        Ui.Editor.Bind(() => _post.Body).Live().Label("Notes"),
         Pre.Id("value")[string.IsNullOrEmpty(_post.Body) ? "(empty)" : _post.Body],
         Button.Id("set").OnClick(() => _post.Body = "<p>From <strong>the server</strong></p>")["set"],
         Button.Id("tick").OnClick(() => _ticks++)["tick"],

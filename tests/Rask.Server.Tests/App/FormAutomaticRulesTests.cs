@@ -65,6 +65,35 @@ public sealed class Berth : Aggregate<int>
     }
 }
 
+/// <summary>An aggregate of plain properties: nothing but their types says what must be filled.</summary>
+public sealed class Trailer : Aggregate<int>
+{
+    private Trailer() { }
+
+    public const Timestamps Stamps = Timestamps.None;
+
+    public const Concurrency Checks = Concurrency.None;
+
+    public int Weight { get; private set; }
+
+    public string Plate { get; private set; } = "";
+
+    public int? Axles { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Trailer> builder) => builder.ToTable("Trailers");
+}
+
+public sealed class LegacyTrailer
+{
+    public int Id { get; set; }
+
+    public int Weight { get; set; }
+
+    public string Plate { get; set; } = "";
+
+    public int? Axles { get; set; }
+}
+
 public sealed class LegacyBerth
 {
     public int Id { get; set; }
@@ -81,8 +110,12 @@ public sealed class LegacyQuayContext(DbContextOptions<LegacyQuayContext> option
 
     public DbSet<LegacyCrane> Cranes => Set<LegacyCrane>();
 
+    public DbSet<LegacyTrailer> Trailers => Set<LegacyTrailer>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<LegacyTrailer>().ToTable("Trailers");
+
         modelBuilder.Entity<LegacyBerth>(b =>
         {
             b.ToTable("Berths");
@@ -100,6 +133,32 @@ public sealed class LegacyQuayContext(DbContextOptions<LegacyQuayContext> option
 }
 
 public sealed class QuayDomainContext(DbContextOptions<QuayDomainContext> options) : RaskDbContext(options);
+
+/// <summary>
+///     The same form with a field sent at every keystroke: the one binding whose value reaches the model before
+///     it is committed, so a submit can find a name the store was never asked about.
+/// </summary>
+public sealed partial class BerthEveryKeyFormApp : Component
+{
+    private readonly BerthModel _model = new();
+    private int _saves;
+
+    protected override Component? Render() =>
+        Form.Model(_model).OnSubmit(Save)[f =>
+        [
+            Markup.P[$"fault={f.Error?.GetType().Name ?? "none"}"],
+            Markup.P[$"saves={_saves}"],
+            Input.Bind(() => _model.Name).Debounce(TimeSpan.Zero).Id("name"),
+            Validation.Message.Template(messages => Markup.P.Class("name-error")[string.Join(" + ", messages)]).For(() => _model.Name),
+            Button["save"],
+        ]];
+
+    private async Task Save(BerthModel berth)
+    {
+        _saves++;
+        await Berth.Create(berth);
+    }
+}
 
 /// <summary>A form over the aggregate's GENERATED model: a bound field, no rule written, a save that just saves.</summary>
 public sealed partial class BerthFormApp : Component
@@ -140,6 +199,29 @@ public sealed partial class BerthDraftFormApp : Component
             Validation.Message.Template(messages => Markup.P.Class("name-error")[string.Join(" + ", messages)]).For(() => _model.Name),
             Button["save"]
         ];
+}
+
+/// <summary>A create form that starts blank: a weight nobody has typed yet, and nothing validating it.</summary>
+public sealed partial class TrailerFormApp : Component
+{
+    private readonly TrailerModel _model = new() { Weight = null, Plate = "ABC-123" };
+    private int _saves;
+
+    protected override Component? Render() =>
+        Form.Model(_model).OnSubmit(Save)[
+            Markup.P[$"saves={_saves}"],
+            Input.Bind(() => _model.Weight).Id("weight"),
+            Validation.Message.Template(messages => Markup.P.Class("weight-error")[string.Join(" + ", messages)]).For(() => _model.Weight),
+            Input.Bind(() => _model.Axles).Id("axles"),
+            Validation.Message.Template(messages => Markup.P.Class("axles-error")[string.Join(" + ", messages)]).For(() => _model.Axles),
+            Button["save"]
+        ];
+
+    private async Task Save(TrailerModel trailer)
+    {
+        _saves++;
+        await Trailer.Create(trailer);
+    }
 }
 
 /// <summary>The same form with a rule of its own written on the field.</summary>
@@ -264,6 +346,56 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         var page = await OpenAsync(host, tenant: 7);
         using var ws = await AttachAsync(host, page);
 
+        var refused = await TypeThenSubmitAsync(ws, page, "name", "Budapest");
+
+        Assert.Contains($"<p class=\"name-error\">{Shown(Berth.NameTaken)}</p>", refused, StringComparison.Ordinal);
+        Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+        Assert.Contains("fault=none", refused, StringComparison.Ordinal);
+        Assert.Equal(TypedThenSubmittedQuestions, _questions.Count);
+    }
+
+    [Fact]
+    public async Task A_refused_save_of_a_name_typed_and_never_sent_sets_the_message_once_in_its_last_frame()
+    {
+        using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var renders = Renders(await TypeThenSubmitFramesAsync(ws, page, "name", "Budapest"));
+
+        // The submit repaints while the store is asked (a form in flight says so), and then with the answer.
+        // The message is in the answer alone: it is not set by the value, taken back and set again.
+        var told = renders.Where(frame => frame.Contains("name-error", StringComparison.Ordinal)).ToList();
+        Assert.Equal(2, renders.Count);
+        Assert.Same(renders[^1], Assert.Single(told));
+        Assert.Contains(Shown(Berth.NameTaken), LastHtml([told[0]]), StringComparison.Ordinal);
+        Assert.Equal(1, _questions.Count);
+    }
+
+    [Fact]
+    public async Task A_name_committed_alone_is_still_put_to_the_store_and_the_submit_after_it_asks_afresh()
+    {
+        using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var committed = await CommitAsync(ws, page, "name", "Budapest");
+        var askedByTheField = _questions.Count;
+        var refused = await SubmitAsync(ws, committed);
+
+        Assert.Contains($"<p class=\"name-error\">{Shown(Berth.NameTaken)}</p>", committed, StringComparison.Ordinal);
+        Assert.Equal(1, askedByTheField);
+        Assert.Equal(2, _questions.Count);
+        Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_taken_name_typed_into_a_field_sent_at_every_key_is_told_on_submit_and_does_not_reach_the_save()
+    {
+        using var host = await StartAsync<BerthEveryKeyFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
         var typed = await TypeAsync(ws, page, "name", "Budapest");
         var refused = await SubmitAsync(ws, typed);
 
@@ -369,6 +501,67 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     }
 
     [Theory]
+    [InlineData("hu", "Kötelező kitölteni.")]
+    [InlineData("en", GeneratedModelRules.RequiredMessage)]
+    public async Task An_unfilled_number_that_cannot_be_null_says_the_catalogs_sentence_in_the_readers_language_with_the_automatic_validators_off(
+        string language, string sentence)
+    {
+        var automatic = Rask.Core.Forms.RaskValidation.AutoValidate;
+        var strings = Rask.Core.Globalization.RaskStrings.Source;
+        Rask.Core.Forms.RaskValidation.AutoValidate = false;
+        Rask.Core.Globalization.RaskStrings.UseSource(new HungarianRequired());
+        try
+        {
+            using var host = await StartAsync<TrailerFormApp>(language);
+            var page = await OpenAsync(host, tenant: 7);
+            using var ws = await AttachAsync(host, page);
+
+            var refused = await SubmitAsync(ws, page);
+
+            // The weight is required by its type; the axles are optional, and nothing is said about them.
+            Assert.Contains($"<p class=\"weight-error\">{Shown(sentence)}</p>", refused, StringComparison.Ordinal);
+            Assert.DoesNotContain("axles-error", refused, StringComparison.Ordinal);
+            Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Rask.Core.Globalization.RaskStrings.UseSource(strings!);
+            Rask.Core.Forms.RaskValidation.AutoValidate = automatic;
+        }
+    }
+
+    [Fact]
+    public async Task A_field_that_is_required_by_its_type_says_so_to_assistive_technology_and_an_optional_one_does_not()
+    {
+        using var host = await StartAsync<TrailerFormApp>();
+        using var berths = await StartAsync<BerthFormApp>();
+
+        var trailer = await OpenAsync(host, tenant: 7);
+        var berth = await OpenAsync(berths, tenant: 7);
+
+        // A plain int, and a value object's text: both from the type, with no attribute on either model.
+        Assert.Contains("aria-required=\"true\"", Field(trailer, "weight"), StringComparison.Ordinal);
+        Assert.Contains("aria-required=\"true\"", Field(berth, "name"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-required", Field(trailer, "axles"), StringComparison.Ordinal);
+        Assert.DoesNotContain(" required", Field(trailer, "weight"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_create_with_no_form_names_the_unfilled_plain_properties_and_asks_the_database_nothing()
+    {
+        using var host = await StartAsync<TrailerFormApp>();
+        var commandsBefore = _questions.Commands;
+
+        var refused = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(
+            () => Trailer.Create(new TrailerModel { Weight = null, Plate = " " }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            [("Weight", GeneratedModelRules.RequiredMessage), ("Plate", GeneratedModelRules.RequiredMessage)],
+            refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal(commandsBefore, _questions.Commands);
+    }
+
+    [Theory]
     [InlineData(null, BerthName.Required)]
     [InlineData("", BerthName.Required)]
     [InlineData("A", BerthName.TooShort)]
@@ -437,6 +630,28 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         return LastHtml(await ws.SettledAsync()) ?? page;
     }
 
+    // The value arrives in the frame of its form's submit, so its own question is left to the submit, which
+    // asks the store about the whole model: once.
+    private const int TypedThenSubmittedQuestions = 1;
+
+    // What the browser sends for a field that waits, typed into and never left, when Save is pressed: one
+    // frame, the value first and the submit behind it.
+    private static async Task<string> TypeThenSubmitAsync(WebSocket ws, string page, string id, string value) =>
+        LastHtml(await TypeThenSubmitFramesAsync(ws, page, id, value)) ?? page;
+
+    private static async Task<List<string>> TypeThenSubmitFramesAsync(WebSocket ws, string page, string id, string value)
+    {
+        var change = ChangeHandler().Match(Field(page, id)).Groups[1].Value;
+        var submit = new { id = MarkupAssert.RequireAttr(page, "data-rask-on-submit"), type = "submit", form = new { } };
+        await ws.SendTypedThenAsync(change, value, submit, TestContext.Current.CancellationToken);
+
+        return await ws.SettledAsync();
+    }
+
+    // The frames that draw the page: an ack and a script carry no markup.
+    private static List<string> Renders(List<string> frames) =>
+        frames.Where(frame => LastHtml([frame]) is not null).ToList();
+
     private static async Task<string> SubmitAsync(WebSocket ws, string page)
     {
         var handler = MarkupAssert.RequireAttr(page, "data-rask-on-submit");
@@ -475,7 +690,7 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     }
 
     // The documented hand-wired host over a schema somebody else created, unique indexes included.
-    private async Task<RaskTestHost> StartAsync<TApp>()
+    private async Task<RaskTestHost> StartAsync<TApp>(string? language = null)
         where TApp : Component
     {
         Action<DbContextOptionsBuilder> database = o => o.UseSqlite($"Data Source={_dbPath};Pooling=False");
@@ -494,7 +709,22 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
                 });
             },
             configureMiddleware: app => app.UseRaskData(),
-            diffMode: LiveDiffMode.DisabledFull);
+            diffMode: LiveDiffMode.DisabledFull,
+            configureCulture: language is null
+                ? null
+                : c =>
+                {
+                    c.SupportedCultures.Add("en");
+                    c.SupportedCultures.Add("hu");
+                });
+
+        // The reader's language rides on the culture cookie, on the page request and on the socket alike.
+        if (language is not null)
+        {
+            var cookie = $".AspNetCore.Culture=c%3D{language}%7Cuic%3D{language}";
+            host.Http.DefaultRequestHeaders.Add("Cookie", cookie);
+            host.WebSockets.ConfigureRequest = r => r.Headers["Cookie"] = cookie;
+        }
 
         await using var legacy = await host.Services.GetRequiredService<IDbContextFactory<LegacyQuayContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
@@ -508,6 +738,15 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         await legacy.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return host;
+    }
+
+    /// <summary>An app's own catalog: it says the sentence in Hungarian, and nothing else.</summary>
+    private sealed class HungarianRequired : Rask.Core.Globalization.IRaskStringSource
+    {
+        public string? Get(Rask.Core.Globalization.RaskString key, string cultureTag) =>
+            key == Rask.Core.Globalization.RaskString.ValidationRequired && cultureTag.StartsWith("hu", StringComparison.Ordinal)
+                ? "Kötelező kitölteni."
+                : null;
     }
 
     /// <summary>Counts the "is there already such a row" questions the store is asked.</summary>

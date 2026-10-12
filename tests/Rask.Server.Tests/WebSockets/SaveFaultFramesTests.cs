@@ -78,19 +78,12 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
 
     private sealed class OpenForm(RaskTestHost host, WebSocket ws, string html, ITestOutputHelper output) : IAsyncDisposable
     {
-        // A name typed, then "Mentés" pressed with the field still focused: the browser sends the field's change
-        // and the submit one after the other. A field that binds on every keystroke hears those first, and what
-        // they were answered with is read past.
+        // A name typed, then "Mentés" pressed with the field still focused: the field waits, so the browser sends
+        // one frame, the value first and the submit behind it.
         public async Task<List<string>> Save(string name)
         {
-            if (MarkupAssert.Attr(html, "data-rask-on-input") is { } typing)
-            {
-                await ws.SendJsonAsync(new { id = typing, type = "input", value = name, seq = 1 });
-                await ws.SettledAsync();
-            }
-
-            await ws.SendJsonAsync(new { id = MarkupAssert.Attr(html, "data-rask-on-change"), type = "change", value = name, seq = 2 });
-            await ws.SendJsonAsync(new { id = MarkupAssert.Attr(html, "data-rask-on-submit"), type = "submit", form = new { Name = name }, seq = 3 });
+            var submit = new { id = MarkupAssert.RequireAttr(html, "data-rask-on-submit"), type = "submit", form = new { Name = name } };
+            await ws.SendTypedThenAsync(MarkupAssert.RequireAttr(html, "data-rask-on-change"), name, submit);
 
             var frames = (await ws.SettledAsync()).Where(static f => !f.StartsWith("{\"type\":\"ack\"", StringComparison.Ordinal)).ToList();
             foreach (var frame in frames)

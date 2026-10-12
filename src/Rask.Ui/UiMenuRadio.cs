@@ -1,3 +1,4 @@
+using Rask.Core.Forms;
 namespace Rask;
 
 /// <summary>
@@ -13,8 +14,13 @@ namespace Rask;
 /// A <c>menuitemradio</c> with a truthful <c>aria-checked</c>, and <c>data-checked</c> for styling.
 /// </para>
 /// </remarks>
-public sealed partial class UiMenuRadio : Component
+public sealed partial class UiMenuRadio : Component, IDeferredBind
 {
+    private UiMenuRadioScope? _group;
+
+    // A row answers for its group: choosing it is the group's value, written when the group says.
+    bool? IDeferredBind.Live => _group?.Live;
+
     /// <summary>The value this row stands for in its group. Compared with the group's by equality.</summary>
     public object? Value { get; set; }
 
@@ -39,7 +45,7 @@ public sealed partial class UiMenuRadio : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var group = Context.Get<UiMenuRadioScope>();
+        var group = _group = Context.Get<UiMenuRadioScope>();
         var level = Context.Get<UiMenuLevel>();
         var chosen = group?.IsChosen(Value) ?? Checked == true;
         var disabled = Disabled == true;

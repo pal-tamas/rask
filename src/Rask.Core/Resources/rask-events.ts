@@ -8,19 +8,18 @@
 // Model: one capture-phase document listener per event routes to the nearest ancestor carrying
 // `data-rask-on-<event>`, then ships the event's MDN fields — read by the table generated from MDN's data —
 // tagged with that element's handler id. What is Rask's own is the handful of listeners below that do more
-// than read an event: enter/leave simulation, drag seeding and dedupe, the keyboard's input flush.
+// than read an event: enter/leave simulation, drag seeding and dedupe, the keys a handler hears.
 
 // --- Per-category payload builders. Each maps a DOM event to the flat object its C# *EventArgs.FromJson
 //     reads. Keys mirror the DOM property names so the readers stay one-liners. ---
 
 import { inRoot, send } from "./rask-host.js";
 import { closestFrom } from "./rask-morph.js";
-import { flushInputsNow } from "./rask-input.js";
 import { domEvents } from "./generated/rask-dom-events.js";
 import { raskDomPayload } from "./rask-dom-payload.js";
 
 // Events with a listener of their own below or in a host: click (the hosts' submit/popover/loading guards),
-// keydown/keyup (the input flush), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
+// keydown/keyup (the `data-rask-keys` filter), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
 // rask-input), and enter/leave (simulated, below).
 var raskOwnListener = new Set(["click", "keydown", "keyup", "dragstart", "dragover", "drop", "dragend", "scroll",
     "mouseenter", "mouseleave", "pointerenter", "pointerleave"]);
@@ -119,8 +118,8 @@ document.addEventListener("dragend", function (e) {
 // ----- Keyboard --------------------------------------------------------------
 // keydown/keyup dispatch to the nearest ancestor carrying a handler (focus-scoped, like click).
 // Never preventDefault — a key handler composes with normal typing; the C# side decides what a key
-// means. flushInputsNow() first so an Enter-to-submit handler reads the value the user just typed, not the
-// pre-flush one. The KeyboardEvent's MDN fields ride along (key, code, repeat, the modifier keys, …).
+// means. What the reader typed goes ahead of the key (the hosts' send, rask-input.ts), so an Enter-to-submit
+// handler reads it. The KeyboardEvent's MDN fields ride along (key, code, repeat, the modifier keys, …).
 function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
     var t = closestFrom(e.target, "[" + attr + "]");
     if (!t || !inRoot(t)) { return; }
@@ -129,7 +128,6 @@ function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
     // render that changed nothing, ahead of the `input` that does.
     var keys = t.getAttribute("data-rask-keys");
     if (keys !== null && keys.split(" ").indexOf(e.key) < 0) { return; }
-    flushInputsNow();
     send(Object.assign(raskDomPayload(e, type), {id: t.getAttribute(attr), type: type}));
 }
 

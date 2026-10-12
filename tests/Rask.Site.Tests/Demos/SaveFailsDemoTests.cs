@@ -14,9 +14,9 @@ public sealed partial class SaveFailsDemoTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(() => SaveFailsDemo, TestServices.Default());
         using var toasts = Toast.Fake();
-        await page.On("#v14-name").Input("Wien – Linz");
+        await page.Type("Wien – Linz").Into("Route");
 
-        await page.On("form").Submit();
+        await page.Click("Save");
 
         toasts.Shown("The save failed. Please try again.").Once();
         toasts.Shown("The save failed. Please try again.").As(ToastLevel.Error);

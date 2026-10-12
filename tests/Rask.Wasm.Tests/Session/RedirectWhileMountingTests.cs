@@ -175,6 +175,24 @@ public sealed class RedirectWhileMountingTests : ResettingTestBase, IDisposable
         Assert.Null(FirstPushed(static f => f.Contains("late-content", StringComparison.Ordinal)));
     }
 
+    // The handler's await ends beside the repaint its page gets for the wait. Whichever comes first, the
+    // destination is not mounted by that repaint: only the navigation's own render waits for it.
+    [Fact]
+    public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_once_on_the_destination()
+    {
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode, navigationBudget: Patient);
+        services.GetRequiredService<RouteState>().Path = "/rs/start";
+        var handler = Regex.Match(
+            Html(await session.InitialRenderAsync()), "id=\"late-under-repaint\"[^>]*data-rask-on-click=\"([^\"]+)\"",
+            RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        var landed = await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
+
+        Assert.Equal(("/rs/home", "push"), History(landed));
+        Assert.Contains("home-content", Html(landed), StringComparison.Ordinal);
+        Assert.Null(FirstPushed(static f => f.Contains("late-content", StringComparison.Ordinal)));
+    }
+
     [Fact]
     public async Task A_first_load_of_a_page_that_loads_and_then_redirects_within_the_budget_opens_on_its_destination()
     {

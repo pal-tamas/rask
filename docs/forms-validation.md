@@ -14,8 +14,9 @@ Input.Bind(() => _model.Email)
     .Validate(v => v.Contains('@') ? [] : ["Email looks wrong."])
 ```
 
-There is no package to add and nothing to register. The rule runs when the field changes, once the
-reader has touched it, and again on submit.
+There is no package to add and nothing to register. The rule runs when the field's value arrives —
+with the next action, unless the field says `.Live()` or `.Blur()` — and again on submit
+([When the rules run](#when-the-rules-run)).
 
 **A second `.Validate(…)` adds a rule.** They run in the order written, and a rule is not asked about a
 value an earlier one rejected:
@@ -95,7 +96,9 @@ A value object that holds one value and has a public static `Validate` taking th
 `DestinationName` above — is asked by every field bound to it on the aggregate's generated model
 (`DestinationModel.Name`), with nothing written on the field. A property the aggregate declares non-nullable
 is required by its type: the rule is asked about the empty value too, so the words for "required" are the value
-object's own, with no `[Required]` and with the automatic validators on or off.
+object's own, with no `[Required]` and with the automatic validators on or off. A plain property that cannot be
+null (`int Weight`, `string Plate`) is required the same way, in the framework's one sentence — *This field is
+required.*, in the reader's language.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
@@ -144,8 +147,8 @@ Ui.Input.Bind(() => _model.Code).Validate(async code =>
 `Current.Cancellation`, which anything awaited inside the rule picks up, so an answer for an older
 value never lands on a newer one.
 
-A field's async rule runs on every change — for a live text field, every keystroke once it is touched.
-`.Debounce(…)` or `.Blur()` makes that once per pause, or once on leaving the field (see
+A field's async rule runs each time its value arrives: with the next action for a plain field, at each
+pause in typing for a `.Live()` one, on leaving a `.Blur()` one (see
 [When the rules run](#when-the-rules-run)). A check too expensive even for that belongs in the form's
 rule, which runs once, on submit:
 
@@ -228,7 +231,8 @@ Form.Model(_destination).OnSubmit(Save)[
 ```
 
 The store is asked when a field is **committed** — its value written to the model at a moment the reader
-stopped: a change, the pause of `.Debounce(…)`, leaving a `.Blur()` field — and once more on submit, for
+stopped: the next action for a plain field, the pause of `.Live()` or `.Debounce(…)`, leaving a `.Blur()`
+field — and once more on submit, for
 the whole model. It is never asked about a value still being typed into a field that writes every
 keystroke, and never about a value one of the field's own rules rejects; on submit it is asked only once
 every rule on the form has passed, so a known duplicate does not reach the save.
@@ -297,23 +301,32 @@ async Task Save(RouteModel route)
 
 ### When the rules run
 
-A text field binds on every keystroke, and its rules run with it once the reader has touched the field.
-`.Debounce(…)` and `.Blur()` move both to the moment the reader stops:
+A field's rules run when its value reaches the model, and a bound field says nothing until the next
+action. So a plain form shows no message while the reader types or moves between fields: the messages come
+when they press Save, and each one goes at the first key of its correction.
+
+`.Live()`, `.Debounce(…)` and `.Blur()` move a field's rules to the moment it speaks:
 
 ```csharp
+Ui.Input.Bind(() => _model.Traveller).Label("Traveller")
+    .Validate(name => name.Length > 0 ? [] : ["Who is travelling?"]),   // runs with the next action: Save
 Ui.Input.Bind(() => _model.Name).Label("Destination")
-    .Debounce(300.Milliseconds)
-    .Validate(DestinationName.Validate)   // runs at the pause
+    .Live()                               // runs as the reader types, 150 ms after the last key
+    .Validate(DestinationName.Validate)
     .Validate(NameIsFree),                // a lookup: only for a name the first rule accepted
 Ui.Textarea.Bind(() => _model.Notes).Label("Notes")
     .Blur()                               // runs on leaving the field
     .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."])
 ```
 
-Both rules of the first field answer in the one round trip the pause makes. The message under a field
-goes the moment the reader starts correcting it, Enter and Save send what was typed before they submit,
-and a lookup still running when Save is pressed is run again and waited for. The steps themselves are
-described under [Bind timing](forms.md#bind-timing).
+Both rules of the live field answer in the one round trip its pause makes. Enter and Save send what was
+typed before they submit, and a lookup still running when Save is pressed is run again and waited for.
+The steps themselves are described under [Bind timing](forms.md#bind-timing).
+
+Two kinds of rule that Rask adds for you follow the same clock. A **value object's** rule follows its
+field's bind timing: with the next action for a plain field, at the pause for a `.Live()` one. A rule
+answered by the **store** — a unique name, a range that must not overlap — runs when the field writes and
+on submit, which for a plain field is on submit.
 
 <!-- demo:validation-bind-timing -->
 
@@ -394,7 +407,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
 
 <!-- demo:validation-fluent -->
 
-Per-keystroke validation on a root-model field scopes FluentValidation to that single property
+Validating one root-model field — when its value arrives — scopes FluentValidation to that single property
 (`MemberNameValidatorSelector`, fast path); submit runs every rule. FluentValidation's own
 `Cascade(CascadeMode.Stop)` mirrors Rask's first-error-wins gating.
 

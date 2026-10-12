@@ -152,9 +152,20 @@ public sealed partial class ModelInputGenerator
             .Append(FormModelType(entity)).Append(" model, string path, ").Append(FailureList).AppendLine(" failures)");
         s.AppendLine("    {");
 
-        foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.ValueObject is not null))
+        foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value))
         {
-            AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", member.ValueObject!, kind, depth: 0);
+            if (member.RequiredByType)
+            {
+                if (!awaited)
+                {
+                    s.Append("        failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(member.Name)
+                        .Append("\", ").Append(RuleMethod("Root_", member.Name)).Append("(model.").Append(member.Name).AppendLine("));");
+                }
+            }
+            else if (member.ValueObject is { } valueObject)
+            {
+                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, kind, depth: 0);
+            }
         }
 
         foreach (var child in entity.Children.Where(c => (awaited ? entity.AwaitingChildren : entity.ValidatingChildren).Contains(c.Name, StringComparer.Ordinal)))
@@ -242,33 +253,58 @@ public sealed partial class ModelInputGenerator
     // framework's one sentence stands in.
     private static void AppendRuleMethods(StringBuilder s, Entity entity)
     {
-        foreach (var model in RuledModels(entity))
-        {
-            foreach (var rule in model.Rules)
-            {
-                var awaited = rule.Kind == ValueRule.Async;
-                var validate = rule.ValueObject + ".Validate";
-                string Ask(string value) => awaited ? "await " + validate + "(" + value + ")" : validate + "(" + value + ")";
+        var rules = RuledModels(entity).SelectMany(static m => m.Rules.Select(r => (m.Key, Rule: r))).ToList();
 
-                s.Append("    internal static ")
-                    .Append(awaited ? "async global::System.Threading.Tasks.ValueTask<" + StringSequence + "> " : StringSequence + " ")
-                    .Append(RuleMethod(model.Key, rule.Property)).Append('(').Append(rule.ModelType).AppendLine(" value) =>");
-                s.Append("        value is { } held ? ").Append(Ask("held")).Append(" : ").Append(Empty(rule, Ask)).AppendLine(";");
-                s.AppendLine();
-            }
+        foreach (var (key, rule) in rules)
+        {
+            var awaited = rule.Kind == ValueRule.Async;
+
+            s.Append("    internal static ")
+                .Append(awaited ? "async global::System.Threading.Tasks.ValueTask<" + StringSequence + "> " : StringSequence + " ")
+                .Append(RuleMethod(key, rule.Property)).Append('(').Append(rule.ModelType).AppendLine(" value) =>");
+            s.Append("        ").Append(RuleBody(rule, awaited)).AppendLine(";");
+            s.AppendLine();
+        }
+
+        if (rules.Exists(static r => r.Rule.Required))
+        {
+            AppendRequiredText(s, entity);
         }
     }
 
-    private static string Empty(FieldRule rule, Func<string, string> ask)
+    private static string RuleBody(FieldRule rule, bool awaited)
     {
-        if (!rule.Required)
+        var required = ModelRules + ".Required(__RequiredText())";
+
+        // No value object to ask: the property only has to be filled, and blank text is not.
+        if (rule.ValueObject is not { } valueObject)
         {
-            return NoMessages;
+            return (IsText(rule) ? "string.IsNullOrWhiteSpace(value)" : "value is null") + " ? " + required + " : " + NoMessages;
         }
 
-        return string.Equals(rule.ModelType, "string?", StringComparison.Ordinal)
-            ? ModelRules + ".OrRequired(" + ask("\"\"") + ")"
-            : ModelRules + ".Required()";
+        string Ask(string value) => (awaited ? "await " : "") + valueObject + ".Validate(" + value + ")";
+
+        var empty = NoMessages;
+        if (rule.Required)
+        {
+            empty = IsText(rule) ? ModelRules + ".OrRequired(" + Ask("\"\"") + ", __RequiredText())" : required;
+        }
+
+        return "value is { } held ? " + Ask("held") + " : " + empty;
+    }
+
+    private static bool IsText(FieldRule rule) => string.Equals(rule.ModelType, "string?", StringComparison.Ordinal);
+
+    // The framework's one sentence for a field that must be filled: from the strings catalog, in the reader's
+    // language, where the compilation has one; the same English otherwise. Read only on a path that fails.
+    private static void AppendRequiredText(StringBuilder s, Entity entity)
+    {
+        s.AppendLine("    private static string __RequiredText() =>");
+        s.Append("        ").Append(entity.RequiredFromCatalog
+            ? "global::Rask.Core.Globalization.RaskStrings.Get(global::Rask.Core.Globalization.RaskString.ValidationRequired, "
+              + ModelRules + ".RequiredMessage)"
+            : ModelRules + ".RequiredMessage").AppendLine(";");
+        s.AppendLine();
     }
 
     private static void AppendCheck(StringBuilder s, string modelType)

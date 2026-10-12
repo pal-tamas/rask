@@ -80,10 +80,9 @@ public partial class RepeatedValidateTests : global::Rask.Core.RaskMarkup
             Test.EditContextProbe(c => ctx = c)
         ]);
 
-        await page.On("input").Input("At");
         await page.On("input").Change("At");
         var afterShort = ctx!.GetValidationMessages(NameOf(m)).ToArray();
-        await page.On("input").Input("Atlantis");
+        await page.On("input").Change("Atlantis");
 
         Assert.Equal(["Name is too short."], afterShort);
         Assert.Equal(["Atlantis"], lookups);

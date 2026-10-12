@@ -338,6 +338,9 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             // pair is only observable for the async ones — which is exactly when it is wanted.
             _submitting = true;
 
+            // The submit a batch announced has arrived: from here every rule is asked afresh, the store's too.
+            ctx.SubmitFollows = false;
+
             // Cleared as the next submit starts, not as it ends: a form showing "something went wrong"
             // beside a spinner for the retry would be reporting the attempt before the one running.
             _submitError = null;
@@ -422,6 +425,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         {
             var ctx = ResolveContext();
             submit = BuildSubmitBridge(ctx);
+            ctx.SubmitHandler = submit;
         }
         else
         {

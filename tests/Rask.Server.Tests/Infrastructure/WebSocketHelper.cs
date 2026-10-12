@@ -13,6 +13,20 @@ internal static class WebSocketHelper
     }
 
     /// <summary>
+    ///     Sends what a browser sends when the reader typed into a bound field that waits and then acted: ONE
+    ///     batch frame, the field's value first (its <c>change</c>), the action after it.
+    /// </summary>
+    /// <param name="ws">The session's socket.</param>
+    /// <param name="changeHandler">The field's <c>data-rask-on-change</c> id.</param>
+    /// <param name="value">What was typed.</param>
+    /// <param name="action">The event the reader then caused — a submit, a click.</param>
+    /// <param name="ct">Cancels the send.</param>
+    public static Task SendTypedThenAsync(
+        this WebSocket ws, string changeHandler, string value, object action, CancellationToken ct = default) =>
+        ws.SendJsonAsync(
+            new { type = "batch", events = new[] { new { id = changeHandler, type = "change", value }, action } }, ct);
+
+    /// <summary>
     ///     Returns once the server has attached the socket that just sent a hello for <paramref name="sessionId" />.
     /// </summary>
     /// <remarks>

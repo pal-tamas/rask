@@ -52,15 +52,20 @@ public sealed partial class UiSelect<T> : UiSelectControl<T>, IFormControl<T>
     private protected override bool HoldsMany => false;
 
     /// <inheritdoc />
-    private protected override IReadOnlyList<T> Current() =>
-        UiFormCommit.Resolve(this).Current is { } current ? [current] : [];
+    private protected override IReadOnlyList<T> Current()
+    {
+        var (_, context, current) = UiFormCommit.Resolve(this);
+        Form = context ?? Form;
+
+        return current is null ? [] : [current];
+    }
 
     /// <inheritdoc />
     private protected override Task CommitAsync(IReadOnlyList<T> picked)
     {
         var (accessor, context, _) = UiFormCommit.Resolve(this);
 
-        return UiFormCommit.CommitAsync(this, accessor, context, picked.Count > 0 ? picked[0] : default!);
+        return UiFormCommit.CommitAsync(this, accessor, context ?? Form, picked.Count > 0 ? picked[0] : default!);
     }
 
     // Bind and Value are the two openings of Core's select, and both hand back the same element.
@@ -68,7 +73,7 @@ public sealed partial class UiSelect<T> : UiSelectControl<T>, IFormControl<T>
     private protected override Component NativeSelect(UiWithField field, string look, IReadOnlyList<Component?> options)
     {
         var select = Bind is { } bind
-            ? Select.Bind(bind).Validate(Validate).AfterBind(AfterBind)
+            ? Select.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live)
             : Select.Value(Value).OnChange(OnChange);
 
         return select

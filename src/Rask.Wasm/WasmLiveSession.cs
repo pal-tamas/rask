@@ -123,8 +123,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
             Interlocked.Decrement(ref _inScopeRendersWaiting);
             try
             {
-                await BuildPayloadAsync(null, false).ConfigureAwait(false);
-                if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+                if (await BuildPayloadAsync(null, false, midFlight: true).ConfigureAwait(false)
+                    && await TryEmitFrameAsync(false).ConfigureAwait(false))
                 {
                     _htmlBuffers.Commit();
                 }
@@ -414,6 +414,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         using var work = EnterWorkScope();
         await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
+        var submits = EventBatch.AnnounceSubmits(View, events);
         try
         {
             var sent = Array.Empty<byte>();
@@ -452,6 +453,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
         finally
         {
+            EventBatch.Withdraw(submits);
             EndBatch();
             InHandlerScope = false;
             _lock.Release();
@@ -805,6 +807,22 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return (html, frameWriter);
     }
 
+    // midFlight: the repaint of a page whose handler is still working. The walk takes its turn with that
+    // handler's navigation: made first, the page is the dispatch's to build and nothing is walked here — a walk
+    // that saw the moved route would mount the destination with nobody waiting for it. Null then.
+    private (ReadOnlyMemory<char> Html, FrameWriter? Frames)? RenderOnce(bool publishOnly, bool midFlight)
+    {
+        if (!midFlight)
+        {
+            return (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
+
+        lock (_navigator!.Moving)
+        {
+            return _navigator.NavigationPending ? null : (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
+    }
+
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
@@ -843,11 +861,19 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return RouteAuthorizationGuard.ChallengePath + returnUrl;
     }
 
-    // False when the payload carried a navigation a newer one replaced while its page was awaited.
+    // False when the payload carried a navigation a newer one replaced while its page was awaited, or when the
+    // handler behind a mid-flight repaint navigated before the page was walked: nothing was built.
+    // midFlight: that handler is still working, and may navigate at any await here.
     internal async Task<bool> BuildPayloadAsync(string? historyUrl, bool replace,
-        bool publishOnly = false, bool commitCache = true, bool arriving = false)
+        bool publishOnly = false, bool commitCache = true, bool arriving = false, bool midFlight = false)
     {
         await Task.Yield();
+
+        var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
+        if (midFlight && navigator.NavigationPending)
+        {
+            return false;
+        }
 
         if (await GuardRouteAsync().ConfigureAwait(false) is { } guardUrl)
         {
@@ -858,20 +884,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Render + decide diff-vs-full + write the frame — shared with the Server host
         // (LiveSessionBase). WASM has no AuthInstruction in the diff codec (the route-auth guard
         // above already redirected), so auth is null; the data-rask-root id is the constant "wasm".
-        ReadOnlyMemory<char> html;
-        FrameWriter? frameWriter;
-        if (arriving && _navigationBudget > TimeSpan.Zero)
+        var rendered = arriving && _navigationBudget > TimeSpan.Zero
+            ? await RenderArrivedAsync(publishOnly).ConfigureAwait(false)
+            : RenderOnce(publishOnly, midFlight);
+        if (rendered is not var (html, frameWriter))
         {
-            if (await RenderArrivedAsync(publishOnly).ConfigureAwait(false) is not var (settled, frames))
-            {
-                return false;
-            }
-
-            (html, frameWriter) = (settled, frames);
-        }
-        else
-        {
-            html = RenderTreeToHtml(publishOnly, out frameWriter);
+            return false;
         }
 
         // A page that sent the reader on while it was awaited is not written: the caller builds its destination.

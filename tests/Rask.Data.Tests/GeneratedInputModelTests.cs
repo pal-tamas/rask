@@ -312,11 +312,12 @@ public sealed class GeneratedInputModelTests : IDisposable
         var update = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(() => Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken));
         var create = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(() => Invoice.Create(fresh, cancellationToken: TestContext.Current.CancellationToken));
 
-        // Named by the field, the way a form reads it; the attribute's own sentence is the message.
+        // Named by the field, the way a form reads it, in the framework's one sentence — said by the type, so
+        // the model carries no attribute for a validator to find.
         Assert.Equal(["Balance"], Assert.Single(update.Failures).Fields);
-        Assert.Contains("Balance", Assert.Single(update.Failures).Message, StringComparison.Ordinal);
+        Assert.Equal(GeneratedModelRules.RequiredMessage, Assert.Single(update.Failures).Message);
         Assert.Equal(["Balance"], Assert.Single(create.Failures).Fields);
-        Assert.False(IsValid(edit, out _));
+        Assert.True(IsValid(edit, out _));
         Assert.Equal("March", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
         Assert.Equal(1, await Invoice.Count(TestContext.Current.CancellationToken));
     }

@@ -32,6 +32,24 @@ public static class GeneratedModelRules
     /// <returns><see cref="RequiredMessage" />, alone.</returns>
     public static IEnumerable<string> Required() => RequiredOnly;
 
+    /// <summary>The messages of an unfilled field that must be filled: <paramref name="sentence" />, alone.</summary>
+    /// <param name="sentence">The framework's sentence, in the reader's language.</param>
+    /// <returns><paramref name="sentence" />, alone.</returns>
+    public static IEnumerable<string> Required(string sentence) => [sentence];
+
+    /// <summary>
+    ///     What a value object said about its empty value — or, when it accepts that,
+    ///     <paramref name="sentence" />.
+    /// </summary>
+    /// <param name="said">The messages the value object's rule gave for its empty value.</param>
+    /// <param name="sentence">The framework's sentence, in the reader's language.</param>
+    /// <returns><paramref name="said" /> when it says anything; otherwise <paramref name="sentence" />.</returns>
+    public static IEnumerable<string> OrRequired(IEnumerable<string>? said, string sentence)
+    {
+        var own = OrRequired(said);
+        return ReferenceEquals(own, RequiredOnly) ? [sentence] : own;
+    }
+
     /// <summary>
     ///     What a value object said about its empty value — or, when it accepts that, the one sentence: the
     ///     property cannot be empty, and a field that holds nothing at all holds no value to keep.

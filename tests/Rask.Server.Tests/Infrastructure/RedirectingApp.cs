@@ -2,14 +2,19 @@ using Microsoft.AspNetCore.Authorization;
 using Rask.Core;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Infrastructure;
 
 // Pages that decide, as they mount or update, that the reader belongs elsewhere — "no partner chosen, go to
 // the partner list" — under a layout that shows the page's title in a crumb and in the document <title>.
-public sealed partial class RedirectingApp : Component
+public sealed partial class RedirectingApp(RouteState route) : Component
 {
-    protected override Component? Render() => Router;
+    protected override Component? Render()
+    {
+        RepaintHold.Reached(route);
+        return Router;
+    }
 }
 
 [Route("/redirect")]
@@ -27,7 +32,17 @@ public sealed partial class RedirectLayout(RouteState route, IPersistentState st
             Button.Id("to-late").OnClick(() => { Routes.RedirectLatePage().Go(); })["to late"],
             Button.Id("out").OnClick(() => Go.Out("/tenants"))["out"],
             Button.Id("save-then-late").OnClick(SaveThenGo)["save"],
+            Button.Id("late-under-repaint").OnClick(GoUnderTheRepaint)["save, slowly painted"],
             Outlet];
+
+    // The same save, coming back while the page is still being repainted for the wait.
+    private async Task GoUnderTheRepaint()
+    {
+        var hold = RepaintHold.Park(route);
+        await hold.Walking.ConfigureAwait(false);
+        Routes.RedirectLatePage().Go();
+        hold.Navigated();
+    }
 
     // The documented save, landing on a page that loads and then sends the reader on.
     private static async Task SaveThenGo()
