@@ -134,8 +134,9 @@ mistake, the rule notes the ID.
 ## Forms & validation
 
 - **Bind two-way with a `Bind` expression.** `Input.Bind(() => _model.Name)` replaces `Value` +
-  `OnInput`/`OnChange` + parsing, and infers the input type from the property's CLR type. `string`
-  fields update per keystroke; other types update on blur. It also *replaces* them: a bound control
+  `OnInput`/`OnChange` + parsing, and infers the input type from the property's CLR type. A bound
+  control writes the model with the next action; say `.Live()` on one you read back while the reader is
+  still typing ([bind timing](forms.md#bind-timing)). It also *replaces* them: a bound control
   installs its own write-back, so `Value`/`Checked`/`OnInput`/`OnChange` are not offered on a bound
   chain (and `AfterBind` is not offered on a controlled one) — reach for `AfterBind` when you want a
   side effect on each bound write. See [forms §1](forms.md#1-two-way-binding).
@@ -194,7 +195,7 @@ mistake, the rule notes the ID.
   ```
   Thread `Component.CancellationToken` into every async EF call so navigating away cancels in flight.
 - **Load in a lifecycle hook, store in a field, render the field** — never query in `Render()`
-  (which runs on every keystroke). For an event-handler mutation, do the work and reload; the awaited
+  (which runs on every event the page hears). For an event-handler mutation, do the work and reload; the awaited
   handler re-renders on completion automatically. See [data access](data-access.md).
 - **Keep EF Core on the Server.** The SQLite provider isn't a fit for the trimmed WASM runtime — a
   WASM app should reach data through an API. A [`decimal` is safe to use](data-access.md#does-sqlite-support-decimal):

@@ -21,7 +21,7 @@ namespace Rask;
 ///     the picking are C#.
 ///     </para>
 /// </remarks>
-public sealed partial class UiAutocomplete : Component, IFormControl<string>
+public sealed partial class UiAutocomplete : Component, IFormControl<string>, IDeferredBind
 {
     private readonly int _instance = UiInstanceCounter.Next();
 
@@ -39,6 +39,13 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>
 
     /// <summary>Called after the text has been written to the bound member and validated.</summary>
     public Callback<string> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Autocomplete.Bind(() =&gt; m.City).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     /// <summary>The input's type. Text when unset.</summary>
     public InputType? Type { get; set; }

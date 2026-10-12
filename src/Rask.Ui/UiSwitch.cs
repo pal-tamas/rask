@@ -19,7 +19,7 @@ namespace Rask;
 /// draw a <see cref="UiField" /> around it, the switch at the far edge unless <see cref="Align" /> says left.
 /// </para>
 /// </remarks>
-public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormControl
+public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormControl, IDeferredBind
 {
     // 32×20, the accent when on; in dark an outline that the fill replaces. 150ms on Tailwind's default curve.
     private const string Track =
@@ -87,6 +87,13 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<bool> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Switch.Bind(() =&gt; m.Notify).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(Id, Bind, Label);
@@ -108,7 +115,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
         // Bind and Value are the two openings of Core's input. Unbound it is an input over no value at all,
         // so a plain form posts the browser's "on" rather than a bool's "False".
         Component input = Bind is { } bind
-            ? Finish(Input.Bind(bind).Validate(Validate).AfterBind(AfterBind), field)
+            ? Finish(Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live), field)
             : Finish(Input.Value((string?)null).Type(InputType.Checkbox).Checked(Value).OnChange(Changed), field);
 
         // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.

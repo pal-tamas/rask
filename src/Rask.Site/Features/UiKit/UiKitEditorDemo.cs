@@ -29,7 +29,7 @@ public sealed partial class UiKitEditorDemo : Component
     protected override Component? Render() =>
         Div.Data("testid", "ui-editor").Class("max-w-xl space-y-8")[
             Example("Bound",
-                Ui.Editor.Bind(() => Notes).Label("Release notes").Description("Explain what's new in this release."),
+                Ui.Editor.Bind(() => Notes).Live().Label("Release notes").Description("Explain what's new in this release."),
                 Pre.Data("testid", "ui-editor-value").Class("overflow-x-auto rounded-lg bg-zinc-100 p-3 text-xs whitespace-pre-wrap dark:bg-white/10")[
                     string.IsNullOrEmpty(Notes) ? "(empty)" : Notes
                 ]),

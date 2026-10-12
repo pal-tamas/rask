@@ -25,7 +25,7 @@ namespace Rask;
 ///     search field over the list; <c>.Combobox</c> puts the input among the pills.
 ///     </para>
 /// </remarks>
-public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T>>
+public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T>>, IDeferredBind
 {
     /// <summary>The answers, when the page holds them. Pair it with <see cref="OnChange" />.</summary>
     public ICollection<T>? Value { get; set; }
@@ -41,6 +41,13 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
 
     /// <summary>Called after a pick has been written to the bound collection and validated.</summary>
     public Callback<ICollection<T>> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Pillbox.Bind(() =&gt; m.Tags).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     /// <summary>Shown while nothing is picked.</summary>
     public string? Placeholder { get; set; }
@@ -112,7 +119,7 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
         }
 
         var list = Bind is { } bind
-            ? Ui.Select.Bind(bind).Validate(Validate).AfterBind(AfterBind)
+            ? Ui.Select.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live)
             : Ui.Select.Values(Value).OnChange(OnChange);
 
         return list

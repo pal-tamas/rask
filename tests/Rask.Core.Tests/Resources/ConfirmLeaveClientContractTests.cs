@@ -31,7 +31,8 @@ public class ConfirmLeaveClientContractTests
 
         Assert.Contains("import { mayLeave } from \"../../Rask.Core/Resources/rask-owned.js\";", js, StringComparison.Ordinal);
         Assert.True(asked >= 0 && asked < sent, $"{host} sends a navigation without asking the guard first");
-        Assert.True(asked < navigate.IndexOf("flushInputsNow()", StringComparison.Ordinal), $"{host} flushes typed values to the server before the reader has chosen to stay");
+        Assert.True(js.Contains("sendTypedFirst(payload);", StringComparison.Ordinal), $"{host} no longer sends typed values ahead of what it sends");
+        Assert.False(js.Contains("flushInputsNow()", StringComparison.Ordinal), $"{host} flushes typed values on its own, where the reader may not yet have chosen to stay");
     }
 
     [Fact]

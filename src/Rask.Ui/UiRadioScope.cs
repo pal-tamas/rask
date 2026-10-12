@@ -9,6 +9,7 @@ namespace Rask;
 /// <param name="Invalid">Whether the group is drawn invalid.</param>
 /// <param name="Current">The group's value.</param>
 /// <param name="Choose">Makes a radio's value the group's.</param>
+/// <param name="Live">The group's <c>Live</c>: whether a choice is written as it is made.</param>
 internal sealed record UiRadioScope(
     string GroupId,
     string Name,
@@ -17,4 +18,5 @@ internal sealed record UiRadioScope(
     bool Indicator,
     bool Invalid,
     object? Current,
-    Func<object?, Task> Choose);
+    Func<object?, Task> Choose,
+    bool? Live = null);

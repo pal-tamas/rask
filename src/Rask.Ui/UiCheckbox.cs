@@ -23,7 +23,7 @@ namespace Rask;
 /// the browser's. <c>Label</c> and <c>Description</c> draw a <see cref="UiField" /> around it.
 /// </para>
 /// </remarks>
-public sealed partial class UiCheckbox : Component, IUiFormControl
+public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBind
 {
     private UiCheckboxScope? _group;
     private string? _ownId;
@@ -61,6 +61,13 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
     /// <summary>Runs after a bound write, with what was written.</summary>
     public Callback<bool> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Checkbox.Bind(() =&gt; m.Agreed).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     /// <summary>Runs with the new state when it is ticked or cleared and nothing is bound.</summary>
     public Callback<bool> OnChange { get; set; }
 
@@ -87,6 +94,9 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
         Id ?? (_group is { } group ? UiFieldId.Choice(group.GroupId, Value) : Standalone());
 
     LambdaExpression? IUiFieldControl.Bound => _group is null ? Bind : null;
+
+    // A box of a group answers for the group: its tick is the group's value, written when the group says.
+    bool? IDeferredBind.Live => _group is { } group ? group.Live : Live;
 
     string? IUiFormControl.DescriptionTrailing => null;
 
@@ -184,7 +194,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl
         // Bind and Value are the two openings of Core's input, and both hand back an input to finish.
         if (Bind is { } bind && _group is null)
         {
-            return Finish(Input.Bind(ExpressionAccessor.NonNullable(bind)).Validate(Validate).AfterBind(AfterBind), field);
+            return Finish(Input.Bind(ExpressionAccessor.NonNullable(bind)).Validate(Validate).AfterBind(AfterBind).Live(Live), field);
         }
 
         return Finish(

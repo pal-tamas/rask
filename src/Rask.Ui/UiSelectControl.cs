@@ -1,3 +1,4 @@
+using Rask.Core.Forms;
 using System.Globalization;
 using System.Linq.Expressions;
 
@@ -21,7 +22,7 @@ namespace Rask;
 ///     at all; the cursor, type-ahead, the search and the picking are C#.
 ///     </para>
 /// </remarks>
-public abstract partial class UiSelectControl<T> : Component, IUiFormControl
+public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind
 {
     private readonly int _instance = UiInstanceCounter.Next();
 
@@ -85,6 +86,13 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl
     /// <summary>True for a select that cannot be opened or changed.</summary>
     public bool? Disabled { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Select.Bind(() =&gt; m.Plan).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     /// <summary>True for error styling the form did not ask for. A bound select is invalid while its member holds a message.</summary>
     public bool? Invalid { get; set; }
 
@@ -134,6 +142,10 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl
     private bool Searches => IsCombobox || HasSearchField || PillsCombobox;
 
     /// <summary>What is picked now. Called once a render; a bound select registers its validator here.</summary>
+    // The form the bound member belongs to, as the last render found it: a pick is committed from a handler,
+    // which runs outside any render and would find none.
+    private protected EditContext? Form { get; set; }
+
     private protected abstract IReadOnlyList<T> Current();
 
     /// <summary>Writes a new answer: to the bound member, or to the page through its callback.</summary>

@@ -28,7 +28,7 @@ public sealed partial class FormConfirmLeaveDemoTests : global::Rask.Core.RaskMa
     public async Task Saving_the_note_marks_the_form_saved_and_shows_the_note()
     {
         var page = Page.Render(() => FormConfirmLeaveDemo, TestServices.Default());
-        await page.On("#fcl-input").Input("remember the milk");
+        await page.On("#fcl-input").Change("remember the milk");
 
         await page.On("#fcl-form").Submit("{\"form\":{\"Note\":\"remember the milk\"}}");
 

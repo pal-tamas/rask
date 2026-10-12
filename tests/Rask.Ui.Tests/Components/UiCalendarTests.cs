@@ -77,11 +77,13 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_click_writes_the_day_and_a_second_click_clears_it()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.Day).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Day).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(20))).Click();
+        await Acting.Act(page);
         var picked = trip.Day;
         await page.On(Day(Jan(20))).Click();
+        await Acting.Act(page);
 
         Assert.Equal(Jan(20), picked);
         Assert.Equal(default, trip.Day);
@@ -91,9 +93,10 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_nullable_binding_takes_the_picked_day()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.Due).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Due).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(9))).Click();
+        await Acting.Act(page);
 
         Assert.Equal(Jan(9), trip.Due);
         Assert.Contains("data-date=\"2026-01-09\" data-selected", page.Render(), StringComparison.Ordinal);
@@ -113,12 +116,14 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_collection_of_days_takes_each_click_and_gives_one_back_on_the_second()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Multiple.Bind(() => trip.DaysOff).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Multiple.Bind(() => trip.DaysOff).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(20))).Click();
         await page.On(Day(Jan(5))).Click();
+        await Acting.Act(page);
         var two = trip.DaysOff.ToList();
         await page.On(Day(Jan(20))).Click();
+        await Acting.Act(page);
 
         Assert.Equal([Jan(5), Jan(20)], two);
         Assert.Equal([Jan(5)], trip.DaysOff);
@@ -128,12 +133,13 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_range_is_written_whole_on_its_second_click()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(10))).Click();
         var held = trip.Stay;
         var waiting = page.Render();
         await page.On(Day(Jan(13))).Click();
+        await Acting.Act(page);
 
         Assert.Equal(default, held);
         Assert.Matches("data-date=\"2026-01-10\"[^>]*data-start", waiting);
@@ -144,12 +150,13 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_click_before_a_waiting_start_begins_the_range_again_from_there()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(Jan(20))).Click();
         await page.On(Day(Jan(12))).Click();
         var restarted = trip.Stay;
         await page.On(Day(Jan(14))).Click();
+        await Acting.Act(page);
 
         Assert.Equal(default, restarted);
         Assert.Equal(new UiDateRange(Jan(12), Jan(14)), trip.Stay);
@@ -226,10 +233,11 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     public async Task A_day_outside_min_and_max_is_disabled_and_takes_no_click()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Ui.Calendar.Bind(() => trip.Day).Min(Jan(10)).Max(Jan(20)).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Day).Min(Jan(10)).Max(Jan(20)).Locale("en-US").On(Today));
 
         var html = page.Render();
         await page.On(Day(Jan(12))).Click();
+        await Acting.Act(page);
 
         Assert.Matches("data-date=\"2026-01-09\"[^>]*aria-disabled=\"true\"", html);
         Assert.Matches("data-date=\"2026-01-21\"[^>]*aria-disabled=\"true\"", html);

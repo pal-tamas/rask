@@ -18,7 +18,7 @@ namespace Rask;
 /// is for the menu someone ticks several of.
 /// </para>
 /// </remarks>
-public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
+public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>, IDeferredBind
 {
     /// <summary>Shown but not pickable. The keyboard cursor steps over it.</summary>
     public bool? Disabled { get; set; }
@@ -42,6 +42,13 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<bool> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.MenuCheckbox.Bind(() =&gt; m.Compact).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     // Registration happens in Render; see Ui.MenuItem.
     /// <inheritdoc />
