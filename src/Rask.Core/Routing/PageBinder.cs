@@ -51,6 +51,35 @@ internal static class PageBinder
         return anyChanged;
     }
 
+    /// <summary>
+    ///     Whether every page of <paramref name="chain" /> can read the path's <paramref name="values" /> into
+    ///     its <c>[RouteParam]</c> properties. A path one of them cannot read is not that route's.
+    /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "As Bind: RASK011 guarantees every [RouteParam] property type is string or IParsable<T>.")]
+    public static bool CanBind(IReadOnlyList<Type> chain, Dictionary<string, string?> values)
+    {
+        if (values.Count == 0)
+        {
+            return true;
+        }
+
+        foreach (var page in chain)
+        {
+            foreach (var property in _propertyCache.GetOrAdd(page, DiscoverProperties))
+            {
+                if (property.IsRouteParam
+                    && values.TryGetValue(property.BindingName, out var text) && text is not null
+                    && !RouteValueParser.TryParse(property.Property.PropertyType, text, out _))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     [UnconditionalSuppressMessage("Trimming", "IL2067",
         Justification = "Activator.CreateInstance is only invoked when t is a non-nullable value type. " +
                         "Value types always carry a public parameterless constructor, so the trimmer's " +

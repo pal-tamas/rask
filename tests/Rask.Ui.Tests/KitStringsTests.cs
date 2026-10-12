@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Globalization;
 using Rask.UiTests.Flux;
 
@@ -112,6 +113,29 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("Kötelező kitölteni.", hungarian);
         Assert.Equal(english, elsewhere);
+    }
+
+    [Fact]
+    public void The_tab_of_the_error_page_that_stands_in_for_the_app_is_titled_in_the_visitors_language()
+    {
+        using var services = new ServiceCollection().BuildServiceProvider();
+#pragma warning disable RASK014 // the host wraps the app in the root boundary: here the test is the host
+        string Document() => new global::Rask.Core.Live.RootErrorBoundary(new AppThatThrows()).RenderAsLiveRoot(services).AsText();
+#pragma warning restore RASK014
+
+        var hungarian = KitCulture.In("hu-HU", Document);
+        var english = KitCulture.In("en-US", Document);
+
+        Assert.Contains(">Application error</title>", english, StringComparison.Ordinal);
+        Assert.Contains("Hiba történt", hungarian, StringComparison.Ordinal);
+        Assert.Equal("Alkalmazáshiba", Regex.Match(hungarian, "<title[^>]*>([^<]*)<").Groups[1].Value);
+        Assert.DoesNotContain("Application error", hungarian, StringComparison.Ordinal);
+    }
+
+    [global::Rask.Core.SkipFactory]
+    private sealed class AppThatThrows : global::Rask.Core.Component
+    {
+        protected override global::Rask.Core.Component? Render() => throw new InvalidOperationException("db.internal");
     }
 
     [Fact]
@@ -243,6 +267,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),
+        nameof(RaskString.ErrorTitle),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

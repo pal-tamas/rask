@@ -32,6 +32,8 @@ interface Seam {
     ours: WeakMap<Element, Ours>;
     /** The element the runtime is opening or shutting right now. */
     acting?: Element | null;
+    /** How many things the runtime is doing right now that no reader asked for (`unasked`). */
+    unasked?: number;
 }
 
 /**
@@ -114,6 +116,34 @@ export function ownsChecked(el: Element): boolean {
  */
 export function mayLeave(again: () => void): boolean {
     return !seam.leave || seam.leave(again);
+}
+
+// ----- Whose doing an event is ------------------------------------------------------------------------
+//
+// A bound control waits for the reader's NEXT ACTION, and what waits goes ahead of whatever the page sends
+// (rask-input.ts). Not everything the page sends is the reader's doing: a toast whose time is up presses its
+// own close button, a chart reports the box it was measured at, a video plays on, the server is answered. Sent
+// as an action, any of those wrote a field the reader was still typing in, and its rules spoke under it.
+//
+// So what the runtime does BY ITSELF says so, here, at the place it does it. Everything raised or sent inside
+// `unasked` — a click, a dispatched event, a frame — carries nothing ahead of it and is marked on the wire, so
+// the page does not write what its own controls hold for the next action either (PendingBinds.cs). Anything
+// else is the reader's: a press, a key, a script pressing for them. On the seam, since the hooks bundle marks
+// what the runtime's bundle sends.
+
+/** Runs `act`, something the runtime does with no reader behind it: a timer running out, a box measured. */
+export function unasked(act: () => void): void {
+    seam.unasked = (seam.unasked || 0) + 1;
+    try {
+        act();
+    } finally {
+        seam.unasked--;
+    }
+}
+
+/** Whether what is being sent right now is the runtime's own doing rather than the reader's. */
+export function isUnasked(): boolean {
+    return !!seam.unasked;
 }
 
 // ----- Shared helpers ---------------------------------------------------------------------------------

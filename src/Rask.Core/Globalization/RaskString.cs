@@ -439,4 +439,7 @@ public enum RaskString
     ///     no boundary of the app's own was there to take it.
     /// </summary>
     HandlerFailed,
+
+    /// <summary>The title of the tab while the error page stands in for the whole app.</summary>
+    ErrorTitle,
 }

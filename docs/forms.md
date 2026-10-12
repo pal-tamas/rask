@@ -88,6 +88,11 @@ filter. A control you only read in the submit handler needs nothing.
   submit, Enter in a field, a key an `OnKeyDown` hears, another control's `.Live()` or `.Blur()` change, a
   navigation, an event a kit component raises (a tab, a menu item, a dragged row). Each is preceded by the
   values that waited, so a handler never reads a model that has not heard what was typed.
+- **What the page does by itself is not an action.** A toast whose time is up closing itself, a chart
+  reporting the size it was measured at, a list scrolling, a video playing on, an animation ending, an
+  image arriving, the reply to a JavaScript call, a call your script makes into .NET: none of them writes
+  a field the reader is still typing in, and none runs its rules. Their handlers run; what waits goes on
+  waiting for the reader.
 - **A render the server starts** — a timer, a push, a handler that finishes later — cannot ask the browser
   first. It sees the model as of the last action, and it does not take back what the reader has entered
   since: the text stays in the field, the box stays ticked, and both still travel with the next action.

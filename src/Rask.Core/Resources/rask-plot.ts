@@ -41,7 +41,7 @@
 // was prerendered, measured before any host was there to hear it, gets its sizes once the host takes over.
 
 import {announce, bind, boundOf} from "./rask-bound.js";
-import {disown, listen, near, own, page} from "./rask-owned.js";
+import {disown, listen, near, own, page, unasked} from "./rask-owned.js";
 
 const PLOT = "[data-rask-plot]";
 const MEASURE = "[data-rask-measure]";
@@ -236,6 +236,10 @@ if (page) {
     }, {capture: true, passive: true});
 
     if (typeof ResizeObserver === "function" && typeof MutationObserver === "function") {
+        // A box was measured: the page is told, and no reader did a thing (rask-owned.ts).
+        const tell = function (el: Element, size: string): void {
+            unasked(function () { announce(el, size); });
+        };
         const told = new WeakSet<Element>();
         const boxes = new WeakMap<Element, DOMRectReadOnly>();
         const changing = new Map<Element, string>();
@@ -243,7 +247,7 @@ if (page) {
         const settle = function (): void {
             timer = null;
             changing.forEach(function (size, el) {
-                if (el.isConnected) announce(el, size);
+                if (el.isConnected) tell(el, size);
             });
             changing.clear();
         };
@@ -273,7 +277,7 @@ if (page) {
                     changing.set(el, size);
                 } else {
                     told.add(el);
-                    announce(el, size);
+                    tell(el, size);
                 }
             }
             if (changing.size > 0) {
@@ -296,7 +300,7 @@ if (page) {
         }, function (el, rendered) {
             const box = boxes.get(el);
             if (box && !sameBox(rendered, box.width, box.height)) {
-                announce(el, sizeText(box.width, box.height));
+                tell(el, sizeText(box.width, box.height));
             }
         });
         new MutationObserver(function (records) {

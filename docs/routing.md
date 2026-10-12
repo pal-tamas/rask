@@ -53,7 +53,12 @@ meant to keep only for old bookmarks. Read the current URL from `RouteState` to 
 two.
 
 Routes use Blazor-style `{param}` placeholders, support optional segments (`{name?}`), and accept type constraints
-(`{id:int}`). The generator validates the template at compile time:
+(`{id:int}`, `{id:long}`, `{flag:bool}`, `{id:guid}`). **A segment that is not what its route says does not
+match**: `/users/abc` and `/users/99999999999999999999` are not `/users/{id:int}`, so the next route is tried
+and the [not-found page](#not-found-and-auth-gating) answers — with a 404 on a first request — when none takes it. The same
+holds without a constraint, for the type of the property the segment binds to: `/on/2026-13-45` is not a
+`DateOnly`. A number is read as .NET reads it, culture-invariant: `007` and `+5` are numbers, `1,000` and
+`1.5` are not an `int`. The generator validates the template at compile time:
 
 - A malformed template raises [RASK003](diagnostics.md#rask003).
 - A segment with no matching property raises [RASK004](diagnostics.md#rask004).

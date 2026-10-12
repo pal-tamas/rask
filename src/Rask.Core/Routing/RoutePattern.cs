@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.Core.Routing;
 
 internal sealed class RoutePattern
@@ -90,14 +92,15 @@ internal sealed class RoutePattern
     {
         var optional = inner[^1] == '?';
         var paramName = optional ? inner[..^1] : inner;
-        // Type constraints (`{id:guid}`, `{count:int}`, …) are a generator-side hint —
-        // RoutesGenerator parses them for the typed URL-formatter signature and runtime
-        // bindability checks, but the live router doesn't enforce them. Strip the
-        // `:constraint` suffix here so the segment param name matches the binding name
-        // (`Id`, `Count`, …) that PageBinder will look up in the values dictionary.
+        // A type constraint (`{id:guid}`, `{count:int}`, …) types the generated URL and is held to here: a
+        // segment that is not one — letters, digits past what an int holds — does not match, and the path
+        // falls to the next route or to not-found. The suffix is cut off the name, which is the binding
+        // name (`Id`, `Count`, …) PageBinder looks up in the values.
+        Func<string, bool>? holds = null;
         var colon = paramName.IndexOf(':');
         if (colon >= 0)
         {
+            holds = Constraint(paramName[(colon + 1)..]);
             paramName = paramName[..colon];
         }
 
@@ -108,8 +111,20 @@ internal sealed class RoutePattern
                 + "before the constraint and the '?' — '{id:guid?}', not '{:guid?}'.");
         }
 
-        return new RouteSegment(SegmentKind.Parameter, string.Empty, paramName, optional);
+        return new RouteSegment(SegmentKind.Parameter, string.Empty, paramName, optional, holds);
     }
+
+    // The four the generator types a URL by (RoutesGenerator.PathParamTypeFqn). Any other word is a string.
+    // Read as PageBinder reads the value into the property (IParsable, invariant): a sign and leading zeros
+    // are a number, a thousands separator or a decimal point is not.
+    private static Func<string, bool>? Constraint(string constraint) => constraint switch
+    {
+        "int" => static text => int.TryParse(text, CultureInfo.InvariantCulture, out _),
+        "long" => static text => long.TryParse(text, CultureInfo.InvariantCulture, out _),
+        "bool" => static text => bool.TryParse(text, out _),
+        "guid" => static text => Guid.TryParse(text, out _),
+        _ => null,
+    };
 
     public bool TryMatch(string path, out Dictionary<string, string?> values)
     {
@@ -162,7 +177,8 @@ internal sealed class RoutePattern
         return true;
     }
 
-    // A literal must match (case-insensitively); a parameter always does, and records what it matched.
+    // A literal must match (case-insensitively); a parameter does when it can be read as what its constraint
+    // says it is, and records what it matched.
     private static bool MatchSegment(RouteSegment seg, string current, Dictionary<string, string?> values)
     {
         if (seg.Kind == SegmentKind.Literal)
@@ -172,7 +188,13 @@ internal sealed class RoutePattern
 
         if (seg.Kind == SegmentKind.Parameter)
         {
-            values[seg.ParamName] = Uri.UnescapeDataString(current);
+            var value = Uri.UnescapeDataString(current);
+            if (seg.Holds is { } holds && !holds(value))
+            {
+                return false;
+            }
+
+            values[seg.ParamName] = value;
         }
 
         return true;

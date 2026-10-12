@@ -9,6 +9,7 @@
 import {elapse, frame, listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {changeSent, remember, sendTypedFirst, waitsForAction} from "../../../src/Rask.Core/Resources/rask-input.js";
+import {listen, replayMissed, seam, unasked} from "../../../src/Rask.Core/Resources/rask-owned.js";
 import "../../../src/Rask.Core/Resources/rask-events.js";
 
 let sent: string[] = [];
@@ -17,9 +18,10 @@ let answers = false;
 
 function hostSend(payload: unknown): unknown {
     sendTypedFirst(payload);
-    const event = payload as { id?: string; type: string; value?: string; values?: string[] };
+    const event = payload as { id?: string; type: string; value?: string; values?: string[]; unasked?: boolean };
     const said = event.values ? event.values.join("+") : event.value;
-    sent.push(said === undefined ? event.type + ":" + (event.id ?? "") : event.type + ":" + said);
+    // An event the runtime raised by itself says so on the wire: written here with a `~` after it.
+    sent.push((said === undefined ? event.type + ":" + (event.id ?? "") : event.type + ":" + said) + (event.unasked ? "~" : ""));
     return answers ? new Promise<void>(function (answer) { owed.push(answer); }) : undefined;
 }
 
@@ -111,8 +113,8 @@ const aKeyNobodyHears = taken();
 listeners.keydown({target: combo, key: "Enter"});
 const beforeAHandledKey = taken();
 
-// Every other event the page hears is sent by the same `send`: one from MDN's table (dblclick), a pointer
-// crossing an edge, the start of a drag, a scroll (once a frame), and whatever a behaviour hook dispatches.
+// Every other event the READER raises is sent by the same `send`: one from MDN's table (dblclick), a pointer
+// crossing an edge, the start of a drag, a popover they opened or shut.
 fresh();
 name = waiting("name");
 type(name, "Eve");
@@ -124,14 +126,46 @@ const beforeAPointerEntering = taken();
 type(name, "Gus");
 listeners.dragstart({target: new StubField({"data-rask-on-dragstart": "drag"})});
 const beforeADrag = taken();
+type(name, "Ida");
+listeners.toggle({target: new StubField({"data-rask-on-toggle": "opened"})});
+const beforeAToggle = taken();
+
+// What the runtime does BY ITSELF is nobody's next action: it is sent alone, marked, and what waits goes on
+// waiting for the reader. A toast whose time is up presses its own close button; a chart announces the box it
+// was measured at on its bound field; the browser says a box scrolled, a video played on, an animation ended,
+// an image arrived; the server is answered.
+fresh();
+name = waiting("name");
 type(name, "Hal");
+unasked(function () { hostSend({id: "close", type: "click"}); });
+const aToastsOwnPress = taken();
+const measured = new StubField({"data-rask-on-input": "size", "data-rask-on-change": "sized"});
+unasked(function () { type(measured, "640x480"); });
+const aMeasuredBox = taken();
 listeners.scroll({target: new StubField({"data-rask-on-scroll": "scrolled"})});
 const scrollBeforeItsFrame = taken();
 frame();
-const beforeAScroll = taken();
-type(name, "Ida");
-listeners.toggle({target: new StubField({"data-rask-on-toggle": "hook"})});
-const beforeAHooksEvent = taken();
+const aScroll = taken();
+listeners.timeupdate({target: new StubField({"data-rask-on-timeupdate": "playing"})});
+const mediaPlayingOn = taken();
+listeners.animationend({target: new StubField({"data-rask-on-animationend": "faded"})});
+const anAnimationEnding = taken();
+listeners.load({target: new StubField({"data-rask-on-load": "arrived"})});
+const anImageArriving = taken();
+unasked(function () { hostSend({id: "7", type: "jsResult"}); });
+const anInteropReply = taken();
+hostSend({id: "save", type: "click"});
+const stillSentWithTheAction = taken();
+
+// A press the hooks missed while their bundle was on its way is handed to them when it arrives, and what a
+// hook then sends for it is the reader's as much as it was: the value goes ahead.
+fresh();
+name = waiting("name");
+type(name, "Ian");
+listen("pointerdown", function () { hostSend({id: "row", type: "click"}); });
+seam.missed = [{type: "pointerdown"} as unknown as Event];
+replayMissed();
+const aReplayedPress = taken();
 
 // Another control that IS sent at once carries what was typed before it: a live field's pause, a field sent
 // at every key, a field bound on blur as it is left.
@@ -190,15 +224,6 @@ type(name, "Mo");
 const firstKeystrokeOfACorrection = taken();
 hostSend({id: "save", type: "click"});
 const thenTheCorrection = taken();
-
-// The reply to an interop call is the server's doing, not the reader's: nothing is sent ahead of it.
-fresh();
-name = waiting("name");
-type(name, "Ned");
-hostSend({id: "7", type: "jsResult"});
-const anInteropReply = taken();
-hostSend({id: "save", type: "click"});
-const stillSentWithTheAction = taken();
 
 // A field that left the page before the action has nothing to say.
 fresh();
@@ -259,9 +284,15 @@ process.stdout.write(JSON.stringify({
     beforeATableEvent,
     beforeAPointerEntering,
     beforeADrag,
+    beforeAToggle,
+    aToastsOwnPress,
+    aMeasuredBox,
     scrollBeforeItsFrame,
-    beforeAScroll,
-    beforeAHooksEvent,
+    aScroll,
+    mediaPlayingOn,
+    anAnimationEnding,
+    anImageArriving,
+    aReplayedPress,
     liveBeforeItsPause,
     beforeALiveFieldsPause,
     liveSaysNoMore,

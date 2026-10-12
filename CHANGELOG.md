@@ -14,6 +14,27 @@ them until tagged releases begin.
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
   leaving the button for anything but its panel closes it now (`rask-overlay.ts`), as measured on Flux.
   `rask-hooks.js` is BUNDLE_DELTA bytes larger.
+- **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
+  whatever the page sent next carried it — including the press the runtime makes on a toast's close button
+  when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,
+  the half-typed name went with it, and the unique rule spoke under a field the reader was still in. Now only
+  what the reader did carries what waits. What the runtime does by itself is sent alone and marked
+  (`"unasked":true`), so the page writes nothing its drawn controls hold either: a toast's timed dismissal, a
+  chart's measured size, the drawer a navigation unchecks, a `scroll`, a media, animation, transition, `load`
+  or `error` event, focus a render moved, a field restored after a reload, the reply to an interop call. On
+  the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
+  WebAssembly.
+
+- **A route segment its page cannot read is not found, not a 500.** `/destinations/99999999999999999999`
+  matched `/destinations/{id:int}` — the router never held a constraint to anything — and the page then
+  failed to bind it: `RouteBindException`, the error page, a 500. A segment that is not what its constraint
+  says (`int`, `long`, `bool`, `guid`), or that the bound property's type cannot hold (a `DateOnly`, a
+  `decimal`, an enum), now does not match: the next route is tried, and the not-found page answers, with a
+  404 on a first request and on a live navigation alike.
+
+- **The error page's tab title is translated.** The built-in error page said `Application error` in the tab
+  over a Hungarian body. The title is a string of the catalog now, `RaskString.ErrorTitle` (the kit's
+  Hungarian: `Alkalmazáshiba`); the English is unchanged.
 - **A page reached in place focuses its `autofocus` field.** A form opened by a `NavLink`, by `Go()` from a
   handler or by a redirect left its first field unfocused — `Ui.Input….Autofocus(true)` was in the markup, but a
   browser acts on `autofocus` only when it loads a document, and a navigation in an open session is a patch of

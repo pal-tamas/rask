@@ -341,6 +341,12 @@ public abstract partial class Component
     internal Delegate? HandlerOf(string id) =>
         _live?.Handlers is { } handlers && handlers.TryGetValue(id, out var entry) ? entry.Item2 : null;
 
+    // An event the browser's runtime raised by itself — a toast's time running out, a measured box — says so
+    // (`unasked`, rask-owned.ts). It is nobody's next action: what waits goes on waiting.
+    private static bool IsUnasked(JsonElement payload) =>
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty("unasked", out var mark) && mark.ValueKind == JsonValueKind.True;
+
     // What controls drawn in C# chose and have not written goes first, unless this is such a control drawing
     // itself (PendingBinds): no handler of the page reads a model that has not heard a pick. Forwarding, so
     // an event with nothing waiting anywhere pays one static read.
@@ -352,7 +358,7 @@ public abstract partial class Component
     private async ValueTask<bool> DispatchAroundPicksAsync(
         PendingBinds binds, Delegate handler, JsonElement payload, Component owner)
     {
-        if (!binds.IsOwn(owner))
+        if (!binds.IsOwn(owner) && !IsUnasked(payload))
         {
             await binds.FlushAsync(handler).ConfigureAwait(false);
         }
