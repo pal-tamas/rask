@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A scaffolded app's pages say what they are called, and `App` writes the tab title.** `rask new` (server,
+  wasm, wasm-hosted) now scaffolds `App(RouteState route)` with one `HeadAssets` line —
+  `Title[route.Title is { } page ? $"{page} | Shop" : "Shop"]` — and the sign-in, registration, devices and error
+  pages declare `protected override string? PageTitle => "Sign in";` instead of a `<title>` of their own. A tab
+  now reads *Sign in | Shop*. An app scaffolded earlier is untouched and keeps working.
 - **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used
   to change nothing on the page unless the form was written `f => …` and drew `f.Error`; only the log said so.
   The form now raises an error toast — *The save failed. Please try again.* — or, when it draws its own messages

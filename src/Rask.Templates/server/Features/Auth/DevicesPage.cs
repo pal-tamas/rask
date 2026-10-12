@@ -23,7 +23,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
     private bool _passkeysSupported;
     private AuthError _passkeyError;
 
-    protected override Component? HeadAssets => Title["Your devices"];
+    protected override string? PageTitle => "Your devices";
 
     protected override async Task OnMount() => await Load();
 
