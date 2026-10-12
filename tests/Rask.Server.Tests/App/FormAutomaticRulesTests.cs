@@ -455,6 +455,22 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     }
 
     [Fact]
+    public async Task A_field_that_is_required_by_its_type_says_so_to_assistive_technology_and_an_optional_one_does_not()
+    {
+        using var host = await StartAsync<TrailerFormApp>();
+        using var berths = await StartAsync<BerthFormApp>();
+
+        var trailer = await OpenAsync(host, tenant: 7);
+        var berth = await OpenAsync(berths, tenant: 7);
+
+        // A plain int, and a value object's text: both from the type, with no attribute on either model.
+        Assert.Contains("aria-required=\"true\"", Field(trailer, "weight"), StringComparison.Ordinal);
+        Assert.Contains("aria-required=\"true\"", Field(berth, "name"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-required", Field(trailer, "axles"), StringComparison.Ordinal);
+        Assert.DoesNotContain(" required", Field(trailer, "weight"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_create_with_no_form_names_the_unfilled_plain_properties_and_asks_the_database_nothing()
     {
         using var host = await StartAsync<TrailerFormApp>();

@@ -962,6 +962,10 @@ public static IEnumerable<string> Validate(string value)
 - a `[Required(ErrorMessage = "…")]` you wrote on the aggregate yourself is kept, with its message, and is then
   the only thing that says it
 
+A control bound to a field that is required this way says `aria-required="true"`
+([how a control knows](forms-validation.md#how-a-control-knows-a-field-is-required)): each generated model type
+— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled.
+
 The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
 built-in translations — so it follows the reader's language, and
 [a catalog of your own](localization.md) can reword it.

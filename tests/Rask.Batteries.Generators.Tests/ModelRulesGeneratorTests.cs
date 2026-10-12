@@ -200,6 +200,63 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
+    public void Each_generated_model_type_announces_exactly_the_fields_its_write_refuses_unfilled()
+    {
+        var run = RunWithForms("""
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _lines = [];
+                private Order() { }
+                public Sku Sku { get; private set; } = new("");
+                public Sku? Alias { get; private set; }
+                public int Weight { get; private set; }
+                public int? Axles { get; private set; }
+                public Size Size { get; private set; } = new(new(""), 0);
+                [System.ComponentModel.DataAnnotations.Required] public string Owner { get; private set; } = "";
+                public IReadOnlyList<OrderLine> Lines => _lines;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public Sku Sku { get; private set; } = new("");
+                public string? Note { get; private set; }
+            }
+            """);
+
+        var order = run.GeneratedSource("Shop.OrderModel").ReplaceLineEndings("\n");
+        var line = run.GeneratedSource("Shop.OrderLineModel").ReplaceLineEndings("\n");
+
+        // The root, the value object it holds and the row each answer for themselves, by simple name. Optional
+        // members are not listed, and neither is the one the app marked itself: its attribute answers.
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel), Root_IsRequired);", order, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\" or \"Weight\";", order, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel.SizeModel), SizeModel_IsRequired);", order, StringComparison.Ordinal);
+        Assert.Contains("private static bool SizeModel_IsRequired(string property) =>\n        property is \"Code\";", order, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderLineModel), Root_IsRequired);", line, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\";", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_model_whose_rules_refuse_nothing_unfilled_announces_no_required_field()
+    {
+        var run = RunWithForms("""
+            public sealed class Item : Aggregate<Guid>
+            {
+                private Item() { }
+                public Sku? Sku { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ItemModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RegisterFieldRules(typeof(global::Shop.ItemModel), Root_RuleOf);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterRequiredFields", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsRequired", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Without_the_strings_catalog_the_one_sentence_is_the_english_constant()
     {
         var run = RunWithoutForms("""
@@ -215,6 +272,7 @@ public class ModelRulesGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("private static string __RequiredText() =>\n        global::Rask.Data.GeneratedModelRules.RequiredMessage;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("RaskStrings", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterRequiredFields", source, StringComparison.Ordinal);
     }
 
     [Fact]

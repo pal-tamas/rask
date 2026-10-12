@@ -134,19 +134,25 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
             ReportShapeProblems(context, entity);
             ReportRuleMisses(context, entity, reportedMisses);
-            entity = entity with
-            {
-                AnnouncesFieldRules = seams.FieldRules,
-                RequiredFromCatalog = seams.RequiredSentence,
-                DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
-                ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
-                AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
-            };
+            entity = InThisCompilation(entity, seams, reach);
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
         }
     }
+
+    // What only the whole compilation knows about one entity: which seams there are to announce through, and
+    // what its rows have to be asked.
+    private static Entity InThisCompilation(Entity entity, Seams seams, Dictionary<string, RuleReach> reach) =>
+        entity with
+        {
+            AnnouncesFieldRules = seams.FieldRules,
+            RequiredFromCatalog = seams.RequiredSentence,
+            AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
+            DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
+            ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
+            AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
+        };
 
     // ---- the incremental model ------------------------------------------------------------------
 
@@ -194,6 +200,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
+        bool AnnouncesRequiredFields = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default)
     {

@@ -22,9 +22,10 @@ them until tagged releases begin.
   still optional. **For an existing app:** code that looked for `RequiredAttribute` on a generated model no
   longer finds one — DataAnnotations validation of the model alone (`Validator.TryValidateObject`, the attribute
   pass on a dispatched request or an endpoint that takes `XModel`) no longer reports an unfilled field, the
-  generated write does; and `Ui.Input` no longer writes `aria-required="true"` for such a field, because the kit
-  reads that from the attribute. A `[Required]` you wrote on the aggregate yourself is kept with its message, and
-  is then what says it. The value-object sentence for a number, date or id now comes from the catalog too.
+  generated write does. A bound control still says `aria-required="true"`: each generated model type registers
+  the fields its write refuses unfilled (`RaskValidation.RegisterRequiredFields`), root, nested value-object
+  model and row alike. A `[Required]` you wrote on the aggregate yourself is kept with its message, and is then
+  what says it. The value-object sentence for a number, date or id now comes from the catalog too.
 
 ### Changed
 
