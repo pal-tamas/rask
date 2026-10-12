@@ -19,6 +19,8 @@ interface Kind {
     current(group: Element): string;
     /** The page wrote `rendered` into the bound field (or the group just arrived with it): show it. */
     adopt(group: Element, rendered: string): void;
+    /** Whether `rendered` is no news to a group the reader has made something else of: it is not shown. */
+    keeps?(group: Element, rendered: string): boolean;
 }
 
 const kinds: Kind[] = [];
@@ -73,6 +75,18 @@ export function announce(group: Element, value: string, settled: boolean = true)
     }
 }
 
+/**
+ * Tells the page about the bound field again though its value has not moved: what the group holds has, and the
+ * field says so beside its value (rask-segments.ts).
+ */
+export function restate(group: Element): void {
+    const bound = boundOf(group);
+    if (bound) {
+        bound.dispatchEvent(new Event("input", {bubbles: true}));
+        settle(group);
+    }
+}
+
 /** Tells the page the value announced last is the final one: a `change` on the bound field. */
 export function settle(group: Element): void {
     const bound = boundOf(group);
@@ -96,6 +110,10 @@ function refill(group: Element, kind: Kind): void {
     }
     if (waiting) {
         waiting.length = 0;
+    }
+    if (kind.keeps && kind.keeps(group, rendered)) {
+        write(bound, kind.current(group));
+        return;
     }
     if (kind.current(group) !== rendered) {
         kind.adopt(group, rendered);
@@ -144,8 +162,8 @@ function observed(records: MutationRecord[]): void {
 }
 
 /** Registers a kind of group: from now on its bound field is watched, and every group on the page adopted. */
-export function bind(selector: string, current: Kind["current"], adopt: Kind["adopt"]): void {
-    const kind: Kind = {selector, current, adopt};
+export function bind(selector: string, current: Kind["current"], adopt: Kind["adopt"], keeps?: Kind["keeps"]): void {
+    const kind: Kind = {selector, current, adopt, keeps};
     kinds.push(kind);
     if (!page || typeof MutationObserver !== "function") {
         return;

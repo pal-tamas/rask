@@ -1,6 +1,15 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-12 with the field that says what it could not read (rask-input.ts, shared by both runtimes:
+# the frame of a number, date or time input holding text it reports as "" says so; a field bound on blur is
+# sent as it is left, since the browser fires no change for it; and the browser's own refusal of a submit over
+# such a field is called off and the submit sent — but not for a form whose handler takes what was posted,
+# which says `data-rask-unvalidated`): rask.js 95,978 -> 97,246 (+1,268) and rask.wasm.js
+# 84,796 -> 86,063 (+1,267). And with the typed date and time parts saying what they hold when they are left —
+# half filled, or emptied — instead of keeping the last whole value behind them (rask-segments.ts,
+# rask-bound.ts): rask-hooks.js 48,931 -> 49,951 (+1,020).
+#
 # Refreshed 2026-10-09 with the bound control that waits for the next action (rask-input.ts, shared: the
 # controls remembered, the one change frame both hosts and the flush send, the flush asked for by each host's
 # send instead of by every listener): rask.js 95,315 -> 95,825 (+510) and rask.wasm.js 84,080 -> 84,554 (+474).
@@ -164,7 +173,13 @@
 #
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
+# Refreshed 2026-10-09 with every event naming the page it was read from (rask-batch.ts: `v`, noted when a
+# reply is put on screen, stamped on each event as it is held): rask.js 95,315 -> 95,399 (+84) and
+# rask.wasm.js 84,080 -> 84,164 (+84). rask-hooks.js is unchanged. Measured on top of main's Go.Out and
+# redirect work, which had not been recorded here: rask.js 95,552 and rask.wasm.js 84,406 in all.
+# Both of the above together (the bound control that waits + every event naming its page): 95,978 + 84 and
+# 84,796 + 84.
 bundle,bytes
-rask.js,95978
-rask.wasm.js,84796
-rask-hooks.js,48931
+rask.js,97330
+rask.wasm.js,86147
+rask-hooks.js,49951
