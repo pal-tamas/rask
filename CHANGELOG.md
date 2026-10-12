@@ -9,6 +9,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR: a handler's work reaches the screen once.** Nothing changes on screen until the handler has
+  answered, as in Livewire. (1) **What a handler sets between its awaits is no longer sent at once.** It is
+  withheld until the handler has run for the handler budget; a handler that finishes in time is ONE frame, its
+  last, and one still running at the budget is painted once as it stands, with every later `await` repainting
+  as before. So `_saving = true; await Save();` shows "Saving…" at 150 ms, not at 0, and never for a fast save;
+  `_rows = null; _rows = await Load();` never flashes its placeholder; an async validator's "Checking…" is
+  first sent at the budget, not the moment the field is left (a quick check still shows it beside its verdict
+  for the indicator's own 200 ms tail). (2) **The render after the handler waits for the reads its change started** —
+  a child's `OnUpdated`, a `Rask.Query` fetch whose key moved or that was invalidated — within the same budget,
+  so paging, sorting and filtering arrive as one frame with the pager and the rows together. A handler with
+  nothing pending is answered at once, with no timer. (3) **The ack follows the rows.** When the budget is spent
+  the frame goes out as it stands and the acknowledgement that ends the browser's busy mark and progress bar
+  is sent once the remaining reads are back — also for a navigation made from a handler (`Go.With` for a sort
+  or a filter), whose slow read used to show no busy mark at all. The next event is not held up.
+  The budget is new: `RaskServerOptions.HandlerQuiescenceTimeout` (`Rask:Server:HandlerQuiescenceTimeout`) and
+  `RaskWasmOptions.HandlerQuiescenceTimeout`, 150 ms. **For an existing app:** a page that relied on an
+  intermediate state being painted the instant a handler awaited now sees it 150 ms later, or not at all when
+  the handler is quick — the pressed button's own busy mark (200 ms) is unchanged. Set the option to zero to
+  get every intermediate frame back exactly as before. See
+  [routing](docs/routing.md#a-handlers-work-reaches-the-screen-once).
 - **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
   value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
   `public static Validate`:
@@ -33,6 +53,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A table dims its rows while the page they give way to is still being read.** `Ui.Table` fades its rows to
+  half strength once its `Ui.Pagination` or a `Sortable()` heading has waited 200 ms, and back when the new
+  rows arrive — no prop and no flag in the page; the rows stay readable and clickable, and a button inside a
+  row marks only itself. Livewire's `data-loading` + `has-data-loading:opacity-50` (Flux documents no loading
+  state for a table). Behind it, the runtime's loading hook takes a third value:
+  **`data-rask-loading="within"`** marks a container with `data-loading` (and nothing else — no `aria-busy`,
+  no refused press) while a dispatch that started inside it is unanswered. `Ui.Pagination` writes it on its
+  root, a sortable `Ui.TableColumn` writes the bare opt-in on its `<th>`, and a table of your own can use
+  either. See [tables](docs/ui-kit.md#a-slow-page-change-dims-the-rows).
 - **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
   of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
   app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.

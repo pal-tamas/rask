@@ -44,6 +44,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
         ChartSection(),
         TableSection(),
         StableColumnsSection(),
+        PagingThatWaitsSection(),
         TimelineSection(),
         RestOfCategorySection()
     ];

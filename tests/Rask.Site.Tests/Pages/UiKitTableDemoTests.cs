@@ -75,4 +75,44 @@ public sealed class UiKitTableDemoTests
     // The width each heading states, or "" for the one that takes the rest.
     private static List<string> FleetColumns(Page page) =>
         [.. page.FindAll("#ui-fleet thead th").Select(th => th.Classes.FirstOrDefault(name => name.StartsWith("w-", StringComparison.Ordinal)) ?? "")];
+
+    [Fact]
+    public async Task The_waiting_table_moves_its_pager_and_its_rows_together_when_the_read_is_instant()
+    {
+        var page = Page.Render(new UiKitDataDisplayDemo(), TestServices.Default());
+        var first = page.FindAll("#ui-invoices tbody tr")[0].TextContent;
+
+        await page.On("[data-testid=\"ui-table-waits\"] .hidden button:has-text(\"3\")").Click();
+
+        Assert.Contains("INV-0001", first, StringComparison.Ordinal);
+        Assert.Contains("INV-0011", page.FindAll("#ui-invoices tbody tr")[0].TextContent, StringComparison.Ordinal);
+        Assert.Equal("3", page.Find("[data-testid=\"ui-table-waits\"] .hidden [aria-current=\"page\"]").TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task The_waiting_tables_heading_turns_its_rows_round_from_the_first_page()
+    {
+        var page = Page.Render(new UiKitDataDisplayDemo(), TestServices.Default());
+        await page.On("[data-testid=\"ui-table-waits\"] .hidden button:has-text(\"2\")").Click();
+
+        await page.On("#ui-invoices th:has-text(\"Invoice\")").Click();
+
+        Assert.Contains("INV-0040", page.FindAll("#ui-invoices tbody tr")[0].TextContent, StringComparison.Ordinal);
+        Assert.Equal("1", page.Find("[data-testid=\"ui-table-waits\"] .hidden [aria-current=\"page\"]").TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task The_waiting_table_carries_the_marks_its_rows_are_dimmed_by_and_a_switch_that_slows_its_read()
+    {
+        var page = Page.Render(new UiKitDataDisplayDemo(), TestServices.Default());
+        var instant = page.Find("[data-testid=\"ui-invoices-slow\"]").TextContent.Trim();
+
+        await page.On("[data-testid=\"ui-invoices-slow\"]").Click();
+
+        // The pager's root waits for a press inside it, and the sortable heading for its own.
+        Assert.Contains("data-ui-pagination data-rask-loading=\"within\"", page.Html, StringComparison.Ordinal);
+        Assert.NotNull(page.Find("#ui-invoices th[data-rask-loading]"));
+        Assert.Equal("The read is instant", instant);
+        Assert.Equal("The read takes 1.5 s", page.Find("[data-testid=\"ui-invoices-slow\"]").TextContent.Trim());
+    }
 }

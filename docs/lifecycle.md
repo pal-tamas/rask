@@ -176,6 +176,31 @@ protected override async Task OnRendered() =>
     // re-render from another component won't re-fire this — no loop
 ```
 
+### When a handler's state reaches the screen
+
+An event handler is different from a hook: what it sets is **not** painted at each `await`. The page is sent
+when the handler has answered — one frame, with what the reads it started brought back — and only a handler
+still running after the handler budget (150 ms) is painted as it stands, once, with every later `await`
+repainting as it lands:
+
+```csharp
+private async Task Save()
+{
+    _saving = true;                 // shown only if the save is still running at 150 ms
+    await _order.Save();
+    _saving = false;                // a save that was back in time: this is the only frame
+}
+```
+
+So an intermediate state — `_saving`, `_loading` — is what a *slow* handler looks like, and a fast one never
+flashes it. An async validator's "Checking…" follows the same rule: a slow check shows it at the budget, and a
+quick one shows it only beside its verdict, for the indicator's own 200 ms tail. The button that was pressed says it is busy by itself after
+200 ms ([buttons that wait](ui-kit.md#buttons-that-wait)), so most handlers need no flag at all. Call
+`StateHasChanged()` when something must be painted regardless: it is honoured when the handler ends, as
+before. The budget is `Rask:Server:HandlerQuiescenceTimeout` (`RaskWasmOptions.HandlerQuiescenceTimeout` in the
+browser); zero paints at every `await`. See
+[a handler's work reaches the screen once](routing.md#a-handlers-work-reaches-the-screen-once).
+
 ## Asking another component to render, from a hook
 
 A page often has something to tell the layout above it — its title for a breadcrumb, say — and tells it as it

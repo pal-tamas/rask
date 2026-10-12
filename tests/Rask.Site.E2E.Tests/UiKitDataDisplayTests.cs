@@ -643,6 +643,64 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
     private static ILocator ShownChevron(ILocator heading) => heading.Locator("svg:visible");
 
+    [Theory]
+    [InlineData(1920, 1080)]
+    [InlineData(390, 844)]
+    public Task A_slow_next_page_keeps_its_rows_dims_them_and_swaps_them_when_the_read_is_back(int width, int height) => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var scope = Page.Locator("[data-testid='ui-table-waits']");
+            var first = scope.Locator("#ui-invoices tbody tr").First;
+            var next = scope.Locator("button[aria-label^='Next']:visible");
+            await scope.ScrollIntoViewIfNeededAsync();
+
+            // An instant read: the next page is simply there.
+            await next.ClickAsync();
+            await Expect(first).ToContainTextAsync("INV-0006");
+
+            // A slow one, watched by the page itself, so nothing that came and went between two looks is missed.
+            await scope.Locator("[data-testid='ui-invoices-slow']").ClickAsync();
+            await Expect(scope.Locator("[data-testid='ui-invoices-slow']")).ToHaveTextAsync("The read takes 1.5 s");
+            await Page.EvaluateAsync(
+                """
+                () => {
+                    const scope = document.querySelector("[data-testid='ui-table-waits']");
+                    const rows = () => scope.querySelectorAll('tbody tr').length;
+                    const seen = window.__waits = { fewest: rows(), marked: false, pagerAhead: false, opacities: [] };
+                    new MutationObserver(() => {
+                        seen.fewest = Math.min(seen.fewest, rows());
+                        if (scope.querySelector('[data-ui-pagination][data-loading]')) {
+                            seen.marked = true;
+                            seen.pagerAhead ||= scope.querySelector('tbody tr').textContent.includes('INV-0006');
+                        }
+                    }).observe(scope, { attributes: true, subtree: true, childList: true, characterData: true });
+                    scope.addEventListener('transitionend', e => {
+                        if (e.target.matches('[data-ui-rows]')) seen.opacities.push(getComputedStyle(e.target).opacity);
+                    });
+                }
+                """);
+            await next.ClickAsync();
+            await Expect(first).ToContainTextAsync("INV-0011", new() { Timeout = 15_000 });
+            await Expect(scope.Locator("[data-ui-rows]")).ToHaveCSSAsync("opacity", "1");
+            var seen = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__waits");
+
+            // Five rows the whole time; the pager marked while the old rows were still under it; faded, and back.
+            Assert.Equal(5, seen.GetProperty("fewest").GetInt32());
+            Assert.True(seen.GetProperty("marked").GetBoolean(), "the pager was never marked as waiting.");
+            Assert.True(seen.GetProperty("pagerAhead").GetBoolean(), "the rows were replaced before the read was back.");
+            Assert.Equal(["0.5", "1"], seen.GetProperty("opacities").EnumerateArray().Select(static o => o.GetString()).ToArray());
+            await Expect(scope.Locator("[data-ui-pagination]")).Not.ToHaveAttributeAsync("data-loading", "");
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
     private async Task OpenAsync()
     {
         await Page.GotoAsync(Docs);
