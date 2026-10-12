@@ -124,6 +124,7 @@ public sealed class FluxConformanceTests
         ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
         ["flux:chart.legend"] = typeof(UiChartLegend),
         ["flux:dropdown"] = typeof(UiDropdown),
+        ["flux:popover"] = typeof(UiPopover),
         ["flux:menu"] = typeof(UiMenu),
         ["flux:menu.item"] = typeof(UiMenuItem),
         ["flux:menu.submenu"] = typeof(UiMenuSubmenu),

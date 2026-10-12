@@ -209,7 +209,7 @@ with a comment, and re-run every built page (`field heading text icon separator 
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
 calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -590,6 +590,23 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
   run and fill it from the hidden field.
 
+- Popover (2026-10-12): `Ui.Popover` is the PANEL, the second child of `Ui.Dropdown`, which places it with the
+  menu's own anchor code (`UiPopupHost`). `parity-popover.mjs` measures Flux's page once per dropdown (eleven)
+  with that one open — the `data-parity-open` route, not an `open.mjs` config — gives the Rask page the runtime
+  (the hover example opens by `data-rask-hover`) and then walks both. Measured on Flux: focus stays on the
+  trigger as it opens (no `autofocus` here, unlike a menu), Tab goes into the panel, Shift+Tab off the trigger
+  closes it, a second press closes it (the locked page takes the press), ArrowDown does nothing; `data-open` on
+  the dropdown, the trigger AND the panel — the kit writes the panel's from C# once the toggle is heard, so
+  `data-open:flex` applies a render later than Flux's. Flux's panel is `popover="manual"` + script, the kit's
+  `popover="auto"`. OPEN, both the hover hook's and printed as OPEN by the script: (1) Flux closes a hovered
+  panel from a pointer-move check that runs at most once in ~100 ms (a jump into the gap after a rest closes at
+  once; a move made straight after another is not looked at), `rask-hover.ts` closes in the pointerout, so a
+  real pointer gliding across a gap never arrives — true of the rail's menus too; (2) a panel the pointer left
+  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Stand-ins on its parity page:
+  the category trigger (a badge in Flux's `iconTrailing` SLOT, which `Ui.Button` has not), the docs' three grey
+  filler lines. `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
+  has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
+
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
 - **Two checkboxes, no script.** `Ui.Sidebar` holds `#sidebar-open` (slid over the page; `data-rask-uncheck-on-navigate`)
   and `#sidebar-rail` (narrowed; `data-rask-persist="flux-sidebar-collapsed-desktop"`), and every control is a
@@ -659,8 +676,8 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
 | Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens over trigger or panel, closes over neither, a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
-| Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu` and `Ui.Navmenu` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; NOT yet on `Ui.Popover`, whose Flux twin was measured locked too; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
-| any `popover="auto"` panel | nothing | Tab out closes it; a press outside hands focus to its `popovertarget` button |
+| Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
+| any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
 | Menu submenu (WIRED: `UiMenuSubmenu`) | its row `data-rask-safe-area` (no value: the flyout is the next element, as Flux has it, with no id), no `OnClick`; the flyout rendered always and shown by the stylesheet from `[data-open]` on the wrapper, which the RUNTIME writes — never `:hover`, never a render | Flux's safe area; a flyout that opens under the pointer, stays when the pointer leaves the menu and closes when another row is entered; ArrowRight / Enter / Space / ArrowLeft; its submenu's row lit while the arrows are inside it; a tap toggles |
 | Modal (state-driven) | `<dialog data-rask-modal-open="true|false">` instead of `open` | `showModal()`, `::backdrop`, closes when the state says so; `OnClose` / `OnCancel` still fire |

@@ -314,7 +314,7 @@ public sealed partial class UiButton : UiElement, IUiHost
         [
             loads ? Indicator() : null,
             Icon is { } icon ? Glyph(icon, loads) : null,
-            Label(loads),
+            .. Label(loads),
             Kbd is { } kbd ? Div.Class("text-xs text-zinc-400")[kbd] : null,
             IconTrailing is { } trailing ? Glyph(trailing, loads) : null,
         ];
@@ -342,14 +342,21 @@ public sealed partial class UiButton : UiElement, IUiHost
         });
     }
 
-    private Component? Label(bool loads)
+    // Flux wraps the words beside an icon or a spinner, and leaves them bare beside a `kbd` alone (measured
+    // on its popover page: Cancel `esc`).
+    private IEnumerable<Component?> Label(bool loads)
     {
         var label = Words;
         if (label is null)
         {
-            return null;
+            return [];
         }
 
-        return loads ? Span.Class("transition-opacity [[data-loading]>&]:opacity-0")[label] : Span[label];
+        if (loads)
+        {
+            return [Span.Class("transition-opacity [[data-loading]>&]:opacity-0")[label]];
+        }
+
+        return Icon is null && IconTrailing is null ? label : [Span[label]];
     }
 }

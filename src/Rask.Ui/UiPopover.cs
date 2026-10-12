@@ -1,178 +1,100 @@
-using System.Globalization;
 using Rask.Core.Live;
 
 namespace Rask;
 
 /// <summary>
-/// A button that opens a panel of anything beside it.
+/// Extra content in a panel that opens beside a button, on a press or on hover. Flux UI's <c>flux:popover</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Flux UI's popover, and the gap <see cref="UiDropdown" /> left: a dropdown is a MENU — its children are rows
-/// you pick from, and it says <c>role="menu"</c> and moves a keyboard cursor over them. A filter panel, a
-/// colour picker or a bubble of help is none of those, and putting it in a menu tells a screen reader it is a
-/// list of commands and traps the arrow keys inside it.
+/// For content that is not a menu: a form, a set of filters, a card about a person. It is the second child of
+/// the <see cref="UiDropdown" /> that holds its trigger, and that is where its side, its alignment, its gap and
+/// what opens it are said.
 /// </para>
+/// <code>
+/// Ui.Dropdown[
+///     Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Options"],
+///     Ui.Popover.Class("flex flex-col gap-4")[
+///         Ui.RadioGroup.Bind(() => _sort).Label("Sort by")[
+///             Ui.Radio.Value("active").Label("Recently active"),
+///             Ui.Radio.Value("posted").Label("Date posted")
+///         ]
+///     ]
+/// ]
+/// </code>
 /// <para>
-/// So this is the same machinery with no menu semantics: a <c>[popover]</c>, which the browser lifts into the
-/// top layer, dismisses on Escape and on a click outside, and hands focus back from — placed by CSS anchor
-/// positioning, with the same <see cref="Position" /> and <see cref="Align" /> vocabulary everything else that
-/// floats uses. Inside it, Tab moves through whatever you put there, because it is ordinary content.
-/// </para>
-/// <para>
-/// It needs no runtime to open and close. <see cref="Open" /> takes ownership when a page has to open it
-/// itself, and the runtime mirrors that through <c>data-rask-popover-open</c>.
+/// It is a <c>[popover]</c> the trigger names with <c>popovertarget</c>: the browser lifts it into the top
+/// layer and closes it on Escape and on a press anywhere else, and focus stays on the trigger, from where Tab
+/// walks into the panel. While one is open the page behind neither scrolls nor takes the pointer — except
+/// behind one the pointer opened (<see cref="UiDropdown.Hover" />), which locks nothing.
 /// </para>
 /// </remarks>
 public sealed partial class UiPopover : Component
 {
-    // Per instance, so two popovers on one page cannot collide on the ids that join a trigger to its panel.
-    private static int _instances;
+    // Flux's panel, measured: 12rem at least, 1rem of padding, a hairline border on a white (zinc-700) card.
+    // Each default weighs nothing, so a width, a padding, a radius or a shadow from the call site wins.
+    // Closed it is not displayed whatever layout the call site gives it: a `flex` would show a closed panel.
+    private const string Panel =
+        "[:where(&)]:min-w-48 [:where(&)]:p-4 [:where(&)]:rounded-lg [:where(&)]:shadow-xs border border-zinc-200 "
+        + "bg-white [:where(&)]:text-black [&:not(:popover-open)]:hidden dark:border-zinc-600 dark:bg-zinc-700 "
+        + "dark:[:where(&)]:text-white";
 
-    private readonly int _instance = Interlocked.Increment(ref _instances);
+    private UiPopupHost? _host;
 
     private bool _open;
 
-    /// <summary>The label on the button that opens it.</summary>
-    public required string Trigger { get; set; }
-
-    /// <summary>Which side of the trigger the panel opens on. Below, unless this says otherwise.</summary>
-    public Ui.Position? Position { get; set; }
-
-    /// <summary>Where along that side the panel sits.</summary>
-    public Ui.Align? Align { get; set; }
-
-    /// <summary>The distance between the trigger and the panel, in pixels. Defaults to 4.</summary>
-    public int? Gap { get; set; }
-
-    /// <summary>An icon before the trigger's label.</summary>
-    public Ui.IconName? Icon { get; set; }
-
-    /// <summary>An icon after the trigger's label. A chevron unless this says otherwise.</summary>
-    public Ui.IconName? IconTrailing { get; set; }
-
-    /// <summary>How the trigger is drawn — the same axes every button takes.</summary>
-    public Ui.Tone? Tone { get; set; }
-
-    /// <inheritdoc cref="UiButton.Variant" />
-    public Ui.Variant? Variant { get; set; }
-
-    /// <inheritdoc cref="UiButton.Size" />
-    public Ui.Size? Size { get; set; }
-
-    /// <summary>
-    ///     Whether the panel is open. Unset, the reader opens and closes it and the page is not asked.
-    /// </summary>
-    public bool? Open { get; set; }
-
-    /// <summary>Runs when the reader opens or closes it, with the state it is now in.</summary>
-    public Callback<bool> OnToggle { get; set; }
-
-    /// <summary>Classes for the panel itself — its width, its padding.</summary>
-    public string? PanelClass { get; set; }
-
+    /// <summary>Classes for the panel — its width, its layout, a larger radius or shadow.</summary>
     public string? Class { get; set; }
 
     // _open is a FIELD, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
-    private string Prefix => "uipop-" + _instance.ToString(CultureInfo.InvariantCulture);
-
-    private string TriggerId => Prefix + "-trigger";
-
-    private string PanelId => Prefix + "-panel";
-
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var open = Open ?? _open;
+        _host = Context.Get<UiPopupHost>();
 
-        var trigger = Button
-            .Id(TriggerId)
-            .Type(ButtonType.Button)
-            .Class(UiClass.Compose(
-                "btn",
-                Tone is { } tone ? UiClassNames.ButtonTone(tone) : "",
-                Variant is { } variant ? UiClassNames.ButtonVariant(variant) : "",
-                Size is { } size ? UiClassNames.ButtonSize(size) : ""))
-            // aria-haspopup="dialog" rather than "menu": what opens is a panel of content, and saying menu
-            // would promise a list of commands and the arrow keys that walk it.
-            .Aria(
-                ("haspopup", "dialog"),
-                ("expanded", open ? "true" : "false"),
-                ("controls", PanelId))
-            .Attributes(("popovertarget", PanelId), ("style", "anchor-name:--" + Prefix));
+        var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-popover"] = "" };
+        if (_host?.Controlled ?? _open)
+        {
+            // Flux's mark on the open panel, which its own examples style by (`data-open:flex`).
+            data["open"] = "";
+        }
 
-        var panel = Div
-            .Id(PanelId)
-            .Popover(Popover.Auto)
-            .Role("dialog")
-            .Class(UiClass.Compose(
-                "z-1 rounded-box border border-base-300 bg-base-100 p-4 shadow-sm",
-                PanelClass))
-            .Attributes(("style", PanelStyle()))
-            // The SOLE writer of the open state: the browser opens the popover from `popovertarget` and closes
-            // it on Escape and on a click outside, and this is where C# hears which.
-            .Aria("labelledby", TriggerId)
-            .OnToggle(OnPanelToggleAsync);
+        if (_host?.Hover != true)
+        {
+            // The page behind neither scrolls nor takes the pointer, as under Flux's (rask-lock.ts). Not under
+            // one the pointer opens: a page with no pointer would take it from the trigger too.
+            data["rask-lock"] = "";
+        }
 
-        if (Open is { } controlled)
+        if (_host?.Controlled is { } controlled)
         {
             // The runtime shows or hides the popover to match whenever this changes (rask-dom.ts).
-            panel = panel.Data("rask-popover-open", controlled ? "true" : "false");
+            data["rask-popover-open"] = controlled ? "true" : "false";
         }
 
-        var root = Div.Class(UiClass.Compose("relative inline-block", Class));
-        if (open)
-        {
-            root = root.Data("open", "");
-        }
+        // No `autofocus`: Flux leaves focus on the trigger, and Tab goes from there into the panel after it.
+        var panel = Div
+            .Id(_host?.PanelId)
+            .Popover(Popover.Auto)
+            .TabIndex(-1)
+            .Class(UiClass.Compose(Panel, Class))
+            .Data(data)
+            // The SOLE writer of the open state: the browser opens the popover and closes it on Escape, a press
+            // outside and Tab, and this is where C# hears which.
+            .OnToggle(OnToggleAsync);
 
-        return root[
-            trigger[
-                Icon is { } icon ? Ui.Icon.Name(icon).Class("size-4 shrink-0") : null,
-                Span[Trigger],
-                Ui.Icon.Name(IconTrailing ?? Ui.IconName.ChevronDown).Class("size-4 shrink-0 opacity-60")
-            ],
-            panel[Children ?? []]
-        ];
+        return (_host is { } host ? panel.Style(host.Style) : panel)[Children ?? []];
     }
 
-    // The same anchor positioning Ui.Dropdown and Ui.Select use. An engine without it keeps the popover's own
-    // default, centred — still open and still usable.
-    private string PanelStyle()
-    {
-        var side = (Position ?? Ui.Position.Bottom) switch
-        {
-            Ui.Position.Top => "block-start",
-            Ui.Position.Left => "inline-start",
-            Ui.Position.Right => "inline-end",
-            _ => "block-end",
-        };
-        var vertical = (Position ?? Ui.Position.Bottom) is Ui.Position.Left or Ui.Position.Right;
-        var along = Align switch
-        {
-            Ui.Align.Center => "center",
-            Ui.Align.End => vertical ? "span-block-start" : "span-inline-start",
-            _ => vertical ? "span-block-end" : "span-inline-end",
-        };
-
-        return "position-anchor:--" + Prefix
-               + ";position-area:" + side + " " + along
-               + ";position-try-fallbacks:flip-block,flip-inline"
-               + ";margin:" + (Gap ?? 4).ToString(CultureInfo.InvariantCulture) + "px";
-    }
-
-    private async Task OnPanelToggleAsync(ToggleEvent e)
+    private async Task OnToggleAsync(ToggleEvent e)
     {
         _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
-
-        // Controlled: tell the page only about a change it did not make itself — the runtime showing the
-        // popover because Open became true fires this same event.
-        if (string.Equals(e.NewState, "open", StringComparison.Ordinal) != Open)
+        if (_host is { } host)
         {
-            await OnToggle.Invoke(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
+            await host.Toggled(_open).ConfigureAwait(false);
         }
     }
 }

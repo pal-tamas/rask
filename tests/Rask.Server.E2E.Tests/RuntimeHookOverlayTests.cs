@@ -42,6 +42,24 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task Focus_leaving_the_button_of_an_open_popover_for_anything_but_the_popover_closes_it()
+    {
+        await using var session = await HookSession.OpenAsync<OverlayHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#pop-open");
+        await page.Keyboard.PressAsync("Tab");
+        var insideFromTheButton = await session.ShownAsync("#pop");
+        await page.FocusAsync("#pop-open");
+        await page.FocusAsync("#after");
+
+        // Measured on Flux's popover: focus stays on the trigger as it opens, Tab walks into the panel, and
+        // Shift+Tab off the trigger closes it.
+        Assert.True(insideFromTheButton, "walking from the button into its popover closed it");
+        Assert.False(await session.ShownAsync("#pop"));
+    }
+
+    [Fact]
     public async Task A_popover_closed_by_a_press_outside_hands_focus_to_the_button_that_opens_it()
     {
         await using var session = await HookSession.OpenAsync<OverlayHookPage>(playwright);
