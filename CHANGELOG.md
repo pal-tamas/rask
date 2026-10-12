@@ -29,6 +29,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A panel the pointer opens can be reached with a real mouse.** `data-rask-hover` (`Ui.Dropdown.Hover()`, the
+  hover card, the sidebar rail's menus) closed its panel in the `pointerout`, so the first pointer event in the
+  gap between the trigger and the panel shut it. It closes as measured on Flux now: a pointer move is looked at
+  no more than once in 100 ms, and the panel closes when the move looked at is over neither part. A pointer
+  that rested and then moves into the gap still closes it at once; one that is moving crosses the gap and
+  arrives. `rask-hooks.js` is 374 bytes larger.
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus

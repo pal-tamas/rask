@@ -211,7 +211,9 @@
 # rask-autofocus.ts): rask.js 101,364 -> 101,379 (+15) and rask.wasm.js 90,148 -> 90,163 (+15). rask-hooks.js is unchanged.
 # 2026-10-12, focus leaving the button of an open popover closes it (rask-overlay.ts): rask-hooks.js +147,
 # measured on main at 101,364 / 90,148 / 50,616. The two runtimes are unchanged.
+# 2026-10-13, a hover panel closes from a pointer move looked at once in 100 ms, as Flux's (rask-hover.ts):
+# rask-hooks.js 50,763 -> 51,137 (+374). The two runtimes are unchanged.
 bundle,bytes
 rask.js,101379
 rask.wasm.js,90163
-rask-hooks.js,50763
+rask-hooks.js,51137

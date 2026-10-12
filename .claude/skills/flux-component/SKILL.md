@@ -598,11 +598,14 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   closes it, a second press closes it (the locked page takes the press), ArrowDown does nothing; `data-open` on
   the dropdown, the trigger AND the panel — the kit writes the panel's from C# once the toggle is heard, so
   `data-open:flex` applies a render later than Flux's. Flux's panel is `popover="manual"` + script, the kit's
-  `popover="auto"`. OPEN, both the hover hook's and printed as OPEN by the script: (1) Flux closes a hovered
-  panel from a pointer-move check that runs at most once in ~100 ms (a jump into the gap after a rest closes at
-  once; a move made straight after another is not looked at), `rask-hover.ts` closes in the pointerout, so a
-  real pointer gliding across a gap never arrives — true of the rail's menus too; (2) a panel the pointer left
-  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Stand-ins on its parity page: the docs' three grey
+  `popover="auto"`. Measured again 2026-10-13 and built into `rask-hover.ts`: Flux
+  closes a hovered panel from a pointer-move check that runs at most once in 100 ms (83 ms after the last move
+  looked at: passed over; 113 ms: looked at). The move that brings the pointer in is not one of them, coming
+  back over the trigger or the panel does not restart the 100 ms, and there is no trailing look — a pointer
+  that stops outside after a passed-over move leaves the panel open. A panel opened by Enter is not watched
+  until the pointer comes over it. OPEN, printed as OPEN by the script: a panel the pointer left
+  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Flux's page now and then does
+  not open under a pointer whose first move ever lands on the trigger: a walk parks the pointer first. Stand-ins on its parity page: the docs' three grey
   filler lines. The category trigger is the real button: `Ui.Button.IconTrailing` takes a component too
   (`UiInputIcon`, the input's union — Flux's `iconTrailing` slot), placed LAST in the button with no wrapper and
   no marker of its own, the button padded as around a trailing icon (measured: 150.8×40, `ps-3 pe-3`, label in
@@ -634,8 +637,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   menu) — the item's look in a menu is `in-data-ui-menu:` utilities, and every rail-only utility is
   `sidebar-rail:not-in-data-ui-menu:` because the menu is INSIDE the collapsed sidebar. Flux gives the rail
   button no accessible name (its heading span is `display:none`); the kit writes the same. Flux neither
-  animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it at once, on both
-  (no delay, no safe area): move straight across the 5px gap.
+  animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it with the first
+  pointer move that is looked at (once in 100 ms, see the popover's note): at once after a rest, and a moving
+  pointer crosses the 5px gap. No safe area.
 - **Layout parity:** `parity.mjs layouts/<slug>` → `measureLayouts` (`lib.mjs`: `VIEWS` × states `rail` / `open`,
   put there by pressing `CONTROLS`), one document per demo from a `FluxLayoutParity`. `LayoutDemo.Utilities`
   are the demos' own classes, unlayered: never a bare `.bg-white{}` there — the kit's menu says `bg-white` and
@@ -677,7 +681,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Component | Writes | Gets |
 |---|---|---|
 | Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
-| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens over trigger or panel, closes over neither, a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
+| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button |
