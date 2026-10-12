@@ -223,7 +223,7 @@ public sealed partial class ModelInputGenerator
             s.AppendLine();
             foreach (var rule in model.Rules)
             {
-                AppendRule(s, model.Key, rule);
+                AppendRule(s, entity, model.Key, rule);
             }
 
             s.AppendLine();
@@ -308,24 +308,16 @@ public sealed partial class ModelInputGenerator
             .Append(HasSelfKey(entity) ? "model.__Key" : "null").AppendLine(";");
     }
 
-    // A form field holds the value, not the value object, and may hold none yet — so the rule is asked only
-    // about a value that is there. What an empty field means is `[Required]`'s to say.
-    private static void AppendRule(StringBuilder s, string modelKey, FieldRule rule)
+    // The delegate a field keeps: the rule itself is a method beside the writes (ModelInputGenerator.WriteRules),
+    // so a form and a write ask the very same thing.
+    private static void AppendRule(StringBuilder s, Entity entity, string modelKey, FieldRule rule)
     {
-        var call = rule.ValueObject + ".Validate(held)";
+        var type = rule.Kind == ValueRule.Sync
+            ? ValidateDelegate + "<" + rule.ModelType + ">"
+            : "global::System.Func<" + rule.ModelType + ", global::System.Threading.Tasks.ValueTask<" + StringSequence + ">>";
 
-        if (rule.Kind == ValueRule.Sync)
-        {
-            s.Append("    private static readonly ").Append(ValidateDelegate).Append('<').Append(rule.ModelType).Append("> ")
-                .Append(modelKey).Append(rule.Property).AppendLine(" =");
-            s.Append("        static value => value is { } held ? ").Append(call).Append(" : ").Append(NoMessages).AppendLine(";");
-            return;
-        }
-
-        s.Append("    private static readonly global::System.Func<").Append(rule.ModelType)
-            .Append(", global::System.Threading.Tasks.ValueTask<").Append(StringSequence).Append(">> ")
-            .Append(modelKey).Append(rule.Property).AppendLine(" =");
-        s.Append("        static async value => value is { } held ? await ").Append(call).Append(" : ").Append(NoMessages).AppendLine(";");
+        s.Append("    private static readonly ").Append(type).Append(' ').Append(modelKey).Append(rule.Property).AppendLine(" =");
+        s.Append("        ").Append(ExtensionsType(entity)).Append('.').Append(RuleMethod(modelKey, rule.Property)).AppendLine(";");
     }
 
     // The root model and each nested value-object model that has at least one rule, with a prefix that keeps
@@ -334,7 +326,7 @@ public sealed partial class ModelInputGenerator
     {
         var root = entity.Members
             .Where(static m => m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
-            .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule))
+            .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
             .ToList();
 
         if (root.Count > 0)
@@ -346,7 +338,7 @@ public sealed partial class ModelInputGenerator
         {
             var rules = nested.Members
                 .Where(static m => m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
-                .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule))
+                .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
                 .ToList();
 
             if (rules.Count > 0)
@@ -358,5 +350,5 @@ public sealed partial class ModelInputGenerator
 
     private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules);
 
-    private sealed record FieldRule(string Property, string ModelType, string ValueObject, ValueRule Kind);
+    private sealed record FieldRule(string Property, string ModelType, string ValueObject, ValueRule Kind, bool Required);
 }

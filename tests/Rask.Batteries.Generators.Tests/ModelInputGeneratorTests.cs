@@ -61,7 +61,7 @@ public class ModelInputGeneratorTests
             StringComparison.Ordinal);
         Assert.DoesNotContain("RequiredAttribute()]\n    [global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Remarks\")]\n    public string? Notes", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
         Assert.Contains(
-            "__Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", model, ref errors);",
+            "failures = __Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", model, path, failures);",
             source,
             StringComparison.Ordinal);
         Assert.Equal(3, source.Split("__Validate(model);").Length - 1);

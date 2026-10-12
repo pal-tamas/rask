@@ -105,6 +105,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             StringComparer.Ordinal);
 
         var reportedMisses = new HashSet<RuleMiss>();
+        var reach = RuleReachOf(entities);
 
         foreach (var candidate in entities)
         {
@@ -137,6 +138,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             {
                 AnnouncesFieldRules = seams.FieldRules,
                 DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
+                ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
+                AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
             };
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
@@ -188,7 +191,9 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool DeclaresWrites,
         bool Deletable,
         bool DeclaresUniqueRules = false,
-        bool AnnouncesFieldRules = true)
+        bool AnnouncesFieldRules = true,
+        EquatableArray<string> ValidatingChildren = default,
+        EquatableArray<string> AwaitingChildren = default)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
