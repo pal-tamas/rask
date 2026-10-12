@@ -29,9 +29,10 @@ internal sealed class PendingBinds(Component root)
         return AnyWaiting && control.RenderHandle?.PendingBinds is { } binds && binds.Claim(control, field, ref value);
     }
 
-    // A control is known by its place among its siblings, so the instance that drew a member last render may
-    // draw another one now. The pick belongs to the member: whoever draws it holds it, and a pick of the member
-    // this instance drew before has lost its control.
+    // A control is known by its place among the siblings of its type (ChildOrdinals), so the instance that drew
+    // a member last render may draw another one now: a second select written above it takes its place. The pick
+    // belongs to the member: whoever draws it holds it, and a pick of the member this instance drew before has
+    // lost its control.
     private bool Claim(Component control, FieldIdentifier field, ref object? value)
     {
         var held = false;
