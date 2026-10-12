@@ -5,6 +5,7 @@ using System.Text.Json;
 using Rask.Core.Components;
 using Rask.Core.Forms;
 using Rask.Core.Live;
+using Rask.Core.Messaging;
 
 namespace Rask.Core;
 
@@ -261,20 +262,39 @@ public abstract partial class Component
             ReportCancelledAfterLeaving(owner, ex);
             return true;
         }
+        catch (Exception ex) when (Refusal.Find(ex) is { } refusal && Refusal.Say(refusal))
+        {
+            ReportRefused(owner, refusal);
+            return true;
+        }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
         {
-            // Route handler exceptions to the boundary that logically contains the handler.
-            // When the owner is itself an ErrorBoundary (the common case: a button rendered
-            // directly inside ErrorBoundary's Children — CurrentParent at registration time
-            // is the boundary), THAT boundary catches. owner.Boundary would route one level
-            // higher. For non-boundary owners (regular components), fall back to their
-            // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
-            // catch-and-log still fires.
-            RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
-            boundary.Trip(ex, ErrorSource.Action);
+            TripHandlerBoundary(boundary, owner, ex);
             return true;
         }
     }
+
+    // Route handler exceptions to the boundary that logically contains the handler.
+    // When the owner is itself an ErrorBoundary (the common case: a button rendered
+    // directly inside ErrorBoundary's Children — CurrentParent at registration time
+    // is the boundary), THAT boundary catches. owner.Boundary would route one level
+    // higher. For non-boundary owners (regular components), fall back to their
+    // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
+    // catch-and-log still fires.
+    private static void TripHandlerBoundary(ErrorBoundary boundary, Component owner, Exception ex)
+    {
+        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
+        boundary.Trip(ex, ErrorSource.Action);
+    }
+
+    // The app's own code said no and the toast has its sentence: no fault, no boundary, and the page renders
+    // what the handler changed before it. The toast is queued in the catch's filter, so a refusal in a session
+    // that draws no toasts is left to the boundary clause after it, like any other exception.
+    private static void ReportRefused(Component owner, IReadOnlyList<Rask.Wire.FieldFailure> refusal) =>
+        Diagnostics.RaskDiagnostics.Report(
+            Diagnostics.RaskLogLevel.Information,
+            "Rask.Handler",
+            $"A handler on {owner.GetType().Name} was refused: {Refusal.Sources(refusal)}");
 
     // What a batch's look-ahead reads off the session's root (EventBatch.AnnounceSubmits).
     internal Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedForms => _live?.PersistedEditContexts;
