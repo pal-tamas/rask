@@ -145,6 +145,41 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
         Assert.IsNotType<HandlerSyncContext>(SynchronizationContext.Current);
     }
 
+    [Fact]
+    public async Task A_handler_whose_repaint_between_two_awaits_throws_still_runs_to_its_end_and_faults_with_that()
+    {
+        // Before this the repaint ahead of a continuation threw, the continuation was never run, and the
+        // handler's task never ended: it held its session's lock for good.
+        var renders = 0;
+        var painted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handle = new RecordingRenderHandle(() => "", onRender: () =>
+        {
+            painted.TrySetResult();
+            if (Interlocked.Increment(ref renders) == 2)
+            {
+                throw new InvalidOperationException("repaint-boom");
+            }
+        });
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        var finished = false;
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            await gate.Task;
+            finished = true;
+        }));
+
+        var dispatch = component.TryInvokeHandlerAsync("h0", EmptyPayload).AsTask();
+        await painted.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
+        gate.SetResult();
+        var fault = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => dispatch.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken));
+
+        Assert.Equal("repaint-boom", fault.Message);
+        Assert.True(finished, "the code after the await was skipped");
+        Assert.Equal(3, renders);
+    }
+
     private sealed class CountingComponent : Component
     {
         public int RenderCount { get; private set; }

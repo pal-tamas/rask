@@ -1,3 +1,5 @@
+using System.Runtime.ExceptionServices;
+
 namespace Rask.Core.Live;
 
 internal sealed class HandlerSyncContext : SynchronizationContext
@@ -34,22 +36,48 @@ internal sealed class HandlerSyncContext : SynchronizationContext
                 snapshot = _pending.Where(t => !t.IsCompleted).ToArray();
                 if (snapshot.Length == 0)
                 {
-                    return;
+                    break;
                 }
             }
 
-            await Task.WhenAll(snapshot).ConfigureAwait(false);
+            // Every continuation is waited for, whatever became of the one before it.
+            await Task.WhenAll(snapshot).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
+
+        // A repaint that failed between two awaits is the handler's fault, once all of its code has run.
+        Task? failed;
+        lock (_pending)
+        {
+            failed = _pending.Find(t => !t.IsCompletedSuccessfully);
+        }
+
+        if (failed is not null)
+        {
+            await failed.ConfigureAwait(false);
         }
     }
 
     private async Task RunWithRendersAsync(SendOrPostCallback d, object? state)
     {
-        await _render().ConfigureAwait(false);
+        // The repaint before a continuation may throw: a frame lost as the connection dropped, a fault no error
+        // boundary took. The continuation runs all the same — skipped, the handler never finished and held its
+        // session for good — and the fault is thrown once it has.
+        ExceptionDispatchInfo? failed = null;
+        try
+        {
+            await _render().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            failed = ExceptionDispatchInfo.Capture(ex);
+        }
+
         var prev = Current;
         SetSynchronizationContext(this);
         try { d(state); }
         finally { SetSynchronizationContext(prev); }
 
         await _render().ConfigureAwait(false);
+        failed?.Throw();
     }
 }

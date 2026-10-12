@@ -186,6 +186,12 @@ them until tagged releases begin.
   **For an existing app:** an `OnToggle`/`OnClose` that did clean-up after the page itself changed the state
   no longer runs then — do it where the state is changed. The kit's searchable listbox now forgets its
   search in the render that shuts the list, and its time picker its cursor.
+- **A handler whose repaint between two awaits throws still runs to its end.** A handler that awaits is
+  repainted before each continuation. When that repaint threw — a frame lost as the connection dropped, a
+  render fault no boundary took — the continuation was never run: the handler's task never ended, it kept
+  its session's lock, and that session answered nothing again (the server sets no handler timeout by
+  default). The code after the `await` runs now; the repaint's fault is then the handler's own, and reaches
+  the error boundary and the log a handler's exception reaches. Both hosts.
 - **A handler that navigates while its page is being repainted lands once on its destination.** A handler that
   awaits is repainted when it first yields, and its continuation — `await Save(); Go.To(…)` — runs on a thread
   of its own. A save that came back at that moment moved the route under the repaint: the page it went to was
