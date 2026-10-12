@@ -175,4 +175,38 @@ public class HandlerSyncContextTests
         Assert.Contains(1, ran);
         Assert.Contains(2, ran);
     }
+
+    [Fact]
+    public async Task A_continuation_runs_when_the_repaint_before_it_throws_and_the_drain_throws_that_fault()
+    {
+        var renders = 0;
+        var ctx = new HandlerSyncContext(() =>
+            Interlocked.Increment(ref renders) == 1
+                ? Task.FromException(new InvalidOperationException("repaint-boom"))
+                : Task.CompletedTask);
+        var ran = false;
+
+        ctx.Post(_ => ran = true, null);
+        var fault = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ctx.DrainAsync().WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken));
+
+        Assert.True(ran, "the continuation was skipped");
+        Assert.Equal("repaint-boom", fault.Message);
+        Assert.Equal(2, renders);
+    }
+
+    [Fact]
+    public async Task A_repaint_that_throws_instead_of_returning_a_task_does_not_cost_the_continuation_either()
+    {
+        var renders = 0;
+        var ctx = new HandlerSyncContext(() =>
+            Interlocked.Increment(ref renders) == 1 ? throw new InvalidOperationException("repaint-boom") : Task.CompletedTask);
+        var ran = false;
+
+        ctx.Post(_ => ran = true, null);
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => ctx.DrainAsync().WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken));
+
+        Assert.True(ran, "the continuation was skipped");
+    }
 }

@@ -137,11 +137,11 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
         Assert.True(frames.FullPages.Count == 0, frames.Trace());
     }
 
-    // The acceptance case handed to the event-batching and deferred-binding work. On main roughly one run in
-    // three ends with the list open again over the fields and the save button: Escape lands between the reply
-    // to the opening and the reply to the pick, both of which say "open", and the toggles chase each other.
-    // Eight fresh pages, because the window is a few milliseconds wide and no delay opens it reliably.
-    [Theory(Skip = "Fails on main about one run in three: a reply rendered before Escape was heard opens the list again. Acceptance case for the event-batching and deferred-binding work, which removes this skip.")]
+    // The acceptance case of the reader's last word (rask-owned.ts). Before it, roughly one run in two ended
+    // with the list open again over the fields and the save button: the reply to the opening, rendered before
+    // the server heard Escape, said "open", the runtime opened the list, and its toggle was followed as the
+    // reader's. Eight fresh pages, because the window is a few milliseconds wide and no delay opens it reliably.
+    [Theory]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(3)]

@@ -65,7 +65,8 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
-    // The browser opened or closed the popover — a click on the button, Escape, a click elsewhere — or C# did.
+    // The reader opened or closed the popover: a click on the button, Escape, a click elsewhere. What the runtime
+    // does to it because C# said so is not reported back, so this is news every time.
     private void OnToggle(ToggleEvent e)
     {
         var open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
@@ -94,8 +95,7 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
-    // What was searched for is forgotten when the browser says the list is shut, not here: the search field
-    // still has focus now, and the rows a search hid would come back under the pointer while the list closes.
+    // The list's own state. What its search field holds is ShutAsync's to forget, or the toggle's.
     private void Close()
     {
         _open = false;
@@ -105,6 +105,19 @@ public abstract partial class UiSelectControl<T>
         if (IsCombobox)
         {
             _search = string.Empty;
+        }
+    }
+
+    // C# shuts the list. The runtime carries that out and raises no toggle for it — the page already knows —
+    // so what the search field holds is forgotten here, in the render that shuts the list, and said to the
+    // field itself: it has the focus, and a render does not write over a field being typed into.
+    private async Task ShutAsync()
+    {
+        Close();
+        if (HasSearchField && _search.Length > 0)
+        {
+            _search = string.Empty;
+            await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
         }
     }
 
@@ -194,7 +207,7 @@ public abstract partial class UiSelectControl<T>
                 await PickAsync(view.Cursor, view).ConfigureAwait(false);
                 return true;
             case Keys.Tab:
-                Close();
+                await ShutAsync().ConfigureAwait(false);
                 return true;
             default:
                 return false;
@@ -289,7 +302,7 @@ public abstract partial class UiSelectControl<T>
             await CommitAsync([value]).ConfigureAwait(false);
             if (closes)
             {
-                Close();
+                await ShutAsync().ConfigureAwait(false);
             }
 
             if (IsCombobox)
@@ -331,7 +344,7 @@ public abstract partial class UiSelectControl<T>
             _busy = false;
         }
 
-        Close();
+        await ShutAsync().ConfigureAwait(false);
         if (PillsCombobox)
         {
             // The option is made of what was typed, so the pillbox's own input starts over.
