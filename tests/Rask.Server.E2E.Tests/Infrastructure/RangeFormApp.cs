@@ -40,8 +40,8 @@ public sealed partial class RangeListPage : Component
 }
 
 /// <summary>
-///     The same form on a page whose first pick changes an unkeyed child's element, which the diff gate refuses:
-///     that one reply is the whole page, as every pick's was in the app that reported.
+///     The same form on a page whose first pick changes an unkeyed child's element: a morph of the parent the
+///     fields are in, and the whole page when every reply is sent whole, as every pick's was in the app that reported.
 /// </summary>
 [Route("new-whole")]
 [ParentRoute(typeof(RangeLayout))]

@@ -25,6 +25,15 @@ internal sealed class SocketFrames
     public IReadOnlyList<string> FullPages =>
         [.. _frames.Where(frame => !frame.Sent && frame.Text.Contains("\"html\":\"<!DOCTYPE", StringComparison.Ordinal)).Select(frame => Cut(frame.Text))];
 
+    /// <summary>The paths of the parents whose children a reply sent as markup, one <c>MorphSubtree</c> each.</summary>
+    public IReadOnlyList<string> Morphs =>
+    [
+        .. _frames.Where(frame => !frame.Sent)
+            .SelectMany(frame => System.Text.RegularExpressions.Regex.Matches(
+                frame.Text, "\\[8,\\[([0-9,]*)\\],", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)))
+            .Select(match => match.Groups[1].Value),
+    ];
+
     /// <summary>The largest reply so far, in bytes.</summary>
     public int LargestReply => _frames.Where(frame => !frame.Sent).Select(frame => frame.Text.Length).DefaultIfEmpty().Max();
 
