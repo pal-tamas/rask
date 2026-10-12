@@ -74,6 +74,13 @@ internal static partial class JSInterop
     }
 
     /// <summary>
+    ///     Completes when the reads the last dispatch's page was shown without are back and painted — at once
+    ///     when it was shown whole. A pressed control stays busy until then (<c>rask.wasm.js</c>).
+    /// </summary>
+    [JSExport]
+    public static Task ReadsSettled() => _session?.ReadsSettledAsync() ?? Task.CompletedTask;
+
+    /// <summary>
     ///     Inbound result for an <c>IJSRuntime.InvokeAsync</c> call. <paramref name="arguments" />
     ///     is the canonical <c>[taskId, success, result|error]</c> triple that
     ///     <see cref="DotNetDispatcher.EndInvokeJS" /> parses to complete the
@@ -264,6 +271,9 @@ internal static partial class JSInterop
         // Tests call session.DispatchAsync(json) directly to inspect the byte[] payload.
         return _session?.DispatchAsync(json, copyFrame: false) ?? Task.CompletedTask;
     }
+
+    // Non-browser stub of the JSExport.
+    public static Task ReadsSettled() => _session?.ReadsSettledAsync() ?? Task.CompletedTask;
 
     /// <summary>Where a test collects the frames a session pushed; nothing is kept while it is null.</summary>
     internal static List<string>? AppliedFrames { get; set; }

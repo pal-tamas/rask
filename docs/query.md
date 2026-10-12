@@ -388,6 +388,25 @@ and an entry nothing is watching is collected five minutes later.
 
 `QueryOptions` covers `StaleTime`, `GcTime`, `Retry`, `RefetchInterval` and `KeepPreviousData`.
 
+### A key that a handler moves
+
+A paged or filtered list re-keys its query from a handler — `_page = page`, and the query reads
+`new GetOrders(_page)`. The render that follows the handler **waits for that fetch**, within the handler budget
+of 150 ms ([routing](routing.md#a-handlers-work-reaches-the-screen-once)), so a fetch that is back in time is
+one frame: the new pager and the new rows together, and `IsLoading` is never seen.
+
+A slower fetch is shown at the budget as the query stands, and what it stands as is yours to choose:
+
+```csharp
+QueryClient.Query(() => new GetOrders(_page));                                          // rows give way to IsLoading
+QueryClient.Query(() => new GetOrders(_page), new QueryOptions { KeepPreviousData = true });   // the rows before stay
+```
+
+`KeepPreviousData` is off by default, as in TanStack Query. With it the page before stays in `Data` until the
+next arrives (`IsPlaceholderData` says so). A `Ui.Table` dims its rows by itself while the pager or a sortable
+heading is waiting ([tables](ui-kit.md#a-slow-page-change-dims-the-rows)), so the page needs no
+`IsPlaceholderData` branch to grey them.
+
 ## See also
 
 - [`docs/cqrs.md`](cqrs.md) — the dispatcher this wraps.

@@ -472,6 +472,7 @@ public static class LivePayload
         }
 
         WriteResume(writer, resume);
+        WriteDevError(writer, devError);
         WritePageVersion(writer);
 
         writer.WriteEndObject();
@@ -853,6 +854,8 @@ public static class LivePayload
     ///         so a production payload cannot carry a stack trace even if a call site forgot to check.
     ///     </para>
     /// </remarks>
+    // On BOTH shapes. A diff used to drop it, so a handler that changed the page and then threw — one frame
+    // with ops — reached the browser with the change and without the fault.
     private static void WriteDevError(Utf8JsonWriter writer, DevErrorInfo? devError)
     {
         if (devError is null)

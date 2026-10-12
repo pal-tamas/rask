@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Rask.Core.Live;
 
 internal sealed class HandlerSyncContext : SynchronizationContext
@@ -5,9 +7,26 @@ internal sealed class HandlerSyncContext : SynchronizationContext
     private readonly List<Task> _pending = new();
     private readonly Func<Task> _render;
 
-    public HandlerSyncContext(Func<Task> render) => _render = render;
+    // The moment (Stopwatch ticks) the handler's repaints stop being withheld. Zero when none are.
+    private readonly long _repaintsFrom;
 
-    public override SynchronizationContext CreateCopy() => new HandlerSyncContext(_render);
+    /// <summary>A context whose continuations are each repainted before and after they run.</summary>
+    /// <param name="render">The repaint.</param>
+    /// <param name="repaintsFrom">
+    ///     Until this moment (<see cref="Stopwatch.GetTimestamp" />) no continuation is repainted: a handler
+    ///     that finishes before it shows one frame, its last. Zero repaints from the start.
+    /// </param>
+    public HandlerSyncContext(Func<Task> render, long repaintsFrom = 0)
+    {
+        _render = render;
+        _repaintsFrom = repaintsFrom;
+    }
+
+    public override SynchronizationContext CreateCopy() => new HandlerSyncContext(_render, _repaintsFrom);
+
+    private bool Withheld => _repaintsFrom != 0 && Stopwatch.GetTimestamp() < _repaintsFrom;
+
+    private Task Repaint() => Withheld ? Task.CompletedTask : _render();
 
     public override void Post(SendOrPostCallback d, object? state)
     {
@@ -44,12 +63,12 @@ internal sealed class HandlerSyncContext : SynchronizationContext
 
     private async Task RunWithRendersAsync(SendOrPostCallback d, object? state)
     {
-        await _render().ConfigureAwait(false);
+        await Repaint().ConfigureAwait(false);
         var prev = Current;
         SetSynchronizationContext(this);
         try { d(state); }
         finally { SetSynchronizationContext(prev); }
 
-        await _render().ConfigureAwait(false);
+        await Repaint().ConfigureAwait(false);
     }
 }

@@ -30,6 +30,10 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
 
     private static readonly UiPartMarker Marker = new("ui-column");
 
+    // A sortable heading waits on its own sort like a button: the runtime marks the cell that carries the
+    // click, and the table dims its rows by that mark (ui.css).
+    private static readonly UiPartMarker Waiting = Marker.And("rask-loading");
+
     /// <summary>Where the heading sits in its column. Start unless this says otherwise.</summary>
     public Ui.Align? Align { get; set; }
 
@@ -68,7 +72,8 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
         Sticky is true ? UiTableBox.Stuck : "",
         Class);
 
-    private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() =>
+        (Sortable is true ? Waiting : Marker).With(Data);
 
     /// <inheritdoc />
     protected override Component? Render()

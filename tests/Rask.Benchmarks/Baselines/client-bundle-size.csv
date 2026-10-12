@@ -166,6 +166,12 @@
 # And again on top of the full-page reply that keeps a number being typed (main at 97,583 / 86,324 / 42,367):
 # rask.js 94,829, rask.wasm.js 83,579, rask-hooks.js 48,853.
 #
+# Refreshed 2026-10-12 with the loading mark that reaches what is around a press (`data-rask-loading="within"`,
+# rask-loading.ts — the core runtime, shared by both: a scope found above the press, marked and released beside
+# the control, and kept through a morph), and the WASM host waiting for the reads a page went out without
+# before it ends a busy mark (`ReadsSettled`): rask.js 97,330 -> 97,920 (+590) and rask.wasm.js
+# 86,147 -> 86,880 (+733), on top of every event naming its page. rask-hooks.js is unchanged at 49,951.
+#
 # Refresh with:
 #   dotnet build src/Rask.Server -c Release -p:MinVerSkip=true
 #   dotnet build src/Rask.Wasm   -c Release -p:MinVerSkip=true
@@ -180,6 +186,6 @@
 # Both of the above together (the bound control that waits + every event naming its page): 95,978 + 84 and
 # 84,796 + 84.
 bundle,bytes
-rask.js,97330
-rask.wasm.js,86147
+rask.js,97920
+rask.wasm.js,86880
 rask-hooks.js,49951

@@ -57,6 +57,8 @@ Rask.Server.RaskPwaExtensions
 Rask.Server.RaskServerOptions
 Rask.Server.RaskServerOptions.CompressPageHtml.get -> bool
 Rask.Server.RaskServerOptions.CompressPageHtml.set -> void
+Rask.Server.RaskServerOptions.HandlerQuiescenceTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.HandlerQuiescenceTimeout.set -> void
 Rask.Server.RaskServerOptions.HandlerTimeout.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.HandlerTimeout.set -> void
 Rask.Server.RaskServerOptions.IdleSocketTimeout.get -> System.TimeSpan

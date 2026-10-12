@@ -59,7 +59,51 @@ internal sealed class QuiescenceScope : IDisposable
     ///     </para>
     ///     <para>A disposed scope is never current, even while a flow still carries it.</para>
     /// </remarks>
-    internal static QuiescenceScope? Current => _asyncCurrent.Value is { _disposed: false } scope ? scope : null;
+    internal static QuiescenceScope? Current =>
+        _asyncCurrent.Value is { _disposed: false } scope ? scope : _walk?.Scope();
+
+    // The live session whose render walk is running on this thread, asked for a scope only when that walk
+    // starts work. Set and cleared around the walk itself, which never awaits — so, unlike the slot #1108
+    // removed, it cannot outlive what set it.
+    [ThreadStatic]
+    private static OnDemand? _walk;
+
+    /// <summary>
+    ///     A scope a live session opens only when a render asks for one: an update that starts no work opens
+    ///     none, and costs nothing for it.
+    /// </summary>
+    internal sealed class OnDemand
+    {
+        private QuiescenceScope? _scope;
+
+        internal QuiescenceScope Scope() => _scope ??= new QuiescenceScope();
+
+        /// <summary>The scope the walk opened, handed over to the caller to wait on and dispose. Null when it opened none.</summary>
+        internal QuiescenceScope? Take()
+        {
+            var scope = _scope;
+            _scope = null;
+            return scope;
+        }
+    }
+
+    /// <summary>
+    ///     Makes <paramref name="walk" /> what a render on this thread collects into, until the result is
+    ///     disposed. The render between the two must not await.
+    /// </summary>
+    internal static Collecting Collect(OnDemand walk)
+    {
+        _walk = walk;
+        return default;
+    }
+
+    /// <summary>Ends <see cref="Collect" />.</summary>
+    internal readonly struct Collecting : IDisposable
+    {
+        public void Dispose() => End();
+
+        private static void End() => _walk = null;
+    }
 
     /// <summary>
     ///     Whether any wave gave up before its work settled — the page is being served incomplete.
@@ -70,6 +114,12 @@ internal sealed class QuiescenceScope : IDisposable
     ///     placeholder for ever, with nothing left running that could replace it.
     /// </remarks>
     internal bool TimedOut { get; private set; }
+
+    /// <summary>
+    ///     The work a wave gave up on, as one task that completes when all of it has — never faulted, never
+    ///     cancelled. Null while nothing was given up on.
+    /// </summary>
+    internal Task? Unsettled { get; private set; }
 
     public void Dispose()
     {
@@ -196,8 +246,12 @@ internal sealed class QuiescenceScope : IDisposable
         }
     }
 
-    /// <summary>Record that a wave gave up waiting. See <see cref="TimedOut" />.</summary>
-    internal void MarkTimedOut() => TimedOut = true;
+    /// <summary>Record that a wave gave up waiting for <paramref name="left" />. See <see cref="TimedOut" />.</summary>
+    internal void MarkTimedOut(Task[] left)
+    {
+        TimedOut = true;
+        Unsettled = Task.WhenAll(left);
+    }
 
     /// <summary>Clear the current scope, so a test starts from a flow that carries none.</summary>
     internal static void ResetSyncForTests() => _asyncCurrent.Value = null;

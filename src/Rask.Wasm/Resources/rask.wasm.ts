@@ -629,6 +629,18 @@ async function dispatch(payload: unknown): Promise<void> {
     }
 }
 
+// When the page a dispatch answered with is whole. A handler's render waits a moment for the reads it started
+// and is shown without them when they are slow; `send`'s promise ends with that paint, and this one with theirs —
+// so a pressed control, and whatever it dims, stays busy until the rows are there. An app built before the
+// export existed is whole at once.
+async function settled(): Promise<void> {
+    try {
+        await dotnetExports?.Rask?.Wasm?.JSInterop?.ReadsSettled?.();
+    } catch (e) {
+        console.error("Rask: waiting for the page's reads failed", e);
+    }
+}
+
 // Install the host contract before anything can dispatch. Both are hoisted function declarations,
 // so this runs before the listeners below are bound.
 //
@@ -700,13 +712,12 @@ window.addEventListener("popstate", () => {
 document.addEventListener("click", (e) => {
     const t = handlerClick(e);
     if (!t) return;
-    const waiting = loadingTarget(t);
-    // The dispatch promise resolves once the handler AND its render are done, which is exactly how long
-    // the control has been waiting.
-    const ticket = waiting ? beginLoading(waiting) : null;
+    // The dispatch promise resolves once the handler AND its render are done, and `settled` once the reads
+    // that render went without are back: together, exactly how long the control has been waiting.
+    const ticket = beginLoading(loadingTarget(t), t);
     // The click's PointerEvent, in MDN's fields (rask-dom-payload.ts).
-    send(Object.assign(raskDomPayload(e, "click"), { id: t.getAttribute("data-rask-on-click"), type: "click" }))
-        .finally(() => endLoading(ticket));
+    const sent = send(Object.assign(raskDomPayload(e, "click"), { id: t.getAttribute("data-rask-on-click"), type: "click" }));
+    if (ticket) sent.then(settled).finally(() => endLoading(ticket));
 });
 
 document.addEventListener("change", (e) => {
@@ -752,9 +763,9 @@ document.addEventListener("submit", (e) => {
         obj[k] = v;
     });
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
-    const ticket = submitter ? beginLoading(submitter) : null;
-    send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj})
-        .finally(() => endLoading(ticket));
+    const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
+    const sent = send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
+    if (ticket) sent.then(settled).finally(() => endLoading(ticket));
 });
 
 // ----- IJSRuntime bridge -----------------------------------------------------

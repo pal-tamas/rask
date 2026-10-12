@@ -396,6 +396,16 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
 
+    TimeSpan IRenderHandle.HandlerRepaintBudget => HandlerBudget;
+
+    /// <summary>
+    ///     How long a dispatch's page is waited for: the handler's own repaints are withheld for it
+    ///     (<see cref="IRenderHandle.HandlerRepaintBudget" />), and the render that follows the handler waits that
+    ///     long for the reads it started (<see cref="RenderInWavesAsync" />). Zero for a session built without
+    ///     its host's options, which repaints at every await and sends at once.
+    /// </summary>
+    protected TimeSpan HandlerBudget { get; init; }
+
     protected abstract Task RequestRenderInternalAsync(bool publishOnly);
 
     /// <summary>The framework's mid-await intermediate render (see Component.InvokeWithRenderingAsync).</summary>
@@ -502,6 +512,147 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             if (frameWriter is not null)
             {
                 popper.Dispose();
+            }
+        }
+    }
+
+    // The scope a waiting render's walk opens when it starts work, and only then.
+    private readonly QuiescenceScope.OnDemand _reads = new();
+
+    // What the last waiting render left unread when its budget ran out. Written under the host's render gate,
+    // taken by the dispatch that made the render.
+    private Task? _unsettledReads;
+
+    /// <summary>
+    ///     The reads the dispatch's page went out without, as one task that completes when they are all back —
+    ///     or <see cref="ReadsCap" /> has passed — so whoever tells the browser the dispatch is done can say so
+    ///     then. Null when it went out whole.
+    /// </summary>
+    internal Task? TakeUnsettledReads() => Interlocked.Exchange(ref _unsettledReads, null);
+
+    /// <summary>
+    ///     How long after a page went out without its reads the browser is told the event is done anyway: the
+    ///     busy mark, the dimmed rows and the bar end then, and a read that never returns does not hold them
+    ///     until the client gives up. The reads are not cancelled, and what they bring is a frame of its own.
+    /// </summary>
+    internal static readonly TimeSpan DefaultReadsCap = TimeSpan.FromSeconds(2);
+
+    /// <summary>The cap this session waits. Settable so a test need not sit out two seconds.</summary>
+    internal TimeSpan ReadsCap { get; set; } = DefaultReadsCap;
+
+    /// <summary>
+    ///     What an earlier dispatch left unread is not the next one's to report. Called as a dispatch starts: one
+    ///     that renders nothing would otherwise answer for the navigation before it.
+    /// </summary>
+    internal void ForgetUnsettledReads() => Volatile.Write(ref _unsettledReads, null);
+
+    /// <summary>Whether the page just rendered has sent the reader on, so it is neither waited for nor rendered again.</summary>
+    protected virtual bool LeavingThePage(bool arriving) => false;
+
+    /// <summary>
+    ///     Renders, and renders again as the lifecycle work and the queries that render started come back, until
+    ///     none is pending or <paramref name="budget" /> is spent — the first request's waves
+    ///     (<see cref="QuiescentRender" />), for a page that is already live.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A render that started nothing returns at once, having opened no scope and armed no timer: this is
+    ///         every keystroke's path. Spending the budget cancels nothing — the page goes out as it stands, the
+    ///         rest follows as frames of its own, and <see cref="TakeUnsettledReads" /> says when.
+    ///     </para>
+    ///     <para>The host holds its render gate throughout, so the frame it sends is the last wave's.</para>
+    /// </remarks>
+    /// <param name="publishOnly">Whether the first render is a publish render. Every later one is.</param>
+    /// <param name="budget">One deadline for all the waves.</param>
+    /// <param name="arriving">Whether the render carries a navigation, for <see cref="LeavingThePage" />.</param>
+    /// <param name="cancellationToken">Ends the wait with <see cref="OperationCanceledException" />.</param>
+    protected ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)> RenderInWavesAsync(
+        bool publishOnly, TimeSpan budget, bool arriving, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        ReadOnlyMemory<char> html;
+        FrameWriter? frames;
+        using (QuiescenceScope.Collect(_reads))
+        {
+            html = RenderTreeToHtml(publishOnly, out frames);
+        }
+
+        return _reads.Take() is { } started
+            ? FollowTheReadsAsync(started, html, frames, budget, arriving, cancellationToken)
+            : new ValueTask<(ReadOnlyMemory<char>, FrameWriter?)>((html, frames));
+    }
+
+    private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)> FollowTheReadsAsync(
+        QuiescenceScope started,
+        ReadOnlyMemory<char> html,
+        FrameWriter? frames,
+        TimeSpan budget,
+        bool arriving,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await QuiescentRender.Waves(
+                started,
+                string.Empty,
+                _ =>
+                {
+                    // A page that has sent the reader on is not rendered again: its destination is next.
+                    if (!LeavingThePage(arriving))
+                    {
+                        using (QuiescenceScope.Enter(started))
+                        {
+                            html = RenderTreeToHtml(publishOnly: true, out frames);
+                        }
+                    }
+
+                    return string.Empty;
+                },
+                budget,
+                // Work waiting on the browser cannot finish before a frame reaches it, and a page that
+                // redirected is not waited for at all.
+                isBlocked: () => JsInvokes.HasPending || LeavingThePage(arriving),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            started.Dispose();
+            throw;
+        }
+
+        if (started.Unsettled is { } left)
+        {
+            // The scope stays open until they are back: what their continuations start is theirs too.
+            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(SettledAsync(started, left), ReadsCap));
+        }
+        else
+        {
+            started.Dispose();
+        }
+
+        return (html, frames);
+    }
+
+    // The reads, or the cap, whichever is first. The timer does not outlive reads that came back in time.
+    private static async Task WithinTheCapAsync(Task settled, TimeSpan cap)
+    {
+        using var stop = new CancellationTokenSource();
+        await Task.WhenAny(settled, Task.Delay(cap, stop.Token)).ConfigureAwait(false);
+        await stop.CancelAsync().ConfigureAwait(false);
+    }
+
+    // Completes when the reads a page went out without are back AND the repaint each asked for has been
+    // requested. The hook's own task ends one statement before that request (#932), so the scope is asked
+    // again for the gate its continuation registered, a bounded number of times.
+    private static async Task SettledAsync(QuiescenceScope started, Task left)
+    {
+        using (started)
+        {
+            await left.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            for (var round = 0; round < QuiescentRender.DefaultMaxWaves && started.TrySnapshotPending(out var more); round++)
+            {
+                await Task.WhenAll(more).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             }
         }
     }

@@ -55,6 +55,19 @@ public sealed class RaskWasmOptions
     /// </remarks>
     public TimeSpan NavigationQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
 
+    /// <summary>
+    /// How long a handler's work is waited for before the page is shown. <see cref="TimeSpan.Zero"/> disables the
+    /// wait. Default 150&#160;milliseconds.
+    /// </summary>
+    /// <remarks>
+    /// Nothing changes on screen until the handler has answered: what it sets between its awaits is not painted
+    /// while it runs, and the render after it waits for the reads its change started, so a page change arrives in
+    /// one paint. Spending the budget cancels nothing: the page is shown as it stands at that moment, the rest
+    /// follows when it arrives, and the pressed control stays busy until it has. A handler with nothing to wait
+    /// for is answered at once. The server host's twin is <c>Rask:Server:HandlerQuiescenceTimeout</c>.
+    /// </remarks>
+    public TimeSpan HandlerQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
+
     // Remote dispatch (Rask.Cqrs.Client) deliberately has NO switch here. It is referenced by this
     // package, but wiring it needs an endpoint to dispatch to, which only the app knows — and registering
     // it without one would replace the local dispatcher with one that cannot reach anything. So it stays

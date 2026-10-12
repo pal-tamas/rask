@@ -13,6 +13,7 @@ import {
     isVisiblyLoading,
     LOADING_DELAY_MS,
     LOADING_HARD_TIMEOUT_MS,
+    loadingScope,
     loadingTarget,
     runtimeOwnsAttr,
 } from "../../../src/Rask.Core/Resources/rask-loading.js";
@@ -167,7 +168,77 @@ const renderedMark = makeEl("BUTTON", {"data-loading": ""});
 morph(dom(renderedMark), dom(makeEl("BUTTON")));
 const morphRemovedRenderedMark = !renderedMark.hasAttribute("data-loading");
 
+// ---- A scope: what is around the press waits with it ----
+const pager = makeEl("DIV", {"data-rask-loading": "within"});
+const pageTwo = inside(inside(pager, makeEl("DIV")), makeEl("BUTTON"));
+const offAbove = makeEl("SECTION", {"data-rask-loading": "off"});
+const pagerUnderOff = inside(offAbove, makeEl("DIV", {"data-rask-loading": "within"}));
+const offBetween = inside(makeEl("DIV", {"data-rask-loading": "within"}), makeEl("DIV", {"data-rask-loading": "off"}));
+const scopeOf = {
+    descendant: loadingScope(dom(pageTwo)) === dom(pager),
+    // The element that asks is a scope for what is inside it, not for itself.
+    itself: loadingScope(dom(pager)) === null,
+    none: loadingScope(dom(makeEl("BUTTON"))) === null && loadingScope(null) === null,
+    underOptOut: loadingScope(dom(inside(pagerUnderOff, makeEl("BUTTON")))) === null,
+    optOutBetween: loadingScope(dom(inside(offBetween, makeEl("BUTTON")))) === null,
+    nothingToMark: beginLoading(null, dom(makeEl("A"))) === null,
+};
+
+const pageTicket = beginLoading(loadingTarget(dom(pageTwo)), dom(pageTwo));
+advance(LOADING_DELAY_MS - 1);
+const scopeBeforeDelay = pager.hasAttribute("data-loading");
+advance(1);
+const scopeAfterDelay = {
+    loading: pager.hasAttribute("data-loading"),
+    busy: pager.hasAttribute("aria-busy"),
+    control: pageTwo.hasAttribute("data-loading") && pageTwo.getAttribute("aria-busy") === "true",
+    // Only the pressed control refuses a second press: every other button in the pager stays pressable.
+    visibly: isVisiblyLoading(dom(pager)),
+    owns: runtimeOwnsAttr(dom(pager), "data-loading"),
+    ownsBusy: runtimeOwnsAttr(dom(pager), "aria-busy"),
+};
+// The render that answers the press replaces the pressed number and writes no mark on the pager.
+pageTwo.parentNode!.removeChild(pageTwo);
+morph(dom(pager), dom(makeEl("DIV", {"data-rask-loading": "within"})));
+const scopeMarkSurvivesTheRender = pager.hasAttribute("data-loading");
+endLoading(pageTicket);
+const scopeAfterEnd = pager.hasAttribute("data-loading");
+
+// A link or a row with a handler is not a control, and still makes what is around it wait.
+const sorter = makeEl("DIV", {"data-rask-loading": "within"});
+const plainOwner = inside(sorter, makeEl("A"));
+const plainTicket = beginLoading(loadingTarget(dom(plainOwner)), dom(plainOwner));
+advance(LOADING_DELAY_MS);
+const scopeMarkedByAPlainOwner = sorter.hasAttribute("data-loading") && !plainOwner.hasAttribute("data-loading");
+endLoading(plainTicket);
+
+// Two presses inside one scope: the mark comes off with the last.
+const busyPager = makeEl("DIV", {"data-rask-loading": "within"});
+const pressOne = beginLoading(null, dom(inside(busyPager, makeEl("A"))));
+const pressTwo = beginLoading(null, dom(inside(busyPager, makeEl("A"))));
+advance(LOADING_DELAY_MS);
+endLoading(pressOne);
+const scopeAfterFirstOfTwo = busyPager.hasAttribute("data-loading");
+endLoading(pressTwo);
+const scopeAfterSecondOfTwo = busyPager.hasAttribute("data-loading");
+
+// A scope the render marked itself is the render's, as a control's is.
+const renderedScope = makeEl("DIV", {"data-rask-loading": "within", "data-loading": ""});
+const renderedScopeTicket = beginLoading(null, dom(inside(renderedScope, makeEl("A"))));
+advance(LOADING_DELAY_MS);
+endLoading(renderedScopeTicket);
+const renderedScopeMarkKept = renderedScope.hasAttribute("data-loading");
+
 process.stdout.write(JSON.stringify({
+    scopeOf,
+    scopeBeforeDelay,
+    scopeAfterDelay,
+    scopeMarkSurvivesTheRender,
+    scopeAfterEnd,
+    scopeMarkedByAPlainOwner,
+    scopeAfterFirstOfTwo,
+    scopeAfterSecondOfTwo,
+    renderedScopeMarkKept,
     target,
     beforeDelay,
     afterDelay,

@@ -95,6 +95,22 @@ public sealed class RaskServerOptions
     public TimeSpan NavigationQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
 
     /// <summary>
+    ///     How long a handler's work is waited for before the page is sent. <see cref="TimeSpan.Zero" /> disables
+    ///     the wait. Default 150&#160;milliseconds.
+    /// </summary>
+    /// <remarks>
+    ///     Nothing changes on screen until the handler has answered: what it sets between its awaits is not
+    ///     sent while it runs, and the render after it waits for the reads its change started — a child that
+    ///     loads again in <c>OnUpdated</c>, a query whose key moved — so a page change arrives as one frame,
+    ///     pager and rows together. Spending the budget is not an error and cancels nothing: the page is sent
+    ///     as it stands at that moment (a long save shows its "Saving…" then, not at once), the rest follows
+    ///     when it arrives, and the browser is told the event is done only when it has. A handler with nothing
+    ///     to wait for is answered at once. Zero turns it off: every intermediate state is sent. Bound from
+    ///     <c>Rask:Server:HandlerQuiescenceTimeout</c>.
+    /// </remarks>
+    public TimeSpan HandlerQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
+
+    /// <summary>
     ///     If a connected WebSocket sends no inbound frame for this long, the server closes it. The
     ///     session itself survives under <see cref="SessionGracePeriod" /> for reconnect, so this only
     ///     reclaims the idle socket (and its receive loop), not the component tree. Bounds a silently
@@ -252,6 +268,9 @@ public sealed class RaskServerOptions
         Require(
             NavigationQuiescenceTimeout >= TimeSpan.Zero && NavigationQuiescenceTimeout.TotalMilliseconds <= int.MaxValue,
             $"NavigationQuiescenceTimeout must be between TimeSpan.Zero (which disables the wait) and {TimeSpan.FromMilliseconds(int.MaxValue)}.");
+        Require(
+            HandlerQuiescenceTimeout >= TimeSpan.Zero && HandlerQuiescenceTimeout.TotalMilliseconds <= int.MaxValue,
+            $"HandlerQuiescenceTimeout must be between TimeSpan.Zero (which disables the wait) and {TimeSpan.FromMilliseconds(int.MaxValue)}.");
 
         // Zero is not "off" here — SessionResume is. A zero or negative lifetime would mint records that
         // are already expired, so every reconnect would pay to build one and then be refused it.

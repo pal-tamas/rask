@@ -54,7 +54,20 @@ public partial class UiPaginationTests : global::Rask.Core.RaskMarkup
         var html = Ui.Pagination.Paginator(paginator).ToHtml();
 
         Assert.StartsWith("<div class=\"@container ", html, StringComparison.Ordinal);
-        Assert.Contains(" data-ui-pagination>", html, StringComparison.Ordinal);
+        Assert.Contains(" data-ui-pagination ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_root_asks_to_be_marked_while_a_press_inside_it_is_unanswered()
+    {
+        var paginator = new UiPaginator { Page = 1, PerPage = 5, Total = 24 };
+
+        var counted = Ui.Pagination.Paginator(paginator).OnPage(_ => { }).ToHtml();
+        var simple = Ui.Pagination.Paginator(new UiPaginator { Page = 1, HasMore = true }).ScrollTo("body").OnPage(_ => { }).ToHtml();
+
+        // The pressed page number is replaced by the render that answers it, so the root is what waits.
+        Assert.Contains(" data-ui-pagination data-rask-loading=\"within\">", counted, StringComparison.Ordinal);
+        Assert.Contains(" data-ui-pagination data-rask-loading=\"within\" data-rask-scroll-to=\"body\">", simple, StringComparison.Ordinal);
     }
 
     [Fact]

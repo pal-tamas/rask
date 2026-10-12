@@ -286,6 +286,7 @@ interface RaskWasmExports {
                 EndInvokeJS?(taskId: string, succeeded: boolean, resultJson: string): void;
                 PullDownload?(token: string): Uint8Array;
                 Dispatch?(payload: Uint8Array): Promise<void> | void;
+                ReadsSettled?(): Promise<void> | void;
                 StopHostedServices?(): void;
                 EndInvokeJSResult?(payloadJson: string): void;
 
