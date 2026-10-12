@@ -4404,7 +4404,7 @@ div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bot
 div .-mx-[calc(var(--ui-bleed-x)&#x2B;1px)] .first:-mt-[calc(var(--ui-bleed-top)&#x2B;1px)] .first:rounded-t-[calc(var(--ui-bleed-top-radius)&#x2B;1px)] .last:-mb-[calc(var(--ui-bleed-bottom)&#x2B;1px)] .last:rounded-b-[calc(var(--ui-bleed-bottom-radius)&#x2B;1px)] .overflow-hidden
 div .*:data-ui-pagination:shrink-0 .flex .flex-col
 div .block .overflow-auto
-table .[&amp;_tbody_tr:hover]:bg-ui-well .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .isolate .min-w-160 .w-full
+table .[&amp;_tbody_tr:hover]:bg-ui-well .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .isolate .min-w-190 .w-full
 thead .bg-ui-well
 tr
 th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .w-14
