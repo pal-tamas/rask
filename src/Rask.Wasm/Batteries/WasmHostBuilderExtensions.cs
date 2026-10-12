@@ -50,6 +50,12 @@ public static class WasmHostBuilderExtensions
             ? configured.NavigationQuiescenceTimeout
             : new RaskWasmOptions().NavigationQuiescenceTimeout;
 
+    // How long the session waits for a handler's page. A negative value is no wait, as zero is.
+    internal static TimeSpan HandlerBudget(WasmHostBuilder host) =>
+        Options.TryGetValue(host, out var configured)
+            ? configured.HandlerQuiescenceTimeout
+            : new RaskWasmOptions().HandlerQuiescenceTimeout;
+
     internal static ToastOptions Toasts(WasmHostBuilder host) =>
         Options.TryGetValue(host, out var configured) ? configured.Toasts : new ToastOptions();
 

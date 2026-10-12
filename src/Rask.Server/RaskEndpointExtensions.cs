@@ -2545,6 +2545,7 @@ public static partial class RaskEndpointExtensions
                 // prevent this dispatch from running. The chain is for ordering only.
             }
 
+            session.ForgetUnsettledReads();
             await DispatchHandlerAsync(session, handlerId, root, metrics, handlerTimeout, ct).ConfigureAwait(false);
 
             // Acknowledge the handler so the client's slow-link pending indicator can
@@ -2558,7 +2559,7 @@ public static partial class RaskEndpointExtensions
                 && seqEl.ValueKind == JsonValueKind.Number
                 && seqEl.TryGetInt64(out var seq))
             {
-                await SendHandlerAckAsync(session, seq).ConfigureAwait(false);
+                await AckAsync(session, seq).ConfigureAwait(false);
             }
         }
         finally
@@ -2589,6 +2590,7 @@ public static partial class RaskEndpointExtensions
         {
             await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
+            session.ForgetUnsettledReads();
             var acked = await DispatchBatchAsync(session, events, count, metrics, handlerTimeout, ct)
                 .ConfigureAwait(false);
 
@@ -2596,7 +2598,7 @@ public static partial class RaskEndpointExtensions
             // and it is sent after the render that answers them all.
             if (acked >= 0)
             {
-                await SendHandlerAckAsync(session, acked).ConfigureAwait(false);
+                await AckAsync(session, acked).ConfigureAwait(false);
             }
         }
         finally
@@ -2670,7 +2672,7 @@ public static partial class RaskEndpointExtensions
         // registers, exactly as when each event was a frame of its own.
         if (session.RenderOwed && !session.HandlerOutlivesRender(handlerId))
         {
-            await RenderOwedAsync(session, metrics).ConfigureAwait(false);
+            await RenderOwedAsync(session, metrics, settle: false).ConfigureAwait(false);
         }
 
         await RunInSessionAsync(
@@ -2687,7 +2689,7 @@ public static partial class RaskEndpointExtensions
         // The last handler ran nothing, or threw: what the ones before it changed is still to be shown.
         if (last && session.RenderOwed)
         {
-            await RenderOwedAsync(session, metrics).ConfigureAwait(false);
+            await RenderOwedAsync(session, metrics, settle: true).ConfigureAwait(false);
         }
     }
 
@@ -2698,16 +2700,50 @@ public static partial class RaskEndpointExtensions
 
     // The render a batch owes, made on its own: between two of its events, or after a last one that rendered
     // nothing. A fault in it is reported like a handler's, and the batch goes on.
-    private static async Task RenderOwedAsync(LiveSession session, RaskMetrics? metrics)
+    // settle: whether it waits for the reads it starts. Not between two events — the handler after it is what
+    // the reader is waiting for, and the batch's last render waits for them all.
+    private static async Task RenderOwedAsync(LiveSession session, RaskMetrics? metrics, bool settle)
     {
         try
         {
-            await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
+            await EnforceAuthAndRenderAsync(session, null, false, settle: settle).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             ReportHandlerFaulted(session, metrics, null, "batch render", ex);
         }
+    }
+
+    // Tells the browser a dispatch is done — which is what ends the pressed control's busy mark and the bar.
+    // A page that went out with reads still in flight (its budget ran out) is not done: its ack follows them,
+    // from a continuation of theirs, and the chain moves on to the next event meanwhile.
+    private static Task AckAsync(LiveSession session, long seq)
+    {
+        if (session.TakeUnsettledReads() is not { } reads)
+        {
+            return SendHandlerAckAsync(session, seq);
+        }
+
+        // Discarded on purpose: nothing waits for it, and it faults on nothing (RASK093).
+        _ = AckAfterAsync(session, seq, reads);
+        return Task.CompletedTask;
+    }
+
+    private static async Task AckAfterAsync(LiveSession session, long seq, Task reads)
+    {
+        await reads.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        try
+        {
+            // What the reads brought is on the wire before the ack.
+            await session.RenderAfterReadsAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException or WebSocketException)
+        {
+            // The connection or the session went meanwhile. Nobody is left to tell.
+            return;
+        }
+
+        await SendHandlerAckAsync(session, seq).ConfigureAwait(false);
     }
 
     // Tiny out-of-band frame that closes the round-trip for a handler the client tagged
@@ -3439,7 +3475,8 @@ public static partial class RaskEndpointExtensions
         string? historyUrl,
         bool replace,
         AuthInstruction? auth = null,
-        bool arriving = false)
+        bool arriving = false,
+        bool settle = true)
     {
         var navigator = session.Services.GetRequiredService<Navigator>();
         if (auth is null && await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
@@ -3468,7 +3505,7 @@ public static partial class RaskEndpointExtensions
         // A frame that carries a navigation waits for the page it goes to, and is sent once (LiveSession.
         // RenderArrivedAsync). A sign-in's frame does not: its page mounts on the reconnect.
         arriving = auth is null && (arriving || historyUrl is not null);
-        await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth, arriving).ConfigureAwait(false);
+        await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth, arriving, settle).ConfigureAwait(false);
 
         if (auth is null)
         {

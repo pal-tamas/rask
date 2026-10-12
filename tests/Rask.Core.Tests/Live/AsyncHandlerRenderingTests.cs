@@ -10,7 +10,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     private static JsonElement EmptyPayload => JsonDocument.Parse("{}").RootElement;
 
     [Fact]
-    public async Task An_async_handler_renders_before_and_after_each_await()
+    public async Task With_no_budget_an_async_handler_renders_before_and_after_each_await()
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
@@ -39,7 +39,7 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_async_handler_with_a_string_payload_also_renders_progressively()
+    public async Task With_no_budget_an_async_handler_with_a_string_payload_also_renders_progressively()
     {
         var state = "init";
         var handle = new RecordingRenderHandle(() => state);
@@ -57,6 +57,91 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("got:hi", handle.Snapshots);
         Assert.Contains("done:hi", handle.Snapshots);
+    }
+
+    [Fact]
+    public async Task An_async_handler_that_finishes_within_the_budget_is_repainted_at_none_of_its_awaits()
+    {
+        var state = "init";
+        var handle = new RecordingRenderHandle(() => state) { Budget = TimeSpan.FromMinutes(5) };
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            state = "loading";
+            await Task.Yield();
+            state = "half";
+            await Task.Yield();
+            state = "done";
+        }));
+
+        await component.TryInvokeHandlerAsync("h0", EmptyPayload);
+
+        // The dispatch's own render, which follows, is the one frame: "loading" and "half" were never shown.
+        Assert.Empty(handle.Snapshots);
+        Assert.Equal("done", state);
+    }
+
+    [Fact]
+    public async Task A_handler_still_running_when_the_budget_is_spent_is_repainted_once_as_it_stands()
+    {
+        var state = "init";
+        var handle = new RecordingRenderHandle(() => state) { Budget = TimeSpan.FromMilliseconds(20) };
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            state = "saving";
+            await release.Task.ConfigureAwait(false);
+            state = "saved";
+        }));
+
+        var dispatch = component.TryInvokeHandlerAsync("h0", EmptyPayload);
+        await WaitFor.True(() => handle.Count > 0, "the repaint at the budget");
+        var atTheBudget = handle.Copy();
+        release.SetResult();
+        await dispatch;
+
+        Assert.Equal(["saving"], atTheBudget);
+    }
+
+    [Fact]
+    public async Task Past_the_budget_a_handlers_continuations_repaint_before_and_after_as_they_did()
+    {
+        var state = "init";
+        var handle = new RecordingRenderHandle(() => state) { Budget = TimeSpan.FromMilliseconds(20) };
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            state = "saving";
+            await release.Task;
+            state = "saved";
+        }));
+
+        var dispatch = component.TryInvokeHandlerAsync("h0", EmptyPayload);
+        await WaitFor.True(() => handle.Count > 0, "the repaint at the budget");
+        release.SetResult();
+        await dispatch;
+
+        Assert.Equal("saving", handle.Copy()[0]);
+        Assert.Equal("saved", handle.Copy()[^1]);
+    }
+
+    [Fact]
+    public async Task A_handler_that_throws_within_the_budget_is_not_repainted_and_its_fault_reaches_the_dispatch()
+    {
+        var handle = new RecordingRenderHandle(() => "") { Budget = TimeSpan.FromMinutes(5) };
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("refused");
+        }));
+
+        var fault = await Record.ExceptionAsync(async () => await component.TryInvokeHandlerAsync("h0", EmptyPayload));
+
+        Assert.Empty(handle.Snapshots);
+        Assert.True(fault is null or InvalidOperationException, fault?.ToString());
     }
 
     [Fact]
@@ -171,6 +256,29 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
         }
 
         public List<string> Snapshots { get; } = new();
+
+        public TimeSpan Budget { get; init; }
+
+        TimeSpan IRenderHandle.HandlerRepaintBudget => Budget;
+
+        public int Count
+        {
+            get
+            {
+                lock (Snapshots)
+                {
+                    return Snapshots.Count;
+                }
+            }
+        }
+
+        public List<string> Copy()
+        {
+            lock (Snapshots)
+            {
+                return [.. Snapshots];
+            }
+        }
 
         public Task RequestRender() => Task.CompletedTask;
 

@@ -54,10 +54,15 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private readonly TimeSpan _navigationBudget;
 
     public WasmLiveSession(
-        Component view, IServiceProvider services, LiveDiffMode diffMode, TimeSpan navigationBudget = default)
+        Component view,
+        IServiceProvider services,
+        LiveDiffMode diffMode,
+        TimeSpan navigationBudget = default,
+        TimeSpan handlerBudget = default)
         : base(view, services, diffMode)
     {
         _navigationBudget = navigationBudget;
+        HandlerBudget = handlerBudget;
 
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         (services.GetService<WasmJSRuntime>())?.AttachHost(this);
@@ -313,6 +318,27 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
+    /// <summary>
+    ///     Completes when the reads the last dispatch's page was shown without are back and painted. The
+    ///     dispatch's own task ends with its frame, which is what lets typed text through again, so the busy
+    ///     mark waits on this instead — the server host's deferred ack.
+    /// </summary>
+    internal Task ReadsSettledAsync() =>
+        TakeUnsettledReads() is { } reads ? PaintAfterAsync(reads) : Task.CompletedTask;
+
+    private async Task PaintAfterAsync(Task reads)
+    {
+        await reads.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        // Behind the paint the hook that awaited them has just asked for, which holds the lock: asking for one
+        // of our own while it runs would be left to it and answered at once.
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        _lock.Release();
+
+        // A paint of its own when nothing has shown them yet (a query's value), nothing when something has.
+        await RequestPublishRender().ConfigureAwait(false);
+    }
+
     private static readonly Task<byte[]> NoFrame = Task.FromResult(Array.Empty<byte>());
 
     // What a dispatch told not to copy returns after sending a frame: nobody reads it.
@@ -343,6 +369,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         var root = ParseFrame(json);
+
+        // What the dispatch before left unread is not this one's to report (ReadsSettledAsync).
+        ForgetUnsettledReads();
 
         var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String
             ? t.GetString()
@@ -436,7 +465,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
                 // that render registers, exactly as when each event was a call of its own.
                 if (RenderOwed && !HandlerOutlivesRender(handlerId))
                 {
-                    sent = Latest(sent, await RenderOwedAsync(copyFrame).ConfigureAwait(false));
+                    sent = Latest(sent, await RenderOwedAsync(copyFrame, settle: false).ConfigureAwait(false));
                 }
 
                 sent = Latest(sent, await RunHandlerAsync(handlerId, e, copyFrame, deferRender: !last).ConfigureAwait(false));
@@ -444,7 +473,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
                 // The last handler ran nothing, or threw: what the ones before it changed is still to be shown.
                 if (last && RenderOwed)
                 {
-                    sent = Latest(sent, await RenderOwedAsync(copyFrame).ConfigureAwait(false));
+                    sent = Latest(sent, await RenderOwedAsync(copyFrame, settle: true).ConfigureAwait(false));
                 }
             }
 
@@ -465,11 +494,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     // The render a batch owes, made on its own: between two of its events, or after a last one that rendered
     // nothing. A fault in it is reported, and the batch goes on.
-    private async Task<byte[]> RenderOwedAsync(bool copyFrame)
+    // settle: whether it waits for the reads it starts. Not between two events of a batch.
+    private async Task<byte[]> RenderOwedAsync(bool copyFrame, bool settle)
     {
         try
         {
-            return await RenderAndEmitAsync(null, false, copyFrame).ConfigureAwait(false);
+            return await RenderAndEmitAsync(null, false, copyFrame, settle).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -520,11 +550,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    private async Task<byte[]> RenderAndEmitAsync(string? historyUrl, bool historyReplace, bool copyFrame)
+    private async Task<byte[]> RenderAndEmitAsync(
+        string? historyUrl, bool historyReplace, bool copyFrame, bool settle = true)
     {
         // A render that carries a navigation waits for the page it goes to; one a newer navigation replaced
-        // shows nothing.
-        if (!await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace, arriving: historyUrl is not null)
+        // shows nothing. One that carries none waits for the reads the handler started.
+        if (!await BuildPayloadCoalescingRerendersAsync(
+                    historyUrl, historyReplace, arriving: historyUrl is not null, settle: settle)
                 .ConfigureAwait(false))
         {
             return Array.Empty<byte>();
@@ -620,8 +652,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     // arriving: the payload carries a navigation, so each build waits for the page it goes to (RenderArrivedAsync).
     // False when a newer navigation ended that wait: nothing was built, and nothing is to be sent.
+    // settle: a build that carries no navigation waits for the reads it starts — a handler's render does.
     private async Task<bool> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
-        bool replace, bool publishOnly = false, bool arriving = false)
+        bool replace, bool publishOnly = false, bool arriving = false, bool settle = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
@@ -648,7 +681,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
         _pendingRenderInScope = false;
         var budget = 2;
         FollowRedirect(ref historyUrl, ref replace, ref budget);
-        if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving).ConfigureAwait(false))
+        if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving, settle && !arriving)
+                .ConfigureAwait(false))
         {
             _pendingRenderInScope = false;
             return false;
@@ -755,8 +789,6 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private bool _arriving;
     private Action? _handedOver;
 
-    private bool LeavingThePage => _navigator!.RedirectPending || _handedOver is not null;
-
     /// <summary>
     ///     Renders the page a navigation goes to, and renders it again as the lifecycle work that render
     ///     started comes back, until none is pending or the navigation budget is spent — the server host's
@@ -771,27 +803,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return null;
         }
 
-        ReadOnlyMemory<char> html = default;
-        FrameWriter? frameWriter = null;
         _arriving = true;
         _handedOver = null;
         try
         {
-            await QuiescentRender.Run(
-                again =>
-                {
-                    // A page that has sent the reader on is not rendered again: its destination is next.
-                    if (!again || !LeavingThePage)
-                    {
-                        html = RenderTreeToHtml(publishOnly || again, out frameWriter);
-                    }
-
-                    return string.Empty;
-                },
-                _navigationBudget,
-                // A call into the page's script completes only once a frame has carried it there.
-                isBlocked: () => JsInvokes.HasPending || LeavingThePage,
-                cancellationToken: superseded).ConfigureAwait(false);
+            return await RenderInWavesAsync(publishOnly, _navigationBudget, arriving: true, superseded)
+                .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (superseded.IsCancellationRequested)
         {
@@ -801,9 +818,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             _arriving = false;
         }
-
-        return (html, frameWriter);
     }
+
+    protected override bool LeavingThePage(bool arriving) =>
+        (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending || (arriving && _handedOver is not null);
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against
@@ -844,8 +862,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
     }
 
     // False when the payload carried a navigation a newer one replaced while its page was awaited.
+    // settling: the payload ends a handler's dispatch, so it waits for the reads the handler started.
     internal async Task<bool> BuildPayloadAsync(string? historyUrl, bool replace,
-        bool publishOnly = false, bool commitCache = true, bool arriving = false)
+        bool publishOnly = false, bool commitCache = true, bool arriving = false, bool settling = false)
     {
         await Task.Yield();
 
@@ -868,6 +887,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
             }
 
             (html, frameWriter) = (settled, frames);
+        }
+        else if (settling && HandlerBudget > TimeSpan.Zero)
+        {
+            (html, frameWriter) = await RenderInWavesAsync(publishOnly, HandlerBudget, arriving: false, CancellationToken.None)
+                .ConfigureAwait(false);
         }
         else
         {

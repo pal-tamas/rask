@@ -33,6 +33,9 @@ internal sealed class RaskServerLimits
     /// <summary>How long a page reached in place is waited for before it is sent. Zero = off. See <see cref="RaskServerOptions.NavigationQuiescenceTimeout" />.</summary>
     public TimeSpan NavigationQuiescenceTimeout { get; init; } = TimeSpan.FromMilliseconds(150);
 
+    /// <summary>How long a handler's page is waited for before it is sent. Zero = off. See <see cref="RaskServerOptions.HandlerQuiescenceTimeout" />.</summary>
+    public TimeSpan HandlerQuiescenceTimeout { get; init; } = TimeSpan.FromMilliseconds(150);
+
     /// <summary>Close a connected socket that sends no inbound frame for this long. Zero = off.</summary>
     public TimeSpan IdleSocketTimeout { get; init; } = TimeSpan.Zero;
 
@@ -67,6 +70,7 @@ internal sealed class RaskServerLimits
         UnconnectedSessionGracePeriod = o.UnconnectedSessionGracePeriod,
         InitialRenderQuiescenceTimeout = o.QuiescenceTimeout,
         NavigationQuiescenceTimeout = o.NavigationQuiescenceTimeout,
+        HandlerQuiescenceTimeout = o.HandlerQuiescenceTimeout,
         IdleSocketTimeout = o.IdleSocketTimeout,
         HandlerTimeout = o.HandlerTimeout,
         MaxPendingHandlerBytes = o.MaxPendingHandlerBytes,

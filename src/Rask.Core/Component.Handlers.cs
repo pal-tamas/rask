@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -460,8 +461,14 @@ public abstract partial class Component
             return;
         }
 
+        // Within the budget nothing the handler does between its awaits is shown: one that finishes in time is
+        // one frame, its last, and a reader never sees a state it only passed through. Zero shows every one.
+        var budget = handle.HandlerRepaintBudget;
+        var withheld = budget > TimeSpan.Zero;
         var prev = SynchronizationContext.Current;
-        var ctx = new HandlerSyncContext(handle.RenderInScopeAsync);
+        var ctx = new HandlerSyncContext(
+            handle.RenderInScopeAsync,
+            withheld ? Stopwatch.GetTimestamp() + (long)(budget.TotalSeconds * Stopwatch.Frequency) : 0);
         SynchronizationContext.SetSynchronizationContext(ctx);
         try
         {
@@ -479,7 +486,12 @@ public abstract partial class Component
                 SynchronizationContext.SetSynchronizationContext(prev);
                 try
                 {
-                    await handle.RenderInScopeAsync().ConfigureAwait(false);
+                    // Still running when the budget is spent: the state as it stands goes out, once — a long
+                    // save shows its "Saving…" then, and each continuation after it repaints as it lands.
+                    if (!withheld || !await FinishedWithin(userTask, budget).ConfigureAwait(false))
+                    {
+                        await handle.RenderInScopeAsync().ConfigureAwait(false);
+                    }
                 }
                 finally
                 {
@@ -494,6 +506,17 @@ public abstract partial class Component
             SynchronizationContext.SetSynchronizationContext(prev);
             await ctx.DrainAsync().ConfigureAwait(false);
         }
+    }
+
+    // Whether the handler ended, however it ended, before the budget did. Its fault is the caller's to observe.
+    private static async Task<bool> FinishedWithin(Task handler, TimeSpan budget)
+    {
+        using var stop = new CancellationTokenSource();
+        await Task.WhenAny(handler, Task.Delay(budget, stop.Token)).ConfigureAwait(false);
+
+        // The timer is not left running for the rest of the budget behind a handler that has finished.
+        await stop.CancelAsync().ConfigureAwait(false);
+        return handler.IsCompleted;
     }
 
     private static string ExtractString(JsonElement payload, string property)

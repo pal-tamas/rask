@@ -20,6 +20,12 @@ public interface IRenderHandle
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
     /// <summary>
+    ///     How long a handler runs before what it has changed so far is shown. Within it nothing is repainted
+    ///     between its awaits, so one that finishes in time is one frame: the last. Zero repaints at every await.
+    /// </summary>
+    internal TimeSpan HandlerRepaintBudget => TimeSpan.Zero;
+
+    /// <summary>
     ///     Runs work that arrived from the browser outside an event (a scoped script's callback) in order with the
     ///     session's event handlers. The Server session queues it on its handler chain; a single-threaded host runs it.
     /// </summary>
