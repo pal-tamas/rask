@@ -173,6 +173,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("FieldValidating", 0),
         ("FileItemRemove", 0),
         ("ValidationRequired", 0),
+        ("FormSaveFailed", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

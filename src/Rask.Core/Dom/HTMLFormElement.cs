@@ -359,7 +359,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                if (ShowsUnderItsFields(ex, ctx))
+                if (ShowsUnderItsFields(ex, ctx) || SaveRefusal.Show(ex, ctx, GetType().Name))
                 {
                     return;
                 }
@@ -375,6 +375,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 if (ex is not OperationCanceledException)
                 {
                     ReportSubmitFault(ex);
+                    SaveFault.Tell(ctx, ex);
                 }
             }
             finally

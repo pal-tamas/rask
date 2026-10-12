@@ -409,4 +409,7 @@ public enum RaskString
 
     /// <summary>What a field that must be filled says when it is left empty and its type has no words of its own.</summary>
     ValidationRequired,
+
+    /// <summary>What the person is told when a form's save threw: in a toast, or in the form's own messages.</summary>
+    FormSaveFailed,
 }

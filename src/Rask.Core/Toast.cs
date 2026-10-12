@@ -49,6 +49,27 @@ public static class Toast
     /// <summary>What <see cref="Fake" /> put in the way of the session's toaster, for this test's flow alone.</summary>
     internal static readonly AsyncLocal<IToastQueue?> Faked = new();
 
+    /// <summary>
+    ///     An error toast from the framework itself, which may run where there is no session to show one in:
+    ///     says whether it was queued.
+    /// </summary>
+    internal static bool TryError(string message)
+    {
+        if (Faked.Value is { } fake)
+        {
+            fake.Queue(ToastLevel.Error, message);
+            return true;
+        }
+
+        if (Ambient.Services?.GetService<IToaster>() is not { } toaster)
+        {
+            return false;
+        }
+
+        toaster.Add(ToastLevel.Error, message);
+        return true;
+    }
+
     private static ShowingToast Show(ToastLevel level, string message)
     {
         ArgumentNullException.ThrowIfNull(message);

@@ -526,6 +526,7 @@ they say when you set nothing.
 | `FieldValidating` | Form field | `Checking…` |
 | `FileItemRemove` | File upload | `Remove file` |
 | `ValidationRequired` | Validation | `This field is required.` |
+| `FormSaveFailed` | Form | `The save failed. Please try again.` |
 
 ## Docker
 

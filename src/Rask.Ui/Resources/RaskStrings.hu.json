@@ -139,5 +139,6 @@
 
   "FileItemRemove": "Fájl eltávolítása",
 
-  "ValidationRequired": "Kötelező kitölteni."
+  "ValidationRequired": "Kötelező kitölteni.",
+  "FormSaveFailed": "A mentés nem sikerült. Kérjük, próbálja újra."
 }
