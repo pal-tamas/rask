@@ -3968,7 +3968,12 @@ Rask.Core.Globalization.RaskString.TimePickerHourPlaceholder = 62 -> Rask.Core.G
 Rask.Core.Globalization.RaskString.TimePickerMeridiem = 61 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.TimePickerMinutePlaceholder = 63 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.TimePickerPlaceholder = 60 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationDate = 132 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNumber = 130 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNumberRange = 131 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationRequired = 128 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTime = 133 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationWholeNumber = 129 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskStrings
 Rask.Core.Globalization.SessionCulture
 Rask.Core.Globalization.SessionCulture.Culture.get -> System.Globalization.CultureInfo!
@@ -7125,7 +7130,9 @@ static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
 static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
 static Rask.Core.Forms.RaskValidation.HasStoreRulesFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
+static Rask.Core.Forms.RaskValidation.IsRequired(System.Type! modelType, string! fieldPath) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
+static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?

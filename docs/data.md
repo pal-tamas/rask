@@ -582,7 +582,9 @@ settable copy of every mapped property, and:
 - **every property is nullable**, because a form field can be empty whatever the column is — and a column that
   cannot be empty (`decimal Price`, `string Name`) is **required by its type**: leaving it unfilled is a
   validation error (*This field is required.*, in the reader's language) rather than a silent 0. No `[Required]`
-  is generated for it — see [what a form over the model asks by itself](#what-a-form-over-the-model-asks-by-itself);
+  is generated for it — see [what a form over the model asks by itself](#what-a-form-over-the-model-asks-by-itself).
+  A control bound to it says `aria-required="true"`: the type's registration answers
+  [the one question a control asks](forms-validation.md#how-a-control-knows-a-field-is-required);
 - **`new ProductModel()` holds the aggregate's defaults**: it is filled from an empty `Product`, so a create form
   starts from the same values a `Product` would;
 - **`product.ToModel()`** copies a row into a model for an edit form, `Version` included;

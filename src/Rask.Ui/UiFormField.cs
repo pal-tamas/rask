@@ -133,12 +133,13 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
     ///     Drawn only where there is a visible <see cref="Label" /> to sit beside, and hidden from assistive
     ///     tech: the label is the control's accessible name, and a name that ends in "Required" is read out
     ///     on every visit. What a screen reader needs to hear about required-ness it gets from
-    ///     <c>aria-required</c>, which a field bound to a <c>[Required]</c> member writes on its own.
+    ///     <c>aria-required</c>, which a field bound to a required member writes on its own.
     ///     </para>
     ///     <para>
-    ///     Never guessed from the model. <c>[Required]</c> is the one rule a field can see; a field required
-    ///     by a FluentValidation rule or a <c>Validate</c> delegate is invisible to it, so a badge derived
-    ///     from attributes would say "Optional" on fields that are not.
+    ///     Never guessed from the model. <c>[Required]</c> and what a model's type registered with
+    ///     <c>RaskValidation.RegisterRequiredFields</c> are the rules a field can see; a field required by a
+    ///     FluentValidation rule or a <c>Validate</c> delegate is invisible to it, so a badge derived from
+    ///     them would say "Optional" on fields that are not.
     ///     </para>
     /// </remarks>
     public string? Badge { get; set; }
@@ -310,11 +311,9 @@ public abstract partial class UiFormField<T> : Component, IFormControl<T>, IUiFi
         && EditContextScope.Current is { } ctx
         && ctx.IsInvalid(ExpressionAccessor.Parse(bind).Field);
 
-    // [Required] is the one required rule a field can see from its bind expression. Asked of a member the
-    // expression already roots, so it costs the trimmer nothing.
-    private bool IsBoundToRequiredMember() =>
-        Bind?.Body is MemberExpression member
-        && member.Member.IsDefined(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), inherit: true);
+    // The one question every control asks: the owning type registered the property as required, or the member
+    // is [Required]. Asked with the owner's declared type, so nothing is evaluated and nothing is built.
+    private bool IsBoundToRequiredMember() => UiRequired.Is(Bind);
 
     /// <summary>The <see cref="Badge" />, for the label to carry beside its text.</summary>
     private protected Component? BadgeFor() =>

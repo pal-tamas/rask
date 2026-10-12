@@ -59,6 +59,21 @@ public class ConfigurableLimitsTests
         AssertRejected(o => o.HandlerTimeout = TimeSpan.FromSeconds(-1));
 
     [Fact]
+    public void A_negative_NavigationQuiescenceTimeout_is_rejected() =>
+        AssertRejected(o => o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(-1));
+
+    [Fact]
+    public void A_page_reached_in_place_is_waited_for_150_milliseconds_unless_the_host_says_otherwise()
+    {
+        using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
+
+        var limits = provider.GetRequiredService<RaskServerLimits>();
+
+        Assert.Equal(TimeSpan.FromMilliseconds(150), new RaskServerOptions().NavigationQuiescenceTimeout);
+        Assert.Equal(TimeSpan.FromMilliseconds(150), limits.NavigationQuiescenceTimeout);
+    }
+
+    [Fact]
     public void A_negative_IdleSocketTimeout_is_rejected() =>
         AssertRejected(o => o.IdleSocketTimeout = TimeSpan.FromSeconds(-1));
 
@@ -153,6 +168,7 @@ public class ConfigurableLimitsTests
             ["Rask:Server:MaxPendingHandlers"] = "64",
             ["Rask:Server:SessionGracePeriod"] = "00:00:15",
             ["Rask:Server:QuiescenceTimeout"] = "00:00:02",
+            ["Rask:Server:NavigationQuiescenceTimeout"] = "00:00:00.250",
         });
 
         var limits = provider.GetRequiredService<RaskServerLimits>();
@@ -161,6 +177,7 @@ public class ConfigurableLimitsTests
         Assert.Equal(64, limits.MaxPendingHandlers);
         Assert.Equal(TimeSpan.FromSeconds(15), limits.SessionGracePeriod);
         Assert.Equal(TimeSpan.FromSeconds(2), limits.InitialRenderQuiescenceTimeout);
+        Assert.Equal(TimeSpan.FromMilliseconds(250), limits.NavigationQuiescenceTimeout);
     }
 
     [Fact]

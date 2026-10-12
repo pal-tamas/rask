@@ -95,6 +95,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
+    bool IUiFieldControl.TakesAriaRequired => false;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
