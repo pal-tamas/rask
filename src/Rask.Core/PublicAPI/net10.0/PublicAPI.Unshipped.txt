@@ -3968,7 +3968,12 @@ Rask.Core.Globalization.RaskString.TimePickerHourPlaceholder = 62 -> Rask.Core.G
 Rask.Core.Globalization.RaskString.TimePickerMeridiem = 61 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.TimePickerMinutePlaceholder = 63 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.TimePickerPlaceholder = 60 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationDate = 132 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNumber = 130 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNumberRange = 131 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationRequired = 128 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTime = 133 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationWholeNumber = 129 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskStrings
 Rask.Core.Globalization.SessionCulture
 Rask.Core.Globalization.SessionCulture.Culture.get -> System.Globalization.CultureInfo!

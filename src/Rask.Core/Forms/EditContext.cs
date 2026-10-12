@@ -449,6 +449,7 @@ public sealed partial class EditContext : IDisposable
     {
         var s = GetOrCreate(field);
         s.Modified = true;
+        ForgetUnread(field);
         ClearFailuresNaming(field);
         FieldChanged?.Invoke(this, new FieldChangedEventArgs(field));
 

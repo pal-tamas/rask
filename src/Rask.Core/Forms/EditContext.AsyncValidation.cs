@@ -22,11 +22,18 @@ public sealed partial class EditContext
 #pragma warning restore S6966
 
         ClearAllMessages();
+        SayUnread();
 
         // Inline per-field delegates first: sync invoked, async awaited. Each one isolates
         // its own exception so one bad delegate doesn't kill the whole submit pipeline.
         foreach (var pair in _fieldDelegates)
         {
+            // A rule is not asked about a value the field never read.
+            if (IsUnread(pair.Key))
+            {
+                continue;
+            }
+
             await InvokeFieldDelegateAsync(pair.Key, pair.Value, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
@@ -107,12 +114,19 @@ public sealed partial class EditContext
         state.Cts?.Cancel();
 #pragma warning restore S6966
         state.Cts?.Dispose();
+        state.Cts = null;
+
+        ClearRuleMessages(field);
+        if (SayUnread(field))
+        {
+            ValidationStateChanged?.Invoke(this, EventArgs.Empty);
+            return false;
+        }
+
         // Linked to the work this runs in when the caller hands no token: a handler's is its control's
         // lifetime, so a check in flight stops when the field goes away.
         var cts = CancellationTokenSource.CreateLinkedTokenSource(Ambient.Or(cancellationToken));
         state.Cts = cts;
-
-        ClearRuleMessages(field);
 
         var hasFieldDelegate = _fieldDelegates.TryGetValue(field, out var fieldReg);
         var fieldDelegateIsAsync = hasFieldDelegate && DelegateValidator.IsAsync(fieldReg.Validate);
