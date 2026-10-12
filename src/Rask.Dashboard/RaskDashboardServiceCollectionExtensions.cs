@@ -35,10 +35,9 @@ public static class RaskDashboardServiceCollectionExtensions
     /// </para>
     /// <para>
     /// <see cref="OpsOptions"/> reads the <c>Rask:Ops</c> configuration section first and then
-    /// <paramref name="configure"/>, so code wins. That includes
-    /// <see cref="OpsOptions.AllowAnonymousAccess"/>: an environment variable can open the console,
-    /// which is the point of it being configuration, and a reason to keep the deploy environment's variables
-    /// as guarded as its code.
+    /// <paramref name="configure"/>, so code wins. Neither can open the console outside Development:
+    /// <see cref="OpsOptions.AllowAnonymousAccess"/> is ignored there, with a warning at startup, so an
+    /// environment variable cannot publish the operator's view of the app.
     /// </para>
     /// </summary>
     /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the battery tables.</typeparam>
@@ -99,13 +98,15 @@ public static class RaskDashboardServiceCollectionExtensions
         services.AddScoped<ISystemPanelReader, SystemPanel<TContext>>();
 
         AddDefaultPolicy(services);
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, AnonymousAccessNotice>());
         return services;
     }
 
     // PostConfigure runs after every AddAuthorization(...) delegate the app registered, whatever the order
     // of the AddRaskDashboard call — so this fills a gap rather than overwriting an intent. Taking
-    // IHostEnvironment and the built options as dependencies is what lets the default differ by environment
-    // and by configuration without the extension method needing either at registration time.
+    // IHostEnvironment as a dependency is what lets the default differ by environment without the extension
+    // method needing it at registration time. The environment alone decides: no setting opens the console
+    // outside Development, and AnonymousAccessNotice tells a host that asked for it.
     private static void AddDefaultPolicy(IServiceCollection services)
     {
         // AddAuthorizationCore, not AddAuthorization: the latter lives in the ASP.NET shared framework, which this
@@ -114,15 +115,15 @@ public static class RaskDashboardServiceCollectionExtensions
         // host's own AddRask() calls the full AddAuthorization() anyway.
         services.AddAuthorizationCore();
         services.AddOptions<AuthorizationOptions>()
-            .PostConfigure<IHostEnvironment, DashboardSecurityState, OpsOptions>(
-                static (authz, environment, state, options) =>
+            .PostConfigure<IHostEnvironment, DashboardSecurityState>(
+                static (authz, environment, state) =>
                 {
                     if (authz.GetPolicy(RaskDashboardPolicies.Access) is not null)
                     {
                         return; // the app said who may operate it — never second-guess that
                     }
 
-                    var open = options.AllowAnonymousAccess || environment.IsDevelopment();
+                    var open = environment.IsDevelopment();
                     state.UsingFallbackPolicy = true;
                     state.FallbackIsOpen = open;
                     authz.AddPolicy(RaskDashboardPolicies.Access, policy => policy.RequireAssertion(_ => open));

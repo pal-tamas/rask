@@ -134,7 +134,7 @@ A few things to know:
 | `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |
 | `Rask:Signaling` | `SignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization`, `AllowedOrigins` (other origins whose pages may connect; the host's own always may) and the relay limits. `AuthorizeRoom` is code-only. |
-| `Rask:Ops` | `OpsOptions` | `Rask.Dashboard` | Includes `AllowAnonymousAccess` — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
+| `Rask:Ops` | `OpsOptions` | `Rask.Dashboard` | `AllowAnonymousAccess` is honoured in Development only — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [serving a WebAssembly app](deployment.md#serving-a-webassembly-app). |
 | `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
 | `Rask:Database:MigrateOnStart` | `true` | `Rask.Server` | Whether a `RaskApp` applies its pending migrations when it starts, before any battery's worker runs and before `/health` answers. `false` when something else applies them — a release pipeline running `rask db update`. Read by `RaskApp` while services are registered. In code: `app.Configure(c => c.MigrateOnStart = false)`, which wins over the setting. See [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). |
@@ -157,11 +157,17 @@ A few things to know:
 
 ### Guard the environment like code
 
-Configuration can turn things *off* as easily as on. `Rask:Ops:AllowAnonymousAccess`,
-`Rask:Signaling:RequireAuthorization` and `Rask:Cqrs:Server:RequireAuthenticatedUser` are all settable from
-an environment variable, which is the point of them being configuration — and it means whoever can set the
-deploy environment's variables can open the operator console to the internet. Treat the deploy environment
-(`.env.production`, CI secrets, the host's Docker access) with the same care as the code.
+Configuration can turn things *off* as easily as on. `Rask:Signaling:RequireAuthorization` and
+`Rask:Cqrs:Server:RequireAuthenticatedUser` are settable from an environment variable, which is the point of
+them being configuration — and it means whoever can set the deploy environment's variables can open those
+endpoints. Treat the deploy environment (`.env.production`, CI secrets, the host's Docker access) with the
+same care as the code.
+
+Two switches are out of that reach, because what they expose is an operator's view of the app:
+`Rask:Ops:AllowAnonymousAccess` (the [dashboard](dashboard.md) to anyone) and
+`Rask:Cqrs:Server:IncludeExceptionDetail` (the exception in a remote dispatch 500) take effect **in the
+Development environment only**. Set anywhere else they are ignored, and the host says so in a warning at
+startup; a host that names no environment is Production.
 
 ## What stays in code
 

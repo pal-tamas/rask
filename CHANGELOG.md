@@ -293,6 +293,14 @@ them until tagged releases begin.
 
 ### Security
 
+- **`Rask:Ops:AllowAnonymousAccess` no longer opens the Dashboard outside Development.** The setting served
+  `/_rask` — job payloads, stored mail, log lines, the actions — to anyone, in every environment, and it binds
+  from configuration, so one environment variable on a deployed server published the operator console. It is
+  now honoured in Development only, where the console is open already. In every other environment, and on a
+  host that names none, the Dashboard always requires the `RaskDashboard` policy (deny-all when the app defines
+  none) and the host logs one warning at startup saying the setting was ignored. **If you relied on it** for an
+  internal tool, define the policy: `o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin"))`.
+
 - **`Rask:Cqrs:Server:IncludeExceptionDetail` no longer takes effect outside Development.** The option put
   `ex.ToString()` — message, stack, inner exceptions — into the remote dispatch endpoint's 500 body in every
   environment, and it binds from configuration, so one environment variable on a deployed server published

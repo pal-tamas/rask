@@ -106,7 +106,7 @@ first request.
 | --- | --- |
 | You define the `RaskDashboard` policy | Your policy decides. |
 | No policy, `Development` | Open, with a warning banner on every page. |
-| No policy, any other environment | **Denied for everyone**, and a warning logged at startup. |
+| No policy, any other environment | **Denied for everyone**, whatever `AllowAnonymousAccess` says. |
 
 Defining the policy is the only thing standing between an operator surface and the internet, so nothing
 about it is inferred: forget it and you get 403, never an open dashboard.
@@ -117,10 +117,14 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
-> **`AllowAnonymousAccess` is configuration too.** `Rask:Ops:AllowAnonymousAccess` set to `true`
-> opens the console to everyone, in every environment, and like every `Rask:Ops` key it can arrive as
-> an environment variable (`Rask__Ops__AllowAnonymousAccess=true`). The panels show job payloads,
-> stored email bodies and log lines, so guard the deploy environment's variables as carefully as the code.
+> **`AllowAnonymousAccess` opens nothing outside Development.** The console is for whoever operates the app,
+> and its panels show job payloads, stored email bodies and log lines. `Rask:Ops:AllowAnonymousAccess` —
+> which, like every `Rask:Ops` key, can arrive as an environment variable
+> (`Rask__Ops__AllowAnonymousAccess=true`) — is honoured in Development only, where the console is open
+> already. In every other environment, and on a host that names none, it is ignored: the console requires
+> the `RaskDashboard` policy, and the host logs one warning at startup saying the setting was not honoured.
+> An internal tool that used it to skip the policy defines one instead, `p => p.RequireAssertion(_ => true)`
+> if it truly means everyone.
 
 ## Actions
 

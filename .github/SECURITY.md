@@ -42,3 +42,6 @@ environment is Production.
 
 - `Rask:Cqrs:Server:IncludeExceptionDetail` — the exception in a remote dispatch 500. Outside Development the
   body is the generic problem with a reference, and the exception is logged at Error on `Rask.Errors`.
+- `Rask:Ops:AllowAnonymousAccess` — the operator dashboard at `/_rask` with no authorization. Outside
+  Development the dashboard always requires the `RaskDashboard` policy and denies everyone when the app
+  defines none. The dashboard is an administrator's tool; nothing in configuration opens it.
