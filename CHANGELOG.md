@@ -66,6 +66,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **Deleting a row that is still referenced says a sentence you declared, once.** In the `Configure` of the
+  aggregate being deleted: `.OnDelete(DeleteBehavior.Restrict, "The trailer is on a delivery note and cannot be
+  deleted.")` on a relationship the model maps, and `b.WhenReferenced("The trailer is still in use and cannot be
+  deleted.")` for every other reference — a table another context owns included. A delete the database refuses
+  (`Trailer.Delete(id)`, or plain `Remove` + `SaveChangesAsync`) then fails as a `RaskValidationException` with
+  one failure that names no field, instead of the provider's `DbUpdateException`. Recognised by SQLSTATE `23503`
+  (PostgreSQL), error `547` (SQL Server) and SQLite's `FOREIGN KEY constraint failed`, with no provider package of
+  Rask's. Nothing changes without a sentence, for an insert or update with a dangling key, or for a soft delete,
+  which never asks the database. See
+  [data — what deleting a referenced row says](docs/data.md#what-deleting-a-referenced-row-says).
 - **`RaskString.FormSaveFailed`: what a form says when its save throws.** English "The save failed. Please try
   again.", Hungarian "A mentés nem sikerült. Kérjük, próbálja újra." built into `Rask.Ui`; an app's own
   `RaskStrings.{culture}.json` overrides it. See `docs/forms-validation.md#a-save-that-fails`.

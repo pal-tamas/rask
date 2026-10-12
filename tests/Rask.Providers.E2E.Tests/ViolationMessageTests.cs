@@ -254,3 +254,308 @@ public sealed class SqlServerViolationMessageTests : IAsyncLifetime
         return services.BuildServiceProvider();
     }
 }
+
+/// <summary>Referenced by a mapped table, and by one the model does not know: a sentence for each.</summary>
+public sealed class Truck
+{
+    public const string OnAHaul = "The truck is on a haul and cannot be deleted.";
+    public const string InUse = "The truck is still in use and cannot be deleted.";
+
+    public int Id { get; set; }
+
+    public string Plate { get; set; } = "";
+}
+
+public sealed class Haul
+{
+    public int Id { get; set; }
+
+    public int TruckId { get; set; }
+}
+
+/// <summary>Referenced, and says nothing about it.</summary>
+public sealed class Hangar
+{
+    public int Id { get; set; }
+
+    public string Name { get; set; } = "";
+}
+
+public sealed class Plane
+{
+    public int Id { get; set; }
+
+    public int HangarId { get; set; }
+}
+
+public sealed class FleetDbContext(DbContextOptions<FleetDbContext> options) : DbContext(options)
+{
+    public const string Schema = "referenced";
+    public const string HaulsTruck = "FK_Haul_Truck_TruckId";
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Truck>(b =>
+        {
+            b.ToTable("Truck", Schema);
+            b.HasMany<Haul>().WithOne().HasForeignKey(t => t.TruckId).OnDelete(DeleteBehavior.Restrict, Truck.OnAHaul);
+            b.WhenReferenced(Truck.InUse);
+        });
+        modelBuilder.Entity<Haul>().ToTable("Haul", Schema);
+
+        modelBuilder.Entity<Hangar>(b =>
+        {
+            b.ToTable("Hangar", Schema);
+            b.HasMany<Plane>().WithOne().HasForeignKey(p => p.HangarId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<Plane>().ToTable("Plane", Schema);
+    }
+}
+
+/// <summary>
+/// A refused delete's sentence on PostgreSQL: the relationship is the constraint SQLSTATE 23503 names, and a
+/// constraint the model does not know is answered by the entity.
+/// </summary>
+[Collection(PostgresCollection.Name)]
+public sealed class PostgresReferencedDeleteTests
+{
+    [Fact]
+    public async Task Deleting_a_row_a_mapped_row_references_fails_with_the_relationships_sentence()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using var app = App();
+        await using var db = await ResetAsync(app);
+        var truck = await TruckAsync(db);
+        db.Add(new Haul { TruckId = truck.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Remove(truck);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Truck.OnAHaul, failure.Message);
+        Assert.Empty(failure.Fields);
+        Assert.Equal(FleetDbContext.HaulsTruck, failure.Source);
+    }
+
+    [Fact]
+    public async Task Deleting_a_row_only_an_unmapped_table_references_fails_with_the_entitys_sentence()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using var app = App();
+        await using var db = await ResetAsync(app);
+        var truck = await TruckAsync(db);
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE referenced."Inspection" (
+                "Id" serial PRIMARY KEY,
+                "TruckId" integer NOT NULL CONSTRAINT "FK_Inspection_Truck" REFERENCES referenced."Truck" ("Id"));
+            """,
+            TestContext.Current.CancellationToken);
+        await db.Database.ExecuteSqlAsync(
+            $"""INSERT INTO referenced."Inspection" ("TruckId") VALUES ({truck.Id});""",
+            TestContext.Current.CancellationToken);
+
+        db.Remove(truck);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Truck.InUse, failure.Message);
+        Assert.Equal("FK_Inspection_Truck", failure.Source);
+    }
+
+    [Fact]
+    public async Task A_relationship_with_no_sentence_keeps_the_providers_own_error()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using var app = App();
+        await using var db = await ResetAsync(app);
+        var hangar = new Hangar { Name = "North" };
+        db.Add(hangar);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.Add(new Plane { HangarId = hangar.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Remove(hangar);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_row_inserted_with_a_key_that_points_nowhere_keeps_the_providers_own_error()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using var app = App();
+        await using var db = await ResetAsync(app);
+
+        db.Add(new Haul { TruckId = 404 });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
+
+    private static async Task<Truck> TruckAsync(FleetDbContext db)
+    {
+        var truck = new Truck { Plate = "ABC-123" };
+        db.Add(truck);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return truck;
+    }
+
+    private static async Task<FleetDbContext> ResetAsync(ServiceProvider app)
+    {
+        var db = await app.GetRequiredService<IDbContextFactory<FleetDbContext>>()
+            .CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await Postgres.ResetSchemaAsync(db, FleetDbContext.Schema);
+        return db;
+    }
+
+    private static ServiceProvider App()
+    {
+        var services = new ServiceCollection();
+        services.AddRaskData();
+        services.AddDbContextFactory<FleetDbContext>((sp, o) => o
+            .UseRaskPostgresAt(Postgres.Required)
+            .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+        return services.BuildServiceProvider();
+    }
+}
+
+/// <summary>
+/// A refused delete's sentence on SQL Server, in a database of its own: the relationship is the constraint
+/// error 547 quotes, and a constraint the model does not know is answered by the entity.
+/// </summary>
+[Collection(SqlServerCollection.Name)]
+public sealed class SqlServerReferencedDeleteTests : IAsyncLifetime
+{
+    private const string DatabaseName = "rask_referenced";
+    private const int ConstraintConflict = 547;
+
+    public async ValueTask InitializeAsync()
+    {
+        if (!SqlServer.Available)
+        {
+            return;
+        }
+
+        await using var app = App();
+        await using var db = await app.GetRequiredService<IDbContextFactory<FleetDbContext>>().CreateDbContextAsync();
+        await db.Database.EnsureDeletedAsync();
+        await db.Database.EnsureCreatedAsync();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (SqlServer.Available)
+        {
+            await using var app = App();
+            await using var db = await app.GetRequiredService<IDbContextFactory<FleetDbContext>>().CreateDbContextAsync();
+            await db.Database.EnsureDeletedAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Deleting_a_row_a_mapped_row_references_fails_with_the_relationships_sentence()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+        await using var db = await OpenAsync(app);
+        var truck = await TruckAsync(db);
+        db.Add(new Haul { TruckId = truck.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Remove(truck);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Truck.OnAHaul, failure.Message);
+        Assert.Empty(failure.Fields);
+        Assert.Equal(FleetDbContext.HaulsTruck, failure.Source);
+        Assert.Equal(ConstraintConflict, ProviderErrorOf(refused));
+    }
+
+    [Fact]
+    public async Task Deleting_a_row_only_an_unmapped_table_references_fails_with_the_entitys_sentence()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+        await using var db = await OpenAsync(app);
+        var truck = await TruckAsync(db);
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TABLE [referenced].[Inspection] (
+                [Id] int IDENTITY PRIMARY KEY,
+                [TruckId] int NOT NULL CONSTRAINT [FK_Inspection_Truck] REFERENCES [referenced].[Truck] ([Id]));
+            """,
+            TestContext.Current.CancellationToken);
+        await db.Database.ExecuteSqlAsync(
+            $"INSERT INTO [referenced].[Inspection] ([TruckId]) VALUES ({truck.Id});",
+            TestContext.Current.CancellationToken);
+
+        db.Remove(truck);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Truck.InUse, failure.Message);
+        Assert.Equal(nameof(Truck), failure.Source);
+        Assert.Equal(ConstraintConflict, ProviderErrorOf(refused));
+    }
+
+    [Fact]
+    public async Task A_relationship_with_no_sentence_keeps_the_providers_own_error()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+        await using var db = await OpenAsync(app);
+        var hangar = new Hangar { Name = "North" };
+        db.Add(hangar);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.Add(new Plane { HangarId = hangar.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        db.Remove(hangar);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_row_inserted_with_a_key_that_points_nowhere_keeps_the_providers_own_error()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+        await using var db = await OpenAsync(app);
+
+        db.Add(new Haul { TruckId = 404 });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(TestContext.Current.CancellationToken));
+    }
+
+    private static async Task<Truck> TruckAsync(FleetDbContext db)
+    {
+        var truck = new Truck { Plate = "ABC-123" };
+        db.Add(truck);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return truck;
+    }
+
+    private static Task<FleetDbContext> OpenAsync(ServiceProvider app) =>
+        app.GetRequiredService<IDbContextFactory<FleetDbContext>>()
+            .CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+    // The number SQL Server gave the failure Rask translated: DbUpdateException, then the provider's own.
+    private static int ProviderErrorOf(RaskValidationException refused) =>
+        ((Microsoft.Data.SqlClient.SqlException)refused.InnerException!.InnerException!).Number;
+
+    private static ServiceProvider App()
+    {
+        var services = new ServiceCollection();
+        services.AddRaskData();
+        services.AddDbContextFactory<FleetDbContext>((sp, o) => o
+            .UseSqlServer(SqlServer.Database(DatabaseName))
+            .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
+        return services.BuildServiceProvider();
+    }
+}
