@@ -153,6 +153,15 @@ them until tagged releases begin.
   and so does a one-value value object nested inside one. The value object is rebuilt through a constructor
   taking its value or a parameterless constructor and its property, either of which may be private.
 
+### Security
+
+- **An event sent before a re-render no longer runs another handler.** A handler id is a position in its
+  component, so when an earlier button left or arrived, a click already on its way ran whichever handler held
+  the id by then — after a row was deleted, a click on the last row's bin could land on the confirmation's
+  *Yes*. Every event now says which page it was read from, and it reaches the handler that page had under that
+  id — in place or moved — or nothing. A hand-written frame without the page number is read against the page as
+  it is, as before; the number selects among handlers the page has now and reaches nothing a click could not.
+
 ### Fixed
 
 - **A handler that navigates while its page is being repainted lands once on its destination.** A handler that
@@ -224,6 +233,16 @@ them until tagged releases begin.
   mount once. One that RELIED on being rebuilt when a sibling appeared — a form that reset itself because a
   banner showed — now keeps what it had: reset it explicitly, or give it a `Key` that changes when it should
   start over. Nothing changes for keyed components, for the unkeyed ones beside them, or for a routed page.
+- **A stale click reaches its own handler or none** (see Security above for the hazard). `Div[show ?
+  Button.OnClick(Cancel)["Cancel"] : null, Button.OnClick(Delete)["Delete"]]`: after Cancel left, a click sent
+  to Cancel ran Delete; it now runs nothing, and a click sent to Delete still deletes. Both hosts, single events
+  and batches (a later event of a batch whose earlier event re-rendered the page), and a page rebuilt after a
+  reconnect. The second click of a double click on a row the first click removed does nothing. Dropped events
+  are counted in the new `rask.handlers.stale` metric and logged on `Rask.Live` in Development. Cost: `"v":N`
+  on every event, on every whole-page payload, and on a diff only when a handler moved; nothing is allocated
+  per render. What counts as the same handler, its limits and the advice that follows — capture what identifies
+  a row, never its position; key rows that are components; one button over "the current item" is one handler —
+  are in `docs/js-interop-runtime.md`.
 - **A class an app writes on a table part wins over the table's default.** `Ui.TableCell.Class("ps-10")` on a
   first cell did nothing — `first:ps-0` outweighed it — and `min-w-…`, `table-auto`, `whitespace-normal`,
   `text-…` on `Ui.Table`, `Ui.TableColumn` or `Ui.TableCell` won or lost by where Tailwind happened to sort

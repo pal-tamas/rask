@@ -21,9 +21,19 @@ public abstract partial class Component
     /// </remarks>
     /// <param name="id">The handler id the browser sent.</param>
     /// <param name="parents">The tree as last rendered, child to parent — from <see cref="MapParents" />.</param>
-    internal bool HandlerOutlivesRender(string id, Dictionary<Component, Component> parents)
+    internal bool HandlerOutlivesRender(string id, Dictionary<Component, Component> parents) =>
+        HandlerOutlivesRender(id, default, parents);
+
+    /// <inheritdoc cref="HandlerOutlivesRender(string, Dictionary{Component, Component})" />
+    /// <param name="id">The handler id the browser sent.</param>
+    /// <param name="sent">
+    ///     The event itself, which says which page it was read from: the handler asked about is the one that
+    ///     page had under the id, as the page has it now — the one a dispatch would run.
+    /// </param>
+    /// <param name="parents">The tree as last rendered, child to parent — from <see cref="MapParents" />.</param>
+    internal bool HandlerOutlivesRender(string id, System.Text.Json.JsonElement sent, Dictionary<Component, Component> parents)
     {
-        if (Live.Handlers is null || !Live.Handlers.TryGetValue(id, out var entry))
+        if (!TryFindHandler(id, sent, out var entry, asking: true))
         {
             return false;
         }

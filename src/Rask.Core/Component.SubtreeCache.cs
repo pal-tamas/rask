@@ -275,6 +275,12 @@ public abstract partial class Component
     internal void ReplayHandlerRun(Component root, (Component Owner, Delegate Handler)[] run)
     {
         var state = _live!.HandlerState!;
+        if (state.Forgotten && root._live?.HandlerState is { } rootState)
+        {
+            // Unmounted and shown again from its snapshot: no walk registers it, so its ids are named here.
+            RememberHandlerSlots(this, state, rootState);
+        }
+
         var map = root.Live.Handlers ??= new Dictionary<string, (Component, Delegate)>(StringComparer.Ordinal);
         for (var i = 0; i < run.Length; i++)
         {

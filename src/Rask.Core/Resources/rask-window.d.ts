@@ -364,6 +364,8 @@ interface RaskMediaConstraints {
  * the hosts do with it is hand it to applyDiff.
  */
 interface RaskFrameReply {
+    /** Which page this is: sent back with every event read from it (rask-batch.ts). */
+    v?: number;
     /** Calls the frame wants run after the DOM is patched. */
     jsInvokes?: RaskFrameJsInvoke[];
     /**

@@ -164,7 +164,13 @@
 #
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
+# Refreshed 2026-10-09 with every event naming the page it was read from (rask-batch.ts: `v`, noted when a
+# reply is put on screen, stamped on each event as it is held): rask.js 95,315 -> 95,399 (+84) and
+# rask.wasm.js 84,080 -> 84,164 (+84). rask-hooks.js is unchanged. Measured on top of main's Go.Out and
+# redirect work, which had not been recorded here: rask.js 95,552 and rask.wasm.js 84,406 in all.
+# Both of the above together (the bound control that waits + every event naming its page): 95,978 + 84 and
+# 84,796 + 84.
 bundle,bytes
-rask.js,95978
-rask.wasm.js,84796
+rask.js,96062
+rask.wasm.js,84880
 rask-hooks.js,48931
