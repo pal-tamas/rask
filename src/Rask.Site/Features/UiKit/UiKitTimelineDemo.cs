@@ -18,24 +18,24 @@ public sealed partial class UiKitTimelineDemo : Component
     private static Component[] Directions() =>
     [
         Example("ui-timeline", "Timeline", Ui.Timeline[
-            Event(Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob"), Said(" · 4 days ago")),
-            Event(Ui.IconName.Tag, Who("curtisss"), Said(" added tag "), Tag("feature")),
-            Approved()
+            Event("plain", Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob"), Said(" · 4 days ago")),
+            Event("plain", Ui.IconName.Tag, Who("curtisss"), Said(" added tag "), Tag("feature")),
+            Approved("plain")
         ]),
         Example("ui-timeline-large", "Large", Ui.Timeline.Lg[
-            Step("1", "Submit", "Complete the form and provide all necessary assets."),
-            Step("2", "Review", "Verify your data and approve the configuration."),
-            Step("3", "Publish", "Finalize your settings and push your changes live.")
+            Step("large", "1", "Submit", "Complete the form and provide all necessary assets."),
+            Step("large", "2", "Review", "Verify your data and approve the configuration."),
+            Step("large", "3", "Publish", "Finalize your settings and push your changes live.")
         ]),
         Example("ui-timeline-horizontal", "Horizontal", Ui.Timeline.Horizontal()[
-            Stage(null, Ui.IconName.CreditCard, "Order confirmed"),
-            Stage(null, Ui.IconName.Truck, "On its way"),
-            Stage(null, Ui.IconName.Home, "Delivered")
+            Stage("horizontal", null, Ui.IconName.CreditCard, "Order confirmed"),
+            Stage("horizontal", null, Ui.IconName.Truck, "On its way"),
+            Stage("horizontal", null, Ui.IconName.Home, "Delivered")
         ]),
         Example("ui-timeline-status", "Status", Ui.Timeline.Horizontal()[
-            Stage(Ui.TimelineStatus.Complete, Ui.IconName.CreditCard, "Order confirmed"),
-            Stage(Ui.TimelineStatus.Current, Ui.IconName.Truck, "On its way"),
-            Stage(Ui.TimelineStatus.Incomplete, Ui.IconName.Home, "Delivered")
+            Stage("status", Ui.TimelineStatus.Complete, Ui.IconName.CreditCard, "Order confirmed"),
+            Stage("status", Ui.TimelineStatus.Current, Ui.IconName.Truck, "On its way"),
+            Stage("status", Ui.TimelineStatus.Incomplete, Ui.IconName.Home, "Delivered")
         ])
     ];
 
@@ -56,7 +56,7 @@ public sealed partial class UiKitTimelineDemo : Component
     private static Component[] Blocks() =>
     [
         Example("ui-timeline-block", "Block item", Ui.Timeline[
-            Event(Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob")),
+            Event("block", Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob")),
             Ui.TimelineItem.Key("block")[
                 Ui.TimelineBlock[
                     Ui.Callout.Secondary.Actions([Ui.Button["View message ->"], Ui.Button.Ghost["Reply"]])[
@@ -64,10 +64,10 @@ public sealed partial class UiKitTimelineDemo : Component
                     ]
                 ]
             ],
-            Approved()
+            Approved("block")
         ]),
         Example("ui-timeline-subgrid", "Block subgrid", Ui.Timeline[
-            Event(Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob")),
+            Event("subgrid", Ui.IconName.Eye, Who("curtisss"), Said(" requested a review from "), Who("james_rob")),
             Ui.TimelineItem.Key("thread")[
                 Ui.TimelineBlock.Class("overflow-hidden rounded-xl border border-zinc-500/20")[
                     Ui.TimelineSubgrid.Class("bg-zinc-500/5 p-3")[
@@ -81,33 +81,33 @@ public sealed partial class UiKitTimelineDemo : Component
                     Ui.TimelineSubgrid.Class("p-3")[Face("CP"), Div.Class("text-sm opacity-60")["Leave a reply..."]]
                 ]
             ],
-            Approved()
+            Approved("subgrid")
         ])
     ];
 
     private static Component[] Spacing() =>
     [
         Example("ui-timeline-align", "Alignment", Ui.Timeline.Class("[--ui-timeline-item-gap:1.5rem]")[
-            Aligned(Ui.TimelineAlign.Start, "1", "Start align", "Align indicator and content to the top/start"),
-            Aligned(Ui.TimelineAlign.Baseline, "2", "Baseline align", "Align indicator and content to the baseline of the first line of text"),
-            Aligned(Ui.TimelineAlign.Center, "3", "Center align", "Align indicator and content to the center"),
-            Aligned(Ui.TimelineAlign.End, "4", "End align", "Align indicator and content to the bottom/end")
+            Aligned("align", Ui.TimelineAlign.Start, "1", "Start align", "Align indicator and content to the top/start"),
+            Aligned("align", Ui.TimelineAlign.Baseline, "2", "Baseline align", "Align indicator and content to the baseline of the first line of text"),
+            Aligned("align", Ui.TimelineAlign.Center, "3", "Center align", "Align indicator and content to the center"),
+            Aligned("align", Ui.TimelineAlign.End, "4", "End align", "Align indicator and content to the bottom/end")
         ]),
         // The indicator's hidden first line takes the heading's size, so the two baselines meet.
         Example("ui-timeline-baseline", "Baseline adjustment", Ui.Timeline.Lg[
-            Ui.TimelineItem.Key("1").Baseline[
+            Ui.TimelineItem.Key("baseline-1").Baseline[
                 Ui.TimelineIndicator["1"],
                 Ui.TimelineContent.Class("gap-1")[Ui.Heading.Xl["Without adjustment"], Ui.Text["The indicator may not align perfectly with large text"]]
             ],
-            Ui.TimelineItem.Key("2").Baseline.Class("[&_[data-ui-timeline-baseline]]:text-2xl")[
+            Ui.TimelineItem.Key("baseline-2").Baseline.Class("[&_[data-ui-timeline-baseline]]:text-2xl")[
                 Ui.TimelineIndicator["2"],
                 Ui.TimelineContent.Class("gap-1")[Ui.Heading.Xl["With baseline adjustment"], Ui.Text["The indicator aligns precisely with the heading baseline"]]
             ]
         ]),
         Example("ui-timeline-spacing", "Spacing", Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[
-            Step("1", "Create account", null),
-            Step("2", "Provide details", null),
-            Step("3", "Review & confirm", null)
+            Step("spacing", "1", "Create account", null),
+            Step("spacing", "2", "Provide details", null),
+            Step("spacing", "3", "Review & confirm", null)
         ])
     ];
 
@@ -117,20 +117,21 @@ public sealed partial class UiKitTimelineDemo : Component
             Div.Data("testid", testid)[timeline]
         ];
 
-    private static Component Event(Ui.IconName icon, params Component[] said) =>
-        Ui.TimelineItem.Key(icon.ToString())[
+    // An item's Key names it among every timeline item this demo writes, so each carries the timeline it is in.
+    private static Component Event(string list, Ui.IconName icon, params Component[] said) =>
+        Ui.TimelineItem.Key($"{list}-{icon}")[
             Ui.TimelineIndicator[Ui.Icon.Name(icon).Micro],
             Ui.TimelineContent[Ui.Heading[said]]
         ];
 
-    private static Component Approved() =>
-        Ui.TimelineItem.Key("approved")[
+    private static Component Approved(string list) =>
+        Ui.TimelineItem.Key(list + "-approved")[
             Ui.TimelineIndicator.Color(Ui.Color.Green)[Ui.Icon.Name(Ui.IconName.Check).Micro],
             Ui.TimelineContent[Ui.Heading[Who("james_rob"), Said(" approved these changes · 3 days ago")]]
         ];
 
-    private static Component Step(string number, string title, string? detail) =>
-        Ui.TimelineItem.Key(number)[
+    private static Component Step(string list, string number, string title, string? detail) =>
+        Ui.TimelineItem.Key($"{list}-{number}")[
             Ui.TimelineIndicator[number],
             Ui.TimelineContent[
                 Ui.Heading[title],
@@ -138,8 +139,8 @@ public sealed partial class UiKitTimelineDemo : Component
             ]
         ];
 
-    private static Component Stage(Ui.TimelineStatus? status, Ui.IconName icon, string title) =>
-        Ui.TimelineItem.Key(title).Status(status)[
+    private static Component Stage(string list, Ui.TimelineStatus? status, Ui.IconName icon, string title) =>
+        Ui.TimelineItem.Key($"{list}-{title}").Status(status)[
             Ui.TimelineIndicator[Ui.Icon.Name(icon).Micro],
             Ui.TimelineContent[Ui.Heading[title]]
         ];
@@ -156,8 +157,8 @@ public sealed partial class UiKitTimelineDemo : Component
             Ui.TimelineContent[Ui.Heading[Who(title), Said(when)]]
         ];
 
-    private static Component Aligned(Ui.TimelineAlign align, string number, string title, string detail) =>
-        Ui.TimelineItem.Key(number).Align(align)[
+    private static Component Aligned(string list, Ui.TimelineAlign align, string number, string title, string detail) =>
+        Ui.TimelineItem.Key($"{list}-{number}").Align(align)[
             Ui.TimelineIndicator[number],
             Ui.TimelineContent.Class("gap-1")[Ui.Heading[title], Ui.Text[detail]]
         ];

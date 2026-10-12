@@ -67,10 +67,10 @@ public sealed partial class UiKitTabsDemo : Component
             ]),
 
         Example("Scrollable tabs", "ui-tabs-scrollable",
-            Div.Class("max-w-sm")[Ui.Tabs.Scrollable()[Sections.Select(Section)]]),
+            Div.Class("max-w-sm")[Ui.Tabs.Scrollable()[Sections.Select(name => Section("scrollable", name))]]),
 
         Example("Scrollable tabs, faded edge", "ui-tabs-fade",
-            Div.Class("max-w-sm")[Ui.Tabs.Scrollable().ScrollableFade()[Sections.Select(Section)]])
+            Div.Class("max-w-sm")[Ui.Tabs.Scrollable().ScrollableFade()[Sections.Select(name => Section("fade", name))]])
     ];
 
     private Component Variants() =>
@@ -118,7 +118,9 @@ public sealed partial class UiKitTabsDemo : Component
 
     private void AddTab() => _tabs.Add($"Tab #{_tabs.Count + 1}");
 
-    private static Component Section(string name) => Ui.Tab.Key(name).Name(name.ToLowerInvariant())[name];
+    // The same sections fill two rows of tabs, so each tab's Key says which row it is in.
+    private static Component Section(string row, string name) =>
+        Ui.Tab.Key($"{row}-{name}").Name(name.ToLowerInvariant())[name];
 
     private static AttrBag Testid(string value) => new("testid", value);
 

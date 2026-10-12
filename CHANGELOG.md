@@ -15,6 +15,11 @@ them until tagged releases begin.
   its width now (`max-sm:before:shrink-0`) and the value wraps; every `Ui.DataGrid` gains it, the console with
   no change of its own.
 
+- **The site's demos write each `Key` once per type.** Seven showcase and guide demos repeated a key across
+  two lists of one component (two selects' options keyed by the same names, four navbars' items keyed `1`…`4`),
+  which the runtime tells apart by order and warns about. Each key now carries the list it is in, and a test
+  renders every prerendered page and every registered demo and fails on that warning.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.

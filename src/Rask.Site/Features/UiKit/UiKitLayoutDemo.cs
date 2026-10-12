@@ -60,7 +60,7 @@ public sealed partial class UiKitLayoutDemo : Component
     private static Component SeparatorRow(string key, UiSeparator separator) =>
         Div.Key(key).Class("flex items-center justify-center gap-6")[
             Ui.Button.Ghost.Key("theme").Icon(Ui.IconName.Moon).AriaLabel("Switch to dark theme"),
-            separator.Key("separator"),
+            separator.Key(key + "-separator"),
             Ui.Button.Key("login")["Log in"]
         ];
 
