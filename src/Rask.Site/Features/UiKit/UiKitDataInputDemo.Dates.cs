@@ -12,6 +12,8 @@ public sealed partial class UiKitDataInputDemo
     private UiDateRange _report;
     private readonly TimeOnly?[] _times = new TimeOnly?[9];
     private List<TimeOnly> _slots = [];
+    private DateOnly _clearDay = Today;
+    private TimeOnly? _clearTime = new TimeOnly(9, 30);
 
     private Component CalendarSection() =>
         Section(
@@ -75,7 +77,15 @@ public sealed partial class UiKitDataInputDemo
                 Example("Start day", Ui.DatePicker.Value(default(DateOnly)).Key("start").StartDay(DayOfWeek.Monday)),
                 Example("Open to", Ui.DatePicker.Value(default(DateOnly)).Key("open").OpenTo(NextYear())),
                 Example("Week numbers", Ui.DatePicker.Value(default(DateOnly)).Key("weeks").WeekNumbers()),
-                Example("Localization", Ui.DatePicker.Value(default(DateOnly)).Key("locale").Locale("ja-JP"))
+                Example("Localization", Ui.DatePicker.Value(default(DateOnly)).Key("locale").Locale("ja-JP")),
+                Div.Key("clearable").Class("sm:col-span-2")[
+                    Example("Clearable, beside a clearable time picker", "ui-picker-clear-state",
+                        (_clearDay == default ? "No day" : Iso(_clearDay)) + ", " + (_clearTime is null ? "no time" : "a time"),
+                        Div.Class("flex flex-wrap gap-2").Data(Testid("ui-picker-clear"))[
+                            Ui.DatePicker.Value(_clearDay).Key("day").Clearable().Class("grow").OnChange(d => { _clearDay = d; }),
+                            Ui.TimePicker.Value(_clearTime).Key("time").Id("demo-time-clear").Clearable().OnChange(t => { _clearTime = t; })
+                        ])
+                ]
             ]);
 
     private Component TimePickerSection() =>

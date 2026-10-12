@@ -385,6 +385,17 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_clear_button_sits_in_a_slot_as_tall_as_the_trigger_placed_against_the_picker()
+    {
+        var picker = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Clearable().Sm;
+
+        var html = picker.ToHtml();
+
+        Assert.Contains("class=\"relative block min-w-60\"", html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-8\" data-rask-key=\"clear\"><button class=\"relative ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_placeholder_replaces_the_words_on_an_empty_button()
     {
         var html = Ui.TimePicker.Of<TimeOnly?>().Placeholder("Pick a slot").ToHtml();

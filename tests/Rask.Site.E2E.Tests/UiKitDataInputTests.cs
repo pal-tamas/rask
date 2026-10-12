@@ -947,6 +947,32 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task A_clear_button_sits_inside_its_picker_in_a_row_and_empties_it() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var row = Page.Locator("[data-testid='ui-picker-clear']");
+        var state = Page.Locator("[data-testid='ui-picker-clear-state']");
+        await row.ScrollIntoViewIfNeededAsync();
+
+        foreach (var trigger in new[] { "[data-ui-date-picker-button]", "[data-ui-time-picker-button]" })
+        {
+            var box = (await row.Locator(trigger).BoundingBoxAsync())!;
+            var clear = row.Locator(trigger).Locator("xpath=ancestor::*[@data-ui-control][1]").GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Clear", Exact = true });
+            var button = (await clear.BoundingBoxAsync())!;
+
+            // Inside the trigger, centred on it, before its chevron: not under the row.
+            Assert.InRange(button.Y, box.Y, box.Y + box.Height - button.Height);
+            Assert.InRange(button.X + button.Width, box.X + (box.Width / 2), box.X + box.Width - 20);
+            Assert.Equal(box.Y + (box.Height / 2), button.Y + (button.Height / 2), 1.0);
+            await clear.ClickAsync();
+        }
+
+        await Expect(state).ToHaveTextAsync("No day, no time", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        await Expect(row.Locator("[data-ui-date-picker-button]")).ToContainTextAsync("Select a date");
+        await Expect(row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Clear", Exact = true })).ToHaveCountAsync(0);
+    });
+
+    [Fact]
     public Task A_time_picker_opens_its_list_and_closes_on_the_pick() => RunAsync(async () =>
     {
         await OpenAsync();

@@ -69,9 +69,6 @@ internal static class UiTimePickerLook
     /// <summary>The check mark's column, kept whether or not the time is chosen so the times line up.</summary>
     internal const string Check = "w-6 shrink-0";
 
-    /// <summary>The button that empties a picker, over the trigger's end.</summary>
-    internal const string Clear = "absolute top-0 bottom-0 end-9 my-auto " + UiInputLook.Action;
-
     internal static readonly Dictionary<string, string?> RootMarks = new(StringComparer.Ordinal)
     {
         ["ui-control"] = null,
@@ -122,6 +119,14 @@ internal static class UiTimePickerLook
         Ui.TimePickerSize.Sm => "h-8 py-1.5 text-sm rounded-md",
         Ui.TimePickerSize.Xs => "h-6 py-1 text-xs rounded-md",
         _ => "h-10 py-2 text-base sm:text-sm rounded-lg",
+    };
+
+    /// <summary>How tall the trigger is, button or typed, for what is laid over it.</summary>
+    internal static string Height(Ui.TimePickerSize size) => size switch
+    {
+        Ui.TimePickerSize.Sm => "h-8",
+        Ui.TimePickerSize.Xs => "h-6",
+        _ => "h-10",
     };
 
     /// <summary>The input's own sizes, for the typed trigger.</summary>

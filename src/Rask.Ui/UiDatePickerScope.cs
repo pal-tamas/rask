@@ -31,6 +31,12 @@ internal sealed class UiDatePickerScope
 
     internal IReadOnlyDictionary<string, string?> Aria { get; init; } = new Dictionary<string, string?>(StringComparer.Ordinal);
 
+    /// <summary>Whether the picker asked for the button that empties it, on whichever trigger it has.</summary>
+    internal bool Clearable { get; init; }
+
+    /// <summary>Empties the picker: nothing chosen.</summary>
+    internal required Func<Task> Clear { get; init; }
+
     /// <summary>The chosen day, or a range's start and end: one typed field each.</summary>
     internal required IReadOnlyList<DateOnly?> Dates { get; init; }
 
@@ -54,4 +60,11 @@ internal sealed class UiDatePickerScope
 
     /// <summary>The next typed field's slot: the first is the day or a range's start, the second its end.</summary>
     internal int Claim() => Math.Min(_claimed++, Dates.Count - 1);
+
+    /// <summary>
+    ///     <paramref name="trigger" /> with the clear button over its end, where the trigger or the picker asked
+    ///     for one: shown while a date is chosen and the trigger is not <paramref name="locked" />.
+    /// </summary>
+    internal Rask.Core.Component Cleared(Rask.Core.Component trigger, bool? asked, string height, bool locked) =>
+        asked ?? Clearable ? UiPickerClear.Over(trigger, height, Clear, shown: Dates[0] is not null && !locked) : trigger;
 }
