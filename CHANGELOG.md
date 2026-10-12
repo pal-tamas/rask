@@ -7,6 +7,18 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **A `[QueryParam]` property keeps its initializer when the parameter is absent.** **A behaviour change.**
+  Before: `[QueryParam] public int Page { get; set; } = 1;` was `0` at `/list` — every bind reset the property
+  to its type's default, so a default of your own had to be `int? Page` and `Page ?? 1`. After: `/list` → `1`,
+  `/list?page=3` → `3`, `/list?page=abc` → `1` (an unreadable value is absent), and the same page going from
+  `?page=3` to no `page` → `1` again: the value the page was built with, not the last address's and not `0`.
+  A value your own code assigned to the property between two binds is not kept, as before. A property with
+  no initializer is unchanged (`null`, `0`, `false`), and so is `[RouteParam]`. An initializer that is an
+  object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
+  expected to be overwritten with the type's default — now sees the initializer.
+
 ### Fixed
 
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
@@ -14,6 +26,14 @@ them until tagged releases begin.
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
   leaving the button for anything but its panel closes it now (`rask-overlay.ts`), as measured on Flux.
   `rask-hooks.js` is 147 bytes larger.
+- **RASK011 and the routing guide no longer say an enum can be bound.** A `[RouteParam]`/`[QueryParam]`
+  property is `string` or `IParsable<T>`, and an enum is neither: the message, its description and
+  `docs/routing.md` now say to bind it as a `string`. Nothing about what binds has changed.
+
+- **A route segment is found by name the same way when a route is matched and when it is bound.** The match
+  looked a `[RouteParam("ID")]` up with the dictionary's own comparer while the bind ignored case, so with a
+  case-sensitive dictionary an unreadable `{id}` could pass the match and then throw. Both ignore case now.
+
 - **A query parameter its page cannot read is absent, not a 500.** `/parcels?weightFrom=abc` on a page with
   `[QueryParam("weightFrom")] public int? WeightFrom` failed to bind: `RouteBindException`, the error page, a
   500 on a first request and an error on a live navigation — for a link somebody mailed, kept or edited by

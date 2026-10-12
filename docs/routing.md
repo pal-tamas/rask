@@ -205,17 +205,34 @@ Both attributes take an optional name to bind a segment/key whose name differs f
 `[RouteParam("id")]`, `[QueryParam("page")]`.
 
 **Supported types.** A bound property must be `string` or implement `IParsable<T>` (covers `int`, `long`, `double`,
-`bool`, `Guid`, `DateOnly`, `DateTime`, enums, and your own `IParsable<T>` types). A non-parsable type raises
+`bool`, `Guid`, `DateOnly`, `DateTime`, and your own `IParsable<T>` types). An enum is not `IParsable<T>`: bind
+it as a `string` and convert inside the page. A non-parsable type raises
 [RASK011](diagnostics.md#rask011). When a route template constrains a segment (`{id:int}`), the bound property's CLR
 type must match the constraint, or you get [RASK005](diagnostics.md#rask005).
+
+**An absent query parameter keeps the property's initializer.** Write the default where the property is
+declared:
+
+```csharp
+[QueryParam] public int Page { get; set; } = 1;       // /orders → 1 · ?page=3 → 3 · ?page=abc → 1
+[QueryParam] public string? Sort { get; set; }        // no initializer: null without ?sort=
+```
+
+A page instance is reused from one address to the next, and each bind starts over from the address: going
+from `?page=3` to no `page` puts `Page` back to `1` — not the `3` of the address before, and not `0`. What
+comes back is the value the property held when the page was built (an initializer, or what the constructor
+gave it), so a value your own code assigned to the property since is not kept either. A property with no
+initializer gets its type's default — `null`, `0`, `false`. An initializer that is an object (a type of your
+own implementing `IParsable<T>`) comes back as that same object, not a copy: keep such a type immutable.
+The generated `Routes.OrdersPage(…)` knows nothing of the initializer — it writes the parameters it is
+given, so `Routes.OrdersPage(Page: 1)` is `/orders?Page=1`.
 
 **A query value the page cannot read is read as absent.** `?weightFrom=abc`, `?weightFrom=1.5`, `?weightFrom=`
 or digits past what an `int` holds bind `[QueryParam("weightFrom")] public int? WeightFrom` exactly as a URL
 with no `weightFrom` does, and the page renders — a link with filters in it is mailed around, kept for a year
 and edited by hand, so its values are a visitor's input and never an error. That holds for every bindable
-type, nullable or not, on a first request and on a live navigation alike. An absent parameter binds the
-type's default — `null`, `0`, `false` — and not the property's initializer, so a default of your own is
-`Page ?? 1` over a nullable property. The readable parameters beside an unreadable one are bound as usual, a
+type, nullable or not, on a first request and on a live navigation alike, and absent means what it means
+above: the property's initializer, or its type's default when it has none. The readable parameters beside an unreadable one are bound as usual, a
 repeated key (`?page=two&page=2`) is read from its first value only, and the address stays as the visitor
 wrote it. In Development the ignored parameter is named once on the `Rask.Routing` log category, without its
 value. (A path *segment* the page cannot read is different: it [does not match](#registering-routes).)

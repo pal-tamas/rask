@@ -114,14 +114,14 @@ public sealed partial class RoutesGenerator
         "RASK011",
         "Route/query param type must implement IParsable<T>",
         "Property '{0}.{1}' of type '{2}' must be 'string' or implement 'System.IParsable<{2}>' to be bound "
-        + "by [RouteParam]/[QueryParam] — use a parsable type (int, Guid, DateOnly, an enum, your own "
+        + "by [RouteParam]/[QueryParam] — use a parsable type (int, Guid, DateOnly, your own "
         + "IParsable<T>), or accept it as 'string' and convert inside the page",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
         description: "A URL segment is text, so binding it needs a way to parse it. 'string' is taken verbatim; "
                      + "anything else must implement System.IParsable<T> — which every built-in numeric, Guid, "
-                     + "DateOnly/DateTime, bool and enum already does.",
+                     + "DateOnly/DateTime and bool already does. An enum does not: bind it as 'string'.",
         helpLinkUri: DiagnosticHelp.Link("RASK011"));
 
     private static readonly DiagnosticDescriptor Rask012 = new(
