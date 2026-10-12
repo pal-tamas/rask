@@ -254,10 +254,17 @@ mistake, the rule notes the ID.
 ## Performance & memory
 
 - **Key your lists — it's a performance rule too.** Keyed insert/remove/move ship as small *trusted*
-  diff ops that preserve DOM identity. Without keys only an append, a truncation, or ONE child (or run of
-  children) coming or going among siblings that still match is a diff; a child that changes element, or
-  several changing apart from each other, fall back to a full-HTML morph. See
-  [architecture → keyed reconciliation](architecture/live-rendering-codec.md#keyed-reconciliation-trusted-structural-ops).
+  diff ops that preserve DOM identity. Without keys an append, a truncation, or ONE child (or run of
+  children) coming or going among siblings that still match is a diff of exactly those nodes.
+- **A child that changes element costs its parent, not the page — and a `Key` there is about identity,
+  not bytes.** `cond ? A : B`, words that become an element, a loading line that becomes a table, the
+  page in an `Outlet`: the parent's children travel as one subtree morph, and nothing outside that
+  parent is touched. So keep what changes shape inside a small element of its own (a status `<span>`'s
+  wrapper, the `<main>` around the outlet) rather than directly under `<body>`, where it is still the
+  whole page. Inside the morphed parent, children are paired by position: give a sibling a `.Key(…)`
+  when it must stay the node it was — a field being typed in, a scrolled list, a playing video — while
+  something beside it changes shape. In Development each morphed parent is named on `Rask.Live`. See
+  [architecture → the fallback ladder](architecture/live-rendering-codec.md#the-fallback-ladder-fine-diff--one-run--subtree-morph--whole-page).
 - **Treat `Key` as identity, not a reactive signal.** Changing a key mounts a fresh instance; it
   doesn't refire `OnUpdated`.
 - **Use a `[...]` collection expression to avoid a wrapper node** for sibling lists, and `null` for a

@@ -71,6 +71,9 @@ public enum EditOpKind : byte
     /// <summary>
     ///     Reconcile the CHILDREN of the element at <see cref="EditOp.Path" /> against a fresh HTML
     ///     fragment (that element's new inner HTML) via the client's <c>morph()</c> engine. Emitted
+    ///     for a sibling level the differ cannot patch node by node, in place of the whole page: a level
+    ///     where one child took the place of another (<c>cond ? A : B</c>, text in place of an element,
+    ///     one page in the outlet giving way to the next), and
     ///     when a sibling level mixes a <see cref="RenderFrameKind.Raw" /> frame with other siblings
     ///     and changed: a Raw's verbatim markup parses into an unknown number of DOM nodes, so the
     ///     positional <c>childNodes[slot]</c> paths of the following siblings can't be trusted — but

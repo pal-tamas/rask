@@ -86,11 +86,45 @@ internal static class FullPageReply
             return null;
         }
 
+        return ByPosition(ops, html)
+               + " It is a child of the document itself, where there is no element of the page's own whose children could be sent instead: put it inside one, and only that element travels.";
+    }
+
+    /// <summary>Why a morph was written for a level beside raw markup.</summary>
+    internal const string RawBesideSiblings =
+        "Raw markup sits beside other nodes there, and how many nodes it parses into is the browser's to say.";
+
+    /// <summary>
+    ///     Names the first op in <paramref name="ops" /> that is by position, and the markup that arrives there.
+    ///     Empty when none is.
+    /// </summary>
+    internal static string ByPosition(List<EditOp> ops, ReadOnlySpan<char> html)
+    {
+        var refused = LiveDiffGate.FirstRefused(ops);
+        if (refused < 0)
+        {
+            return string.Empty;
+        }
+
         var op = ops[refused];
         return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{op.Kind} at /{string.Join('/', op.Path)} is by position{Arriving(ops, refused, html)}. A child that comes and goes before its siblings, or changes element, is patched in place only when it and its siblings each carry a Key; without one the differ cannot tell which node stayed.");
+            CultureInfo.InvariantCulture, $"{op.Kind} at /{string.Join('/', op.Path)} is by position{Arriving(ops, refused, html)}.");
     }
+
+    /// <summary>
+    ///     What is said of a parent whose children went out as markup instead of node by node. Not a whole page:
+    ///     the reply is a diff, and this is the one part of it that is bigger than the change.
+    /// </summary>
+    /// <param name="path">The parent, as the path the op names it by.</param>
+    /// <param name="chars">The length of the markup sent for its children.</param>
+    /// <param name="why">What the differ could not follow there.</param>
+    internal static string Morphed(List<int> path, int chars, string why) =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"Rask live: the children of /{string.Join('/', path)} went out as one subtree ({chars} chars) instead of node by node: {why} They are paired by position on the page; a child that must stay the node it was needs a Key on it and on each of its siblings.");
+
+    /// <summary>Reports a morphed level on <c>Rask.Live</c>, as information: the reply is still a diff.</summary>
+    internal static void ReportMorphed(string said) => RaskDiagnostics.Report(RaskLogLevel.Information, "Rask.Live", said);
 
     // The markup that arrives at the refused slot, which names the element far better than a path does: the
     // op's own when it is an insert, else the insert that replaces what the op removed.

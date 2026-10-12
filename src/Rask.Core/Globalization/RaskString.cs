@@ -406,4 +406,7 @@ public enum RaskString
 
     /// <summary>The accessible name of the control that removes a file from an upload's list.</summary>
     FileItemRemove,
+
+    /// <summary>What a field that must be filled says when it is left empty and its type has no words of its own.</summary>
+    ValidationRequired,
 }
