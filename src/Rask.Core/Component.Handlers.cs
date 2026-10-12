@@ -276,6 +276,12 @@ public abstract partial class Component
         }
     }
 
+    // What a batch's look-ahead reads off the session's root (EventBatch.AnnounceSubmits).
+    internal Dictionary<LiveRenderContext.ObjectKey, EditContext>? PersistedForms => _live?.PersistedEditContexts;
+
+    internal Delegate? HandlerOf(string id) =>
+        _live?.Handlers is { } handlers && handlers.TryGetValue(id, out var entry) ? entry.Item2 : null;
+
     // What controls drawn in C# chose and have not written goes first, unless this is such a control drawing
     // itself (PendingBinds): no handler of the page reads a model that has not heard a pick. Forwarding, so
     // an event with nothing waiting anywhere pays one static read.
@@ -289,7 +295,7 @@ public abstract partial class Component
     {
         if (!binds.IsOwn(owner))
         {
-            await binds.FlushAsync().ConfigureAwait(false);
+            await binds.FlushAsync(handler).ConfigureAwait(false);
         }
 
         var handled = await DispatchAsync(handler, payload, owner).ConfigureAwait(false);

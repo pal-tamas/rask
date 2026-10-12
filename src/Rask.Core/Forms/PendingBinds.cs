@@ -75,7 +75,7 @@ internal sealed class PendingBinds(Component root)
             return write() ? settle() : Task.CompletedTask;
         }
 
-        binds.Hold(new Entry(control, field, value, write, settle));
+        binds.Hold(new Entry(control, context, field, value, write, settle));
 
         // The reader has edited the field, whatever the model says: the form is dirty, and a message about the
         // value being replaced goes, as it does under a field at the first key. The control is drawn again with
@@ -124,8 +124,19 @@ internal sealed class PendingBinds(Component root)
         _entries.Count == 0 || Waits(owner) || IsUnderWaiting(root, owner, false) is true;
 
     /// <summary>Writes everything that waits and runs its rules.</summary>
-    internal async ValueTask<bool> FlushAsync()
+    /// <param name="next">The handler the picks are written ahead of.</param>
+    internal async ValueTask<bool> FlushAsync(Delegate next)
     {
+        // Written for the submit of their own form: that submit asks the store about the whole model, so the
+        // picks' rules ask only what costs nothing (EditContext.SubmitFollows). The submit clears the mark.
+        foreach (var entry in _entries)
+        {
+            if (entry.Form is { } form && ReferenceEquals(form.SubmitHandler, next))
+            {
+                form.SubmitFollows = true;
+            }
+        }
+
         Write();
         await _settling.ConfigureAwait(false);
         return true;
@@ -247,8 +258,11 @@ internal sealed class PendingBinds(Component root)
         return null;
     }
 
-    private sealed class Entry(Component control, FieldIdentifier member, object? value, Func<bool> write, Func<Task> settle)
+    private sealed class Entry(
+        Component control, EditContext? form, FieldIdentifier member, object? value, Func<bool> write, Func<Task> settle)
     {
+        public EditContext? Form { get; } = form;
+
         // Null once a render gave the control another member to draw.
         public Component? Control { get; set; } = control;
 

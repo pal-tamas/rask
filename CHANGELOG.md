@@ -206,6 +206,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A value that arrives with its form's submit leaves the store's rules to the submit.** A waiting field's
+  value travels in the frame of the Save that follows it, and used to be put to the store on arrival
+  (`IStoreRules.Check` for the field) milliseconds before the submit asked the store about the whole
+  model — two questions, and on a refused save a message set, taken back and set again. A batch is now
+  read once before its first event runs (`EventBatch.AnnounceSubmits`): a form whose own submit is in it
+  runs only the rules that cost nothing for the values ahead of that submit, and the submit asks the store
+  once. The same holds for a kit control's waiting pick written for a submit of its form. A change with no
+  submit of its form behind it in the batch — a `.Live()` or `.Blur()` field, a click on something else, a
+  submit of another form — asks as before, and a submit always asks afresh.
 - **BREAKING: every bound control of the kit waits for the next action too; `.Live()` writes as it is
   chosen.** `Ui.Checkbox`, `Ui.Switch`, `Ui.Select` (native, listbox, combobox, multiple), `Ui.Pillbox`,
   `Ui.Autocomplete`, `Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Rating`, `Ui.Filter`,

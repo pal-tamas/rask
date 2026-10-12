@@ -461,6 +461,15 @@ public sealed partial class EditContext : IDisposable
         }
     }
 
+    // The form's submit handler, as its last render registered it, and whether that submit is on its way
+    // right behind the values now arriving: in the same batch of events (EventBatch.AnnounceSubmits), or as
+    // the action the session's waiting picks are being written for (PendingBinds). The submit asks every rule
+    // of the form, so until it starts a value is checked by the rules that cost nothing and the store is
+    // left for the submit to ask once.
+    internal Delegate? SubmitHandler { get; set; }
+
+    internal bool SubmitFollows { get; set; }
+
     // The reader chose a value the session holds until the next action (PendingBinds): the field is edited,
     // and what was said about the value it replaces no longer applies. The model has not changed, so nothing
     // is announced and nobody is drawn again.
