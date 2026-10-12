@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
+using Rask.Hosting.Shared;
 
 namespace Rask.Core.Diagnostics;
 
@@ -13,13 +13,9 @@ namespace Rask.Core.Diagnostics;
 /// </remarks>
 internal static class ErrorReference
 {
-    internal const string Category = "Rask.Errors";
+    internal const string Category = ErrorReferenceId.Category;
 
     private const string English = "The problem has been recorded. If it keeps happening, quote this reference: {0}";
-
-    // No vowels, so no words, and none of the pairs a person misreads aloud: 0/O, 1/I/L, U/V.
-    private const string Alphabet = "BCDFGHJKMNPQRSTWXZ23456789";
-    private const int Length = 8;
 
     private static readonly ConditionalWeakTable<Exception, string> Known = [];
 
@@ -37,7 +33,7 @@ internal static class ErrorReference
             return known;
         }
 
-        var fresh = RandomNumberGenerator.GetString(Alphabet, Length);
+        var fresh = ErrorReferenceId.New();
         if (!Known.TryAdd(thrown, fresh))
         {
             return Known.TryGetValue(thrown, out known) ? known : fresh;

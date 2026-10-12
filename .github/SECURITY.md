@@ -29,3 +29,16 @@ exception, no stack. The built-in error page shows a random reference, and the E
 carries the same reference beside the exception. An unknown environment is treated as Production. An app's own
 `ErrorBoundary.Fallback` receives the exception and must not print it. See
 [docs/lifecycle.md](../docs/lifecycle.md#what-a-visitor-sees-when-something-throws).
+
+A handler that throws outside any boundary of the app's own keeps its page and raises a toast with that
+reference; the toast and the frame that carries it hold nothing of the exception outside Development.
+
+## Switches that work in Development only
+
+Two settings would hand an operator's view to a caller, and both are configuration — reachable from an
+environment variable. Neither takes effect outside the Development environment, whatever it is set to; a
+host that sets one elsewhere logs a warning at startup saying it was ignored, and a host that names no
+environment is Production.
+
+- `Rask:Cqrs:Server:IncludeExceptionDetail` — the exception in a remote dispatch 500. Outside Development the
+  body is the generic problem with a reference, and the exception is logged at Error on `Rask.Errors`.

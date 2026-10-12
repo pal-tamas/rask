@@ -293,6 +293,15 @@ them until tagged releases begin.
 
 ### Security
 
+- **`Rask:Cqrs:Server:IncludeExceptionDetail` no longer takes effect outside Development.** The option put
+  `ex.ToString()` — message, stack, inner exceptions — into the remote dispatch endpoint's 500 body in every
+  environment, and it binds from configuration, so one environment variable on a deployed server published
+  every handler's stack trace to any caller. It is now honoured only when the host's `IHostEnvironment` says
+  Development (a host that names none is Production); elsewhere it is ignored and a warning at startup says
+  so. The 500 is the generic problem document plus a `reference`, and **the catch-all now logs the exception**
+  at Error on `Rask.Errors` with that reference — it logged nothing before, so a failing handler behind remote
+  dispatch left no trace on the server. A malformed message's parser text follows the same switch.
+
 - **A Production error page showed the exception's type and message. It now shows neither.** When a render, an
   event handler or a lifecycle hook threw, the built-in error page — the root one, and an `ErrorBoundary` with no
   `Fallback` — printed the outermost exception's full type name and its `Message` in every environment, in the

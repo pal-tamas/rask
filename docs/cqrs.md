@@ -293,9 +293,22 @@ authentication and rate limit.
   the endpoint can't be walked to discover what the app has.
 - **Both verbs require the `X-Rask-Cqrs` header**, which no cross-site markup can set — adding the GET
   surface adds no cross-site trigger.
-- **Handler exceptions become RFC 9457 `problem+json`** with no exception text unless you opt in
-  (`IncludeExceptionDetail`): an exception message is written for an operator, not a browser, and
-  routinely names tables, paths and credentials.
+- **Handler exceptions become RFC 9457 `problem+json`** with no exception text: an exception message is
+  written for an operator, not a browser, and routinely names tables, paths and credentials. The 500
+  carries a `reference`, and the exception is logged at Error on `Rask.Errors` with the same one:
+
+  ```json
+  { "type": "…/docs/cqrs.md#remote-errors", "title": "Handler failed", "status": 500, "reference": "K7WQ2MZP" }
+  ```
+
+  | `Rask:Cqrs:Server:IncludeExceptionDetail` | Development | Any other environment |
+  | --- | --- | --- |
+  | `false` (default) | generic problem + `reference` | generic problem + `reference` |
+  | `true` | adds the exception as `detail` | **ignored** — generic problem + `reference`, and a warning at startup |
+
+  The environment is the host's `IHostEnvironment`; a host that names none is Production. The switch
+  cannot take effect on a deployed server, so an environment variable cannot turn the endpoint into a view
+  of your stack traces.
 
 **A handler knows who is calling without being told.** In a Rask app with its data layer on, a remote
 request's handler runs with the caller's principal ambient, as a live session's in-process dispatch does:

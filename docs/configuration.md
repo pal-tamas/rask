@@ -153,7 +153,7 @@ A few things to know:
 | `Rask:Outbox` | `OutboxOptions` | `Rask.Outbox` | See [outbox](outbox.md). |
 | `Rask:Push` | `PushOptions` | `Rask.WebPush` | `VapidKeys:PublicKey`, `VapidKeys:PrivateKey`, `Subject`, `DefaultLifetime`, and the bounds on the open subscribe route: `MaxAnonymousSubscribers`, `RequireUser`, `SendTimeout`. `rask new` writes a development pair to the gitignored `appsettings.Development.json`; deployed, the keys come from the environment. See [Web Push](webpush.md). |
 | `Rask:Cqrs` | `CqrsOptions` | `Rask.Cqrs` | `HandlerLifetime`, `EventPublishStrategy`, `StopOnFirstEventException`, `ValidateRequests`, and the subscription knobs `ReplayCapacity`, `SubscriptionBuffer`, `SubscriptionReconnectDelay`, `SubscriptionReconnectCeiling`. Read at registration (above); behaviors are code-only. See [CQRS](cqrs.md). |
-| `Rask:Cqrs:Server` | `CqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, the request and upload limits (`MaxOpenUploads` and `MaxOpenUploadBytes` bound what one caller leaves unsent), and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
+| `Rask:Cqrs:Server` | `CqrsServerOptions` | `Rask.Cqrs.Server` | `RequireAuthenticatedUser`, `RoutePrefix`, `IncludeExceptionDetail` (honoured in Development only — [remote errors](cqrs.md#it-fails-closed)), the request and upload limits (`MaxOpenUploads` and `MaxOpenUploadBytes` bound what one caller leaves unsent), and `EventKeepAlive` for a [subscription](subscriptions.md#in-a-webassembly-front-end) stream. |
 
 ### Guard the environment like code
 

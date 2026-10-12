@@ -103,6 +103,12 @@
     <ProjectReference Include="..\Rask.Wire\Rask.Wire.csproj"/>
   </ItemGroup>
 
+  <!-- The reference a person quotes for an exception they were never shown is minted the same way by the
+       remote dispatch endpoint, which carries no Rask.Core: one source file, compiled into both. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\ErrorReferenceId.cs" Link="Shared\ErrorReferenceId.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <!-- The devtools probe seam is read at a dozen render-path sites across Core; one project-wide
          import keeps each of them a one-line `RaskDevToolsHook.Active` check. -->
