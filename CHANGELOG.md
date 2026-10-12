@@ -33,6 +33,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
+  of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
+  app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.
 - **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
   value object an aggregate holds, with a `Validate` and none that qualifies (not public, not static, generic,
   not exactly one parameter of the held value's type, or not returning the messages), is reported on the method

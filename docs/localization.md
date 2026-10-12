@@ -525,6 +525,7 @@ they say when you set nothing.
 | `FilterReset` | Filter | `All` |
 | `FieldValidating` | Form field | `Checking…` |
 | `FileItemRemove` | File upload | `Remove file` |
+| `ValidationRequired` | Validation | `This field is required.` |
 
 ## Docker
 
