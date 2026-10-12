@@ -54,6 +54,12 @@ git push origin vX.Y.Z                          # push ONLY the tag — main is 
 them pass builds, packs every project that is not `IsPackable=false`, pushes them to nuget.org, and
 creates the GitHub release.
 
+The push is `scripts/lib/publish_packages.py` (`docs/development-workflow.md`, *How a version reaches
+nuget.org*): dependencies first, each level only once nuget.org serves the one below, every push
+retried. It refuses a packed set that is not the one `src/` declares, so the loop below is checked by
+the run, not by you. **A publish that fails is finished with *Re-run failed jobs*** — same tag, same
+version, and what is already pushed is skipped; never re-tag for it.
+
 Deliberately NOT enumerated here. This list said eight packages, named `Rask.Bootstrap` (no longer
 packable), and predated a dozen projects — a hand-kept list of a set the build already knows is one
 that rots quietly. Ask the tree instead:
@@ -75,7 +81,8 @@ gh run watch <run-id> --exit-status
 ## 4. Verify
 - GitHub release created, carrying one `.nupkg` per packable project (`gh release view vX.Y.Z`);
   compare against the loop in step 3 rather than against a number written down here.
-- Packages visible on nuget.org at version `X.Y.Z`.
+- Packages visible on nuget.org at version `X.Y.Z` — the run's *Wait until nuget.org serves the whole
+  version* step is this check for every package, and its summary names the version and the commit.
 - To undo a mistaken tag **before** publish completes: `git push --delete origin vX.Y.Z`. Once
   `release.yml` has pushed to nuget.org, the version is permanent (nuget rejects a re-push of the
   same version) — bump to the next patch instead of retrying `X.Y.Z`.
