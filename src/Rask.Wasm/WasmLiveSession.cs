@@ -28,11 +28,19 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // continuation dropped with the render that threw before it, which left the dispatch waiting for good.
     private readonly SemaphoreSlim _inScopeRender = new(1, 1);
 
+    // Set first by Dispose. Whoever is woken afterwards — a render, an event, the browser's wait for the reads —
+    // finds the session gone and does nothing.
+    private volatile bool _disposed;
+
+    // Cancelled by Dispose, so a render waiting for a handler's reads does not sit out its budget for a page
+    // that has gone. The token is taken here: a disposed source no longer hands one out.
+    private readonly CancellationTokenSource _gone = new();
+    private readonly CancellationToken _goneToken;
+
     // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
-    // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
-    // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
-    // Dispose is never called, but keeping the teardown correct guards tests and any future
-    // multi-session / re-init path.
+    // separate service), so a dangling subscription would ask a disposed session to render. In the
+    // normal single-session-per-page lifetime Dispose is never called, but keeping the teardown
+    // correct guards tests and any future multi-session / re-init path.
     private readonly IUserProvider? _userProvider;
 
     // Host transport for LiveSessionBase.TryEmitFrameAsync: push the built frame to JS zero-copy via a
@@ -63,6 +71,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         _navigationBudget = navigationBudget;
         HandlerBudget = handlerBudget;
+        _goneToken = _gone.Token;
 
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         (services.GetService<WasmJSRuntime>())?.AttachHost(this);
@@ -77,9 +86,20 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // Browser WebAssembly runtime — in-process in the browser page (shell stays Web, platform None).
     protected override RenderEngine EngineCore => RenderEngine.Wasm;
 
+    // Neither _lock nor _inScopeRender is disposed. A handler the session was disposed under still holds _lock,
+    // and whatever queued behind either of them is woken only by a release: a disposed semaphore forgets its
+    // waiters and refuses the release, so each of them waited for good. They hold nothing to free — no wait
+    // handle is ever asked of them — and whoever they wake finds the session gone (_disposed).
     protected override void Dispose(bool disposing)
     {
-        // Unsubscribe first so a late Changed can't fire OnUserChanged on the now-disposed _lock.
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        // Unsubscribe first so a late Changed asks nothing of a session that has gone.
         if (_userProvider is not null)
         {
             _userProvider.Changed -= OnUserChanged;
@@ -90,11 +110,40 @@ internal sealed class WasmLiveSession : LiveSessionBase
         DetachCulture();
 
         ComponentLifecycle.DisposeComponentTree(View);
-        // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
-        _htmlBuffers.Dispose();
+
+        // The arrays go back to the pool only when no dispatch holds the session. One that does may be at an
+        // await with the page it rendered still in them, and the pool would hand them to someone else under
+        // it: those are left to the collector.
+        if (_lock.CurrentCount > 0)
+        {
+            _htmlBuffers.Dispose();
+        }
+
+        // Last, with _disposed already set: these end the waits of a navigation and of a handler's render,
+        // and what they wake may run on from here.
         _arrivals.Dispose();
-        _lock.Dispose();
-        _inScopeRender.Dispose();
+        _gone.Cancel();
+        _gone.Dispose();
+    }
+
+    // Takes the session for one piece of work. False when it was disposed, before this or while this waited its
+    // turn behind a handler: there is no page left to work on.
+    private async ValueTask<bool> EnterAsync()
+    {
+        if (_disposed)
+        {
+            return false;
+        }
+
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        if (_disposed)
+        {
+            _lock.Release();
+            return false;
+        }
+
+        InHandlerScope = true;
+        return true;
     }
 
     protected override async Task RenderInScopeCoreAsync()
@@ -113,7 +162,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // the WASM JS task queue.
         // A handler that has navigated is not repainted mid-flight: the destination would be shown before the
         // dispatch has taken its address. The dispatch's render carries both.
-        if ((_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending)
+        // And a handler that has outlived its session has nobody to repaint for, which is not it failing.
+        if (_disposed || (_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending)
         {
             return;
         }
@@ -179,8 +229,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // The app's services made ambient for exactly this work, as the server session does — how a Rask.Data
         // save inside it finds the IDataChanges that refreshes this page's queries.
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return;
+        }
+
         try
         {
             await BuildPayloadCoalescingRerendersAsync(null, false, publishOnly)
@@ -244,8 +297,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Never inline: the hook asking may be inside the very render this navigation has to wait for.
         await Task.Yield();
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return;
+        }
+
         try
         {
             var navigator = Services.GetRequiredService<Navigator>();
@@ -283,8 +339,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
     public async Task<byte[]> InitialRenderAsync()
     {
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
         try
         {
             // Coalescing, not a bare BuildPayloadAsync: InHandlerScope is true for the whole of
@@ -413,8 +472,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root, bool copyFrame)
     {
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
         try
         {
             return await RunHandlerAsync(handlerId, root, copyFrame, deferRender: false).ConfigureAwait(false);
@@ -441,8 +503,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
         var submits = EventBatch.AnnounceSubmits(View, events);
         try
         {
@@ -605,8 +670,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         using var work = EnterWorkScope();
-        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        InHandlerScope = true;
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
         try
         {
             // A newer navigation is already waiting behind this one: the reader asked for that page since.
@@ -852,8 +920,22 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         return settling && HandlerBudget > TimeSpan.Zero
-            ? await RenderInWavesAsync(publishOnly, HandlerBudget, arriving: false, CancellationToken.None).ConfigureAwait(false)
+            ? await RenderSettlingAsync(publishOnly).ConfigureAwait(false)
             : RenderOnce(publishOnly, midFlight);
+    }
+
+    // A handler's page, waited for within the handler budget. Null when the session was disposed meanwhile.
+    private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderSettlingAsync(bool publishOnly)
+    {
+        try
+        {
+            return await RenderInWavesAsync(publishOnly, HandlerBudget, arriving: false, _goneToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_disposed)
+        {
+            return null;
+        }
     }
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
@@ -903,6 +985,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         await Task.Yield();
 
+        // A render that waited out the teardown has its turn and no page: the tree is disposed.
+        if (_disposed)
+        {
+            return false;
+        }
+
         var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
         if (midFlight && navigator.NavigationPending)
         {
@@ -919,7 +1007,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // (LiveSessionBase). WASM has no AuthInstruction in the diff codec (the route-auth guard
         // above already redirected), so auth is null; the data-rask-root id is the constant "wasm".
         var rendered = await RenderForAsync(publishOnly, arriving, settling, midFlight).ConfigureAwait(false);
-        if (rendered is not var (html, frameWriter))
+
+        // Disposed while its page was waited for: what was rendered is of a tree that has gone.
+        if (_disposed || rendered is not var (html, frameWriter))
         {
             return false;
         }

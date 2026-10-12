@@ -55,6 +55,15 @@ them until tagged releases begin.
   handler's release wakes whoever waited, and each of them finds the session gone and leaves. A render that
   waited out the teardown no longer renders the disposed page into buffers already returned to the pool.
 
+- **The browser host's session ends the same way.** Nothing in a browser disposes a WASM session today —
+  it lives as long as the page — so this reaches the hosts that do: tests, and any second boot. Disposed
+  under a running handler, the session threw `ObjectDisposedException` out of the dispatch when the handler
+  ended, reported the handler's repaint as the handler failing, left the event queued behind it waiting for
+  good, and went on waiting out the handler budget for a page nobody would see. Now the handler runs to its
+  end and nothing is thrown; whatever waited behind it is woken and leaves; the wait for a handler's reads
+  ends with the session; nothing of the disposed page is rendered or pushed to the browser; and disposing
+  twice is disposing once.
+
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
