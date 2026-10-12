@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A data grid's stacked labels broke letter by letter on a phone.** Below `sm` each cell is a flex row of its
+  column's title and its value, and beside a long value the title was shrunk in proportion: the console's Logs
+  grid read "M e s s a g e" down the side of a long message and "Catego ry" beside a category. The label keeps
+  its width now (`max-sm:before:shrink-0`) and the value wraps; every `Ui.DataGrid` gains it, the console with
+  no change of its own.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.

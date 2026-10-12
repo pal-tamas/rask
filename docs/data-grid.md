@@ -169,7 +169,8 @@ name the keys it has.
 
 Below `sm` the table restyles itself into stacked, labelled lines — each cell keeps its column's title
 in front of it, through `data-label` and a `max-sm:before:content-[attr(data-label)]` utility. It is the
-**same markup** under different utilities, so it costs nothing but the classes.
+**same markup** under different utilities, so it costs nothing but the classes. The label keeps its width
+beside a long value (`max-sm:before:shrink-0`): the value wraps, the label does not.
 
 Every one of those classes is a `max-sm:` **variant**, never a base utility with an `sm:` override, and
 that is worth knowing if you write your own. The kit ships its own compiled stylesheet and your app
