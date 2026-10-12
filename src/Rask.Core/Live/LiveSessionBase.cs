@@ -583,16 +583,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // encoded straight from the pooled page buffer — a page-sized string here would be garbage
             // the moment the payload is written, and on the large-object heap past ~42K chars.
-            LivePayload.BeginPage(View.HandlerVersionToSend(whole: true));
-            try
+            using (LivePayload.BeginPage(View.HandlerVersionToSend(whole: true)))
             {
                 LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
                     replace, auth, download, jsInvokes, resume, devError);
             }
-            finally
-            {
-                LivePayload.EndPage();
-            }
+
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the
@@ -626,15 +622,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             && !renderCache.LastDiffForcedFullHtml)
         {
             var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
-            LivePayload.BeginPage(View.HandlerVersionToSend(whole: false));
-            try
+            using (LivePayload.BeginPage(View.HandlerVersionToSend(whole: false)))
             {
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
                     headHtml, html.Span, resume, devError);
-            }
-            finally
-            {
-                LivePayload.EndPage();
             }
 
             // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally

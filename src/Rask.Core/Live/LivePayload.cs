@@ -816,11 +816,20 @@ public static class LivePayload
     [ThreadStatic]
     private static int? PageVersion;
 
-    /// <summary>Says which page the payload built next, on this thread, is. Undone by <see cref="EndPage" />.</summary>
-    internal static void BeginPage(int? version) => PageVersion = version;
+    /// <summary>Says which page the payload built next, on this thread, is — until the scope is disposed.</summary>
+    internal static PageScope BeginPage(int? version)
+    {
+        PageVersion = version;
+        return default;
+    }
 
-    /// <summary>The payload is built: the next one carries no number unless it is given one.</summary>
-    internal static void EndPage() => PageVersion = null;
+    /// <summary>The build of one numbered payload: the next one carries no number unless it is given one.</summary>
+    internal readonly struct PageScope : IDisposable
+    {
+        public void Dispose() => End();
+
+        private static void End() => PageVersion = null;
+    }
 
     /// <summary>
     ///     Writes the development error overlay record when a handler or async lifecycle hook threw.
