@@ -14,24 +14,25 @@ public sealed partial class MasterDetailDemo : Component
 {
     private static readonly Order[] _orders = BuildOrders();
 
-    // (id, header, sortable) — the expander column has no label and no sort.
-    private static readonly (string Id, string Header, bool Sortable)[] _orderColumns =
+    // (id, header, sortable, width) — the expander column has no label and no sort. Every column but one has
+    // a width, so a sort moves the rows and never the columns; the one without takes the rest.
+    private static readonly (string Id, string Header, bool Sortable, string? Width)[] _orderColumns =
     [
-        ("expander", "", false),
-        ("customer", "Customer", true),
-        ("placed", "Placed", true),
-        ("status", "Status", true),
-        ("items", "Items", true),
-        ("total", "Total", true)
+        ("expander", "", false, "w-14"),
+        ("customer", "Customer", true, null),
+        ("placed", "Placed", true, "w-32"),
+        ("status", "Status", true, "w-36"),
+        ("items", "Items", true, "w-24"),
+        ("total", "Total", true, "w-32")
     ];
 
-    private static readonly (string Id, string Header)[] _itemColumns =
+    private static readonly (string Id, string Header, string? Width)[] _itemColumns =
     [
-        ("sku", "SKU"),
-        ("product", "Product"),
-        ("qty", "Qty"),
-        ("unit", "Unit price"),
-        ("line", "Line total")
+        ("sku", "SKU", "w-32"),
+        ("product", "Product", null),
+        ("qty", "Qty", "w-20"),
+        ("unit", "Unit price", "w-32"),
+        ("line", "Line total", "w-32")
     ];
 
     // Expanded order ids, the outer sort, and the inner sort per order — all local UI state.
@@ -45,12 +46,12 @@ public sealed partial class MasterDetailDemo : Component
         var orders = SortOrders(_orders, _orderSort);
 
         return Ui.Card[Ui.CardBleed[
-            Ui.Table.Id("md-orders").Class("[&_tbody_tr:hover]:bg-ui-well")[
+            Ui.Table.Id("md-orders").Class("w-full min-w-190 [&_tbody_tr:hover]:bg-ui-well")[
                 Ui.TableColumns.Class("bg-ui-well")[
                     _orderColumns.Select(c =>
                         c.Sortable
-                            ? SortHeader(c.Id, c.Header, _orderSort, ToggleOrderSort)
-                            : Ui.TableColumn.Key(c.Id))
+                            ? SortHeader(c.Id, c.Header, c.Width, _orderSort, ToggleOrderSort)
+                            : Ui.TableColumn.Key(c.Id).Class(c.Width))
                 ],
                 Ui.TableRows[BuildOrderRows(orders)]
             ]
@@ -65,14 +66,14 @@ public sealed partial class MasterDetailDemo : Component
             var open = _expanded.Contains(order.Id);
 
             rows.Add(Ui.TableRow.Key(order.Id).Class("md-row")[
-                Ui.TableCell.Style("width:44px;")[
+                Ui.TableCell[
                     Ui.Button.Subtle.Icon(open ? Ui.IconName.ChevronDown : Ui.IconName.ChevronRight)
                         .AriaLabel(open ? $"Collapse order {order.Id}" : $"Expand order {order.Id}")
                         .Class("p-0 no-underline")
                         .Data("testid", $"expander-{order.Id}")
                         .OnClick(() => Toggle(order.Id))
                 ],
-                Ui.TableCell.Class("font-semibold")[order.Customer],
+                Ui.TableCell.Class("truncate font-semibold").Title(order.Customer)[order.Customer],
                 Ui.TableCell.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
                 Ui.TableCell[Ui.Badge.Color(StatusColor(order.Status))[order.Status]],
                 Ui.TableCell.Class("text-ui-muted")[order.Items.Count],
@@ -103,15 +104,15 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Ui.Table.Class("[&_tbody_tr:nth-child(odd)]:bg-ui-well bg-white")[
+        return Ui.Table.Class("w-full min-w-168 [&_tbody_tr:nth-child(odd)]:bg-ui-well bg-ui-bg")[
             Ui.TableColumns[
-                _itemColumns.Select(c => SortHeader(c.Id, c.Header, sort, col => ToggleItemSort(order.Id, col)))
+                _itemColumns.Select(c => SortHeader(c.Id, c.Header, c.Width, sort, col => ToggleItemSort(order.Id, col)))
             ],
             Ui.TableRows[
                 items.Select(it =>
                     Ui.TableRow.Key(it.Id)[
                         Ui.TableCell[Code[it.Sku]],
-                        Ui.TableCell[it.Product],
+                        Ui.TableCell.Class("truncate").Title(it.Product)[it.Product],
                         Ui.TableCell.Class("text-ui-muted")[it.Qty],
                         Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
@@ -200,10 +201,11 @@ public sealed partial class MasterDetailDemo : Component
     // Shared sort-aware header: a link button that toggles the column's sort, with a chevron reflecting
     // its current direction. Used by both the outer and the inner grid.
     // The table draws the sort button and its chevron; the page keeps which column is sorted and which way.
-    private static Component SortHeader(string columnId, string header, (string Col, bool Asc) sort,
+    private static Component SortHeader(string columnId, string header, string? width, (string Col, bool Asc) sort,
         Action<string> toggle) =>
         Ui.TableColumn
             .Key(columnId)
+            .Class(width)
             .Sortable()
             .Sorted(string.Equals(sort.Col, columnId, StringComparison.Ordinal))
             .Direction(sort.Asc ? Ui.TableColumnDirection.Asc : Ui.TableColumnDirection.Desc)

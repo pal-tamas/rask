@@ -9,7 +9,7 @@ namespace Company.RaskServer.Features.Shared;
 [Route("/error")]
 public sealed partial class ErrorPage : Component
 {
-    protected override Component? HeadAssets => [Title["Something went wrong"]];
+    protected override string? PageTitle => "Something went wrong";
 
     protected override Component? Render() =>
         Main.Class("mx-auto max-w-xl px-4 py-10")[

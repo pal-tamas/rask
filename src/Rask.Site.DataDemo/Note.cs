@@ -10,7 +10,7 @@ namespace Rask.Site.DataDemo;
 public sealed class Note : Aggregate<Guid>
 {
     /// <summary>What the list shows first, and what a search ranks highest.</summary>
-    [Required, MaxLength(120)]
+    [MaxLength(120)]
     public string Title { get; private set; } = "";
 
     /// <summary>The text a search snippet is cut from.</summary>

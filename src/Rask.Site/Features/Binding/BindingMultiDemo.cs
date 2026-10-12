@@ -21,11 +21,11 @@ public sealed partial class BindingMultiDemo : Component
                 .Max("120")
         ],
         Div.Class("mb-3")[
-            Ui.Input.Bind(() => _model.StartDate).Live().Label("Start date")
+            Ui.DatePicker.Bind(() => _model.StartDate).Live().Label("Start date")
                 .Id("bind-start")
         ],
         Div.Class("mb-3")[
-            Ui.Select.Bind(() => _model.Favorite).Live()
+            Ui.Select.Bind(() => _model.Favorite).Listbox.Live()
                 .Label("Favourite colour")
                 .Id("bind-favorite")[
                 Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])

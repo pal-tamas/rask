@@ -129,20 +129,20 @@ public sealed partial class CachePage(
                 .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
                 .Detail("Entries appear here as soon as something is cached."))[c => [
                 c.Field(r => r.Key).Title("Key").Mono(),
-                c.Field(r => r.Bytes).Title("Size").Value(r => DashboardParts.Bytes(r.Bytes)),
-                c.Field(r => r.CreatedAt).Title("Written").ShowFrom(Ui.Breakpoint.Md).Cell(r =>
+                c.Field(r => r.Bytes).Title("Size").Class("sm:w-28").Value(r => DashboardParts.Bytes(r.Bytes)),
+                c.Field(r => r.CreatedAt).Title("Written").Class("sm:w-36").ShowFrom(Ui.Breakpoint.Md).Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
-                c.Field(r => r.ExpiresAt).Title("Expires").Cell(r =>
+                c.Field(r => r.ExpiresAt).Title("Expires").Class("sm:w-36").Cell(r =>
                     r.ExpiresAt <= now
                         ? Ui.Badge["expired"]
                         : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]),
-                c.Field(r => r.SlidingSeconds).Title("Sliding").ShowFrom(Ui.Breakpoint.Lg).Value(r =>
+                c.Field(r => r.SlidingSeconds).Title("Sliding").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Lg).Value(r =>
                     r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"),
                 // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no
                 // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app
                 // means a stampede — hence the Destructive tier and a confirmation.
                 options.Actions.HasFlag(RaskDashboardActions.Safe)
-                    ? c.Column().Cell(r => Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"])
+                    ? c.Column().Class("sm:w-24").Cell(r => Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"])
                     : null,
             ]];
 

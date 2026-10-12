@@ -35,7 +35,7 @@ its form model (`OrderModel`), read face (`OrderRead`, queried as `Order.Where(â
 ```csharp
 public sealed class Order : Aggregate<Guid>
 {
-    [Required, MaxLength(40)]
+    [MaxLength(40)]
     public string Reference { get; private set; } = "";
 }
 ```

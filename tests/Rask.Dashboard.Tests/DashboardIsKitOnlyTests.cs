@@ -26,6 +26,16 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 {
     private static readonly Regex ClassString = new(@"\.(Class|Style)\(|\bUiStyles\.", RegexOptions.Compiled);
 
+    // A grid column's width, and nothing else on its line: every column but one says how wide it is, so a page
+    // or a filter that brings other rows moves no column (docs/data-grid.md, "Columns that stay put").
+    private static readonly Regex ColumnWidth = new(@"\.Class\(""sm:w-\d+""\)", RegexOptions.Compiled);
+
+    // A grid that pages, from its PageSize to the end of its column list.
+    private static readonly Regex PagedGrid = new(@"\.PageSize\(.*?\]\];", RegexOptions.Compiled | RegexOptions.Singleline);
+
+    // One column: from where it opens to the comma that ends it.
+    private static readonly Regex Column = new(@"c\.(Field|Column)\(.*?,\r?\n", RegexOptions.Compiled | RegexOptions.Singleline);
+
     // The owner has decided the console may use Tailwind, and it has a compiled sheet of its own now. Until the
     // rule itself is lifted, exactly these calls: the badge's long token, and what a queue row's detail modal
     // lays its content out with — Flux's modal spaces nothing, as Flux's examples do it with utilities.
@@ -54,7 +64,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
                 // Comments may name the thing they explain; only code writes a class.
                 if (line.StartsWith("//", StringComparison.Ordinal)
                     || Allowed.Any(allowed => line.StartsWith(allowed, StringComparison.Ordinal))
-                    || !ClassString.IsMatch(line))
+                    || !ClassString.IsMatch(ColumnWidth.Replace(line, string.Empty)))
                 {
                     continue;
                 }
@@ -67,6 +77,21 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
             offenders.Count == 0,
             "The console writes class strings, which no stylesheet can carry — add or extend a Rask.Ui "
             + "component instead:\n" + string.Join('\n', offenders));
+    }
+
+    [Fact]
+    public void Every_paged_grid_gives_all_but_one_of_its_columns_a_width()
+    {
+        var grids = SourceFiles().SelectMany(file => PagedGrid.Matches(File.ReadAllText(file))).ToList();
+
+        var loose = grids
+            .Select(grid => Column.Matches(grid.Value))
+            .Where(columns => columns.Count(column => !ColumnWidth.IsMatch(column.Value)) != 1)
+            .Select(columns => columns[0].Value.Trim())
+            .ToList();
+
+        Assert.Equal(4, grids.Count);
+        Assert.True(loose.Count == 0, "A paged grid's columns shift with its rows:\n" + string.Join('\n', loose));
     }
 
     [Fact]

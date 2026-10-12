@@ -149,8 +149,8 @@ WASM templates differ mainly in `Program.cs`):
 
 - **`Features/Shared/App.cs`** — the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router` where the current page appears.
-  `<head>` is framework-managed — Rask writes the charset, viewport and stylesheets, and the app's title
-  goes in its `HeadAssets` override (more in [section 7](#7-the-document-and-the-headassets-override)).
+  `<head>` is framework-managed — Rask writes the charset, viewport and stylesheets, and the tab's title
+  — the page's `PageTitle`, then the app's name — is its one `HeadAssets` line (more in [section 7](#7-the-document-and-the-headassets-override)).
   Beside it, `Features/Shared/User.cs` is the app's account type.
 
 - **`Features/Home/HomePage.cs`** — the `/` route, a small welcome card. Edit or replace it; it's your
@@ -319,10 +319,10 @@ mounted component's `HeadAssets` override (plus the charset, viewport, the UI ki
 rendered and the auto-appended runtime `<script>`. So a root is just its title and a `Router`:
 
 ```csharp
-public sealed partial class App : Component
+public sealed partial class App(RouteState route) : Component
 {
-    // App-level head; a page overrides its own HeadAssets to set a per-page Title.
-    protected override Component? HeadAssets => Title["My Rask App"];
+    // The tab's title: what the current page calls itself, then the app's name.
+    protected override Component? HeadAssets => Title[route.Title is { } page ? $"{page} | My Rask App" : "My Rask App"];
 
     protected override Component? Render() => Router;
 }
@@ -350,12 +350,15 @@ The doctype is still emitted ahead of whatever `Shell` returns, and the runtime 
 in `<body>` — neither is yours to add. `Shell` is evaluated once per render, *before* your `Render()`
 runs, so it can't observe state that render produces; keep anything reactive in the body or in `HeadAssets`.
 
-Any component can contribute to `<head>` while it's in the tree by overriding `HeadAssets`. `<title>` and
-`<base>` are singleton tags — the last contributor wins, so a page's `Title` overrides the app fallback:
+A page says what it is called, and the root's `Title` line above reads it — the same `route.Title` a layout
+puts in its breadcrumb ([a page's title](routing.md#a-pages-title--pagetitle-and-routetitle)):
 
 ```csharp
-protected override Component? HeadAssets => Title["Welcome — My Rask App"];
+protected override string? PageTitle => "Welcome";
 ```
+
+Any component can contribute to `<head>` while it's in the tree by overriding `HeadAssets` — a `<meta>`, a
+stylesheet, a preload. `<title>` and `<base>` are singleton tags, and the last contributor wins.
 
 > **Guardrails:** two compile-time checks catch the common mistakes (full list in
 > [diagnostics](diagnostics.md)) — **RASK021** if the root renders the shell itself, and **RASK019** if

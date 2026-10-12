@@ -80,7 +80,7 @@ options:
 
 ```csharp
 Ui.Select.Bind(() => _m.Country)                       // T — what the model holds, and the mode
-        .Label("Country")[
+        .Listbox.Label("Country")[
     Ui.SelectOption.Value("hu")["Hungary"],            // the options are children: a value, and the words shown
     Ui.SelectOption.Value("gb")["UK"]
 ]
