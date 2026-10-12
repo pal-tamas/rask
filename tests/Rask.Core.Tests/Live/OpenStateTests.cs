@@ -127,7 +127,7 @@ public sealed class OpenStateTests
     }
 
     [Fact]
-    public void A_dialog_the_runtime_closed_does_not_report_its_close_and_one_the_reader_closed_does()
+    public void A_dialogs_close_is_reported_whether_the_runtime_closed_it_for_a_render_or_the_reader_did()
     {
         if (Run() is not { } root)
         {
@@ -136,7 +136,7 @@ public sealed class OpenStateTests
 
         var dialog = root.GetProperty("dialog");
 
-        Assert.Empty(Sent(dialog, "runtimeClose"));
+        Assert.Equal(["close"], Sent(dialog, "runtimeClose"));
         Assert.Equal(["close"], Sent(dialog, "readerClose"));
     }
 }

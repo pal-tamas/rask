@@ -226,7 +226,8 @@ export function setShown(el: Element | null, open: boolean): void {
 //   * `stands`: asked by whoever carries a render out. What it is refused, it does once the answer is in.
 //   * `drive`: the runtime carries a render out. The toggle this raises is no news to the page that asked for
 //     it, and `isOurs` keeps it from being sent: followed as the reader's, a late one opened the list again,
-//     whose own toggle shut it, and so on for as long as the page was up.
+//     whose own toggle shut it, and so on for as long as the page was up. (A dialog's `close` is still sent:
+//     OnClose hears every close. It is only not held as the reader's.)
 
 /** How long a toggle the browser began may go untold before it stops holding anything. */
 const UNTOLD_MS = 1000;

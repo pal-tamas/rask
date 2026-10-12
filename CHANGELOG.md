@@ -180,11 +180,12 @@ them until tagged releases begin.
   reader's, which the control followed, whose render raised the next, for as long as the page was up (1,092
   frames counted in one test window). Two rules now: (1) from the moment the browser opens or shuts one of
   these until the server has answered that event, no render drives it — what a render was refused meanwhile is
-  carried out once the answer is on the page; (2) what the runtime opens or shuts to match a render is not
-  reported back: `toggle`, `beforetoggle` and a dialog's `close` reach your handler for what the READER did
+  carried out once the answer is on the page; (2) the toggle the runtime raises by opening or shutting one to
+  match a render is not reported back: `toggle` and `beforetoggle` reach your handler for what the READER did
   (a press, Escape, a press outside, an invoker button, a hover), no longer for the page's own `Open(true)`.
-  **For an existing app:** an `OnToggle`/`OnClose` that did clean-up after the page itself changed the state
-  no longer runs then — do it where the state is changed. The kit's searchable listbox now forgets its
+  A dialog's `close` is unchanged — `OnClose` still hears every close.
+  **For an existing app:** an `OnToggle` that did clean-up after the page itself changed the state no longer
+  runs then — do it where the state is changed. The kit's searchable listbox now forgets its
   search in the render that shuts the list, and its time picker its cursor.
 - **A handler whose repaint between two awaits throws still runs to its end.** A handler that awaits is
   repainted before each continuation. When that repaint threw — a frame lost as the connection dropped, a

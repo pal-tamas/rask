@@ -36,16 +36,18 @@ domEvents.forEach(function (row) {
         var target = closestFrom(e.target, "[" + attr + "]");
         if (!target || !inRoot(target)) { return; }
         if (!bubbles && target !== e.target) { return; }
-        // Open and shut: what the runtime did to match a render is not sent back to the page that rendered it,
-        // and what the reader did holds against every render older than the page's answer (rask-owned.ts).
+        // Open and shut: a toggle the runtime made to match a render is not sent back to the page that rendered
+        // it, and what the reader did holds against every render older than the page's answer (rask-owned.ts).
+        // A dialog's `close` is told however it closed — OnClose hears every close — and holds only as the reader's.
         var opens = name === "toggle" || name === "close" || name === "beforetoggle";
-        if (opens && isOurs(target, e)) { return; }
+        var ours = opens && isOurs(target, e);
+        if (ours && name !== "close") { return; }
         if (prevent) { e.preventDefault(); }
         var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
         var answer = send(msg);
-        if (opens && name !== "beforetoggle") { said(target, typeof msg.seq === "number" ? msg.seq : answer); }
+        if (opens && !ours && name !== "beforetoggle") { said(target, typeof msg.seq === "number" ? msg.seq : answer); }
     }, { capture: true, passive: !prevent });
 });
 

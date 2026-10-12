@@ -142,7 +142,7 @@ const detailsSent = taken();
 const writtenWhenNothingIsOwed = !keepsOpen(details as unknown as Element, "open", true);
 const untouchedAttribute = keepsOpen(details as unknown as Element, "class", true);
 
-// A dialog the runtime closes raises `close`: not the reader's. The next one is.
+// A dialog's `close` is told however it closed: the one the runtime caused, and the reader's after it.
 const dialog = new StubPopover({"data-rask-on-close": "h7", open: ""}, "DIALOG");
 drive(dialog as unknown as Element, function () { dialog.removeAttribute("open"); });
 listeners.close({type: "close", target: dialog});
