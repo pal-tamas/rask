@@ -159,7 +159,7 @@ The full surface, live — every readout updates from a plain field mutation, no
 
 <!-- demo:events -->
 
-And the everyday handlers on their own — a click counter, `onInput`, `onChange` on a `<select>`, and
+And the everyday handlers on their own — a click counter, `onInput`, `OnChange` on a select, and
 `onSubmit` (which receives a `FormData` of the named fields):
 
 <!-- demo:events-click -->

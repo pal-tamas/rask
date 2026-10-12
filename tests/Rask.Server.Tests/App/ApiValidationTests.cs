@@ -129,6 +129,27 @@ public sealed class ApiValidationTests
     }
 
     [Fact]
+    public async Task A_controller_body_that_will_not_deserialize_is_rejected_without_the_serializers_own_words()
+    {
+        var app = await StartAsync();
+        try
+        {
+            var response = await PostAsync(app, "/api/orders", """{"reference":"ok","quantity":"many"}""");
+
+            var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Contains("The value is not valid.", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("System.", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("could not be converted", body, StringComparison.Ordinal);
+            Assert.DoesNotContain("LineNumber", body, StringComparison.Ordinal);
+        }
+        finally
+        {
+            await app.StopAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    [Fact]
     public async Task A_minimal_api_endpoint_rejects_an_invalid_body_with_the_documented_problem_document()
     {
         // The half that had NOTHING before: a minimal API ran no validation at all, so a [Required] on a

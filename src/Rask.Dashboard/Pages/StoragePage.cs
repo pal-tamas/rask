@@ -144,12 +144,12 @@ public sealed partial class StoragePage(
                 .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
                 .Detail("Files appear here as soon as the app saves one."))[c => [
                 c.Field(r => r.Name).Title("Name"),
-                c.Field(r => r.Public).Title("Access").Value(r => r.Public ? "public" : "private"),
-                c.Field(r => r.ContentType).Title("Type").Mono().ShowFrom(Ui.Breakpoint.Md),
-                c.Field(r => r.Size).Title("Size").Value(r => DashboardParts.Bytes(r.Size)),
-                c.Field(r => r.Provider).Title("Provider").ShowFrom(Ui.Breakpoint.Lg),
-                c.Field(r => r.Id).Title("Id").Mono().Value(r => r.Id.ToString("N")),
-                c.Field(r => r.CreatedAt).Title("Saved").Cell(r =>
+                c.Field(r => r.Public).Title("Access").Class("sm:w-24").Value(r => r.Public ? "public" : "private"),
+                c.Field(r => r.ContentType).Title("Type").Mono().Class("sm:w-40").ShowFrom(Ui.Breakpoint.Md),
+                c.Field(r => r.Size).Title("Size").Class("sm:w-28").Value(r => DashboardParts.Bytes(r.Size)),
+                c.Field(r => r.Provider).Title("Provider").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Lg),
+                c.Field(r => r.Id).Title("Id").Mono().Class("sm:w-64").Value(r => r.Id.ToString("N")),
+                c.Field(r => r.CreatedAt).Title("Saved").Class("sm:w-36").Cell(r =>
                     Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),
             ]];
 

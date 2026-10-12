@@ -38,7 +38,7 @@ public sealed partial class ValidationSummaryDemo : Component
                 Ui.Input.Bind(() => _model.Age).Label("Age").Id("v2-age").ShowValidation(false)
             ],
             Div[
-                Ui.Select.Bind(() => _model.Plan)
+                Ui.Select.Bind(() => _model.Plan).Listbox
                     .Placeholder("— choose —")
                     .Label("Plan")
                     .Id("v2-plan")

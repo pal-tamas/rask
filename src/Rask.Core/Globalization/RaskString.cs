@@ -427,4 +427,10 @@ public enum RaskString
 
     /// <summary>What the person is told when a form's save threw: in a toast, or in the form's own messages.</summary>
     FormSaveFailed,
+
+    /// <summary>
+    ///     What the error page says in place of the exception, with the reference the log line carries
+    ///     written into its <c>{0}</c>.
+    /// </summary>
+    ErrorReference,
 }

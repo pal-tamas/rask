@@ -1,3 +1,5 @@
+using Rask.Core.Diagnostics;
+
 namespace Rask.Core.Components;
 
 /// <summary>
@@ -17,7 +19,9 @@ public sealed class ErrorBoundary : Component
     ///     its failed state for as long as it is mounted.
     ///     <para>
     ///         Show the user something they can act on, not the exception: a message and a way forward. The
-    ///         exception text can name internal paths and query shapes, so log it rather than render it.
+    ///         exception text can name internal paths, query shapes and credentials, so never print
+    ///         <c>ex.Message</c> or its type to a visitor. The boundary has already logged it at Error with a
+    ///         reference, and with no fallback at all the built-in page shows only that reference in Production.
     ///     </para>
     /// </summary>
     public Fn<Exception, Action, Component>? Fallback { get; set; }
@@ -48,8 +52,7 @@ public sealed class ErrorBoundary : Component
 
     internal void Trip(Exception ex, ErrorSource source = ErrorSource.Render)
     {
-        Error = ex;
-        Source = source;
+        Record(ex, source);
         StateHasChanged();
     }
 
@@ -60,10 +63,19 @@ public sealed class ErrorBoundary : Component
     ///     <see cref="Trip" /> would signal a render from inside the render that is about to show the
     ///     error, and since the same override throws again the frame after, that is a loop.
     /// </summary>
-    internal void TripInRender(Exception ex)
+    internal void TripInRender(Exception ex) => Record(ex, ErrorSource.Render);
+
+    // Every exception a boundary takes is logged with its reference, whatever the fallback then shows of it.
+    private void Record(Exception ex, ErrorSource source)
     {
         Error = ex;
-        Source = ErrorSource.Render;
+        Source = source;
+        ErrorReference.Of(ex, source switch
+        {
+            ErrorSource.Action => "an error boundary from an event handler",
+            ErrorSource.Lifecycle => "an error boundary from a lifecycle hook",
+            _ => "an error boundary from a render",
+        });
     }
 
     /// <summary>

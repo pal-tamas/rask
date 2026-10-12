@@ -99,6 +99,11 @@ public static class RaskApiValidation
         services.Configure<ApiBehaviorOptions>(static options =>
             options.SuppressModelStateInvalidFilter = true);
 
+        // A body that will not deserialize: MVC would put the serializer's own sentence in ModelState, which
+        // names the CLR type it was reading. Kept as the exception instead, the filter says its own.
+        services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(static options =>
+            options.AllowInputFormatterExceptionMessages = false);
+
         return services;
     }
 
