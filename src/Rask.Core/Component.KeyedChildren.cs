@@ -128,8 +128,8 @@ public abstract partial class Component
     }
 
     // The first Key this parent has seen on the type. Until now its children were identified by their ordinal
-    // among ALL the parent's children; the ones without a key go on being told apart by their order among
-    // themselves, so they are handed over in that order — the ones already written this render, then whatever
+    // among the parent's children of the type; the ones without a key go on being told apart by their order
+    // among themselves, so they are handed over in that order — the ones already written this render, then whatever
     // last render left that nothing has taken yet. True when the provisional instance is one of the latter.
     private bool TakeOverUnkeyedSiblings(KeyedSiblings siblings, Component provisional, (Type Type, int Ordinal) slot)
     {

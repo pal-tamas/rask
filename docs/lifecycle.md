@@ -43,6 +43,12 @@ A hook with nothing to await is still written `async`; the compiler does not war
 | `OnRendered`      | After **every** render, the first included (after `OnFirstRender`). |
 | `OnUnmount`       | **Once**, on disposal (navigation away, parent subtree torn down, session teardown). Children unmount before parents (depth-first). |
 
+**What "the instance" is.** A component keeps its instance — and so mounts once — for as long as the
+component that writes it goes on writing it at the same place *among the children of its type*, or under the
+same `Key`. A sibling of another type, or an element, appearing or disappearing ahead of it does not unmount
+it. A sibling of its own type doing so moves every later one of that type along by one, state included, unless
+they carry keys: see [keys and identity](composition.md#children--fragments).
+
 So a component's life reads:
 
 ```
