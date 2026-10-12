@@ -125,6 +125,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
     private BindTiming _timing;
     private bool _saidInvalid;
+    private bool _saidRequired;
 
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -136,9 +137,14 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
         }
 
+        var resolvedType = ResolveType(acc);
+        if (acc is not null && TakesAriaRequired(resolvedType))
+        {
+            SayRequired(acc.Field, ref _saidRequired);
+        }
+
         base.WriteAttributes(sb);
 
-        var resolvedType = ResolveType(acc);
 
         // A RADIO bound over a bool is the same control as a checkbox as far as the model is concerned:
         // it asks whether THIS option is the chosen one, and its state is `checked`. Without this it fell
@@ -168,6 +174,11 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
         }
     }
+
+    // ARIA allows aria-required on a text box, a spin button and a checkbox, and on none of these: a radio is
+    // required as a group, and the rest have no empty state to refuse.
+    private static bool TakesAriaRequired(string? type) =>
+        type is not ("radio" or "range" or "color" or "hidden" or "button" or "submit" or "reset" or "image");
 
     // An explicit InputType wins; otherwise bound mode (and non-string T) default from T, while a plain
     // string input keeps "no type unless set".

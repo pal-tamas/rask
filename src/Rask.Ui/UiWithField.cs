@@ -40,6 +40,7 @@ internal sealed class UiWithField
         (_label, _description, _descriptionTrailing, _badge) = (props.Label, props.Description, props.DescriptionTrailing, props.Badge);
         (_error, _showValidation) = (props.Error, props.ShowValidation);
         Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
+        Required = control.TakesAriaRequired && UiRequired.Is(_bound);
         Aria = BuildAria();
     }
 
@@ -55,7 +56,13 @@ internal sealed class UiWithField
     /// <summary>Whether the control was called invalid, or the form calls its bound member invalid.</summary>
     internal bool Invalid { get; }
 
-    /// <summary><c>aria-describedby</c> and <c>aria-invalid</c> for the control. Empty when there is neither.</summary>
+    /// <summary>Whether the bound member must be filled, and the control's element can say so.</summary>
+    internal bool Required { get; }
+
+    /// <summary>
+    ///     <c>aria-required</c>, <c>aria-invalid</c> and <c>aria-describedby</c> for the control. Empty when
+    ///     there is none of them.
+    /// </summary>
     internal IReadOnlyDictionary<string, string?> Aria { get; }
 
     private bool Wraps => _label is not null || _description is not null || _descriptionTrailing is not null || _error is not null;
@@ -117,6 +124,11 @@ internal sealed class UiWithField
     private Dictionary<string, string?> BuildAria()
     {
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (Required)
+        {
+            aria["required"] = "true";
+        }
+
         if (Invalid)
         {
             aria["invalid"] = "true";
