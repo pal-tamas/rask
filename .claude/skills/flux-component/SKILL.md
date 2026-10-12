@@ -602,9 +602,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   panel from a pointer-move check that runs at most once in ~100 ms (a jump into the gap after a rest closes at
   once; a move made straight after another is not looked at), `rask-hover.ts` closes in the pointerout, so a
   real pointer gliding across a gap never arrives — true of the rail's menus too; (2) a panel the pointer left
-  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Stand-ins on its parity page:
-  the category trigger (a badge in Flux's `iconTrailing` SLOT, which `Ui.Button` has not), the docs' three grey
-  filler lines. `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
+  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Stand-ins on its parity page: the docs' three grey
+  filler lines. The category trigger is the real button: `Ui.Button.IconTrailing` takes a component too
+  (`UiInputIcon`, the input's union — Flux's `iconTrailing` slot), placed LAST in the button with no wrapper and
+  no marker of its own, the button padded as around a trailing icon (measured: 150.8×40, `ps-3 pe-3`, label in
+  its span). Flux's button REFERENCE lists no slot at all; the slot is only in the popover page's example, and
+  no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)

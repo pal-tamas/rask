@@ -1,7 +1,8 @@
 namespace Rask;
 
 /// <summary>
-///     What sits inside a <see cref="UiInput{T}" /> at one end: a Heroicon by name, or content of your own.
+///     What sits inside a <see cref="UiInput{T}" /> at one end, or after a <see cref="UiButton" />'s label: a
+///     Heroicon by name, or content of your own.
 /// </summary>
 /// <remarks>
 ///     Flux says both with one name — the <c>icon:trailing</c> prop and the <c>icon:trailing</c> slot — and so
@@ -14,7 +15,7 @@ public readonly record struct UiInputIcon
     /// <summary>The Heroicon to draw, when one was named.</summary>
     public Ui.IconName? Name { get; }
 
-    /// <summary>The content to place instead of an icon — a button, usually.</summary>
+    /// <summary>The content to place instead of an icon — a button in an input, a badge in a button.</summary>
     public Component? Content { get; }
 
     /// <summary>A Heroicon.</summary>

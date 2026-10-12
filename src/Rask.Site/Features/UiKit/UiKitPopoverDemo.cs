@@ -110,9 +110,9 @@ public sealed partial class UiKitPopoverDemo : Component
 
     private Component CategoryPicker() =>
         Ui.Dropdown.Key("categories")[
-            Ui.Button.Icon(Ui.IconName.Tag)[
-                "Categories",
-                Ui.Badge.Sm.Class("ms-2 -me-1 tabular-nums").Data(Testid("ui-popover-count"))[_picked.Count.ToString(CultureInfo.InvariantCulture)]
+            Ui.Button.Icon(Ui.IconName.Tag).IconTrailing(
+                Ui.Badge.Sm.Class("-mr-1 tabular-nums").Data(Testid("ui-popover-count"))[_picked.Count.ToString(CultureInfo.InvariantCulture)])[
+                "Categories"
             ],
             Ui.Popover.Class("max-w-[18rem] flex flex-col gap-4")[
                 Ui.CheckboxGroup.Values(_picked).Key("picked").Id("popover-categories").Variant(Ui.CheckboxGroupVariant.Pills)

@@ -123,6 +123,29 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Trailing_content_stands_where_the_trailing_icon_would_with_nothing_around_it()
+    {
+        var button = Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"];
+
+        var html = button.ToHtml();
+
+        Assert.Contains("h-10 ps-4 pe-3", html, StringComparison.Ordinal);
+        Assert.Matches("<span>Categories</span><div class=\"[^\"]*\" data-ui-badge", html);
+        Assert.EndsWith(">3</div></button>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_trailing_step_handed_no_content_leaves_the_button_plain()
+    {
+        Rask.Core.Component? nothing = null;
+
+        var html = Ui.Button.IconTrailing(nothing!)["Open"].ToHtml();
+
+        Assert.Contains("h-10 px-4", html, StringComparison.Ordinal);
+        Assert.EndsWith(">Open</button>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_icon_on_each_side_pads_both_sides_alike() =>
         Assert.Contains(
             "h-10 px-3",

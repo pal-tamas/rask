@@ -692,7 +692,7 @@ Rask.UiButton.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiButton.Href.set -> void
 Rask.UiButton.Icon.get -> Rask.Ui.IconName?
 Rask.UiButton.Icon.set -> void
-Rask.UiButton.IconTrailing.get -> Rask.Ui.IconName?
+Rask.UiButton.IconTrailing.get -> Rask.UiInputIcon?
 Rask.UiButton.IconTrailing.set -> void
 Rask.UiButton.IconVariant.get -> Rask.Ui.IconVariant?
 Rask.UiButton.IconVariant.set -> void
@@ -4774,6 +4774,7 @@ static RaskBuilderSettersRask_Ui.Icon(this Rask.UiNavmenuItem! __b, Rask.Ui.Icon
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiSidebarGroup! __b, Rask.Ui.IconName? value) -> Rask.UiSidebarGroup!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiSidebarItem! __b, Rask.Ui.IconName? value) -> Rask.UiSidebarItem!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiSidebarToggle! __b, Rask.Ui.IconName? value) -> Rask.UiSidebarToggle!
+static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiButton! __b, Rask.UiInputIcon? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiMenuSubmenu! __b, Rask.Ui.IconName? value) -> Rask.UiMenuSubmenu!
 static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiNavbarItem! __b, Rask.Ui.IconName? value) -> Rask.UiNavbarItem!
 static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiProfile! __b, Rask.Ui.IconName? value) -> Rask.UiProfile!
@@ -6864,7 +6865,6 @@ static RaskBuilderSettersRask_Ui.Inline(this Rask.UiCallout! __b, bool? value) -
 static RaskBuilderSettersRask_Ui.Role(this Rask.UiCallout! __b, string? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Text(this Rask.UiCallout! __b, string? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiButton! __b, Rask.Ui.IconName? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiButton! __b, Rask.Ui.IconName? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiButton! __b, Rask.Ui.IconVariant? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Inset(this Rask.UiButton! __b, Rask.Ui.Inset? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Kbd(this Rask.UiButton! __b, string? value) -> Rask.UiButton!

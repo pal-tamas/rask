@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Ui.Button.IconTrailing` takes content as well as an icon — Flux's `iconTrailing` slot.**
+  `Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]` beside `Ui.Button.IconTrailing(Ui.IconName.ChevronDown)`.
+  The content is placed as it is, last in the button with nothing around it, and the button pads itself as it
+  does around a trailing icon (measured on Flux's popover page, whose category trigger is now the real button
+  on the parity page and in the site's demo). One step, as `Ui.Input`'s: the property's type is `UiInputIcon?`
+  (was `Ui.IconName?`), every call site that names an icon compiles unchanged, and naming an icon and handing
+  content in one chain is RASK044. Code that READ `button.IconTrailing` as an icon name reads `.Name` now.
+
 - **A `[QueryParam]` property keeps its initializer when the parameter is absent.** **A behaviour change.**
   Before: `[QueryParam] public int Page { get; set; } = 1;` was `0` at `/list` — every bind reset the property
   to its type's default, so a default of your own had to be `int? Page` and `Page ?? 1`. After: `/list` → `1`,
