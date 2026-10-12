@@ -353,14 +353,15 @@ public partial class PageTitleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_error_boundary_around_the_outlet_catches_a_route_value_that_will_not_bind()
+    public void A_route_value_that_will_not_bind_is_not_the_pages_path_so_neither_it_nor_its_layout_is_drawn()
     {
         var (view, state, sp) = BuildView(Under<GuardingLayout>(Route.To<NumberedPage>("n/{id}")));
         state.Path = "/n/not-a-number";
 
         var html = view.RenderAsLiveRoot(sp);
 
-        Assert.StartsWith("<div>layout:<p>caught RouteBindException</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("layout:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("RouteBindException", html, StringComparison.Ordinal);
     }
 
     [Fact]

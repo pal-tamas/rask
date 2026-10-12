@@ -24,7 +24,9 @@ internal static class RouteMatcher
         for (var i = 0; i < leaves.Count; i++)
         {
             var leaf = leaves[i];
-            if (leaf.Pattern.TryMatch(path, out var attempt))
+            // A segment the page could not read into its property — digits past what an int holds, a date that
+            // is none — is not this page's URL: the next route is tried, and not-found answers if none is.
+            if (leaf.Pattern.TryMatch(path, out var attempt) && PageBinder.CanBind(leaf.Chain, attempt))
             {
                 chain = leaf.Chain;
                 values = attempt;

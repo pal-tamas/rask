@@ -46,6 +46,50 @@ public class NotFoundStatusTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Theory]
+    [InlineData("/ssr-404-probe/items/99999999999999999999")]
+    [InlineData("/ssr-404-probe/items/seven")]
+    [InlineData("/ssr-404-probe/days/2026-13-45")]
+    public async Task A_segment_its_route_cannot_read_answers_404_with_the_not_found_page(string path)
+    {
+        using var host = RaskTestHost.Create<RoutedTestApp>();
+
+        var response = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("data-rask-root=\"", body);
+        Assert.DoesNotContain("rask-error-boundary", body);
+    }
+
+    [Theory]
+    [InlineData("/ssr-404-probe/items/007", "item-7")]
+    [InlineData("/ssr-404-probe/days/2026-10-12", "day-2026-10-12")]
+    public async Task A_segment_its_route_can_read_stays_200_and_is_bound(string path, string shown)
+    {
+        using var host = RaskTestHost.Create<RoutedTestApp>();
+
+        var response = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(shown, body);
+    }
+
+    [Fact]
+    public async Task A_live_navigation_to_a_segment_its_route_cannot_read_shows_the_not_found_page()
+    {
+        await using var fixture = await ConnectedSession.Connect<RoutedTestApp>();
+
+        await fixture.Ws.SendJsonAsync(
+            new { type = "navigate", path = "/ssr-404-probe/items/99999999999999999999", query = "" }, ct: TestContext.Current.CancellationToken);
+        var reply = await fixture.Ws.ReceiveTextAsync();
+
+        Assert.Contains("/ssr-404-probe/items/99999999999999999999", reply);
+        Assert.DoesNotContain("rask-error-boundary", reply);
+        Assert.DoesNotContain("item-", reply);
+    }
+
     [Fact]
     public async Task An_app_that_does_not_route_stays_200()
     {
@@ -67,6 +111,24 @@ public sealed partial class RoutedTestApp : Component
     protected override Component? HeadAssets => Title["ssr-404"];
 
     protected override Component? Render() => Router;
+}
+
+[Route("/ssr-404-probe/items/{id:int}")]
+public sealed partial class Ssr404ItemPage : Component
+{
+    [RouteParam]
+    public int Id { get; set; }
+
+    protected override Component? Render() => Div.Id("item")[$"item-{Id}"];
+}
+
+[Route("/ssr-404-probe/days/{day}")]
+public sealed partial class Ssr404DayPage : Component
+{
+    [RouteParam]
+    public DateOnly Day { get; set; }
+
+    protected override Component? Render() => Div.Id("day")[$"day-{Day:O}"];
 }
 
 [Route("/ssr-404-probe/known")]

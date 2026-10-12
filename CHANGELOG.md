@@ -20,6 +20,13 @@ them until tagged releases begin.
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
 
+- **A route segment its page cannot read is not found, not a 500.** `/destinations/99999999999999999999`
+  matched `/destinations/{id:int}` — the router never held a constraint to anything — and the page then
+  failed to bind it: `RouteBindException`, the error page, a 500. A segment that is not what its constraint
+  says (`int`, `long`, `bool`, `guid`), or that the bound property's type cannot hold (a `DateOnly`, a
+  `decimal`, an enum), now does not match: the next route is tried, and the not-found page answers, with a
+  404 on a first request and on a live navigation alike.
+
 - **The error page's tab title is translated.** The built-in error page said `Application error` in the tab
   over a Hungarian body. The title is a string of the catalog now, `RaskString.ErrorTitle` (the kit's
   Hungarian: `Alkalmazáshiba`); the English is unchanged.
