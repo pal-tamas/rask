@@ -33,6 +33,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskValidation.RegisterRequiredFields` and `RaskValidation.IsRequired`: one question says whether a field
+  must be filled.** `RegisterRequiredFields(typeof(DestinationModel), property => property is "Name")` is the
+  seam a data layer's generator plugs into, once per model type, beside `RegisterFieldRules`; it covers the
+  types derived from the one registered. `IsRequired(modelType, fieldPath)` answers yes when the declaring
+  type registered the property or the member carries `[Required]`, follows a path through the declared types
+  (`Rows[2].Weight` asks the row's type, `Price.Amount` the type of `Price`), and keeps each answer until a
+  type is registered again, so a control can ask on every render. A form control of your own asks it instead
+  of reading `RequiredAttribute` — see `docs/forms-validation.md` and `docs/building-form-controls.md`.
 - **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
   of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
   app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.
@@ -88,6 +96,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A field that must be filled says so to a screen reader: a bound control writes `aria-required="true"`.**
+  A field required by its type — a non-nullable value-object property of a Rask.Data model, which carries no
+  `[Required]` — announced nothing, and neither did any `[Required]` member bound through the kit's Flux
+  controls or a plain `Input`, `Select` or `Textarea`. Every bound control now asks
+  `RaskValidation.IsRequired`: the plain three, and `Ui.Input`, `Ui.Textarea`, `Ui.Select` (native, and the
+  listbox and combobox trigger), `Ui.Checkbox`, `Ui.Switch`, `Ui.RadioGroup`, `Ui.DatePicker`, `Ui.TimePicker`
+  and the rest of the kit, on the element that carries their other `aria-*`. Only `aria-required`, never the
+  native `required` (no browser bubble); an `aria-required` written on the control wins; a radio, a range, a
+  slider and a plain `group` (`Ui.CheckboxGroup`, `Ui.Otp`, a typed date) write none, their roles having no
+  such state. **For an existing app:** markup that is compared byte for byte gains the attribute on fields
+  bound to a `[Required]` member.
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
   `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children
