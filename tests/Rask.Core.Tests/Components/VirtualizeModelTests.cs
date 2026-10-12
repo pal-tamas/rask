@@ -370,11 +370,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         show = false;
         view.RenderAsLiveRoot();
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (!fetchObservedCt.IsCancellationRequested && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => fetchObservedCt.IsCancellationRequested, "the unmount to cancel the fetch in flight");
 
         Assert.True(fetchObservedCt.IsCancellationRequested);
     }
@@ -417,11 +413,7 @@ public partial class VirtualizeModelTests : global::Rask.Core.RaskMarkup
         // Let the provider finish; the guard must absorb the late result.
         release.SetResult();
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (!completedAfterRelease && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => completedAfterRelease, "the provider to run to its end after the unmount");
 
         Assert.True(completedAfterRelease, "provider should run to completion even after unmount");
         // The continuation ran to the guard and returned; re-rendering the host stays clean

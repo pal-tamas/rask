@@ -267,7 +267,7 @@ public partial class ConditionalSiblingIdentityTests : global::Rask.Core.RaskMar
         var loading = view.RenderAsLiveRoot();
 
         gate.SetResult();
-        await _rows.Loaded.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await _rows.Loaded.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         var loaded = view.RenderAsLiveRoot();
 
         Assert.Equal("<div><i>7:1</i><i>8:2</i></div>", loading);

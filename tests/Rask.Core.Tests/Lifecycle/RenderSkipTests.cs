@@ -125,7 +125,7 @@ public partial class RenderSkipTests : global::Rask.Core.RaskMarkup
         child.Show("new");
         child.StateHasChanged();
         resume.Set();
-        await walk.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await walk.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.Contains("new", host.RenderAsLiveRoot(sp), StringComparison.Ordinal);
     }

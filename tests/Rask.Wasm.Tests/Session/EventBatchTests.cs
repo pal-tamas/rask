@@ -169,16 +169,7 @@ public sealed class EventBatchTests : ResettingTestBase, IDisposable
         return (session, page);
     }
 
-    private static async Task WaitForAsync(Func<bool> met)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
-        while (!met() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-        }
-
-        Assert.True(met());
-    }
+    private static Task WaitForAsync(Func<bool> met) => WaitFor.True(met);
 
     private static byte[] Utf8(string json) => Encoding.UTF8.GetBytes(json);
 

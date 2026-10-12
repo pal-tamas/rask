@@ -117,7 +117,7 @@ public class HelloMessageTests
 
         await ws.SendJsonAsync(new { type = "hello", session = second }, ct: TestContext.Current.CancellationToken);
 
-        var close = await ws.TryReceiveCloseAsync(TimeSpan.FromSeconds(5));
+        var close = await ws.TryReceiveCloseAsync(LiveFrames.HangCeiling);
         Assert.NotNull(close);
         Assert.Equal(WebSocketCloseStatus.PolicyViolation, close.Value.Status);
         Assert.Equal("hello", close.Value.Reason);
