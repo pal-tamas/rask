@@ -27,7 +27,7 @@ public sealed partial class BoomPageTests : global::Rask.Core.RaskMarkup
 
         await page.On("#boom-throw").Click();
 
-        Assert.Contains("That did not work.", page.Html, StringComparison.Ordinal);
+        Assert.Contains("This part stopped working.", page.Html, StringComparison.Ordinal);
         Assert.Contains("boom-recover", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("kaboom", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("InvalidOperationException", page.Html, StringComparison.Ordinal);

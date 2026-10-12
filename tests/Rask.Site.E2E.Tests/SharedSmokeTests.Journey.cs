@@ -643,7 +643,7 @@ public abstract partial class SharedSmokeTests
         // Error boundaries: a handler-throw and a render-throw each trip the nearest boundary's fallback
         // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
         await Page.Locator("#boom-throw").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("That did not work.", contains);
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("This part stopped working.", contains);
         // The fallback is handed the exception and shows a visitor none of it: not the message, not the type.
         await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("kaboom");
         await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("Exception");
