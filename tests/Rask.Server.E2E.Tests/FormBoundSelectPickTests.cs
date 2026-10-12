@@ -23,11 +23,12 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
     private static ILocator Option(IPage page, string name) =>
         page.Locator("[data-ui-option]").Filter(new() { HasText = name });
 
-    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync(string page, bool slowReplies = false)
+    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync(string page, bool slowReplies = false, bool wholePages = false)
     {
         SocketFrames? frames = null;
         var session = await HookSession.OpenAsync<RangeFormApp>(
             playwright, path: "/uj/ranges/" + page, pathBase: "/uj", environment: "Development", endpointRouting: true,
+            live: wholePages ? static o => o.DiffMode = Rask.Core.Live.LiveDiffMode.DisabledFull : null,
             beforeLoad: async opened =>
             {
                 frames = SocketFrames.Of(opened);
@@ -102,10 +103,14 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
         Assert.Equal(["7f1c"], fewer);
     }
 
-    [Fact]
-    public async Task A_form_filled_without_a_pause_saves_everything_when_its_pick_is_answered_with_a_slow_whole_page()
+    // The pick puts a <div> where a <span> was beside the fields: a morph of the parent they are all in. With
+    // every reply sent whole it is the whole page instead, which is what the report was of.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_form_filled_without_a_pause_saves_everything_when_its_pick_is_answered_with_a_slow_morph_or_a_slow_whole_page(bool wholePages)
     {
-        var (session, frames) = await OpenAsync("new-whole", slowReplies: true);
+        var (session, frames) = await OpenAsync("new-whole", slowReplies: true, wholePages: wholePages);
         await using var _ = session;
         var page = session.Page;
 
@@ -114,7 +119,7 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
         await page.Keyboard.PressAsync("Enter");
 
         await Expect(page.Locator("#saved")).ToHaveTextAsync("Keleti|7f1c|600|12||Nyitott");
-        Assert.Single(frames.FullPages);
+        Assert.True(wholePages ? frames.FullPages.Count > 0 : frames.FullPages.Count == 0 && frames.Morphs.Count > 0, frames.Trace());
     }
 
     [Fact]

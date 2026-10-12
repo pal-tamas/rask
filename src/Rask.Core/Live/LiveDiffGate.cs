@@ -18,9 +18,10 @@ internal static class LiveDiffGate
     // Positional structural ops can replace mid-list elements that the morph would have
     // preserved, which broke 83/430 e2e tests in an earlier iteration that ungated them
     // unconditionally — that's why we still route those through the full-HTML path.
-    // EditOpKind.MorphSubtree is NOT listed here: it's a trusted, path-scoped morph (the Raw-tainted
-    // fallback shrunk from a full-document morph to one parent's children), always safe to ship as a
-    // diff — a morph handles arbitrary node counts and preserves keyed / focus / IDL state.
+    // EditOpKind.MorphSubtree is NOT listed here: it's a trusted, path-scoped morph (what a level the
+    // rule above would refuse, or a level beside Raw markup, is rewritten as below the document's own
+    // level — one parent's children instead of the whole document), always safe to ship as a diff — a
+    // morph handles arbitrary node counts and preserves keyed / focus / IDL state.
     internal static bool DiffOpsAreClientSupported(List<EditOp> ops) => FirstRefused(ops) < 0;
 
     // The first op the rule above refuses, or -1 when the diff can ship. The index is what lets a refusal be

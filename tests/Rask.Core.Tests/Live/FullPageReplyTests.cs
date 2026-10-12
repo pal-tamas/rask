@@ -5,7 +5,8 @@ namespace Rask.Core.Tests.Live;
 
 // A reply that falls back to the whole page says why, in Development. What it says is decided here, from the same
 // ops and by the same rule (LiveDiffGate.FirstRefused) that refused the diff, so the reason can never name a node
-// the gate would have let through.
+// the gate would have let through. A child that changes element is a whole page only as a child of the document
+// itself; anywhere below, its parent is morphed alone (RefusedLevelMorphTests).
 public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
 {
     private static (List<EditOp> Ops, string Html) Change(Component before, Component after)
@@ -30,7 +31,20 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_child_that_changes_element_is_named_by_its_path_and_the_markup_that_replaces_it()
+    public void A_child_of_the_body_that_changes_element_is_named_by_its_path_and_the_markup_that_replaces_it()
+    {
+        var (ops, html) = Change(
+            Body[Span.Class("placeholder")["Choose…"], P["after"]],
+            Body[Div.Class("picked")["Glock"], P["after"]]);
+
+        var reason = FullPageReply.Reason(ops, rawAtRoot: false, diffBytes: 0, html);
+
+        Assert.StartsWith("RemoveSubtree at /0/0 is by position, replaced by <div class=\"picked\">Glock</div>. ", reason, StringComparison.Ordinal);
+        Assert.Contains("put it inside one, and only that element travels", reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_child_that_changes_element_inside_an_element_of_the_page_is_no_reason_for_a_whole_page()
     {
         var (ops, html) = Change(
             Div[Span.Class("placeholder")["Choose…"], P["after"]],
@@ -38,8 +52,8 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
 
         var reason = FullPageReply.Reason(ops, rawAtRoot: false, diffBytes: 0, html);
 
-        Assert.StartsWith("RemoveSubtree at /0/0 is by position, replaced by <div class=\"picked\">Glock</div>. ", reason, StringComparison.Ordinal);
-        Assert.Contains("carry a Key", reason, StringComparison.Ordinal);
+        Assert.Equal(EditOpKind.MorphSubtree, Assert.Single(ops).Kind);
+        Assert.Null(reason);
     }
 
     [Fact]
@@ -59,8 +73,8 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
     public void Long_markup_is_cut_so_the_line_stays_a_line()
     {
         var (ops, html) = Change(
-            Div[Span["a"], P["after"]],
-            Div[Div[new string('x', 400)], P["after"]]);
+            Body[Span["a"], P["after"]],
+            Body[Div[new string('x', 400)], P["after"]]);
 
         var reason = FullPageReply.Reason(ops, rawAtRoot: false, diffBytes: 0, html);
 

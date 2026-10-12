@@ -85,51 +85,6 @@ public partial class OneRunDiffTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Two_children_arriving_apart_from_each_other_are_still_answered_with_the_whole_page()
-    {
-        var change = Change(
-            Div[H1["Orders"], Ul[Li["a"]]],
-            Div[Aside["Saved"], H1["Orders"], P["Nothing else to do."], Ul[Li["a"]]]);
-
-        var refused = !LiveDiffGate.DiffOpsAreClientSupported(change.Ops);
-
-        Assert.True(refused);
-        Assert.DoesNotContain(change.Ops, op => op.Trusted);
-    }
-
-    [Fact]
-    public void A_child_arriving_and_a_sibling_changing_element_at_once_is_still_answered_with_the_whole_page()
-    {
-        var change = Change(
-            Div[H1["Orders"], Span["a"], Ul[Li["a"]]],
-            Div[H1["Orders"], Aside["Saved"], Em["a"], Ul[Li["a"]]]);
-
-        var refused = !LiveDiffGate.DiffOpsAreClientSupported(change.Ops);
-
-        Assert.True(refused);
-    }
-
-    [Fact]
-    public void An_element_in_place_of_another_is_still_answered_with_the_whole_page()
-    {
-        var change = Change(Div[H1["Orders"], Span["loading"]], Div[H1["Orders"], Ul[Li["a"]]]);
-
-        var refused = !LiveDiffGate.DiffOpsAreClientSupported(change.Ops);
-
-        Assert.True(refused);
-    }
-
-    [Fact]
-    public void An_element_in_place_of_text_is_still_answered_with_the_whole_page()
-    {
-        var change = Change(Div[H1["Orders"], "loading"], Div[H1["Orders"], Ul[Li["a"]]]);
-
-        var refused = !LiveDiffGate.DiffOpsAreClientSupported(change.Ops);
-
-        Assert.True(refused);
-    }
-
-    [Fact]
     public void A_child_arriving_at_the_documents_own_level_is_still_answered_with_the_whole_page()
     {
         var change = Change([Fieldset[Input.Value("")]], [Aside["Saved"], Fieldset[Input.Value("")]]);
@@ -397,21 +352,6 @@ public partial class OneRunDiffTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(EditOpKind.MorphSubtree, op.Kind);
         Assert.Equal([0], op.Path);
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void A_child_arriving_inside_an_svg_is_still_answered_with_the_whole_page(bool deeper)
-    {
-        Component Drawing(bool dot) => deeper
-            ? Div[Svg[G[dot ? Circle.R("5") : null, G]]]
-            : Div[Svg[dot ? Circle.R("5") : null, G]];
-        var change = Change(Drawing(false), Drawing(true));
-
-        var refused = !LiveDiffGate.DiffOpsAreClientSupported(change.Ops);
-
-        Assert.True(refused);
     }
 
     [Fact]

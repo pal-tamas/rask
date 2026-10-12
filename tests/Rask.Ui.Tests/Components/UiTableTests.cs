@@ -131,7 +131,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         var strong = Ui.TableCell.Variant(Ui.TableCellVariant.Strong)["$49.00"].ToHtml();
 
         Assert.Contains("text-zinc-500", plain, StringComparison.Ordinal);
-        Assert.Contains("font-medium text-zinc-800 dark:text-white", strong, StringComparison.Ordinal);
+        Assert.Contains("font-medium [:where(&amp;)]:text-zinc-800 dark:[:where(&amp;)]:text-white", strong, StringComparison.Ordinal);
         Assert.DoesNotContain("text-zinc-500", strong, StringComparison.Ordinal);
     }
 
@@ -142,7 +142,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         var column = Ui.TableColumn.Center["Amount"].ToHtml();
 
-        Assert.Contains(" text-end", cell, StringComparison.Ordinal);
+        Assert.Contains(" [:where(&amp;)]:text-end", cell, StringComparison.Ordinal);
         Assert.Contains("<div class=\"flex justify-center\">Amount</div>", column, StringComparison.Ordinal);
     }
 

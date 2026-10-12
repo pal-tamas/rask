@@ -124,6 +124,14 @@ them until tagged releases begin.
   mount once. One that RELIED on being rebuilt when a sibling appeared — a form that reset itself because a
   banner showed — now keeps what it had: reset it explicitly, or give it a `Key` that changes when it should
   start over. Nothing changes for keyed components, for the unkeyed ones beside them, or for a routed page.
+- **A class an app writes on a table part wins over the table's default.** `Ui.TableCell.Class("ps-10")` on a
+  first cell did nothing — `first:ps-0` outweighed it — and `min-w-…`, `table-auto`, `whitespace-normal`,
+  `text-…` on `Ui.Table`, `Ui.TableColumn` or `Ui.TableCell` won or lost by where Tailwind happened to sort
+  them. Every default of the table family (cell padding with its first/last and bleed edges, text size, colour
+  in light and dark, alignment, the table's `min-w-full`, `table-fixed`, `whitespace-nowrap`) is now written at
+  zero specificity; the look is unchanged (`parity.mjs table`, `pagination`: matches Flux). A new guard,
+  `AnAppsClassWinsTests`, resolves the cascade from an app's one compiled sheet for every kit component that
+  takes a `Class` and lists the 130 where a default still decides — there, write Tailwind's `!` (`p-0!`).
 - **A navigation that renders more than once tells the browser its address once.** On the Server host, a
   `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
   its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that
@@ -279,6 +287,13 @@ them until tagged releases begin.
   warning means what it meant. `.Validate(null)` adds nothing.
 
 ### Added
+
+- **Table columns that stay put: the recipe, documented and proven.** A table sizes its columns to their
+  content (Flux's own demo moves 180.9 → 187.0 → 176.4 px from page to page), so they jump on paging and
+  sorting. `Ui.Table.Class("w-full min-w-160")`, a width on every `Ui.TableColumn` but one and
+  `Ui.TableCell.Class("truncate").Title(text)` hold every column to the pixel across pages, sort orders and an
+  empty list, at 1920 and at 390 px, where the table scrolls inside its own box. No new prop: classes only.
+  `docs/ui-kit.md` (Tables → Columns that stay put), a live demo on `/docs/ui/data-display`, and a browser test.
 
 - **`RaskValidationException` names its fields, so a form shows a rejection where it can be corrected.** It
   implements `IFieldFailures`: a request a validator rejected, and a save a unique index refused
@@ -506,6 +521,29 @@ them until tagged releases begin.
   `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
 
 ### Performance
+
+- **A child that changes element is answered with its parent, not the whole page — and so is a navigation
+  inside a layout.** `cond ? A : B`, words that become an element, a loading line that becomes a table, a
+  callout that becomes a form, and above all the page in an `Outlet` giving way to the next: one node takes the
+  PLACE of another, the differ cannot tell which node stayed, and the reply used to be the whole document —
+  the menu and the layout again on every navigation. The level's ops are now rolled back and its PARENT's
+  children travel as one `MorphSubtree` (op 8, the one a level beside `Raw` markup already used), which the
+  browser reconciles with the same morph a whole page goes through, no further than that element. Nothing
+  outside it is named: a field in the header keeps its focus, its caret and what was typed, a menu keeps its
+  scroll position and its open groups. The `<title>` rides the diff's `<head>` fragment as before. Measured on
+  a replica of a reported app (84 menu links): a navigation between two pages of one layout **349,698 B →
+  5,859 B**, a list arriving in place of its loading line 417,357 B → 69,341 B (the table), a form in place
+  of a callout 348,394 B → 4,398 B; over 36 such changes on a small page, 95,838 B → 9,248 B. Still the
+  whole page: a change of shape directly under `<body>` (put it inside an element), and a diff no smaller
+  than the page. **For an existing app:** nothing to change. Inside the morphed parent children are paired by
+  position exactly as the whole-page morph paired them, so nothing is rebuilt that was not rebuilt before; a
+  `.Key(…)` on a sibling still decides whether it stays the node it was. An inline `<script>` that is not
+  inside the parent that changed is no longer re-run by such a navigation (it used to be, when the page swap
+  shifted it against a neighbour). In Development each morphed parent is logged on `Rask.Live` (Information)
+  with the child that changed shape; the whole-page warning now fires only for what is still a whole page.
+  A level inside `<svg>` that a child arrives in the middle of is morphed too, in the SVG namespace; an
+  append or a keyed insert inside `<svg>` is unchanged (#1242). See
+  `docs/architecture/live-rendering-codec.md#the-fallback-ladder-fine-diff--one-run--subtree-morph--whole-page`.
 
 - **A child that comes or goes among siblings that still match is answered with a diff, not the whole page.**
   `saved ? Ui.Callout[…] : null` above a form, an error text under a field, an icon in front of a badge's
