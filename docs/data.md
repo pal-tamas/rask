@@ -581,14 +581,18 @@ settable copy of every mapped property, and:
 
 - **every property is nullable**, because a form field can be empty whatever the column is — and a column that
   cannot be empty (`decimal Price`, `string Name`) is `[Required]` on the model, so clearing it is a validation
-  error ("The Price field is required.") rather than a silent 0;
+  error ("The Price field is required.") rather than a silent 0. A property whose type is a value object with
+  [a rule of its own](#what-a-form-over-the-model-asks-by-itself) carries no attribute: the type says it;
 - **`new ProductModel()` holds the aggregate's defaults**: it is filled from an empty `Product`, so a create form
   starts from the same values a `Product` would;
 - **`product.ToModel()`** copies a row into a model for an edit form, `Version` included;
 - **the aggregate's validation attributes are copied onto it**, so `Form.Model(…)` checks input by the aggregate's
   own rules as the user types, and EF Core reads the same attributes for the column;
-- **`Product.Create(model)` and `Product.Update(id, model)` check them again on the server** before writing, and
-  throw `ValidationException` with nothing written — a posted form cannot skip the rules.
+- **`Product.Create(model)` and `Product.Update(id, model)` check them again on the server** — the value
+  objects' rules first, then the attributes — before the database is asked anything, and throw
+  `RaskValidationException` with nothing written. Its `Failures` name each field as the form names it (`Name`,
+  `Price.Amount`, `Lines[2].Sku`), so a form shows them under the field and an API caller gets the 400 with
+  `errors`. A posted form cannot skip the rules, and neither can a call with no form behind it.
 
 A create page starts from a new one:
 
@@ -926,8 +930,33 @@ exactly that value and returning the messages — `IEnumerable<string>`, or a `V
 the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
 accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
 says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
-object of several values is left alone. An empty field is not put to it — that is
-`[Required]`'s to say, which the model already carries for a column that cannot be null.
+object of several values is left alone.
+
+**A non-nullable value-object property is required: its rule is asked with the empty value.** So "required" is
+said by the type, in its own words, and no attribute is needed:
+
+```csharp
+// before                                               // after
+[Required(ErrorMessage = "A destination needs a name.")]
+public DestinationName Name { get; private set; }       public DestinationName Name { get; private set; }
+
+public static IEnumerable<string> Validate(string value)
+{
+    if (string.IsNullOrWhiteSpace(value)) yield return "A destination needs a name.";   // asked for an empty field too
+    else if (value.Length > MaxLength) yield return $"A name is at most {MaxLength} characters.";
+}
+```
+
+- a **text** value object is asked about `""` when the field holds nothing, and what it answers is shown. If it
+  accepts `""`, an empty text field is stored as that; a field that holds nothing at all (`null`, from a caller
+  with no form) still says *This field is required.*
+- a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
+  says the one sentence *This field is required.* and the rule is asked once there is a value
+- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule
+- a value object with no rule keeps the generated `[Required]`, as a plain `string Name` does
+
+These rules are not attribute validation, so `RaskValidation.AutoValidate = false` does not switch them off, and
+they are the same ones `Create(model)` and `Update(id, model)` ask with no form at all.
 
 **The aggregate's unique rules.** **Write the `IsUnique("…")` in the aggregate's own `Configure`**: an index
 declared in a helper method or an `IEntityTypeConfiguration` is enforced at save but not asked beforehand, and
