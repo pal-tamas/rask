@@ -25,9 +25,12 @@ public abstract partial class Element : Component
 
     private static readonly System.Reflection.Assembly CoreAssembly = typeof(Element).Assembly;
 
-    // An element's children are walked at serialization time (RenderChildren), never embedded in its
-    // cached render result, so they never invalidate it.
-    private protected override bool BakesChildrenIntoRender => false;
+    // A tag's children are walked at serialization time (RenderChildren), never embedded in its cached
+    // render result, so they never invalidate it. An element that names NO tag is drawn by its Render()
+    // like any composite — a kit heading wraps what it is handed in markup of its own — so its children ARE
+    // in that result, and serving it would show the children it was handed on an earlier render: its own
+    // old ones, or, once its instance has moved to another place in its owner, another element's.
+    private protected override bool BakesChildrenIntoRender => Children is not null && TagNameInternal is null;
 
     /// <summary>
     ///     The global <c>id</c> attribute — this element's unique identifier in the document. It is what a
