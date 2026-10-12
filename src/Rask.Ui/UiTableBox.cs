@@ -8,12 +8,14 @@ internal static class UiTableBox
     ///     table, in from it by the distance the table bled out.
     /// </summary>
     /// <remarks>
-    ///     The 12px is written at zero specificity, so a cell's own <c>py-0</c> or <c>px-6</c> wins whatever
-    ///     order the stylesheet happens to emit the two in. Flux merges the classes on the server to the same
-    ///     end.
+    ///     All of it at zero specificity, and no two rules for one side of one cell: a cell's own <c>py-0</c>,
+    ///     <c>px-6</c> or <c>ps-10</c> wins in every column, and nothing depends on the order the stylesheet
+    ///     emits the kit's own rules in. Flux merges the classes on the server to the same end.
     /// </remarks>
     internal const string Padding =
-        "[:where(&)]:px-3 [:where(&)]:py-3 first:ps-0 last:pe-0 [[data-ui-table-bleed]_&]:first:ps-[var(--ui-bleed,1.5rem)] [[data-ui-table-bleed]_&]:last:pe-[var(--ui-bleed,1.5rem)]";
+        "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3 "
+        + "[:where([data-ui-table-bleed]_&:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
+        + "[:where([data-ui-table-bleed]_&:last-child)]:pe-[var(--ui-bleed,1.5rem)]";
 
     /// <summary>
     ///     Held at the scroll area's left edge. The <c>::after</c> hangs off its right side and carries the
