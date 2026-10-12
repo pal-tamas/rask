@@ -289,26 +289,19 @@ public sealed partial class RoutesGenerator
             // emitting a malformed query string. Property-name-derived keys are valid
             // identifiers, so this is a no-op for them.
             var encodedKey = Uri.EscapeDataString(qpName);
-            if (qp.IsNullable)
-            {
-                sb.Append("        if (").Append(ident).AppendLine(" is not null)");
-                sb.AppendLine("        {");
-                sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
-                sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
-                    .AppendLine("=\");");
-                sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
-                sb.AppendLine("        }");
-            }
-            else
-            {
-                // Non-nullable required query param — always emit
-                sb.AppendLine("        __qs ??= new global::System.Text.StringBuilder();");
-                sb.AppendLine("        __qs.Append(__qs.Length == 0 ? '?' : '&');");
-                sb.Append("        __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
-                    .AppendLine("=\");");
-                sb.Append("        __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
-            }
+
+            // Every query argument is nullable in the signature, whatever its property is, and null means
+            // "not given": the key is left out, so the page shows what it shows without it — its
+            // initializer. A value that IS given is written as it is, `Page: 1` and `Page: 0` included:
+            // nothing here knows the initializer, and a link says what its caller said.
+            sb.Append("        if (").Append(ident).AppendLine(" is not null)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
+            sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
+            sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
+                .AppendLine("=\");");
+            sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
+            sb.AppendLine("        }");
         }
     }
 

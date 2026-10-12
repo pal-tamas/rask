@@ -104,6 +104,11 @@ painted as the placeholder at the budget and as the data when it lands, so the p
 writing — it is what a slow load looks like. See
 [the page is sent when its first reads are back](routing.md#the-page-is-sent-when-its-first-reads-are-back).
 
+An edit page is the same page with a form where the table was: read the record in the page's hook, draw the
+form once it is there, and let a form component of your own read its model prop in `Render` — a copy taken in
+its `OnMount` is taken once, before the read is back. See
+[an edit page that reads its record](forms.md#an-edit-page-that-reads-its-record).
+
 Work you deliberately detach from the hook is **not** waited on. A poll loop started with
 `_ = Poll()` returns from `OnMount` immediately, so the response goes out and the loop
 keeps pushing over the live connection:

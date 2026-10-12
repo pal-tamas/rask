@@ -265,6 +265,32 @@ public partial class AsyncHandlerRenderingTests : global::Rask.Core.RaskMarkup
         Assert.Equal(3, renders);
     }
 
+    [Fact]
+    public async Task A_handler_whose_first_repaint_throws_still_runs_to_its_end_and_faults_with_that()
+    {
+        // Before this the dispatch ended with the repaint's fault while the handler was still running: its
+        // session's lock went to the next event, which then ran beside it.
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handle = new RecordingRenderHandle(() => "", onRender: () => throw new InvalidOperationException("repaint-boom"));
+        var component = new StubComponent(Span) { RenderHandle = handle };
+        var finished = false;
+        component.RegisterTestHandler("h0", new Func<Task>(async () =>
+        {
+            await gate.Task.ConfigureAwait(false);
+            finished = true;
+        }));
+
+        var dispatch = component.TryInvokeHandlerAsync("h0", EmptyPayload).AsTask();
+        var endedBesideItsHandler = dispatch.IsCompleted;
+        gate.SetResult();
+        var fault = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => dispatch.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken));
+
+        Assert.False(endedBesideItsHandler, "the dispatch ended while its handler was still running");
+        Assert.Equal("repaint-boom", fault.Message);
+        Assert.True(finished, "the code after the await was skipped");
+    }
+
     private sealed class CountingComponent : Component
     {
         public int RenderCount { get; private set; }

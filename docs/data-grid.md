@@ -95,10 +95,10 @@ bookmarked and reached with the back button. The link does the navigating, so `O
 called — the page arrives back as `Page`, read from the query string:
 
 ```csharp
-[QueryParam("page")] public int? UrlPage { get; set; }   // counted from one in the address
+[QueryParam("page")] public int UrlPage { get; set; } = 1;   // counted from one in the address
 
 Ui.DataGrid.Data(_rows).RowKey(r => r.Id)
-    .PageSize(25).TotalCount(_total).Page((UrlPage ?? 1) - 1)
+    .PageSize(25).TotalCount(_total).Page(UrlPage - 1)
     .PageHref(page => Routes.LogsPage(Page: page + 1))    // the grid's page, counted from zero
     [c => [ … ]]
 ```

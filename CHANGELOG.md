@@ -16,6 +16,24 @@ them until tagged releases begin.
   on the parity page and in the site's demo). One step, as `Ui.Input`'s: the property's type is `UiInputIcon?`
   (was `Ui.IconName?`), every call site that names an icon compiles unchanged, and naming an icon and handing
   content in one chain is RASK044. Code that READ `button.IconTrailing` as an icon name reads `.Name` now.
+- **A generated URL leaves out a query key no value was given for.** **A behaviour change.** Before:
+  `[QueryParam] public int Page { get; set; } = 1;` → `Routes.OrdersPage()` was `/orders?Page=` — a
+  non-nullable query property's key was always written, empty when its argument was left out. After:
+  `Routes.OrdersPage()` → `/orders`, `Routes.OrdersPage(Page: 3)` → `/orders?Page=3`, for `OrdersPage.Url()`
+  and `.Go()` alike, and for the TypeScript `Routes` an island imports. A value that is given is always
+  written — `Page: 1` → `?Page=1`, `Page: 0` → `?Page=0`, an empty string → `?Sort=` as before; nothing is
+  compared with the initializer. The generated signatures are unchanged, and a nullable property's key was
+  already left out. A page that read the bare `?Page=` as "the parameter is here" no longer gets it from a
+  generated link.
+
+- **An optional route segment left out keeps the property's initializer.** **A behaviour change.** Before:
+  `[Route("/items/{count?}")]` + `[RouteParam] public int Count { get; set; } = 5;` → `/items` bound
+  `Count = 0`, the type's default. After: `/items` → `5`, `/items/7` → `7`, and the same page going from
+  `/items/7` back to `/items` → `5` — one rule with the query parameter: what is not in the URL gets the
+  value the page was built with. That includes a value given to the property before the page was first
+  bound (a constructor, an object initializer). A property with no initializer is unchanged — `Guid? Id` is
+  `null` again when a two-route page goes from `/todos/{id}/edit` to `/todos` — and a segment that is there
+  but cannot be read is still not a match (not found).
 
 - **A `[QueryParam]` property keeps its initializer when the parameter is absent.** **A behaviour change.**
   Before: `[QueryParam] public int Page { get; set; } = 1;` was `0` at `/list` — every bind reset the property
@@ -23,7 +41,7 @@ them until tagged releases begin.
   `/list?page=3` → `3`, `/list?page=abc` → `1` (an unreadable value is absent), and the same page going from
   `?page=3` to no `page` → `1` again: the value the page was built with, not the last address's and not `0`.
   A value your own code assigned to the property between two binds is not kept, as before. A property with
-  no initializer is unchanged (`null`, `0`, `false`), and so is `[RouteParam]`. An initializer that is an
+  no initializer is unchanged (`null`, `0`, `false`). An initializer that is an
   object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
   expected to be overwritten with the type's default — now sees the initializer.
 
@@ -45,6 +63,21 @@ them until tagged releases begin.
   nothing hands it to the button that opens it — right for a menu shut by a press outside, and wrong for a
   hover card the pointer merely walked away from, which on Flux leaves focus where it was. The hover hook now
   names the panels it shuts and the hand-back passes them over. `rask-hooks.js` is 63 bytes larger.
+- **A handler still running when its connection closes, or when its session is disposed, runs to its end and
+  is not reported as failing.** The repaint a handler gets at its first `await` (or when
+  `HandlerQuiescenceTimeout` is spent) could throw because the socket had just closed or a shutdown's drain
+  had given up on the handler. The dispatch then ended with that exception while the handler was still
+  running, and the session's lock went to the next event, which ran beside it. The handler is waited for
+  now, as it already was for a repaint between two of its awaits; a repaint with nobody left to reach is
+  nothing rather than a fault, so no error toast or log line is written for it.
+
+- **Nothing queued behind a handler waits for good when the session is disposed under that handler.** A
+  session disposed its two locks while a handler still held one. A disposed semaphore forgets who is
+  waiting and refuses the release, so a render, an acknowledgement or the next event queued behind the
+  handler never finished — an event left counted in the host's handler backlog. The locks are kept, the
+  handler's release wakes whoever waited, and each of them finds the session gone and leaves. A render that
+  waited out the teardown no longer renders the disposed page into buffers already returned to the pool.
+
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus

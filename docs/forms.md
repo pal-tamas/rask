@@ -578,6 +578,58 @@ names, and it carries the row's `Version` back, so `Update` throws `DbUpdateConc
 lost a race rather than overwriting the other one. See
 [a create and an edit form](data.md#a-create-and-an-edit-form).
 
+### An edit page that reads its record
+
+The **page** reads the record, in `OnUpdated` (it runs again when the route's id changes) or in `OnMount`, and
+draws the form only once the record is there:
+
+```csharp
+[Route("/trailers/{Id}")]
+public sealed partial class TrailerEditPage : Component
+{
+    private TrailerModel? _trailer;
+
+    [RouteParam] public int Id { get; set; }
+
+    protected override async Task OnUpdated() => _trailer = await Trailer.Model(Id);
+
+    protected override Component? Render() =>
+        _trailer is null
+            ? Ui.Callout["No such trailer"]
+            : TrailerForm.Key(Id).Model(_trailer);
+}
+```
+
+No "read yet?" flag is needed beside the `null` check. The first `GET` and a navigation in place both
+[wait for the read](routing.md#the-page-is-sent-when-its-first-reads-are-back), so a read that is back within
+the budget is sent as **one** frame — the form with its record — and "No such trailer" is only ever seen for a
+trailer that does not exist. A read that outlasts the budget is painted as the `null` branch first and as the
+form when it lands; the page is drawn again when its hook's `await` completes, with nothing to call.
+
+A form is its **model's** form: `Form.Model(model)` keeps one `EditContext` per model instance, so handing it
+another instance — the next record under the same `Key`, a record read again — is a new form with that
+instance's values, and nothing typed into the previous one is left in its fields.
+
+**A form component reads its model where it draws the form.** A component of your own that wraps the form takes
+the model as a prop and uses it in `Render`:
+
+```csharp
+public sealed partial class TrailerForm : Component
+{
+    public TrailerModel? Model { get; set; }
+
+    protected override Component? Render() =>
+        Model is null ? null : Form.Model(Model).OnSubmit(Save)[Ui.Input.Bind(() => Model.Name).Label("Name")];
+}
+```
+
+The trap is a copy: `_model = Model;` in the component's `OnMount` is taken **once**, when the component is
+mounted. If the page mounted it before its read was back — `TrailerForm.Model(_trailer)` with no
+`null` check around it — the copy is `null` and stays `null` however many times the page hands it the record
+afterwards. Read the prop in `Render`; where a copy is really wanted (a draft the reader may discard), take it
+in `OnUpdated`, which runs again whenever the prop changes, or mount the component only once the model is read,
+as the page above does.
+
 ### Rendering messages
 
 Two headless components read the context — both take a required `Template` step, written first, so you own the markup,

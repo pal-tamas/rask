@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text.Json;
 using Rask.Core.Components;
 using Rask.Core.Forms;
@@ -585,16 +586,12 @@ public abstract partial class Component
         try
         {
             var userTask = invoke();
+            ExceptionDispatchInfo? repaintFault = null;
             if (!userTask.IsCompleted)
             {
-                // Suspend HandlerSyncContext for the duration of the render-and-send. Kestrel's
-                // WebSocket.SendAsync has internal awaits that don't all use ConfigureAwait(false),
-                // so any leaking ambient sync context becomes the target for its flush
-                // continuation. With HandlerSyncContext as the target, that continuation Posts a
-                // RunWithRendersAsync, which fires *another* render-and-send on the same socket —
-                // a recursive render chain that races the in-flight one, the WS lock, and the
-                // user's still-pending async work. Restoring prev for the render call confines
-                // HandlerSyncContext to the user-code window where it's actually meaningful.
+                // HandlerSyncContext is suspended for the render-and-send: Kestrel's WebSocket.SendAsync has
+                // awaits without ConfigureAwait(false), and a flush continuation posted to this context would
+                // start another render-and-send on the same socket, racing the one in flight.
                 SynchronizationContext.SetSynchronizationContext(prev);
                 try
                 {
@@ -605,6 +602,12 @@ public abstract partial class Component
                         await handle.RenderInScopeAsync().ConfigureAwait(false);
                     }
                 }
+                catch (Exception ex)
+                {
+                    // Thrown once the handler has ended, as a repaint between two of its awaits is: leaving
+                    // now would hand its session to the next event while it is still running.
+                    repaintFault = ExceptionDispatchInfo.Capture(ex);
+                }
                 finally
                 {
                     SynchronizationContext.SetSynchronizationContext(ctx);
@@ -612,6 +615,7 @@ public abstract partial class Component
             }
 
             await userTask.ConfigureAwait(false);
+            repaintFault?.Throw();
         }
         finally
         {

@@ -2880,8 +2880,15 @@ public static partial class RaskEndpointExtensions
         {
             await session.Lock.WaitAsync(ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        catch (OperationCanceledException)
         {
+            return false;
+        }
+
+        // Disposed while this waited behind the handler before it: there is no page left to run a handler of.
+        if (session.IsDisposed)
+        {
+            session.Lock.Release();
             return false;
         }
 
@@ -2889,18 +2896,9 @@ public static partial class RaskEndpointExtensions
         return true;
     }
 
-    private static void ReleaseDispatchLock(LiveSession session)
-    {
-        try
-        {
-            session.Lock.Release();
-        }
-        catch (ObjectDisposedException)
-        {
-            // Disposing a session disposes this lock while the handler that holds it is still running. By
-            // then nobody is left to wait on it, so there is nothing to hand it back to.
-        }
-    }
+    // A session disposed under the handler that holds this lock keeps the lock itself (LiveSession.Dispose), so
+    // whatever queued behind the handler is woken here and leaves.
+    private static void ReleaseDispatchLock(LiveSession session) => session.Lock.Release();
 
     // Action timeout: cancel the dispatch's CancellationToken after handlerTimeout (linked to
     // the socket so a close cancels it too). A handler that threads CancellationToken into its
@@ -3365,12 +3363,12 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        try
+        await session.Lock.WaitAsync().ConfigureAwait(false);
+
+        // Disposed while this waited its turn: the page that asked to move is gone.
+        if (session.IsDisposed)
         {
-            await session.Lock.WaitAsync().ConfigureAwait(false);
-        }
-        catch (ObjectDisposedException)
-        {
+            session.Lock.Release();
             return;
         }
 

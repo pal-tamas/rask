@@ -105,7 +105,7 @@ public sealed partial class RoutesGenerator
             var (type, format) = types.For(symbol, prop.Name);
             var key = TypeScriptString(Uri.EscapeDataString(prop.QueryParamName ?? prop.Name));
             members.Add($"{prop.Name}?: {type} | null");
-            arguments.Add($"url.{(prop.IsNullable ? "given" : "always")}({key}, p.{prop.Name}, format.{format})");
+            arguments.Add($"url.given({key}, p.{prop.Name}, format.{format})");
         }
 
         // A page every parameter of which can be left out is called with no argument at all, as in C#.

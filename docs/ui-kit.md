@@ -986,8 +986,10 @@ each is a link to where that page lives — shareable, bookmarkable, working bef
 and `OnPage` is not called:
 
 ```csharp
+[QueryParam] public int Page { get; set; } = 1;   // /logs → 1, and Routes.LogsPage() links to /logs
+
 Ui.Pagination
-    .Paginator(new UiPaginator { Page = Page ?? 1, PerPage = 25, Total = total })
+    .Paginator(new UiPaginator { Page = Page, PerPage = 25, Total = total })
     .Href(page => Routes.LogsPage(Page: page))
 ```
 
