@@ -70,13 +70,13 @@ public partial class UnreadableQueryValueTests : global::Rask.Core.RaskMarkup
     [Theory]
     [InlineData(null)]
     [InlineData("two")]
-    public void An_absent_or_unreadable_parameter_binds_its_types_default_over_the_initializer(string? value)
+    public void An_absent_or_unreadable_parameter_keeps_the_propertys_initializer(string? value)
     {
         var page = new FilterPage();
 
         PageBinder.Bind(page, NoSegments, value is null ? new QueryCollection() : Query(("page", value)));
 
-        Assert.Equal(0, page.Page);
+        Assert.Equal(1, page.Page);
     }
 
     [Fact]
