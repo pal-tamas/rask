@@ -348,17 +348,73 @@ public sealed class ValueObjectColumnTests : IDisposable
     }
 
     [Fact]
-    public void The_rule_is_asked_about_a_value_that_is_there_and_says_nothing_about_an_empty_field()
+    public void A_name_that_cannot_be_null_is_asked_about_the_empty_value_in_the_value_objects_own_words()
     {
         var rule = (Rask.Core.Forms.Validate<string>)RuleOfContactModel()("Name")!;
 
         var tooShort = rule("a").ToList();
         var fine = rule("Ada").ToList();
-        var empty = rule(null!).ToList();
+        var nothing = rule(null!).ToList();
 
         Assert.Equal([ContactName.TooShort], tooShort);
         Assert.Empty(fine);
-        Assert.Empty(empty);
+        Assert.Equal([ContactName.TooShort], nothing);
+    }
+
+    [Fact]
+    public async Task A_number_that_cannot_be_null_and_holds_nothing_says_the_one_sentence_since_there_is_no_empty_number_to_ask_about()
+    {
+        var rule = (Func<int?, ValueTask<IEnumerable<string>>>)RuleOfContactModel()("Rank")!;
+
+        var nothing = await rule(null);
+        var negative = await rule(-1);
+        var fine = await rule(3);
+
+        Assert.Equal([GeneratedModelRules.RequiredMessage], nothing);
+        Assert.Equal([ContactRank.Negative], negative);
+        Assert.Empty(fine);
+    }
+
+    [Fact]
+    public async Task Create_and_update_ask_the_same_rules_with_no_form_and_refuse_before_any_query()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, Contact.Named("Ada", rank: 1));
+        var commands = new CommandCount();
+        using var listening = commands.Listen();
+        var model = new ContactModel { Name = "", Rank = null };
+
+        RaskValidationException create;
+        RaskValidationException update;
+        using (Tenant.Use(Acme))
+        {
+            create = await Assert.ThrowsAsync<RaskValidationException>(
+                () => Contact.Create(model, cancellationToken: TestContext.Current.CancellationToken));
+            update = await Assert.ThrowsAsync<RaskValidationException>(
+                () => Contact.Update(id, new ContactModel { Name = new string('x', 2), Rank = -5 }, cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        Assert.Equal(
+            [("Name", ContactName.TooShort), ("Rank", GeneratedModelRules.RequiredMessage)],
+            create.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal([("Rank", ContactRank.Negative)], update.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal(0, commands.Count);
+    }
+
+    [Fact]
+    public async Task A_model_the_rules_accept_is_written_as_before()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        Contact? stored;
+        using (Tenant.Use(Acme))
+        {
+            var created = await Contact.Create(new ContactModel { Name = "Ada", Rank = 2 }, cancellationToken: TestContext.Current.CancellationToken);
+            stored = await database.Load<Contact>(created.Id, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(new ContactName("Ada"), stored!.Name);
+        Assert.Equal(new ContactRank(2), stored.Rank);
     }
 
     // The generated switch itself, reached the only way a file-local class can be: by its name.
@@ -374,6 +430,36 @@ public sealed class ValueObjectColumnTests : IDisposable
             .Single(t => t.Name == "Contacts").Columns
             .OrderBy(c => c.Name, StringComparer.Ordinal)
             .Select(c => $"{c.Name} {c.StoreType} {(c.IsNullable ? "NULL" : "NOT NULL")}")];
+
+    /// <summary>Counts every command EF Core sends while it listens.</summary>
+    private sealed class CommandCount : IObserver<System.Diagnostics.DiagnosticListener>, IObserver<KeyValuePair<string, object?>>
+    {
+        private int _count;
+
+        public int Count => Volatile.Read(ref _count);
+
+        public IDisposable Listen() => System.Diagnostics.DiagnosticListener.AllListeners.Subscribe(this);
+
+        public void OnNext(System.Diagnostics.DiagnosticListener value)
+        {
+            if (value.Name == DbLoggerCategory.Name)
+            {
+                value.Subscribe(this);
+            }
+        }
+
+        public void OnNext(KeyValuePair<string, object?> value)
+        {
+            if (value.Key == RelationalEventId.CommandExecuting.Name)
+            {
+                Interlocked.Increment(ref _count);
+            }
+        }
+
+        public void OnCompleted() { }
+
+        public void OnError(Exception error) { }
+    }
 
     private static async Task<int> SaveAsync(int tenant, Contact contact)
     {

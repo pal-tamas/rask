@@ -16,5 +16,7 @@ public sealed class DataDbCollectionGuardTests
             // Reflection over annotations only; it never builds a context.
             nameof(TrimmingContractTests),
             // Index builders over a bare ModelBuilder; it never builds a context.
-            nameof(UniqueWithAMessageTests));
+            nameof(UniqueWithAMessageTests),
+            // Lists of failures built from strings; it never builds a context.
+            nameof(GeneratedModelRulesTests));
 }

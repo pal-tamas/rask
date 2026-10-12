@@ -267,6 +267,8 @@ public sealed partial class ModelInputGenerator
     // A column the aggregate declares non-nullable cannot be emptied: the form model's value is nullable only so a
     // form can start blank, so a null there is a field the user cleared — an error, never a silent 0 on create or a
     // silently kept old value on update.
+    // A value object that states its own rule says this itself — it is asked with the empty value — so its
+    // property carries no attribute: the words are the type's.
     private const string RequiredAttributeFqn = "global::System.ComponentModel.DataAnnotations.RequiredAttribute";
 
     private static IEnumerable<string> ImpliedRequired(
@@ -275,7 +277,7 @@ public sealed partial class ModelInputGenerator
         IPropertySymbol property,
         Func<string, string> render) =>
         member.Role == ModelMemberRole.Value && member.Write is not null && !member.Nullable &&
-        valueObject is null or { SingleValue: true } &&
+        valueObject is null or { SingleValue: true, Rule: ValueRule.None } &&
         !property.GetAttributes().Any(static a =>
             string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal))
             ? [render(RequiredAttributeFqn + "()")]

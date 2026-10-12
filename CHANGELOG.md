@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
+  value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
+  `public static Validate`:
+  (1) **The rule is asked with the empty value.** For a non-nullable property over text, an empty field asks
+  `Validate("")` and shows what it answers; over a number, a date or an id there is no empty value, so an
+  unfilled field says *This field is required.* (one English sentence for now — `GeneratedModelRules.RequiredMessage`;
+  it moves to the strings catalog). A nullable property is unchanged: empty is not asked. The generated model no
+  longer carries `[Required]` for such a property, so with the automatic validators on, an empty field now shows
+  the value object's message instead of *The Name field is required.* — and with them off
+  (`RaskValidation.AutoValidate = false`) it shows it too, where it showed nothing.
+  (2) **`X.Create(model)`, `X.Create(id, model)` and `X.Update(id, model)` ask the same rules with no form**,
+  before the database is asked anything: the value objects' rules — of the root, of a value object held inside
+  another (`Size.Code`) and of every row (`Lines[2].Sku`) — then the validation attributes, rows' attributes
+  included, which a write did not check before.
+  (3) **A refused model throws `RaskValidationException`, not `ValidationException`.** Its `Failures` name each
+  field by its form-model path, so a form shows the message under the field and remote dispatch answers 400 with
+  `errors`. **For an existing app:** `catch (ValidationException)` around a generated write no longer catches —
+  catch `RaskValidationException`; a value that only the value object's rule rejects (too long, empty) is now
+  refused by `Create`/`Update` where it used to reach the database; a `[Required(ErrorMessage = "…")]` added to an
+  aggregate only to say "required" for such a property can go — put the sentence in `Validate`. A model with no
+  rule and no attribute is asked nothing and allocates nothing.
+
 ### Added
 
 - **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
