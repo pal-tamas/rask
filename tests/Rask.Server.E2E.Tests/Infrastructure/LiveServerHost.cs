@@ -47,7 +47,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
         string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
-        Action<IServiceCollection>? services = null)
+        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -60,13 +60,11 @@ internal sealed class LiveServerHost : IAsyncDisposable
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
         builder.Services.AddRouting();
-        // Ahead of Rask's own registrations: the languages an app ships are the first ones said.
-        services?.Invoke(builder.Services);
         builder.Services.AddRask(live, o =>
         {
             o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
             server?.Invoke(o);
-        });
+        }, cultures);
 
         if (cookieSignIn)
         {

@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Rask.Core;
-using Rask.Core.Globalization;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -34,7 +32,7 @@ public sealed class PickerUnreadTests(PlaywrightFixture playwright) : IClassFixt
     {
         await using var session = await HookSession.OpenAsync<PickerEditPage>(
             playwright, new() { Locale = "hu-HU", ViewportSize = new() { Width = 1000, Height = 700 } },
-            services: services => services.AddRaskCulture(o => o.SupportedCultures.Add("hu")));
+            cultures: o => o.SupportedCultures.Add("hu"));
         var page = session.Page;
 
         await EraseAsync(page, "#leaves", "day");

@@ -1279,7 +1279,7 @@ public abstract partial class SharedSmokeTests
         // controls themselves; docs/building-form-controls.md is the path for building one back.
         // ---- validation subpage (docs/forms-validation.md) ----
         await SideAsync("Forms — validation", "Forms — validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(14, "forms-validation");
+        await AssertGuideDemosAsync(15, "forms-validation");
 
         // The rule the page leads with: a value object's Validate, named from the field. A plain bound field
         // says nothing until Save: the message is the value object's own, it goes at the first key of the
@@ -1312,6 +1312,17 @@ public abstract partial class SharedSmokeTests
         await route.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.GetByText("Saved: Wien – Graz"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        // A save that throws: the demo handles nothing, and the form's own toast tells the reader. What was
+        // typed stays, and the exception's words stay in the log.
+        var failing = Page.Locator("form:has(#v14-name)");
+        await failing.Locator("#v14-name").FillAsync("Wien – Linz");
+        await failing.Locator("button[type=submit]").ClickAsync();
+        await Expect(Page.Locator("[data-ui-toast]").GetByText("The save failed. Please try again."))
+            .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(failing.Locator("#v14-name")).ToHaveValueAsync("Wien – Linz");
+        await Expect(failing.Locator("button[type=submit]")).ToBeEnabledAsync();
+        await Expect(Page.Locator("[data-ui-toast]")).Not.ToContainTextAsync("30 seconds");
 
         // Bind timing: the plain field says nothing until Save — the model does not hold it while the live field
         // beside it is read back at its pause; the live field's second rule — the lookup — answers for a name the

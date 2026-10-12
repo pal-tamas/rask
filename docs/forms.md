@@ -408,10 +408,28 @@ state: a synchronous one returns before there is a frame to paint.
 
 <!-- demo:form-submit-state -->
 
-A handler that throws leaves the exception on the same value's `Error` for the page to show
-(`f => [ f.Error is null ? null : … ]`). One that names the fields
-it is about — the store refusing a duplicate — is shown [under those fields](forms-validation.md#the-database-said-no)
-and is not an error at all.
+A handler that throws tells the reader by itself: an error toast, *The save failed. Please try again.*,
+in the reader's language (`RaskString.FormSaveFailed`). Their values stay in the fields and the submit is
+free for another try. A form that draws its own messages with `Validation.Summary` says the sentence
+there and raises no toast. The exception's own text is never shown — a server app in Development adds
+its type and message — and it is logged as an error. The same value's `Error` holds it
+(`f => [ f.Error is null ? null : … ]`), for a page that wants to draw more than the toast.
+
+To handle it yourself, catch it in the handler. What the handler catches never reaches the form, so
+there is no toast:
+
+```csharp
+async Task Save(SignUp model)
+{
+    try { await Accounts.Create(model); }
+    catch (MailServerDownException) { Toast.Warning("Signed up. The welcome mail will follow."); }
+}
+```
+
+A handler that names the fields it is about — the store refusing a duplicate — is shown
+[under those fields](forms-validation.md#the-database-said-no) and is not an error at all; a
+DataAnnotations `ValidationException` is treated the same way. A cancelled save says nothing. See
+[a save that fails](forms-validation.md#a-save-that-fails).
 
 The fixed-list forms are untouched and still bind exactly as before:
 

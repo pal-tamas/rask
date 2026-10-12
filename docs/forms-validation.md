@@ -200,12 +200,23 @@ new FieldFailure("This driver is already booked then.", ["DriverId"], Marked: ["
 ```
 
 A failure that names no field on this form shows where the form's own messages do, in
-`Validation.Summary`. With nothing on the page to show it, the submit fails as any other does: the
-exception is the `f.Error` of `Form.Model(m)[f => [ … ]]`, and it is reported.
+`Validation.Summary`. With nothing on the page to show it, the submit fails as any other does — see
+[a save that fails](#a-save-that-fails).
 
 It is not logged as an error: the reader was told, and nothing is broken.
 
 <!-- demo:validation-refused-save -->
+
+A `System.ComponentModel.DataAnnotations.ValidationException` thrown by the save is a refusal too, with
+no interface to implement: its message goes under the fields its `ValidationResult.MemberNames` name,
+into `Validation.Summary` when it names none on the form, and into a toast when the form has no summary.
+
+```csharp
+throw new ValidationException(new ValidationResult("That name is taken.", [nameof(RouteModel.Name)]), null, null);
+throw new ValidationException("The month is closed.");   // no field: the summary, or a toast
+```
+
+That is the type itself. A class of your own derived from it is an exception like any other.
 
 #### …and it is checked before you save
 
@@ -248,6 +259,45 @@ asked about, and its form awaits nothing extra.
 None of this needs the kit. The form and its bound fields do it, a plain `Input`, `Select` or `Textarea`
 with `Validation.Message` beside it shows it, and a bound control says `aria-invalid="true"` by itself
 while its field holds a message or is marked by one told under another field.
+
+### A save that fails
+
+A save can also throw something that is nobody's fault to correct: the database is down, a service timed
+out. The form tells the reader, with no code for it:
+
+```csharp
+Form.Model(_model).OnSubmit(Save)[
+    Ui.Input.Bind(() => _model.Name).Label("Route"),
+    Ui.Button.Submit["Save"]
+]
+
+Task Save(RouteModel route) => Route.Create(route);   // throws TimeoutException
+```
+
+The reader sees an error toast, *The save failed. Please try again.* — `RaskString.FormSaveFailed`, with
+its Hungarian in the kit — what they typed is still in the fields, and the button works again. A form
+that draws its own messages with `Validation.Summary` says the sentence there instead, and no toast is
+raised. The exception is logged as an error, and it is the `f.Error` of `Form.Model(m)[f => [ … ]]`.
+
+The sentence never carries the exception's text: that is written for the log and can name a server or a
+user. A server app running in Development adds the exception's type and message to it, so you see what
+broke without opening the log.
+
+A cancelled save (`OperationCanceledException`) says nothing, and a `RaskApp` and the browser host
+always have somewhere to show a toast. A hand-wired host whose layout has no `Ui.Toast` or `ToastOutlet`
+shows none; the log entry is still written.
+
+To say something else, catch it where you save. What the handler catches never reaches the form:
+
+```csharp
+async Task Save(RouteModel route)
+{
+    try { await Route.Create(route); }
+    catch (TimeoutException) { Toast.Warning("The server is busy. Your route is not saved yet."); }
+}
+```
+
+<!-- demo:validation-save-fails -->
 
 ### When the rules run
 

@@ -531,6 +531,7 @@ they say when you set nothing.
 | `ValidationNumberRange` | Validation | `The number is out of range.` |
 | `ValidationDate` | Validation | `Enter a valid date.` |
 | `ValidationTime` | Validation | `Enter a valid time.` |
+| `FormSaveFailed` | Form | `The save failed. Please try again.` |
 
 ## Docker
 

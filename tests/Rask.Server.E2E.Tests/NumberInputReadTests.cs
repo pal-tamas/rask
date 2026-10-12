@@ -1,8 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Rask.Core;
-using Rask.Core.Globalization;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -49,7 +47,7 @@ public sealed class NumberInputReadTests(PlaywrightFixture playwright) : IClassF
     {
         await using var session = await HookSession.OpenAsync<NumberReadPage>(
             playwright, new() { Locale = "hu-HU", ViewportSize = new() { Width = 1000, Height = 700 } },
-            services: services => services.AddRaskCulture(o => o.SupportedCultures.Add("hu")));
+            cultures: o => o.SupportedCultures.Add("hu"));
         var page = session.Page;
 
         await TypeAsync(page, "weight", "1.5");

@@ -424,4 +424,7 @@ public enum RaskString
 
     /// <summary>What a time field says of a time half typed or one that does not exist.</summary>
     ValidationTime,
+
+    /// <summary>What the person is told when a form's save threw: in a toast, or in the form's own messages.</summary>
+    FormSaveFailed,
 }
