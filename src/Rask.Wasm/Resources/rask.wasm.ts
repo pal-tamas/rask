@@ -21,6 +21,7 @@ import {
 } from "../../Rask.Core/Resources/rask-scoped.js";
 import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
 import { beginUpload } from "../../Rask.Core/Resources/rask-upload.js";
+import { focusArrived } from "../../Rask.Core/Resources/rask-autofocus.js";
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -405,6 +406,7 @@ function applyHistory(history: RaskFrameReply["history"]): void {
 function applyNavScroll(history: RaskFrameReply["history"]): void {
     if (!history || history.action === "replace") {
         _pendingScrollHash = "";
+        focusArrived(history);
         return;
     }
     const hash = _pendingScrollHash;
@@ -419,10 +421,12 @@ function applyNavScroll(history: RaskFrameReply["history"]): void {
         }
         if (el) {
             el.scrollIntoView();
+            focusArrived(history, true);
             return;
         }
     }
     window.scrollTo(0, 0);
+    focusArrived(history);
 }
 
 function handle(reply: RaskFrameReply | null): void {
