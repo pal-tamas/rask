@@ -231,6 +231,72 @@ public sealed class ReferencedDeleteTests : IDisposable
     }
 
     [Fact]
+    public async Task A_generated_delete_in_a_context_that_tracks_the_referencing_row_fails_with_the_sentence_too()
+    {
+        await using var database = await StartDatabaseAsync();
+        var trailer = Trailer.Plated("ABC-123");
+        await trailer.Save(cancellationToken: Cancellation);
+        await Docket.For(trailer.Id).Save(cancellationToken: Cancellation);
+        await database.Context.Set<Docket>().LoadAsync(Cancellation);
+
+        // EF Core refuses this one itself, in Remove, before the database is asked.
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Trailer.Delete(trailer.Id, db: database.Context, cancellationToken: Cancellation));
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(Trailer.OnADocket, failure.Message);
+        Assert.Empty(failure.Fields);
+        Assert.Equal("FK_Docket_Trailer_TrailerId", failure.Source);
+        Assert.IsType<InvalidOperationException>(refused.InnerException);
+    }
+
+    [Fact]
+    public async Task A_tracked_referencing_row_says_which_of_two_relationships_refused()
+    {
+        await using var database = await StartDatabaseAsync();
+        var yard = Yard.Named("East");
+        await yard.Save(cancellationToken: Cancellation);
+        await Fence.Of(yard.Id).Save(cancellationToken: Cancellation);
+        await database.Context.Set<Fence>().LoadAsync(Cancellation);
+
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Yard.Delete(yard.Id, db: database.Context, cancellationToken: Cancellation));
+
+        Assert.Equal(Yard.HasAFence, Assert.Single(refused.Failures).Message);
+    }
+
+    [Fact]
+    public async Task A_generated_delete_with_a_tracked_referencing_row_and_no_sentence_keeps_ef_cores_own_error()
+    {
+        await using var database = await StartDatabaseAsync();
+        var garage = Garage.Named("North");
+        await garage.Save(cancellationToken: Cancellation);
+        await Bay.In(garage.Id).Save(cancellationToken: Cancellation);
+        await database.Context.Set<Bay>().LoadAsync(Cancellation);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Garage.Delete(garage.Id, db: database.Context, cancellationToken: Cancellation));
+
+        Assert.Contains("severed", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_plain_remove_with_a_tracked_referencing_row_is_ef_cores_own_refusal_and_is_not_translated()
+    {
+        await using var database = await StartDatabaseAsync();
+        var trailer = Trailer.Plated("ABC-123");
+        await trailer.Save(cancellationToken: Cancellation);
+        await Docket.For(trailer.Id).Save(cancellationToken: Cancellation);
+        await database.Context.Set<Docket>().LoadAsync(Cancellation);
+        var tracked = await database.Context.Set<Trailer>().SingleAsync(Cancellation);
+
+        // Remove itself throws: no save is attempted, so there is no failed save to translate.
+        var refused = Record.Exception(() => database.Context.Remove(tracked));
+
+        Assert.IsType<InvalidOperationException>(refused);
+    }
+
+    [Fact]
     public async Task A_relationship_with_no_sentence_keeps_the_providers_own_error()
     {
         await using var database = await StartDatabaseAsync();

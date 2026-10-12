@@ -328,6 +328,7 @@ public sealed class PostgresReferencedDeleteTests
         var truck = await TruckAsync(db);
         db.Add(new Haul { TruckId = truck.Id });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.ChangeTracker.Clear();   // a request of its own: the referencing row is in the database, not in this context
 
         db.Remove(truck);
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
@@ -377,6 +378,7 @@ public sealed class PostgresReferencedDeleteTests
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         db.Add(new Plane { HangarId = hangar.Id });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.ChangeTracker.Clear();   // a request of its own: the referencing row is in the database, not in this context
 
         db.Remove(hangar);
 
@@ -464,6 +466,7 @@ public sealed class SqlServerReferencedDeleteTests : IAsyncLifetime
         var truck = await TruckAsync(db);
         db.Add(new Haul { TruckId = truck.Id });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.ChangeTracker.Clear();   // a request of its own: the referencing row is in the database, not in this context
 
         db.Remove(truck);
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
@@ -515,6 +518,7 @@ public sealed class SqlServerReferencedDeleteTests : IAsyncLifetime
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         db.Add(new Plane { HangarId = hangar.Id });
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        db.ChangeTracker.Clear();   // a request of its own: the referencing row is in the database, not in this context
 
         db.Remove(hangar);
 

@@ -126,7 +126,7 @@ internal static class ReferencedDelete
     private static bool Named(IForeignKey key, string name) =>
         string.Equals(key.GetConstraintName(), name, StringComparison.Ordinal);
 
-    private static string? SentenceOf(IReadOnlyForeignKey key) =>
+    internal static string? SentenceOf(IReadOnlyForeignKey key) =>
         key.FindAnnotation(RelationshipAnnotation)?.Value as string;
 
     // The one general sentence among the rows being deleted. Two aggregates deleted in one command, each with
@@ -141,7 +141,7 @@ internal static class ReferencedDelete
         return sentences is [var only] ? (only.Message!, only.Type) : null;
     }
 
-    private static string? GeneralSentenceOf(IReadOnlyEntityType type)
+    internal static string? GeneralSentenceOf(IReadOnlyEntityType type)
     {
         for (var at = type; at is not null; at = at.BaseType)
         {
@@ -155,5 +155,5 @@ internal static class ReferencedDelete
     }
 
     // About the delete as a whole: there is no field on a form to put it under.
-    private static FieldFailure About(string message, string? source) => new(message, [], Source: source);
+    internal static FieldFailure About(string message, string? source) => new(message, [], Source: source);
 }

@@ -171,7 +171,7 @@ public static class GeneratedModelWrites
             var entity = await LoadAsync<TEntity>(context, key, cancellationToken).ConfigureAwait(false);
 
             ExpectVersion(context, entity, version);
-            context.Remove(entity);
+            TrackedReferenceRefusal.Remove(context, entity);
 
             return entity;
         }, cancellationToken);

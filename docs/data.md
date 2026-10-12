@@ -1441,6 +1441,10 @@ Which sentence, in this order:
 
 - **Only a refused DELETE is translated.** A row inserted or updated with a key that points nowhere fails with
   the same provider code and keeps the provider's exception.
+- **A context that already tracks the referencing row refuses before the database does.** EF Core throws an
+  `InvalidOperationException` from `Remove` itself for a required relationship that does not cascade.
+  `Trailer.Delete(id, db: context)` answers that with the same sentence; a plain `context.Remove(trailer)` is
+  EF Core's own and keeps its exception — delete in a context that is not holding the referencing rows.
 - **`OnDelete(behavior)` with no string is still EF Core's own**, and such a relationship has no sentence. The
   string is also accepted when the relationship is written from the other end (`HasOne<Trailer>().WithMany()`)
   and on a one-to-one.
