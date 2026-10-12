@@ -361,16 +361,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     /// <summary>
     ///     Whether the handler <paramref name="id" /> names may run ahead of the render its batch owes — see
-    ///     <see cref="Component.HandlerOutlivesRender" />. When it may not, the host renders first.
+    ///     <see cref="Component.HandlerOutlivesRender(string, System.Text.Json.JsonElement, Dictionary{Component, Component})" />. When it may not, the host renders first.
     /// </summary>
     internal bool HandlerOutlivesRender(string id, System.Text.Json.JsonElement sent)
     {
-        // An event read from an older page is matched to a handler of the page as it will be: render first.
-        if (!View.ReadFromThePageAsItIs(sent))
-        {
-            return false;
-        }
-
         _parents ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
         if (!_parentsMapped)
         {
@@ -378,7 +372,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             _parentsMapped = true;
         }
 
-        return View.HandlerOutlivesRender(id, _parents);
+        return View.HandlerOutlivesRender(id, sent, _parents);
     }
 
     // A walk shows everything the handlers before it did, and may mount or remove anything.
@@ -448,9 +442,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         WithoutVersion(_writeBuffer.WrittenSpan, _writeVersionBytes)
             .SequenceEqual(WithoutVersion(_lastSentBuffer!.WrittenSpan, _lastSentVersionBytes));
 
-    // The payload up to its page number: the number is its last field, followed only by the closing brace.
+    // The payload up to its page number: the number is its last field, followed only by the closing brace —
+    // which is left out either way, so a payload with a number and one without compare on what they carry.
     private static ReadOnlySpan<byte> WithoutVersion(ReadOnlySpan<byte> payload, int versionBytes) =>
-        versionBytes > 0 && payload.Length > versionBytes ? payload[..^(versionBytes + 1)] : payload;
+        payload.Length > versionBytes ? payload[..^(versionBytes + 1)] : payload;
 
     // Says which page the payload built inside the scope is, and remembers how long its number is.
     private LivePayload.PageScope NumberedPage(bool whole)

@@ -65,13 +65,10 @@ public abstract partial class Component
         slot.Since = next;
     }
 
-    /// <summary>Whether <paramref name="payload" /> was read from the page as it is now, or names no page at all.</summary>
-    internal bool ReadFromThePageAsItIs(JsonElement payload) =>
-        EventVersion.TryRead(payload, out var sent)
-        && (sent is not { } version || _live?.HandlerState is not { } root || (!root.Moved && (long)version + root.Floor >= root.Version));
-
-    // The handler an event is for: the one its id names in the page it was read from, as the page has it now.
-    private bool TryFindHandler(string id, JsonElement payload, out (Component Owner, Delegate Handler) entry)
+    // `asking` is the batch's question — would this event's handler outlive a render? — which is not a dispatch:
+    // an event that finds nothing is counted when it is dispatched, once.
+    private bool TryFindHandler(
+        string id, JsonElement payload, out (Component Owner, Delegate Handler) entry, bool asking = false)
     {
         entry = default;
         if (Live.Handlers is not { } map || !EventVersion.TryRead(payload, out var sent))
@@ -91,7 +88,7 @@ public abstract partial class Component
             || !ReferenceEquals(state.MintedUnder, root)
             || !string.Equals(IssuedSlotId(state, at.Slot), id, StringComparison.Ordinal))
         {
-            return Missed(null, 0, version, root);
+            return !asking && Missed(null, 0, version, root);
         }
 
         ref var slot = ref SlotAt(state, at.Slot);
@@ -114,7 +111,7 @@ public abstract partial class Component
                 && ((!current && TryFindInPlace(ref slot, map, id, sought, out entry))
                     || TryFindMoved(state, map, sought, at.Slot, out entry)
                     || TryFindAmongSiblings(state, map, sought, seen, out entry)))
-               || Missed(at.Component, at.Slot, version, root);
+               || (!asking && Missed(at.Component, at.Slot, version, root));
     }
 
     // No handler of the page captured exactly what this one did: a lambda also closes over what its render
