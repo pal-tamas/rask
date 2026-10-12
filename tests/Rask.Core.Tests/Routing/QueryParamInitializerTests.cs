@@ -156,23 +156,6 @@ public partial class QueryParamInitializerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["all", "added-later"], page.Tags.Names);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_route_segment_left_out_still_binds_its_types_default_over_the_initializer(bool optionalSegmentLeftOut)
-    {
-        var page = new SegmentPage();
-        var segments = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        if (optionalSegmentLeftOut)
-        {
-            segments["count"] = null;
-        }
-
-        PageBinder.Bind(page, segments, new QueryCollection());
-
-        Assert.Equal(0, page.Count);
-    }
-
     [SkipFactory]
     private sealed class ListPage : Component
     {
@@ -196,13 +179,6 @@ public partial class QueryParamInitializerTests : global::Rask.Core.RaskMarkup
     private sealed class TagsPage : Component
     {
         [QueryParam] public TagList Tags { get; set; } = new(["all"]);
-        protected override Component? Render() => Span;
-    }
-
-    [SkipFactory]
-    private sealed class SegmentPage : Component
-    {
-        [RouteParam] public int Count { get; set; } = 5;
         protected override Component? Render() => Span;
     }
 

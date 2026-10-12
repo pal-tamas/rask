@@ -199,7 +199,8 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
         // to `/todos` (with no `id` segment) MUST clear Id so EditingItem stops
         // resolving and the dialog closes. Sticky binding is the bug; reset-to-default
         // is the contract.
-        var page = new StringPage { Name = "alice" };
+        var page = new StringPage();
+        PageBinder.Bind(page, Values(("name", "alice")), new QueryCollection());
 
         var changed = PageBinder.Bind(page, Values(), new QueryCollection());
 

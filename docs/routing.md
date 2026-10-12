@@ -99,6 +99,27 @@ public sealed partial class UserPage : Component
 // → UserPage.Url(int Id) / UserPage.Go(int Id)  — the path param is a required argument
 ```
 
+A `[QueryParam]` property is an optional argument after the path's, whatever its type, and **a query argument
+that is not given is not written**:
+
+```csharp
+[Route("/orders")]
+public sealed partial class OrdersPage : Component
+{
+    [QueryParam] public int Page { get; set; } = 1;
+    [QueryParam] public string? Sort { get; set; }
+}
+// OrdersPage.Url()                       → /orders                 (the page shows Page = 1)
+// OrdersPage.Url(Page: 3)                → /orders?Page=3
+// OrdersPage.Url(Page: 1)                → /orders?Page=1          (given, so written — nothing is compared)
+// OrdersPage.Url(Page: 3, Sort: "date")  → /orders?Page=3&Sort=date
+// OrdersPage.Url(Sort: "")               → /orders?Sort=           (an empty string is a value)
+```
+
+A key left out lands on [the property's initializer](#route-and-query-parameters), so the link to a list is
+its clean address and only a link that says a page carries one. `Routes.OrdersPage(…)`, `Url(…)` and `Go(…)`
+are one formatter and agree, and so does the TypeScript `Routes` an island imports.
+
 Use `Url` where a link's target belongs and `Go` where a handler navigates:
 
 ```csharp
@@ -225,7 +246,24 @@ gave it), so a value your own code assigned to the property since is not kept ei
 initializer gets its type's default — `null`, `0`, `false`. An initializer that is an object (a type of your
 own implementing `IParsable<T>`) comes back as that same object, not a copy: keep such a type immutable.
 The generated `Routes.OrdersPage(…)` knows nothing of the initializer — it writes the parameters it is
-given, so `Routes.OrdersPage(Page: 1)` is `/orders?Page=1`.
+given and leaves out the ones it is not, so `Routes.OrdersPage()` is `/orders` and
+`Routes.OrdersPage(Page: 1)` is `/orders?Page=1`.
+
+**An optional segment left out keeps the initializer too** — it is one rule: what is not in the URL gets the
+value the page was built with.
+
+```csharp
+[Route("/items/{count?}")]
+public sealed partial class ItemsPage : Component
+{
+    [RouteParam] public int Count { get; set; } = 5;     // /items → 5 · /items/7 → 7 · back to /items → 5
+}
+```
+
+The same holds for a segment that only some of a page's routes have: on `[Route("/todos")]` +
+`[Route("/todos/{id:guid}/edit")]`, going from `/todos/…/edit` to `/todos` puts `Guid? Id` back to `null` —
+it has no initializer — which is what closes the edit dialog. A segment that is *there* and cannot be read is
+not absent: it [does not match](#registering-routes).
 
 **A query value the page cannot read is read as absent.** `?weightFrom=abc`, `?weightFrom=1.5`, `?weightFrom=`
 or digits past what an `int` holds bind `[QueryParam("weightFrom")] public int? WeightFrom` exactly as a URL
