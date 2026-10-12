@@ -6,13 +6,13 @@ namespace Rask.Site.Features;
 public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
 {
     // Layers two things on top of the basic nested-binding showcase:
-    //   * Async inline Validate: on a nested field (Address.PostalCode), whose kit field shows
-    //     "Checking…" while the lookup runs — proves the latest-wins cancellation + pending-indicator
-    //     path works for sub-objects, not just root fields.
+    //   * Async inline Validate: on a nested field (Address.PostalCode). The field is Live, so the
+    //     lookup runs as the code is typed and its kit field shows "Checking…" meanwhile — proves the
+    //     latest-wins cancellation + pending-indicator path works for sub-objects, not just root fields.
     //   * Live derived UI: the order totals are computed inside Render() from the current model
-    //     state. Every event handler re-renders the owning component, so the figures update on
-    //     each keystroke (string discount code, OnInput) and on each blur (int/decimal qty/price,
-    //     OnChange). No StateHasChanged calls needed — the dispatcher handles it.
+    //     state. The promo code, the quantities and the prices are Live, so each is written as it is
+    //     typed and the figures follow. The names wait for Pay, as a bound field does unless it says
+    //     otherwise. No StateHasChanged calls needed — the dispatcher handles it.
     private static readonly HashSet<string> UndeliverableZips =
         new(StringComparer.Ordinal) { "00000", "99999" };
 
@@ -87,6 +87,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                     Validation.Message.Template(FieldError).For(() => _model.CustomerName)
                 ],
                 Ui.Input.Bind(() => _model.Address.PostalCode)
+                    .Live()
                     .Label("Postal code")
                     .Description("Try 12345, 99999, or any 5-digit code.")
                     .Id("v-nlive-postal")
@@ -94,6 +95,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ItemsPanel(),
                 Div[
                     Ui.Input.Bind(() => _model.DiscountCode)
+                        .Live()
                         .Label("Promo code")
                         .Description("Try SAVE10 or SAVE25.")
                         .Id("v-nlive-promo")
@@ -120,12 +122,14 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[0].Quantity)
+                        .Live()
                         .Label("Item 1 quantity")
                         .Id("v-nlive-item0-qty")
                         .Min("0")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[0].UnitPrice)
+                        .Live()
                         .Label("Item 1 unit price")
                         .Id("v-nlive-item0-price")
                         .Step("0.01")
@@ -139,12 +143,14 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[1].Quantity)
+                        .Live()
                         .Label("Item 2 quantity")
                         .Id("v-nlive-item1-qty")
                         .Min("0")
                 ],
                 Div.Class("col-span-3")[
                     Ui.Input.Bind(() => _model.Items[1].UnitPrice)
+                        .Live()
                         .Label("Item 2 unit price")
                         .Id("v-nlive-item1-price")
                         .Step("0.01")

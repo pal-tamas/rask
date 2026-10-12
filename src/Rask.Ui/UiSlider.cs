@@ -25,7 +25,7 @@ namespace Rask;
 /// <c>Ui.SliderTick</c> children mark values under the track, or on it with <see cref="TickPosition" />.
 /// </para>
 /// </remarks>
-public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormControl
+public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
 {
     private string? _ownId;
 
@@ -89,6 +89,13 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Slider.Bind(() =&gt; m.Volume).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     string IUiFieldControl.ControlId => Id is null && Bind is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(Id, Bind, null);
@@ -114,7 +121,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         var field = UiWithField.For(this);
         var (accessor, context, current) = UiFormCommit.Resolve(this);
         var scale = UiSliderScale.Of(Min, Max, Step, MinStepsBetween);
-        var live = new Live(accessor, context, scale, scale.Normalize(UiSliderValue.Read(current), IsRange()));
+        var live = new Drawn(accessor, context, scale, scale.Normalize(UiSliderValue.Read(current), IsRange()));
         var ticks = Ticks(live);
         var inside = TickPosition == Ui.SliderTickPosition.Inside;
 
@@ -147,7 +154,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         return UiSliderValue.IsPair<T>();
     }
 
-    private Component? Ticks(Live live)
+    private Component? Ticks(Drawn live)
     {
         if (Children?.Any() != true)
         {
@@ -163,7 +170,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         ];
     }
 
-    private Component Thumb(UiWithField field, Live live, int thumb)
+    private Component Thumb(UiWithField field, Drawn live, int thumb)
     {
         var fraction = live.Scale.Fraction(live.Values[thumb]);
 
@@ -177,7 +184,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
 
     // One native range input per thumb, over exactly the values that thumb may take: its own `min` and `max`
     // are what stop it at its neighbour, with no script.
-    private HTMLInputElement<string> Control(UiWithField field, Live live, int thumb, decimal fraction)
+    private HTMLInputElement<string> Control(UiWithField field, Drawn live, int thumb, decimal fraction)
     {
         var (lowest, highest) = live.Scale.Reach(live.Values, thumb);
         var (low, high) = (live.Scale.Fraction(lowest), live.Scale.Fraction(highest));
@@ -204,7 +211,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     }
 
     // As Flux writes them: every thumb is named by the field's label, and a range's two say which end they are.
-    private static IReadOnlyDictionary<string, string?> Names(UiWithField field, Live live, int thumb)
+    private static IReadOnlyDictionary<string, string?> Names(UiWithField field, Drawn live, int thumb)
     {
         var range = live.Values.Length == 2;
         if (!range && field.LabelledBy is null)
@@ -229,15 +236,15 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         return names;
     }
 
-    private Task MovedAsync(Live live, int thumb, string raw) =>
+    private Task MovedAsync(Drawn live, int thumb, string raw) =>
         decimal.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var to)
             ? MoveAsync(live, thumb, to)
             : Task.CompletedTask;
 
-    private Task PickAsync(Live live, decimal to) =>
+    private Task PickAsync(Drawn live, decimal to) =>
         MoveAsync(live, UiSliderScale.Nearest(live.Values, to), to);
 
-    private async Task MoveAsync(Live live, int thumb, decimal to)
+    private async Task MoveAsync(Drawn live, int thumb, decimal to)
     {
         var moved = live.Scale.Move(live.Values, thumb, to);
         if (moved.AsSpan().SequenceEqual(live.Values))
@@ -249,5 +256,5 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     }
 
     // What one render resolved, for the handlers it registered.
-    private sealed record Live(ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiSliderScale Scale, decimal[] Values);
+    private sealed record Drawn(ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiSliderScale Scale, decimal[] Values);
 }

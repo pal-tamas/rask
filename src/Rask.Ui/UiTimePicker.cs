@@ -27,7 +27,7 @@ namespace Rask;
 /// <see cref="UiField" /> with its <see cref="UiError" />, as Flux's shorthand does.
 /// </para>
 /// </remarks>
-public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl
+public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
 {
     private readonly int _instance = UiTimePickerLook.NextInstance();
     private bool _open;
@@ -113,6 +113,13 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
     public Callback<T> AfterBind { get; set; }
+
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.TimePicker.Bind(() =&gt; m.At).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
 
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())

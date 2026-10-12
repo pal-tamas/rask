@@ -47,8 +47,9 @@ public interface IFormControl<T> : IFormControl
     Expression<Func<T>>? Bind { get; set; }
 
     /// <summary>
-    ///     A validation rule for this field, run on change and on submit. Return the messages that reject
-    ///     the value, or an empty sequence to accept it.
+    ///     A validation rule for this field, run when its value arrives — with the next action, unless the
+    ///     control says <c>.Live()</c> or <c>.Blur()</c> — and on submit. Return the messages that reject the
+    ///     value, or an empty sequence to accept it.
     ///     <para>
     ///         Takes either shape: a synchronous rule, or an asynchronous one that has to await something —
     ///         checking a username against the server, say. There is no second property to choose between,
@@ -60,9 +61,9 @@ public interface IFormControl<T> : IFormControl
     ///         validator — since no single field owns them.
     ///     </para>
     ///     <para>
-    ///         An asynchronous rule runs on every change, and the latest value wins. On an input or a
-    ///         textarea <c>.Debounce(300.Milliseconds)</c> or <c>.Blur()</c> makes a change the pause in
-    ///         typing or the leaving of the field, not the keystroke; a check too expensive even for that
+    ///         An asynchronous rule runs each time the value arrives, and the latest value wins: at each
+    ///         pause in typing for a <c>.Live()</c> field, on leaving a <c>.Blur()</c> one, with the next
+    ///         action otherwise. A check too expensive even for that
     ///         belongs in the form's own rule, which runs once, on submit. Let the value
     ///         through rather than blocking the form if the check itself fails. Client-side validation is a
     ///         convenience, never a control: always validate again on the server.

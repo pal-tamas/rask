@@ -1,49 +1,73 @@
 namespace Rask.Core.Forms;
 
-// When a bound field writes what was typed back to the model: on every keystroke, on leaving the field
-// (Blur), or once typing has paused (Debounce). One int — 0 live, -1 blur, otherwise the pause in
-// milliseconds — so the two steps cost a control one field, and the later of the two is the one that holds.
+// When a bound field writes what was typed back to the model. Unset, it waits for the next action — a press on
+// a button, a submit, Enter — as Livewire's `wire:model` does. `Live` types through after a short pause,
+// `Debounce` names the pause, `Blur` waits for the field to be left.
+//
+// One int, so the three steps cost a control one field: a bit for Live, a bit for Blur, and the pause in
+// milliseconds plus one beneath them. Each step keeps what it was given and nothing else, so a step the next
+// render leaves out — which arrives as null — takes only its own answer away, in whatever order they arrive.
+// Blur and Debounce are two answers to one question: naming either takes the other back.
 internal struct BindTiming
 {
-    private const int OnBlur = -1;
+    private const int LiveBit = 1 << 30;
+    private const int BlurBit = 1 << 29;
+    private const int PauseMask = BlurBit - 1;
 
-    private int _wait;
+    // Livewire's own pause for `wire:model.live`.
+    private const int LivePause = 150;
 
-    /// <summary>Whether the field waits at all. A live field does not.</summary>
-    public readonly bool Waits => _wait != 0;
+    private int _steps;
 
-    /// <summary>The pause in milliseconds, or 0 when the field is live or waits for blur.</summary>
-    public readonly int Pause => _wait > 0 ? _wait : 0;
+    private readonly bool HasPause => (_steps & PauseMask) != 0;
+
+    private readonly bool OnBlur => !HasPause && (_steps & BlurBit) != 0;
+
+    /// <summary>Whether the field says nothing until the next action. The default.</summary>
+    public readonly bool WaitsForAction => _steps == 0;
+
+    /// <summary>Whether the field is sent at every keystroke, with no pause.</summary>
+    public readonly bool AtEveryKey => (_steps & PauseMask) == 1;
+
+    /// <summary>The pause in milliseconds, or 0 when the field counts none.</summary>
+    public readonly int Pause
+    {
+        get
+        {
+            if (HasPause)
+            {
+                return (_steps & PauseMask) - 1;
+            }
+
+            return _steps == LiveBit ? LivePause : 0;
+        }
+    }
+
+    public bool? Live
+    {
+        readonly get => (_steps & LiveBit) != 0 ? true : null;
+        set => _steps = value == true ? _steps | LiveBit : _steps & ~LiveBit;
+    }
 
     public bool? Blur
     {
-        readonly get => _wait == OnBlur ? true : null;
-        set
-        {
-            if (value == true)
-            {
-                _wait = OnBlur;
-            }
-            else if (_wait == OnBlur)
-            {
-                _wait = 0;
-            }
-        }
+        readonly get => OnBlur ? true : null;
+        set => _steps = value == true ? (_steps | BlurBit) & ~PauseMask : _steps & ~BlurBit;
     }
 
     public TimeSpan? Debounce
     {
-        readonly get => _wait > 0 ? TimeSpan.FromMilliseconds(_wait) : null;
+        readonly get => HasPause ? TimeSpan.FromMilliseconds((_steps & PauseMask) - 1) : null;
         set
         {
-            if (value is { } pause && pause > TimeSpan.Zero)
+            if (value is not { } pause)
             {
-                _wait = (int)Math.Clamp(Math.Ceiling(pause.TotalMilliseconds), 1, int.MaxValue);
+                _steps &= ~PauseMask;
+                return;
             }
-            else if (_wait > 0)
-            {
-                _wait = 0;
-            }
+
+            var milliseconds = pause > TimeSpan.Zero ? (int)Math.Clamp(Math.Ceiling(pause.TotalMilliseconds), 1, PauseMask - 1) : 0;
+            _steps = (_steps & LiveBit) | (milliseconds + 1);
         }
     }
 }

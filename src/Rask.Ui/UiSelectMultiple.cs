@@ -51,15 +51,20 @@ public sealed partial class UiSelectMultiple<T> : UiSelectControl<T>, IFormContr
     private protected override bool HoldsMany => true;
 
     /// <inheritdoc />
-    private protected override IReadOnlyList<T> Current() =>
-        UiFormCommit.Resolve(this).Current is { } current ? [.. current] : [];
+    private protected override IReadOnlyList<T> Current()
+    {
+        var (_, context, current) = UiFormCommit.Resolve(this);
+        Form = context ?? Form;
+
+        return current is null ? [] : [.. current];
+    }
 
     /// <inheritdoc />
     private protected override Task CommitAsync(IReadOnlyList<T> picked)
     {
         var (accessor, context, _) = UiFormCommit.Resolve(this);
 
-        return UiFormCommit.CommitSelectionAsync(this, accessor, context, picked);
+        return UiFormCommit.CommitSelectionAsync(this, accessor, context ?? Form, picked);
     }
 
     // Flux: "multiple — listbox variant only". The browser's own select holds one answer here.

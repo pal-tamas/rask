@@ -16,8 +16,11 @@ internal sealed class UiTabScope(
     Ui.TabsSize size,
     string? chosen,
     bool flagged,
-    Func<string, Task> select)
+    Func<string, Task> select,
+    bool? live = null)
 {
+    internal bool? Live => live;
+
     private int _count;
     private string? _shown;
 

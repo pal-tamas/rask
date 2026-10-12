@@ -21,10 +21,10 @@ public partial class StoreRuleTests : global::Rask.Core.RaskMarkup
         value.Length < 3 ? ["too short"] : [];
 
     [Fact]
-    public async Task Typing_into_a_live_field_never_asks_the_store()
+    public async Task Typing_into_a_field_sent_at_every_keystroke_never_asks_the_store()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name")]);
+        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name").Debounce(TimeSpan.Zero)]);
         await page.On("#name").Change("B");
         trip.Store.Asked.Clear();
 
@@ -41,7 +41,7 @@ public partial class StoreRuleTests : global::Rask.Core.RaskMarkup
         var trip = new Trip();
         EditContext? form = null;
         var page = Page.Render(() => Form.Model(trip)[
-            Input.Bind(() => trip.Name).Id("name")
+            Input.Bind(() => trip.Name).Id("name").Debounce(TimeSpan.Zero)
                 .AfterBind(_ => BindingHelpers.NotifyAndValidateField(form, new FieldIdentifier(trip, "Name"))),
             Test.EditContextProbe(c => form = c)
         ]);
@@ -55,13 +55,37 @@ public partial class StoreRuleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_change_of_a_live_field_asks_the_store_once_naming_the_field()
+    public async Task Leaving_a_field_sent_at_every_keystroke_asks_the_store_once_naming_the_field()
     {
         var trip = new Trip();
-        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name")]);
+        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name").Debounce(TimeSpan.Zero)]);
         await page.On("#name").Input("Buda");
 
         await page.On("#name").Change("Buda");
+
+        Assert.Equal(["Name"], trip.Store.Asked);
+    }
+
+    // A plain bound field says nothing until the next action. Its value arriving then is its commit.
+    [Fact]
+    public async Task The_value_of_a_field_that_waited_for_the_action_asks_the_store_once_when_it_arrives()
+    {
+        var trip = new Trip();
+        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name")]);
+
+        await page.On("#name").Change("Buda");
+
+        Assert.Equal("action", page.Attr("data-rask-bind-on"));
+        Assert.Equal(["Name"], trip.Store.Asked);
+    }
+
+    [Fact]
+    public async Task The_pause_of_a_live_field_asks_the_store_once()
+    {
+        var trip = new Trip();
+        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name").Live()]);
+
+        await page.On("#name").Input("Buda");
 
         Assert.Equal(["Name"], trip.Store.Asked);
     }
@@ -288,12 +312,12 @@ public partial class StoreRuleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Typing_into_a_live_field_clears_what_the_store_said_without_asking_again()
+    public async Task Typing_into_a_field_sent_at_every_keystroke_clears_what_the_store_said_without_asking_again()
     {
         var trip = new Trip();
         trip.Store.Answer = (_, _) => [new FieldFailure(Taken, ["Name"])];
         EditContext? form = null;
-        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name"), Test.EditContextProbe(c => form = c)]);
+        var page = Page.Render(() => Form.Model(trip)[Input.Bind(() => trip.Name).Id("name").Debounce(TimeSpan.Zero), Test.EditContextProbe(c => form = c)]);
         await page.On("#name").Change("Buda");
 
         await page.On("#name").Input("Budap");

@@ -414,6 +414,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         using var work = EnterWorkScope();
         await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
+        var submits = EventBatch.AnnounceSubmits(View, events);
         try
         {
             var sent = Array.Empty<byte>();
@@ -452,6 +453,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
         finally
         {
+            EventBatch.Withdraw(submits);
             EndBatch();
             InHandlerScope = false;
             _lock.Release();

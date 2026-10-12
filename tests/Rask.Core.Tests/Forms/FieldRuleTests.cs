@@ -20,10 +20,10 @@ public partial class FieldRuleTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_live_field_runs_its_propertys_rule_on_every_keystroke_once_touched()
+    public async Task A_field_sent_at_every_keystroke_runs_its_propertys_rule_on_each_once_touched()
     {
         var stop = new Stop();
-        var (page, form) = Bound(stop, () => Input.Bind(() => stop.Name).Id("name"));
+        var (page, form) = Bound(stop, () => Input.Bind(() => stop.Name).Id("name").Debounce(TimeSpan.Zero));
         await page.On("#name").Change("B");
 
         await page.On("#name").Input("Bu");

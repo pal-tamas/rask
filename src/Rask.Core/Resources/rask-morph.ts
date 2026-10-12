@@ -390,7 +390,8 @@ export function raskNotePendingFormState(el: Element | null): void {
     // The PRE-EDIT value (the last server-rendered `value` attribute) — exactly what a lagging frame
     // carries. Checkboxes self-correct through the checked guard, so they stay out of the value guard.
     if (!isCheckbox) {
-        const sv = el.getAttribute("value");
+        // A textarea's rendered value is its text, as the value sync reads the incoming one.
+        const sv = tag === "TEXTAREA" ? el.textContent : el.getAttribute("value");
         raskNotePendingValue(el, sv === null ? "" : sv);
     }
     // The PRE-CLICK checked (the `checked` attribute, which a native click leaves untouched). A radio

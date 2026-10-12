@@ -41,28 +41,42 @@ internal static class UiFormCommit
         // rule when the consumer stops supplying one.
         control.RegisterValidator(accessor, context);
 
-        return (accessor, context, accessor.Getter() is T value ? value : default);
+        // What the reader chose and the session still holds is what the control draws (PendingBinds).
+        var shown = control is Component drawn && PendingBinds.TryPeek(drawn, accessor.Field, out var chosen)
+            ? chosen
+            : accessor.Getter();
+
+        return (accessor, context, shown is T value ? value : default);
     }
 
     /// <summary>
-    /// Writes a new value back — to the model and the <c>EditContext</c> when bound, to the parent's
-    /// <c>OnChange</c> when controlled.
+    /// Commits a new value — to the parent's <c>OnChange</c> when controlled, to the model and the
+    /// <c>EditContext</c> when bound. When a bound value is written is <c>Rask.Core</c>'s to say
+    /// (<see cref="PendingBinds" />): with the next action, or at once for a control that says <c>.Live()</c>.
     /// </summary>
-    internal static async Task CommitAsync<T>(
+    internal static Task CommitAsync<T>(
         IFormControl<T> control,
         ExpressionAccessor.Accessor? accessor,
         EditContext? context,
         T value)
     {
-        if (accessor is not null)
+        if (accessor is null)
+        {
+            return control.InvokeOnChange(value);
+        }
+
+        return PendingBinds.Commit((Component)control, accessor.Field, context, value, Write, SettleAsync);
+
+        bool Write()
         {
             accessor.Setter(value);
+            return true;
+        }
+
+        async Task SettleAsync()
+        {
             await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
             await control.InvokeAfterBind(value).ConfigureAwait(false);
-        }
-        else
-        {
-            await control.InvokeOnChange(value).ConfigureAwait(false);
         }
     }
 
@@ -108,14 +122,18 @@ internal static class UiFormCommit
             return;
         }
 
-        if (!TryWriteSelection(accessor, picked))
-        {
-            return;
-        }
-
-        await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
-        await control.InvokeAfterBind(accessor.Getter() as ICollection<T> ?? [.. picked])
+        // A copy: what waits is what was picked now, whatever the caller does with its list afterwards.
+        List<T> chosen = [.. picked];
+        await PendingBinds.Commit((Component)control, accessor.Field, context, chosen, Write, SettleAsync)
             .ConfigureAwait(false);
+
+        bool Write() => TryWriteSelection(accessor, chosen);
+
+        async Task SettleAsync()
+        {
+            await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
+            await control.InvokeAfterBind(accessor.Getter() as ICollection<T> ?? chosen).ConfigureAwait(false);
+        }
     }
 
     // Returns false when the model's field cannot take the selection at all — a get-only property holding
