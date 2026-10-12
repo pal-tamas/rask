@@ -35,6 +35,28 @@ public sealed class DevToolsErrorCaptureTests
     }
 
     [Fact]
+    public async Task A_handler_that_throws_on_a_page_that_draws_toasts_is_listed_once_with_its_exception()
+    {
+        using var host = DevToolsLivePage.Host<DevToolsToastingTestApp>();
+        var (_, feed, socket, handlers) = await DevToolsLivePage.OpenWithHandlersAsync(host);
+
+        await socket.SendJsonAsync(new { id = handlers[0], type = "click" }, ct: TestContext.Current.CancellationToken);
+
+        // The frame that draws the toast: by then the fault and the toast's log line, which carries the same
+        // exception, have both been reported.
+        var toast = await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        Assert.Contains("That did not work.", toast, StringComparison.Ordinal);
+        var error = Assert.Single(feed.Errors.Snapshot());
+        Assert.Equal(DevToolsErrorKind.Handler, error.Kind);
+        Assert.Equal(1, error.Count);
+        Assert.Equal("InvalidOperationException", error.Title);
+        Assert.Equal("the handler failed on purpose", error.Message);
+        Assert.Equal(nameof(DevToolsToastingTestApp), error.Path[^1]);
+        Assert.True(error.Caught);
+        socket.Dispose();
+    }
+
+    [Fact]
     public async Task A_render_that_throws_is_listed_with_the_components_it_happened_inside()
     {
         using var host = DevToolsLivePage.Host<DevToolsErrorsTestApp>();

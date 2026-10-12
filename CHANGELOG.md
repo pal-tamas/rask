@@ -31,6 +31,12 @@ them until tagged releases begin.
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
 
+- **DevTools counts a handler that failed into a toast once.** Since a handler's fault keeps its page and says
+  so in a toast, one failed click on a page that draws toasts put `2` on the pill and two entries on the Errors
+  tab: the toast's reference was logged with the exception before the fault itself was listed, so the log line
+  was listed as a diagnostic and the fault after it. The fault is listed first now, on both hosts: one entry,
+  the handler's, with its component and the exception.
+
 - **A route segment its page cannot read is not found, not a 500.** `/destinations/99999999999999999999`
   matched `/destinations/{id:int}` — the router never held a constraint to anything — and the page then
   failed to bind it: `RouteBindException`, the error page, a 500. A segment that is not what its constraint
