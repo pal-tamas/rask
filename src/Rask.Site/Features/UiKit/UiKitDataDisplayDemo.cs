@@ -43,6 +43,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
         CardsFiguresEmptySection(),
         ChartSection(),
         TableSection(),
+        StableColumnsSection(),
         TimelineSection(),
         RestOfCategorySection()
     ];

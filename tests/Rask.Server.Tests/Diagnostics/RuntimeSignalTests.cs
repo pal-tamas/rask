@@ -41,11 +41,7 @@ public sealed class RuntimeSignalTests
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (host.Store.ConnectedCount == 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => host.Store.ConnectedCount > 0, "the hello to attach the socket to its session");
 
         Assert.Equal(1, host.Store.ConnectedCount);
         Assert.Equal(1, host.Store.LiveCount);

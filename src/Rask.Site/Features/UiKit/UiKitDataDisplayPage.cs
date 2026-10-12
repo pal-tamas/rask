@@ -33,11 +33,12 @@ public sealed partial class UiKitDataDisplayPage : Component
             Code["Expanded"], " and listens to ", Code["OnToggle"], "."
         ],
         CodeSample
-            .Files(["UiKitDataDisplayDemo.cs", "UiKitDataDisplayDemo.Kanban.cs", "UiKitDataDisplayDemo.Table.cs", "UiKitTimelineDemo.cs"])
+            .Files(["UiKitDataDisplayDemo.cs", "UiKitDataDisplayDemo.Kanban.cs", "UiKitDataDisplayDemo.Table.cs", "UiKitDataDisplayDemo.StableColumns.cs", "UiKitTimelineDemo.cs"])
             .Notes("Only the accordion the page owns keeps a field; the rest hold no state. Aura, hover 3D "
                 + "and hover gallery are decoration — they carry no role and no label, because a reader "
                 + "who cannot see them loses nothing. The table is Flux's: the page keeps the sorted column "
-                + "and the page number, and says so with Sorted, Direction and Paginate.")
+                + "and the page number, and says so with Sorted, Direction and Paginate. Its columns stay put "
+                + "across pages once the table has a width (w-full) and each column but one has its own.")
             .Result(UiKitDataDisplayDemo)
     ];
 }

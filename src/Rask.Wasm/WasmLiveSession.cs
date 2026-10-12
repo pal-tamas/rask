@@ -21,6 +21,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     internal override SemaphoreSlim? DevToolsRenderGate => _lock;
 
+    // One mid-await render at a time. They run inside the dispatch that holds _lock, so that lock cannot order
+    // them: a handler's continuation renders before and after it runs, on whichever thread resumed it. The
+    // browser has one thread and two of these only ever met at an await ahead of the walk. A host with a thread
+    // pool — the unit tests' — walked the tree twice at once: "Collection was modified", a garbled frame, and a
+    // continuation dropped with the render that threw before it, which left the dispatch waiting for good.
+    private readonly SemaphoreSlim _inScopeRender = new(1, 1);
+
     // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
     // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
     // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
@@ -75,6 +82,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
         _htmlBuffers.Dispose();
         _lock.Dispose();
+        _inScopeRender.Dispose();
     }
 
     protected override async Task RenderInScopeCoreAsync()
@@ -95,10 +103,18 @@ internal sealed class WasmLiveSession : LiveSessionBase
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+            await _inScopeRender.WaitAsync().ConfigureAwait(false);
+            try
             {
-                _htmlBuffers.Commit();
+                await BuildPayloadAsync(null, false).ConfigureAwait(false);
+                if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+                {
+                    _htmlBuffers.Commit();
+                }
+            }
+            finally
+            {
+                _inScopeRender.Release();
             }
         }
         finally

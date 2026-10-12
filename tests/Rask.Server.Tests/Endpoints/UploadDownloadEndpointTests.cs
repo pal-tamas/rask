@@ -102,11 +102,7 @@ public class UploadDownloadEndpointTests
             BuildSingleFileForm("a.txt", [1]),
             TestContext.Current.CancellationToken);
 
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (store.Peek(sessionId) is not null && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => store.Peek(sessionId) is null, "the session to be removed");
 
         Assert.Null(store.Peek(sessionId));
     }

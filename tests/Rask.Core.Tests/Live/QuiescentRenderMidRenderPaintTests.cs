@@ -36,7 +36,7 @@ public partial class QuiescentRenderMidRenderPaintTests : global::Rask.Core.Rask
             "the resumed hook never asked for a repaint");
         resume.Set();
 
-        var result = await run.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var result = await run.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.Contains("child-loaded", result.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("child-loading", result.Html, StringComparison.Ordinal);

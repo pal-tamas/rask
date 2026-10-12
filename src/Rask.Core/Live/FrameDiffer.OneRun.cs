@@ -46,6 +46,7 @@ public static partial class FrameDiffer
         }
 
         output.RemoveRange(opCountAtEntry, output.Count - opCountAtEntry);
+        scratch.ForgetMorphedFrom(opCountAtEntry);
         DiffAroundRun(old, current, run, output, newHtml, scratch);
         return true;
     }

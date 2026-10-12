@@ -35,11 +35,7 @@ public class LiveSessionStoreTests
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (store.Count > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => store.Count == 0, "the scheduled removal to take the session out of the store");
 
         Assert.Equal(0, store.Count);
     }
@@ -57,11 +53,7 @@ public class LiveSessionStoreTests
             store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(30));
         }
 
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
-        while (store.Count > 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => store.Count == 0, "the scheduled removal to take the session out of the store");
 
         Assert.Equal(0, store.Count);
     }

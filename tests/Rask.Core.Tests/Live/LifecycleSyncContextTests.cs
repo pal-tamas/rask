@@ -29,11 +29,7 @@ public partial class LifecycleSyncContextTests : global::Rask.Core.RaskMarkup
         ctx.Post(_ => ran.SetResult(), null);
         await ran.Task;
 
-        var deadline = DateTime.UtcNow.AddSeconds(2);
-        while (component.RenderRequests == 0 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(10, TestContext.Current.CancellationToken);
-        }
+        await WaitFor.True(() => component.RenderRequests > 0, "the render the posted continuation asks for");
 
         Assert.Equal(1, component.RenderRequests);
     }

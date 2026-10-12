@@ -107,9 +107,12 @@ Rendered attributes are not in that gate: compare them with Flux's live DOM (mar
   Never build a class by concatenation — Tailwind only emits what it can read whole.
   Write Flux's classes exactly as Flux writes them: an app compiles them into its ONE stylesheet from
   the kit's class list (`@import "./vendor/rask-ui.css"`, `docs/tailwind.md`), so a `dark:` or `sm:`
-  variant follows its base utility by Tailwind's own order. A NEW component never adds a `[:where(&)]:`,
-  a `!` or a split-variant spelling to win against an app's utility — if one loses, the page links two
-  sheets and that is the bug. (Existing components keep the defensive spellings they have; not rewritten.)
+  variant follows its base utility by Tailwind's own order. Between a kit DEFAULT and an app's utility for
+  the same property that order is no one's intent (`first:ps-0` beat a cell's `ps-10`; `text-zinc-500` beat
+  `text-red-600`): a default the call site must be able to change is written `[:where(&)]:…`, as the table
+  family is, with ONE rule per property and state so the kit's own rules never race each other.
+  `AnAppsClassWinsTests` resolves that from the compiled sheet for every component and lists in `Known` the
+  ones not written so yet, where an app writes Tailwind's `!` (Flux's own advice). Never a `!` in the kit.
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.

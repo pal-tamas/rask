@@ -217,7 +217,7 @@ internal static class LiveTestConnection
     /// </summary>
     private sealed class HttpConnection : ILiveTestConnection
     {
-        private static readonly TimeSpan OpenDeadline = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan OpenDeadline = LiveFrames.HangCeiling;
 
         private readonly RaskTestHost _host;
 

@@ -396,6 +396,76 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(table.Locator("tbody tr")).ToHaveCountAsync(4);
     });
 
+    [Theory]
+    [InlineData(1920, 1080)]
+    [InlineData(390, 844)]
+    public Task Table_columns_keep_their_widths_through_paging_sorting_and_an_empty_list(int width, int height) => RunAsync(async () =>
+    {
+        await OpenAsync();
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var scope = Page.Locator("[data-testid='ui-table-stable']");
+            var table = scope.Locator("#ui-fleet");
+            var rows = table.Locator("tbody tr");
+            var job = rows.First.Locator("td").Nth(1);
+            await table.ScrollIntoViewIfNeededAsync();
+            await Expect(job).ToHaveTextAsync("Tyre change");
+            var first = await ColumnWidths(table);
+
+            // The second page holds the long jobs, the third only two rows.
+            await scope.Locator("button[aria-label^='Next']:visible").ClickAsync();
+            await Expect(job).ToContainTextAsync("Full service with brake pads");
+            var second = await ColumnWidths(table);
+            var cut = await job.EvaluateAsync<string[]>(
+                "el => [getComputedStyle(el).textOverflow, String(el.scrollWidth > el.clientWidth), el.title]");
+            await scope.Locator("button[aria-label^='Next']:visible").ClickAsync();
+            await Expect(rows).ToHaveCountAsync(2);
+            var third = await ColumnWidths(table);
+            await scope.Locator("button[aria-label*='Previous']:visible").ClickAsync();
+            await Expect(rows).ToHaveCountAsync(4);
+            var back = await ColumnWidths(table);
+
+            // Sorted by job, then the other way round: the chevron turns, and a sorted heading is no wider.
+            var heading = table.Locator("th").Filter(new LocatorFilterOptions { HasText = "Job" });
+            await heading.GetByRole(AriaRole.Button).ClickAsync();
+            await Expect(job).ToHaveTextAsync("Battery");
+            var ascending = await ColumnWidths(table);
+            await heading.GetByRole(AriaRole.Button).ClickAsync();
+            await Expect(job).ToHaveTextAsync("Wipers");
+            var descending = await ColumnWidths(table);
+
+            await scope.Locator("[data-testid='ui-fleet-toggle']").ClickAsync();
+            await Expect(rows).ToHaveCountAsync(0);
+            var empty = await ColumnWidths(table);
+            await scope.Locator("[data-testid='ui-fleet-toggle']").ClickAsync();
+            await Expect(rows).ToHaveCountAsync(4);
+            var full = await ColumnWidths(table);
+
+            // 10rem, the rest, 9rem, 6rem — and on a phone the rest is what the 40rem floor leaves.
+            Assert.Equal([160d, 144d, 96d], [first[0], first[2], first[3]]);
+            Assert.True(first[1] >= 240, $"the column without a width got {first[1]}px.");
+            Assert.All(new[] { second, third, back, ascending, descending, empty, full }, widths => Assert.Equal(first, widths));
+            Assert.Equal(["ellipsis", "true"], cut[..2]);
+            Assert.StartsWith("Full service with brake pads", cut[2], StringComparison.Ordinal);
+            Assert.EndsWith("on the phone", cut[2], StringComparison.Ordinal);
+
+            // The table scrolls inside its own box when it has to; the page never does.
+            var scroll = await table.EvaluateAsync<double[]>(
+                "el => [el.parentElement.scrollWidth - el.parentElement.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth]");
+            Assert.Equal(width < 640, scroll[0] > 0);
+            Assert.Equal(0, scroll[1]);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    private static Task<double[]> ColumnWidths(ILocator table) =>
+        table.EvaluateAsync<double[]>("el => [...el.querySelectorAll('thead th')].map(th => th.getBoundingClientRect().width)");
+
     [Fact]
     public Task A_sticky_table_column_stays_put_and_casts_its_shadow_only_once_scrolled() => RunAsync(async () =>
     {

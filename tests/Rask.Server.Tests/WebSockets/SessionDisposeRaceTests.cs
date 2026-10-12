@@ -38,7 +38,7 @@ public class SessionDisposeRaceTests
             // Click the button: the resulting render enters Render() and parks there, holding the
             // session's _renderLock mid-walk.
             await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-            await GatedRenderApp.RenderEntered.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await GatedRenderApp.RenderEntered.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
             // Tear the store down (host-shutdown path) while that render is still in flight.
             var disposeTask = host.Store.DisposeAsync().AsTask();
@@ -52,7 +52,7 @@ public class SessionDisposeRaceTests
 
             // Release the render; disposal now completes cleanly with no collection-modified throw.
             GatedRenderApp.ReleaseRender.Set();
-            await disposeTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+            await disposeTask.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         }
         finally
         {

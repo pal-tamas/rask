@@ -25,7 +25,7 @@ namespace Rask.Server.Tests.WebSockets;
 public sealed class HttpTransportTests
 {
     private const string UserHeader = "X-Test-User";
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Deadline = LiveFrames.HangCeiling;
 
     private static void StampUser(IApplicationBuilder app) =>
         app.Use(async (ctx, next) =>

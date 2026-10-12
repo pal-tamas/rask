@@ -115,13 +115,10 @@ public partial class ToastOutletTests : global::Rask.Core.RaskMarkup
         Assert.Contains("gone soon", host.RenderAsLiveRoot(sp));
 
         // The timer fires on a thread-pool thread and removes the message; poll a re-render until it clears.
-        var deadline = DateTime.UtcNow.AddSeconds(2);
-        string html;
-        do
-        {
-            await Task.Delay(25, TestContext.Current.CancellationToken);
-            html = host.RenderAsLiveRoot(sp);
-        } while (html.Contains("gone soon") && DateTime.UtcNow < deadline);
+        var html = string.Empty;
+        await WaitFor.True(
+            () => !(html = host.RenderAsLiveRoot(sp)).Contains("gone soon", StringComparison.Ordinal),
+            "the toast's timer to take its message down");
 
         Assert.DoesNotContain("gone soon", html);
     }
