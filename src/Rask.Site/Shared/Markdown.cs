@@ -322,21 +322,27 @@ public sealed partial class Markdown : Component
         return sb.ToString().Trim();
     }
 
+    // No match timeout on any of the four. Their input is the repository's own guides and Markdig's output for
+    // them, never a visitor's text, and none can backtrack past the run it is scanning: no quantifier is nested
+    // in another, and each one is followed by a character its own class leaves out. A timeout guarded nothing
+    // and measured the machine instead — one Replace is ONE budget, which its evaluator spends too, so a second
+    // covered highlighting every sample in a guide, and a busy core failed a render that was only slow.
+    //
     // Matches an HTML-comment demo marker, e.g. `<!-- demo:binding-typed -->` (whitespace-tolerant).
-    [GeneratedRegex(@"<!--\s*demo:\s*(?<key>[a-z0-9][a-z0-9-]*)\s*-->", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"<!--\s*demo:\s*(?<key>[a-z0-9][a-z0-9-]*)\s*-->", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex DemoMarkerRegex();
 
     // Matches a relative href="path" with an optional "#fragment": not a scheme (https:, mailto:), not rooted,
     // not a bare "#fragment" — which needs no rewriting.
-    [GeneratedRegex("href=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"#]+)(?<frag>#[^\"]*)?\"", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("href=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"#]+)(?<frag>#[^\"]*)?\"", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex DocLinkRegex();
 
     // Markdig's image output, <img src="path" — relative only: not a scheme, not rooted, not a data: URI.
-    [GeneratedRegex("<img src=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"]+)\"", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("<img src=\"(?![a-zA-Z][a-zA-Z0-9+.-]*:|/)(?<path>[^\"]+)\"", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex DocImageRegex();
 
     // Markdig fenced-code output: <pre><code class="language-{info}">{HTML-encoded body}</code></pre>.
     // Non-greedy body; the body is HTML-encoded so a literal </code> can never appear inside it.
-    [GeneratedRegex("<pre><code class=\"language-(?<lang>[^\"]+)\">(?<body>.*?)</code></pre>", RegexOptions.Singleline, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("<pre><code class=\"language-(?<lang>[^\"]+)\">(?<body>.*?)</code></pre>", RegexOptions.Singleline, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex CodeBlockRegex();
 }
