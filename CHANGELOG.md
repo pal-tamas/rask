@@ -88,6 +88,10 @@ them until tagged releases begin.
   - **A page that calls `Go()` after an `await` is no longer shown** when it does so within the budget. Its
     destination arrives under the history step of the navigation that led there — one `push` for a link or a
     handler's `Go()`, where it used to be a `push` of the page in between and a `replace`.
+  - **A page that reads through `Rask.Query` is covered too**: a query read in `Render` is waited for when it
+    has nothing to show, as on the first `GET`, and now also when it was just invalidated — a save that
+    invalidates a cached list and goes to it is one frame with the fresh rows, where it was the old rows and
+    then the new. A cached query is shown at once, with no fetch.
   - **`OnRendered` after the data.** The renders made while a page is waited for are publish-only, as the first
     request's are, and one ordinary render follows them, so `OnRendered` still runs on the page as sent. A page
     with a pending script call (`IJSRuntime` from `OnFirstRender`/`OnRendered`) is not waited for — that call

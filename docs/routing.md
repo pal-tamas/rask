@@ -374,6 +374,11 @@ private async Task Save()
   it: the wait reaches the redirect, and the destination arrives in its place.
 - **A save's own repaint waits for the address.** A handler that has called `Go()` is not repainted while it is
   still running, so the destination never appears before the address bar says it.
+- **A page that reads through `Rask.Query` is waited for the same way.** A query read while the page renders
+  (`orders.IsLoading ? Spinner() : Table(orders.Data)`) is waited for when it has nothing to show, and when a
+  save has just invalidated it — so `await Save(); Routes.OrderListPage().Go()` lands on the fresh rows, not
+  on the ones from before the save. A query already in the session's cache is shown at once, with no wait and
+  no fetch; one that is merely old is shown as it is and refreshed behind it.
 - **Work blocked on JavaScript is not waited for**, and neither is work you detach (`_ = Poll()`): the same two
   exceptions as the first request.
 
