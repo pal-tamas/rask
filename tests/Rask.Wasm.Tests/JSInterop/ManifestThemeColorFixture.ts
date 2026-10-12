@@ -78,6 +78,8 @@ globals.document = {
     getElementById: () => null,
     createElement: (tag: string) => el(tag),
     querySelector,
+    // No element of these pages carries `autofocus`, which the runtime asks about after every frame.
+    querySelectorAll: () => [],
     addEventListener: () => { },
 };
 globals.window = globalThis;

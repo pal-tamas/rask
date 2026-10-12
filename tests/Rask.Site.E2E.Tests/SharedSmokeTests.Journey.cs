@@ -1494,10 +1494,11 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         // Escape closes. A non-modal <dialog> fires no `cancel` event, so the page reads the key from a
         // keydown handler ON THE DIALOG and routes back through the same cancel the backdrop uses — no
-        // client script. Focus has to be inside the dialog for that handler to hear the key, which any
-        // interaction gives it: `autofocus` is rendered but browsers only honour it for elements present
-        // at parse time, not ones the live diff inserts. Click the field first, as a user would.
-        await Page.Locator("dialog[open] #todo-title").ClickAsync();
+        // client script. Focus has to be inside the dialog for that handler to hear the key, and it is:
+        // the title carries `autofocus`, which the runtime acts on for a page reached in place as the
+        // browser does for one it loads.
+        await Expect(Page.Locator("dialog[open] #todo-title")).ToBeFocusedAsync(
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page).ToHaveURLAsync(new Regex(".*/todos$"),
             new PageAssertionsToHaveURLOptions { Timeout = 15_000 });

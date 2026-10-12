@@ -23,6 +23,7 @@ import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
 } from "../../Rask.Core/Resources/rask-scoped.js";
+import { focusArrived } from "../../Rask.Core/Resources/rask-autofocus.js";
 import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -1180,8 +1181,9 @@ import {
 
     // Forward navigation committed: announce the new page (its <title>, morphed in) and move focus into
     // the new page so keyboard/SR users continue from it rather than the now-removed link. `preferred` is
-    // the in-page anchor a fragment nav scrolled to (focus it), else the main content is used.
-    function focusAndAnnounceRoute(preferred: HTMLElement | null): void {
+    // the in-page anchor a fragment nav scrolled to (focus it), else the main content is used. A page that
+    // asks for focus itself (`autofocus`, rask-autofocus.ts) has it already: it is announced and left there.
+    function focusAndAnnounceRoute(preferred: HTMLElement | null, focused: boolean): void {
         if (routeAnnouncer) {
             routeAnnouncer.textContent = "";
             const title = document.title || location.pathname;
@@ -1192,7 +1194,7 @@ import {
         const target = preferred
             || document.querySelector("main, [role=main]")
             || document.querySelector("h1");
-        if (!target) {
+        if (focused || !target) {
             return;
         }
 
@@ -1204,7 +1206,6 @@ import {
             target.setAttribute("tabindex", "-1");
         }
 
-        let focused = false;
         try {
             target.focus({preventScroll: true});
             focused = true;
@@ -1382,6 +1383,7 @@ import {
 
         if (!history || history.action === "replace") {
             _pendingScrollHash = "";
+            focusArrived(history);
             return;
         }
         const hash = _pendingScrollHash;
@@ -1403,7 +1405,7 @@ import {
         }
         // Forward navigation: focus the anchor the link targeted (else the main content) and announce the
         // route — a fragment deep-link is still a route change for keyboard/SR users.
-        focusAndAnnounceRoute(anchor as HTMLElement | null);
+        focusAndAnnounceRoute(anchor as HTMLElement | null, focusArrived(history, !!anchor));
     }
 
     // Diff-mode render application (wire format matches LivePayload.BuildPayloadUtf8Diff).
