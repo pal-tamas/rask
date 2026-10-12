@@ -131,7 +131,7 @@ public sealed partial class UiKitDataDisplayDemo
                         .Format(new() { Style = Ui.ChartFormatStyle.Percent, MaximumFractionDigits = 0 })[Ui.ChartAxisGrid, Ui.ChartAxisTick]
                 ]
             ],
-            Legend(("Instagram", "bg-green-400"), ("Twitter", "bg-blue-400"), ("Facebook", "bg-red-400"))
+            Legend("social", ("Instagram", "bg-green-400"), ("Twitter", "bg-blue-400"), ("Facebook", "bg-red-400"))
         ];
 
     private static Component BarChart() =>
@@ -175,7 +175,7 @@ public sealed partial class UiKitDataDisplayDemo
                     Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]
                 ]
             ],
-            Legend(("Online", "bg-blue-600"), ("Retail", "bg-blue-500"), ("Wholesale", "bg-blue-300"))
+            Legend("grouped", ("Online", "bg-blue-600"), ("Retail", "bg-blue-500"), ("Wholesale", "bg-blue-300"))
         ];
 
     private static Component StackedBars() =>
@@ -191,7 +191,7 @@ public sealed partial class UiKitDataDisplayDemo
                     Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]
                 ]
             ],
-            Legend(("Online", "bg-blue-600"), ("Retail", "bg-blue-400"), ("Wholesale", "bg-blue-300"))
+            Legend("stacked", ("Online", "bg-blue-600"), ("Retail", "bg-blue-400"), ("Wholesale", "bg-blue-300"))
         ];
 
     private static Component Pies() =>
@@ -280,8 +280,9 @@ public sealed partial class UiKitDataDisplayDemo
             ]
         ];
 
-    private static Component Legend(params (string Label, string Dot)[] entries) =>
+    // Two charts name the same series, so a legend entry's Key carries the chart it belongs to.
+    private static Component Legend(string chart, params (string Label, string Dot)[] entries) =>
         Div.Class("flex justify-center gap-4 pt-4")[
-            entries.Select(entry => Ui.ChartLegend.Key(entry.Label).Label(entry.Label)[Ui.ChartLegendIndicator.Class(entry.Dot)])
+            entries.Select(entry => Ui.ChartLegend.Key($"{chart}-{entry.Label}").Label(entry.Label)[Ui.ChartLegendIndicator.Class(entry.Dot)])
         ];
 }

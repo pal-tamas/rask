@@ -8,7 +8,7 @@ namespace Rask.Site.Tests.Pages;
 
 // The error-boundary demos (folded into the Composition guide from their former standalone page): a
 // handler-throw boundary, a render-throw boundary, and nested boundaries.
-public sealed class BoomPageTests
+public sealed partial class BoomPageTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
     public void The_demos_at_rest_emit_their_host_divs()
@@ -18,6 +18,44 @@ public sealed class BoomPageTests
         Assert.Contains("boom-handler-host", Page.Render(new BoomHandlerDemo(), sp).Html);
         Assert.Contains("boom-render-host", Page.Render(new BoomRenderDemo(), sp).Html);
         Assert.Contains("boom-nested-host", Page.Render(new BoomNestedDemo(), sp).Html);
+    }
+
+    [Fact]
+    public async Task A_tripped_boundary_says_a_fixed_sentence_and_nothing_of_the_exception()
+    {
+        var page = Page.Render(() => BoomHandlerDemo, TestServices.Default());
+
+        await page.On("#boom-throw").Click();
+
+        Assert.Contains("This part stopped working.", page.Html, StringComparison.Ordinal);
+        Assert.Contains("boom-recover", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("kaboom", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("InvalidOperationException", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_render_that_throws_is_answered_with_a_fixed_sentence_and_nothing_of_the_exception()
+    {
+        var page = Page.Render(() => BoomRenderDemo, TestServices.Default());
+
+        await page.On("#boom-render-trigger").Click();
+
+        Assert.Contains("This part could not be shown.", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("kaboom", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("InvalidOperationException", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_inner_boundary_says_a_fixed_sentence_and_leaves_the_outer_region_standing()
+    {
+        var page = Page.Render(() => BoomNestedDemo, TestServices.Default());
+
+        await page.On("#boom-nested-throw").Click();
+
+        Assert.Contains("The inner part stopped.", page.Html, StringComparison.Ordinal);
+        Assert.Contains("boom-nested-outer-healthy", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("kaboom", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("InvalidOperationException", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]

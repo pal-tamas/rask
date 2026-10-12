@@ -335,6 +335,19 @@ public partial class UiDataGridTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_stacked_label_keeps_its_width_beside_a_long_value()
+    {
+        // The stacked line is a flex row, and a flex row shrinks its items in proportion to their width:
+        // beside a long value the label was left a few pixels and broke letter by letter.
+        var html = Grid();
+
+        var cells = System.Text.RegularExpressions.Regex.Matches(html, "<td[^>]*data-label=[^>]*>");
+
+        Assert.NotEmpty(cells);
+        Assert.All(cells, cell => Assert.Contains("max-sm:before:shrink-0", cell.Value, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void An_authored_card_replaces_the_stacked_layout_rather_than_joining_it()
     {
         // Two layouts now exist, so the labels the stacked one needed would be dead weight — and the

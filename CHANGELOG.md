@@ -20,6 +20,21 @@ them until tagged releases begin.
   keeps the attribute is never focused again, nothing is taken from a field being typed in, and a closed
   `<dialog>` or popover is left to the browser, which focuses its `autofocus` element as it opens. Back and
   Forward focus a field that arrives, without scrolling. `rask.js` and `rask.wasm.js` are 760 bytes larger each.
+- **A data grid's stacked labels broke letter by letter on a phone.** Below `sm` each cell is a flex row of its
+  column's title and its value, and beside a long value the title was shrunk in proportion: the console's Logs
+  grid read "M e s s a g e" down the side of a long message and "Catego ry" beside a category. The label keeps
+  its width now (`max-sm:before:shrink-0`) and the value wraps; every `Ui.DataGrid` gains it, the console with
+  no change of its own.
+
+- **The site's demos write each `Key` once per type.** Seven showcase and guide demos repeated a key across
+  two lists of one component (two selects' options keyed by the same names, four navbars' items keyed `1`…`4`),
+  which the runtime tells apart by order and warns about. Each key now carries the list it is in, and a test
+  renders every prerendered page and every registered demo and fails on that warning.
+
+- **The error-boundary demos no longer print the exception.** Their fallbacks showed `ex.Message` and the
+  exception's type name, which is what [the lifecycle guide](docs/lifecycle.md) tells an app not to show a
+  visitor. Each says one fixed sentence and offers the way back; the guide says why.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.

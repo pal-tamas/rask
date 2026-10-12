@@ -38,27 +38,27 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             + "leads, a badge trails, and an item with nowhere to go is the button that opens a menu.",
             Div.Data(Testid("ui-flux-navbar")).Class("flex flex-col gap-2")[
                 Ui.Navbar.Key("plain")[
-                    Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
-                    Ui.NavbarItem.Key("2").Href("#")["Features"],
-                    Ui.NavbarItem.Key("3").Href("#")["Pricing"],
-                    Ui.NavbarItem.Key("4").Href("#")["About"]
+                    Ui.NavbarItem.Key("navbar-plain-1").Href("#").Current(true)["Home"],
+                    Ui.NavbarItem.Key("navbar-plain-2").Href("#")["Features"],
+                    Ui.NavbarItem.Key("navbar-plain-3").Href("#")["Pricing"],
+                    Ui.NavbarItem.Key("navbar-plain-4").Href("#")["About"]
                 ],
                 Ui.Navbar.Key("icons")[
-                    Ui.NavbarItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
-                    Ui.NavbarItem.Key("2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
-                    Ui.NavbarItem.Key("3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
-                    Ui.NavbarItem.Key("4").Href("#").Icon(Ui.IconName.User)["About"]
+                    Ui.NavbarItem.Key("navbar-icons-1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
+                    Ui.NavbarItem.Key("navbar-icons-2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
+                    Ui.NavbarItem.Key("navbar-icons-3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
+                    Ui.NavbarItem.Key("navbar-icons-4").Href("#").Icon(Ui.IconName.User)["About"]
                 ],
                 Ui.Navbar.Key("badges")[
-                    Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
-                    Ui.NavbarItem.Key("2").Href("#").Badge("12")["Inbox"],
-                    Ui.NavbarItem.Key("3").Href("#")["Contacts"],
-                    Ui.NavbarItem.Key("4").Href("#").Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
+                    Ui.NavbarItem.Key("navbar-badges-1").Href("#").Current(true)["Home"],
+                    Ui.NavbarItem.Key("navbar-badges-2").Href("#").Badge("12")["Inbox"],
+                    Ui.NavbarItem.Key("navbar-badges-3").Href("#")["Contacts"],
+                    Ui.NavbarItem.Key("navbar-badges-4").Href("#").Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
                 ],
                 Ui.Navbar.Key("dropdown")[
-                    Ui.NavbarItem.Key("1").Href("#").Current(true).Accent(false)["Dashboard"],
-                    Ui.NavbarItem.Key("2").Href("#")["Transactions"],
-                    Ui.NavbarItem.Key("3").IconTrailing(Ui.IconName.ChevronDown)["Account"]
+                    Ui.NavbarItem.Key("navbar-dropdown-1").Href("#").Current(true).Accent(false)["Dashboard"],
+                    Ui.NavbarItem.Key("navbar-dropdown-2").Href("#")["Transactions"],
+                    Ui.NavbarItem.Key("navbar-dropdown-3").IconTrailing(Ui.IconName.ChevronDown)["Account"]
                 ]
             ]);
 
@@ -70,35 +70,35 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             + "runtime has booted.",
             Div.Data(Testid("ui-flux-navlist")).Class("grid gap-6 sm:grid-cols-2 lg:grid-cols-4")[
                 Ui.Navlist.Key("plain")[
-                    Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
-                    Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
-                    Ui.NavlistItem.Key("3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
-                    Ui.NavlistItem.Key("4").Href("#").Icon(Ui.IconName.User)["About"]
+                    Ui.NavlistItem.Key("navlist-plain-1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
+                    Ui.NavlistItem.Key("navlist-plain-2").Href("#").Icon(Ui.IconName.PuzzlePiece)["Features"],
+                    Ui.NavlistItem.Key("navlist-plain-3").Href("#").Icon(Ui.IconName.CurrencyDollar)["Pricing"],
+                    Ui.NavlistItem.Key("navlist-plain-4").Href("#").Icon(Ui.IconName.User)["About"]
                 ],
                 Ui.Navlist.Key("group")[
-                    Ui.NavlistGroup.Key("g").Heading("Account")[
-                        Ui.NavlistItem.Key("1").Href("#").Current(true)["Profile"],
-                        Ui.NavlistItem.Key("2").Href("#")["Settings"],
-                        Ui.NavlistItem.Key("3").Href("#")["Billing"]
+                    Ui.NavlistGroup.Key("group-g").Heading("Account")[
+                        Ui.NavlistItem.Key("navlist-group-g-1").Href("#").Current(true)["Profile"],
+                        Ui.NavlistItem.Key("navlist-group-g-2").Href("#")["Settings"],
+                        Ui.NavlistItem.Key("navlist-group-g-3").Href("#")["Billing"]
                     ]
                 ],
                 Ui.Navlist.Key("fold")[
-                    Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Dashboard"],
-                    Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.ListBullet)["Transactions"],
-                    Ui.NavlistGroup.Key("g").Heading("Account").Expandable()[
-                        Ui.NavlistItem.Key("1").Href("#")["Profile"],
-                        Ui.NavlistItem.Key("2").Href("#")["Settings"],
-                        Ui.NavlistItem.Key("3").Href("#")["Billing"]
+                    Ui.NavlistItem.Key("navlist-fold-1").Href("#").Icon(Ui.IconName.Home).Current(true)["Dashboard"],
+                    Ui.NavlistItem.Key("navlist-fold-2").Href("#").Icon(Ui.IconName.ListBullet)["Transactions"],
+                    Ui.NavlistGroup.Key("fold-g").Heading("Account").Expandable()[
+                        Ui.NavlistItem.Key("navlist-fold-g-1").Href("#")["Profile"],
+                        Ui.NavlistItem.Key("navlist-fold-g-2").Href("#")["Settings"],
+                        Ui.NavlistItem.Key("navlist-fold-g-3").Href("#")["Billing"]
                     ],
-                    Ui.NavlistGroup.Key("closed").Heading("Team").Expandable().Expanded(false)[
-                        Ui.NavlistItem.Key("1").Href("#")["Members"]
+                    Ui.NavlistGroup.Key("fold-closed").Heading("Team").Expandable().Expanded(false)[
+                        Ui.NavlistItem.Key("navlist-fold-closed-1").Href("#")["Members"]
                     ]
                 ],
                 Ui.Navlist.Key("badges")[
-                    Ui.NavlistItem.Key("1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
-                    Ui.NavlistItem.Key("2").Href("#").Icon(Ui.IconName.Envelope).Badge("12")["Inbox"],
-                    Ui.NavlistItem.Key("3").Href("#").Icon(Ui.IconName.UserGroup)["Contacts"],
-                    Ui.NavlistItem.Key("4").Href("#").Icon(Ui.IconName.CalendarDays).Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
+                    Ui.NavlistItem.Key("navlist-badges-1").Href("#").Icon(Ui.IconName.Home).Current(true)["Home"],
+                    Ui.NavlistItem.Key("navlist-badges-2").Href("#").Icon(Ui.IconName.Envelope).Badge("12")["Inbox"],
+                    Ui.NavlistItem.Key("navlist-badges-3").Href("#").Icon(Ui.IconName.UserGroup)["Contacts"],
+                    Ui.NavlistItem.Key("navlist-badges-4").Href("#").Icon(Ui.IconName.CalendarDays).Badge("Pro").BadgeColor(Ui.Color.Lime)["Calendar"]
                 ]
             ]);
 
@@ -118,8 +118,8 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                         .Logo(I.Class("font-serif font-bold")["A"])
                         .LogoClass("bg-zinc-800 text-white dark:bg-white dark:text-zinc-800"),
                     Ui.Navbar[
-                        Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
-                        Ui.NavbarItem.Key("2").Href("#").Badge("12")["Inbox"]
+                        Ui.NavbarItem.Key("header-1").Href("#").Current(true)["Home"],
+                        Ui.NavbarItem.Key("header-2").Href("#").Badge("12")["Inbox"]
                     ],
                     Div.Class("min-w-24 flex-1"),
                     Ui.Profile.Circle().Chevron(false).Avatar(Caleb)
@@ -151,24 +151,24 @@ public sealed partial class UiKitFluxNavigationDemo : Component
             + "direction; a slash is one prop away, and an icon can stand in for a step's words.",
             Div.Data(Testid("ui-flux-breadcrumbs")).Class("flex flex-col gap-3")[
                 Ui.Breadcrumbs.Key("plain")[
-                    Ui.BreadcrumbsItem.Key("1").Href("#")["Home"],
-                    Ui.BreadcrumbsItem.Key("2").Href("#")["Blog"],
-                    Ui.BreadcrumbsItem.Key("3")["Post"]
+                    Ui.BreadcrumbsItem.Key("crumbs-plain-1").Href("#")["Home"],
+                    Ui.BreadcrumbsItem.Key("crumbs-plain-2").Href("#")["Blog"],
+                    Ui.BreadcrumbsItem.Key("crumbs-plain-3")["Post"]
                 ],
                 Ui.Breadcrumbs.Key("slashes")[
-                    Ui.BreadcrumbsItem.Key("1").Href("#").Separator(Ui.IconName.Slash)["Home"],
-                    Ui.BreadcrumbsItem.Key("2").Href("#").Separator(Ui.IconName.Slash)["Blog"],
-                    Ui.BreadcrumbsItem.Key("3").Separator(Ui.IconName.Slash)["Post"]
+                    Ui.BreadcrumbsItem.Key("crumbs-slashes-1").Href("#").Separator(Ui.IconName.Slash)["Home"],
+                    Ui.BreadcrumbsItem.Key("crumbs-slashes-2").Href("#").Separator(Ui.IconName.Slash)["Blog"],
+                    Ui.BreadcrumbsItem.Key("crumbs-slashes-3").Separator(Ui.IconName.Slash)["Post"]
                 ],
                 Ui.Breadcrumbs.Key("icon")[
-                    Ui.BreadcrumbsItem.Key("1").Href("#").Icon(Ui.IconName.Home),
-                    Ui.BreadcrumbsItem.Key("2").Href("#")["Blog"],
-                    Ui.BreadcrumbsItem.Key("3")["Post"]
+                    Ui.BreadcrumbsItem.Key("crumbs-icon-1").Href("#").Icon(Ui.IconName.Home),
+                    Ui.BreadcrumbsItem.Key("crumbs-icon-2").Href("#")["Blog"],
+                    Ui.BreadcrumbsItem.Key("crumbs-icon-3")["Post"]
                 ],
                 Ui.Breadcrumbs.Key("ellipsis")[
-                    Ui.BreadcrumbsItem.Key("1").Href("#").Icon(Ui.IconName.Home),
-                    Ui.BreadcrumbsItem.Key("2").Icon(Ui.IconName.EllipsisHorizontal),
-                    Ui.BreadcrumbsItem.Key("3")["Post"]
+                    Ui.BreadcrumbsItem.Key("crumbs-ellipsis-1").Href("#").Icon(Ui.IconName.Home),
+                    Ui.BreadcrumbsItem.Key("crumbs-ellipsis-2").Icon(Ui.IconName.EllipsisHorizontal),
+                    Ui.BreadcrumbsItem.Key("crumbs-ellipsis-3")["Post"]
                 ]
             ]);
 
@@ -224,17 +224,17 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                 Ui.Avatar.Key("emoji").Circle().Badge("👍").BadgeCircle().Src(Caleb).Name("Caleb Porzio"),
                 Ui.Avatar.Key("slot").Circle().Badge(Img.Src(Hugo).Alt("").Class("size-3")).Src(Caleb).Name("Caleb Porzio"),
                 Ui.AvatarGroup.Key("group")[
-                    Ui.Avatar.Key("1").Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("2").Src(Hugo).Name("Hugo Sainte-Marie"),
-                    Ui.Avatar.Key("3").Src(Josh).Name("Josh Hanley"),
-                    Ui.Avatar.Key("4")["3+"]
+                    Ui.Avatar.Key("avatars-group-1").Src(Caleb).Name("Caleb Porzio"),
+                    Ui.Avatar.Key("avatars-group-2").Src(Hugo).Name("Hugo Sainte-Marie"),
+                    Ui.Avatar.Key("avatars-group-3").Src(Josh).Name("Josh Hanley"),
+                    Ui.Avatar.Key("avatars-group-4")["3+"]
                 ],
                 Div.Key("ground").Class("rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800")[
                     Ui.AvatarGroup.Class("*:ring-zinc-100 dark:*:ring-zinc-800")[
-                        Ui.Avatar.Key("1").Circle().Lg.Src(Caleb).Name("Caleb Porzio"),
-                        Ui.Avatar.Key("2").Circle().Lg.Src(Hugo).Name("Hugo Sainte-Marie"),
-                        Ui.Avatar.Key("3").Circle().Lg.Src(Josh).Name("Josh Hanley"),
-                        Ui.Avatar.Key("4").Circle().Lg["3+"]
+                        Ui.Avatar.Key("ground-1").Circle().Lg.Src(Caleb).Name("Caleb Porzio"),
+                        Ui.Avatar.Key("ground-2").Circle().Lg.Src(Hugo).Name("Hugo Sainte-Marie"),
+                        Ui.Avatar.Key("ground-3").Circle().Lg.Src(Josh).Name("Josh Hanley"),
+                        Ui.Avatar.Key("ground-4").Circle().Lg["3+"]
                     ]
                 ]
             ]);

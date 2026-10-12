@@ -26,10 +26,14 @@ public sealed partial class UiDataGrid<T, TKey>
             // the table spills out of a phone. A rule rather than the wrap-anywhere utility because the property
             // INHERITS: a badge or a button in the cell then broke its own label letter by letter inside its
             // fixed height — a level badge reading "mati" for "Information" — and only a rule can put those back.
+            //
+            // The stacked line is a flex row of the label and the value, and a flex row shrinks its items in
+            // proportion to their width: beside a long message the label was left a few pixels, and with the
+            // cell's overflow-wrap it broke letter by letter ("M e s s a g e"). The label keeps its width.
             "ui-grid-cell",
             StackedCards
                 ? "max-sm:flex max-sm:items-baseline max-sm:justify-between max-sm:gap-3 "
-                  + "max-sm:before:font-medium max-sm:before:text-base-content/60 "
+                  + "max-sm:before:shrink-0 max-sm:before:font-medium max-sm:before:text-base-content/60 "
                   + "max-sm:before:content-[attr(data-label)]"
                 : "",
             column.CellClasses);

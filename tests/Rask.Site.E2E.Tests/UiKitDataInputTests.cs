@@ -1324,12 +1324,16 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
                          + getComputedStyle(u.querySelector('[data-ui-file-upload-dropzone]')).getPropertyValue('--ui-file-upload-progress'));
                      new MutationObserver(note).observe(u, { attributes: true }); }");
 
-        // Some two dozen reads of 64 kB: enough to be seen part-way, and short on a busy machine.
+        // Three reads of 64 kB: each is a task of its own and the observer notes every one, so the file is seen
+        // part-way on any machine. No more than three, because a handler that has outlived its repaint budget
+        // repaints its component at every await, and this handler's component is the whole page: two dozen
+        // reads were two dozen page renders on a slow runner and outlasted the wait (CI run 38281784445).
         await upload.Locator("input[type=file]").SetInputFilesAsync(
-            new FilePayload { Name = "film.bin", MimeType = "application/octet-stream", Buffer = new byte[1_500_000] });
+            new FilePayload { Name = "film.bin", MimeType = "application/octet-stream", Buffer = new byte[150_000] });
         await Expect(progress.Locator("[data-ui-file-item]")).ToContainTextAsync(
-            "film.bin", new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
-        await Expect(upload).Not.ToHaveAttributeAsync("data-loading", "");
+            "film.bin", new LocatorAssertionsToContainTextOptions { Timeout = 60_000 });
+        await Expect(upload).Not.ToHaveAttributeAsync(
+            "data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
         var seen = await Page.EvaluateAsync<string[]>("() => window.seen");
 
         // Marked at once, at nothing; then what the handler has read, which the dropzone's bar takes its width from.
