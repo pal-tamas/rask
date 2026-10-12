@@ -133,6 +133,58 @@ public partial class UiPickerUnreadTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task The_clear_button_ends_where_erasing_every_part_does_and_a_required_picker_says_required_at_the_save()
+    {
+        var trip = new Trip { Leaves = new DateOnly(2026, 3, 15), At = new TimeOnly(9, 30) };
+        var saves = 0;
+        var page = Acting.Render(() => Form.Model(trip).OnSubmit(_ => saves++)[
+            Ui.DatePicker.Bind(() => trip.Leaves).Clearable().Type(Ui.DatePickerType.Input).Locale("en-US").On(Today).Label("Leaves").Id("leaves"),
+            Ui.TimePicker.Bind(() => trip.At).Clearable().Type(Ui.TimePickerType.Input).Locale("en-US").Label("At").Id("at")
+        ]);
+
+        await page.On("#leaves " + Whole).Raise("change", HalfDate);
+        await page.On("[data-ui-date-picker] [aria-label=\"Clear\"]").Click();
+        await page.On("[data-ui-time-picker] [aria-label=\"Clear\"]").Click();
+        await page.On("form").Submit();
+
+        Assert.Null(trip.Leaves);
+        Assert.Null(trip.At);
+        Assert.Equal("The Leaves field is required.", page.TextOf("#leaves-error"));
+        Assert.Equal("", page.TextOf("#at-error"));
+        Assert.Equal(0, saves);
+    }
+
+    [Fact]
+    public async Task The_clear_button_shows_an_empty_picker_at_once_and_writes_the_model_with_the_next_action()
+    {
+        var trip = new Trip { Leaves = new DateOnly(2026, 3, 15) };
+        var page = Acting.Render(() => Form.Model(trip)[
+            Ui.DatePicker.Bind(() => trip.Leaves).Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+        var shown = page.Html;
+        var held = trip.Leaves;
+        await Acting.Act(page);
+
+        Assert.Contains(">Select a date</span>", shown, StringComparison.Ordinal);
+        Assert.Equal(new DateOnly(2026, 3, 15), held);
+        Assert.Null(trip.Leaves);
+    }
+
+    [Fact]
+    public async Task The_clear_button_of_a_live_picker_writes_the_model_at_once()
+    {
+        var trip = new Trip { Leaves = new DateOnly(2026, 3, 15) };
+        var page = Page.Render(() => Form.Model(trip)[
+            Ui.DatePicker.Bind(() => trip.Leaves).Live().Clearable().Locale("en-US").On(Today).Label("Leaves").Id("leaves")]);
+
+        await page.On("[aria-label=\"Clear\"]").Click();
+
+        Assert.Null(trip.Leaves);
+        Assert.Contains(">Select a date</span>", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_range_with_one_end_emptied_is_no_range_and_with_both_emptied_is_nothing_chosen()
     {
         var trip = new Trip { Leaves = Today, Stay = new UiDateRange(new DateOnly(2026, 1, 4), new DateOnly(2026, 1, 6)) };

@@ -4,6 +4,8 @@ using Rask.Core.Components;
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
 using Rask.Core.Live;
+using Rask.Core.Messaging;
+using Rask.Wire;
 
 namespace Rask.Core;
 
@@ -362,7 +364,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                if (ShowsUnderItsFields(ex, ctx) || SaveRefusal.Show(ex, ctx, GetType().Name))
+                if (Refusal.Find(ex) is { } refusal && Shows(refusal, ctx))
                 {
                     return;
                 }
@@ -390,21 +392,21 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             }
         };
 
-    // A failure that names its fields — the database refusing a duplicate — is drawn under them like a
-    // rule's message: no fault, no f.Error. The submit stays a failure only when some failure in it has
-    // nowhere on the page to be read.
-    private bool ShowsUnderItsFields(Exception thrown, EditContext ctx)
+    // A refusal — the database refusing a duplicate, a rule saying no — is read where it can be answered:
+    // under the fields it names, in the form's own messages, and what neither shows in a toast. No fault,
+    // no f.Error. The submit stays a failure only when some sentence of it has nowhere at all to be read.
+    private bool Shows(IReadOnlyList<FieldFailure> refusal, EditContext ctx)
     {
-        if (FieldFailurePlacement.Find(thrown) is not { } failures || !FieldFailurePlacement.Place(ctx, failures))
+        var unread = FieldFailurePlacement.Place(ctx, refusal);
+        if (unread.Count > 0 && !Refusal.Say(unread))
         {
             return false;
         }
 
-        var sources = failures.Failures.Select(failure => failure.Source ?? string.Join('+', failure.Fields));
         RaskDiagnostics.Report(
             RaskLogLevel.Information,
             "Rask.Forms",
-            $"A form submit on {GetType().Name} was refused: {string.Join(", ", sources)}");
+            $"A form submit on {GetType().Name} was refused: {Refusal.Sources(refusal)}");
         return true;
     }
 

@@ -126,6 +126,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Which presets are listed, in this order. Setting it lists them.</summary>
     public IReadOnlyList<Ui.DateRangePreset>? Presets { get; set; }
 
+    /// <summary>
+    ///     A button that empties the picker, shown while a date is chosen. A bound <c>DateOnly?</c> or
+    ///     <c>UiDateRange?</c> becomes <see langword="null" />; one that cannot be goes back to its unset value.
+    /// </summary>
+    public bool? Clearable { get; set; }
+
     /// <summary>Prevents the reader from opening the picker.</summary>
     public bool? Disabled { get; set; }
 
@@ -230,6 +236,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Disabled = Disabled == true,
             Invalid = field.Invalid,
             Aria = field.Aria,
+            Clearable = Clearable == true,
+            Clear = () => ClearAsync(acc, ctx),
             Dates = Dates(committed),
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
@@ -237,14 +245,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Show = () => _open = true,
         };
 
-        var calendar = UiCalendarGrid.Render(
-            options with { Id = scope.CalendarId, InPopup = true, Closes = Confirms ? null : PopoverId },
-            _state,
-            Picks(shown, Choose),
-            UiDatePickerLook.Calendar,
-            Aside(shown, options, Choose) ?? Div.Class(UiDatePickerLook.Aside),
-            Footer(Commit),
-            marked: false);
+        var calendar = Calendar(scope.CalendarId, options, shown, Choose, Commit);
 
         return field.Wrap(
             // The popup hangs under the whole picker — under both fields of a range typed into two.
@@ -271,12 +272,29 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private Task UntypedAsync(
         int slot, bool half, int fields, ExpressionAccessor.Accessor? accessor, EditContext? context, T? committed)
     {
+        var every = (1 << fields) - 1;
         _emptied = half ? _emptied & ~(1 << slot) : _emptied | (1 << slot);
-        if (half || _emptied != (1 << fields) - 1)
+        if (half || (_emptied & every) != every)
         {
             return UiFormCommit.UnreadAsync(this, accessor, context, committed, RaskString.ValidationDate);
         }
 
+        return EmptyAsync(accessor, context);
+    }
+
+    // The clear button's: every typed field counts as emptied, and a choice still waiting to be confirmed goes
+    // with the one that was written.
+    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
+        _emptied = ~0;
+        _pending = default;
+        return EmptyAsync(accessor, context);
+    }
+
+    // Nothing chosen, however the reader said so — the clear button, or every part of every field erased: null
+    // where the bound member can say so, the type's unset value where it cannot.
+    private Task EmptyAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
         _own = (Bind is null, default, Value);
         return UiFormCommit.ClearAsync(this, accessor, context);
     }
@@ -308,6 +326,17 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
         return date.ToString(pattern, culture);
     }
+
+    // The months in the popup, a range's presets before them and the confirming buttons under them.
+    private Component Calendar(string id, UiCalendarOptions options, T? shown, Func<T, Task> choose, Func<T, Task> commit) =>
+        UiCalendarGrid.Render(
+            options with { Id = id, InPopup = true, Closes = Confirms ? null : PopoverId },
+            _state,
+            Picks(shown, choose),
+            UiDatePickerLook.Calendar,
+            Aside(shown, options, choose) ?? Div.Class(UiDatePickerLook.Aside),
+            Footer(commit),
+            marked: false);
 
     private Component OwnTrigger() =>
         Type == Ui.DatePickerType.Input ? Ui.DatePickerInput : Ui.DatePickerButton;
