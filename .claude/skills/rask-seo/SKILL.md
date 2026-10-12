@@ -32,6 +32,7 @@ own ("blazor", "react"). Map every new page to one:
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
 | show a database unique-constraint / duplicate-key error under the form field in C#, EF Core unique index validation message | `forms-validation` (#the-database-said-no) |
 | unsaved changes warning / confirm before leaving a form in a C# web app | `forms` (#ask-before-leaving-unsaved-changes) |
+| number input reads as empty / "required" shown for an invalid number, input type=number validation message in C#, whole-number field rejects a decimal | `forms-validation` (#what-a-number-field-says-when-it-cannot-read-what-was-typed) |
 | page title in a layout's breadcrumb / dynamic document title per route in a C# web app, no flash on first load | `routing` (#a-pages-title--pagetitle-and-routetitle) |
 | full-text search EF Core, SQLite FTS5 / PostgreSQL tsvector / in the browser | `full-text-search` |
 | .NET One Person Framework (the philosophy guide) | `one-person-framework` |

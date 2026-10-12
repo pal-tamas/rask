@@ -92,6 +92,23 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A number, date or time field holding text the browser will not hand over is no longer an empty field.**
+  A lone minus, `1e400`, a date with only its month typed: the browser reports the value as empty, so a
+  required field said "required" to a reader who had typed, and a browser's own bubble refused the submit in
+  the browser's language. The runtime now says in the frame that the field held something (`bad`), the bind
+  notes it unread with the type's sentence, and the browser's refusal of a submit over such a field — or over
+  a fraction in a number field with no `step` of its own — is called off so the page can refuse it with that
+  sentence under the field. A constraint the app wrote (`required`, `pattern`, `min`, a `step`) stays the
+  browser's. A field bound `.Blur()` says it as it is left, a `.Live()` one at its pause.
+- **`Ui.DatePicker` and `Ui.TimePicker` typed half way no longer save the value they held before.** The typed
+  parts kept the last whole value behind them, as Flux's do: a month erased and the form saved stored the old
+  date. Left half filled — one end of a range included — the picker says "Enter a valid date." / "Enter a
+  valid time." and the save is refused; with every part emptied it is nothing chosen (`null`, and a required
+  one says so). The first key of a correction takes the sentence away.
+- **`12,5` sent as text to a bound `decimal` is no longer 125.** The invariant parser reads a comma as a
+  separator of thousands wherever it stands. What a number input sends — digits and a dot — is read as before
+  in every culture; any other spelling is read in the session's culture (`12,5` and `1 234,5` under `hu`,
+  `1,234.5` under `en`, groups of three only) or is no number, and the field says so.
 - **A bound field no longer keeps its stored value as if it had been typed when the text does not fit its
   type.** `Input.Bind(() => model.Weight)` over an `int` that received `99999999999`, `1.5` or `1e3` — text a
   number input accepts — failed to parse, left the model as it was and said nothing: on a new form the field

@@ -36,6 +36,9 @@ public sealed partial class BindTimingDemo : Component
                     .Validate(cabin => cabin.Length > 0 ? [] : ["Pick a cabin."])[
                     Cabins.Select(cabin => Ui.SelectOption.Key(cabin)[cabin])
                 ],
+                Ui.Input.Bind(() => _model.Travellers).Label("Travellers")
+                    .Id("bt-travellers")
+                    .Description("A whole number. Try 1.5, then Save."),
                 Ui.Switch.Bind(() => _model.Insured).Label("Insured")
                     .Id("bt-insured")
                     .Description("Written as it is flipped.")

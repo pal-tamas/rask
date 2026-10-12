@@ -72,7 +72,8 @@ public static partial class DemoRegistry
                 .Notes("A bound field waits for the next action. Live sends it as you type, Blur when you leave "
                 + "it. A list, a switch or a date follows the same rule: the list shows the pick at once and "
                 + "writes it with Save, the Live switch writes as it is flipped. Watch what the model holds while "
-                + "you fill in each one, then press Save.")
+                + "you fill in each one, then press Save. Travellers is a whole number: 1.5 is not saved and not "
+                + "called empty, the field says what it could not read.")
                 .Result(BindTimingDemo),
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])
