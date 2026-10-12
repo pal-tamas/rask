@@ -225,19 +225,22 @@ public static partial class LlmsText
         };
     }
 
+    // No match timeout on these, for Markdown.cs's reason: they read the repository's own guides a line at a time,
+    // and a wall-clock budget on trusted text fails a slow machine without guarding anything.
+    //
     // ](/path) — rooted on the site, but not protocol-relative (//host).
-    [GeneratedRegex(@"\]\((?<path>/(?!/)[^)\s]*)\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\]\((?<path>/(?!/)[^)\s]*)\)", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex RootedLink();
 
-    [GeneratedRegex(@"<!--\s*demo:\s*[a-z0-9][a-z0-9-]*\s*-->", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"<!--\s*demo:\s*[a-z0-9][a-z0-9-]*\s*-->", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex DemoMarker();
 
     // ](path#frag "title") — relative only: not a scheme, not rooted, not a bare fragment. Any target, not just
     // Markdown: ../tests/Rask.Cqrs.Tests is as dead on the site as ../cli.md was.
-    [GeneratedRegex("""\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+)(?<frag>#[^)\s]*)?(?<title>\s+"[^"]*")?\)""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("""\]\((?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^)\s#]+)(?<frag>#[^)\s]*)?(?<title>\s+"[^"]*")?\)""", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex InlineLink();
 
     // [label]: path#frag — a reference-style link definition.
-    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^\s#]+)(?<frag>#\S*)?", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^(?<lead>\s*\[[^\]]+\]:\s*)(?<path>(?![a-zA-Z][a-zA-Z0-9+.-]*:|/|#)[^\s#]+)(?<frag>#\S*)?", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex ReferenceLink();
 }
