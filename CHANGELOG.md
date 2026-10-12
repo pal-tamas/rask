@@ -41,6 +41,10 @@ them until tagged releases begin.
   (`Rows[2].Weight` asks the row's type, `Price.Amount` the type of `Price`), and keeps each answer until a
   type is registered again, so a control can ask on every render. A form control of your own asks it instead
   of reading `RequiredAttribute` — see `docs/forms-validation.md` and `docs/building-form-controls.md`.
+- **Five framework sentences for text a bound field cannot read**, each a `RaskString` key with its Hungarian
+  built into `Rask.Ui`: `ValidationWholeNumber` "Enter a whole number.", `ValidationNumber` "Enter a number.",
+  `ValidationNumberRange` "The number is out of range.", `ValidationDate` "Enter a valid date." and
+  `ValidationTime` "Enter a valid time.". An app's `Resources/RaskStrings.{culture}.json` overrides them.
 - **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
   of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
   app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.
@@ -164,6 +168,15 @@ them until tagged releases begin.
   slider and a plain `group` (`Ui.CheckboxGroup`, `Ui.Otp`, a typed date) write none, their roles having no
   such state. **For an existing app:** markup that is compared byte for byte gains the attribute on fields
   bound to a `[Required]` member.
+- **A bound field no longer keeps its stored value as if it had been typed when the text does not fit its
+  type.** `Input.Bind(() => model.Weight)` over an `int` that received `99999999999`, `1.5` or `1e3` — text a
+  number input accepts — failed to parse, left the model as it was and said nothing: on a new form the field
+  answered "required" to a reader who had typed, and on an edit form **the save ran with the old value** while
+  the box showed the new one. The field now says what it could not read — a whole number, a number, a number
+  out of range, a date, a time, chosen by the bound type — under the field like any message, ahead of
+  "required" and of an inline `.Validate(…)` (which is not asked about a value the field never read), with
+  or without `AutoValidate`; the submit handler does not run until a value arrives that fits. `1e3` is now
+  read as 1000 by a whole number and a decimal, and an infinity is refused by a `double`.
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
   `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children
