@@ -15,6 +15,8 @@
 // its own `autofocus` element when the browser opens it. Nor is a page reached at a `#fragment`, which a browser
 // loading it would have focused at the fragment instead.
 
+import {unasked} from "./rask-owned.js";
+
 const doc = typeof document === "undefined" ? null : document;
 
 // Every `[autofocus]` element a frame has already been asked about. What the document was served with was the
@@ -64,7 +66,9 @@ export function focusArrived(history?: {action?: string} | null, elsewhere?: boo
     if (!found || elsewhere || (!navigated && typing())) {
         return false;
     }
-    // A replaced entry (Back, Forward) leaves the scroll to the browser's own restoration.
-    found.focus({preventScroll: !!history && !navigated});
+    // A render brought it: the `focus` it raises, and the field it takes focus from, are no action of the
+    // reader's, so what waits goes on waiting (rask-owned.ts). A replaced entry (Back, Forward) leaves the
+    // scroll to the browser's own restoration.
+    unasked(function () { found.focus({preventScroll: !!history && !navigated}); });
     return doc.activeElement === found;
 }

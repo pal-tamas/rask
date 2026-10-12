@@ -20,6 +20,12 @@ them until tagged releases begin.
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
 
+- **Focus the runtime gives an `autofocus` field is not the reader's next action.** A render that brought an
+  `autofocus` element focused it as if the reader had: the `focus` it raised (an `OnFocus` handler), and the
+  leaving of the field focus was taken from, went out as an action and carried every bound value that was
+  waiting — a cabin picked and not yet saved was written by a frame the reader never asked for. That focus is
+  the runtime's own now (`"unasked":true`), on both hosts, like the focus a dialog's trap moves.
+
 - **DevTools counts a handler that failed into a toast once.** Since a handler's fault keeps its page and says
   so in a toast, one failed click on a page that draws toasts put `2` on the pill and two entries on the Errors
   tab: the toast's reference was logged with the exception before the fault itself was listed, so the log line

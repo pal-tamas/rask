@@ -66,6 +66,9 @@ export class StubField {
     }
 }
 
+/** The elements the page holds with `autofocus`, as a frame's render left them. */
+export const autofocused: StubField[] = [];
+
 const page = globalThis as unknown as Record<string, unknown>;
 page.window = globalThis;
 page.Element = StubField;
@@ -75,7 +78,7 @@ page.document = {
         const earlier = listeners[type];
         listeners[type] = earlier ? function (e) { earlier(e); heard(e); } : heard;
     },
-    querySelectorAll() { return []; },
+    querySelectorAll(selector: string) { return selector === "[autofocus]" ? autofocused : []; },
 };
 page.requestAnimationFrame = function (run: () => void) { return frames.push(run); };
 page.cancelAnimationFrame = function () { frames.length = 0; };
