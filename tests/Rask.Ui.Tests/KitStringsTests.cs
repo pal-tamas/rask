@@ -103,6 +103,18 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_field_that_must_be_filled_says_so_in_hungarian_though_no_kit_component_asks()
+    {
+        const string english = "This field is required.";
+
+        var hungarian = KitCulture.In("hu-HU", () => RaskStrings.Get(RaskString.ValidationRequired, english));
+        var elsewhere = KitCulture.In("en-US", () => RaskStrings.Get(RaskString.ValidationRequired, english));
+
+        Assert.Equal("Kötelező kitölteni.", hungarian);
+        Assert.Equal(english, elsewhere);
+    }
+
+    [Fact]
     public void A_key_in_the_apps_own_catalog_is_used_over_the_kits()
     {
         // Slovakia's Hungarian, which no other test reads: the app's source is process-wide.
@@ -141,7 +153,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Every_key_the_kit_reads_has_a_hungarian_and_the_file_holds_no_other()
     {
-        var read = KitEnglish().Keys.Order(StringComparer.Ordinal);
+        var read = KitEnglish().Keys.Concat(ReadOutsideTheKit).Order(StringComparer.Ordinal);
 
         var translated = KitHungarian().Keys.Order(StringComparer.Ordinal);
 
@@ -200,6 +212,10 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
 
     private static string Render(FluxParity parity) =>
         string.Concat(parity.Examples().Select(example => example.Example.ToHtml())).AsText();
+
+    // Keys no kit source reads, whose Hungarian the kit carries all the same: a generated model asks for
+    // them, in the app's own assembly.
+    private static readonly string[] ReadOutsideTheKit = [nameof(RaskString.ValidationRequired)];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.
     private static Dictionary<string, string> KitEnglish() =>
