@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Routing;
@@ -95,20 +96,48 @@ public sealed class NavigationIsADiffTests(ITestOutputHelper output)
         Assert.Contains(LastRow, frames[^1], StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("/trail/orders", "/trail/orders/new")]
+    [InlineData("/trail/orders/new", "/trail/orders")]
+    public async Task A_breadcrumb_item_that_turns_link_and_the_outlet_are_two_morphs_of_their_own_parents_not_one_of_the_layout(
+        string from, string to)
+    {
+        await using var session = await Session.Open<TrailApp>(from, output);
+        var whole = session.FirstBytes;
+
+        await session.Navigate(to);
+        var frame = await session.Next();
+
+        var morphed = Regex.Matches(frame, "\\[8,\\[([0-9,]+)\\],", RegexOptions.None, TimeSpan.FromSeconds(1)).Select(m => m.Groups[1].Value).ToArray();
+        Assert.StartsWith("{\"kind\":\"diff\"", frame, StringComparison.Ordinal);
+        Assert.Equal(["1,1,0,1,1,1", "1,1,0,2"], morphed);
+        Assert.DoesNotContain(Menu, frame, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\\\"search\\\"", frame, StringComparison.Ordinal);
+        Assert.Equal(to, LiveFrames.HistoryUrl(frame));
+        Assert.InRange(Encoding.UTF8.GetByteCount(frame), 1, whole / 10);
+    }
+
     // One page of the app over a live socket: where the reader goes, and each frame that comes back.
     private sealed class Session(RaskTestHost host, WebSocket ws, ITestOutputHelper output) : IAsyncDisposable
     {
-        public static async Task<Session> Open(ListArrivalStore store, string path, ITestOutputHelper output)
+        /// <summary>The size of the page as it was first served.</summary>
+        public int FirstBytes { get; private init; }
+
+        public static Task<Session> Open(ListArrivalStore store, string path, ITestOutputHelper output) =>
+            Open<ListArrivalApp>(path, output, store);
+
+        public static async Task<Session> Open<TApp>(string path, ITestOutputHelper output, ListArrivalStore? store = null)
+            where TApp : Component
         {
-            var host = RaskTestHost.Create<ListArrivalApp>(
-                configureServices: services => services.AddSingleton(store), environment: "Development");
+            var host = RaskTestHost.Create<TApp>(
+                configureServices: services => services.AddSingleton(store ?? new ListArrivalStore()), environment: "Development");
             var html = await host.Http.GetStringAsync(path);
             var sessionId = MarkupAssert.SessionId(html);
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
             await ws.AttachedAsync(host, sessionId);
             output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"GET {path}: {Encoding.UTF8.GetByteCount(html)} B"));
-            return new Session(host, ws, output);
+            return new Session(host, ws, output) { FirstBytes = Encoding.UTF8.GetByteCount(html) };
         }
 
         public Task Navigate(string path) => ws.SendJsonAsync(new { type = "navigate", path, query = "" });

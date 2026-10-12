@@ -178,6 +178,41 @@ public partial class RefusedLevelMorphTests : global::Rask.Core.RaskMarkup
         Assert.True(LiveDiffGate.DiffOpsAreClientSupported(reply.Ops));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Two_refused_levels_far_apart_are_each_a_morph_of_their_own_parent_never_one_of_the_ancestor_they_share(bool toForm)
+    {
+        Component Layout(bool form) => Div.Id("layout")[
+            Header[
+                Input.Value("").Name("search"),
+                Nav[
+                    Div.Key("home")[A.Href("/")["Home"]],
+                    Div.Key("list")[form ? A.Href("/orders")["Orders"] : Div["Orders"], Span[">"]],
+                    form ? Div.Key("here")[Div["New order"]] : null
+                ]
+            ],
+            Aside[Enumerable.Range(1, 20).Select(n => (Component)A.Href("/menu/" + n)["Menu item " + n])],
+            Main[form ? [H1["New order"], Fieldset[Input.Value("").Name("name")]] : [Div[H1["Orders"]], P["Three orders."]]]
+        ];
+        var reply = Reply.To(Layout(!toForm), Layout(toForm));
+        var search = reply.Before.At(0, 0, 0);
+        var menu = reply.Before.At(0, 1);
+        var separator = reply.Before.At(0, 0, 1, 1, 1);
+
+        reply.Apply();
+
+        Assert.Equal(
+            [(EditOpKind.MorphSubtree, "0/0/1/1"), (EditOpKind.MorphSubtree, "0/2")],
+            reply.Ops.Where(op => op.Kind == EditOpKind.MorphSubtree).Select(op => (op.Kind, string.Join('/', op.Path))));
+        Assert.All(reply.Morphed, markup => Assert.DoesNotContain("Menu item", markup, StringComparison.Ordinal));
+        Assert.StartsWith(toForm ? "<a href=\"/orders\">Orders</a>" : "<div>Orders</div>", reply.Morphed.First(), StringComparison.Ordinal);
+        Assert.Same(search, reply.Before.At(0, 0, 0));
+        Assert.Same(menu, reply.Before.At(0, 1));
+        Assert.Same(separator, reply.Before.At(0, 0, 1, 1, 1));
+        Assert.Equal(reply.Expected, reply.Before.Html);
+    }
+
     [Fact]
     public void A_keyed_child_inside_the_morphed_parent_stays_the_node_it_was_wherever_it_lands()
     {
