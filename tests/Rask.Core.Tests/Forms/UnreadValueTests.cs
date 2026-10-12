@@ -385,6 +385,42 @@ public partial class UnreadValueTests : global::Rask.Core.RaskMarkup
         Assert.Empty(heard);
     }
 
+    [Fact]
+    public void Only_a_form_whose_handler_takes_what_was_posted_says_the_browsers_own_refusal_stands()
+    {
+        var m = new Tank();
+
+        var modelled = Page.Render(() => Form.Model(m).OnSubmit(_ => { })[Input.Bind(() => m.Weight)]);
+        var posted = Page.Render(() => Form.Model(m).OnAnySubmit(_ => { })[Input.Bind(() => m.Weight)]);
+
+        Assert.Null(modelled.Find("form").Attribute("data-rask-unvalidated"));
+        Assert.NotNull(posted.HandlerId("submit"));
+        Assert.Equal("", posted.Find("form").Attribute("data-rask-unvalidated"));
+    }
+
+    [Fact]
+    public async Task A_save_that_would_refuse_the_same_field_is_never_asked_while_the_field_is_unread()
+    {
+        var m = new Tank();
+        var saves = 0;
+        EditContext? ctx = null;
+        var page = Page.Render(() => Form.Model(m).OnSubmit(_ =>
+        {
+            saves++;
+            throw new ValidationException(new ValidationResult("The store says no.", [nameof(Tank.Weight)]), null, null);
+        })[Input.Bind(() => m.Weight), Test.EditContextProbe(c => ctx = c)]);
+
+        await page.On("input").Change("1.5");
+        await page.On("form").Submit();
+        var whileUnread = ctx!.GetValidationMessages().ToArray();
+        await page.On("input").Change("12");
+        await page.On("form").Submit();
+
+        Assert.Equal([Whole], whileUnread);
+        Assert.Equal(1, saves);
+        Assert.Equal(["The store says no."], ctx.GetValidationMessages());
+    }
+
     private sealed class Label
     {
         public string Code { get; set; } = "x";

@@ -340,7 +340,8 @@ document.addEventListener("focusout", (e) => {
 // number field with no `step` of its own — the page has a sentence for it. So the browser's bubble is called
 // off and the submit goes, for the page to refuse with that sentence under the field. A form with anything
 // else wrong — a `required`, a `pattern`, a `min` the app wrote — stays the browser's to refuse, and only
-// what could not be read is sent.
+// what could not be read is sent. So does a form whose handler takes what was posted whatever the rules say,
+// or that has no model to have rules (`data-rask-unvalidated`): the browser's refusal is all that stops it.
 const refusing = new WeakSet<HTMLFormElement>();
 
 function pageSpeaksFor(el: Element): boolean {
@@ -359,7 +360,8 @@ function browserSpeaksFor(el: Element): boolean {
 document.addEventListener("invalid", (e) => {
     const field = e.target as HTMLInputElement;
     const form = field.form;
-    if (!form || !form.hasAttribute("data-rask-on-submit") || !inRoot(form) || !pageSpeaksFor(field)) return;
+    if (!form || !form.hasAttribute("data-rask-on-submit") || form.hasAttribute("data-rask-unvalidated")
+        || !inRoot(form) || !pageSpeaksFor(field)) return;
     e.preventDefault();
     // A date half typed has fired no `input`: it is noted here, so that its frame goes ahead of the submit.
     if (field.hasAttribute(BIND_ON)) remember(field);

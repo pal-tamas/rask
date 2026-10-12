@@ -167,6 +167,23 @@ public sealed class UnreadInputClientTests
     }
 
     [Fact]
+    public void A_form_whose_handler_takes_what_was_posted_keeps_the_browsers_refusal_and_sends_nothing()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var calledOff = root.GetProperty("noModelCalledOff").GetBoolean();
+        var submits = root.GetProperty("noModelSubmits").GetInt32();
+        var sent = Sent(root, "noModelSent");
+
+        Assert.False(calledOff);
+        Assert.Equal(0, submits);
+        Assert.Empty(sent);
+    }
+
+    [Fact]
     public void A_step_the_app_wrote_an_unbound_field_and_a_number_out_of_its_range_stay_the_browsers()
     {
         if (Run() is not { } root)

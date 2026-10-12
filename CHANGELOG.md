@@ -178,7 +178,7 @@ them until tagged releases begin.
   notes it unread with the type's sentence, and the browser's refusal of a submit over such a field — or over
   a fraction in a number field with no `step` of its own — is called off so the page can refuse it with that
   sentence under the field. A constraint the app wrote (`required`, `pattern`, `min`, a `step`) stays the
-  browser's. A field bound `.Blur()` says it as it is left, a `.Live()` one at its pause.
+  browser's, and so does a form whose `OnAnySubmit` takes what was posted whatever the rules say. A field bound `.Blur()` says it as it is left, a `.Live()` one at its pause.
 - **`Ui.DatePicker` and `Ui.TimePicker` typed half way no longer save the value they held before.** The typed
   parts kept the last whole value behind them, as Flux's do: a month erased and the form saved stored the old
   date. Left half filled — one end of a range included — the picker says "Enter a valid date." / "Enter a

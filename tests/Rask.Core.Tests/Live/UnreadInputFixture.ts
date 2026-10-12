@@ -26,8 +26,12 @@ class StubForm {
     elements: StubField[] = [];
     submits = 0;
 
+    /** Whether the page's rules decide if the form's handler runs: false for one that takes what was posted. */
+    constructor(private readonly validated = true) {
+    }
+
     hasAttribute(name: string): boolean {
-        return name === "data-rask-on-submit";
+        return name === "data-rask-on-submit" || (name === "data-rask-unvalidated" && !this.validated);
     }
 
     // What the host's own `submit` listener does with it.
@@ -204,7 +208,20 @@ const leftToTheBrowser = [refuse(stepped), refuse(controlled), refuse(ranged)];
 elapse(0);
 const leftToTheBrowserSubmits = form.submits;
 
+// A form whose handler takes what was posted whatever the rules say: the browser's refusal stands.
+fresh();
+form = new StubForm(false);
+weight = form.add(field("number", waits));
+typeUnreadable(weight);
+const noModelCalledOff = refuse(weight);
+elapse(0);
+const noModelSubmits = form.submits;
+const noModelSent = taken();
+
 process.stdout.write(JSON.stringify({
+    noModelCalledOff,
+    noModelSubmits,
+    noModelSent,
     heldBackBeforeAClick,
     readableSaysNothing,
     aDateAndATime,
