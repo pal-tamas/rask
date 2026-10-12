@@ -14,7 +14,7 @@ public sealed partial class MasterDetailDemoTests : global::Rask.Core.RaskMarkup
 
         var headings = Regex.Matches(html[..html.IndexOf("</thead>", StringComparison.Ordinal)], "<th[ >][^>]*");
 
-        Assert.Matches("<table[^>]*id=\"md-orders\"[^>]*class=\"[^\"]*w-full min-w-160", html);
+        Assert.Matches("<table[^>]*id=\"md-orders\"[^>]*class=\"[^\"]*w-full min-w-190", html);
         Assert.Equal(6, headings.Count);
         Assert.Single(headings, heading => !Regex.IsMatch(heading.Value, @"[ ""]w-\d+"));
     }

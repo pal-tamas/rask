@@ -46,7 +46,7 @@ public sealed partial class MasterDetailDemo : Component
         var orders = SortOrders(_orders, _orderSort);
 
         return Ui.Card[Ui.CardBleed[
-            Ui.Table.Id("md-orders").Class("w-full min-w-160 [&_tbody_tr:hover]:bg-ui-well")[
+            Ui.Table.Id("md-orders").Class("w-full min-w-190 [&_tbody_tr:hover]:bg-ui-well")[
                 Ui.TableColumns.Class("bg-ui-well")[
                     _orderColumns.Select(c =>
                         c.Sortable
@@ -104,7 +104,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Ui.Table.Class("w-full min-w-140 [&_tbody_tr:nth-child(odd)]:bg-ui-well bg-white")[
+        return Ui.Table.Class("w-full min-w-168 [&_tbody_tr:nth-child(odd)]:bg-ui-well bg-ui-bg")[
             Ui.TableColumns[
                 _itemColumns.Select(c => SortHeader(c.Id, c.Header, c.Width, sort, col => ToggleItemSort(order.Id, col)))
             ],

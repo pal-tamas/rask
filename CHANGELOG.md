@@ -58,7 +58,8 @@ them until tagged releases begin.
   `Select` point to `Ui.DatePicker`, `Ui.TimePicker` and the listbox as what an app normally writes.
 - **The site's demos use them too.** Every demo outside the kit's own reference pages picks from the listbox and
   the date picker instead of the browser's `<select>` and date field, and the master-detail tables follow
-  [columns that stay put](docs/ui-kit.md#columns-that-stay-put).
+  [columns that stay put](docs/ui-kit.md#columns-that-stay-put). A demo's table inside a guide is drawn as the
+  kit draws it — full width — where the guide's rule for prose tables used to shrink it to its content.
 
 ### Changed
 
