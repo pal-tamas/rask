@@ -27,7 +27,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Options");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
         await Expect(panel).ToBeHiddenAsync();
 
         await trigger.ClickAsync();
@@ -57,7 +57,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Options");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
 
         await trigger.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
@@ -79,7 +79,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Categories");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
         var other = Trigger(scope, "Feedback");
 
         await trigger.ClickAsync();
@@ -97,7 +97,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Categories");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
         var count = scope.Locator("[data-testid='ui-popover-count']");
         await Expect(count).ToHaveTextAsync("3");
 
@@ -115,7 +115,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Feedback");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
 
         await trigger.ClickAsync();
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -139,7 +139,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Caleb Porzio");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
 
         await trigger.HoverAsync();
 
@@ -183,7 +183,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         var scope = await OpenAsync();
         var trigger = Trigger(scope, "Team sync");
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
 
         await trigger.ClickAsync();
 
@@ -200,14 +200,14 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     private static ILocator Trigger(ILocator scope, string name) =>
         scope.Locator("[data-ui-dropdown] > button").Filter(new LocatorFilterOptions { HasText = name });
 
-    private static ILocator Panel(ILocator scope, ILocator trigger) =>
-        scope.Locator("[data-ui-dropdown]").Filter(new LocatorFilterOptions { Has = trigger }).Locator("[data-ui-popover]");
+    // The panel comes right after its trigger, inside the dropdown that holds them both.
+    private static ILocator Panel(ILocator trigger) => trigger.Locator("xpath=following-sibling::*[@data-ui-popover]");
 
     // Opens one dropdown, measures the trigger and its panel, and closes it again.
     private async Task<(LocatorBoundingBoxResult Trigger, LocatorBoundingBoxResult Panel)> OpenedAsync(ILocator scope, string name)
     {
         var trigger = Trigger(scope, name);
-        var panel = Panel(scope, trigger);
+        var panel = Panel(trigger);
         await trigger.ScrollIntoViewIfNeededAsync();
         await trigger.ClickAsync();
         await Expect(panel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });

@@ -56,7 +56,8 @@ public sealed partial class UiKitPopoverDemo : Component
                     $"Last feedback: {_sent}."
                 ])),
             Section("Event details", "Detailed information about an event, in a panel with no padding of its own.",
-                Row("event", EventDetails()))
+                // Centred on a phone: a panel centred under a trigger at the page's edge would hang off it.
+                Div.Data(Testid("ui-popover-event")).Class("flex max-sm:justify-center")[EventDetails()])
         ];
 
     private Component Options() =>
@@ -127,7 +128,7 @@ public sealed partial class UiKitPopoverDemo : Component
         Ui.Dropdown.Key("feedback").Open(_feedbackOpen).OnToggle(open => { _feedbackOpen = open; })[
             Ui.Button.Icon(Ui.IconName.ChatBubbleOvalLeft)["Feedback"],
             Ui.Popover.Class("flex w-[min(30rem,calc(100vw-2rem))] flex-col gap-4")[
-                Ui.RadioGroup.Value(_kind).Key("kind").Id("popover-kind").Buttons.OnChange(v => { _kind = v; })[
+                Ui.RadioGroup.Value(_kind).Key("kind").Id("popover-kind").Buttons.Class("max-sm:flex-wrap").OnChange(v => { _kind = v; })[
                     Ui.Radio.Value("bug").Icon(Ui.IconName.BugAnt).Class("flex-1")["Bug report"],
                     Ui.Radio.Value("suggestion").Icon(Ui.IconName.LightBulb).Class("flex-1")["Suggestion"],
                     Ui.Radio.Value("question").Icon(Ui.IconName.QuestionMarkCircle).Class("flex-1")["Question"]
@@ -167,7 +168,7 @@ public sealed partial class UiKitPopoverDemo : Component
                     ]
                 ],
                 Ui.Separator.Key("event-1"),
-                Detail("guests", Ui.IconName.Users, Ui.Heading["Guests"],
+                Detail("guests", Ui.IconName.Users, Between("guests", Ui.Heading["Guests"], "Invite"),
                     Div.Class("mt-2 flex items-center gap-3")[
                         Ui.AvatarGroup.Class("dark:*:ring-zinc-700")[
                             Ui.Avatar.Xs.Circle().Name("Caleb Porzio"),
@@ -178,11 +179,13 @@ public sealed partial class UiKitPopoverDemo : Component
                     ]),
                 Ui.Separator.Key("event-2"),
                 Detail("when", Ui.IconName.Clock,
-                    Div.Class("flex gap-2")[
-                        Ui.Heading["10:00 AM"],
-                        Ui.Icon.Name(Ui.IconName.ArrowRight).Micro.Class("text-zinc-400"),
-                        Ui.Heading["11:00 AM"]
-                    ],
+                    Between("when",
+                        Div.Class("flex gap-2")[
+                            Ui.Heading["10:00 AM"],
+                            Ui.Icon.Name(Ui.IconName.ArrowRight).Micro.Class("text-zinc-400"),
+                            Ui.Heading["11:00 AM"]
+                        ],
+                        "Edit"),
                     Div.Class("mt-2 flex gap-3")[
                         Ui.Text["May 29 2025"],
                         Ui.Text["·"],
@@ -192,7 +195,8 @@ public sealed partial class UiKitPopoverDemo : Component
                         ]
                     ]),
                 Ui.Separator.Key("event-3"),
-                Detail("where", Ui.IconName.MapPin, Ui.Heading["Location"], Ui.Text.Class("mt-2")["Paris HQ, 13 rue de la Prairie 75018"])
+                Detail("where", Ui.IconName.MapPin, Between("where", Ui.Heading["Location"], "Edit"),
+                    Ui.Text.Class("mt-2")["Paris HQ, 13 rue de la Prairie 75018"])
             ]
         ];
 
@@ -201,6 +205,13 @@ public sealed partial class UiKitPopoverDemo : Component
         Div.Key(key).Class("flex gap-2 p-4")[
             Ui.Icon.Name(icon).Micro.Class("text-zinc-400"),
             Div.Class("flex-1")[heading, detail]
+        ];
+
+    // A block's heading with the quiet link Flux sets against its far edge.
+    private static Component Between(string key, Component heading, string link) =>
+        Div.Class("flex items-center justify-between")[
+            heading,
+            Ui.Text[Ui.Link.Key(key).As(Ui.LinkAs.Button).Variant(Ui.LinkVariant.Subtle)[link]]
         ];
 
     private static Component Row(string name, params IEnumerable<Component?> items) =>
