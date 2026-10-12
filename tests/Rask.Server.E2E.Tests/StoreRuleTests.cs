@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Core.Forms;
@@ -19,6 +18,12 @@ namespace Rask.Server.E2E.Tests;
 /// <remarks>
 ///     The store is a fake registered for the page's model, as a data layer registers its own. The session
 ///     fails the journey on any error the page did not catch.
+///     <para>
+///         The pause is the page's timer, so the first journey stops the page's clock and runs it by hand: the
+///         keys can take a loaded machine as long as they like, "while typing" is the 350 ms of page time after
+///         the last of them — every frame and timer short of the pause — and "at the first key" is read with
+///         the clock stopped half a pause later, where the pause cannot be what answered.
+///     </para>
 /// </remarks>
 public sealed partial class StoreRuleTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -27,26 +32,31 @@ public sealed partial class StoreRuleTests(PlaywrightFixture playwright) : IClas
     [Fact]
     public async Task A_taken_name_is_told_at_the_pause_cleared_at_the_first_key_and_a_free_one_is_saved()
     {
-        await using var session = await HookSession.OpenAsync<StoreRulePage>(playwright, beforeLoad: CountFrames);
+        await using var session = await HookSession.OpenAsync<StoreRulePage>(playwright, beforeLoad: CountFramesOnATestClock);
         var page = session.Page;
         await page.ClickAsync("#ready");
         await Expect(page.Locator("#is-ready")).ToHaveTextAsync("ready");
+        await PageClock.StopAsync(page);
 
         var before = await SentAsync(page);
-        await page.Locator("#name").PressSequentiallyAsync("Wien", new() { Delay = 30 });
+        await page.Locator("#name").PressSequentiallyAsync("Wien");
+        await page.Clock.RunForAsync(StoreRulePage.PauseMilliseconds - 50);
         var whileTyping = await SentAsync(page) - before;
+        await page.Clock.RunForAsync(100);
         await Expect(page.Locator("#name-error")).ToHaveTextAsync(Taken);
         var atThePause = await SentAsync(page) - before;
         var askedAtThePause = await page.Locator("#asked").TextContentAsync();
         await page.Locator("#name").PressSequentiallyAsync("e");
-        await Expect(page.Locator("#name-error")).ToHaveCountAsync(0, new() { Timeout = StoreRulePage.PauseMilliseconds / 2 });
+        await page.Clock.RunForAsync(StoreRulePage.PauseMilliseconds / 2);
+        await Expect(page.Locator("#name-error")).ToHaveCountAsync(0);
         var atTheFirstKey = await SentAsync(page) - before;
-        await page.Locator("#name").PressSequentiallyAsync("rwald", new() { Delay = 30 });
+        await page.Locator("#name").PressSequentiallyAsync("rwald");
+        await page.Clock.ResumeAsync();
         await Expect(page.Locator("#model")).ToHaveTextAsync("name=Wienerwald");
         await page.ClickAsync("#save");
 
         await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Wienerwald");
-        await Expect(page.Locator("#asked")).ToHaveTextAsync(FieldsThenTheWholeModel());
+        await Expect(page.Locator("#asked")).ToHaveTextAsync("asked=Name,Name,all");
         await Expect(page.Locator("#name-error")).ToHaveCountAsync(0);
         Assert.Equal(0, whileTyping);
         Assert.Equal(1, atThePause);
@@ -69,19 +79,13 @@ public sealed partial class StoreRuleTests(PlaywrightFixture playwright) : IClas
         await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=|saves=0");
     }
 
-    // The pause after the first key of the correction may or may not have passed before the rest was typed.
-    [GeneratedRegex("^asked=Name(,Name){1,2},all$")]
-    private static partial Regex FieldsThenTheWholeModel();
+    private static async Task CountFramesOnATestClock(IPage page)
+    {
+        await SentFrames.Count(page);
+        await PageClock.Install(page);
+    }
 
-    // The socket's outgoing frames, counted in the page, so a count read "now" is the count now.
-    private static Task CountFrames(IPage page) => page.AddInitScriptAsync(
-        """
-        window.__sent = 0;
-        const send = WebSocket.prototype.send;
-        WebSocket.prototype.send = function (data) { window.__sent++; return send.call(this, data); };
-        """);
-
-    private static Task<int> SentAsync(IPage page) => page.EvaluateAsync<int>("() => window.__sent");
+    private static Task<int> SentAsync(IPage page) => SentFrames.SoFarAsync(page);
 }
 
 internal sealed class Destination
