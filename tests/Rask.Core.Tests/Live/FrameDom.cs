@@ -74,7 +74,7 @@ internal sealed class FrameDom
     // when any incoming child carries one, else by position, and a pair of the same tag stays the node it was.
     private static void Morph(Node from, Node to)
     {
-        if (from.Attributes.ContainsKey("data-rask-opaque") || to.Attributes.ContainsKey("data-rask-opaque"))
+        if (from.Opaque || to.Opaque)
         {
             return;
         }
@@ -162,7 +162,7 @@ internal sealed class FrameDom
                     parent.Attributes[frame.Name!] = frame.Value;
                     break;
                 case RenderFrameKind.Element:
-                    var element = new Node(frame.Name, null);
+                    var element = new Node(frame.Name, null) { Opaque = frame.Opaque };
                     Fill(element, frames, i + 1, i + frame.SubtreeLength);
                     parent.Children.Add(element);
                     break;
@@ -180,6 +180,9 @@ internal sealed class FrameDom
         internal string? Tag { get; } = tag;
 
         internal string? Text { get; set; } = text;
+
+        /// <summary>An element whose children are a foreign renderer's: a morph stops at its border.</summary>
+        internal bool Opaque { get; init; }
 
         internal SortedDictionary<string, string?> Attributes { get; } = new(StringComparer.Ordinal);
 

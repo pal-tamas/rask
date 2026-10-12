@@ -63,29 +63,31 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
     };
 
     /// <summary>
-    ///     Prop changes the gate still answers with the whole page, and where each changes shape. Each puts one
-    ///     node in the PLACE of another — bare words become a <c>&lt;span&gt;</c>, initials become an icon, a
-    ///     control becomes a field around it — which is not a child that comes or goes: the differ cannot tell
-    ///     which node stayed. So the fix is a different shape, and for a Flux component that is a parity
-    ///     decision, not a patch.
+    ///     Prop changes the differ cannot follow node by node, and where each changes shape. Each puts one node
+    ///     in the PLACE of another — bare words become a <c>&lt;span&gt;</c>, initials become an icon, a control
+    ///     becomes a field around it — which is not a child that comes or goes: the differ cannot tell which
+    ///     node stayed, so the parent it happens in is morphed. That is no longer the whole page, and each is
+    ///     held here to the ONE parent it morphs — the component's own element, never the page around it — and
+    ///     to no more characters of markup than it costs today. The fix is still a different shape, and for a Flux component
+    ///     that is a parity decision, not a patch.
     /// </summary>
-    private static readonly Dictionary<string, (Func<bool, Component> Draw, string Where)> Refused = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, (Func<bool, Component> Draw, int Chars, string Where)> Morphs = new(StringComparer.Ordinal)
     {
-        ["button icon"] = (on => Ui.Button.Icon(on ? Ui.IconName.Check : null)["Save"],
+        ["button icon"] = (on => Ui.Button.Icon(on ? Ui.IconName.Check : null)["Save"], 363,
             "src/Rask.Ui/UiButton.cs:316 — bare words become a <span> beside the icon"),
-        ["button trailing icon"] = (on => Ui.Button.IconTrailing(on ? Ui.IconName.ChevronDown : null)["Save"],
+        ["button trailing icon"] = (on => Ui.Button.IconTrailing(on ? Ui.IconName.ChevronDown : null)["Save"], 354,
             "src/Rask.Ui/UiButton.cs:319 — bare words become a <span> beside the icon"),
-        ["button kbd"] = (on => Ui.Button.Kbd(on ? "S" : null)["Save"],
+        ["button kbd"] = (on => Ui.Button.Kbd(on ? "S" : null)["Save"], 59,
             "src/Rask.Ui/UiButton.cs:318 — bare words become a <span> beside the keys"),
-        ["avatar icon for a name"] = (on => on ? Ui.Avatar.Icon(Ui.IconName.Check) : Ui.Avatar.Name("Ada Lovelace"),
+        ["avatar icon for a name"] = (on => on ? Ui.Avatar.Icon(Ui.IconName.Check) : Ui.Avatar.Name("Ada Lovelace"), 359,
             "src/Rask.Ui/UiAvatar.cs:172 — an <svg> in place of the initials' <span>"),
-        ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null),
+        ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null), 1315,
             "src/Rask.Ui/UiWithField.cs:61 — a control with a label is wrapped in a field, one without is bare"),
     };
 
     public static TheoryData<string> Names => [.. Changes.Keys];
 
-    public static TheoryData<string> RefusedNames => [.. Refused.Keys];
+    public static TheoryData<string> MorphNames => [.. Morphs.Keys];
 
     private static List<string> Picked(bool on) => on ? ["Alpha", "Beta"] : [];
 
@@ -113,17 +115,23 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [MemberData(nameof(RefusedNames))]
-    public void A_prop_change_the_gate_still_refuses_is_listed_until_it_is_fixed(string name)
+    [MemberData(nameof(MorphNames))]
+    public void A_prop_change_that_puts_one_node_in_the_place_of_another_morphs_one_parent_within_its_bytes(string name)
     {
+        var (draw, chars, where) = Morphs[name];
         var on = false;
-        var page = Page.Render(() => Div[P["before"], Refused[name].Draw(on), P["after"]]);
+        var page = Page.Render(() => Div[P["before"], draw(on), P["after"]]);
 
         on = true;
         page.Render();
 
-        // Fixed? Then move it up into Changes, where it is held to a diff from now on.
-        Assert.True(DiffGuardAttribute.FullPages().Count > 0, name + " is a diff now: " + Refused[name].Where);
+        // Fixed? Then move it up into Changes, where it is held to a diff of the nodes that changed from now on.
+        Assert.True(DiffGuardAttribute.Morphs().Count > 0, name + " is a diff of the nodes that changed now: " + where);
+        var morph = Assert.Single(DiffGuardAttribute.Morphs());
+        Assert.Empty(DiffGuardAttribute.FullPages());
+        Assert.Equal("0/1", morph.Path);
+        Assert.DoesNotContain("<p>before</p>", morph.Markup, StringComparison.Ordinal);
+        Assert.InRange(morph.Markup.Length, 1, chars);
     }
 
     [Theory]

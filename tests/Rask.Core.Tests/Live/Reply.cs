@@ -11,11 +11,9 @@ namespace Rask.Core.Tests.Live;
 /// </summary>
 internal sealed class Reply
 {
-    private readonly RenderFrame[] _newFrames;
-
     private Reply(RenderFrame[] oldFrames, RenderFrame[] newFrames, string html)
     {
-        _newFrames = newFrames;
+        NewFrames = newFrames;
         Html = html;
         Before = FrameDom.Of(oldFrames);
         Expected = FrameDom.Of(newFrames).Html;
@@ -34,6 +32,9 @@ internal sealed class Reply
 
     /// <summary>The new render's markup, which an insert or a morph cuts its fragment from.</summary>
     internal string Html { get; }
+
+    /// <summary>The frames of the new render.</summary>
+    internal RenderFrame[] NewFrames { get; }
 
     internal List<EditOp> Ops { get; } = [];
 
@@ -70,7 +71,7 @@ internal sealed class Reply
         return new Reply(oldFrames, newFrames, html);
     }
 
-    internal void Apply() => Before.Apply(Ops, _newFrames);
+    internal void Apply() => Before.Apply(Ops, NewFrames);
 
     private static (RenderFrame[] Frames, string Html) Frames(Component tree)
     {

@@ -163,28 +163,25 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_changed_raw_value_diffs_to_remove_and_insert_not_UpdateText()
+    public void A_changed_raw_value_is_one_morph_of_its_parent_not_an_UpdateText()
     {
         // Regression: switching a syntax-highlight code tab swaps one Raw value
         // (highlighted C#) for another (highlighted CSS). A Raw's markup parses into a
         // variable run of sibling DOM nodes, so it must NOT ship as an in-place UpdateText
         // (which sets textContent — escaping the markup into literal <span> text and only
-        // touching the first node). It must ship as a Remove + Insert that routes to the
-        // full-HTML morph so the browser reparses the new markup.
+        // touching the first node). The browser has to parse the new markup, which is what a
+        // morph of the parent it sits in does.
         var before = Frames(Code[Raw.Value("<span class=\"keyword\">class</span> Foo")]);
         var (after, afterHtml) = FramesAndHtml(Code[Raw.Value("<span class=\"cssSelector\">.box </span>{ }")]);
 
         var ops = new List<EditOp>();
         FrameDiffer.Diff(before, after, ops, afterHtml);
 
-        Assert.DoesNotContain(ops, o => o.Kind == EditOpKind.UpdateText);
-        Assert.Contains(ops, o => o.Kind == EditOpKind.RemoveSubtree);
-        Assert.Contains(ops, o => o.Kind == EditOpKind.InsertSubtree);
-
-        // The replace ops are untrusted positional structural ops, so the live session
-        // routes the whole render to the full-HTML morph rather than applying them directly
-        // — the morph reparses the new markup instead of escaping it.
-        Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops));
+        var morph = Assert.Single(ops);
+        Assert.Equal(EditOpKind.MorphSubtree, morph.Kind);
+        Assert.Equal([0], morph.Path);
+        Assert.Equal("<span class=\"cssSelector\">.box </span>{ }", afterHtml[morph.HtmlStart..morph.HtmlEnd]);
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(ops));
     }
 
     [Fact]

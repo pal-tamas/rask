@@ -114,6 +114,7 @@ public static partial class FrameDiffer
             newFrames, 0, newFrames.Length,
             output, newHtml, scratch);
         usedKeyedPath = scratch.UsedKeyedPath;
+        scratch.ReportMorphed();
         return output.Count - startCount;
     }
 
@@ -138,11 +139,15 @@ public static partial class FrameDiffer
                               || LevelHasRawWithSiblings(newFrames, newStart, newEnd);
         var opCountAtEntry = output.Count;
 
-        DiffPositional(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch);
+        var refused = DiffPositional(oldFrames, oldStart, oldEnd, newFrames, newStart, newEnd, output, newHtml, scratch);
 
         if (rawTaintedLevel && output.Count != opCountAtEntry)
         {
             MorphRawTaintedLevel(newFrames, newStart, newEnd, output, newHtml, scratch, opCountAtEntry);
+        }
+        else if (refused)
+        {
+            MorphRefusedLevel(newFrames, newStart, newEnd, output, newHtml, scratch, opCountAtEntry);
         }
     }
 
@@ -187,7 +192,10 @@ public static partial class FrameDiffer
         return false;
     }
 
-    private static void DiffPositional(
+    // True when this level's own ops are ones the gate refuses: a child took the place of another below the
+    // document's own level, and the level is not one run. Said by the walk that wrote them, because the ops
+    // themselves cannot say it: a deeper level's are in the same list.
+    private static bool DiffPositional(
         ReadOnlySpan<RenderFrame> oldFrames, int oldStart, int oldEnd,
         ReadOnlySpan<RenderFrame> newFrames, int newStart, int newEnd,
         List<EditOp> output,
@@ -245,11 +253,12 @@ public static partial class FrameDiffer
                    && TryDiffOneRun(Level.Of(oldFrames, oldStart, oldEnd), Level.Of(newFrames, newStart, newEnd), output,
                        newHtml, scratch, opCountAtEntry, levelHadReplace))
         {
-            return;
+            return false;
         }
 
         var trustedTail = !levelHadReplace && nested;
         EmitTail(oldFrames, oi, oldEnd, newFrames, ni, newEnd, domSlot, trustedTail, output, newHtml, path);
+        return nested && levelHadReplace;
     }
 
     // One sibling pair SiblingMatches already paired up: patch it in place and advance past it.
@@ -394,12 +403,14 @@ public static partial class FrameDiffer
     {
         var path = scratch.Path;
         output.RemoveRange(opCountAtEntry, output.Count - opCountAtEntry);
+        scratch.ForgetMorphedFrom(opCountAtEntry);
 
         var (innerStart, innerEnd) = ChildrenHtmlRange(newFrames, newStart, newEnd, newHtml);
         if (path.Count >= 1 && !newHtml.IsEmpty && innerStart >= 0)
         {
             // path is the parent element's DOM path; the client morphs its children against the
             // sliced inner-HTML fragment. Trusted so DiffOpsAreClientSupported ships it as a diff.
+            scratch.NoteMorphed(opCountAtEntry, innerEnd - innerStart, FullPageReply.RawBesideSiblings);
             output.Add(new EditOp(EditOpKind.MorphSubtree, path.ToArray(), null, null,
                 trusted: true, htmlStart: innerStart, htmlEnd: innerEnd));
             scratch.ForceFullHtml = false;
@@ -1199,11 +1210,35 @@ public static partial class FrameDiffer
         // which reparses the markup correctly, instead of shipping a mis-targeted positional patch.
         internal bool ForceFullHtml { get; set; }
 
+        // What each morph of a parent's children was written for, said once the diff is whole. Only ever
+        // filled in Development: a page author reads it to find the child that changed shape.
+        private List<(int Op, string Said)>? _morphed;
+
         internal void ResetForDiff()
         {
             Path.Clear();
             UsedKeyedPath = false;
             ForceFullHtml = false;
+            _morphed?.Clear();
+        }
+
+        internal void NoteMorphed(int op, int chars, string why)
+        {
+            if (LiveOptions.IsDevelopment == true)
+            {
+                (_morphed ??= []).Add((op, FullPageReply.Morphed(Path, chars, why)));
+            }
+        }
+
+        // The ops from this one on are being rolled back, and what was said of them goes with them.
+        internal void ForgetMorphedFrom(int op) => _morphed?.RemoveAll(said => said.Op >= op);
+
+        internal void ReportMorphed()
+        {
+            foreach (var (_, said) in _morphed ?? [])
+            {
+                FullPageReply.ReportMorphed(said);
+            }
         }
 
         internal KeyedBundle RentBundle() => _bundles.Count > 0 ? _bundles.Pop() : new KeyedBundle();
