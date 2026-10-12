@@ -179,7 +179,10 @@
 # redirect work, which had not been recorded here: rask.js 95,552 and rask.wasm.js 84,406 in all.
 # Both of the above together (the bound control that waits + every event naming its page): 95,978 + 84 and
 # 84,796 + 84.
+# Refreshed 2026-10-12 with `autofocus` acted on for a page reached in place and for an element a render brings
+# (rask-autofocus.ts, asked after every frame by both runtimes): rask.js 97,330 -> 98,090 (+760) and
+# rask.wasm.js 86,147 -> 86,907 (+760). rask-hooks.js is unchanged.
 bundle,bytes
-rask.js,97330
-rask.wasm.js,86147
+rask.js,98090
+rask.wasm.js,86907
 rask-hooks.js,49951

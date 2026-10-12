@@ -21,8 +21,8 @@ const doc = typeof document === "undefined" ? null : document;
 // browser's to focus, so it starts here.
 const seen = new WeakSet<Element>();
 
-function marked(): HTMLElement[] {
-    return Array.from(doc!.querySelectorAll<HTMLElement>("[autofocus]"));
+function marked(visit: (el: HTMLElement) => void): void {
+    doc!.querySelectorAll<HTMLElement>("[autofocus]").forEach(visit);
 }
 
 function takesFocus(el: HTMLElement): boolean {
@@ -37,7 +37,7 @@ function typing(): boolean {
 }
 
 if (doc) {
-    const serve = function () { marked().forEach(function (el) { seen.add(el); }); };
+    const serve = function () { marked(function (el) { seen.add(el); }); };
     serve();
     doc.addEventListener("DOMContentLoaded", serve);
 }
@@ -53,17 +53,18 @@ export function focusArrived(history?: {action?: string} | null, elsewhere?: boo
     }
     const navigated = !!history && history.action !== "replace";
     let target: HTMLElement | null = null;
-    for (const el of marked()) {
+    marked(function (el) {
         const arrived = !seen.has(el);
         seen.add(el);
         if (!target && (navigated || arrived) && takesFocus(el)) {
             target = el;
         }
-    }
-    if (!target || elsewhere || (!navigated && typing())) {
+    });
+    const found = target as HTMLElement | null;
+    if (!found || elsewhere || (!navigated && typing())) {
         return false;
     }
     // A replaced entry (Back, Forward) leaves the scroll to the browser's own restoration.
-    target.focus({preventScroll: !!history && !navigated});
-    return doc.activeElement === target;
+    found.focus({preventScroll: !!history && !navigated});
+    return doc.activeElement === found;
 }

@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A page reached in place focuses its `autofocus` field.** A form opened by a `NavLink`, by `Go()` from a
+  handler or by a redirect left its first field unfocused — `Ui.Input….Autofocus(true)` was in the markup, but a
+  browser acts on `autofocus` only when it loads a document, and a navigation in an open session is a patch of
+  the one already there. The Server runtime then moved focus to the page's `<main>`; the same address typed in
+  focused the field. The runtime acts on the attribute now, on both hosts: after a navigation the first
+  `autofocus` element on screen and enabled has focus (the route is still announced; a page with none is focused
+  on its `<main>` as before), and on the page the reader is on, an element that *arrives* with `autofocus` — a
+  row a handler added, a section that appeared, a field in an open dialog — is focused once. One that merely
+  keeps the attribute is never focused again, nothing is taken from a field being typed in, and a closed
+  `<dialog>` or popover is left to the browser, which focuses its `autofocus` element as it opens. Back and
+  Forward focus a field that arrives, without scrolling. `rask.js` and `rask.wasm.js` are 760 bytes larger each.
 - **A clearable time picker drew its clear button under the trigger.** `Ui.TimePicker.Clearable()` wrote the
   button's place (`absolute top-0 bottom-0 end-9`) and its look (which begins `relative`) on ONE element, and
   Tailwind prints `relative` after `absolute`: the ✕ fell out of the trigger and landed below it, at the row's

@@ -152,8 +152,9 @@ DOM, where handler-owner resolution already re-renders the owner.
 
 All of these are delegated by a single capture-phase listener per event in the shared client module
 (`rask-events.ts`, imported by both the Server and WASM runtimes), so there is no per-element JS. The
-Todos sample uses `OnKeyDown` to close its dialog on Escape (`e.Key is Keys.Escape`) (it focuses the `<dialog>` on open via an
-`ElementRef`, since a diff-inserted element never fires the HTML `autofocus` attribute).
+Todos sample uses `OnKeyDown` to close its dialog on Escape (`e.Key is Keys.Escape`); the key lands in the dialog
+because its title field carries `autofocus`, which the runtime acts on for an element a render brings
+([accessibility](accessibility.md#autofocus-on-a-page-reached-in-place)).
 
 The full surface, live — every readout updates from a plain field mutation, no `StateHasChanged`:
 
