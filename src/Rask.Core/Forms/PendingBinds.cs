@@ -23,20 +23,31 @@ internal sealed class PendingBinds(Component root)
     /// <summary>The value a control chose and the session still holds for <paramref name="field" />.</summary>
     internal static bool TryPeek(Component control, FieldIdentifier field, out object? value)
     {
-        if (AnyWaiting && control.RenderHandle?.PendingBinds is { } binds)
+        value = null;
+        return AnyWaiting && control.RenderHandle?.PendingBinds is { } binds && binds.Claim(control, field, ref value);
+    }
+
+    // A control is known by its place among its siblings, so the instance that drew a member last render may
+    // draw another one now. The pick belongs to the member: whoever draws it holds it, and a pick of the member
+    // this instance drew before has lost its control.
+    private bool Claim(Component control, FieldIdentifier field, ref object? value)
+    {
+        var held = false;
+        foreach (var entry in _entries)
         {
-            foreach (var entry in binds._entries)
+            if (entry.Field == field)
             {
-                if (entry.Field == field)
-                {
-                    value = entry.Value;
-                    return true;
-                }
+                entry.Control = control;
+                value = entry.Value;
+                held = true;
+            }
+            else if (ReferenceEquals(entry.Control, control))
+            {
+                entry.Control = null;
             }
         }
 
-        value = null;
-        return false;
+        return held;
     }
 
     /// <summary>
@@ -156,14 +167,7 @@ internal sealed class PendingBinds(Component root)
         _entries.Clear();
 
         // A control a render removed takes its pick with it. One removed by the action itself is still here.
-        var written = new List<Entry>(waiting.Length);
-        foreach (var entry in waiting)
-        {
-            if (!entry.Control.IsTornDown && entry.Write())
-            {
-                written.Add(entry);
-            }
-        }
+        var written = waiting.Where(static entry => entry.Control is { IsTornDown: false } && entry.Write()).ToList();
 
         _settling = SettleAsync(_settling, written, waiting.Length);
     }
@@ -227,6 +231,17 @@ internal sealed class PendingBinds(Component root)
         return null;
     }
 
-    private readonly record struct Entry(
-        Component Control, FieldIdentifier Field, object? Value, Func<bool> Write, Func<Task> Settle);
+    private sealed class Entry(Component control, FieldIdentifier member, object? value, Func<bool> write, Func<Task> settle)
+    {
+        // Null once a render gave the control another member to draw.
+        public Component? Control { get; set; } = control;
+
+        public FieldIdentifier Field { get; } = member;
+
+        public object? Value { get; } = value;
+
+        public Func<bool> Write { get; } = write;
+
+        public Func<Task> Settle { get; } = settle;
+    }
 }
