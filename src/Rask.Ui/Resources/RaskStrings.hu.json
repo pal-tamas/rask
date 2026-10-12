@@ -140,5 +140,10 @@
   "FileItemRemove": "Fájl eltávolítása",
 
   "ValidationRequired": "Kötelező kitölteni.",
+  "ValidationWholeNumber": "Egész számot adjon meg.",
+  "ValidationNumber": "Számot adjon meg.",
+  "ValidationNumberRange": "A szám kívül esik a megengedett tartományon.",
+  "ValidationDate": "Érvényes dátumot adjon meg.",
+  "ValidationTime": "Érvényes időpontot adjon meg.",
   "FormSaveFailed": "A mentés nem sikerült. Kérjük, próbálja újra."
 }

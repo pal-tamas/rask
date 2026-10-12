@@ -173,6 +173,11 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("FieldValidating", 0),
         ("FileItemRemove", 0),
         ("ValidationRequired", 0),
+        ("ValidationWholeNumber", 0),
+        ("ValidationNumber", 0),
+        ("ValidationNumberRange", 0),
+        ("ValidationDate", 0),
+        ("ValidationTime", 0),
         ("FormSaveFailed", 0),
     ];
 

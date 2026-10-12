@@ -98,6 +98,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
     // RenderChildren. Null leaves the plain Children content (indexer) in place.
     private string? _content;
     private bool _saidInvalid;
+    private bool _saidRequired;
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -112,6 +113,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             fid = acc.Field;
             _content = BindingHelpers.FormatValue(acc.Getter());
             SayInvalid(bindCtx, fid, ref _saidInvalid);
+            SayRequired(fid, ref _saidRequired);
         }
         else if (Value is not null)
         {

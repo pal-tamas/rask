@@ -44,6 +44,12 @@ public static class WasmHostBuilderExtensions
     internal static bool UiEnabled(WasmHostBuilder host) =>
         !Options.TryGetValue(host, out var configured) || configured.Ui.Enabled;
 
+    // How long the session waits for a page reached in place; a negative value is no wait, as zero is.
+    internal static TimeSpan NavigationBudget(WasmHostBuilder host) =>
+        Options.TryGetValue(host, out var configured)
+            ? configured.NavigationQuiescenceTimeout
+            : new RaskWasmOptions().NavigationQuiescenceTimeout;
+
     internal static ToastOptions Toasts(WasmHostBuilder host) =>
         Options.TryGetValue(host, out var configured) ? configured.Toasts : new ToastOptions();
 

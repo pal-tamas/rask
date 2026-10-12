@@ -93,9 +93,16 @@ public sealed partial class Weather(IWeatherForecastService service) : Component
 
 On the **Server host the initial `GET` waits for that fetch**, so the first response carries the
 forecasts rather than the placeholder — which is what a crawler, a cache and the user's first paint
-all see. The placeholder still renders whenever the page mounts later (a client-side navigation), and
-still shows if the fetch outlives the budget, in which case the page keeps its live session and
-finishes loading over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
+all see. If the fetch outlives the budget the placeholder is what is served, and the page finishes loading
+over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
+
+**A page reached in place is waited for too**, on both hosts: a link, Back, `Go()` from a handler or a
+redirect sends the new page once its `OnMount` and `OnUpdated` are back, within a navigation budget of 150 ms
+(`Rask:Server:NavigationQuiescenceTimeout`; `RaskWasmOptions.NavigationQuiescenceTimeout` in the browser).
+Until then the reader keeps the page they are on, under the usual busy marks. A fetch that takes longer is
+painted as the placeholder at the budget and as the data when it lands, so the placeholder is still worth
+writing — it is what a slow load looks like. See
+[the page is sent when its first reads are back](routing.md#the-page-is-sent-when-its-first-reads-are-back).
 
 Work you deliberately detach from the hook is **not** waited on. A poll loop started with
 `_ = Poll()` returns from `OnMount` immediately, so the response goes out and the loop

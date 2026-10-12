@@ -157,6 +157,19 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_sortable_heading_at_the_end_draws_its_chevron_before_the_label()
+    {
+        var atStart = Ui.TableColumn.Sortable()["Amount"].ToHtml();
+
+        var atEnd = Ui.TableColumn.End.Sortable()["Amount"].ToHtml();
+
+        Assert.Contains("<button class=\"-my-1 -ms-2 flex items-center ", atStart, StringComparison.Ordinal);
+        Assert.DoesNotContain("flex-row-reverse", atStart, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"flex justify-end\"><button class=\"-my-1 -ms-8 flex flex-row-reverse items-center ", atEnd, StringComparison.Ordinal);
+        Assert.Contains("type=\"button\"><div>Amount</div><div class=", atEnd, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_sorted_heading_shows_which_way_it_runs()
     {
         var ascending = Ui.TableColumn.Sortable().Sorted()["Date"].ToHtml();

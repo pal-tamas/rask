@@ -215,7 +215,12 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
 
     // Keys no kit source reads, whose Hungarian the kit carries all the same: a generated model asks for
     // them, in the app's own assembly.
-    private static readonly string[] ReadOutsideTheKit = [nameof(RaskString.ValidationRequired), nameof(RaskString.FormSaveFailed)];
+    private static readonly string[] ReadOutsideTheKit =
+    [
+        nameof(RaskString.ValidationRequired), nameof(RaskString.ValidationWholeNumber), nameof(RaskString.ValidationNumber),
+        nameof(RaskString.ValidationNumberRange), nameof(RaskString.ValidationDate), nameof(RaskString.ValidationTime),
+        nameof(RaskString.FormSaveFailed),
+    ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.
     private static Dictionary<string, string> KitEnglish() =>

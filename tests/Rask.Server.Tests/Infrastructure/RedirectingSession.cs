@@ -25,7 +25,8 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
 
     /// <param name="diffMode">The wire shape the host's sessions render with.</param>
     /// <param name="quiescence">How long a first request waits for a page's load; the host's default when null.</param>
-    public static RaskTestHost Host(LiveDiffMode diffMode, TimeSpan? quiescence = null) =>
+    /// <param name="navigation">How long a page reached in place is waited for; the host's default when null.</param>
+    public static RaskTestHost Host(LiveDiffMode diffMode, TimeSpan? quiescence = null, TimeSpan? navigation = null) =>
         RaskTestHost.Create<RedirectingApp>(
             services =>
             {
@@ -42,7 +43,11 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
                 app.UseAuthentication();
                 app.UseAuthorization();
             },
-            configureServer: quiescence is { } budget ? o => o.QuiescenceTimeout = budget : null,
+            configureServer: o =>
+            {
+                o.QuiescenceTimeout = quiescence ?? o.QuiescenceTimeout;
+                o.NavigationQuiescenceTimeout = navigation ?? o.NavigationQuiescenceTimeout;
+            },
             diffMode: diffMode);
 
     /// <param name="path">The page the first request asks for.</param>
@@ -50,11 +55,12 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
     /// <param name="signedInAs">The name the reader is signed in under; anonymous when null.</param>
     /// <param name="quiescence">How long the first request waits for the page's load.</param>
     /// <param name="hello">False leaves the socket open but unattached, for a test that says hello itself.</param>
+    /// <param name="navigation">How long a page reached in place is waited for.</param>
     public static async Task<RedirectingSession> Open(
         string path, LiveDiffMode diffMode = LiveDiffMode.Auto, string? signedInAs = null,
-        TimeSpan? quiescence = null, bool hello = true)
+        TimeSpan? quiescence = null, bool hello = true, TimeSpan? navigation = null)
     {
-        var host = Host(diffMode, quiescence);
+        var host = Host(diffMode, quiescence, navigation);
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
         if (signedInAs is not null)
         {
