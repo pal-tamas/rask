@@ -51,6 +51,21 @@ public sealed partial class DevToolsErrorsTestApp : Component
     private static void Throw() => throw new InvalidOperationException("the handler failed on purpose");
 }
 
+/// <summary>
+///     A page whose layout draws toasts and whose one button's handler throws: the host's boundary leaves the page
+///     alone and the fault is said in a toast.
+/// </summary>
+public sealed partial class DevToolsToastingTestApp : Component
+{
+    protected override Component? Render() =>
+    [
+        Button.OnClick(Throw)["throw"],
+        ToastOutlet.Template(static (toasts, _) => Ul[toasts.Select(static t => (Component)Li.Key(t.Id)[t.Message])])
+    ];
+
+    private static void Throw() => throw new InvalidOperationException("the handler failed on purpose");
+}
+
 /// <summary>A component whose render always throws.</summary>
 public sealed partial class DevToolsThrowingChild : Component
 {
