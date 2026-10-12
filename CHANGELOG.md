@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler that changes the page and then throws shows its exception in Development.** The development
+  overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
+  that changed nothing, brought it. It showed up once a handler's work became one frame.
+
 - **A clearable time picker drew its clear button under the trigger.** `Ui.TimePicker.Clearable()` wrote the
   button's place (`absolute top-0 bottom-0 end-9`) and its look (which begins `relative`) on ONE element, and
   Tailwind prints `relative` after `absolute`: the ✕ fell out of the trigger and landed below it, at the row's
