@@ -643,14 +643,18 @@ public abstract partial class SharedSmokeTests
         // Error boundaries: a handler-throw and a render-throw each trip the nearest boundary's fallback
         // — the error is contained, the navbar (outside the user boundary) survives, Recover restores.
         await Page.Locator("#boom-throw").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — handler boundary demo", contains);
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("That did not work.", contains);
+        // The fallback is handed the exception and shows a visitor none of it: not the message, not the type.
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("kaboom");
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("Exception");
         await Expect(Page.Locator(".app-navbar .app-brand")).ToContainTextAsync("Rask"); // root boundary not tripped
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         // Render-time throw: the serializer rewinds the partial output and the boundary catches it once.
         await Page.Locator("#boom-render-trigger").ClickAsync();
-        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("kaboom — render-time boundary demo", contains);
+        await Expect(Page.Locator("#boom-fallback").First).ToContainTextAsync("This part could not be shown.", contains);
+        await Expect(Page.Locator("#boom-fallback").First).Not.ToContainTextAsync("kaboom");
         await Page.Locator("#boom-recover").First.ClickAsync();
         await Expect(Page.Locator("#boom-render-trigger")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });

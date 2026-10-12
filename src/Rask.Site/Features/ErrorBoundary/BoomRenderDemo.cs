@@ -20,7 +20,7 @@ public sealed partial class BoomRenderDemo : Component
                       //                         RenderThrower.
                       // The handler-throw demo doesn't need this because the underlying
                       // state isn't stale across the trip.
-            (ex, recover) => BoundaryFallback(ex, () =>
+            (_, recover) => BoundaryFallback(() =>
             {
                 // Order matters: dirty-mark this demo FIRST so its re-render calls
                 // the ErrorBoundary factory → boundary.SetProps with fresh Children
@@ -45,11 +45,12 @@ public sealed partial class BoomRenderDemo : Component
             ]
         ];
 
-    private static Component BoundaryFallback(Exception ex, Action recover) =>
+    // Nothing of the exception is printed: the fallback says what the visitor can do.
+    private static Component BoundaryFallback(Action recover) =>
         Ui.Callout.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-fallback").Role("alert")
             .Actions(Ui.Button.Icon(Ui.IconName.ArrowUturnLeft).Id("boom-recover").OnClick(recover)["Recover"])[
-            Ui.CalloutHeading["Boundary caught: ", Code[ex.GetType().Name]],
-            Ui.CalloutText[ex.Message]
+            Ui.CalloutHeading["This part could not be shown."],
+            Ui.CalloutText["The rest of the page is still running. Recover draws it again."]
         ];
 
     // Trivial component whose Render always throws — used to demonstrate render-time

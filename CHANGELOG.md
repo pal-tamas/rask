@@ -20,6 +20,10 @@ them until tagged releases begin.
   which the runtime tells apart by order and warns about. Each key now carries the list it is in, and a test
   renders every prerendered page and every registered demo and fails on that warning.
 
+- **The error-boundary demos no longer print the exception.** Their fallbacks showed `ex.Message` and the
+  exception's type name, which is what [the lifecycle guide](docs/lifecycle.md) tells an app not to show a
+  visitor. Each says one fixed sentence and offers the way back; the guide says why.
+
 - **A handler that changes the page and then throws shows its exception in Development.** The development
   overlay rides the render payload, and a diff that carried changes dropped it: only a whole page, or a frame
   that changed nothing, brought it. It showed up once a handler's work became one frame.

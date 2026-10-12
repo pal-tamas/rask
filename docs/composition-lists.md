@@ -196,6 +196,11 @@ render — and shows a fallback instead of tearing down the whole app. The neare
 everything outside it (the navbar, the rest of the page) keeps running, and `Recover` restores the
 healthy subtree. Boundaries nest, so a local failure stays local.
 
+The `Fallback` is handed the exception so it can choose its words, **not** so it can print them: an
+exception's message or type name on a page can carry a path, a query or a user's data, and the boundary has
+already logged it ([what a visitor sees](lifecycle.md#what-a-visitor-sees-when-something-throws)). Each
+fallback below says one fixed sentence and offers the way back.
+
 <!-- demo:boom-handler -->
 
 A render-time throw is rewound cleanly (the serializer discards the partial output) and caught exactly
