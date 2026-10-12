@@ -51,6 +51,9 @@ public sealed class RaskMetrics : IDisposable
             "rask.handlers.dispatched", "{handler}", "Client event handlers dispatched to user code.");
         _handlersFaulted = _meter.CreateCounter<long>(
             "rask.handlers.faulted", "{handler}", "Event-handler dispatches that threw (isolated, session survives).");
+        _meter.CreateObservableCounter(
+            "rask.handlers.stale", static () => Rask.Core.Live.StaleEvents.Missed, "{handler}",
+            "Events that ran nothing: the handler they were sent to had left the page, or could not be shown to be the same one, by the time they arrived.");
         _handlersTimedOut = _meter.CreateCounter<long>(
             "rask.handlers.timedout", "{handler}", "Event-handler dispatches cancelled by the HandlerTimeout.");
         _handlerDuration = _meter.CreateHistogram<double>(

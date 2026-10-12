@@ -369,9 +369,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     /// <summary>
     ///     Whether the handler <paramref name="id" /> names may run ahead of the render its batch owes — see
-    ///     <see cref="Component.HandlerOutlivesRender" />. When it may not, the host renders first.
+    ///     <see cref="Component.HandlerOutlivesRender(string, System.Text.Json.JsonElement, Dictionary{Component, Component})" />. When it may not, the host renders first.
     /// </summary>
-    internal bool HandlerOutlivesRender(string id)
+    internal bool HandlerOutlivesRender(string id, System.Text.Json.JsonElement sent)
     {
         _parents ??= new Dictionary<Component, Component>(ReferenceEqualityComparer.Instance);
         if (!_parentsMapped)
@@ -380,7 +380,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             _parentsMapped = true;
         }
 
-        return View.HandlerOutlivesRender(id, _parents);
+        return View.HandlerOutlivesRender(id, sent, _parents);
     }
 
     // A walk shows everything the handlers before it did, and may mount or remove anything.
@@ -424,17 +424,20 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     {
         if (_writeBuffer.WrittenCount == 0)
         {
+            View.HandlersRepeated();
             return false;
         }
 
-        if (!force
-            && _lastSentBuffer is not null
-            && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
+        if (!force && _lastSentBuffer is not null && RepeatsLastSent())
         {
+            View.HandlersRepeated();
             return false;
         }
 
         await SendFrameAsync(_writeBuffer.WrittenMemory).ConfigureAwait(false);
+
+        // The browser has this page now: the number it carried is the one its events will name.
+        View.HandlersSent();
 
         // Before the swap: the frame just sent is still the write buffer.
         if (RaskDevToolsHook.Active is { } devTools)
@@ -443,7 +446,31 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>());
+        _lastSentVersionBytes = _writeVersionBytes;
         return true;
+    }
+
+    // What each buffer's page number takes at its end. A page whose handlers were made again by its render is
+    // given the next number, and is still the page the browser has when everything before the number repeats:
+    // sending it would morph a document into itself, undoing whatever a script did to it since.
+    private int _writeVersionBytes;
+    private int _lastSentVersionBytes;
+
+    private bool RepeatsLastSent() =>
+        WithoutVersion(_writeBuffer.WrittenSpan, _writeVersionBytes)
+            .SequenceEqual(WithoutVersion(_lastSentBuffer!.WrittenSpan, _lastSentVersionBytes));
+
+    // The payload up to its page number: the number is its last field, followed only by the closing brace —
+    // which is left out either way, so a payload with a number and one without compare on what they carry.
+    private static ReadOnlySpan<byte> WithoutVersion(ReadOnlySpan<byte> payload, int versionBytes) =>
+        payload.Length > versionBytes ? payload[..^(versionBytes + 1)] : payload;
+
+    // Says which page the payload built inside the scope is, and remembers how long its number is.
+    private LivePayload.PageScope NumberedPage(bool whole)
+    {
+        var version = View.HandlerVersionToSend(whole);
+        _writeVersionBytes = LivePayload.PageVersionBytes(version);
+        return LivePayload.BeginPage(version);
     }
 
     /// <summary>
@@ -693,6 +720,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         AuthInstruction? auth, string sessionId)
     {
         _writeBuffer.ResetWrittenCount();
+        _writeVersionBytes = 0;
 
         // A session-resume record, when this host issues them and the page has moved since the last one.
         // Taken once per payload — before either branch below — so the diff and full paths carry the same
@@ -731,8 +759,12 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // encoded straight from the pooled page buffer — a page-sized string here would be garbage
             // the moment the payload is written, and on the large-object heap past ~42K chars.
-            LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
-                replace, auth, download, jsInvokes, resume, devError);
+            using (NumberedPage(whole: true))
+            {
+                LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
+                    replace, auth, download, jsInvokes, resume, devError);
+            }
+
             // Keep the cache in lockstep with the client even when shipping full HTML: promote
             // current → previous so the NEXT diff's baseline matches what the client received. Skip
             // when TryComputeDiff already rotated (diffPathEntered), or when the caller defers the
@@ -766,8 +798,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             && !renderCache.LastDiffForcedFullHtml)
         {
             var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
-            LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
-                headHtml, html.Span, resume, devError);
+            using (NumberedPage(whole: false))
+            {
+                LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
+                    headHtml, html.Span, resume, devError);
+            }
 
             // Ship the diff whenever it isn't larger than re-sending the body, or unconditionally
             // under Forced. Only the pathological case (nearly every node changed on a tiny page,

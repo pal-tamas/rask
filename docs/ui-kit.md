@@ -2594,6 +2594,15 @@ in a part only puts the caret there. The parts are the runtime's
 [`data-rask-segments`](js-interop-runtime.md#fields): they are rendered with no value, and ONE hidden field
 beside them carries `yyyy-MM-dd` to the binding.
 
+**Where the typed trigger departs from Flux, on purpose (owner's decision, 2026-10-12).** Flux keeps the last
+whole date behind parts that no longer show it: erase the month, save the form, and the old date is stored.
+Here the parts say what they hold when the reader leaves them. Half filled — a day and no month, one end of a
+range — is no date: the field says "Enter a valid date." under it, the save is refused and the value the
+picker held is not saved in its place; the first key of a correction takes the sentence away. With every part
+emptied the picker is nothing chosen (`null` where the member is nullable, and a required one says so). The
+look and the keys are Flux's; only what reaches the binding differs
+([forms](forms-validation.md#what-a-number-field-says-when-it-cannot-read-what-was-typed)).
+
 ### Time picker
 
 `Ui.TimePicker` is Flux UI's time picker: a button showing the chosen time (or, with `.Type(Ui.TimePickerType.Input)`,
@@ -2616,6 +2625,10 @@ Flux), arrows move a cursor through the list — which scrolls to keep it in vie
 Escape closes. The open list holds the page still (`data-rask-lock`). The typed trigger is one field in parts, as the
 date picker's is: 9 is nine o'clock and moves on, `a` and `p` set the half of the day, and a whole time reaches the
 binding through one hidden field as `HH:mm`.
+
+The same departure from Flux as the date picker's, by the same decision (2026-10-12): an hour with no minute is
+no time — "Enter a valid time." under the field, the save refused, the time the picker held not saved in its
+place — and every part emptied is no time chosen. A `TimeOnly` that cannot be unset says the sentence then too.
 
 ## The rule the whole kit rests on
 
