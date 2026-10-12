@@ -231,10 +231,9 @@ public class MapRaskSpaTests
         var response = await host.Http.GetAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
-        Assert.Contains(
-            "single-page app is unavailable",
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken),
-            StringComparison.Ordinal);
+        Assert.Equal(
+            "The single-page app is unavailable.",
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]

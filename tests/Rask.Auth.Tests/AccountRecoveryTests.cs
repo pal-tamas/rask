@@ -271,9 +271,10 @@ public sealed class AccountRecoveryTests
 
     [Theory]
     [InlineData("Production", null)]
+    [InlineData(null, null)]
     [InlineData("Development", "https://evil.example/")]
     public async Task Outside_development_a_reset_link_is_never_built_from_the_request_s_host(
-        string environment, string? expectedLinkStart)
+        string? environment, string? expectedLinkStart)
     {
         // Host: evil.example on a reset request would mail the victim a working token on the attacker's domain.
         var request = new DefaultHttpContext();
@@ -284,7 +285,12 @@ public sealed class AccountRecoveryTests
             mail: true,
             extraServices: s =>
             {
-                s.AddSingleton<IHostEnvironment>(new Environment(environment));
+                // A host that never says which environment it runs in registers none, and is not in Development.
+                if (environment is not null)
+                {
+                    s.AddSingleton<IHostEnvironment>(new Environment(environment));
+                }
+
                 s.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext = request });
             });
         await harness.StartAsync();

@@ -202,6 +202,22 @@ them until tagged releases begin.
   `LiveOptions.IsDevelopment`. **Breaking** for anything that read the type or message off the page (a test, a
   scraper): read the log line. An app's own `Fallback` still receives the exception and must not print it. The
   kit's Hungarian catalog gains the error page's four texts.
+- **Three more places said more than a visitor should read.** A controller body that would not deserialize was
+  answered with the serializer's own sentence in the 400's `errors` map, naming the CLR type it was reading
+  (`AddRaskApiValidation` now turns `AllowInputFormatterExceptionMessages` off; the entry says *The value is not
+  valid.*). `MapRaskSpa`'s Production 503 for a missing bundle named the folder it looked in; the body is now
+  *The single-page app is unavailable.* and the path stays on stderr. And `Rask.Auth`'s mail, with no
+  `AuthOptions.PublicOrigin` set, built reset and confirmation links from the request's `Host` header when the
+  host had registered no `IHostEnvironment` at all — an unknown environment was read as Development; it is now
+  read as Production, and the mail is not sent.
+- **Three more places said more than a visitor should read.** A controller body that would not deserialize was
+  answered with the serializer's own sentence in the 400's `errors` map, naming the CLR type it was reading
+  (`AddRaskApiValidation` now turns `AllowInputFormatterExceptionMessages` off; the entry says *The value is not
+  valid.*). `MapRaskSpa`'s Production 503 for a missing bundle named the folder it looked in; the body is now
+  *The single-page app is unavailable.* and the path stays on stderr. And `Rask.Auth`'s mail, with no
+  `AuthOptions.PublicOrigin` set, built reset and confirmation links from the request's `Host` header when the
+  host had registered no `IHostEnvironment` at all — an unknown environment was read as Development; it is now
+  read as Production, and the mail is not sent.
 - **An event sent before a re-render no longer runs another handler.** A handler id is a position in its
   component, so when an earlier button left or arrived, a click already on its way ran whichever handler held
   the id by then — after a row was deleted, a click on the last row's bin could land on the confirmation's
