@@ -137,5 +137,7 @@
   "FilterReset": "Összes",
   "FieldValidating": "Ellenőrzés…",
 
-  "FileItemRemove": "Fájl eltávolítása"
+  "FileItemRemove": "Fájl eltávolítása",
+
+  "ValidationRequired": "Kötelező kitölteni."
 }
