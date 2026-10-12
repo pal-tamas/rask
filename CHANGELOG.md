@@ -13,7 +13,7 @@ them until tagged releases begin.
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
   leaving the button for anything but its panel closes it now (`rask-overlay.ts`), as measured on Flux.
-  `rask-hooks.js` is BUNDLE_DELTA bytes larger.
+  `rask-hooks.js` is 147 bytes larger.
 - **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
   whatever the page sent next carried it — including the press the runtime makes on a toast's close button
   when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,

@@ -67,12 +67,12 @@ public sealed partial class UiKitPopoverDemo : Component
                     Ui.Radio.Value("active").Label("Recently active"),
                     Ui.Radio.Value("posted").Label("Date posted")
                 ],
-                Ui.Separator.Key("s1").Subtle,
+                Ui.Separator.Key("options-1").Subtle,
                 Ui.RadioGroup.Value(_view).Key("view").Id("popover-view").Label("View as").OnChange(v => { _view = v; })[
                     Ui.Radio.Value("list").Label("List"),
                     Ui.Radio.Value("gallery").Label("Gallery")
                 ],
-                Ui.Separator.Key("s2").Subtle,
+                Ui.Separator.Key("options-2").Subtle,
                 Ui.Button.Key("reset").Subtle.Sm.Class("justify-start -m-2 px-2!")
                     .OnClick(() => { _sort = "posted"; _view = "list"; })["Reset to default"]
             ]
@@ -118,7 +118,7 @@ public sealed partial class UiKitPopoverDemo : Component
                     .OnChange(v => { _picked = [.. v]; })[
                     Categories.Select(category => Ui.Checkbox.Key(category.Value).Value(category.Value).Label(category.Label))
                 ],
-                Ui.Separator.Key("s").Subtle,
+                Ui.Separator.Key("categories").Subtle,
                 Ui.Button.Key("clear").Subtle.Sm.Class("justify-start -m-2 px-2!").OnClick(() => { _picked = []; })["Clear all"]
             ]
         ];
@@ -166,7 +166,7 @@ public sealed partial class UiKitPopoverDemo : Component
                         Ui.Radio.Value("maybe").Label("Maybe")
                     ]
                 ],
-                Ui.Separator.Key("s1"),
+                Ui.Separator.Key("event-1"),
                 Detail("guests", Ui.IconName.Users, Ui.Heading["Guests"],
                     Div.Class("mt-2 flex items-center gap-3")[
                         Ui.AvatarGroup.Class("dark:*:ring-zinc-700")[
@@ -176,7 +176,7 @@ public sealed partial class UiKitPopoverDemo : Component
                         ],
                         Ui.Text["1 maybe, 1 awaiting"]
                     ]),
-                Ui.Separator.Key("s2"),
+                Ui.Separator.Key("event-2"),
                 Detail("when", Ui.IconName.Clock,
                     Div.Class("flex gap-2")[
                         Ui.Heading["10:00 AM"],
@@ -191,7 +191,7 @@ public sealed partial class UiKitPopoverDemo : Component
                             Ui.Text["Every weekday"]
                         ]
                     ]),
-                Ui.Separator.Key("s3"),
+                Ui.Separator.Key("event-3"),
                 Detail("where", Ui.IconName.MapPin, Ui.Heading["Location"], Ui.Text.Class("mt-2")["Paris HQ, 13 rue de la Prairie 75018"])
             ]
         ];
