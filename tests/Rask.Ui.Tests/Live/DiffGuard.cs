@@ -44,6 +44,7 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
             "KitStateChangesAreDiffsTests.Morphs",
         ["UiChartTests"] = ChartIsRawSvg,
         ["FluxParityPages.Every_parity_page_is_written_for_the_browser_to_measure"] = ChartIsRawSvg,
+        ["OnePositionPerElementTests.No_element_on_a_parity_page_asks_for_two_positions_at_once"] = ChartIsRawSvg,
     };
 
     private const string ChartIsRawSvg =

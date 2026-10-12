@@ -48,6 +48,9 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
         ["autocomplete"] = (a => Ui.Autocomplete.Bind(() => a.Text).Clearable()[Words.Select(word => Ui.AutocompleteItem.Key(word)[word])], Texts()),
         ["date picker"] = (a => Ui.DatePicker.Bind(() => a.Day).Locale("en-US").On(Today), Days()),
         ["date picker, range"] = (a => Ui.DatePicker.Range.Bind(() => a.Stay).Locale("en-US").On(Today), Stays()),
+        ["date picker, clearable"] = (a => Ui.DatePicker.Bind(() => a.Day).Clearable().Locale("en-US").On(Today), Days()),
+        ["date picker, typed, clearable"] = (a => Ui.DatePicker.Bind(() => a.Day).Type(Ui.DatePickerType.Input).Clearable().Locale("en-US").On(Today), Days()),
+        ["date picker, range, clearable"] = (a => Ui.DatePicker.Range.Bind(() => a.Stay).Clearable().Locale("en-US").On(Today), Stays()),
         ["calendar"] = (a => Ui.Calendar.Bind(() => a.Day).Locale("en-US").On(Today), Days()),
         ["calendar, multiple"] = (a => Ui.Calendar.Multiple.Bind(() => a.Days).Locale("en-US").On(Today),
         [

@@ -18,7 +18,7 @@ public abstract partial class UiSelectControl<T>
             Popup(view),
             // After the list, where it is laid over the button's end all the same: its handler is then numbered
             // after the rows', and a pick that brings the button in leaves every row wired as it was.
-            Clears(view) && !IsCombobox && Pills is null ? Div.Key("clear").Class(UiSelectLook.ClearSlot)[ClearButton()] : null,
+            Clears(view) && !IsCombobox && Pills is null ? Div.Key("clear").Class(UiClass.Compose(UiSelectLook.ClearSlot, ButtonHeight(view)))[ClearButton()] : null,
             .. PostedValues(view),
         ];
 
@@ -57,6 +57,10 @@ public abstract partial class UiSelectControl<T>
     private bool Clears(View view) =>
         (Clearable == true || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true)
         && view.Picked.Count > 0 && !IsOff(view.Parts);
+
+    // How tall the listbox's button is, for the clear button laid over its end.
+    private string ButtonHeight(View view) =>
+        UiInputLook.SlotHeight(UiSelectLook.InputSize(view.Parts.Button?.Size ?? Height));
 
     // ----- Listbox: the button -------------------------------------------------------------------------
 
@@ -137,7 +141,7 @@ public abstract partial class UiSelectControl<T>
                 .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
                 .OnKeyDown(e => OnInputKeyAsync(e, view)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
-            Div.Class(UiInputLook.Trailing)[
+            Div.Class(UiClass.Compose(UiInputLook.Trailing, UiInputLook.SlotHeight(size)))[
                 Clears(view) ? ClearButton() : null,
                 Filter == false ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
                 Button

@@ -123,6 +123,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Which presets are listed, in this order. Setting it lists them.</summary>
     public IReadOnlyList<Ui.DateRangePreset>? Presets { get; set; }
 
+    /// <summary>
+    ///     A button that empties the picker, shown while a date is chosen. A bound <c>DateOnly?</c> or
+    ///     <c>UiDateRange?</c> becomes <see langword="null" />; one that cannot be goes back to its unset value.
+    /// </summary>
+    public bool? Clearable { get; set; }
+
     /// <summary>Prevents the reader from opening the picker.</summary>
     public bool? Disabled { get; set; }
 
@@ -235,19 +241,14 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Disabled = Disabled == true,
             Invalid = field.Invalid,
             Aria = field.Aria,
+            Clearable = Clearable == true,
+            Clear = () => ClearAsync(acc, ctx),
             Dates = Dates(committed),
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
             Show = () => _open = true,
         };
 
-        var calendar = UiCalendarGrid.Render(
-            options with { Id = scope.CalendarId, InPopup = true, Closes = Confirms ? null : PopoverId },
-            _state,
-            Picks(shown, Choose),
-            UiDatePickerLook.Calendar,
-            Aside(shown, options, Choose) ?? Div.Class(UiDatePickerLook.Aside),
-            Footer(Commit),
-            marked: false);
+        var calendar = Calendar(scope.CalendarId, options, shown, Choose, Commit);
 
         return field.Wrap(
             // The popup hangs under the whole picker — under both fields of a range typed into two.
@@ -289,6 +290,17 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
         return date.ToString(pattern, culture);
     }
+
+    // The months in the popup, a range's presets before them and the confirming buttons under them.
+    private Component Calendar(string id, UiCalendarOptions options, T? shown, Func<T, Task> choose, Func<T, Task> commit) =>
+        UiCalendarGrid.Render(
+            options with { Id = id, InPopup = true, Closes = Confirms ? null : PopoverId },
+            _state,
+            Picks(shown, choose),
+            UiDatePickerLook.Calendar,
+            Aside(shown, options, choose) ?? Div.Class(UiDatePickerLook.Aside),
+            Footer(commit),
+            marked: false);
 
     private Component OwnTrigger() =>
         Type == Ui.DatePickerType.Input ? Ui.DatePickerInput : Ui.DatePickerButton;
@@ -334,6 +346,33 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
             ]
         ];
+
+    // The clear button's: nothing chosen — null where the bound member can say so, the type's unset value where
+    // it cannot — and a choice still waiting to be confirmed goes with it.
+    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
+        var self = (IFormControl<T>)this;
+        _own = (Bind is null, default, Value);
+        _pending = default;
+        if (accessor is null)
+        {
+            return self.InvokeOnChange(default!);
+        }
+
+        return PendingBinds.Commit(this, accessor.Field, context, default(T), Write, SettleAsync);
+
+        bool Write()
+        {
+            accessor.Setter(Nullable.GetUnderlyingType(accessor.PropertyType) is null ? default(T) : null);
+            return true;
+        }
+
+        async Task SettleAsync()
+        {
+            await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
+            await self.InvokeAfterBind(default!).ConfigureAwait(false);
+        }
+    }
 
     private UiCalendarOptions Options()
     {

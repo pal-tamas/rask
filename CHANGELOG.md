@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A clearable time picker drew its clear button under the trigger.** `Ui.TimePicker.Clearable()` wrote the
+  button's place (`absolute top-0 bottom-0 end-9`) and its look (which begins `relative`) on ONE element, and
+  Tailwind prints `relative` after `absolute`: the ✕ fell out of the trigger and landed below it, at the row's
+  start — alone, labelled, in a flex row or a grid cell alike. The place is now a slot of its own around the
+  button, as the select's is.
+- **A clear button no longer leaves its box when a row stretches the control.** `Ui.Input.Clearable()` (and its
+  icons, shortcut, copy and reveal buttons), `Ui.Select.Listbox.Clearable()` and the pickers' ✕ were placed
+  against the control's whole room (`top-0 bottom-0`), which a flex row or a grid cell stretches to its tallest
+  neighbour: beside a labelled field the ✕ sat 14px low, beside a 120px one 40px low. They hang from the top and
+  are as tall as the box now (`h-10` / `h-8` / `h-6` with the size). Flux's own input drifts the same 40px on
+  fluxui.dev; nothing changes where the control is not stretched.
+
+### Added
+
+- **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
+  `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or
+  `UiDateRange?` becomes `null`; a `DateOnly` / `UiDateRange` goes back to its unset value, which is also what
+  `OnChange` hears; the typed fields are emptied; a range is emptied whole; a choice waiting for "Select date" is
+  dropped. Flux draws the button on none of its public pages, so it is the time picker's ✕ (32px, 30px from the
+  trigger's end) rather than a measured one. `node scripts/flux/clear-placement.mjs` holds every clear button of
+  the kit to its trigger in a real browser — alone, labelled, in a row, grown, in a grid cell, at 1920 and 390.
+
 ### Changed
 
 - **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used

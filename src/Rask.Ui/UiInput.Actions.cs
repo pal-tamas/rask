@@ -16,7 +16,7 @@ public sealed partial class UiInput<T>
             IconTrailing is { } icon ? Glyph(icon) : null,
         ];
 
-        return parts.All(part => part is null) ? null : Div.Class(UiInputLook.Trailing)[parts];
+        return parts.All(part => part is null) ? null : Div.Class(UiClass.Compose(UiInputLook.Trailing, SlotHeight))[parts];
     }
 
     // Always rendered and hidden by CSS while the input is empty, so it appears with the first keystroke

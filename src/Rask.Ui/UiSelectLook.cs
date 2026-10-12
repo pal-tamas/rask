@@ -55,8 +55,11 @@ internal static class UiSelectLook
         // Open, the pointer is the list's: Flux takes the page's pointer away, so nothing behind it hovers.
         + "[[data-ui-select]:has(:popover-open)_&]:text-zinc-400/75! dark:[[data-ui-select]:has(:popover-open)_&]:text-white/60!";
 
-    /// <summary>The button that empties the answer, laid over the end of the listbox's button.</summary>
-    internal const string ClearSlot = "absolute top-0 bottom-0 end-8 flex items-center";
+    /// <summary>
+    ///     The button that empties the answer, laid over the end of the listbox's button: hung from the top and,
+    ///     with <see cref="UiInputLook.SlotHeight" />, as tall as the button — not as the select, which a row can stretch.
+    /// </summary>
+    internal const string ClearSlot = "absolute top-0 end-8 flex items-center";
 
     /// <summary>The chevron button at the end of the combobox's input.</summary>
     internal const string InputChevron =

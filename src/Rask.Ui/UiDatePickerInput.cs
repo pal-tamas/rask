@@ -49,6 +49,9 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
     /// <summary>How tall the field is.</summary>
     public Ui.DatePickerInputSize? Size { get; set; }
 
+    /// <summary>A button that empties the picker, shown while a date is chosen. The picker's own unless set.</summary>
+    public bool? Clearable { get; set; }
+
     /// <summary>Prevents the reader from typing or opening the picker.</summary>
     public bool? Disabled { get; set; }
 
@@ -91,9 +94,10 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
         }
 
         var locked = Disabled == true || scope.Disabled;
+        var height = UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerInputSize.Base));
         var group = Div
             .Id(owns ? field.ControlId : scope.ControlId)
-            .Class(UiClass.Compose(UiDatePickerLook.Typed, UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerInputSize.Base)), Class))
+            .Class(UiClass.Compose(UiDatePickerLook.Typed, height, Class))
             .Data(Marked(field.Invalid, locked ? null : scope.PopoverId))
             .Role("group")
             .Aria(aria)[
@@ -106,7 +110,8 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
-        return field.Wrap(group);
+        // Beside the field, not in it: everything in the field but its parts opens the calendar.
+        return field.Wrap(scope.Cleared(group, Clearable, height, locked));
     }
 
     // The locale's own order and separator: mm/dd/yyyy in the US, dd.mm.yyyy in Germany, yyyy/mm/dd in Japan.
