@@ -30,7 +30,7 @@ public sealed partial class FormControlsSelectDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    Ui.Select.Bind(() => _model.Framework).Label("Bound (two-way)").Id("fc-select-bound").Class("mb-2")[
+                    Ui.Select.Bind(() => _model.Framework).Live().Label("Bound (two-way)").Id("fc-select-bound").Class("mb-2")[
                         Frameworks.Select(framework => Ui.SelectOption.Key(framework.Value).Value(framework.Value)[framework.Text])
                     ]
                 ],

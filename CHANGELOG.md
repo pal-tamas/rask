@@ -163,6 +163,28 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: every bound control of the kit waits for the next action too; `.Live()` writes as it is
+  chosen.** `Ui.Checkbox`, `Ui.Switch`, `Ui.Select` (native, listbox, combobox, multiple), `Ui.Pillbox`,
+  `Ui.Autocomplete`, `Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Rating`, `Ui.Filter`,
+  `Ui.Calendar`, `Ui.DatePicker`, `Ui.TimePicker`, `Ui.Editor`, `Ui.Tabs`, `Ui.MenuCheckbox` and
+  `Ui.MenuRadioGroup` used to write the bound member, run its rules and call `AfterBind` at every pick. A
+  plain `.Bind(…)` on them now does that with the next action, as Flux's `wire:model` does. A control of one
+  element (`Ui.Checkbox`, `Ui.Switch`, the native `Ui.Select`) waits in the browser and sends nothing. A
+  control the kit draws in C# still sends its own event — the list shows the option, the calendar the day —
+  and Core holds the write in the session (`PendingBinds`): it goes, in the order the controls were last
+  touched, before the next handler that is not such a control drawing itself — a button of the page, a
+  submit, another control's `.Live()` change, a callback the control raises into the page (`OnComplete`, a
+  tab's `OnClick`). No handler of the page reads a model that has not heard a pick, and nothing the page
+  wrote runs per pick: the page is not rendered for one, only the control. **Say `.Live()` wherever the
+  page reacts to the pick at once** — `Ui.Select.Bind(() => m.Country).Live()` filling a second select, a
+  checkbox that shows a section, an `AfterBind` that copies a value, a filter, tabs whose page content
+  follows the bound name. `.Live()` is a new step on each of these controls (Flux's `wire:model.live`). A
+  message under a waiting control goes when the reader picks again, the pick marks the field modified at
+  once, and a control a render removes takes its unwritten pick with it. A listbox's bound pick is also
+  validated when it is written now; it used to be checked on submit only. A pick that waits lives in the
+  session, so a reconnect to a new session forgets it. In a test, read the model after the page's own
+  button was clicked, or say `.Live()`. Not covered: a callback written as a lambda that captures no
+  component (`static`, or locals only) is not preceded by the waiting picks.
 - **BREAKING: a bound control waits for the next action, as Livewire's `wire:model` does; `.Live()` types
   through.** `Input.Bind(() => m.Name)` used to write the model on every keystroke (a number or a date on
   leaving the field, a checkbox or a select as it was chosen) and validate then. Now typing into a bound
@@ -176,8 +198,7 @@ them until tagged releases begin.
   `.Debounce(x)` alone still works and implies live, `.Debounce(TimeSpan.Zero)` sends every keystroke
   (it used to mean "no step"), and `.Blur()` keeps its meaning. This is Core's binding — `Input`,
   `Textarea` and `Select` — and `Ui.Input` / `Ui.Textarea`, which forward to it; the kit's chosen controls
-  (`Ui.Checkbox`, `Ui.Switch`, `Ui.Select`, the groups and pickers, `Ui.Slider`) still write as they are
-  chosen and follow in a later release. A plain form therefore shows no message while it is typed into:
+  follow the same rule (next entry). A plain form therefore shows no message while it is typed into:
   the messages come with Save, and each goes at the first key of its correction. A render the server
   starts (a timer, a push) sees the model as of the last action and leaves what the reader has typed,
   ticked or picked since where it is. The unsaved-changes guard still counts the first keystroke.

@@ -329,8 +329,8 @@ public sealed partial class UiKitDataInputDemo : Component
                         Ui.Input.Bind(() => _signup.Seats).Live().Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
-                        Ui.Checkbox.Bind(() => _signup.Agreed).Label("I agree to the terms"),
-                        Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Max(5)
+                        Ui.Checkbox.Bind(() => _signup.Agreed).Live().Label("I agree to the terms"),
+                        Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Live().Max(5)
                     ]
                 ],
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-bound-state"))[

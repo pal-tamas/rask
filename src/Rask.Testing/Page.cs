@@ -40,6 +40,11 @@ public partial class Page : IRenderHandle
         Html = Render();
     }
 
+    // What the page's controls chose and the model has not been told yet, as a live session holds it.
+    private Rask.Core.Forms.PendingBinds? _pendingBinds;
+
+    Rask.Core.Forms.PendingBinds? IRenderHandle.PendingBinds => _pendingBinds ??= new Rask.Core.Forms.PendingBinds(_root);
+
     /// <summary>The current rendered HTML, reflecting the component's state as of the last render.</summary>
     public string Html { get; private set; }
 

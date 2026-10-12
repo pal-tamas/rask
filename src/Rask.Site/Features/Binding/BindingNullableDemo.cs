@@ -25,7 +25,7 @@ public sealed partial class BindingNullableDemo : Component
         Div.Class("mb-3")[
             // "— none —" is a real option rather than a Placeholder: choosing it clears the value back to null,
             // which is the point of this demo. A placeholder cannot be chosen.
-            Ui.Select.Bind(() => _model.Favorite)
+            Ui.Select.Bind(() => _model.Favorite).Live()
                 .Label("Optional colour (Color?)")
                 .Id("bind-null-color")[
                 Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])

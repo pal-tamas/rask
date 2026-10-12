@@ -122,10 +122,11 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     public async Task A_bound_row_reads_the_field_and_writes_the_selected_name_back()
     {
         var settings = new Settings();
-        var page = Page.Render(Three(Ui.Tabs.Bind(() => settings.Tab)));
+        var page = Acting.Render(Three(Ui.Tabs.Bind(() => settings.Tab)));
         var before = Selected(page);
 
         await page.On("[role=\"tab\"]:has-text(\"Billing\")").Click();
+        await Acting.Act(page);
 
         Assert.Equal("Account", before);
         Assert.Equal("billing", settings.Tab);

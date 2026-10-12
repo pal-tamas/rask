@@ -461,6 +461,15 @@ public sealed partial class EditContext : IDisposable
         }
     }
 
+    // The reader chose a value the session holds until the next action (PendingBinds): the field is edited,
+    // and what was said about the value it replaces no longer applies. The model has not changed, so nothing
+    // is announced and nobody is drawn again.
+    internal void NoteEdited(FieldIdentifier field)
+    {
+        GetOrCreate(field).Modified = true;
+        ClearMessages(field);
+    }
+
     /// <summary>
     ///     Records that the user has visited and left a field — normally on blur. See
     ///     <see cref="IsTouched" /> for why that gates error display.

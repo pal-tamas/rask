@@ -213,6 +213,13 @@ passing all three on, in this order —
 `Input.Bind(bind).Validate(Validate).Live(Live).Blur(Blur).Debounce(Debounce)` — as the kit's input does.
 A control that must write as it is chosen says `.Live()` on the Core control inside it.
 
+A control that draws itself from several elements and commits from a handler of its own — the kit's listbox,
+calendar, groups — cannot wait in the browser: the pick is an event the server hears. The kit's hand the
+value to Core, which holds it in the session and writes it — model, rules, `AfterBind` — before the next
+handler that is not such a control's own ([bind timing](forms.md#bind-timing)). That list is Core's and
+internal today; a control of yours that commits with `accessor.Setter(value)` and
+`BindingHelpers.NotifyAndValidateField(…)` writes as it is chosen, as before.
+
 ---
 
 ## 4. The lower-level binding API

@@ -76,10 +76,11 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_pick_writes_the_bound_day_and_closes_the_popup_on_the_same_click()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Locale("en-US").On(Today));
 
         Assert.Contains("popovertargetaction=\"hide\"", page.Html, StringComparison.Ordinal);
         await page.On(Day(20)).Click();
+        await Acting.Act(page);
 
         Assert.Equal(Jan(20), model.Arrival);
         Assert.Contains(">Jan 20, 2026</span>", page.Html, StringComparison.Ordinal);
@@ -111,11 +112,12 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_range_is_written_on_the_second_click_and_never_half()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today));
 
         await page.On(Day(4)).Click();
         var afterFirst = model.Stay;
         await page.On(Day(6)).Click();
+        await Acting.Act(page);
 
         Assert.Equal(default, afterFirst);
         Assert.Equal(new UiDateRange(Jan(4), Jan(6)), model.Stay);
@@ -197,9 +199,10 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_preset_writes_its_range_and_puts_its_name_on_the_button()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Presets([Ui.DateRangePreset.Last7Days]).Locale("en-US").On(Today));
 
         await page.On("[role=\"radio\"][value=\"last7Days\"]").Click();
+        await Acting.Act(page);
 
         Assert.Equal(Jan(9), model.Stay.Start);
         Assert.Equal(Jan(15), model.Stay.End);
@@ -252,11 +255,12 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task With_confirmation_a_pick_waits_for_the_button()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).WithConfirmation().Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).WithConfirmation().Locale("en-US").On(Today));
 
         await page.On(Day(20)).Click();
         var held = model.Arrival;
         await page.On("div[role=\"button\"]").Click();
+        await Acting.Act(page);
 
         Assert.Equal(default, held);
         Assert.Equal(Jan(20), model.Arrival);
@@ -343,11 +347,12 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_typed_date_is_written_when_the_hidden_field_carries_a_whole_one()
     {
         var model = new Trip();
-        var page = Page.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Type(Ui.DatePickerType.Input).Locale("en-US").On(Today));
+        var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Arrival).Type(Ui.DatePickerType.Input).Locale("en-US").On(Today));
 
         await page.On("[data-ui-date-inputs] input[type=\"hidden\"]").Change(string.Empty);
         var early = model.Arrival;
         await page.On("[data-ui-date-inputs] input[type=\"hidden\"]").Change("2026-03-31");
+        await Acting.Act(page);
 
         Assert.Equal(default, early);
         Assert.Equal(new DateOnly(2026, 3, 31), model.Arrival);
@@ -357,11 +362,12 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     public async Task Two_typed_fields_in_the_trigger_slot_are_a_ranges_start_and_end()
     {
         var model = new Trip { Stay = new UiDateRange(Jan(4), Jan(6)) };
-        var page = Page.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today)
+        var page = Acting.Render(() => Ui.DatePicker.Range.Bind(() => model.Stay).Locale("en-US").On(Today)
             .Trigger(Div[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")]));
 
         var days = Regex.Matches(page.Html, "value=\"(2026-\\d\\d-\\d\\d)\"").Select(m => m.Groups[1].Value).ToArray();
         await page.On("#f-end input[type=\"hidden\"]").Change("2026-01-09");
+        await Acting.Act(page);
 
         Assert.Equal(["2026-01-04", "2026-01-06"], days);
         Assert.Equal(new UiDateRange(Jan(4), Jan(9)), model.Stay);

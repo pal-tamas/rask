@@ -129,6 +129,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // disposed session's tree reachable and re-render it.
     protected void DetachCulture()
     {
+        // With the session goes what its controls chose and never wrote.
+        _pendingBinds?.Drop();
+
         if (_culture is not null)
         {
             _culture.Changed -= OnCultureChanged;
@@ -261,6 +264,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     }
 
     public Component View { get; }
+
+    // What this session's controls chose and the model has not been told yet (Forms/PendingBinds).
+    private Forms.PendingBinds? _pendingBinds;
+
+    Forms.PendingBinds? IRenderHandle.PendingBinds => _pendingBinds ??= new Forms.PendingBinds(View);
 
     /// <summary>
     ///     Whether the last render actually mounted <paramref name="pageType" />.

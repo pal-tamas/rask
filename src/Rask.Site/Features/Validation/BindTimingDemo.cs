@@ -3,6 +3,7 @@ namespace Rask.Site.Features;
 public sealed partial class BindTimingDemo : Component
 {
     private static readonly string[] Taken = ["Atlantis", "El Dorado"];
+    private static readonly string[] Cabins = ["Economy", "Business", "First"];
 
     private readonly ItineraryModel _model = new();
     private string? _saved;
@@ -27,7 +28,21 @@ public sealed partial class BindTimingDemo : Component
                     .Blur()
                     .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."])
             ],
+            Div.Class("grid gap-4 md:grid-cols-3")[
+                Ui.Select.Bind(() => _model.Cabin).Listbox.Label("Cabin")
+                    .Id("bt-cabin")
+                    .Placeholder("Choose a cabin...")
+                    .Description("Shown in the list at once, written and checked with Save.")
+                    .Validate(cabin => cabin.Length > 0 ? [] : ["Pick a cabin."])[
+                    Cabins.Select(cabin => Ui.SelectOption.Key(cabin)[cabin])
+                ],
+                Ui.Switch.Bind(() => _model.Insured).Label("Insured")
+                    .Id("bt-insured")
+                    .Description("Written as it is flipped.")
+                    .Live()
+            ],
             Ui.Text.Id("bt-model")[$"The model holds “{_model.Traveller}”, “{_model.Name}” and “{_model.Notes}”."],
+            Ui.Text.Id("bt-choices")[$"Cabin “{_model.Cabin}”, insured: {(_model.Insured ? "yes" : "no")}."],
             Div[
                 Ui.Button.Primary.Icon(Ui.IconName.CheckCircle).Submit["Save"]
             ]

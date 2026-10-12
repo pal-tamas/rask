@@ -70,7 +70,9 @@ public static partial class DemoRegistry
             ["validation-bind-timing"] = () => CodeSample
                 .Files(["BindTimingDemo.cs", "DestinationName.cs", "ItineraryModel.cs"])
                 .Notes("A bound field waits for the next action. Live sends it as you type, Blur when you leave "
-                + "it. Watch what the model holds while you fill in each one, then press Save.")
+                + "it. A list, a switch or a date follows the same rule: the list shows the pick at once and "
+                + "writes it with Save, the Live switch writes as it is flipped. Watch what the model holds while "
+                + "you fill in each one, then press Save.")
                 .Result(BindTimingDemo),
             ["validation-fields"] = () => CodeSample
                 .Files(["ValidationFieldsDemo.cs"])

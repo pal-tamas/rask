@@ -2147,6 +2147,8 @@ Ui.Input.Bind(() => m.Name)                                                     
 Ui.Input.Bind(() => m.Query).Live()                                                // wire:model.live: as typed, 150 ms pause
 Ui.Input.Bind(() => m.Name).Debounce(300.Milliseconds)                             // wire:model.live.debounce.300ms
 Ui.Input.Bind(() => m.Name).Blur()                                                 // wire:model.live.blur: on leaving the field
+Ui.Select.Bind(() => m.Plan).Listbox[…]                                            // wire:model on any chosen control: shown at once, written with the next action
+Ui.Select.Bind(() => m.Country).Live()[…]                                          // wire:model.live: written on pick — also Ui.Checkbox, Ui.Switch, the groups, the pickers, Ui.Slider, Ui.Tabs
 Ui.Input.Value(key).Icon(Ui.IconName.Key).ReadOnly().Copyable()                    // copy button, a tick for 2 s
 Ui.Input.Of<string>().Type(InputType.File).Multiple().OnFiles(Save)                // "Choose files" + the chosen name
 Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").OnClick(Open) // a button drawn as the input

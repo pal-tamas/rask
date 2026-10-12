@@ -479,7 +479,9 @@ shape these examples use — makes no claim, so it dispatches on the id alone as
 
 Form tests follow the same render-then-invoke loop. A bound control's value arrives as a `change`, as it
 does from a browser ahead of the next action; `page.Type(…).Into(…)` keeps it until the next `page.Click(…)`
-for you:
+for you. A kit control that draws its own list or grid — `Ui.Select.Listbox`, `Ui.Calendar`, a group — shows
+the pick after `page.On(option).Click()` and writes the model with the next click on something of the page's,
+so a test reads the model after its Save; `.Live()` on the control is for a test of what happens at the pick:
 
 ```csharp
 [Fact]

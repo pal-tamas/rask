@@ -21,7 +21,7 @@ namespace Rask;
 ///     is not disabled, wrapping at the ends, and select it as they go. Only the selected tab is a tab stop.
 ///     </para>
 /// </remarks>
-public sealed partial class UiTabs : Component
+public sealed partial class UiTabs : Component, IDeferredBind
 {
     private static readonly UiPartMarker Marker = new("ui-tabs");
 
@@ -52,6 +52,13 @@ public sealed partial class UiTabs : Component
     /// <summary>Two-way binds the selected tab's name to a property: <c>.Bind(() =&gt; Tab)</c>.</summary>
     public Expression<Func<string>>? Bind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Tabs.Bind(() =&gt; m.Tab).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     /// <summary>Runs when a tab is selected, with its name.</summary>
     public Callback<string> OnChange { get; set; }
 
@@ -63,7 +70,7 @@ public sealed partial class UiTabs : Component
     protected override Component? Render()
     {
         var accessor = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
-        var held = accessor is null ? Value : accessor.Getter() as string;
+        var held = accessor is null ? Value : Held(accessor);
         var variant = Variant ?? Ui.TabsVariant.Default;
         var chosen = string.IsNullOrEmpty(held) ? _selected : held;
         var scope = new UiTabScope(
@@ -71,7 +78,8 @@ public sealed partial class UiTabs : Component
             Size ?? Ui.TabsSize.Base,
             chosen,
             chosen is null && AnyTabSaysSelected(),
-            name => SelectAsync(name, accessor));
+            name => SelectAsync(name, accessor),
+            Live);
 
         if (Context.Get<UiTabGroupScope>() is { } group)
         {
@@ -95,13 +103,24 @@ public sealed partial class UiTabs : Component
         _selected = name;
         if (accessor is not null)
         {
-            accessor.Setter(name);
             var context = BindingHelpers.ResolveBindingContext(accessor.Target);
-            await BindingHelpers.NotifyAndValidateField(context, accessor.Field).ConfigureAwait(false);
+            await PendingBinds.Commit(this, accessor.Field, context, name, Write, SettleAsync).ConfigureAwait(false);
+
+            bool Write()
+            {
+                accessor.Setter(name);
+                return true;
+            }
+
+            Task SettleAsync() => BindingHelpers.NotifyAndValidateField(context, accessor.Field);
         }
 
         await OnChange.Invoke(name).ConfigureAwait(false);
     }
+
+    // The tab chosen and not yet written is the one shown (PendingBinds), then the model's.
+    private string? Held(ExpressionAccessor.Accessor accessor) =>
+        (PendingBinds.TryPeek(this, accessor.Field, out var chosen) ? chosen : accessor.Getter()) as string;
 
     // A later tab's `Selected` has to be known before the first tab renders, or the first would claim the row.
     private bool AnyTabSaysSelected() => (Children ?? []).Any(child => child is UiTab { Selected: true });

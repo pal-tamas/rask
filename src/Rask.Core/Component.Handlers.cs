@@ -254,7 +254,7 @@ public abstract partial class Component
         owner.Live.StateDirty = true;
         try
         {
-            return await DispatchAsync(handler, payload, owner).ConfigureAwait(false);
+            return await DispatchAfterPicksAsync(handler, payload, owner).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
         {
@@ -269,6 +269,29 @@ public abstract partial class Component
             boundary.Trip(ex, ErrorSource.Action);
             return true;
         }
+    }
+
+    // What controls drawn in C# chose and have not written goes first, unless this is such a control drawing
+    // itself (PendingBinds): no handler of the page reads a model that has not heard a pick. Forwarding, so
+    // an event with nothing waiting anywhere pays one static read.
+    private ValueTask<bool> DispatchAfterPicksAsync(Delegate handler, JsonElement payload, Component owner) =>
+        PendingBinds.AnyWaiting && RenderHandle?.PendingBinds is { } binds
+            ? DispatchAroundPicksAsync(binds, handler, payload, owner)
+            : DispatchAsync(handler, payload, owner);
+
+    private async ValueTask<bool> DispatchAroundPicksAsync(
+        PendingBinds binds, Delegate handler, JsonElement payload, Component owner)
+    {
+        if (!binds.IsOwn(owner))
+        {
+            await binds.FlushAsync().ConfigureAwait(false);
+        }
+
+        var handled = await DispatchAsync(handler, payload, owner).ConfigureAwait(false);
+
+        // A callback the control raised into the page wrote them ahead of itself: their rules end here.
+        await binds.SettledAsync().ConfigureAwait(false);
+        return handled;
     }
 
     // When the host supplied a cancellable dispatch token (a handler timeout is configured), make

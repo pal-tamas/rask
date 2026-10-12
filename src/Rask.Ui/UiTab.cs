@@ -1,3 +1,4 @@
+using Rask.Core.Forms;
 using Rask.Core.Components;
 using Rask.Core.Routing;
 
@@ -18,8 +19,13 @@ namespace Rask;
 ///     It is never a link, as Flux's is not: a row that navigates reads its <c>OnChange</c>.
 ///     </para>
 /// </remarks>
-public sealed partial class UiTab : Component
+public sealed partial class UiTab : Component, IDeferredBind
 {
+    private UiTabScope? _tabs;
+
+    // A tab answers for its row: selecting it is the row's value, written when the row says.
+    bool? IDeferredBind.Live => _tabs?.Live;
+
     private static readonly UiPartMarker Marker = new("ui-tab");
     private static readonly UiPartMarker SelectedMarker = Marker.And("selected");
 
@@ -72,7 +78,7 @@ public sealed partial class UiTab : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var scope = Context.Get<UiTabScope>() ?? Alone();
+        var scope = _tabs = Context.Get<UiTabScope>() ?? Alone();
         if (Action == true)
         {
             return ActionButton(scope);

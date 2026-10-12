@@ -47,6 +47,7 @@ public static class AutoCallback
 
         return () =>
         {
+            Forms.PendingBinds.Precede(r);
             d();
             r.StateHasChanged();
         };
@@ -67,6 +68,7 @@ public static class AutoCallback
 
         return arg =>
         {
+            Forms.PendingBinds.Precede(r);
             d(arg);
             r.StateHasChanged();
         };
@@ -87,6 +89,7 @@ public static class AutoCallback
 
         return async () =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d().ConfigureAwait(false);
             r.StateHasChanged();
@@ -108,6 +111,7 @@ public static class AutoCallback
 
         return async arg =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d(arg).ConfigureAwait(false);
             r.StateHasChanged();
@@ -129,6 +133,7 @@ public static class AutoCallback
 
         return async () =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d().ConfigureAwait(false);
             r.StateHasChanged();
@@ -150,6 +155,7 @@ public static class AutoCallback
 
         return async arg =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d(arg).ConfigureAwait(false);
             r.StateHasChanged();
@@ -178,6 +184,7 @@ public static class AutoCallback
 
         return (arg1, arg2) =>
         {
+            Forms.PendingBinds.Precede(r);
             d(arg1, arg2);
             r.StateHasChanged();
         };
@@ -198,6 +205,7 @@ public static class AutoCallback
 
         return async (arg1, arg2) =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d(arg1, arg2).ConfigureAwait(false);
             r.StateHasChanged();
@@ -219,6 +227,7 @@ public static class AutoCallback
 
         return async (arg1, arg2) =>
         {
+            Forms.PendingBinds.Precede(r);
             r.MarkDirtyForAsyncHandler();
             await d(arg1, arg2).ConfigureAwait(false);
             r.StateHasChanged();
@@ -268,7 +277,8 @@ public static class AutoCallback
         {
             return new Func<object?, Task>(async arg =>
             {
-                r.MarkDirtyForAsyncHandler();
+                Forms.PendingBinds.Precede(r);
+            r.MarkDirtyForAsyncHandler();
                 if (d.DynamicInvoke(arg) is Task t)
                 {
                     await t.ConfigureAwait(false);
@@ -280,6 +290,7 @@ public static class AutoCallback
 
         return new Action<object?>(arg =>
         {
+            Forms.PendingBinds.Precede(r);
             d.DynamicInvoke(arg);
             r.StateHasChanged();
         });

@@ -111,9 +111,37 @@ is an event of its own and is not bound. One thing defeats a pause, by sending t
 `OnKeyDown` or `OnKeyUp` on the field that hears every key. Give it
 [`data-rask-keys`](js-interop-runtime.md#keys-and-focus) and it hears only the keys it acts on.
 
-The kit's `Ui.Input` and `Ui.Textarea` forward all three steps to Core's. The kit's chosen controls —
-`Ui.Checkbox`, `Ui.Switch`, `Ui.Select`, the groups, the pickers, `Ui.Slider` — still write as they are
-chosen; they take the same default in a later release.
+The kit's `Ui.Input` and `Ui.Textarea` forward all three steps to Core's.
+
+**Every chosen control of the kit follows the same rule**, and `.Live()` is on each of them: `Ui.Checkbox`,
+`Ui.Switch`, `Ui.Select` (native, listbox, combobox, multiple), `Ui.Pillbox`, `Ui.Autocomplete`,
+`Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Rating`, `Ui.Filter`, `Ui.Calendar`,
+`Ui.DatePicker`, `Ui.TimePicker`, `Ui.Editor`, `Ui.Tabs`, `Ui.MenuCheckbox` and `Ui.MenuRadioGroup`.
+
+```csharp
+Ui.Select.Bind(() => m.Plan).Listbox[…]          // the list shows the pick; the model hears it with the next action
+Ui.Select.Bind(() => m.Country).Live()[…]        // written on pick: AfterBind and a dependent select react at once
+Ui.Checkbox.Bind(() => m.Agreed).Live()          // a section that shows while it is ticked
+Ui.DatePicker.Bind(() => m.From).Live()          // a price that follows the date
+```
+
+- **A control of one element** — `Ui.Checkbox`, `Ui.Switch`, the native `Ui.Select` — waits in the browser,
+  as an input does: ticking it sends nothing at all.
+- **A control the kit draws in C#** — a listbox, a calendar, a group, a slider — still sends its own event,
+  because the server draws the pick: the list shows the option, the calendar the day. What waits is the
+  **write**: the model, the member's rules and `AfterBind` hear the value with the next action, in the
+  order the controls were last touched, before the action's own handler. Nothing the page wrote runs per
+  pick, and the page is not rendered again for one — only the control.
+- **What counts as the next action here** is any handler that is not such a control drawing itself: a
+  button of the page, a submit, another control's `.Live()` change, a controlled control's `OnChange`, and
+  a callback the control itself raises into the page — `Ui.Otp`'s `OnComplete`, a tab's `OnClick`, a
+  select's `OnInput` — which finds the model written.
+- **A message under a control that waits** goes when the reader picks again, as it goes under a field at
+  the first key. The pick marks the field modified at once.
+- **A control a render removes takes its unwritten pick with it.** One that goes because the action itself
+  replaces the page is written first.
+- A pick that waits lives in the session. A reconnect to a new session — a restarted server — forgets it,
+  where a waiting input keeps what was typed in the browser.
 
 A controlled input is not bound and none of this applies to it: `Input.Value(_filter).OnInput(v => _filter = v)`
 hears every keystroke, as before.

@@ -65,12 +65,13 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     public async Task A_checkbox_row_writes_to_its_model_and_a_radio_row_to_its_group()
     {
         var view = new View();
-        var page = Page.Render(Menu(view));
+        var page = Acting.Render(Menu(view));
         await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").Click();
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline).Groups[1].Value;
         await page.On("#" + date).Click();
+        await Acting.Act(page);
 
         Assert.True(view.ShowArchived);
         Assert.Equal("date", view.Sort);
