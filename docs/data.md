@@ -33,7 +33,7 @@ public sealed record Money(decimal Amount, string Currency);   // a value object
 
 public sealed class Product : Aggregate<Guid>
 {
-    [Required, MaxLength(200)]
+    [MaxLength(200)]
     public string Name   { get; private set; } = "";
     public Money Price   { get; private set; } = new(0m, "EUR");
     public string? Notes { get; private set; }
@@ -423,7 +423,7 @@ public sealed partial class ProductsPage : Component
     protected override Component Render() =>
         Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
             c.Field(p => p.Name).Title("Product").Sortable(),
-            c.Field(p => p.PriceAmount).Title("Price").Sortable(),
+            c.Field(p => p.PriceAmount).Title("Price").Sortable().Class("sm:w-32"),
         ]];
 }
 ```

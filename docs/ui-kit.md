@@ -818,7 +818,8 @@ Ui.Editor.Class("**:data-[slot=content]:min-h-[100px]!")       // the area is 20
 ```
 
 The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — and an empty document is the
-empty string. `Bind` writes it to the model on every change and validates the field; `Value` with
+empty string. `Bind` writes it to the model with the next action (`.Live()`: on every change) and validates
+the field then; `Value` with
 `OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
 
 **Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
