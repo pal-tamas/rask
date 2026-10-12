@@ -19,6 +19,9 @@ public sealed class RedirectAfterAwaitTests
     // Longer than a test may run: the page is waited for until it has sent the reader on.
     private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
 
+    // Over while the test still holds the page's load.
+    private static readonly TimeSpan Brief = TimeSpan.FromMilliseconds(1);
+
     [Fact]
     public async Task A_link_to_a_page_that_loads_and_then_redirects_lands_on_its_destination_and_that_page_is_never_sent()
     {
@@ -52,10 +55,27 @@ public sealed class RedirectAfterAwaitTests
         Assert.DoesNotContain("late-content", landing);
     }
 
+    // The handler's await ends on a thread of its own, beside the repaint its page gets for the wait. Whichever
+    // comes first, the destination is not mounted by that repaint: only the navigation's own render waits for it.
+    [Fact]
+    public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_once_on_the_destination()
+    {
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+
+        var frames = await redirects.Click("late-under-repaint");
+
+        var landing = Assert.Single(frames, f => LiveFrames.HistoryUrl(f) is not null);
+        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
+        Assert.Equal("push", HistoryAction(landing));
+        Assert.Contains("home-content", landing);
+        Assert.DoesNotContain(frames, f => f.Contains("late-content", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task A_first_request_whose_page_redirects_within_the_time_it_waits_is_answered_with_a_302()
     {
-        using var host = RedirectingSession.Host(LiveDiffMode.Auto);
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Patient);
 
         var response = await host.Http.GetAsync("/redirect/late", TestContext.Current.CancellationToken);
 
@@ -68,7 +88,7 @@ public sealed class RedirectAfterAwaitTests
     {
         RedirectGate.Reset();
         await using var redirects = await RedirectingSession.Open(
-            "/redirect/gated", LiveDiffMode.DisabledFull, quiescence: TimeSpan.FromMilliseconds(1));
+            "/redirect/gated", LiveDiffMode.DisabledFull, quiescence: Brief);
 
         RedirectGate.Open();
         var landing = await redirects.Ws.ReceiveNavigationToAsync(Home);
@@ -83,7 +103,7 @@ public sealed class RedirectAfterAwaitTests
     {
         RedirectGate.Reset();
         await using var redirects = await RedirectingSession.Open(
-            "/redirect/gated", LiveDiffMode.DisabledFull, quiescence: TimeSpan.FromMilliseconds(1), hello: false);
+            "/redirect/gated", LiveDiffMode.DisabledFull, quiescence: Brief, hello: false);
         var route = redirects.Session.Services.GetRequiredService<RouteState>();
 
         RedirectGate.Open();
@@ -99,7 +119,8 @@ public sealed class RedirectAfterAwaitTests
     public async Task A_page_the_reader_has_left_by_the_time_its_load_ends_sends_them_nowhere()
     {
         RedirectGate.Reset();
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Brief);
         var route = redirects.Session.Services.GetRequiredService<RouteState>();
         await redirects.Navigate("/redirect/gated");
         await redirects.Navigate("/redirect/start");
@@ -115,7 +136,8 @@ public sealed class RedirectAfterAwaitTests
     [Fact]
     public async Task A_page_that_loads_and_then_redirects_into_a_guarded_layout_sends_an_anonymous_reader_to_sign_in()
     {
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
         var constructedBefore = RedirectVaultPage.Constructed;
 
         await redirects.Send(new { type = "navigate", path = "/redirect/late-vault", query = "" });
