@@ -274,6 +274,21 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     [Fact]
     public async Task A_taken_name_never_committed_is_told_on_submit_and_does_not_reach_the_save()
     {
+        using var host = await StartAsync<BerthFormApp>();
+        var page = await OpenAsync(host, tenant: 7);
+        using var ws = await AttachAsync(host, page);
+
+        var refused = await TypeThenSubmitAsync(ws, page, "name", "Budapest");
+
+        Assert.Contains($"<p class=\"name-error\">{Shown(Berth.NameTaken)}</p>", refused, StringComparison.Ordinal);
+        Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+        Assert.Contains("fault=none", refused, StringComparison.Ordinal);
+        Assert.Equal(TypedThenSubmittedQuestions, _questions.Count);
+    }
+
+    [Fact]
+    public async Task A_taken_name_typed_into_a_field_sent_at_every_key_is_told_on_submit_and_does_not_reach_the_save()
+    {
         using var host = await StartAsync<BerthEveryKeyFormApp>();
         var page = await OpenAsync(host, tenant: 7);
         using var ws = await AttachAsync(host, page);
@@ -396,6 +411,20 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         page = await TypeAsync(ws, page, id, value);
         var handler = ChangeHandler().Match(Field(page, id)).Groups[1].Value;
         await ws.SendJsonAsync(new { id = handler, type = "change", value }, ct: TestContext.Current.CancellationToken);
+
+        return LastHtml(await ws.SettledAsync()) ?? page;
+    }
+
+    // The store is asked when the value arrives and again by the submit, which asks every rule of the form.
+    private const int TypedThenSubmittedQuestions = 2;
+
+    // What the browser sends for a field that waits, typed into and never left, when Save is pressed: one
+    // frame, the value first and the submit behind it.
+    private static async Task<string> TypeThenSubmitAsync(WebSocket ws, string page, string id, string value)
+    {
+        var change = ChangeHandler().Match(Field(page, id)).Groups[1].Value;
+        var submit = new { id = MarkupAssert.RequireAttr(page, "data-rask-on-submit"), type = "submit", form = new { } };
+        await ws.SendTypedThenAsync(change, value, submit, TestContext.Current.CancellationToken);
 
         return LastHtml(await ws.SettledAsync()) ?? page;
     }
