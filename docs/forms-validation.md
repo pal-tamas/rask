@@ -200,8 +200,20 @@ new FieldFailure("This driver is already booked then.", ["DriverId"], Marked: ["
 ```
 
 A failure that names no field on this form shows where the form's own messages do, in
-`Validation.Summary`. With nothing on the page to show it, the submit fails as any other does — see
-[a save that fails](#a-save-that-fails).
+`Validation.Summary`. A form with no summary says it in an error toast: the failure's own sentence, as it
+was written, in Development and in Production alike — never *The save failed*. Several such failures of one
+save are one toast, each different sentence once, in order. A save refused for a field and for the whole
+record shows both, each in its place.
+
+```csharp
+throw new RaskValidationException([new FieldFailure("The month is closed.", [])]);   // the summary, or a toast
+```
+
+Only a refusal with nowhere at all to be read — no bound field, no summary, and a hand-wired host whose
+layout draws no toasts — fails as any other submit does: see [a save that fails](#a-save-that-fails).
+
+The same exception thrown by a handler that is not a form's submit — the confirm button of a list's bin —
+is a toast too: see [a handler that refuses](composition-lists.md#a-handler-that-refuses).
 
 It is not logged as an error: the reader was told, and nothing is broken.
 

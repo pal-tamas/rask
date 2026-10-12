@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A refusal that names no field says its own sentence as a toast — in a form and in any handler.** A refusal is
+  an exception that carries field failures (`IFieldFailures` with at least one failure — `RaskValidationException`
+  is one) or an exact DataAnnotations `ValidationException`, also inside an `AggregateException` or
+  `TargetInvocationException`. **In a form:** a failure that names no bound field used to be shown only by a form
+  that draws `Validation.Summary`; any other form got the generic *The save failed* toast, `f.Error` and an error
+  in the log. It is now an error toast carrying the failure's own message, logged at Information, with `f.Error`
+  null; failures under their fields and in a summary are unchanged, and a save refused both ways shows both.
+  **In a handler outside a form** (a click, a change, the confirm button of a delete dialog): the exception used
+  to trip the nearest error boundary — in a live app the page was replaced by its fallback. It is now one error
+  toast, logged at Information; the boundary is not tripped, the page keeps what the handler changed before it
+  threw, and the next event is answered. Failures that name fields are said in that toast too. Several failures
+  are ONE toast — each different sentence once, in order, joined by a space — because the kit's toast shows one
+  at a time. The sentence is the same in Development and in Production. A refusal with nowhere to be read (a
+  hand-wired host whose layout draws no toasts, and in a form no bound field and no summary either) keeps the
+  path it had: the form's fault, the handler's boundary. That now holds for the bare `ValidationException` in a
+  form as well, which used to leave only an Information line in that corner. Every other exception is unchanged.
 - **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used
   to change nothing on the page unless the form was written `f => …` and drew `f.Error`; only the log said so.
   The form now raises an error toast — *The save failed. Please try again.* — or, when it draws its own messages

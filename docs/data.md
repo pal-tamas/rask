@@ -1379,7 +1379,8 @@ nothing written in the submit handler: the exception names its fields (`IFieldFa
 such a failure where it can be corrected instead of failing the submit. Over
 [remote dispatch](validation.md#a-rejected-request) it is the same 400 with field errors a validator produces,
 and the client's exception names its fields too, rebuilt from that dictionary: one failure per distinct
-message, over every field that carries it.
+message, over every field that carries it. Thrown from a handler that is no form's submit — a list's delete — its
+message is an error toast: [a handler that refuses](composition-lists.md#a-handler-that-refuses).
 
 #### When the index may not be there
 

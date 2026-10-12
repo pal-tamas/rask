@@ -425,7 +425,9 @@ async Task Save(SignUp model)
 
 A handler that names the fields it is about — the store refusing a duplicate — is shown
 [under those fields](forms-validation.md#the-database-said-no) and is not an error at all; a
-DataAnnotations `ValidationException` is treated the same way. A cancelled save says nothing. See
+DataAnnotations `ValidationException` is treated the same way. A refusal that names no field shows its
+own sentence — in `Validation.Summary`, or as the error toast when the form has none — in place of
+*The save failed*. A cancelled save says nothing. See
 [a save that fails](forms-validation.md#a-save-that-fails).
 
 The fixed-list forms are untouched and still bind exactly as before:
