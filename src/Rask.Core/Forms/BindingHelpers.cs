@@ -427,16 +427,18 @@ public static class BindingHelpers
     // Writes what arrived to the model and says the field changed. Text the member cannot hold — a fraction
     // for a whole number, a number too large, a date that does not exist — leaves the model as it was, and
     // must not pass for it: the form says under the field what it could not read (UnreadValue), and until a
-    // value arrives that it can, no rule is asked about the old one and no save goes through.
+    // value arrives that it can, no rule is asked about the old one and no save goes through. The same for
+    // text the browser held back and reported as an empty field (UnreadInput): it is not an empty field.
     private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw)
     {
-        if (TrySetTyped(acc, raw))
+        var heldBack = UnreadInput.Current is { } input ? UnreadValue.HeldBack(acc.PropertyType, input) : null;
+        if (heldBack is null && TrySetTyped(acc, raw))
         {
             ctx?.NotifyFieldChanged(fid);
             return true;
         }
 
-        if (UnreadValue.Unparsed(acc.PropertyType, raw) is { } sentence)
+        if ((heldBack ?? UnreadValue.Unparsed(acc.PropertyType, raw)) is { } sentence)
         {
             ctx?.NoteUnread(fid, sentence);
         }

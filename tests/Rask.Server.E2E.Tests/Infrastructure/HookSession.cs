@@ -50,16 +50,18 @@ internal sealed class HookSession : IAsyncDisposable
     /// <param name="beside">Maps what the host serves beside the app, outside its path base.</param>
     /// <param name="environment">The host's environment; whatever the process says when null.</param>
     /// <param name="endpointRouting">True to map the app through the endpoint-routing overload, as a host that composes its own pipeline does.</param>
+    /// <param name="services">What the host registers beside Rask: the languages it ships.</param>
     public static async Task<HookSession> OpenAsync<TPage>(
         PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null,
         string path = "/", IBrowser? browser = null, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<Microsoft.AspNetCore.Builder.WebApplication>? beside = null,
-        string? environment = null, bool endpointRouting = false)
+        string? environment = null, bool endpointRouting = false,
+        Action<Microsoft.Extensions.DependencyInjection.IServiceCollection>? services = null)
         where TPage : Component
     {
         var host = await LiveServerHost.StartAsync<TPage>(
             blockWebSockets: false, live: live, cookieSignIn: cookieSignIn, pathBase: pathBase, beside: beside,
-            environment: environment, endpointRouting: endpointRouting);
+            environment: environment, endpointRouting: endpointRouting, services: services);
         var context = await (browser ?? playwright.Browser).NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
         var pageErrors = new ConcurrentQueue<string>();

@@ -34,6 +34,10 @@ export class StubField {
     checked = false;
     isConnected = true;
     tagName = "INPUT";
+    /** What the browser says is wrong with what the field holds; nothing, unless a fixture says so. */
+    validity: Record<string, boolean> = {valid: true};
+    willValidate = true;
+    form: unknown = null;
 
     /** The control's `type` as the property reads it: its attribute, or none. */
     get type(): string {

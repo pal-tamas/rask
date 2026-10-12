@@ -58,11 +58,33 @@ function answered(el: ValueElement): void {
     }
 }
 
+// TEXT THE BROWSER WILL NOT HAND OVER. A number, date or time input holding text it cannot read — a lone
+// minus, an exponent with no digits, a date half typed — reports its value as "" and says why only in its
+// validity. Sent as it is, that is an empty field, and a required one answers "required" to a reader who did
+// type something. So the frame that carries the value says what held it back: `bad`, the input's type. The
+// page then leaves the model alone and says under the field what it could not read (UnreadValue.cs).
+const HOLDS_BACK = /^(number|date|datetime-local|month|week|time)$/;
+
+/**
+ * The kind of text a field holds and reports as "", or null for a field whose value is its value: the type of
+ * an input the browser calls bad, or what a group of parts left half filled wrote on its one bound field
+ * (`data-rask-unread`, rask-segments.ts).
+ */
+function unread(el: Element): string | null {
+    const input = el as HTMLInputElement;
+    const parts = el.getAttribute("data-rask-unread");
+    if (parts) return parts;
+    return input.validity && input.validity.badInput && HOLDS_BACK.test(input.type) ? input.type : null;
+}
+
 function dispatchInput(el: ValueElement, value: string): void {
     if (!el.isConnected) return;
     const id = el.getAttribute("data-rask-on-input");
     if (!id) return;
-    const answer = send({ id, type: "input", value });
+    const frame: Record<string, unknown> = { id, type: "input", value };
+    const bad = value === "" ? unread(el) : null;
+    if (bad) frame.bad = bad;
+    const answer = send(frame);
     if (answer instanceof Promise) {
         unanswered.set(el, (unanswered.get(el) || 0) + 1);
         const done = () => answered(el);
@@ -120,6 +142,8 @@ export function changeFrame(el: Element): Record<string, unknown> {
     // Only a <select multiple> has more than one value, and its `.value` is the first of them.
     const values = raskChangeFrameValues(field);
     if (values !== null) frame.values = values;
+    const bad = unread(field);
+    if (bad) frame.bad = bad;
     return frame;
 }
 
@@ -300,6 +324,59 @@ document.addEventListener("change", (e) => {
     if (unsent.delete(t) || !paused.has(t)) return;
     raskNotePendingFormState(t);
     flushInputsNow();
+}, true);
+
+// A field bound on blur that holds text back fires no `change` as it is left — its value was "" and still
+// is, and a date half typed fires no `input` either — so leaving it is what sends it.
+document.addEventListener("focusout", (e) => {
+    const t = e.target as ValueElement;
+    if (!t.getAttribute || t.getAttribute(BIND_ON) !== "blur" || !unread(t)) return;
+    unsent.delete(t);
+    sendOwn(function () { commit(t); });
+});
+
+// THE BROWSER REFUSES A SUBMIT over a field it calls invalid, in its own words and language, and the page hears
+// nothing. Where all that is wrong is text a bound field cannot read — held back (unread), or a fraction in a
+// number field with no `step` of its own — the page has a sentence for it. So the browser's bubble is called
+// off and the submit goes, for the page to refuse with that sentence under the field. A form with anything
+// else wrong — a `required`, a `pattern`, a `min` the app wrote — stays the browser's to refuse, and only
+// what could not be read is sent.
+const refusing = new WeakSet<HTMLFormElement>();
+
+function pageSpeaksFor(el: Element): boolean {
+    const v = (el as HTMLInputElement).validity;
+    if (!el.hasAttribute(BIND_ON) && !el.hasAttribute(PAUSE)) return false;
+    if (v.valueMissing || v.typeMismatch || v.patternMismatch || v.tooLong || v.tooShort
+        || v.rangeUnderflow || v.rangeOverflow || v.customError) return false;
+    return unread(el) !== null || (v.stepMismatch && !v.badInput && !el.hasAttribute("step"));
+}
+
+function browserSpeaksFor(el: Element): boolean {
+    const field = el as HTMLInputElement;
+    return field.willValidate && !field.validity.valid && !pageSpeaksFor(field);
+}
+
+document.addEventListener("invalid", (e) => {
+    const field = e.target as HTMLInputElement;
+    const form = field.form;
+    if (!form || !form.hasAttribute("data-rask-on-submit") || !inRoot(form) || !pageSpeaksFor(field)) return;
+    e.preventDefault();
+    // A date half typed has fired no `input`: it is noted here, so that its frame goes ahead of the submit.
+    if (field.hasAttribute(BIND_ON)) remember(field);
+    else paused.set(field, 0);
+    if (refusing.has(form)) return;
+    refusing.add(form);
+    const pressed = document.activeElement as HTMLButtonElement | null;
+    // A task, not a microtask: the browser tells every invalid field of the form before this runs once.
+    setTimeout(function () {
+        refusing.delete(form);
+        if (Array.from(form.elements).some(browserSpeaksFor)) {
+            flushInputsNow();
+            return;
+        }
+        const submitter = pressed && pressed.form === form && pressed.type === "submit" ? pressed : null;
+        form.dispatchEvent(new SubmitEvent("submit", { bubbles: true, cancelable: true, submitter }));
+    }, 0);
 }, true);
 
 // scroll events don't bubble — listen in capture phase at the document level so we

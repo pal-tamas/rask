@@ -4,9 +4,19 @@ using Rask.Core.Globalization;
 namespace Rask.Core.Forms;
 
 // What a bound field could not read of what was typed into it, as the sentence the form says under it. The
-// bound member's type chooses: a whole number, a number, a date, a time.
+// bound member's type chooses: a whole number, a number, a date, a time. A member of another type — text
+// behind a number input — is answered by the kind of input the browser named.
 internal static class UnreadValue
 {
+    /// <summary>The sentence for text the browser held back: <paramref name="input" /> is the input's type.</summary>
+    internal static RaskString? HeldBack(Type member, string input) => OfType(member) ?? input switch
+    {
+        "number" or "range" => RaskString.ValidationNumber,
+        "date" or "datetime-local" or "month" or "week" => RaskString.ValidationDate,
+        "time" => RaskString.ValidationTime,
+        _ => null,
+    };
+
     /// <summary>The sentence for text that arrived and the member's type cannot hold, or null when it has none.</summary>
     internal static RaskString? Unparsed(Type member, string raw)
     {
