@@ -137,6 +137,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             entity = entity with
             {
                 AnnouncesFieldRules = seams.FieldRules,
+                RequiredFromCatalog = seams.RequiredSentence,
                 DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
                 ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
                 AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
@@ -192,6 +193,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool Deletable,
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
+        bool RequiredFromCatalog = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default)
     {
@@ -230,7 +232,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         ValueObjectShape? ValueObject,
         Write? Write,
         EquatableArray<string> Attributes,
-        EquatableArray<string> Checks);
+        EquatableArray<string> Checks,
+        bool RequiredByType = false);
 
     private sealed record Write(
         ModelWriteKind Kind,

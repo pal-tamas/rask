@@ -24,7 +24,7 @@ public sealed partial class ModelInputGenerator
     ///     What the compilation offers a form's rules to be announced through. A library that models its data
     ///     and draws no form references neither, and its models are then generated without them.
     /// </summary>
-    private readonly record struct Seams(bool FieldRules, bool StoreRules);
+    private readonly record struct Seams(bool FieldRules, bool StoreRules, bool RequiredSentence);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -35,7 +35,9 @@ public sealed partial class ModelInputGenerator
                 validation?.GetMembers("RegisterFieldRules").Length > 0,
                 validation?.GetMembers("RegisterStoreRules").Length > 0 &&
                 compilation.GetTypeByMetadataName("Rask.Core.Forms.IStoreRules") is not null &&
-                compilation.GetTypeByMetadataName("Rask.Data.GeneratedStoreRules") is not null);
+                compilation.GetTypeByMetadataName("Rask.Data.GeneratedStoreRules") is not null,
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationRequired").Length > 0);
         });
 
     /// <summary>How a one-value value object states its rule, when it does.</summary>
@@ -325,8 +327,10 @@ public sealed partial class ModelInputGenerator
     private static IEnumerable<RuledModel> RuledModels(Entity entity)
     {
         var root = entity.Members
-            .Where(static m => m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
-            .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
+            .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
+            .Select(static m => m.RequiredByType
+                ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
+                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
             .ToList();
 
         if (root.Count > 0)
@@ -350,5 +354,6 @@ public sealed partial class ModelInputGenerator
 
     private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules);
 
-    private sealed record FieldRule(string Property, string ModelType, string ValueObject, ValueRule Kind, bool Required);
+    /// <summary>One field's rule: its value object's <c>Validate</c>, or — with no value object to ask — only that it is filled.</summary>
+    private sealed record FieldRule(string Property, string ModelType, string? ValueObject, ValueRule Kind, bool Required);
 }
