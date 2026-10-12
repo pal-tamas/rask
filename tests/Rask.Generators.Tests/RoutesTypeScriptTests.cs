@@ -72,10 +72,12 @@ public class RoutesTypeScriptTests
             "FilesPage: (p: { Version?: string | null; Page?: number | null } = {}): Route =>",
             typeScript, StringComparison.Ordinal);
 
-        // An optional segment brings its own slash, and a non-nullable query property is always written.
+        // An optional segment brings its own slash, and a query property — a non-nullable one too — is left
+        // out when it was not given, as in C#.
         Assert.Contains(
-            "route(`/files${url.optional(p.Version, format.text)}`, url.always('Page', p.Page, format.number)),",
+            "route(`/files${url.optional(p.Version, format.text)}`, url.given('Page', p.Page, format.number)),",
             typeScript, StringComparison.Ordinal);
+        Assert.DoesNotContain("always:", typeScript, StringComparison.Ordinal);
     }
 
     [Fact]

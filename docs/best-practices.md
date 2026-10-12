@@ -167,10 +167,13 @@ mistake, the rule notes the ID.
 - **`[Route]` registers a page; bind URL pieces with `[RouteParam]` / `[QueryParam]`.** Path
   segments use `[RouteParam]`, query keys use `[QueryParam]` — swapping them is **RASK006**. Bound
   types must be `string` or `IParsable<T>` (**RASK011** otherwise), and must match a route constraint
-  (`{id:int}`) when present. An absent query parameter keeps the property's initializer —
-  `[QueryParam] public int Page { get; set; } = 1;` — and a value the property cannot hold (`?page=two`) is
-  read as absent, never an error. Link with the generated, refactor-proof `Routes.Page(...)` builder, not
-  hand-written paths. See [routing](routing.md).
+  (`{id:int}`) when present. What the URL does not carry keeps the property's initializer —
+  `[QueryParam] public int Page { get; set; } = 1;`, and an optional segment left out
+  (`{count?}` with `[RouteParam] public int Count { get; set; } = 5;`) alike — and a query value the property
+  cannot hold (`?page=two`) is read as absent, never an error. Link with the generated, refactor-proof
+  `Routes.Page(...)` builder, not hand-written paths: it writes only the query arguments it is given, so
+  `Routes.OrdersPage()` is the clean `/orders` and `Routes.OrdersPage(Page: 3)` is `/orders?Page=3` — do not
+  make a query property nullable just to keep its key out of a link. See [routing](routing.md).
 - **Navigate from event handlers only.** `Go.To`, `Go.With` and a route's `.Go()` throw if called during `Render()`
   — it would mid-render the page out from under itself. Load-time redirects belong in `OnMount` or a route
   guard, not `Render()`. See [routing → Go](routing.md#programmatic-navigation--go).

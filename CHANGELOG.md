@@ -9,13 +9,32 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A generated URL leaves out a query key no value was given for.** **A behaviour change.** Before:
+  `[QueryParam] public int Page { get; set; } = 1;` → `Routes.OrdersPage()` was `/orders?Page=` — a
+  non-nullable query property's key was always written, empty when its argument was left out. After:
+  `Routes.OrdersPage()` → `/orders`, `Routes.OrdersPage(Page: 3)` → `/orders?Page=3`, for `OrdersPage.Url()`
+  and `.Go()` alike, and for the TypeScript `Routes` an island imports. A value that is given is always
+  written — `Page: 1` → `?Page=1`, `Page: 0` → `?Page=0`, an empty string → `?Sort=` as before; nothing is
+  compared with the initializer. The generated signatures are unchanged, and a nullable property's key was
+  already left out. A page that read the bare `?Page=` as "the parameter is here" no longer gets it from a
+  generated link.
+
+- **An optional route segment left out keeps the property's initializer.** **A behaviour change.** Before:
+  `[Route("/items/{count?}")]` + `[RouteParam] public int Count { get; set; } = 5;` → `/items` bound
+  `Count = 0`, the type's default. After: `/items` → `5`, `/items/7` → `7`, and the same page going from
+  `/items/7` back to `/items` → `5` — one rule with the query parameter: what is not in the URL gets the
+  value the page was built with. That includes a value given to the property before the page was first
+  bound (a constructor, an object initializer). A property with no initializer is unchanged — `Guid? Id` is
+  `null` again when a two-route page goes from `/todos/{id}/edit` to `/todos` — and a segment that is there
+  but cannot be read is still not a match (not found).
+
 - **A `[QueryParam]` property keeps its initializer when the parameter is absent.** **A behaviour change.**
   Before: `[QueryParam] public int Page { get; set; } = 1;` was `0` at `/list` — every bind reset the property
   to its type's default, so a default of your own had to be `int? Page` and `Page ?? 1`. After: `/list` → `1`,
   `/list?page=3` → `3`, `/list?page=abc` → `1` (an unreadable value is absent), and the same page going from
   `?page=3` to no `page` → `1` again: the value the page was built with, not the last address's and not `0`.
   A value your own code assigned to the property between two binds is not kept, as before. A property with
-  no initializer is unchanged (`null`, `0`, `false`), and so is `[RouteParam]`. An initializer that is an
+  no initializer is unchanged (`null`, `0`, `false`). An initializer that is an
   object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
   expected to be overwritten with the type's default — now sees the initializer.
 

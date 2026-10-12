@@ -67,12 +67,9 @@ public sealed partial class RoutesGenerator
           segment: <T>(value: T | null | undefined, write: Format<T>) => (value == null ? '' : write(value)),
           /** An optional path segment: left out, slash and all, when there is no value. */
           optional: <T>(value: T | null | undefined, write: Format<T>) => (value == null ? '' : '/' + write(value)),
-          /** A query parameter that is left out when there is no value. */
+          /** A query parameter: left out when no value was given, so the page shows what it shows without it. */
           given: <T>(key: string, value: T | null | undefined, write: Format<T>) =>
             value == null ? null : `${key}=${write(value)}`,
-          /** A query parameter the page always carries, empty when there is no value. */
-          always: <T>(key: string, value: T | null | undefined, write: Format<T>) =>
-            `${key}=${value == null ? '' : write(value)}`,
         }
 
         // The app's path base, as the hosts read it: the directory of <base href>, or none.

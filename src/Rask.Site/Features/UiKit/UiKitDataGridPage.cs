@@ -16,7 +16,7 @@ public sealed partial class UiKitDataGridPage : Component
 {
     /// <summary>The last demo grid's page, counted from one — its pager's links write it.</summary>
     [QueryParam("page")]
-    public int? Page { get; set; }
+    public int Page { get; set; } = 1;
 
     /// <inheritdoc />
     protected override Component? HeadAssets =>

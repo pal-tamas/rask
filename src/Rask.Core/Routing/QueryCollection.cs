@@ -31,6 +31,32 @@ public sealed class QueryCollection : IQueryCollection
 
     public bool TryGetValue(string key, out StringValues value) => _store.TryGetValue(key, out value);
 
+    // A key by name, whatever its case, without allocating: the dictionary answers when it compares that
+    // way (a parsed address always does), and an adopted one that does not is walked.
+    internal bool TryGetIgnoringCase(string key, out StringValues value)
+    {
+        if (_store.TryGetValue(key, out value))
+        {
+            return true;
+        }
+
+        if (_store.Count == 0 || ReferenceEquals(_store.Comparer, StringComparer.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        foreach (var (name, values) in _store)
+        {
+            if (string.Equals(name, key, StringComparison.OrdinalIgnoreCase))
+            {
+                value = values;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() => _store.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
