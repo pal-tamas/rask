@@ -56,6 +56,20 @@ public sealed class ArrivalAfterHandlerTests
         await arrival.Shows("kept:3");
     }
 
+    // The page's callback is the page's code: it closes the editor whose handler raised it, and its reads
+    // are cancelled with the page — not with the editor it has just taken off the page.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(60)]
+    public async Task A_pages_callback_that_closes_the_editor_that_raised_it_reloads_with_both_reads(int timeoutSeconds)
+    {
+        await using var arrival = await Arrival.Open("/arrival/edit", TimeSpan.FromSeconds(timeoutSeconds));
+
+        await arrival.Click("save-edit");
+
+        await arrival.Shows("edited:6");
+    }
+
     [Fact]
     public async Task A_first_request_for_a_page_that_navigates_while_it_mounts_is_sent_on_to_the_loaded_list()
     {
@@ -71,10 +85,10 @@ public sealed class ArrivalAfterHandlerTests
 
     private sealed class Arrival(RaskTestHost host, WebSocket ws, string html) : IAsyncDisposable
     {
-        public static async Task<Arrival> Open()
+        public static async Task<Arrival> Open(string path = "/arrival/form", TimeSpan handlerTimeout = default)
         {
-            var host = RaskTestHost.Create<ArrivalApp>();
-            var html = await (await host.Http.GetAsync("/arrival/form")).Content.ReadAsStringAsync();
+            var host = RaskTestHost.Create<ArrivalApp>(configureServer: o => o.HandlerTimeout = handlerTimeout);
+            var html = await (await host.Http.GetAsync(path)).Content.ReadAsStringAsync();
             var sessionId = MarkupAssert.SessionId(html);
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });

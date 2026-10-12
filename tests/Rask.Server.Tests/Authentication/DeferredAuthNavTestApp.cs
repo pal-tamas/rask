@@ -26,7 +26,8 @@ public sealed partial class DeferredNavStartPage(AuthSignIn auth) : Component
     protected override Component? Render() =>
         Div.Id("start")[
             Button.OnClick(() => SignInAsync("/dashboard"))["sign-in"],
-            Button.OnClick(() => SignInAsync("/admin"))["to-admin"]];
+            Button.OnClick(() => SignInAsync("/admin"))["to-admin"],
+            Button.OnClick(() => SignInAsync("/work"))["to-work"]];
 
     private Task SignInAsync(string returnUrl)
     {
@@ -66,4 +67,26 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
 public sealed partial class DeferredNavAdminPage : Component
 {
     protected override Component? Render() => Div.Id("admin")["admin-only"];
+}
+
+// What a signed-in reader comes back to — and, having chosen no partner yet, is sent on from.
+[Route("/work")]
+[Authorize]
+public sealed partial class DeferredNavWorkPage : Component
+{
+    protected override Task OnMount()
+    {
+        Routes.DeferredNavPartnersPage().Go();
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() => Div.Id("work")["work-for-nobody"];
+}
+
+[Route("/partners")]
+[Authorize]
+public sealed partial class DeferredNavPartnersPage(IUserProvider userProvider) : Component
+{
+    protected override Component? Render() =>
+        Div.Id("partners")["partners-for-", userProvider.Current.Identity?.Name ?? "anon"];
 }

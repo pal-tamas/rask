@@ -49,6 +49,7 @@ Rask.Data.FullTextTokenizer.English = 1 -> Rask.Data.FullTextTokenizer
 Rask.Data.FullTextTokenizer.Unicode = 0 -> Rask.Data.FullTextTokenizer
 Rask.Data.GeneratedModelWrites
 Rask.Data.GeneratedReadQuery
+Rask.Data.GeneratedStoreRules
 Rask.Data.IAggregate
 Rask.Data.IDataChanges
 Rask.Data.IDataChanges.Saved(System.Collections.Generic.IReadOnlyCollection<System.Type!>! entityTypes) -> void
@@ -223,6 +224,8 @@ static Rask.Data.GeneratedModelWrites.Delete<TEntity>(object! key, int? version,
 static Rask.Data.GeneratedModelWrites.ModelSource<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
+static Rask.Data.GeneratedStoreRules.CanAsk(System.IServiceProvider? services) -> bool
+static Rask.Data.GeneratedStoreRules.Check<TEntity, TModel>(System.IServiceProvider? services, TModel! model, string? field, System.Func<TModel!, string!, object?>! valueOf, System.Func<TModel!, object?>! keyOf, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!>
 static Rask.Data.JsonIndexBuilderExtensions.HasJsonIndex<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>! builder, System.Linq.Expressions.Expression<System.Func<TEntity!, object?>!>! path) -> Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<TEntity!>!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Data.ModelBuilderExtensions.ApplyRaskConventions(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder, Microsoft.EntityFrameworkCore.DbContext! context) -> Microsoft.EntityFrameworkCore.ModelBuilder!

@@ -272,8 +272,8 @@ In the environment: `Rask__Live__MaxSessions=1000`.
 | Option | Default | Purpose |
 | --- | --- | --- |
 | `MaxInboundFrameBytes` | `8 MB` | Cap on a single reassembled inbound WebSocket frame — bounds a fragmented-frame memory DoS. |
-| `MaxPendingHandlers` | `512` | Max queued handler dispatches before the socket is closed (backpressure). `0` disables. |
-| `MaxInboundFramesPerSecond` | `1000` | Per-connection inbound message rate cap over a sliding 1 s window — bounds a small-frame CPU DoS. `0` disables. |
+| `MaxPendingHandlers` | `512` | Max queued handler dispatches before the socket is closed (backpressure); a `batch` frame — the events of one browser task — is one dispatch. `0` disables. |
+| `MaxInboundFramesPerSecond` | `1000` | Per-connection inbound message rate cap over a sliding 1 s window — bounds a small-frame CPU DoS. The events a `batch` frame carries (the events of one browser task) are counted against it too. `0` disables. |
 | `SessionGracePeriod` | `30 s` | How long a session is retained after its socket disconnects, for reconnect. |
 | `UnconnectedSessionGracePeriod` | `10 s` | How long a GET-minted session is retained before its first `hello` arrives. |
 | `IdleSocketTimeout` | `0` (off) | Close a connected socket that sends no inbound frame for this long (the session survives for reconnect). Reclaims silently-idle connections. |

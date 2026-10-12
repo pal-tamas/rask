@@ -212,6 +212,26 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // The events batch frames carried in the current one-second window. A batch is ONE frame to the transport's
+    // rate cap, so its events are counted here against the same number. Written by whichever request is reading
+    // this session's frames — one at a time for a socket, and for a browser's POSTs, which it sends one at a time.
+    private long _batchWindowStart;
+    private int _batchedEventsInWindow;
+
+    /// <summary>Whether <paramref name="count" /> more batched events fit this second's allowance.</summary>
+    internal bool AdmitBatchedEvents(int count, int maxPerSecond)
+    {
+        var now = Environment.TickCount64;
+        if (now - _batchWindowStart >= 1000)
+        {
+            _batchWindowStart = now;
+            _batchedEventsInWindow = 0;
+        }
+
+        _batchedEventsInWindow += count;
+        return _batchedEventsInWindow <= maxPerSecond;
+    }
+
     // Aggregate bytes of the cloned payloads currently queued — the memory companion to the count
     // above, so the receive loop can bound the queue's footprint, not just its length.
     private long _pendingHandlerBytes;
@@ -419,6 +439,21 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         });
 
+    // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
+    // mounted on a reconnect. Queued like a link the reader clicked, so it runs behind what they did before it.
+    protected override bool TryNavigateCore(Action navigate)
+    {
+        EnqueueOnHandlerChain(async previous =>
+        {
+            // Never inline: the hook asking may be inside the very render this navigation has to wait for.
+            await Task.Yield();
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            await RaskEndpointExtensions.NavigateFromHookAsync(this, navigate)
+                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        });
+        return true;
+    }
+
     // The work's task, with a synchronous throw carried in it like an asynchronous one.
     private static Task Started(Func<Task> work)
     {
@@ -530,8 +565,20 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // The waves themselves are host-agnostic and live in Core, so a build-time prerender of an app
         // with no server at all runs the same loop. What is server-specific is the two arguments below.
+        // A page that navigated is not rendered again: the response is a redirect, and its destination is the
+        // next request's to render, behind that route's own guard.
+        var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
+        var served = string.Empty;
         var result = await QuiescentRender.Run(
-            RenderRootWave,
+            publishOnly =>
+            {
+                if (!navigator.NavigationPending)
+                {
+                    served = RenderRootWave(publishOnly);
+                }
+
+                return served;
+            },
             budget,
             // Work blocked on JavaScript cannot finish here, so waiting for it only burns the
             // budget. A JS call made during a render queues onto a frame, and during the GET there
@@ -866,12 +913,48 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
-    internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
-        bool publishOnly = false)
+    private Navigator? _navigator;
+
+    // Whether a connection is open to send to. An address that could not be sent is kept, and the first render
+    // that can be sent carries it, replacing the one the browser holds.
+    private bool HasSomeoneToTell(ref string? historyUrl, ref bool replace)
     {
         if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
-            return;
+            _undeliveredAddress = historyUrl ?? _undeliveredAddress;
+            return false;
+        }
+
+        if (_undeliveredAddress is { } undelivered)
+        {
+            _undeliveredAddress = null;
+            if (historyUrl is null)
+            {
+                historyUrl = undelivered;
+                replace = true;
+            }
+        }
+
+        return true;
+    }
+
+    // The address of a navigation made while no connection was attached — a page whose load outlasted the first
+    // response and then sent the reader on. Only the session's own dispatches write it, one at a time.
+    private string? _undeliveredAddress;
+
+    /// <summary>
+    ///     Whether the page just rendered navigated as it mounted or updated. Its frame is withheld — the reader
+    ///     sees nothing of a page that sent them on — and the dispatch renders the destination instead.
+    /// </summary>
+    private bool RedirectPending => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
+
+    // Answers whether a frame went out: false when it was withheld, repeated the last one, or had no one to go to.
+    internal async Task<bool> RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
+        bool publishOnly = false)
+    {
+        if (!HasSomeoneToTell(ref historyUrl, ref replace))
+        {
+            return false;
         }
 
         using var work = EnterWorkScope();
@@ -883,12 +966,17 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
             var html = RenderTreeToHtml(publishOnly, out var frameWriter);
+            if (auth is null && RedirectPending)
+            {
+                return false;
+            }
+
             var download = ConsumeDownload();
             var jsInvokes = JsInvokes.Drain();
 
             if (RepeatsLastFrame(jsInvokes, historyUrl, auth, download))
             {
-                return;
+                return false;
             }
 
             var renderStarted = Stopwatch.GetTimestamp();
@@ -913,6 +1001,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             {
                 RecordSent(renderStarted, payloadBytes);
             }
+
+            return sent;
         }
         finally
         {
@@ -989,33 +1079,42 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls into a
-    ///     single outbound payload. The first send emits the captured navigation/auth
-    ///     state; if an in-handler StateHasChanged set <c>_pendingRenderInScope</c>
-    ///     (e.g. <c>RouteState.Changed</c> subscribers on a layout above the Router),
-    ///     rebuild up to twice — re-threading <paramref name="historyUrl" />,
-    ///     <paramref
-    ///         name="replace" />
-    ///     , and <paramref name="auth" /> so the actually-sent payload
-    ///     still carries them. Dropping any of those on a rebuild silently swallows
-    ///     handler-initiated navigation, the c11b61d invariant ported from
-    ///     <c>WasmLiveSession.BuildPayloadCoalescingRerendersAsync</c>. The
-    ///     <paramref name="historyUrl" /> here is a local captured before the loop, not
-    ///     a fresh <c>Navigator.TryConsumeHistory</c> call, so re-passing it on every
-    ///     iteration does not double-push history on the client — only one frame ever
-    ///     reaches the wire because <see cref="RenderAndSendAsync" />'s byte-dedup
-    ///     suppresses spurious identical rebuilds.
+    ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls. The first send carries the
+    ///     captured navigation and auth state; if a StateHasChanged inside the dispatch set
+    ///     <c>_pendingRenderInScope</c> (a <c>RouteState.Changed</c> subscriber on a layout above the Router, a
+    ///     lifecycle hook that finished its await while the dispatch was still rendering), it renders again, up
+    ///     to twice.
     /// </summary>
+    /// <remarks>
+    ///     The address is re-threaded into a rebuild only until a frame has carried it: a frame that was withheld
+    ///     or repeated the last one took nothing to the browser, so the next one still owes it. Once it has gone
+    ///     out, a rebuild whose HTML differs is a frame of its own, and repeating the address in it would push the
+    ///     same history entry a second time — Back then lands on the page the reader is already on.
+    /// </remarks>
     internal async Task RenderAndSendCoalescingAsync(
         string? historyUrl, bool replace, AuthInstruction? auth = null)
     {
         _pendingRenderInScope = false;
-        await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        var addressed = await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        if (auth is null && RedirectPending)
+        {
+            // The route moving asked for a render of its own; the caller's render of the destination is it.
+            _pendingRenderInScope = false;
+            return;
+        }
+
         var budget = 2;
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+            if (addressed)
+            {
+                await RenderAndSendAsync(null, false, auth).ConfigureAwait(false);
+            }
+            else
+            {
+                addressed = await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+            }
         }
 
         // Budget exhaustion was silent before: a third in-dispatch StateHasChanged

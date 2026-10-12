@@ -7,6 +7,38 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
+  value object an aggregate holds, with a `Validate` and none that qualifies (not public, not static, generic,
+  not exactly one parameter of the held value's type, or not returning the messages), is reported on the method
+  with what is wrong and the signature that would qualify — a rule that never runs looks exactly like one that
+  passed. Not reported: a `Validate` implementing an interface or overriding a base member, a value object of
+  several values, and any other type. **For an existing app** that builds warnings-as-errors and has such a
+  method: give it the signature, rename it, or silence it at that site.
+
+- **A form bound to a Rask.Data aggregate's generated model asks the aggregate's rules by itself.** Two kinds,
+  with no step on the field and none on the form. (1) A value object that holds one value and has a
+  `public static Validate` taking that value and returning the messages (`IEnumerable<string>`, or a
+  `ValueTask`/`Task` of it) is asked by the field that holds it, before any `.Validate(…)` written there. No
+  interface, no attribute; any other shape of `Validate` is left alone. (2) Every unique index the aggregate's
+  `Configure` declares with a message — `IsUnique("…")` — is asked of the database when a bound field is
+  committed and again on submit, and the message shows under the field (under each, for an index over several)
+  before the save is tried: for the current tenant's rows only, leaving out the row an edit form was filled
+  from, once per pair of values for an index over two fields, and on every host that has Rask.Data. It is a
+  courtesy and never the rule — the save still refuses a duplicate, the same way. A model written by hand gets
+  neither. **For an existing app:** a form over `XModel` whose aggregate declares `IsUnique("…")` now waits for
+  a query when such a field is committed, and a field holding a one-value value object with such a `Validate`
+  now shows its messages. The
+  generated model gains an `internal` `__Key` (the row it was filled from), which is not a field and is never
+  posted. See `docs/data.md` — *What a form over the model asks by itself*.
+
+- **`Go.Out("/tenants")` leaves the app for a page of the same site it does not render.** An app mapped under a
+  path base (`MapRask<App>(pathBase: "/new")`) could not send the reader to the old application beside it from
+  code: `Go.To("/tenants")` always meant `/new/tenants`. `Go.Out` uses the address as written — a `302` on a first
+  request, a full-page navigation from a handler or a lifecycle hook, on both hosts — and takes only a path on
+  this site: another site, a scheme, `//host` and `/\host` throw `ArgumentException`
+  ([Leaving the app](docs/routing.md#leaving-the-app--goout)).
 ### Changed
 
 - **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
@@ -28,6 +60,67 @@ them until tagged releases begin.
   taking its value or a parameterless constructor and its property, either of which may be private.
 
 ### Fixed
+
+- **A navigation that renders more than once tells the browser its address once.** On the Server host, a
+  `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
+  its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that
+  frame repeated the navigation's address. The browser pushed the same history entry twice, so Back stayed on
+  the page the reader was leaving; where that page loads and then calls `Go()`, Back sent them round to its
+  destination again. The address now travels in the first frame that goes out, and in no later one.
+
+- **A host mapped through endpoint routing says why a reply was the whole page, and every such reply has a
+  reason.** `endpoints.MapRask<TApp>()` — the overload a host that composes its own pipeline calls — never learned
+  the host's environment or its logger: `LiveOptions.IsDevelopment` stayed unset, so the Development-only line
+  that names a refused diff was never written, the development error page was the production one, and framework
+  diagnostics went to stderr instead of the app's log. Both overloads now take the same facts from the host's
+  services. The line is a **warning** now (a host that logs warnings and up still shows it), and the replies it
+  used to stay silent about are named too: a session with no earlier render to compare with, a render that
+  carries a sign-in handoff or a file download, and a reply in which the differ found nothing to patch. Still
+  nothing is formatted outside Development.
+- **A handler that only calls script is answered with a diff.** A press whose handler changed nothing on the
+  page and called JavaScript (`ShowModal()`, a focus, any `IJSRuntime` call) was answered with the whole
+  document carrying the call, because a diff with no ops was taken for "nothing to send". The call now rides an
+  empty diff: about a hundred bytes where the page was tens of kilobytes.
+- **A callback runs under the lifetime of the component that wrote it. Behaviour change.** A page's
+  `Editor.OnSaved(async () => { _editing = false; await Reload(); })` is the page's code, but it ran under
+  the lifetime of the component whose handler invoked it — the editor, which its first line unmounts. So
+  the reads in `Reload()` that pass no token (`await Product.Where(…)`) were cancelled: the editor closed
+  and the list kept its old rows, with an `OperationCanceledException` in the log. While a callback set
+  through a chain step runs — its synchronous part and every continuation — `Current.Cancellation`, the
+  token-less data calls and the owner's `CancellationToken` are now the *owner's*: unmounting the invoker
+  no longer cancels it, the owner leaving the page does, and the invoker's own code is back under its own
+  lifetime when the callback returns. It holds for `Callback`, `Callback<T>` and `Callback<T1, T2>`, for a
+  callback handed down through several components (the owner is whoever wrote the lambda), for one raised
+  from a child's lifecycle hook, and for the kit components that raise from their own handlers
+  (`Ui.Pagination.OnPage`, `Ui.Tabs.OnChange`, a save button inside a `Ui.Modal`). With
+  `RaskServerOptions.HandlerTimeout` set, the callback is cancelled by its owner leaving or by that same
+  timeout, whichever is first. Unchanged: a handler's own code after it unmounted its own component still
+  sees a cancelled token; a static lambda, one over plain locals, or a `new Callback(…)` built by hand has
+  no owner and runs for its invoker.
+  **What an app notices:** the reload after "close the editor, then refresh" completes. Code that relied
+  on a parent's callback being cancelled when the child closed must now pass that child's token itself.
+- **A cancellation a data provider wraps, raised by a handler whose component has left the page, no longer
+  trips the error boundary.** Leaving cancels the reads in flight and EF's execution strategy reports that
+  as an `InvalidOperationException`; from a handler it replaced the page the visitor had gone to with the
+  error fallback. It is logged at Information (`Rask.Handler`), as the same fault from a lifecycle hook
+  already was. A fault that carries no cancellation still reaches the boundary.
+- **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
+  page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
+  to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:
+  Navigation can only run from event handlers` and showed the error page, on the Server host and in WebAssembly
+  alike; so did the page a sign-in returns to, and a session rebuilt after a deploy. Reached by `Go()` from a
+  handler it flashed its own content and then showed the destination under the wrong address. It now means one
+  thing wherever a page is mounted. **Before the first `await`** the reader gets ONE frame — the destination,
+  with its address and its title — and nothing of the page that sent them on. **After an `await`** (the page
+  loaded first) its placeholder was on screen and the destination then replaces it; a first request still
+  waiting for the load is still a `302`, and a load that outlasts it redirects over the connection. Either way
+  the destination passes its own route guard first, the page that redirected takes no place in the history
+  (Back is the page the reader was on before), a `Go()` from a page the reader has already left is dropped,
+  and the eleventh page in a row to redirect is refused with `Too many redirects`, so two pages that send the
+  reader to each other end in an error instead of holding the session. A first request is no longer rendered
+  past the page that redirected, which had constructed and mounted an `[Authorize]` destination for an
+  anonymous visitor before the `302` was sent. See
+  [Redirecting from a lifecycle hook](docs/routing.md#redirecting-from-a-lifecycle-hook).
 
 - **The edit form works on an aggregate that declares `Checks = Concurrency.None`.** Its generated form model
   still carried `Version`, `X.Model(id)` filled it with 0, and `X.Update(id, model)` then refused every edit
@@ -308,9 +401,8 @@ them until tagged releases begin.
   it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and when a hidden
   chart is shown at another size; a hidden chart keeps its drawing, as Flux's. Its 12px labels are 12px at 390
   wide and at 1920, and the ticks that fit are worked out again, where the SVG used to be scaled as a whole
-  from the stated size. `Ui.ChartSvg.Width(…).Height(…)` are now the box drawn for BEFORE the browser has
-  measured (600 × 200 unstated): a chart stated within half a pixel of its real box is drawn once and sends
-  nothing. Flux's own first paint is an empty box; the kit's is the drawing, scaled until the size arrives.
+  from the stated size. There is no size to state (see **BREAKING** under Changed): the first paint is an empty
+  box of the right size, as Flux's own is, and the drawing arrives with the measurement.
   *Pointer.* The cursor, the tooltip, every `Ui.ChartSummaryValue`, the active `Ui.ChartPoint`s and a pie's
   slices follow the pointer in the browser, with no round trip: the tooltip sits 15px from the row and the
   pointer and flips at the drawing's right and bottom edges (it used to rest at 40% of the height); a summary
@@ -364,6 +456,24 @@ them until tagged releases begin.
   element in place of another (`cond ? A : B`), two children arriving apart from each other, anything at the
   document's own level and anything inside `<svg>`/`<math>` are still answered with the whole page; a level
   beside raw markup is still one morph of its parent. No new op and no client change.
+- **Events that arrive together are answered with one render.** Every client event used to be its own
+  dispatch, handler, walk of the page, diff and patch — so sixty charts measured by one `ResizeObserver` callback
+  were sixty renders of a page that needed one. Both client runtimes now hold the handler events a browser task
+  produces until that task ends and send them as ONE frame (`{"type":"batch","events":[…]}`, one WebSocket
+  message, one POST on the HTTP fallback, one JSExport call on WASM); the session runs their handlers in the
+  order the events happened, each seeing the state the one before it left, and renders once. An event alone in
+  its task is the frame it always was, byte for byte, and a navigation or an interop reply still goes at once,
+  behind whatever was waiting. What a handler can observe is unchanged: before each event of a batch the session
+  asks whether a render made now would rebuild that handler — its component, or one above it, is dirty — and if
+  so renders first, exactly as before. So events landing in different components (charts, rows, cells) are one
+  render, and events landing in the same component are rendered between, as they were; a handler that navigates,
+  signs in, awaits or throws into a boundary is still rendered at once. A page of sixty unsized 50-point charts
+  on a Server host: 60 frames out and 60 patches back → 1 and 1; plotted at its real size 1.06–3.46 s after
+  navigation (median 1.92 s) → 0.20–1.33 s (median 0.43 s), five runs each on a machine at load 80–110; the
+  same page in a WASM app (Debug, interpreted): 2.09 s → 0.58 s, sixty local renders → one. A batch
+  carries at most 256 events; its events count against `MaxInboundFramesPerSecond`, and it is one dispatch to
+  `MaxPendingHandlers`. A single live update still allocates 2,504 B (the exact gate), the wire-byte baselines
+  are unmoved. `docs/architecture/live-rendering-runtime.md` has the rules.
 
 - **A menu's keyboard left the runtime every page downloads.** What a `role="menu"` needs from script — the
   navigation keys not scrolling the page, Enter and Space pressing the focused row, ArrowDown on a closed menu
@@ -397,6 +507,23 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.ChartSvg.Width` and `Ui.ChartSvg.Height` are removed — a chart takes its size from its
+  container alone, exactly as Flux's does.** Flux's `chart.svg` has no size: the element fills the box its class
+  gives it and is drawn by script once that box is known. The kit's two props said what box to draw for before
+  the browser had measured, which was a second, competing answer to "how big is this chart" — a stated size that
+  was not the real one drew a chart whose labels were scaled until the measurement corrected it. Now the first
+  render draws nothing (the measured layer and its empty field, in a box the chart's class already sizes, so
+  nothing moves when the drawing arrives), and the chart is drawn when its box comes back — which, since the
+  events of one browser task are answered with one render (Performance, above), is one render for every chart on
+  the page. Measured on Flux's live page 2026-10-09: its chart element is laid out and empty from 635 ms and
+  drawn at 1,010 ms. Migration: delete the two steps, and give the chart's box a size in CSS if it had none
+  (`.Class("aspect-3/1")`, `h-64`, or a `Ui.ChartViewport` with one).
+  `Ui.ChartSvg.Width(606).Height(202)[…]` → `Ui.ChartSvg[…]`. A page prerendered for a WebAssembly app shows the
+  empty boxes until the runtime has started; a chart whose part reads the wrong row type now says so when it is
+  first drawn rather than when it is first rendered. In a test, `page.On("[data-rask-measure] input").Input("606 202")`
+  is the browser's measurement. The measuring hook now also follows a measured element that a render replaces
+  (the first drawing does): it measures whatever stands in its place, where it used to go on watching the element
+  that had left the page, and a chart drawn once was then never drawn again for a new box.
 - **A routed page keeps its instance when its layout re-creates the `Outlet` around it.** An `Outlet` is a
   positional child of its layout, and the page went with it: a layout that rendered one sibling more ahead of
   the outlet — a breadcrumb that appears once there is something to show — got a new `Outlet` and with it a

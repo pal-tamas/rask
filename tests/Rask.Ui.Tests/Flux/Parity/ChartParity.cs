@@ -75,7 +75,10 @@ public sealed partial class ChartParity : FluxParity
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
         try
         {
-            return [.. Drawn().Select((example, index) => (example.Section, (Component)Raw.Value((index == 0 ? Colours : "") + Framed(index, example.Example).ToHtml())))];
+            lock (Boxes)
+            {
+                return [.. Measured()];
+            }
         }
         finally
         {
@@ -83,10 +86,35 @@ public sealed partial class ChartParity : FluxParity
         }
     }
 
+    // Each example drawn as the browser would have it drawn: every drawing told the box Flux measured for its own.
+    private static IEnumerable<(string Section, Component Example)> Measured()
+    {
+        var index = 0;
+        Boxes.Clear();
+
+        // Reading an example off Drawn() builds it, which is what writes its boxes down.
+        foreach (var (section, example) in Drawn())
+        {
+            var html = MeasuredCharts.Html(Framed(index, example), [.. Boxes]);
+            Boxes.Clear();
+            yield return (section, Raw.Value((index == 0 ? Colours : "") + html));
+            index++;
+        }
+    }
+
+    // The boxes of the example being built, in the order its drawings are written.
+    private static readonly List<(double Width, double Height)> Boxes = [];
+
+    private static UiChartSvg Svg(double width, double height)
+    {
+        Boxes.Add((width, height));
+        return Ui.ChartSvg;
+    }
+
     private static IEnumerable<(string Section, Component Example)> Drawn()
     {
         yield return ("", Ui.Chart.Value(Rows(0, 0, "date", "visitors")).Class("x-3-1")[
-            Ui.ChartSvg.Width(606).Height(202)[
+            Svg(606, 202)[
                 Ui.ChartLine.Field((Row r) => r.A).Class("c-pink"),
                 Ui.ChartAxis.X.Field((Row r) => r.Date)[Ui.ChartAxisLine, Ui.ChartAxisTick],
                 Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick],
@@ -100,7 +128,7 @@ public sealed partial class ChartParity : FluxParity
 
         yield return ("line-chart", Div[
             Ui.Chart.Value(Rows(1, 0, "date", "memory")).Class("x-3-1")[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Svg(606, 202)[
                     Ui.ChartLine.Field((Row r) => r.A).Class("c-pink-500"),
                     Ui.ChartPoint.Field((Row r) => r.A).Class("c-pink-400"),
                     Ui.ChartAxis.X.Field((Row r) => r.Date)[Ui.ChartAxisTick, Ui.ChartAxisLine],
@@ -111,7 +139,7 @@ public sealed partial class ChartParity : FluxParity
 
         yield return ("area-chart", Div[
             Ui.Chart.Value(Rows(2, 0, "date", "stock")).Class("x-3-1")[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Svg(606, 202)[
                     Ui.ChartLine.Field((Row r) => r.A).Class("c-blue").Curve(Ui.ChartCurve.None),
                     Ui.ChartArea.Field((Row r) => r.A).Class("c-blue-area").Curve(Ui.ChartCurve.None),
                     Ui.ChartAxis.Y.Position(Ui.Position.Right).TickPrefix("$")
@@ -123,7 +151,7 @@ public sealed partial class ChartParity : FluxParity
 
         yield return ("multiple-lines", Ui.Chart.Value(Rows(3, 0, "date", "twitter", "facebook", "instagram"))[
             Ui.ChartViewport.Class("x-min-20")[
-                Ui.ChartSvg.Gutter("0").Width(606).Height(320)[
+                Svg(606, 320).Gutter("0")[
                     Ui.ChartLine.Field((Row r) => r.A).Class("c-blue-500 l").Curve(Ui.ChartCurve.None),
                     Ui.ChartPoint.Field((Row r) => r.A).Class("c-blue-500 p").R(5).StrokeWidth(3),
                     Ui.ChartLine.Field((Row r) => r.B).Class("c-red-500 l").Curve(Ui.ChartCurve.None),
@@ -139,7 +167,7 @@ public sealed partial class ChartParity : FluxParity
         ]);
 
         yield return ("bar-chart", Ui.Chart.Value(Rows(4, 0, "date", "revenue")).Class("x-3-1")[
-            Ui.ChartSvg.Width(606).Height(202)[
+            Svg(606, 202)[
                 Ui.ChartBar.Field((Row r) => r.A).Class("c-blue-500").Radius("0").Width("85%"),
                 Ui.ChartAxis.X.Field((Row r) => r.Date).TickCount(10)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                 Ui.ChartAxis.Y.Format(new() { UseGrouping = true }).TickPrefix("$")[Ui.ChartAxisGrid, Ui.ChartAxisTick],
@@ -153,7 +181,7 @@ public sealed partial class ChartParity : FluxParity
         ]);
 
         yield return ("bar-chart", Ui.Chart.Value(Rows(5, 0, "month", "tickets")).Class("x-3-1")[
-            Ui.ChartSvg.Width(606).Height(202)[
+            Svg(606, 202)[
                 Ui.ChartBar.Field((Row r) => r.A).Class("c-blue-37"),
                 Ui.ChartAxis.X.Field((Row r) => r.Name)[Ui.ChartAxisTick],
                 Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]
@@ -162,7 +190,7 @@ public sealed partial class ChartParity : FluxParity
         ]);
 
         yield return ("horizontal-charts", Ui.Chart.Horizontal().Value(Rows(6, 0, "category", "online")).Class("x-2-1")[
-            Ui.ChartSvg.Width(606).Height(303)[
+            Svg(606, 303)[
                 Ui.ChartBar.Field((Row r) => r.A).Class("c-blue-500").Radius("4 0").Width("70%"),
                 Ui.ChartAxis.Y.Field((Row r) => r.Name)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                 Ui.ChartAxis.X[Ui.ChartAxisGrid, Ui.ChartAxisTick],
@@ -176,7 +204,7 @@ public sealed partial class ChartParity : FluxParity
 
         yield return ("grouped-bar-chart", Ui.Chart.Value(Rows(7, 0, "year", "chrome", "firefox", "safari"))[
             Ui.ChartViewport.Class("x-3-1")[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Svg(606, 202)[
                     Ui.ChartGroup[
                         Ui.ChartBar.Field((Row r) => r.A).Class("c-blue-600"),
                         Ui.ChartBar.Field((Row r) => r.B).Class("c-blue-500"),
@@ -191,7 +219,7 @@ public sealed partial class ChartParity : FluxParity
 
         yield return ("stacked-bar-chart", Ui.Chart.Value(Rows(8, 0, "category", "online", "retail", "wholesale"))[
             Ui.ChartViewport.Class("x-3-1")[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Svg(606, 202)[
                     Ui.ChartStack.Width("65%")[
                         Ui.ChartBar.Field((Row r) => r.A).Class("c-blue-600"),
                         Ui.ChartBar.Field((Row r) => r.B).Class("c-blue-400"),
@@ -205,18 +233,18 @@ public sealed partial class ChartParity : FluxParity
         ]);
 
         yield return ("pie-chart", Column(256, Ui.Chart.Value(Rows(9, 0, "label", "value"))[
-            Ui.ChartViewport.Class("x-1-1")[Ui.ChartSvg.Width(256).Height(256)[Pie()]],
+            Ui.ChartViewport.Class("x-1-1")[Svg(256, 256)[Pie()]],
             SliceTooltip()
         ]));
 
         yield return ("donut-chart", Column(256, Ui.Chart.Value(Rows(10, 0, "label", "value"))[
-            Ui.ChartViewport.Class("x-1-1")[Ui.ChartSvg.Width(256).Height(256)[Pie().InnerRadius("60%").Radius(4)]],
+            Ui.ChartViewport.Class("x-1-1")[Svg(256, 256)[Pie().InnerRadius("60%").Radius(4)]],
             SliceTooltip()
         ]));
 
         yield return ("donut-chart", Column(256, Ui.Chart.Value(Rows(11, 0, "label", "value"))[
             Ui.ChartViewport.Class("x-1-1")[
-                Ui.ChartSvg.Width(256).Height(256)[Pie().InnerRadius("60%").Radius(4)],
+                Svg(256, 256)[Pie().InnerRadius("60%").Radius(4)],
                 Div.Style("pointer-events:none;position:absolute;inset:0;display:grid;place-items:center")[
                     Div.Style("text-align:center")[Ui.Heading.Xl["$128k"], Ui.Text["Revenue"]]
                 ]
@@ -227,7 +255,7 @@ public sealed partial class ChartParity : FluxParity
         yield return ("slice-colors", Column(384, Ui.Card[
             Ui.Chart.Value(Rows(12, 0, "label", "value")).Class("x-flex-8")[
                 Ui.ChartViewport.Class("x-w-36")[
-                    Ui.ChartSvg.Width(144).Height(144)[Pie().ColorField((Row r) => r.Color).InnerRadius("60%").Radius(4).Class("s-zinc-800")]
+                    Svg(144, 144)[Pie().ColorField((Row r) => r.Color).InnerRadius("60%").Radius(4).Class("s-zinc-800")]
                 ],
                 Div.Style("flex:1")[
                     Share("Subscriptions", "b-blue-500", "52%"),
@@ -260,7 +288,7 @@ public sealed partial class ChartParity : FluxParity
                     ]
                 ],
                 Ui.ChartViewport.Class("x-3-1")[
-                    Ui.ChartSvg.Width(556).Height(185.328125)[
+                    Svg(556, 185.328125)[
                         Ui.ChartLine.Field((Row r) => r.B).Class("c-yesterday").StrokeDasharray("4 4").Curve(Ui.ChartCurve.None),
                         Ui.ChartLine.Field((Row r) => r.A).Class("c-sky").Curve(Ui.ChartCurve.None),
                         Ui.ChartAxis.X.Field((Row r) => r.Date)[Ui.ChartAxisGrid, Ui.ChartAxisTick, Ui.ChartAxisLine],
@@ -286,7 +314,7 @@ public sealed partial class ChartParity : FluxParity
                 Ui.Text["Revenue"],
                 Ui.Heading.Xl.Style("margin-top:8px;font-variant-numeric:tabular-nums")["$12,345"],
                 Ui.Chart.Value(Numbers(16, 0)).Class("x-stat")[
-                    Ui.ChartSvg.Gutter("4 0 0 0").Width(206).Height(48)[
+                    Svg(206, 48).Gutter("4 0 0 0")[
                         Ui.ChartLine.Class("c-sky-line"),
                         Ui.ChartArea.Class("c-sky-area")
                     ]
@@ -335,7 +363,7 @@ public sealed partial class ChartParity : FluxParity
         Div[
             Ui.Text.Style("margin-bottom:12px;text-align:center;font-weight:500")[title],
             Ui.Chart.Value(Rows(13, chart, "label", "value"))[
-                Ui.ChartViewport.Class("x-1-1")[Ui.ChartSvg.Width(box).Height(box)[Pie().Class(treatment)]]
+                Ui.ChartViewport.Class("x-1-1")[Svg(box, box)[Pie().Class(treatment)]]
             ]
         ];
 
@@ -348,7 +376,7 @@ public sealed partial class ChartParity : FluxParity
             ],
             Ui.TableCell.Class("x-trend")[
                 Ui.Chart.Value(Numbers(15, chart)).Class("x-spark")[
-                    Ui.ChartSvg.Gutter("0").Width(80).Height(26.65625)[Ui.ChartLine.Class(colour)]
+                    Svg(80, 26.65625).Gutter("0")[Ui.ChartLine.Class(colour)]
                 ]
             ]
         ];

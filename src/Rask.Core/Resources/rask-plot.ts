@@ -248,10 +248,17 @@ if (page) {
             changing.clear();
         };
         const sizes = new ResizeObserver(function (entries) {
+            let replaced = false;
             for (const entry of entries) {
                 const el = entry.target;
                 const box = entry.contentRect;
-                if (!el.isConnected || box.width <= 0 || box.height <= 0) {
+                if (!el.isConnected) {
+                    // A render put another element where this one was: that one is the measured box now.
+                    sizes.unobserve(el);
+                    replaced = true;
+                    continue;
+                }
+                if (box.width <= 0 || box.height <= 0) {
                     continue;
                 }
                 boxes.set(el, box);
@@ -272,6 +279,9 @@ if (page) {
             if (changing.size > 0) {
                 if (timer !== null) clearTimeout(timer);
                 timer = setTimeout(settle, SETTLED);
+            }
+            if (replaced) {
+                doc.querySelectorAll(MEASURE).forEach(watch);
             }
         });
         const watch = function (el: Element): void {

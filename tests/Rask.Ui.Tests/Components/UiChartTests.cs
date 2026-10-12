@@ -35,9 +35,9 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         }
     }
 
-    private static string Intro() => InEnglish(() =>
+    private static string Intro() => InEnglish(() => MeasuredCharts.Html(
         Ui.Chart.Value(Visits)[
-            Ui.ChartSvg.Width(606).Height(202)[
+            Ui.ChartSvg[
                 Ui.ChartLine.Field((Visit v) => v.Visitors).Class("text-pink-500"),
                 Ui.ChartAxis.X.Field((Visit v) => v.Day)[Ui.ChartAxisLine, Ui.ChartAxisTick],
                 Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick],
@@ -47,10 +47,10 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
                 Ui.ChartTooltipHeading.Field((Visit v) => v.Day),
                 Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).Label("Visitors")
             ]
-        ].ToHtml());
+        ],
+        (606, 202)));
 
-    private static string Bare(params Rask.Core.Component[] parts) => InEnglish(() =>
-        Ui.Chart.Value([0, 10, 20])[Ui.ChartSvg.Gutter("0").Width(200).Height(100)[parts]].ToHtml());
+    private static string Bare(params Rask.Core.Component[] parts) => InEnglish(() => MeasuredCharts.Html(Ui.Chart.Value([0, 10, 20])[Ui.ChartSvg.Gutter("0")[parts]], (200, 100)));
 
     [Theory]
     [InlineData(0, 281, 0, 281, "0 100 200")]
@@ -155,12 +155,14 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     {
         var rows = Enumerable.Range(0, 14).Select(i => new Visit(default, i, i)).ToList();
 
-        var html = InEnglish(() => Ui.Chart.Value(rows)[
-            Ui.ChartSvg.Width(606).Height(202)[
+        var html = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Value(rows)[
+            Ui.ChartSvg[
                 Ui.ChartLine.Field((Visit v) => v.Visitors),
                 Ui.ChartAxis.X.Field((Visit v) => "Row " + v.Visitors)[Ui.ChartAxisTick]
             ]
-        ].ToHtml());
+        ],
+        (606, 202)));
 
         Assert.Equal(14, Regex.Matches(html, "style=\"transform: rotate\\(-45deg\\); text-anchor: end;\"").Count);
         Assert.DoesNotContain(", 167)", html, StringComparison.Ordinal);
@@ -197,7 +199,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_bar_fills_nine_tenths_of_its_band_and_rounds_its_value_end_by_eight()
     {
-        var html = InEnglish(() => Ui.Chart.Value([10, 20])[Ui.ChartSvg.Gutter("0").Width(200).Height(100)[Ui.ChartBar]].ToHtml());
+        var html = InEnglish(() => MeasuredCharts.Html(Ui.Chart.Value([10, 20])[Ui.ChartSvg.Gutter("0")[Ui.ChartBar]], (200, 100)));
 
         Assert.Contains("d=\"M5,58A8,8 0 0 1 13,50H87A8,8 0 0 1 95,58V100H5V58Z\"", html, StringComparison.Ordinal);
         Assert.Contains("d=\"M105,8A8,8 0 0 1 113,0H187A8,8 0 0 1 195,8V100H105V8Z\"", html, StringComparison.Ordinal);
@@ -206,14 +208,16 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_stack_stands_each_bar_on_the_one_before_and_the_axis_reaches_their_total()
     {
-        var html = InEnglish(() => Ui.Chart.Value(Visits.Take(1))[
-            Ui.ChartSvg.Gutter("0").Width(100).Height(100)[
+        var html = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Value(Visits.Take(1))[
+            Ui.ChartSvg.Gutter("0")[
                 Ui.ChartStack.Width("100%")[
                     Ui.ChartBar.Field((Visit v) => v.Visitors),
                     Ui.ChartBar.Field((Visit v) => v.Visitors)
                 ]
             ]
-        ].ToHtml());
+        ],
+        (100, 100)));
 
         Assert.Contains("d=\"M0,50 h100 v50 h-100 v-50\"", html, StringComparison.Ordinal);
         Assert.Contains("d=\"M0,0 h100 v50 h-100 v-50\"", html, StringComparison.Ordinal);
@@ -222,7 +226,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_pie_turns_clockwise_from_twelve_inside_its_gutter_and_half_its_stroke()
     {
-        var html = InEnglish(() => Ui.Chart.Value([50, 50])[Ui.ChartSvg.Width(219).Height(219)[Ui.ChartPie]].ToHtml());
+        var html = InEnglish(() => MeasuredCharts.Html(Ui.Chart.Value([50, 50])[Ui.ChartSvg[Ui.ChartPie]], (219, 219)));
 
         // Radius 109.5 - 8 - 1.5 = 100, about (109.5, 109.5): the first slice is the right-hand half, and half a
         // turn's sine is not quite zero in floating point — Flux's own paths carry the same stray digit.
@@ -233,11 +237,13 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_donut_takes_its_hole_as_a_share_of_its_radius_and_a_row_can_choose_its_hue()
     {
-        var html = InEnglish(() => Ui.Chart.Value(Visits.Take(2))[
-            Ui.ChartSvg.Width(219).Height(219)[
+        var html = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Value(Visits.Take(2))[
+            Ui.ChartSvg[
                 Ui.ChartPie.Field((Visit v) => v.Visitors).ColorField((Visit v) => Ui.Color.Amber).InnerRadius("60%")
             ]
-        ].ToHtml());
+        ],
+        (219, 219)));
 
         Assert.Contains("fill-amber-500", html, StringComparison.Ordinal);
         Assert.Contains("A60,60 0 ", html, StringComparison.Ordinal);
@@ -289,10 +295,14 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void An_area_cursor_is_as_wide_as_a_rows_band_and_a_horizontal_chart_runs_its_rows_down()
     {
-        var upright = InEnglish(() => Ui.Chart.Value(Visits)[
-            Ui.ChartSvg.Width(606).Height(202)[Ui.ChartBar.Field((Visit v) => v.Visitors).Width("85%"), Ui.ChartCursor.Type(Ui.ChartCursorType.Area)]].ToHtml());
-        var lying = InEnglish(() => Ui.Chart.Horizontal().Value(Visits)[
-            Ui.ChartSvg.Width(606).Height(202)[Ui.ChartBar.Field((Visit v) => v.Visitors), Ui.ChartCursor]].ToHtml());
+        var upright = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Value(Visits)[
+            Ui.ChartSvg[Ui.ChartBar.Field((Visit v) => v.Visitors).Width("85%"), Ui.ChartCursor.Type(Ui.ChartCursorType.Area)]],
+        (606, 202)));
+        var lying = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Horizontal().Value(Visits)[
+            Ui.ChartSvg[Ui.ChartBar.Field((Visit v) => v.Visitors), Ui.ChartCursor]],
+        (606, 202)));
 
         var places = Regex.Match(upright, "data-rask-plot-area=\"([^\"]*)\"").Groups[1].Value.Split(' ');
 
@@ -305,17 +315,19 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Every_drawing_is_measured_and_says_the_size_it_was_drawn_at()
+    public void A_drawing_says_the_box_it_was_drawn_for_and_draws_nothing_before_it_is_told_one()
     {
-        var stated = Bare(Ui.ChartLine);
-        var unstated = InEnglish(() => Ui.Chart.Value([0, 10, 20])[Ui.ChartSvg[Ui.ChartLine]].ToHtml());
-        var pie = InEnglish(() => Ui.Chart.Value([1, 2])[Ui.ChartSvg.Width(180.671875).Height(180.671875)[Ui.ChartPie]].ToHtml());
+        var measured = Bare(Ui.ChartLine);
+        var unmeasured = InEnglish(() => Ui.Chart.Value([0, 10, 20])[Ui.ChartSvg[Ui.ChartLine]].ToHtml());
+        var pie = InEnglish(() => MeasuredCharts.Html(Ui.Chart.Value([1, 2])[Ui.ChartSvg[Ui.ChartPie]], (180.671875, 180.671875)));
 
-        var layers = new[] { stated, unstated, pie }.Select(html => Regex.Match(html, "data-ui-chart-hover data-rask-measure=\"\" data-rask-plot-frame=\"\"><input type=\"hidden\" value=\"([^\"]*)\"").Groups[1].Value).ToArray();
+        var layers = new[] { measured, unmeasured, pie }.Select(html => Regex.Match(html, "data-ui-chart-hover data-rask-measure=\"\" data-rask-plot-frame=\"\"><input type=\"hidden\" value=\"([^\"]*)\"").Groups[1].Value).ToArray();
 
-        // What the runtime's hook would write for the same box, so a chart drawn at its real size is not drawn twice.
-        Assert.Equal(["200 100", "600 200", "180.67 180.67"], layers);
-        Assert.Contains("viewBox=\"0 0 600 200\"", unstated, StringComparison.Ordinal);
+        // What the runtime's hook would write for the same box, so a chart is not told a box it was drawn for; and
+        // an empty field until then, which is no box: the hook answers it with the real one. As Flux's chart, an
+        // empty box of the right size until it has been measured.
+        Assert.Equal(["200 100", "", "180.67 180.67"], layers);
+        Assert.DoesNotContain("<svg", unmeasured, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-plot-area", pie, StringComparison.Ordinal);
     }
 
@@ -323,9 +335,11 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     public void Points_and_slices_name_their_row_and_a_pies_tooltip_has_a_dot_per_slice()
     {
         var points = Bare(Ui.ChartPoint);
-        var pie = InEnglish(() => Ui.Chart.Value(Visits.Take(3).ToArray())[
-            Ui.ChartSvg.Width(200).Height(200)[Ui.ChartPie.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)],
-            Ui.ChartTooltip[Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)[Ui.ChartTooltipIndicator]]].ToHtml());
+        var pie = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Value(Visits.Take(3).ToArray())[
+            Ui.ChartSvg[Ui.ChartPie.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)],
+            Ui.ChartTooltip[Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).LabelField((Visit v) => v.Day)[Ui.ChartTooltipIndicator]]],
+        (200, 200)));
 
         var slices = Regex.Matches(pie, "<path [^>]*data-rask-plot-row=\"(\\d)\"></path>").Select(match => match.Groups[1].Value);
         var dots = Regex.Matches(pie, "<div class=\"size-2.5 rounded-full hidden data-active:block (bg-[a-z]+-500)\" data-ui-chart-hover data-rask-plot-row=\"(\\d)\"").Select(match => match.Groups[1].Value + match.Groups[2].Value);
@@ -364,13 +378,15 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_horizontal_chart_puts_its_rows_down_the_side_and_its_values_along_the_bottom()
     {
-        var html = InEnglish(() => Ui.Chart.Horizontal().Value(Visits.Take(2))[
-            Ui.ChartSvg.Width(200).Height(100)[
+        var html = InEnglish(() => MeasuredCharts.Html(
+        Ui.Chart.Horizontal().Value(Visits.Take(2))[
+            Ui.ChartSvg[
                 Ui.ChartBar.Field((Visit v) => v.Visitors).Radius("0").Width("50%"),
                 Ui.ChartAxis.Y.Field((Visit v) => v.Visitors)[Ui.ChartAxisTick],
                 Ui.ChartAxis.X[Ui.ChartAxisTick]
             ]
-        ].ToHtml());
+        ],
+        (200, 100)));
 
         Assert.Matches("text-anchor=\"end\" dx=\"-1em\"[^>]*>171</text>", html);
         Assert.Matches("text-anchor=\"middle\"[^>]*dy=\"1em\"[^>]*>200</text>", html);
@@ -429,7 +445,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
     {
         var chart = Ui.Chart.Value(Visits)[Ui.ChartSvg[Ui.ChartLine.Field((string s) => s.Length)]];
 
-        var thrown = Record.Exception(() => chart.ToHtml());
+        var thrown = Record.Exception(() => MeasuredCharts.Html(chart, (200, 100)));
 
         Assert.Contains("Give the lambda the chart's row type", thrown?.ToString(), StringComparison.Ordinal);
     }

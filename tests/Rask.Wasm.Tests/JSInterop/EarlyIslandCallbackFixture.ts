@@ -116,7 +116,9 @@ const exports = {
         Wasm: {
             JSInterop: {
                 Dispatch: (bytes: Uint8Array) => {
-                    dispatched.push((JSON.parse(new TextDecoder().decode(bytes)) as { id: string }).id);
+                    // The callbacks held before boot are delivered in one task, so they cross as one batch.
+                    const frame = JSON.parse(new TextDecoder().decode(bytes)) as { id: string; events?: { id: string }[] };
+                    for (const event of frame.events ?? [frame]) dispatched.push(event.id);
                 },
                 EndInvokeJSResult: () => { },
             },

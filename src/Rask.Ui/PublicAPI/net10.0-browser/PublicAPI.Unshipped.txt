@@ -1054,11 +1054,7 @@ Rask.UiChartSvg.Class.get -> string?
 Rask.UiChartSvg.Class.set -> void
 Rask.UiChartSvg.Gutter.get -> string?
 Rask.UiChartSvg.Gutter.set -> void
-Rask.UiChartSvg.Height.get -> double?
-Rask.UiChartSvg.Height.set -> void
 Rask.UiChartSvg.UiChartSvg() -> void
-Rask.UiChartSvg.Width.get -> double?
-Rask.UiChartSvg.Width.set -> void
 Rask.UiChartTooltip
 Rask.UiChartTooltip.Class.get -> string?
 Rask.UiChartTooltip.Class.set -> void
@@ -4744,7 +4740,6 @@ static RaskBuilderSettersRask_Ui.Id(this Rask.UiCalendarRange! __b, string? valu
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatePickerInput! __b, string? value) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiFileUpload! __b, string? value) -> Rask.UiFileUpload!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiMenu! __b, string? value) -> Rask.UiMenu!
-static RaskBuilderSettersRask_Ui.Height(this Rask.UiChartSvg! __b, double? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiChart! __b) -> Rask.UiChart!
 static RaskBuilderSettersRask_Ui.Horizontal(this Rask.UiChart! __b, bool? value) -> Rask.UiChart!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiAutocomplete! __b, Rask.UiInputIcon? value) -> Rask.UiAutocomplete!
@@ -7172,7 +7167,6 @@ static RaskBuilderSettersRask_Ui.WhenLoading(this Rask.UiSelectOptionEmpty! __b,
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartBar! __b, string? value) -> Rask.UiChartBar!
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartGroup! __b, string? value) -> Rask.UiChartGroup!
 static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartStack! __b, string? value) -> Rask.UiChartStack!
-static RaskBuilderSettersRask_Ui.Width(this Rask.UiChartSvg! __b, double? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.WithConfirmation(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!

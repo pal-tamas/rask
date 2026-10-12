@@ -81,9 +81,23 @@ public sealed partial class MountDuringHandlerTurnTests : global::Rask.Core.Rask
     }
 
     [Fact]
-    public async Task A_parents_callback_run_from_a_childs_handler_is_cancelled_with_the_child()
+    public async Task A_parents_callback_run_from_a_childs_handler_is_cancelled_with_the_parent_not_the_child()
     {
         using var turn = new Turn("/form", HandlerShape.CallbackClosesChild);
+
+        await turn.Click();
+        await turn.Shows("closed");
+
+        Assert.Equal(turn.Probe.FormLifetime, turn.Probe.CallbackTokenAfterClose);
+        Assert.NotEqual(turn.Probe.EditorLifetime, turn.Probe.CallbackTokenAfterClose);
+        Assert.False(turn.Probe.CallbackTokenAfterClose.IsCancellationRequested);
+    }
+
+    // A callback built by hand, with no chain step to record who wrote it, is nobody's: it runs for its invoker.
+    [Fact]
+    public async Task A_callback_built_by_hand_around_a_bare_delegate_is_still_cancelled_with_its_invoker()
+    {
+        using var turn = new Turn("/form", HandlerShape.BareCallbackClosesChild);
 
         await turn.Click();
         await turn.Shows("closed");
@@ -141,6 +155,7 @@ public sealed partial class MountDuringHandlerTurnTests : global::Rask.Core.Rask
         Throws,
         OpenPanel,
         CallbackClosesChild,
+        BareCallbackClosesChild,
     }
 
     // What a session is to a handler: the services, the navigator's handler scope, and a render after it.
@@ -276,14 +291,17 @@ public sealed partial class MountDuringHandlerTurnTests : global::Rask.Core.Rask
 
         protected override Component? Render() => probe.Shape switch
         {
-            HandlerShape.CallbackClosesChild when _closed => Span["closed"],
-            HandlerShape.CallbackClosesChild => new Editor(probe) { OnSaved = new Callback(Saved) },
+            HandlerShape.CallbackClosesChild or HandlerShape.BareCallbackClosesChild when _closed => Span["closed"],
+            // As the chain's `.OnSaved(Saved)` stores it: wrapped, which is where its writer is recorded.
+            HandlerShape.CallbackClosesChild => new Editor(probe) { OnSaved = new Callback(AutoCallback.Wrap(Saved)!) },
+            HandlerShape.BareCallbackClosesChild => new Editor(probe) { OnSaved = new Callback(Saved) },
             _ => Div[Span["form"], Button.OnClick(Submit)["Save"], _panel ? new Panel(probe) : null],
         };
 
         // The parent's own code, reached through a child's handler: it closes the child, then goes on.
         private async Task Saved()
         {
+            probe.FormLifetime = LifetimeTokenInternal;
             _closed = true;
             StateHasChanged();
             await Probe.Save();

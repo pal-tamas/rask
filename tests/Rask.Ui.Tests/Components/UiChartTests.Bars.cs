@@ -73,29 +73,29 @@ public partial class UiChartTests
     // Each kind as the example on Flux's page writes it, in the box Flux measured for it.
     private static string[] BarPaths(string kind, Bars[] rows)
     {
-        var html = InEnglish(() => (kind switch
+        var html = InEnglish(() => MeasuredCharts.Html(kind switch
         {
             "bar" => Ui.Chart.Value(rows)[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Ui.ChartSvg[
                     Ui.ChartBar.Field((Bars r) => r.A),
                     Ui.ChartAxis.X.Field((Bars r) => r.Name)[Ui.ChartAxisTick],
                     Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]]],
             "horizontal" => Ui.Chart.Horizontal().Value(rows)[
-                Ui.ChartSvg.Width(606).Height(303)[
+                Ui.ChartSvg[
                     Ui.ChartBar.Field((Bars r) => r.A).Radius("4 0").Width("70%"),
                     Ui.ChartAxis.Y.Field((Bars r) => r.Name)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                     Ui.ChartAxis.X[Ui.ChartAxisGrid, Ui.ChartAxisTick]]],
             "grouped" => Ui.Chart.Value(rows)[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Ui.ChartSvg[
                     Ui.ChartGroup[Ui.ChartBar.Field((Bars r) => r.A), Ui.ChartBar.Field((Bars r) => r.B), Ui.ChartBar.Field((Bars r) => r.C)],
                     Ui.ChartAxis.X.Field((Bars r) => r.Name)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                     Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]]],
             _ => Ui.Chart.Value(rows)[
-                Ui.ChartSvg.Width(606).Height(202)[
+                Ui.ChartSvg[
                     Ui.ChartStack.Width("65%")[Ui.ChartBar.Field((Bars r) => r.A), Ui.ChartBar.Field((Bars r) => r.B), Ui.ChartBar.Field((Bars r) => r.C).Radius("4 0")],
                     Ui.ChartAxis.X.Field((Bars r) => r.Name)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                     Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick]]],
-        }).ToHtml());
+        }, (606, kind == "horizontal" ? 303 : 202)));
         return [.. BarPath().Matches(html).Select(match => match.Groups[1].Value)];
     }
 

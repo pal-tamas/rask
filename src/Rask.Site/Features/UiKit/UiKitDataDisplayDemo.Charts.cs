@@ -150,7 +150,7 @@ public sealed partial class UiKitDataDisplayDemo
 
     private static Component HorizontalChart() =>
         Ui.Chart.Horizontal().Value(Orders).Class("aspect-2/1")[
-            Ui.ChartSvg.Height(300)[
+            Ui.ChartSvg[
                 Ui.ChartBar.Field((Sale s) => s.Online).Class("text-blue-500").Radius("4 0").Width("70%"),
                 Ui.ChartAxis.Y.Field((Sale s) => s.Category)[Ui.ChartAxisTick, Ui.ChartAxisLine],
                 Ui.ChartAxis.X[Ui.ChartAxisGrid, Ui.ChartAxisTick],
@@ -207,14 +207,14 @@ public sealed partial class UiKitDataDisplayDemo
 
     private static Component Slices(UiChartPie pie, Component? centre) =>
         Ui.Chart.Value(Shares)[
-            Ui.ChartViewport.Class("aspect-square")[Ui.ChartSvg.Width(200).Height(200)[pie], centre]
+            Ui.ChartViewport.Class("aspect-square")[Ui.ChartSvg[pie], centre]
         ];
 
     private static Component SliceColours() =>
         Ui.Card[
             Ui.Chart.Value(Shares).Class("flex items-center gap-8")[
                 Ui.ChartViewport.Class("aspect-square w-36 shrink-0")[
-                    Ui.ChartSvg.Width(144).Height(144)[
+                    Ui.ChartSvg[
                         Ui.ChartPie.Field((Share s) => s.Value).LabelField((Share s) => s.Label).ColorField((Share s) => s.Color)
                             .InnerRadius("60%").Radius(4).Class("dark:stroke-zinc-800")
                     ]
@@ -266,13 +266,13 @@ public sealed partial class UiKitDataDisplayDemo
     private static Component Small() =>
         Div.Class("flex items-start gap-8")[
             Ui.Chart.Value([15, 18, 16, 19, 22, 25, 28, 25, 29, 28, 32, 35]).Class("aspect-3/1 w-20")[
-                Ui.ChartSvg.Gutter("0").Width(80).Height(27)[Ui.ChartLine.Class("text-green-500 dark:text-green-400")]
+                Ui.ChartSvg.Gutter("0")[Ui.ChartLine.Class("text-green-500 dark:text-green-400")]
             ],
             Ui.Card.Class("min-w-48 overflow-hidden")[
                 Ui.Text["Revenue"],
                 Ui.Heading.Xl.Class("mt-2 tabular-nums")["$12,345"],
                 Ui.Chart.Value([10, 12, 11, 13, 15, 14, 16, 18, 17, 19, 21, 20]).Class("-mx-6 -mb-6 h-12")[
-                    Ui.ChartSvg.Gutter("4 0 0 0").Width(240).Height(48)[
+                    Ui.ChartSvg.Gutter("4 0 0 0")[
                         Ui.ChartLine.Class("text-sky-200 dark:text-sky-400"),
                         Ui.ChartArea.Class("text-sky-100 dark:text-sky-400/30")
                     ]

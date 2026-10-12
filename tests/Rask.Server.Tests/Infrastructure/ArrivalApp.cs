@@ -113,3 +113,38 @@ public sealed partial class ArrivalMovedPage : Component
 
     protected override Component? Render() => Span.Id("moved")["moved"];
 }
+
+// A list with an editor open over it. Saving is the editor's handler, and what happens next is the page's:
+// its callback closes the editor, then reloads with two reads that pass no token.
+[Route("edit")]
+[ParentRoute(typeof(ArrivalLayout))]
+public sealed partial class ArrivalEditPage : Component
+{
+    private bool _editing = true;
+    private int _rows;
+
+    protected override Component? Render() =>
+        Div[
+            Span.Id("edited")[_editing ? "editing" : $"edited:{_rows}"],
+            _editing ? ArrivalEditor.OnSaved(Saved) : null];
+
+    private async Task Saved()
+    {
+        _editing = false;
+        _rows = await ArrivalData.Read();
+        _rows += await ArrivalData.Read();
+    }
+}
+
+public sealed partial class ArrivalEditor : Component
+{
+    public Callback OnSaved { get; set; }
+
+    protected override Component? Render() => Button.Id("save-edit").OnClick(Save)["save"];
+
+    private async Task Save()
+    {
+        await ArrivalData.Save();
+        await OnSaved.Invoke();
+    }
+}

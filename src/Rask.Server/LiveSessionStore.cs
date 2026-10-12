@@ -347,6 +347,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// </remarks>
     internal LiveSession? Peek(string id) => _sessions.TryGetValue(id, out var session) ? session : null;
 
+    /// <summary>Whether the session is on its removal clock: detached, and gone when its grace period ends.</summary>
+    internal bool HasPendingRemoval(string id) => _pendingRemovals.ContainsKey(id);
+
     internal void Remove(string id)
     {
         CancelPendingRemoval(id);
