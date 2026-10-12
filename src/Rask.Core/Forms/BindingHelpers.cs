@@ -495,9 +495,20 @@ public static class BindingHelpers
             return false;
         }
 
+        // A number is read in the one spelling the parsers know (NumberText), never as the reader spelled it.
+        if (UnreadValue.IsNumeric(effective))
+        {
+            if (NumberText.Invariant(raw) is not { } spelled)
+            {
+                return false;
+            }
+
+            raw = spelled;
+        }
+
         // `1e3` is a number to the browser, and to a double: a whole number and a decimal read it written out.
         if ((RouteValueParser.TryParse(t, raw, out var parsed)
-             || (UnreadValue.WrittenOut(raw) is { } plain && RouteValueParser.TryParse(t, plain, out parsed)))
+             || (NumberText.WrittenOut(raw) is { } plain && RouteValueParser.TryParse(t, plain, out parsed)))
             && UnreadValue.IsFinite(parsed))
         {
             acc.Setter(parsed);

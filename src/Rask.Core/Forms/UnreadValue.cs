@@ -21,8 +21,7 @@ internal static class UnreadValue
     internal static RaskString? Unparsed(Type member, string raw)
     {
         var sentence = OfType(member);
-        var numeric = sentence is RaskString.ValidationWholeNumber or RaskString.ValidationNumber;
-        if (!numeric || !IsNumber(raw, out var whole))
+        if (!IsNumeric(member) || NumberText.Invariant(raw) is not { } text || !IsNumber(text, out var whole))
         {
             return sentence;
         }
@@ -31,11 +30,9 @@ internal static class UnreadValue
         return whole || sentence == RaskString.ValidationNumber ? RaskString.ValidationNumberRange : sentence;
     }
 
-    /// <summary>A number written with an exponent, written out: <c>1e3</c> is <c>1000</c>. Null for anything else.</summary>
-    internal static string? WrittenOut(string raw) =>
-        raw.AsSpan().ContainsAny('e', 'E') && decimal.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
-            ? number.ToString(CultureInfo.InvariantCulture)
-            : null;
+    /// <summary>Whether <paramref name="member" /> holds a number, whole or not.</summary>
+    internal static bool IsNumeric(Type member) =>
+        OfType(member) is RaskString.ValidationWholeNumber or RaskString.ValidationNumber;
 
     /// <summary>Whether a parsed value is one a field can hold: not an infinity, and not "not a number".</summary>
     internal static bool IsFinite(object? parsed) => parsed switch
