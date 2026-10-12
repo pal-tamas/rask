@@ -45,4 +45,9 @@
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The one shared polling wait, by source: its hang ceiling is the suite's, not this project's own number. -->
+    <Compile Include="..\Rask.TestSupport\WaitFor.cs" Link="WaitFor.cs"/>
+  </ItemGroup>
+
 </Project>

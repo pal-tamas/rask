@@ -43,11 +43,11 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_child_that_arrives_before_its_siblings_is_named_by_the_markup_inserted()
+    public void A_child_that_arrives_at_the_documents_own_level_is_named_by_the_markup_inserted()
     {
         var (ops, html) = Change(
-            Div[P["before"], P["after"]],
-            Div[P["before"], Aside.Class("toast")["Saved"], P["after"]]);
+            [P["before"]],
+            [P["before"], Aside.Class("toast")["Saved"]]);
 
         var reason = FullPageReply.Reason(ops, rawAtRoot: false, diffBytes: 0, html);
 
