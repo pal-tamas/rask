@@ -106,6 +106,8 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
+    bool IUiFieldControl.TakesAriaRequired => false;
+
     /// <inheritdoc />
     protected override Component? Render()
     {

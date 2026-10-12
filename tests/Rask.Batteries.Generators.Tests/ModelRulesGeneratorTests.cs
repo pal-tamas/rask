@@ -44,6 +44,8 @@ public class ModelRulesGeneratorTests
         GeneratorHarness.RunWithout(
             Shop + source, new ModelInputGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
 
+    private const string Required = "global::Rask.Data.GeneratedModelRules.Required(__RequiredText())";
+
     private const string Product = """
         public sealed class Product : Aggregate<Guid>
         {
@@ -79,7 +81,7 @@ public class ModelRulesGeneratorTests
             "private static readonly global::System.Func<int?, global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> Root_Stock =\n        global::Shop.ProductModelExtensions.__Rule_Root_Stock;",
             source,
             StringComparison.Ordinal);
-        Assert.Contains("\"Sku\" => Root_Sku,\n            \"Stock\" => Root_Stock,\n            _ => null,", source, StringComparison.Ordinal);
+        Assert.Contains("\"Sku\" => Root_Sku,\n            \"Stock\" => Root_Stock,\n            \"Barcode\" => Root_Barcode,\n            \"Title\" => Root_Title,\n            _ => null,", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -91,11 +93,11 @@ public class ModelRulesGeneratorTests
 
         // Text has an empty value the type can be asked about; a number has none, so the one sentence stands in.
         Assert.Contains(
-            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Sku.Validate(\"\"));",
+            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Sku.Validate(\"\"), __RequiredText());",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "internal static async global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> __Rule_Root_Stock(int? value) =>\n        value is { } held ? await global::Shop.Stock.Validate(held) : global::Rask.Data.GeneratedModelRules.Required();",
+            "internal static async global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> __Rule_Root_Stock(int? value) =>\n        value is { } held ? await global::Shop.Stock.Validate(held) : global::Rask.Data.GeneratedModelRules.Required(__RequiredText());",
             source,
             StringComparison.Ordinal);
         Assert.Contains("\n    public string? Sku { get; set; }", source.Replace("    /// <summary>The form value of <see cref=\"global::Shop.Product.Sku\" />.</summary>\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
@@ -104,7 +106,7 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
-    public void A_nullable_value_object_property_is_not_asked_about_nothing_and_one_with_no_rule_keeps_its_attribute()
+    public void A_nullable_value_object_property_is_not_asked_about_nothing_and_one_with_no_rule_only_has_to_be_filled()
     {
         var run = RunWithForms("""
             public sealed class Item : Aggregate<Guid>
@@ -123,7 +125,13 @@ public class ModelRulesGeneratorTests
             "__Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::System.Array.Empty<string>();",
             source,
             StringComparison.Ordinal);
-        Assert.Contains("RequiredAttribute()]\n    public string? Barcode", source, StringComparison.Ordinal);
+
+        // No rule of its own, so only that it is filled: the framework's sentence, and still no attribute.
+        Assert.Contains(
+            "__Rule_Root_Barcode(string? value) =>\n        string.IsNullOrWhiteSpace(value) ? global::Rask.Data.GeneratedModelRules.Required(__RequiredText()) : global::System.Array.Empty<string>();",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredAttribute", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,6 +158,121 @@ public class ModelRulesGeneratorTests
             StringComparison.Ordinal);
         Assert.Contains("throw global::Rask.Data.GeneratedModelRules.Refused(failures);", source, StringComparison.Ordinal);
         Assert.DoesNotContain("ValidationException(", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_plain_property_that_cannot_be_null_is_required_by_a_generated_rule_with_the_catalogs_sentence()
+    {
+        var run = RunWithForms("""
+            public sealed class Trailer : Aggregate<Guid>
+            {
+                private Trailer() { }
+                public int Weight { get; private set; }
+                public string Plate { get; private set; } = "";
+                public DateOnly Built { get; private set; }
+                public bool Braked { get; private set; }
+                public int? Axles { get; private set; }
+                public string? Notes { get; private set; }
+                [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Say who owns it.")]
+                public string Owner { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.TrailerModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("__Rule_Root_Weight(int? value) =>\n        value is null ? REQ : global::System.Array.Empty<string>();".Replace("REQ", Required, StringComparison.Ordinal), source, StringComparison.Ordinal);
+        Assert.Contains("__Rule_Root_Plate(string? value) =>\n        string.IsNullOrWhiteSpace(value) ? REQ : global::System.Array.Empty<string>();".Replace("REQ", Required, StringComparison.Ordinal), source, StringComparison.Ordinal);
+        Assert.Contains("__Rule_Root_Built(global::System.DateOnly? value) =>\n        value is null ? ", source, StringComparison.Ordinal);
+        Assert.Contains("__Rule_Root_Braked(bool? value) =>\n        value is null ? ", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "private static string __RequiredText() =>\n        global::Rask.Core.Globalization.RaskStrings.Get(global::Rask.Core.Globalization.RaskString.ValidationRequired, global::Rask.Data.GeneratedModelRules.RequiredMessage);",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("private static readonly global::Rask.Core.Forms.Validate<int?> Root_Weight =\n        global::Shop.TrailerModelExtensions.__Rule_Root_Weight;", source, StringComparison.Ordinal);
+
+        // Optional stays optional, and what the app wrote itself stays the app's: its attribute, its message.
+        Assert.DoesNotContain("__Rule_Root_Axles", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_Root_Notes", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_Root_Owner", source, StringComparison.Ordinal);
+        Assert.Contains("RequiredAttribute() { ErrorMessage = \"Say who owns it.\" }", source, StringComparison.Ordinal);
+        Assert.Equal(2, source.Split("RequiredAttribute").Length - 1);
+    }
+
+    [Fact]
+    public void Each_generated_model_type_announces_exactly_the_fields_its_write_refuses_unfilled()
+    {
+        var run = RunWithForms("""
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _lines = [];
+                private Order() { }
+                public Sku Sku { get; private set; } = new("");
+                public Sku? Alias { get; private set; }
+                public int Weight { get; private set; }
+                public int? Axles { get; private set; }
+                public Size Size { get; private set; } = new(new(""), 0);
+                [System.ComponentModel.DataAnnotations.Required] public string Owner { get; private set; } = "";
+                public IReadOnlyList<OrderLine> Lines => _lines;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public Sku Sku { get; private set; } = new("");
+                public string? Note { get; private set; }
+            }
+            """);
+
+        var order = run.GeneratedSource("Shop.OrderModel").ReplaceLineEndings("\n");
+        var line = run.GeneratedSource("Shop.OrderLineModel").ReplaceLineEndings("\n");
+
+        // The root, the value object it holds and the row each answer for themselves, by simple name. Optional
+        // members are not listed, and neither is the one the app marked itself: its attribute answers.
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel), Root_IsRequired);", order, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\" or \"Weight\";", order, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel.SizeModel), SizeModel_IsRequired);", order, StringComparison.Ordinal);
+        Assert.Contains("private static bool SizeModel_IsRequired(string property) =>\n        property is \"Code\";", order, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderLineModel), Root_IsRequired);", line, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\";", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_model_whose_rules_refuse_nothing_unfilled_announces_no_required_field()
+    {
+        var run = RunWithForms("""
+            public sealed class Item : Aggregate<Guid>
+            {
+                private Item() { }
+                public Sku? Sku { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ItemModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("RegisterFieldRules(typeof(global::Shop.ItemModel), Root_RuleOf);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterRequiredFields", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsRequired", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_the_strings_catalog_the_one_sentence_is_the_english_constant()
+    {
+        var run = RunWithoutForms("""
+            public sealed class Trailer : Aggregate<Guid>
+            {
+                private Trailer() { }
+                public int Weight { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.TrailerModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("private static string __RequiredText() =>\n        global::Rask.Data.GeneratedModelRules.RequiredMessage;", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RaskStrings", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RegisterRequiredFields", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -216,9 +339,10 @@ public class ModelRulesGeneratorTests
 
         var source = run.GeneratedSource("Shop.ProductModel");
 
-        Assert.DoesNotContain("Root_Barcode", source, StringComparison.Ordinal);
+        // Barcode's Validate overloads are not rules, so the field only has to be filled; Money holds two values.
+        Assert.DoesNotContain("Barcode.Validate(", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Root_Price", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("Root_Title", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Money.Validate(", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -270,7 +394,7 @@ public class ModelRulesGeneratorTests
             public sealed class Note : Aggregate<Guid>
             {
                 private Note() { }
-                public string Title { get; private set; } = "";
+                public string? Title { get; private set; }
                 public static void Configure(EntityTypeBuilder<Note> builder) { {{configure}} }
             }
             """);

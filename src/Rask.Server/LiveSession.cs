@@ -319,7 +319,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     protected override Task RenderInScopeCoreAsync() =>
         (_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending
             ? Task.CompletedTask
-            : RenderAndSendAsync(null, false);
+            : RenderAndSendAsync(null, false, midFlight: true);
 
     private string RouteUrl(RouteState route)
     {
@@ -1083,10 +1083,22 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     protected override bool LeavingThePage(bool arriving) => RedirectPending || (arriving && NavigationHandedOver);
 
-    private (ReadOnlyMemory<char> Html, FrameWriter? Frames)? RenderOnce(bool publishOnly)
+    // midFlight: the repaint of a page whose handler is still working. That handler navigates on its own thread,
+    // so the walk takes its turn with the navigation: made first, the page is the dispatch's to render and
+    // nothing is walked here — a walk that saw the moved route would mount the destination with nobody waiting
+    // for it. Null then.
+    private (ReadOnlyMemory<char> Html, FrameWriter? Frames)? RenderOnce(bool publishOnly, bool midFlight)
     {
-        var html = RenderTreeToHtml(publishOnly, out var frameWriter);
-        return (html, frameWriter);
+        if (!midFlight)
+        {
+            return (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
+
+        var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
+        lock (navigator.Moving)
+        {
+            return navigator.NavigationPending ? null : (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
     }
 
     // The render a dispatch ends with, waiting for the reads the handler's change started: a child that loads
@@ -1096,7 +1108,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     // One render, of the kind its frame calls for. Null when a newer navigation replaced the one it carries.
     private ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderForAsync(
-        bool publishOnly, bool arriving, bool settling)
+        bool publishOnly, bool arriving, bool settling, bool midFlight)
     {
         if (arriving && _navigationBudget > TimeSpan.Zero)
         {
@@ -1105,7 +1117,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         return settling && HandlerBudget > TimeSpan.Zero
             ? RenderSettledAsync(publishOnly)
-            : new ValueTask<(ReadOnlyMemory<char>, FrameWriter?)?>(RenderOnce(publishOnly));
+            : new ValueTask<(ReadOnlyMemory<char>, FrameWriter?)?>(RenderOnce(publishOnly, midFlight));
     }
 
     // Whether a render now would reach nobody, or show a page the reader has already asked to leave.
@@ -1135,8 +1147,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // Answers whether a frame went out: false when it was withheld, repeated the last one, or had no one to go to.
     // arriving: the frame carries a navigation, so it waits for the page it goes to (RenderArrivedAsync).
     // settling: the frame ends a handler's dispatch, so it waits for the reads the handler started (RenderSettledAsync).
+    // midFlight: the handler behind this repaint is still working, and may navigate beside it (RenderOnce).
     internal async Task<bool> RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
-        bool publishOnly = false, bool arriving = false, bool settling = false)
+        bool publishOnly = false, bool arriving = false, bool settling = false, bool midFlight = false)
     {
         if (NothingToSend(ref historyUrl, ref replace, auth, arriving))
         {
@@ -1151,7 +1164,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             ConsumeForcedResend();
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
-            var rendered = await RenderForAsync(publishOnly, arriving, settling).ConfigureAwait(false);
+            var rendered = await RenderForAsync(publishOnly, arriving, settling, midFlight).ConfigureAwait(false);
             if (rendered is not var (html, frameWriter)
                 || (auth is null && (RedirectPending || (arriving && NavigationHandedOver))))
             {

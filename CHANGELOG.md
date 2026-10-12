@@ -29,6 +29,26 @@ them until tagged releases begin.
   the handler is quick — the pressed button's own busy mark (200 ms) is unchanged. Set the option to zero to
   get every intermediate frame back exactly as before. See
   [routing](docs/routing.md#a-handlers-work-reaches-the-screen-once).
+- **BREAKING: a plain property that cannot be null is required by its type, not by a generated `[Required]`.**
+  The form model of an aggregate used to carry a generated `[Required]` for every non-nullable property
+  (`int Weight`, `decimal Price`, `DateOnly`, `Guid`, `bool`, `string Name`, and a one-value value object with no
+  rule of its own). It now carries a generated rule instead — the mechanism a value object's `Validate` uses — and
+  no attribute. What changes: (1) the message is the strings catalog's `ValidationRequired` (*This field is
+  required.*, Hungarian *Kötelező kitölteni.* in the kit, yours if your catalog rewords it) instead of
+  DataAnnotations' *The Weight field is required.*; (2) a form shows it with `RaskValidation.AutoValidate = false`
+  too, where it showed nothing; (3) `X.Create(model)` / `X.Update(id, model)` refuse the same way as before, with
+  `RaskValidationException` and `Failures` under the field. What is accepted does not change: `null` was refused
+  and is; for a `string`, `""` and white space were refused by `[Required]` and still are; a nullable property is
+  still optional. **For an existing app:** code that looked for `RequiredAttribute` on a generated model no
+  longer finds one — DataAnnotations validation of the model alone (`Validator.TryValidateObject`, the attribute
+  pass on a dispatched request or an endpoint that takes `XModel`) no longer reports an unfilled field, the
+  generated write does. A bound control still says `aria-required="true"`: each generated model type registers
+  the fields its write refuses unfilled (`RaskValidation.RegisterRequiredFields`), root, nested value-object
+  model and row alike. A `[Required]` you wrote on the aggregate yourself is kept with its message, and is then
+  what says it. The value-object sentence for a number, date or id now comes from the catalog too.
+
+### Changed
+
 - **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
   value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
   `public static Validate`:
@@ -62,6 +82,18 @@ them until tagged releases begin.
   no refused press) while a dispatch that started inside it is unanswered. `Ui.Pagination` writes it on its
   root, a sortable `Ui.TableColumn` writes the bare opt-in on its `<th>`, and a table of your own can use
   either. See [tables](docs/ui-kit.md#a-slow-page-change-dims-the-rows).
+- **`RaskValidation.RegisterRequiredFields` and `RaskValidation.IsRequired`: one question says whether a field
+  must be filled.** `RegisterRequiredFields(typeof(DestinationModel), property => property is "Name")` is the
+  seam a data layer's generator plugs into, once per model type, beside `RegisterFieldRules`; it covers the
+  types derived from the one registered. `IsRequired(modelType, fieldPath)` answers yes when the declaring
+  type registered the property or the member carries `[Required]`, follows a path through the declared types
+  (`Rows[2].Weight` asks the row's type, `Price.Amount` the type of `Price`), and keeps each answer until a
+  type is registered again, so a control can ask on every render. A form control of your own asks it instead
+  of reading `RequiredAttribute` — see `docs/forms-validation.md` and `docs/building-form-controls.md`.
+- **Five framework sentences for text a bound field cannot read**, each a `RaskString` key with its Hungarian
+  built into `Rask.Ui`: `ValidationWholeNumber` "Enter a whole number.", `ValidationNumber` "Enter a number.",
+  `ValidationNumberRange` "The number is out of range.", `ValidationDate` "Enter a valid date." and
+  `ValidationTime` "Enter a valid time.". An app's `Resources/RaskStrings.{culture}.json` overrides them.
 - **`RaskString.ValidationRequired`: the sentence a field that must be filled says when its type has no words
   of its own.** English "This field is required.", Hungarian "Kötelező kitölteni." built into `Rask.Ui`; an
   app's `Resources/RaskStrings.{culture}.json` overrides it like any other key.
@@ -152,13 +184,55 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler that navigates while its page is being repainted lands once on its destination.** A handler that
+  awaits is repainted when it first yields, and its continuation — `await Save(); Go.To(…)` — runs on a thread
+  of its own. A save that came back at that moment moved the route under the repaint: the page it went to was
+  mounted and sent with no address, as a repaint of the page the reader was leaving, and whatever that page did
+  next (a redirect after its load) arrived as a further frame instead of in its place. The repaint and the
+  navigation now take turns on both hosts: a repaint that finds the navigation made leaves the page to the
+  handler's own render, which waits for it and sends it once, under one history entry.
 - **A browser session's two repaints of a running handler take turns.** A handler that awaits is repainted when
   it first yields and again before its continuation; the WebAssembly session let the two walk the tree at
   once where the host has more than one thread — never in a browser, always in a test — and the walk that
   threw took the handler or its continuation with it: about one `await Save(); Go.To(…)` in five hundred never
   navigated, or never returned. They are serialised, as the server session's always were. A render asked for
   just as a dispatch ends is also no longer left to a dispatch that has stopped looking.
+- **build/release: a version reaches nuget.org dependencies first, and the publish is not done until all of it
+  is there.** The nightly pushed every package with one command, in file-name order, and a stalled request on
+  2026-10-12 ended it with `Rask.Server` at `0.23.1-alpha.0.273` and `Rask` still at `.271` — so an app
+  floating `0.*-*` could not restore (NU1102) until the next nightly. Nightly and release now publish through
+  `scripts/lib/publish_packages.py`: the order is read from the packed nuspecs, a package is pushed only once
+  nuget.org serves what it depends on, each push is retried, and the job fails with the list of what is
+  missing unless every package of the version is served. The run page names the version and the commit it
+  was packed from. **For an existing app:** nothing to change; a version that is only partly published no
+  longer breaks a restore, and a new nightly now takes the better part of an hour to appear.
+- **A sortable table heading aligned to the end keeps its label by that edge.** `Ui.TableColumn.End.Sortable()`
+  drew the chevron after the label, so the heading's words ended 28 px short of the right-aligned numbers under
+  them. As Flux does for `<flux:table.column sortable align="end">`, the button now runs the other way — chevron
+  first, then the label — and hangs the chevron into the space before it (`flex-row-reverse`, `-ms-8`), which
+  also stops the chevron widening a narrow number column. The label ends 8 px from the cell's edge, the button's
+  own padding, exactly as Flux's does. Start- and centre-aligned headings are unchanged.
 
+- **A field that must be filled says so to a screen reader: a bound control writes `aria-required="true"`.**
+  A field required by its type — a non-nullable value-object property of a Rask.Data model, which carries no
+  `[Required]` — announced nothing, and neither did any `[Required]` member bound through the kit's Flux
+  controls or a plain `Input`, `Select` or `Textarea`. Every bound control now asks
+  `RaskValidation.IsRequired`: the plain three, and `Ui.Input`, `Ui.Textarea`, `Ui.Select` (native, and the
+  listbox and combobox trigger), `Ui.Checkbox`, `Ui.Switch`, `Ui.RadioGroup`, `Ui.DatePicker`, `Ui.TimePicker`
+  and the rest of the kit, on the element that carries their other `aria-*`. Only `aria-required`, never the
+  native `required` (no browser bubble); an `aria-required` written on the control wins; a radio, a range, a
+  slider and a plain `group` (`Ui.CheckboxGroup`, `Ui.Otp`, a typed date) write none, their roles having no
+  such state. **For an existing app:** markup that is compared byte for byte gains the attribute on fields
+  bound to a `[Required]` member.
+- **A bound field no longer keeps its stored value as if it had been typed when the text does not fit its
+  type.** `Input.Bind(() => model.Weight)` over an `int` that received `99999999999`, `1.5` or `1e3` — text a
+  number input accepts — failed to parse, left the model as it was and said nothing: on a new form the field
+  answered "required" to a reader who had typed, and on an edit form **the save ran with the old value** while
+  the box showed the new one. The field now says what it could not read — a whole number, a number, a number
+  out of range, a date, a time, chosen by the bound type — under the field like any message, ahead of
+  "required" and of an inline `.Validate(…)` (which is not asked about a value the field never read), with
+  or without `AutoValidate`; the submit handler does not run until a value arrives that fits. `1e3` is now
+  read as 1000 by a whole number and a decimal, and an infinity is refused by a `double`.
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
   `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children

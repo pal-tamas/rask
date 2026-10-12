@@ -526,6 +526,11 @@ they say when you set nothing.
 | `FieldValidating` | Form field | `Checking…` |
 | `FileItemRemove` | File upload | `Remove file` |
 | `ValidationRequired` | Validation | `This field is required.` |
+| `ValidationWholeNumber` | Validation | `Enter a whole number.` |
+| `ValidationNumber` | Validation | `Enter a number.` |
+| `ValidationNumberRange` | Validation | `The number is out of range.` |
+| `ValidationDate` | Validation | `Enter a valid date.` |
+| `ValidationTime` | Validation | `Enter a valid time.` |
 
 ## Docker
 

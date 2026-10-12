@@ -68,6 +68,8 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
+    bool IUiFieldControl.TakesAriaRequired => false;
+
     string? IUiFormControl.DescriptionTrailing => null;
 
     string? IUiFormControl.Badge => null;

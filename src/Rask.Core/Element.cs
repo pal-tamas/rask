@@ -404,6 +404,28 @@ public abstract partial class Element : Component
         }
     }
 
+    // A bound control says its field must be filled when RaskValidation.IsRequired does: the model's type
+    // registered it, or the member is [Required]. Only aria-required, never the native `required`, which would
+    // switch the browser's own validation bubble on. Called ahead of the universal attributes, as SayInvalid,
+    // and an aria-required the author wrote, typed or in a bag, is left alone.
+    private protected void SayRequired(Forms.FieldIdentifier field, ref bool said)
+    {
+        var required = Forms.RaskValidation.IsRequired(field.Model.GetType(), field.FieldName);
+        if (required && !said && AriaRequired is null && !AuthorSaysRequired())
+        {
+            AriaRequired = true;
+            said = true;
+        }
+        else if (!required && said)
+        {
+            AriaRequired = null;
+            said = false;
+        }
+    }
+
+    private bool AuthorSaysRequired() =>
+        (Aria?.ContainsKey("required") ?? false) || (Attributes?.ContainsKey("aria-required") ?? false);
+
     // The universal attributes, in the documented order: id, class, style, title, the plain globals, data-*,
     // role, tabindex, aria-*, then Attributes. A subclass's tag-specific attrs follow (after base.WriteAttributes).
     protected override void WriteAttributes(StringBuilder sb)

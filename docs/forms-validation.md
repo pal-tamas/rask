@@ -95,12 +95,42 @@ A value object that holds one value and has a public static `Validate` taking th
 `DestinationName` above — is asked by every field bound to it on the aggregate's generated model
 (`DestinationModel.Name`), with nothing written on the field. A property the aggregate declares non-nullable
 is required by its type: the rule is asked about the empty value too, so the words for "required" are the value
-object's own, with no `[Required]` and with the automatic validators on or off.
+object's own, with no `[Required]` and with the automatic validators on or off. A plain property that cannot be
+null (`int Weight`, `string Plate`) is required the same way, in the framework's one sentence — *This field is
+required.*, in the reader's language.
 
 A model written by hand names its rule from the field, as above. The registration is
 `RaskValidation.RegisterFieldRules(typeof(DestinationModel), property => …)`, made once per model type
 by the layer that generates the model; it is keyed by the type that declares the property, so a nested
 object and a row of a collection bring their own.
+
+### How a control knows a field is required
+
+A bound control announces a field that must be filled as `aria-required="true"`, so a screen reader says
+"required" on the way in rather than only once Save has refused. It asks one question,
+`RaskValidation.IsRequired(modelType, fieldPath)`, which answers yes when either is true:
+
+- the member carries `[Required]`;
+- the type that declares the property registered it:
+  `RaskValidation.RegisterRequiredFields(typeof(DestinationModel), property => property is "Name")`, made once
+  per model type by the layer that generates the model. This is how a field that is required **by its type**,
+  with no attribute, still announces itself. A registration says a field is required and enforces nothing, so
+  register only what a rule refuses when it is left empty.
+
+A plain `Input`, `Select` and `Textarea` write it, and so does every `Ui.*` control, on the element that
+carries its other `aria-*`. It is only `aria-required`, never the native `required` attribute, which would
+switch the browser's own validation bubble on. An `aria-required` written on the control wins:
+`Input.Bind(() => m.Name).AriaRequired(false)`. A radio, a range, a slider and a plain `group` write none,
+because ARIA has no required state for their roles.
+
+A registration is keyed by the type that declares the property and covers the types derived from it. A path
+is followed through the declared types of the properties it walks, and an index stands for the collection's
+item type, so `IsRequired(typeof(OrderModel), "Rows[2].Weight")` asks what the row's type registered for
+`Weight`, and `Price.Amount` asks the type of `Price`. The answer is worked out once per field and kept until
+a type is registered again, so asking on every render costs a lookup.
+
+A field required only by a `Validate` step, a FluentValidation rule or a custom attribute is not visible to
+this question; say it on the control with `.AriaRequired()`.
 
 ### An async rule
 
