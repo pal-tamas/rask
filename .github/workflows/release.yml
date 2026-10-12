@@ -21,7 +21,8 @@ jobs:
     runs-on: ubuntu-24.04
     # GitHub's own maximum, said out loud so nobody lowers it. The verify step alone can take three hours of
     # validation (RASK_VERIFY_FLAT_DEADLINE) plus two half-hour restore waits, four hours in all, and the
-    # build, pack and push before it take most of an hour -- so a longer validation wait would not fit.
+    # build, pack and push before it take most of an hour, more when the push waits on nuget.org level by
+    # level -- so a longer validation wait would not fit.
     timeout-minutes: 360
     permissions:
       contents: write
@@ -64,13 +65,22 @@ jobs:
           name: nupkgs
           path: ./artifacts/*.*nupkg
 
-      # Teed to push.log for the verify step: only the push's own answer can tell "never pushed" from
-      # "accepted, still in nuget.org's validation" (#1125). pipefail, or tee's exit status would stand in
-      # for the push's and a failed push would pass.
-      - name: Push to nuget.org
-        run: |
-          set -o pipefail
-          dotnet nuget push "./artifacts/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "${{ secrets.NUGET_API_KEY }}" --skip-duplicate 2>&1 | tee push.log
+      # Dependencies first, and a package only once nuget.org SERVES what it depends on, each push retried
+      # (scripts/lib/publish_packages.py -- nightly.yml publishes through the same script). A re-run packs
+      # the same tag, so the same version, and --skip-duplicate picks up where the first attempt stopped.
+      #
+      # push.log is for the verify step below: only the push's own answer can tell "never pushed" from
+      # "accepted, still in nuget.org's validation" (#1125).
+      - name: Push to nuget.org, dependencies first
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: >-
+          python3 scripts/lib/publish_packages.py push ./artifacts
+          --source https://api.nuget.org/v3/index.json
+          --api-key-env NUGET_API_KEY
+          --gate-index nuget.org
+          --projects src
+          --log push.log
 
       # Idempotent, so a re-run of a release that failed further down gets past this step instead of
       # dying on "release already exists" before it reaches the steps it was re-run for (#1125).
@@ -86,6 +96,11 @@ jobs:
               --title "${GITHUB_REF_NAME}" \
               --generate-notes
           fi
+
+      # Every package of the version, not only the ones a scaffold restores. Three hours, because that is
+      # what Rask.Cli's extended validation can take (below); the summary names the version and its commit.
+      - name: Wait until nuget.org serves the whole version
+        run: python3 scripts/lib/publish_packages.py verify ./artifacts --wait "${RASK_VERIFY_FLAT_DEADLINE:-10800}"
 
       # Does what was just pushed actually WORK? Until #1044 nothing asked.
       #

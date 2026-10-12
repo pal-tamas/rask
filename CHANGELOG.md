@@ -88,6 +88,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **build/release: a version reaches nuget.org dependencies first, and the publish is not done until all of it
+  is there.** The nightly pushed every package with one command, in file-name order, and a stalled request on
+  2026-10-12 ended it with `Rask.Server` at `0.23.1-alpha.0.273` and `Rask` still at `.271` — so an app
+  floating `0.*-*` could not restore (NU1102) until the next nightly. Nightly and release now publish through
+  `scripts/lib/publish_packages.py`: the order is read from the packed nuspecs, a package is pushed only once
+  nuget.org serves what it depends on, each push is retried, and the job fails with the list of what is
+  missing unless every package of the version is served. The run page names the version and the commit it
+  was packed from. **For an existing app:** nothing to change; a version that is only partly published no
+  longer breaks a restore, and a new nightly now takes the better part of an hour to appear.
+
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
   `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children
