@@ -61,6 +61,26 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
+  names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
+  `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children
+  included. Handed other children while none of its props changed, it went on drawing the earlier ones; and
+  once its instance had moved to another place on the page it drew ANOTHER component's: a text and a button
+  appearing in a toolbar above a table left the table's headings showing one another's words, in the whole
+  page and in a diff alike. Such an element now renders again whenever it is handed children. **For an
+  existing app:** nothing to change — remove a workaround that kept conditional children always written.
+
+- **A child that comes or goes no longer remounts the components written after it.** A component without a
+  `Key` was identified by its place among ALL the children its owner's `Render()` writes, elements included, so
+  `Div[saved ? Ui.Callout["Saved"] : null, OrderList, EditForm]` built a new `OrderList` and a new `EditForm`
+  every time the callout appeared or went: their fields reset, `OnMount` ran again — the list reloaded, the form
+  lost what its C# state held, an open modal forgot it was open — and `OnUnmount` ran for components that never
+  left the screen. A component is now the *n*-th **of its type** its owner writes, so only a child of the same
+  type coming or going ahead of it moves it; that case still needs a `Key`, as a list's rows always did
+  (`docs/composition.md`). **For an existing app:** components after a conditional sibling keep their state and
+  mount once. One that RELIED on being rebuilt when a sibling appeared — a form that reset itself because a
+  banner showed — now keeps what it had: reset it explicitly, or give it a `Key` that changes when it should
+  start over. Nothing changes for keyed components, for the unkeyed ones beside them, or for a routed page.
 - **A navigation that renders more than once tells the browser its address once.** On the Server host, a
   `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
   its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that

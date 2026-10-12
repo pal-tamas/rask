@@ -16,6 +16,7 @@ public abstract partial class Component
 
         RotateChildMaps();
         Live.ChildPositions = 0;
+        ChildOrdinals.Restart(Live.ChildTypeCounts);
 
         // Re-armed by the walk that follows when it still builds entries — see LiveState.BuildsChildrenInWalk.
         Live.BuildsChildrenInWalk = false;
