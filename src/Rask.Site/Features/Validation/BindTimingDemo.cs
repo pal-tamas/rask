@@ -28,7 +28,7 @@ public sealed partial class BindTimingDemo : Component
                     .Blur()
                     .Validate(notes => notes.Length <= 40 ? [] : ["Keep the notes under 40 characters."])
             ],
-            Div.Class("grid gap-4 md:grid-cols-3")[
+            Div.Class("grid items-start gap-4 md:grid-cols-3")[
                 Ui.Select.Bind(() => _model.Cabin).Listbox.Label("Cabin")
                     .Id("bt-cabin")
                     .Placeholder("Choose a cabin...")
@@ -39,10 +39,12 @@ public sealed partial class BindTimingDemo : Component
                 Ui.Input.Bind(() => _model.Travellers).Label("Travellers")
                     .Id("bt-travellers")
                     .Description("A whole number. Try 1.5, then Save."),
-                Ui.Switch.Bind(() => _model.Insured).Label("Insured")
-                    .Id("bt-insured")
-                    .Description("Written as it is flipped.")
-                    .Live()
+                Div.Class("md:pt-[5px]")[
+                    Ui.Switch.Bind(() => _model.Insured).Label("Insured")
+                        .Id("bt-insured")
+                        .Description("Written as it is flipped.")
+                        .Live()
+                ]
             ],
             Ui.Text.Id("bt-model")[$"The model holds “{_model.Traveller}”, “{_model.Name}” and “{_model.Notes}”."],
             Ui.Text.Id("bt-choices")[$"Cabin “{_model.Cabin}”, insured: {(_model.Insured ? "yes" : "no")}."],
