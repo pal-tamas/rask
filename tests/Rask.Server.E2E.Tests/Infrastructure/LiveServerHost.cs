@@ -46,7 +46,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     public static async Task<LiveServerHost> StartAsync<TApp>(
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
-        string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null)
+        string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
+        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -63,7 +64,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
         {
             o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
             server?.Invoke(o);
-        });
+        }, cultures);
 
         if (cookieSignIn)
         {
