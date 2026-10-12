@@ -505,7 +505,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _renderCache?.Dispose();
         _sendCts?.Dispose();
         _sendCts = null;
-        _arrivals.Cancel();
+        _arrivals.Dispose();
     }
 
     private void ReleaseFileStores()
@@ -968,11 +968,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     /// </summary>
     private bool RedirectPending => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
 
-    // Navigate frames read and not yet started. While there is one, nothing else of this session is sent.
-    private int _navigationsQueued;
-
-    // Cancelled, and replaced, each time a navigate frame is read: the wait of the navigation before it ends.
-    private CancellationTokenSource _arrivals = new();
+    // The navigate frames read and not yet started, and the wait a newer one ends. While one is queued,
+    // nothing else of this session is sent.
+    private readonly NavigationArrivals _arrivals = new();
 
     // Guards the hand-over below against the wait ending on another thread.
     private readonly Lock _arrivalGate = new();
@@ -989,17 +987,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private bool NavigationHandedOver => Volatile.Read(ref _handedOver) is not null;
 
     /// <summary>A navigate frame was read. Whatever is waiting for an earlier navigation's page stops waiting.</summary>
-    internal void NavigationRead()
-    {
-        Interlocked.Increment(ref _navigationsQueued);
-        var superseded = Interlocked.Exchange(ref _arrivals, new CancellationTokenSource());
-
-        // Off this thread: the reader goes back to its socket, and the waiting dispatch unwinds on its own.
-        _ = superseded.CancelAsync();
-    }
+    internal void NavigationRead() => _arrivals.Read();
 
     /// <summary>The navigation read earliest takes its turn. False when a newer one is already waiting behind it.</summary>
-    internal bool NavigationStarts() => Interlocked.Decrement(ref _navigationsQueued) == 0;
+    internal bool NavigationStarts() => _arrivals.Starts();
 
     /// <summary>
     ///     Takes the navigation a hook made while its page was being waited for, for the dispatch to make in
@@ -1037,8 +1028,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderArrivedAsync(bool publishOnly)
     {
         // Token first, count second: a frame read between the two cancels the token just taken.
-        var superseded = Volatile.Read(ref _arrivals).Token;
-        if (Volatile.Read(ref _navigationsQueued) > 0)
+        var superseded = _arrivals.Superseded;
+        if (_arrivals.AnyQueued)
         {
             ArrivalSuperseded = true;
             return null;
@@ -1110,7 +1101,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // A link pressed since is waiting its turn, and its page is the one the reader asked for: what this
         // render would show is on its way out, and whatever it carries besides rides that page's frame.
-        if (auth is null && Volatile.Read(ref _navigationsQueued) > 0)
+        if (auth is null && _arrivals.AnyQueued)
         {
             ArrivalSuperseded = arriving;
             return true;

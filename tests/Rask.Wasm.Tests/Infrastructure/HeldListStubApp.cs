@@ -14,11 +14,28 @@ internal sealed partial class HeldListStubApp : Component
 
     private static TaskCompletionSource _read = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    private static int _started;
+
     /// <summary>The read every list waits on.</summary>
-    internal static Task Read => _read.Task;
+    internal static Task Read
+    {
+        get
+        {
+            Interlocked.Increment(ref _started);
+            return _read.Task;
+        }
+    }
+
+    /// <summary>Completes once a list has started its read since the last <see cref="Hold" />.</summary>
+    internal static Task ReadStarted() =>
+        Rask.TestSupport.WaitFor.True(static () => Volatile.Read(ref _started) > 0, "the list to start its read");
 
     /// <summary>Holds the next list's read until <see cref="Release" />.</summary>
-    internal static void Hold() => _read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal static void Hold()
+    {
+        Volatile.Write(ref _started, 0);
+        _read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
     internal static void Release() => _read.TrySetResult();
 

@@ -21,7 +21,8 @@ internal static class WasmSessionHarness
     public static (WasmLiveSession session, IServiceProvider services) NewSession<TApp>(
         Func<IServiceProvider, TApp>? appFactory = null,
         Action<IServiceCollection>? configure = null,
-        LiveDiffMode diffMode = LiveDiffMode.Auto)
+        LiveDiffMode diffMode = LiveDiffMode.Auto,
+        TimeSpan navigationBudget = default)
         where TApp : Component
     {
         var services = new ServiceCollection();
@@ -35,7 +36,8 @@ internal static class WasmSessionHarness
         // measure a bare fragment — no <head> to change, no <body> for data-rask-root to land on.
         var root = new RootErrorBoundary(app);
         // Per-session wire shape (was the process-global LiveOptions.DiffMode).
-        var session = new WasmLiveSession(root, provider, diffMode);
+        // navigationBudget: how long a page reached in place is waited for. Zero, the default here, sends at once.
+        var session = new WasmLiveSession(root, provider, diffMode, navigationBudget);
         JSInterop.Init(session);
         return (session, provider);
     }
