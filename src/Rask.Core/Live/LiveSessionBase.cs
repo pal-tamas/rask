@@ -416,9 +416,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             return false;
         }
 
-        if (!force
-            && _lastSentBuffer is not null
-            && _writeBuffer.WrittenSpan.SequenceEqual(_lastSentBuffer.WrittenSpan))
+        if (!force && _lastSentBuffer is not null && RepeatsLastSent())
         {
             View.HandlersRepeated();
             return false;
@@ -436,7 +434,30 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         (_lastSentBuffer, _writeBuffer) = (_writeBuffer, _lastSentBuffer ?? new ArrayBufferWriter<byte>());
+        _lastSentVersionBytes = _writeVersionBytes;
         return true;
+    }
+
+    // What each buffer's page number takes at its end. A page whose handlers were made again by its render is
+    // given the next number, and is still the page the browser has when everything before the number repeats:
+    // sending it would morph a document into itself, undoing whatever a script did to it since.
+    private int _writeVersionBytes;
+    private int _lastSentVersionBytes;
+
+    private bool RepeatsLastSent() =>
+        WithoutVersion(_writeBuffer.WrittenSpan, _writeVersionBytes)
+            .SequenceEqual(WithoutVersion(_lastSentBuffer!.WrittenSpan, _lastSentVersionBytes));
+
+    // The payload up to its page number: the number is its last field, followed only by the closing brace.
+    private static ReadOnlySpan<byte> WithoutVersion(ReadOnlySpan<byte> payload, int versionBytes) =>
+        versionBytes > 0 && payload.Length > versionBytes ? payload[..^(versionBytes + 1)] : payload;
+
+    // Says which page the payload built inside the scope is, and remembers how long its number is.
+    private LivePayload.PageScope NumberedPage(bool whole)
+    {
+        var version = View.HandlerVersionToSend(whole);
+        _writeVersionBytes = LivePayload.PageVersionBytes(version);
+        return LivePayload.BeginPage(version);
     }
 
     /// <summary>
@@ -545,6 +566,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         AuthInstruction? auth, string sessionId)
     {
         _writeBuffer.ResetWrittenCount();
+        _writeVersionBytes = 0;
 
         // A session-resume record, when this host issues them and the page has moved since the last one.
         // Taken once per payload — before either branch below — so the diff and full paths carry the same
@@ -583,7 +605,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             // Full-HTML path (first render, structural change, out-of-band side effect, size fallback):
             // encoded straight from the pooled page buffer — a page-sized string here would be garbage
             // the moment the payload is written, and on the large-object heap past ~42K chars.
-            using (LivePayload.BeginPage(View.HandlerVersionToSend(whole: true)))
+            using (NumberedPage(whole: true))
             {
                 LivePayload.BuildPayloadUtf8WithRoot(_writeBuffer, html.Span, sessionId, historyUrl,
                     replace, auth, download, jsInvokes, resume, devError);
@@ -622,7 +644,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             && !renderCache.LastDiffForcedFullHtml)
         {
             var headHtml = headChanged ? LiveDiffGate.ExtractHead(html.Span) : null;
-            using (LivePayload.BeginPage(View.HandlerVersionToSend(whole: false)))
+            using (NumberedPage(whole: false))
             {
                 LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
                     headHtml, html.Span, resume, devError);

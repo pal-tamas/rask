@@ -78,6 +78,42 @@ public sealed class StaleEventTests : ResettingTestBase, IDisposable
         Assert.Equal(1, VersionOf(_frames[^1]));
     }
 
+    [Fact]
+    public async Task A_click_that_changes_nothing_sends_no_page_though_the_render_made_every_handler_again()
+    {
+        RemadeHandlerStubApp.Heard.Clear();
+        var (session, _) = NewSession<RemadeHandlerStubApp>(diffMode: DiffMode);
+        var first = Encoding.UTF8.GetString(await session.InitialRenderAsync());
+        var sent = _frames.Count;
+
+        // The page drawn is the page the browser has. Sent again it would be morphed into itself, undoing
+        // whatever a script did to the document since — the text a copy button flashes, say.
+        var once = await session.DispatchAsync(Utf8(Click(first, "quiet")));
+        var twice = await session.DispatchAsync(Utf8(Click(first, "quiet")));
+
+        Assert.Empty(once);
+        Assert.Empty(twice);
+        Assert.Equal(sent, _frames.Count);
+        Assert.Equal(2, RemadeHandlerStubApp.Heard.Count);
+    }
+
+    [Fact]
+    public async Task A_click_reaches_a_handler_its_render_made_again_and_the_page_that_changed_is_sent_once()
+    {
+        RemadeHandlerStubApp.Heard.Clear();
+        var (session, _) = NewSession<RemadeHandlerStubApp>(diffMode: DiffMode);
+        var first = Encoding.UTF8.GetString(await session.InitialRenderAsync());
+        await session.DispatchAsync(Utf8(Click(first, "quiet")));
+        var sent = _frames.Count;
+
+        await session.DispatchAsync(Utf8(Click(first, "loud")));
+        await session.DispatchAsync(Utf8(Click(first, "quiet")));
+
+        Assert.Equal(sent + 1, _frames.Count);
+        Assert.Contains("shown=1;", HtmlOf(_frames[^1]));
+        Assert.Equal(3, RemadeHandlerStubApp.Heard.Count);
+    }
+
     // The session with the first row's bin pressed: the page the browser holds asks whether to remove row 1.
     private async Task<(WasmLiveSession Session, string Asking)> StartAskingAsync()
     {

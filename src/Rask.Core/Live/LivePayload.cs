@@ -472,6 +472,7 @@ public static class LivePayload
         }
 
         WriteResume(writer, resume);
+        WritePageVersion(writer);
 
         writer.WriteEndObject();
     }
@@ -797,12 +798,21 @@ public static class LivePayload
         {
             writer.WriteString("resume", resume);
         }
+    }
 
+    // The last thing a payload carries, so that two payloads that differ only in it can be told to be the same
+    // page (PageVersionBytes): a page that repeats the one the browser has is not sent again for its number.
+    private static void WritePageVersion(Utf8JsonWriter writer)
+    {
         if (PageVersion is { } version)
         {
             writer.WriteNumber(EventVersion.Name, version);
         }
     }
+
+    /// <summary>How many bytes <paramref name="version" /> takes at the end of a payload, before its closing brace.</summary>
+    internal static int PageVersionBytes(int? version) =>
+        version is { } number ? ",\"v\":".Length + number.ToString(System.Globalization.CultureInfo.InvariantCulture).Length : 0;
 
     /// <summary>
     ///     The number the payload being built carries as <c>v</c>, which the browser sends back with every event
@@ -936,6 +946,7 @@ public static class LivePayload
             writer.WriteEndObject();
         }
 
+        WritePageVersion(writer);
         writer.WriteEndObject();
     }
 

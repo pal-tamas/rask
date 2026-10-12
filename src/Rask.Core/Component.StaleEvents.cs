@@ -105,7 +105,7 @@ public abstract partial class Component
         // The browser has the last page it was sent, and nothing built since is on its way: a walk since then
         // rendered that same page, so the handler under this id now is the one the reader pressed.
         var current = seen >= slot.Since || (seen >= root.Version && !root.Unsent);
-        if (current && map.TryGetValue(id, out entry) && ReferenceEquals(entry.Handler, slot.Handler))
+        if (current && map.TryGetValue(id, out entry))
         {
             return true;
         }

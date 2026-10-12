@@ -519,6 +519,33 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
         Assert.Equal([5], log);
     }
 
+    [Fact]
+    public async Task A_button_among_the_children_of_a_tagless_parent_is_reached_after_its_handlers_were_made_again()
+    {
+        var renders = 0;
+        var copied = new List<int>();
+        var tabbed = new List<int>();
+        var view = new StubComponent(() =>
+        {
+            // A tagless parent handed children renders again on every walk, and every lambda with it.
+            var render = ++renders;
+            return
+            [
+                Button.Class("tab").OnClick(() => tabbed.Add(render))["tab"],
+                Button.Class("copy").OnClick(() => copied.Add(render))["copy"]
+            ];
+        });
+        var copy = IdOn(Ship(view), "copy");
+        Ship(view);
+        Ship(view);
+
+        var ran = await Send(view, copy, version: 0);
+
+        Assert.True(ran);
+        Assert.Equal([3], copied);
+        Assert.Empty(tabbed);
+    }
+
     // PINNED, AND SAID IN THE GUIDE. One button over "the current item" is one handler whatever item it shows: no
     // sibling tells it apart from anything. A second click sent before the next item arrived acts on that item.
     [Fact]
