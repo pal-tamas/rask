@@ -217,12 +217,11 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         async raw =>
         {
-            if (!TrySetTyped(acc, raw))
+            if (!TryBind(acc, ctx, fid, raw))
             {
                 return;
             }
 
-            ctx?.NotifyFieldChanged(fid);
 
             // The value is still being typed: a store's rules wait for the change, whatever validates the
             // field from here — the line below, or an AfterBind that lays the value into a mask.
@@ -253,13 +252,7 @@ public static class BindingHelpers
         Func<Task>? afterBind = null) =>
         async raw =>
         {
-            var didBind = false;
-            if (setOnChange && TrySetTyped(acc, raw))
-            {
-                ctx?.NotifyFieldChanged(fid);
-                didBind = true;
-            }
-
+            var didBind = setOnChange && TryBind(acc, ctx, fid, raw);
             if (didBind && afterBind is not null)
             {
                 await afterBind().ConfigureAwait(false);
@@ -431,6 +424,26 @@ public static class BindingHelpers
             }
         };
 
+    // Writes what arrived to the model and says the field changed. Text the member cannot hold — a fraction
+    // for a whole number, a number too large, a date that does not exist — leaves the model as it was, and
+    // must not pass for it: the form says under the field what it could not read (UnreadValue), and until a
+    // value arrives that it can, no rule is asked about the old one and no save goes through.
+    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw)
+    {
+        if (TrySetTyped(acc, raw))
+        {
+            ctx?.NotifyFieldChanged(fid);
+            return true;
+        }
+
+        if (UnreadValue.Unparsed(acc.PropertyType, raw) is { } sentence)
+        {
+            ctx?.NoteUnread(fid, sentence);
+        }
+
+        return false;
+    }
+
     [UnconditionalSuppressMessage("Trimming", "IL2072",
         Justification = "acc.PropertyType is the model property's static type; if the user marks the [RouteParam]/" +
                         "[QueryParam] / form-bound property correctly (RASK011 enforces IParsable<T> or string), " +
@@ -480,7 +493,10 @@ public static class BindingHelpers
             return false;
         }
 
-        if (RouteValueParser.TryParse(t, raw, out var parsed))
+        // `1e3` is a number to the browser, and to a double: a whole number and a decimal read it written out.
+        if ((RouteValueParser.TryParse(t, raw, out var parsed)
+             || (UnreadValue.WrittenOut(raw) is { } plain && RouteValueParser.TryParse(t, plain, out parsed)))
+            && UnreadValue.IsFinite(parsed))
         {
             acc.Setter(parsed);
             return true;
