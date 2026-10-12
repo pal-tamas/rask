@@ -329,14 +329,61 @@ Two things to know:
 
 - **A title loaded after a real `await` arrives with the data.** The initial `GET` waits for it (see
   [the first response](render-modes.md#the-initial-get-waits-for-your-data)), so the served document is complete.
-  A *navigation* in an open page paints the new page's placeholder first, exactly as the page itself does — and
-  during that one frame the title is `null`. Declare a fallback (`_relation?.Name ?? "Relation"`) where an empty
-  crumb would be wrong.
+  A *navigation* in an open page waits for it too — see [the page is sent when its first reads are
+  back](#the-page-is-sent-when-its-first-reads-are-back) — so the page above never shows "No such relation" for
+  a relation that exists, and the crumb, the tab title and the form arrive in one frame. Only a read that
+  outlasts the navigation budget is painted before it is back, and during that time the title is `null`:
+  declare a fallback (`_relation?.Name ?? "Relation"`) where an empty crumb would be wrong.
 - **The page keeps its place.** A layout that renders a breadcrumb only once there is a title changes shape
   around its `Outlet` when the title arrives. The page is remembered by its place in the route, not by the
   outlet that shows it, so it is not created again and what it loaded stays loaded. Nothing else about a routed
   page's life changed: it is constructed and mounted where the layout places the `Outlet` and only there, so a
   layout that withholds it (`Authorize.Role("admin")[Outlet]`) keeps the page's hooks from running.
+
+### The page is sent when its first reads are back
+
+A page reached **in place** — a `NavLink`, Back, `Go()` from a handler, a redirect, the page a sign-in returns
+to — is not sent the moment it is mounted. Rask renders it, waits for what its `OnMount` and `OnUpdated`
+started, renders it again with what they read, and sends it **once**: the list with its rows, the edit page
+with its record and its title. It is the first request's wait
+([the initial `GET` waits for your data](render-modes.md#the-initial-get-waits-for-your-data)), for a page
+that is already open, on the Server host and in WebAssembly.
+
+```csharp
+protected override async Task OnUpdated() => (_rows, _total) = await Relation.Page(Page);   // waited for
+
+private async Task Save()
+{
+    await _relation.Save();
+    Routes.RelationListPage().Go();     // one frame: the list, its rows and its address
+}
+```
+
+- **Meanwhile the reader keeps the page they are on.** Nothing of the next page is painted until it is whole.
+  The control they pressed is marked busy after 200 ms (`data-loading`, `aria-busy`, for a button) and the
+  progress bar runs across the top after 300 ms — both as before, and both gone when the page arrives.
+- **The budget is 150 ms.** A page whose reads are back within it is never seen without them. One whose reads
+  take longer is sent as it stands when the budget is spent — its heading, its placeholder — and the rest
+  follows when it arrives, exactly as before. Nothing is cancelled. So a page still says what it shows while
+  it loads; it is only seen when the load is slow.
+- **A page with nothing to wait for is sent at once.** The wait is for work the render started; with none
+  pending there is no delay at all, not even a timer.
+- **A second link ends the wait for the first.** The reader who presses another link while a page is still
+  loading gets that page; nothing of the first is sent.
+- **A page that sends the reader on is never shown**, whether it calls `Go()` before its first `await` or after
+  it: the wait reaches the redirect, and the destination arrives in its place.
+- **A save's own repaint waits for the address.** A handler that has called `Go()` is not repainted while it is
+  still running, so the destination never appears before the address bar says it.
+- **Work blocked on JavaScript is not waited for**, and neither is work you detach (`_ = Poll()`): the same two
+  exceptions as the first request.
+
+```jsonc
+{ "Rask": { "Server": { "NavigationQuiescenceTimeout": "00:00:00.150" } } }   // default; "00:00:00" sends at once
+```
+
+In a WebAssembly app it is `host.Configure(o => o.NavigationQuiescenceTimeout = 150.Milliseconds)`. Raise it
+for an app whose pages read from a slow store and would rather wait than flash; set it to zero to send every
+page the moment it is mounted.
 
 ## Programmatic navigation — `Go`
 
@@ -517,9 +564,11 @@ the page a sign-in returns to, a session rebuilt after a deploy — on the Serve
   reader sees nothing of the page that redirected. A first request is answered with a real `302`, which a
   crawler and a cache understand; in an open session they get one frame, the destination's, with its address
   and its title.
-- **After an `await`** the page's placeholder was on screen while it loaded, and the destination then takes its
-  place. A first request that is still waiting for the load (`Rask:Server:QuiescenceTimeout`) is still answered
-  with the `302`; a load that outlasts it redirects over the connection.
+- **After an `await`** it is the same for as long as the page is still being waited for: a first request
+  (`Rask:Server:QuiescenceTimeout`) is answered with the `302`, and a navigation in an open session
+  (`NavigationQuiescenceTimeout`, [above](#the-page-is-sent-when-its-first-reads-are-back)) is one frame, the
+  destination's, under the address and the history step of the navigation that led there. Only a load that
+  outlasts the wait had its placeholder on screen; the destination then takes its place and its address.
 - **Back never returns to the page that redirected.** It takes no place in the history — the destination
   replaces it — so Back is the page the reader was on before.
 - **The destination is guarded.** Its `[Authorize]` runs before it is built, exactly as for a link.
