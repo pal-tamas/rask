@@ -21,6 +21,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     internal override SemaphoreSlim? DevToolsRenderGate => _lock;
 
+    // One mid-await render at a time. They run inside the dispatch that holds _lock, so that lock cannot order
+    // them: a handler's continuation renders before and after it runs, on whichever thread resumed it. The
+    // browser has one thread and two of these only ever met at an await ahead of the walk. A host with a thread
+    // pool — the unit tests' — walked the tree twice at once: "Collection was modified", a garbled frame, and a
+    // continuation dropped with the render that threw before it, which left the dispatch waiting for good.
+    private readonly SemaphoreSlim _inScopeRender = new(1, 1);
+
     // Held so Dispose can unsubscribe symmetrically. The provider can outlive the session (it is a
     // separate service), so a dangling subscription would fire OnUserChanged on a disposed session
     // (disposed _lock → ObjectDisposedException). In the normal single-session-per-page lifetime
@@ -81,8 +88,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
         _htmlBuffers.Dispose();
         _arrivals.Dispose();
-        _repaints.Dispose();
         _lock.Dispose();
+        _inScopeRender.Dispose();
     }
 
     protected override async Task RenderInScopeCoreAsync()
@@ -110,13 +117,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            // One at a time. A handler's first repaint and the one before its continuation are asked for from
-            // two places, and on a host with more than one thread — every test of this session — they walked
-            // the tree together: one threw out of the walk, and with it went the handler's continuation or the
-            // handler itself. The server session's render lock, for the renders a dispatch makes of itself.
-            Interlocked.Increment(ref _repaintsWaiting);
-            await _repaints.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-            Interlocked.Decrement(ref _repaintsWaiting);
+            // Counted while it waits, for the test that holds the first of two mid-walk.
+            Interlocked.Increment(ref _inScopeRendersWaiting);
+            await _inScopeRender.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            Interlocked.Decrement(ref _inScopeRendersWaiting);
             try
             {
                 await BuildPayloadAsync(null, false).ConfigureAwait(false);
@@ -127,7 +131,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
             }
             finally
             {
-                _repaints.Release();
+                _inScopeRender.Release();
             }
         }
         finally
@@ -136,12 +140,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    // Serialises the repaints a handler asks for while it is still running (RenderInScopeCoreAsync).
-    private readonly SemaphoreSlim _repaints = new(1, 1);
-    private int _repaintsWaiting;
+    private int _inScopeRendersWaiting;
 
-    // How many of a handler's repaints are waiting their turn — for the test that holds one mid-walk.
-    internal int RepaintsWaiting => Volatile.Read(ref _repaintsWaiting);
+    // How many mid-await renders are waiting their turn — for the test that holds one mid-walk.
+    internal int InScopeRendersWaiting => Volatile.Read(ref _inScopeRendersWaiting);
 
     // Already inside a dispatch's render: signal it to rebuild the payload before releasing the lock, so
     // dispose-driven state changes (e.g. a token.Register callback that calls StateHasChanged on a parent)

@@ -35,14 +35,14 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
 
     private Task<(HookSession Session, SocketFrames Frames)> OpenAsync() => OpenAsync<PistolFormPage>();
 
-    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync<TPage>()
+    private async Task<(HookSession Session, SocketFrames Frames)> OpenAsync<TPage>(Func<IPage, Task>? beforeLoad = null)
         where TPage : Component
     {
         SocketFrames? frames = null;
         var session = await HookSession.OpenAsync<TPage>(playwright, beforeLoad: page =>
         {
             frames = SocketFrames.Of(page);
-            return Task.CompletedTask;
+            return beforeLoad?.Invoke(page) ?? Task.CompletedTask;
         });
         await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
 
@@ -91,29 +91,52 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
         Assert.True(frames.FullPages.Count == 0, "The refusal was answered with the whole document:" + Environment.NewLine + frames.Trace());
     }
 
+    // The five seconds are counted by the page's own timers, so the page's clock is the test's here: it stands
+    // still while the browser is driven and moves only by what the test runs it for. On the wall clock the second
+    // save had 1.5 s to land after a 3.5 s sleep, and the last look 2 s after a 3 s one — which a busy machine
+    // does not have.
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task A_second_refusal_while_the_first_toast_is_up_shows_for_its_own_five_seconds(bool toastLast)
     {
-        var (session, _) = toastLast ? await OpenAsync<PistolFormPage>() : await OpenAsync<PistolFormToastBeforeFooterPage>();
+        var (session, _) = toastLast
+            ? await OpenAsync<PistolFormPage>(CountFramesOnATestClock)
+            : await OpenAsync<PistolFormToastBeforeFooterPage>(CountFramesOnATestClock);
         await using var closing = session;
         var page = session.Page;
+        var toasts = page.Locator("[data-ui-toast-dialog]");
         await page.GetByLabel("Name").FillAsync("taken");
         await OpenListAsync(page);
         await Option(page, "Glock").ClickAsync();
         await page.Keyboard.PressAsync("Escape");
         await page.GetByLabel("Size").FillAsync("600");
+        await PageClock.StopAsync(page);
         await page.ClickAsync("#save");
-        await Expect(page.Locator("[data-ui-toast]")).ToContainTextAsync("That name is taken.");
+        await Expect(page.Locator("#refused")).ToHaveTextAsync("refused=1");
+        await Expect(toasts).ToHaveCountAsync(1);
 
-        await page.WaitForTimeoutAsync(3_500);
+        await page.Clock.RunForAsync(3_500);
         await page.ClickAsync("#save");
+        await Expect(page.Locator("#refused")).ToHaveTextAsync("refused=2");
         await page.Mouse.MoveAsync(5, 5);
-        await page.WaitForTimeoutAsync(3_000);
+        var sent = await SentFrames.SoFarAsync(page);
+        await page.Clock.RunForAsync(3_000);
+        var sentAsTheFirstOnesTimeRanOut = await SentFrames.SoFarAsync(page) - sent;
+        var shownThen = await toasts.CountAsync();
+        await page.Clock.RunForAsync(2_500);
 
-        // 6.5 s after the first toast, 3 s after the second: the first one's time is up, the second's is not.
-        await Expect(page.Locator("[data-ui-toast]")).ToContainTextAsync("That name is taken.", new() { Timeout = 500 });
+        // 6.5 s after the first toast, 3 s after the second: the first one's time is up, the second's is not —
+        // nothing pressed its close button, which is a frame the page would have sent. At 5.5 s it has gone.
+        Assert.Equal(0, sentAsTheFirstOnesTimeRanOut);
+        Assert.Equal(1, shownThen);
+        await Expect(toasts).ToHaveCountAsync(0);
+    }
+
+    private static async Task CountFramesOnATestClock(IPage page)
+    {
+        await SentFrames.Count(page);
+        await PageClock.Install(page);
     }
 }
 
@@ -136,6 +159,7 @@ public partial class PistolFormPage : Component
 
     private readonly Draft _form = new();
     private string _saved = string.Empty;
+    private int _refusals;
 
     protected override Component? HeadAssets => Markup.Title["pistols"];
 
@@ -165,7 +189,8 @@ public partial class PistolFormPage : Component
                 ],
                 Ui.Button.Primary.Submit.Id("save")["Save"]
             ],
-            P.Id("saved")[_saved]
+            P.Id("saved")[_saved],
+            P.Id("refused")[$"refused={_refusals}"]
         ],
         ToastLast ? null : Ui.Toast,
         Footer[P.Id("ready")["ready"]],
@@ -176,6 +201,7 @@ public partial class PistolFormPage : Component
     {
         if (string.Equals(_form.Name, "taken", StringComparison.Ordinal))
         {
+            _refusals++;
             Toast.Error("That name is taken.");
             return;
         }

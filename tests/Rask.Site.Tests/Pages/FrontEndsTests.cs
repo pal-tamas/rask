@@ -47,7 +47,7 @@ public sealed partial class FrontEndsTests : global::Rask.Core.RaskMarkup
 
         // One card per lane, and the whole card is the anchor into its guide — so counting the
         // anchors counts the lanes, and keeps counting them when a lane is added.
-        var lanes = Regex.Matches(section, "<a ", RegexOptions.None, TimeSpan.FromSeconds(5)).Count;
+        var lanes = Regex.Count(section, "<a ");
 
         // Guard the count itself: a section that stopped rendering cards would otherwise agree with
         // whatever word the heading happened to carry.

@@ -47,7 +47,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
         release.Set();
 
         // And it must close, or an initial render would wait out its whole budget on every hook.
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Task.WhenAll(batch).WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 
         Assert.True(scope.TrySnapshotPending(out var batch), "the scope reported nothing pending");
 
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Task.WhenAll(batch).WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
 
         component.Release.Set();
 
-        await Task.WhenAll(batch).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await Task.WhenAll(batch).WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public partial class LifecycleSyncContextQuiescenceTests : global::Rask.Core.Ras
             TaskScheduler.Default);
 
         component.Resume.SetResult();
-        await observed.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await observed.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.True(
             requestedWhenTheGateOpened,

@@ -118,6 +118,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _sendTimeout = limits?.SendTimeout ?? TimeSpan.Zero;
         _navigationBudget = limits?.NavigationQuiescenceTimeout ?? TimeSpan.Zero;
         _metrics = metrics;
+        _clock = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
+        _batchWindowStart = _clock.GetTimestamp();
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }
@@ -224,19 +226,23 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private long _batchWindowStart;
     private int _batchedEventsInWindow;
 
+    // The host's clock when it registered one, so the second the window measures is one a test can own.
+    private readonly TimeProvider _clock;
+
     /// <summary>Whether <paramref name="count" /> more batched events fit this second's allowance.</summary>
     internal bool AdmitBatchedEvents(int count, int maxPerSecond)
     {
-        var now = Environment.TickCount64;
-        if (now - _batchWindowStart >= 1000)
+        if (_clock.GetElapsedTime(_batchWindowStart) >= BatchWindow)
         {
-            _batchWindowStart = now;
+            _batchWindowStart = _clock.GetTimestamp();
             _batchedEventsInWindow = 0;
         }
 
         _batchedEventsInWindow += count;
         return _batchedEventsInWindow <= maxPerSecond;
     }
+
+    private static readonly TimeSpan BatchWindow = TimeSpan.FromSeconds(1);
 
     // Aggregate bytes of the cloned payloads currently queued — the memory companion to the count
     // above, so the receive loop can bound the queue's footprint, not just its length.

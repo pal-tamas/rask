@@ -17,12 +17,12 @@ public sealed class JobShutdownGraceTests
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.FromSeconds(5));
         await h.Queue.Enqueue(new GateJob(), TestContext.Current.CancellationToken);
         await h.Processor.StartAsync(CancellationToken.None);
-        await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Gate.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         // Stop while the handler is parked. The grace deadline is armed by this, not tripped.
         var stop = h.Processor.StopAsync(CancellationToken.None);
         h.Gate.Release.SetResult();
-        await stop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await stop.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.True(h.Gate.Completed.Task.IsCompletedSuccessfully, "the handler ran to completion");
         var job = await h.SingleJobAsync();
@@ -42,11 +42,11 @@ public sealed class JobShutdownGraceTests
         await h.Queue.Enqueue(new GateJob(), TestContext.Current.CancellationToken);
         await h.Queue.Enqueue(new RecordJob("second"), TestContext.Current.CancellationToken);
         await h.Processor.StartAsync(CancellationToken.None);
-        await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Gate.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         var stop = h.Processor.StopAsync(CancellationToken.None);
         h.Gate.Release.SetResult();
-        await stop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await stop.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         await using var db = h.NewContext();
         var jobs = await db.Set<Job>().OrderBy(j => j.Id).ToListAsync(cancellationToken: TestContext.Current.CancellationToken);
@@ -66,10 +66,10 @@ public sealed class JobShutdownGraceTests
         await h.Queue.Enqueue(new GateJob(), TestContext.Current.CancellationToken);
         var runAtBefore = (await h.SingleJobAsync()).RunAt;
         await h.Processor.StartAsync(CancellationToken.None);
-        await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Gate.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         // Never released: the grace expires and the handler is cancelled.
-        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         var job = await h.SingleJobAsync();
         Assert.Null(job.ProcessedAt);
@@ -91,10 +91,10 @@ public sealed class JobShutdownGraceTests
         await using var h = new JobsHarness(o => o.ShutdownGracePeriod = TimeSpan.Zero);
         await h.Queue.Enqueue(new GateJob(), TestContext.Current.CancellationToken);
         await h.Processor.StartAsync(CancellationToken.None);
-        await h.Gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Gate.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         var started = Environment.TickCount64;
-        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.True(Environment.TickCount64 - started < 2_000, "a zero grace must not wait");
         Assert.False(h.Gate.Completed.Task.IsCompleted);

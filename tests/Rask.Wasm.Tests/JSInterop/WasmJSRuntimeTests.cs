@@ -33,7 +33,7 @@ public sealed class WasmJSRuntimeTests
         var taskId = long.Parse(call.TaskId);
         JSInterop.EndInvokeJSResult(BuildResult(taskId, true, "\"stored-value\""));
 
-        var observed = await task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        var observed = await task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         Assert.Equal("stored-value", observed);
     }
 
@@ -48,7 +48,7 @@ public sealed class WasmJSRuntimeTests
         var taskId = long.Parse(JSInterop.LastBeginInvokeJsCall!.TaskId);
         JSInterop.EndInvokeJSResult(BuildResult(taskId, false, error: "TypeError: boom"));
 
-        var ex = await Assert.ThrowsAsync<JSException>(() => task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken));
+        var ex = await Assert.ThrowsAsync<JSException>(() => task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken));
         Assert.Contains("TypeError: boom", ex.Message);
     }
 
@@ -69,7 +69,7 @@ public sealed class WasmJSRuntimeTests
         var taskId = long.Parse(call.TaskId);
         JSInterop.EndInvokeJSResult(BuildResult(taskId, true, "null"));
 
-        await task.WaitAsync(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+        await task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
     }
 
     // Mirrors the [taskId, success, result|error] shape DotNetDispatcher.EndInvokeJS parses —

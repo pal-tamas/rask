@@ -28,7 +28,7 @@ public sealed class HandlerRepaintsTakeTurnsTests() : ResettingTestBase(LiveDiff
         await WaitFor.True(() => app.Walking == 1, "the handler's first repaint to be inside the walk");
         app.Saved.SetResult();
         await WaitFor.True(
-            () => session.RepaintsWaiting == 1 || app.MostWalkingAtOnce > 1,
+            () => session.InScopeRendersWaiting == 1 || app.MostWalkingAtOnce > 1,
             "the repaint before the continuation to wait its turn, or to walk the tree beside the first");
         var continuedDuringTheWalk = app.Continued;
         app.ReleaseWalks();

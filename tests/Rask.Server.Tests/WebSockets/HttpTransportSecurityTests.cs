@@ -15,7 +15,7 @@ namespace Rask.Server.Tests.WebSockets;
 /// </remarks>
 public sealed class HttpTransportSecurityTests
 {
-    private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Deadline = LiveFrames.HangCeiling;
 
     private static async Task<string> StartSessionAsync(RaskTestHost host)
     {

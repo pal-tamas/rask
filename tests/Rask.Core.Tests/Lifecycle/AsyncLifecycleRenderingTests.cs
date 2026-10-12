@@ -309,14 +309,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
     // Only ever for the POSITIVE half of an assertion. Where a test also claims "and no more than this",
     // it keeps a short settle afterwards — nothing but elapsed time can evidence a render that did NOT
     // happen, so the upper-bound tests below still sleep on purpose.
-    private static async Task WaitUntilAsync(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (!condition() && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(5);
-        }
-    }
+    private static Task WaitUntilAsync(Func<bool> condition) => WaitFor.True(condition);
 
     private sealed class RecordingHandle : IRenderHandle
     {

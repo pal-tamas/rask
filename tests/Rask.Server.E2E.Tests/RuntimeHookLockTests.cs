@@ -75,10 +75,12 @@ public sealed class RuntimeHookLockTests(PlaywrightFixture playwright) : IClassF
         await session.HooksLoadedAsync();
         await page.EvaluateAsync("() => document.getElementById('open').scrollIntoView({ block: 'center' })");
         var scrollbar = await page.EvaluateAsync<int>("() => innerWidth - document.documentElement.clientWidth");
+        Assert.SkipUnless(
+            scrollbar > 0,
+            "This browser draws its scrollbars over the page (macOS overlay scrollbars) even when asked to show them: none takes room, so there is no gutter to keep.");
 
         var walk = await WalkAsync(page);
 
-        Assert.True(scrollbar > 0, "this browser shows no scrollbar either");
         Assert.True(walk.Before.ScrollY > 1000, "the page is not scrolled to its middle");
         Assert.Equal("visible|auto|auto", walk.Before.Html);
         Assert.Equal("hidden|none|stable", walk.Popover.Html);

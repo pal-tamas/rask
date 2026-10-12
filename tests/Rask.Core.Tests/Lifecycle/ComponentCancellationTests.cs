@@ -80,7 +80,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
 
         ComponentLifecycle.DisposeComponentTree(root);
 
-        await observed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await observed.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         Assert.True(capturedToken.IsCancellationRequested);
     }
 
@@ -110,7 +110,7 @@ public partial class ComponentCancellationTests : global::Rask.Core.RaskMarkup
             LiveRenderContext.NotifyParameters(resolved, true);
         }
 
-        var after = await afterAwait.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        var after = await afterAwait.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         Assert.Equal(c.Token, beforeAwait);
         Assert.Equal(c.Token, after);
         Assert.False(Ambient.CancellationToken.CanBeCanceled);   // nothing outside the hook
