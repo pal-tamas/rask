@@ -36,6 +36,11 @@ them until tagged releases begin.
   handler's release wakes whoever waited, and each of them finds the session gone and leaves. A render that
   waited out the teardown no longer renders the disposed page into buffers already returned to the pool.
 
+- **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
+  for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
+  button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus
+  leaving the button for anything but its panel closes it now (`rask-overlay.ts`), as measured on Flux.
+  `rask-hooks.js` is 147 bytes larger.
 - **RASK011 and the routing guide no longer say an enum can be bound.** A `[RouteParam]`/`[QueryParam]`
   property is `string` or `IParsable<T>`, and an enum is neither: the message, its description and
   `docs/routing.md` now say to bind it as a `string`. Nothing about what binds has changed.
@@ -65,6 +70,12 @@ them until tagged releases begin.
   or `error` event, focus a render moved, a field restored after a reload, the reply to an interop call. On
   the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
   WebAssembly.
+
+- **Focus the runtime gives an `autofocus` field is not the reader's next action.** A render that brought an
+  `autofocus` element focused it as if the reader had: the `focus` it raised (an `OnFocus` handler), and the
+  leaving of the field focus was taken from, went out as an action and carried every bound value that was
+  waiting — a cabin picked and not yet saved was written by a frame the reader never asked for. That focus is
+  the runtime's own now (`"unasked":true`), on both hosts, like the focus a dialog's trap moves.
 
 - **DevTools counts a handler that failed into a toast once.** Since a handler's fault keeps its page and says
   so in a toast, one failed click on a page that draws toasts put `2` on the pill and two entries on the Errors
@@ -136,6 +147,32 @@ them until tagged releases begin.
   the kit to its trigger in a real browser — alone, labelled, in a row, grown, in a grid cell, at 1920 and 390.
 
 ### Changed
+
+- **BREAKING: `Ui.Popover` is Flux's popover — a panel, inside the dropdown that holds its trigger.** It was a
+  component that drew its own daisyUI button from a label; it is now `flux:popover`, with Flux's one prop
+  (`Class`), and the trigger is a button you write. Where it opens and what opens it are the dropdown's, as in
+  Flux — `Ui.Dropdown` takes a `Ui.Popover` as its second child, beside `Ui.Menu` and `Ui.Navmenu`:
+  ```csharp
+  // was
+  Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Cog6Tooth).Position(Ui.Position.Top).Align(Ui.Align.End).Gap(8)
+      .PanelClass("w-72")[panel]
+  // now
+  Ui.Dropdown.Top.End.Gap(8)[
+      Ui.Button.Icon(Ui.IconName.Cog6Tooth)["Filters"],
+      Ui.Popover.Class("w-72")[panel]
+  ]
+  ```
+  `Trigger`, `Icon`, `IconTrailing`, `Tone`, `Variant` and `Size` are gone (they described the button, which is
+  yours now); `PanelClass` is `Ui.Popover.Class`; `Position`, `Align`, `Gap`, `Open` and `OnToggle` are
+  `Ui.Dropdown`'s, with its `Offset` and `Hover()`. The panel is Flux's, measured: white on zinc-200 (zinc-700 on
+  zinc-600 in dark), `rounded-lg`, `shadow-xs`, 1rem of padding, 12rem at least — each a default any class of
+  yours outweighs. It no longer says `role="dialog"` or `aria-labelledby`, and the trigger says
+  `aria-haspopup="true"`, as Flux's does. Focus stays on the trigger as it opens; the page behind a pressed
+  popover neither scrolls nor takes the pointer; the default gap is 5px (was 4). `node scripts/flux/parity.mjs
+  popover` holds all seven examples of Flux's page, and `parity-popover.mjs` each of its eleven panels open — its
+  look, where it lands — and a pointer-and-keyboard walk.
+- **`Ui.Button.Kbd("esc")["Cancel"]` writes its label bare**, as Flux does beside a `kbd` alone (measured on its
+  popover page); beside an icon or a spinner the label is still wrapped.
 
 - **BEHAVIOUR: a handler that throws no longer replaces the page.** A click, a change or any callback whose
   handler threw a real fault used to trip the nearest `ErrorBoundary` — in an app that wrote none, the host's own,

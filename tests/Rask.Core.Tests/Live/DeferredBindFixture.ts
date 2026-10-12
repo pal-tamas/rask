@@ -6,7 +6,8 @@
 // the fixture says so (stub-events.ts). The C# test (DeferredBindClientTests) runs this in a node subprocess
 // and asserts the JSON line.
 
-import {elapse, frame, listeners, StubField} from "./stub-events.js";
+import {autofocused, elapse, frame, listeners, StubField} from "./stub-events.js";
+import {focusArrived} from "../../../src/Rask.Core/Resources/rask-autofocus.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {changeSent, remember, sendTypedFirst, waitsForAction} from "../../../src/Rask.Core/Resources/rask-input.js";
 import {listen, replayMissed, seam, unasked} from "../../../src/Rask.Core/Resources/rask-owned.js";
@@ -40,6 +41,12 @@ function choose(field: StubField, checked: boolean): void {
     field.checked = checked;
     listeners.input({target: field});
     listeners.change({target: field});
+}
+
+// A field on screen that hears its own focus, as the browser raises it when a script focuses the field.
+class OnScreen extends StubField {
+    getClientRects(): unknown[] { return [this]; }
+    focus(): void { listeners.focus({target: this}); }
 }
 
 // Each case starts with nothing waiting from the one before it.
@@ -154,6 +161,9 @@ listeners.load({target: new StubField({"data-rask-on-load": "arrived"})});
 const anImageArriving = taken();
 unasked(function () { hostSend({id: "7", type: "jsResult"}); });
 const anInteropReply = taken();
+autofocused.push(new OnScreen({"data-rask-on-focus": "arrived", autofocus: ""}));
+focusArrived();
+const aFieldARenderFocused = taken();
 hostSend({id: "save", type: "click"});
 const stillSentWithTheAction = taken();
 
@@ -304,6 +314,7 @@ process.stdout.write(JSON.stringify({
     firstKeystrokeOfACorrection,
     thenTheCorrection,
     anInteropReply,
+    aFieldARenderFocused,
     stillSentWithTheAction,
     goneBeforeTheAction,
     restored,

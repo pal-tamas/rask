@@ -3,12 +3,13 @@ using System.Globalization;
 namespace Rask;
 
 /// <summary>
-/// A trigger and the menu it opens beside it. Flux UI's <c>flux:dropdown</c>.
+/// A trigger and what it opens beside it: a menu, or a popover. Flux UI's <c>flux:dropdown</c>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The first child is the trigger — a <c>Button</c>, a <see cref="UiButton" />, any element that is a button —
-/// and the second is what it opens: a <see cref="UiMenu" /> of actions, or a <see cref="UiNavmenu" /> of links.
+/// and the second is what it opens: a <see cref="UiMenu" /> of actions, a <see cref="UiNavmenu" /> of links, or a
+/// <see cref="UiPopover" /> of anything else.
 /// </para>
 /// <code>
 /// Ui.Dropdown[

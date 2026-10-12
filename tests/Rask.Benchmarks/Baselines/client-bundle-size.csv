@@ -207,7 +207,11 @@
 # rask.wasm.js 86,147 -> 86,907 (+760). rask-hooks.js is unchanged.
 # And on top of the loading scope (main at 97,920 / 86,880): rask.js 98,680, rask.wasm.js 87,640.
 # And on top of the reader's last word on open and shut (main at 100,188 / 88,979): rask.js 100,948, rask.wasm.js 89,739.
+# Refreshed 2026-10-12 with the focus an `autofocus` field is given marked as the runtime's own (`unasked`,
+# rask-autofocus.ts): rask.js 101,364 -> 101,379 (+15) and rask.wasm.js 90,148 -> 90,163 (+15). rask-hooks.js is unchanged.
+# 2026-10-12, focus leaving the button of an open popover closes it (rask-overlay.ts): rask-hooks.js +147,
+# measured on main at 101,364 / 90,148 / 50,616. The two runtimes are unchanged.
 bundle,bytes
-rask.js,101364
-rask.wasm.js,90148
-rask-hooks.js,50616
+rask.js,101379
+rask.wasm.js,90163
+rask-hooks.js,50763
