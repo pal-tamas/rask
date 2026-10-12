@@ -694,6 +694,37 @@
 }
 
 /*
+  A TABLE DIMS ITS ROWS WHILE THE PAGE THEY ARE GIVING WAY TO IS STILL BEING READ.
+
+  Flux documents no loading treatment for a table. This is Livewire's: `data-loading` on what was pressed,
+  and `has-data-loading:opacity-50` on what it will replace (livewire.laravel.com/docs/4.x/loading-states).
+  The runtime writes the mark once a press has gone 200 ms unanswered — on the pager's root, for a press
+  anywhere inside it, and on a sortable heading — and takes it off when the rows have arrived, so a page that
+  is back in time never fades.
+
+  The rows are dimmed and nothing else: they stay readable and clickable, and the pager and the headings stay
+  at full strength because they are what says something is happening. The fade is the button's own
+  `transition-opacity`.
+
+  Three places the mark can be, and no marker on the table's box, which Flux's has none of either:
+    - a sortable heading, inside the table;
+    - the pager right after something that holds the table: the scroll area (`Ui.Table.Paginate(…)`) or the
+      table's box (a `Ui.Pagination` placed after the table);
+    - the table itself, for a page that knows better than the kit when its rows are stale: `.Data("loading", "")`.
+*/
+@layer rask {
+  [data-ui-rows] {
+    transition: opacity var(--default-transition-duration, 150ms)
+      var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+
+  [data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],
+  :is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows] {
+    opacity: 0.5;
+  }
+}
+
+/*
   A SCROLLABLE TAB ROW FADES ITS TRAILING EDGE WHILE THERE IS MORE PAST IT (Ui.Tabs.ScrollableFade).
 
   The last 6rem fade out, and the fade retreats as the row is scrolled until, at the end, nothing is faded:

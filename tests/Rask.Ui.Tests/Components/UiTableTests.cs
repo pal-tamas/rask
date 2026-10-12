@@ -157,6 +157,38 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_sortable_heading_waits_on_its_own_sort_and_a_plain_one_asks_for_nothing()
+    {
+        var sortable = Ui.TableColumn.Sortable().OnSort(() => { })["Date"].ToHtml();
+        var plain = Ui.TableColumn["Customer"].ToHtml();
+
+        // Bare: the cell carries the click, so it is the control the runtime marks.
+        Assert.Matches("<th [^>]*data-ui-column data-rask-loading[ >]", sortable);
+        Assert.DoesNotContain("data-rask-loading", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_sheet_dims_the_rows_by_the_marks_the_table_and_its_pager_carry()
+    {
+        var sheet = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Styles", "ui.css"));
+        var pager = Ui.Pagination.Paginator(new UiPaginator { Page = 1, PerPage = 5, Total = 24 }).OnPage(_ => { });
+
+        var html = Ui.Table.Paginate(pager)[
+            Ui.TableColumns[Ui.TableColumn.Sortable().OnSort(() => { })["Date"]],
+            Ui.TableRows[Ui.TableRow[Ui.TableCell["Jul 29"]]]
+        ].ToHtml();
+
+        // A sortable heading inside the table, the pager right after what holds it, and the table's own mark.
+        Assert.Contains(
+            "[data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],", sheet, StringComparison.Ordinal);
+        Assert.Contains(
+            ":is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows] {",
+            sheet,
+            StringComparison.Ordinal);
+        Assert.Matches("<table [^>]*data-ui-table[^>]*>.*<tbody data-ui-rows>.*</table></div><div [^>]*data-ui-pagination ", html);
+    }
+
+    [Fact]
     public void A_sorted_heading_shows_which_way_it_runs()
     {
         var ascending = Ui.TableColumn.Sortable().Sorted()["Date"].ToHtml();

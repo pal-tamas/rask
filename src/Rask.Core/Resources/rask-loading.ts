@@ -21,6 +21,12 @@
 // `data-rask-loading="off"` on the element or any ancestor opts out — a stepper whose presses are meant to
 // queue, or a whole toolbar of them.
 //
+// And what is around it: `data-rask-loading="within"` marks an element for every dispatch that starts INSIDE
+// it. A pager's pressed page number is replaced by the render that answers the press, so a mark on it lands
+// on a node the page no longer has; the pager's root outlives every frame, and is what a table dims its rows
+// by. A scope gets `data-loading` alone — it is not a control, so it is not busy to assistive tech and a
+// press inside it is never refused: only the control that was pressed is.
+//
 // No DOM access at import: shared by both host bundles and imported by a Node fixture with a stub DOM.
 
 export const LOADING_DELAY_MS = 200;
@@ -34,21 +40,31 @@ export const LOADING_ATTR = "data-loading";
 export const BUSY_ATTR = "aria-busy";
 export const OPT_ATTR = "data-rask-loading";
 
+export const SCOPE = "within";
+
 export interface LoadingTicket {
-    readonly el: Element;
+    /** The control that waits, or null when the dispatch came from something that is not one. */
+    readonly el: Element | null;
+    /** The `data-rask-loading="within"` element around where the dispatch started, or null. */
+    readonly scope: Element | null;
     show: ReturnType<typeof setTimeout> | null;
     hard: ReturnType<typeof setTimeout> | null;
     done: boolean;
 }
 
-// Open tickets per element: two quick presses before the delay elapses are two dispatches, and the mark
-// comes off when the LAST of them is done, not the first.
-const openCount = new WeakMap<Element, number>();
+// What the runtime marked, and how many open dispatches hold each mark: two quick presses before the delay
+// elapses are two dispatches, and the mark comes off when the LAST of them is done, not the first.
+//
+// `stamped` is also what the morph asks, so a full-document repaint that arrives mid-dispatch — the render
+// the handler itself caused, typically — does not strip a mark the server never rendered. Only what the
+// runtime added is protected; a server-rendered `data-loading` stays the server's.
+interface Marks {
+    readonly open: WeakMap<Element, number>;
+    readonly stamped: WeakSet<Element>;
+}
 
-// Elements whose attributes this module wrote. The morph asks, so a full-document repaint that arrives
-// mid-dispatch — the render the handler itself caused, typically — does not strip a mark the server never
-// rendered. Only what the runtime added is protected; a server-rendered `data-loading` stays the server's.
-const stamped = new WeakSet<Element>();
+const controls: Marks = {open: new WeakMap(), stamped: new WeakSet()};
+const scopes: Marks = {open: new WeakMap(), stamped: new WeakSet()};
 
 // Every ticket not yet ended, so a disconnect can settle them all at once.
 const live = new Set<LoadingTicket>();
@@ -76,27 +92,75 @@ export function loadingTarget(owner: Element | null): Element | null {
     return null;
 }
 
-/** Starts marking `el` as waiting on a dispatch. Pair every call with {@link endLoading}. */
-export function beginLoading(el: Element): LoadingTicket {
-    const ticket: LoadingTicket = {el, show: null, hard: null, done: false};
-    openCount.set(el, (openCount.get(el) ?? 0) + 1);
+/**
+ * The scope a dispatch from `owner` marks: the nearest element above it carrying
+ * `data-rask-loading="within"`, or null — also when anything from `owner` up says "off".
+ */
+export function loadingScope(owner: Element | null): Element | null {
+    let scope: Element | null = null;
+    for (let n: Node | null = owner; n && n.nodeType === 1; n = n.parentNode) {
+        const opt = attr(n as Element, OPT_ATTR);
+        if (opt === "off") return null;
+        if (opt === SCOPE && !scope && n !== owner) scope = n as Element;
+    }
+    return scope;
+}
+
+function hold(marks: Marks, el: Element | null): void {
+    if (el) marks.open.set(el, (marks.open.get(el) ?? 0) + 1);
+}
+
+// Already marked by the render (`Ui.Button.Loading(true)`): the mark is the server's, and taking it off when
+// this dispatch ends would contradict the render until the next one.
+function stamp(marks: Marks, el: Element | null, busy: boolean): void {
+    if (!el || marks.stamped.has(el) || el.hasAttribute(LOADING_ATTR)) return;
+    marks.stamped.add(el);
+    el.setAttribute(LOADING_ATTR, "");
+    if (busy) el.setAttribute(BUSY_ATTR, "true");
+}
+
+function release(marks: Marks, other: Marks, el: Element | null, busy: boolean): void {
+    if (!el) return;
+    const remaining = (marks.open.get(el) ?? 1) - 1;
+    if (remaining > 0) {
+        marks.open.set(el, remaining);
+        return;
+    }
+
+    marks.open.delete(el);
+    if (!marks.stamped.has(el)) return;
+    marks.stamped.delete(el);
+    if (busy) el.removeAttribute(BUSY_ATTR);
+    // An opted-in control inside which another dispatch started holds the mark as a scope too.
+    if (!other.stamped.has(el)) el.removeAttribute(LOADING_ATTR);
+}
+
+/**
+ * Starts marking what waits on a dispatch: `el`, the control (from {@link loadingTarget}), and the scope
+ * around `from`, the element the dispatch started at. Null when there is neither. Pair every ticket with
+ * {@link endLoading}.
+ */
+export function beginLoading(el: Element | null, from: Element | null = el): LoadingTicket | null {
+    const scope = loadingScope(from);
+    if (!el && !scope) return null;
+
+    const ticket: LoadingTicket = {el, scope, show: null, hard: null, done: false};
+    hold(controls, el);
+    hold(scopes, scope);
     live.add(ticket);
 
     ticket.show = setTimeout(() => {
         ticket.show = null;
-        // Already marked by the render (`Ui.Button.Loading(true)`): the mark is the server's, and taking it
-        // off when this dispatch ends would contradict the render until the next one.
-        if (ticket.done || stamped.has(el) || el.hasAttribute(LOADING_ATTR)) return;
-        stamped.add(el);
-        el.setAttribute(LOADING_ATTR, "");
-        el.setAttribute(BUSY_ATTR, "true");
+        if (ticket.done) return;
+        stamp(controls, el, true);
+        stamp(scopes, scope, false);
     }, LOADING_DELAY_MS);
     ticket.hard = setTimeout(() => endLoading(ticket), LOADING_HARD_TIMEOUT_MS);
 
     return ticket;
 }
 
-/** Ends one dispatch's claim on its element. Safe to call twice, and on an element already detached. */
+/** Ends one dispatch's claim on what it marked. Safe to call twice, and on an element already detached. */
 export function endLoading(ticket: LoadingTicket | null | undefined): void {
     if (!ticket || ticket.done) return;
     ticket.done = true;
@@ -105,19 +169,8 @@ export function endLoading(ticket: LoadingTicket | null | undefined): void {
     if (ticket.hard !== null) clearTimeout(ticket.hard);
     ticket.show = ticket.hard = null;
 
-    const el = ticket.el;
-    const remaining = (openCount.get(el) ?? 1) - 1;
-    if (remaining > 0) {
-        openCount.set(el, remaining);
-        return;
-    }
-
-    openCount.delete(el);
-    if (stamped.has(el)) {
-        stamped.delete(el);
-        el.removeAttribute(LOADING_ATTR);
-        el.removeAttribute(BUSY_ATTR);
-    }
+    release(controls, scopes, ticket.el, true);
+    release(scopes, controls, ticket.scope, false);
 }
 
 /** Settles every open dispatch — the connection dropped, and nothing in flight will report back. */
@@ -131,10 +184,11 @@ export function endAllLoading(): void {
  * through.
  */
 export function isVisiblyLoading(el: Element | null): boolean {
-    return !!el && stamped.has(el);
+    return !!el && controls.stamped.has(el);
 }
 
 /** Whether the runtime, not the render, put attribute `name` on `el` — so a morph must leave it alone. */
 export function runtimeOwnsAttr(el: Element, name: string): boolean {
-    return (name === LOADING_ATTR || name === BUSY_ATTR) && stamped.has(el);
+    if (name === LOADING_ATTR) return controls.stamped.has(el) || scopes.stamped.has(el);
+    return name === BUSY_ATTR && controls.stamped.has(el);
 }
