@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Server.Tests.Infrastructure;
 
@@ -82,7 +83,7 @@ public class EventBatchTests
         await using var connection = ws;
 
         await ws.SendJsonAsync(Batch(Event(page, "hit0"), Event(page, "slow"), Event(page, "hit1", seq: 1)));
-        var waiting = HtmlOf((await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(10)))!);
+        var waiting = HtmlOf((await ws.TryReceiveTextAsync(LiveFrames.HangCeiling))!);
         EventBatchApp.Gate.TrySetResult();
         var (renders, _) = await ReadUntilAckAsync(ws);
 
@@ -181,7 +182,7 @@ public class EventBatchTests
         var events = Enumerable.Repeat(Event(page, "hit0"), EventBatch.MaxEvents + 1).ToArray();
 
         await SendIgnoringCloseAsync(ws, Batch(events));
-        var reason = await ws.TryReceiveCloseReasonAsync(TimeSpan.FromSeconds(10));
+        var reason = await ws.TryReceiveCloseReasonAsync(LiveFrames.HangCeiling);
 
         Assert.Equal("event batch", reason);
     }
@@ -190,17 +191,42 @@ public class EventBatchTests
     public async Task Batches_count_their_events_against_the_frame_rate_cap()
     {
         using var host = RaskTestHost.Create<EventBatchApp>(
-            diffMode: LiveDiffMode.DisabledFull, configureServer: o => o.MaxInboundFramesPerSecond = 100);
+            configureServices: s => s.AddSingleton<TimeProvider>(new StoppedClock()),
+            diffMode: LiveDiffMode.DisabledFull,
+            configureServer: o => o.MaxInboundFramesPerSecond = 100);
         var (page, ws) = await OpenAsync(host, LiveTransportKind.WebSocket);
         await using var connection = ws;
         var events = Enumerable.Repeat(Event(page, "hit0"), 60).ToArray();
 
-        // Two frames, far under a hundred a second — carrying a hundred and twenty handlers between them.
+        // Two frames, far under a hundred a second — carrying a hundred and twenty handlers between them. The
+        // host's clock stands still, so both fall in one second however long the runner takes to read them.
         await SendIgnoringCloseAsync(ws, Batch(events));
         await SendIgnoringCloseAsync(ws, Batch(events));
-        var reason = await ws.TryReceiveCloseReasonAsync(TimeSpan.FromSeconds(10));
+        var reason = await ws.TryReceiveCloseReasonAsync(LiveFrames.HangCeiling);
 
         Assert.Equal("event batch", reason);
+    }
+
+    [Fact]
+    public async Task A_batch_sent_a_second_after_another_has_the_whole_allowance_again()
+    {
+        var clock = new StoppedClock();
+        using var host = RaskTestHost.Create<EventBatchApp>(
+            configureServices: s => s.AddSingleton<TimeProvider>(clock),
+            diffMode: LiveDiffMode.DisabledFull,
+            configureServer: o => o.MaxInboundFramesPerSecond = 100);
+        var (page, ws) = await OpenAsync(host, LiveTransportKind.WebSocket);
+        await using var connection = ws;
+        var events = Enumerable.Repeat(Event(page, "hit0"), 59).Append(Event(page, "hit0", seq: 1)).ToArray();
+
+        await ws.SendJsonAsync(Batch(events));
+        var first = (await ReadUntilAckAsync(ws)).Acked;
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await ws.SendJsonAsync(Batch(events));
+        var second = (await ReadUntilAckAsync(ws)).Acked;
+
+        Assert.Equal(1, first);
+        Assert.Equal(1, second);
     }
 
     [Fact]
@@ -256,7 +282,7 @@ public class EventBatchTests
         var renders = new List<string>();
         while (true)
         {
-            var text = await ws.TryReceiveTextAsync(TimeSpan.FromSeconds(20));
+            var text = await ws.TryReceiveTextAsync(LiveFrames.HangCeiling);
             Assert.NotNull(text);
             using var doc = JsonDocument.Parse(text);
             if (doc.RootElement.TryGetProperty("type", out var type) && type.ValueEquals("ack"))
