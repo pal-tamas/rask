@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 
@@ -8,7 +9,11 @@ namespace Rask.Core.Routing;
 
 internal static class PageBinder
 {
-    private static readonly ConcurrentDictionary<Type, BindablePropertyInfo[]> _propertyCache = new();
+    private static readonly ConcurrentDictionary<Type, BindableProperties> _propertyCache = new();
+
+    // What each [QueryParam] property held on the page as it was built, before any address was bound into it:
+    // its initializer. Kept for as long as the page is, one array for a page instance.
+    private static readonly ConditionalWeakTable<Component, object?[]> _builtWith = new();
 
     [UnconditionalSuppressMessage("Trimming", "IL2075",
         Justification = "Page concrete type's public properties are preserved via the [DynamicDependency] entries " +
@@ -20,20 +25,21 @@ internal static class PageBinder
                         "either string or IParsable<T> — both have their TryParse paths covered by the runtime.")]
     public static bool Bind(Component page, IReadOnlyDictionary<string, string?> values, IQueryCollection query)
     {
-        var properties = _propertyCache.GetOrAdd(page.GetType(), DiscoverProperties);
+        var bindable = _propertyCache.GetOrAdd(page.GetType(), DiscoverProperties);
+        var builtWith = bindable.AnyFromQuery ? BuiltWith(page, bindable.All) : null;
         var anyChanged = false;
 
-        foreach (var property in properties)
+        for (var i = 0; i < bindable.All.Length; i++)
         {
-            // Multi-route pages reuse the same Component instance across templates that
-            // bind different parameter sets. If the new URL's values/query don't carry
-            // this property's key, the binding has to RESET it to default — otherwise
-            // it stays sticky with the previous URL's value (e.g., Id=guidA carrying
-            // across /todos/{guidA}/edit → /todos, which keeps EditingItem populated
-            // and the dialog stuck open).
+            var property = bindable.All[i];
+
+            // A page instance is reused across addresses, so a parameter the new address does not carry
+            // must not keep the last address's value (Id=guidA carrying across /todos/{guidA}/edit → /todos
+            // keeps the edit dialog open). A query parameter goes back to what the page was built with —
+            // `= 1` for `?page=` — and a segment to its type's default.
             var converted = TryRead(page, property, values, query, out var read)
                 ? read
-                : DefaultValue(property.Property.PropertyType);
+                : WithoutAValue(property, builtWith, i);
 
             var previous = property.Property.GetValue(page);
             if (!Equals(previous, converted))
@@ -45,6 +51,33 @@ internal static class PageBinder
         }
 
         return anyChanged;
+    }
+
+    private static object? WithoutAValue(BindablePropertyInfo property, object?[]? builtWith, int index) =>
+        builtWith is not null && property.IsQueryParam
+            ? builtWith[index]
+            : DefaultValue(property.Property.PropertyType);
+
+    // Read once, at the page's first bind — nothing has written to the properties yet. A reference-type
+    // value is kept as the object it is: an absent parameter hands the page that same object back.
+    private static object?[] BuiltWith(Component page, BindablePropertyInfo[] properties)
+    {
+        if (_builtWith.TryGetValue(page, out var known))
+        {
+            return known;
+        }
+
+        var builtWith = new object?[properties.Length];
+        for (var i = 0; i < properties.Length; i++)
+        {
+            if (properties[i].IsQueryParam)
+            {
+                builtWith[i] = properties[i].Property.GetValue(page);
+            }
+        }
+
+        _builtWith.Add(page, builtWith);
+        return builtWith;
     }
 
     /// <summary>
@@ -62,10 +95,9 @@ internal static class PageBinder
 
         foreach (var page in chain)
         {
-            foreach (var property in _propertyCache.GetOrAdd(page, DiscoverProperties))
+            foreach (var property in _propertyCache.GetOrAdd(page, DiscoverProperties).All)
             {
-                if (property.IsRouteParam
-                    && values.TryGetValue(property.BindingName, out var text) && text is not null
+                if (TryGetSegment(property, values, out var text) && text is not null
                     && !RouteValueParser.TryParse(property.Property.PropertyType, text, out _))
                 {
                     return false;
@@ -87,7 +119,7 @@ internal static class PageBinder
     [UnconditionalSuppressMessage("Trimming", "IL2070",
         Justification = "Page concrete type's public properties are preserved via the [DynamicDependency] entries " +
                         "emitted by RoutesGenerator into __RaskRoutesRegistry.Init().")]
-    private static BindablePropertyInfo[] DiscoverProperties(Type type)
+    private static BindableProperties DiscoverProperties(Type type)
     {
         var result = new List<BindablePropertyInfo>();
         foreach (var p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
@@ -111,7 +143,7 @@ internal static class PageBinder
                 routeParam?.Name ?? queryParam?.Name ?? p.Name));
         }
 
-        return result.ToArray();
+        return new BindableProperties(result.ToArray(), result.Exists(static p => p.IsQueryParam));
     }
 
     private static bool TryRead(Component page, BindablePropertyInfo property,
@@ -145,7 +177,7 @@ internal static class PageBinder
         if (text is null)
         {
             read = null;
-            return true;
+            return false;
         }
 
         if (RouteValueParser.TryParse(property.Property.PropertyType, text, out read))
@@ -173,22 +205,38 @@ internal static class PageBinder
                   $"cannot be read as {type.Name}, so {property.Property.Name} is bound as if it were absent.");
     }
 
+    // The one way a segment is found for a property, for the match (CanBind) and the bind alike: by name,
+    // whatever its case. A matched route's dictionary already compares that way and its answer is final,
+    // while any other dictionary is read through.
     private static bool TryGetSegment(BindablePropertyInfo info, IReadOnlyDictionary<string, string?> values,
         out string? segment)
     {
-        if (info.IsRouteParam)
+        segment = null;
+        if (!info.IsRouteParam)
         {
-            foreach (var (key, value) in values)
+            return false;
+        }
+
+        if (values.TryGetValue(info.BindingName, out segment))
+        {
+            return true;
+        }
+
+        if (values.Count == 0 || values is Dictionary<string, string?> { Comparer: var comparer }
+            && ReferenceEquals(comparer, StringComparer.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        foreach (var (key, value) in values)
+        {
+            if (string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
             {
-                if (string.Equals(key, info.BindingName, StringComparison.OrdinalIgnoreCase))
-                {
-                    segment = value;
-                    return true;
-                }
+                segment = value;
+                return true;
             }
         }
 
-        segment = null;
         return false;
     }
 
@@ -238,6 +286,8 @@ internal static class PageBinder
         throw new RouteBindException(
             $"Failed to bind value '{asString}' to property '{propertyName}' of type '{targetType}'.");
     }
+
+    private sealed record BindableProperties(BindablePropertyInfo[] All, bool AnyFromQuery);
 
     private readonly record struct BindablePropertyInfo(
         PropertyInfo Property,
