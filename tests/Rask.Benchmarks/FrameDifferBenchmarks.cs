@@ -40,6 +40,17 @@ public partial class FrameDifferBenchmarks : global::Rask.Core.RaskMarkup
 
     private RenderFrame[] _before = null!;
 
+    // Rows nothing keys, under a heading. A callout arrives between the heading and the rows' list (one
+    // run among siblings of other tags), a row arrives at the top of the list (one run among same-tag
+    // siblings, which is scored), and a row is appended (the tail the positional walk already wrote).
+    private RenderFrame[] _beforeUnkeyed = null!;
+    private RenderFrame[] _afterCallout = null!;
+    private string _afterCalloutHtml = "";
+    private RenderFrame[] _afterPrepend = null!;
+    private string _afterPrependHtml = "";
+    private RenderFrame[] _afterAppend = null!;
+    private string _afterAppendHtml = "";
+
     // Raw-tainted guide-page shape: a "sample" container mixing a Raw block (highlighted code) with a
     // sibling status node whose text changes. Pre-fix this forced a full-document morph on EVERY such
     // update (the flaky, expensive path on guide/CodeSample pages); now the differ ships one scoped
@@ -133,6 +144,11 @@ public partial class FrameDifferBenchmarks : global::Rask.Core.RaskMarkup
 
         (_afterAppendDel, _afterAppendDelHtml) = FramesAndHtmlOf(BuildKeyedList(kept.ToArray(), -1));
 
+        _beforeUnkeyed = FramesOf(BuildUnkeyedList(0, RowCount, false));
+        (_afterCallout, _afterCalloutHtml) = FramesAndHtmlOf(BuildUnkeyedList(0, RowCount, true));
+        (_afterPrepend, _afterPrependHtml) = FramesAndHtmlOf(BuildUnkeyedList(-1, RowCount, false));
+        (_afterAppend, _afterAppendHtml) = FramesAndHtmlOf(BuildUnkeyedList(0, RowCount + 1, false));
+
         // Raw-tainted guide page: only the status text changes; the Raw code block is unchanged.
         _beforeGuide = FramesOf(BuildGuidePage(1));
         (_afterGuide, _afterGuideHtml) = FramesAndHtmlOf(BuildGuidePage(2));
@@ -221,6 +237,47 @@ public partial class FrameDifferBenchmarks : global::Rask.Core.RaskMarkup
         _ops.Clear();
         FrameDiffer.Diff(_beforeGuide, _afterGuide, _ops, _scratch, out _, _afterGuideHtml);
         return _ops.Count;
+    }
+
+    [Benchmark]
+    public int CalloutAboveUnkeyedRows_ReusedScratch()
+    {
+        _ops.Clear();
+        FrameDiffer.Diff(_beforeUnkeyed, _afterCallout, _ops, _scratch, out _, _afterCalloutHtml);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int PrependUnkeyedRow_ReusedScratch()
+    {
+        _ops.Clear();
+        FrameDiffer.Diff(_beforeUnkeyed, _afterPrepend, _ops, _scratch, out _, _afterPrependHtml);
+        return _ops.Count;
+    }
+
+    [Benchmark]
+    public int AppendUnkeyedRow_ReusedScratch()
+    {
+        _ops.Clear();
+        FrameDiffer.Diff(_beforeUnkeyed, _afterAppend, _ops, _scratch, out _, _afterAppendHtml);
+        return _ops.Count;
+    }
+
+    private static Component BuildUnkeyedList(int first, int end, bool callout)
+    {
+        var rows = new List<Component>(end - first);
+        for (var i = first; i < end; i++)
+        {
+#pragma warning disable RASK022 // rows nothing keys are what this measures
+            rows.Add(Li.Class("line")[Span[$"Item {i}"], A.Href($"/item/{i}")["open"]]);
+#pragma warning restore RASK022
+        }
+
+        return Div.Class("page")[
+            H1["Items"],
+            callout ? Div.Class("callout")["Saved"] : null,
+            Ul.Class("list")[rows]
+        ];
     }
 
     // A guide-page section: a "sample" container mixing a Raw code block with a sibling status node.
