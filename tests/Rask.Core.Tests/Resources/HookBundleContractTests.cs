@@ -50,6 +50,8 @@ public partial class HookBundleContractTests
         ["data-rask-managed"] = "the morph's own mark",
         ["data-rask-saved"] = "on a data-rask-confirm-leave",
         ["data-rask-leave"] = "the parts of Ui.ConfirmLeave's dialog, which a data-rask-confirm-leave asks in",
+        ["data-rask-unread"] = "written by the segments hook on its own bound field",
+        ["data-rask-on-edit"] = "the runtime's own first-key mark (rask-input.ts); on a data-rask-segments here",
     };
 
     [Fact]

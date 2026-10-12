@@ -200,8 +200,20 @@ new FieldFailure("This driver is already booked then.", ["DriverId"], Marked: ["
 ```
 
 A failure that names no field on this form shows where the form's own messages do, in
-`Validation.Summary`. With nothing on the page to show it, the submit fails as any other does — see
-[a save that fails](#a-save-that-fails).
+`Validation.Summary`. A form with no summary says it in an error toast: the failure's own sentence, as it
+was written, in Development and in Production alike — never *The save failed*. Several such failures of one
+save are one toast, each different sentence once, in order. A save refused for a field and for the whole
+record shows both, each in its place.
+
+```csharp
+throw new RaskValidationException([new FieldFailure("The month is closed.", [])]);   // the summary, or a toast
+```
+
+Only a refusal with nowhere at all to be read — no bound field, no summary, and a hand-wired host whose
+layout draws no toasts — fails as any other submit does: see [a save that fails](#a-save-that-fails).
+
+The same exception thrown by a handler that is not a form's submit — the confirm button of a list's bin —
+is a toast too: see [a handler that refuses](composition-lists.md#a-handler-that-refuses).
 
 It is not logged as an error: the reader was told, and nothing is broken.
 
@@ -329,6 +341,68 @@ answered by the **store** — a unique name, a range that must not overlap — r
 on submit, which for a plain field is on submit.
 
 <!-- demo:validation-bind-timing -->
+
+---
+
+### What a number field says when it cannot read what was typed
+
+A bound number, date or time field is typed text until it reaches the model, and some text does not fit
+the member it is bound to: `1.5` in a field over an `int`, `99999999999` in one, a lone minus, a date with
+only its month typed. Rask does not treat that as an empty field, and never as the value the model already
+held. The model is left as it was, the field says what it could not read, and the save does not run:
+
+| Bound type | Typed | The field says |
+|---|---|---|
+| `int`, `long`, `short`, `byte` and their unsigned kin | `1.5`, `-`, `abc` | `Enter a whole number.` |
+| `decimal`, `double`, `float` | `-`, `12.5.0` | `Enter a number.` |
+| any number | `99999999999` in an `int`, `-5` in a `uint`, `1e400` | `The number is out of range.` |
+| `DateOnly`, `DateTime`, `DateTimeOffset` | a date half typed, `2026-02-31` | `Enter a valid date.` |
+| `TimeOnly`, `TimeSpan` | a time half typed, `25:99` | `Enter a valid time.` |
+
+```csharp
+Form.Model(_tank).OnSubmit(Save)[
+    Ui.Input.Bind(() => _tank.Weight).Label("Weight (kg)"),   // int: "1.5" → "Enter a whole number."
+    Ui.Button.Submit["Save"]
+]
+```
+
+It is a message like any other: under the field (`Ui.Error`, `Validation.Message`), with `aria-invalid` on
+the control, gone at the first key of the correction. Three things set it apart from a rule you wrote:
+
+- **It comes first.** A required field says this instead of "required" — the reader did type something —
+  and an inline `.Validate(…)` is not asked at all, because there is no value to hand it. Once a value
+  arrives that fits, the field's own rules run as usual.
+- **It needs nothing switched on.** No attribute, no rule, and `AutoValidate(false)` does not remove it.
+- **The submit handler does not run** until the field holds a value that was read. On an edit form that is
+  what keeps the stored value from being saved in place of the one on screen.
+
+The sentences are framework text (`RaskString.ValidationWholeNumber`, `ValidationNumber`,
+`ValidationNumberRange`, `ValidationDate`, `ValidationTime`): the UI kit carries their Hungarian, and an app
+overrides or translates them in `Resources/RaskStrings.{culture}.json` ([localization](localization.md)).
+
+**The browser's own bubble does not get there first.** A browser refuses to submit a form over a number
+input holding `1.5` when the step is whole, or over a date half typed, and says so in its own words and its
+own language; and it reports such a field's value as empty. Rask's runtime tells the page the field held
+something it would not hand over, calls the bubble off and lets the submit go, so the page refuses it with
+the sentence above. That applies only to what Rask can speak for: a constraint you wrote yourself
+(`required`, `pattern`, `min`, `max`, a `step` of your own) is still the browser's to enforce — and so is
+the whole form when its handler is `OnAnySubmit`, which takes what was posted whatever the rules say.
+
+**How a number is spelled.** A number input always sends digits and a dot, whatever the reader typed:
+`12,5` in a Hungarian browser arrives as `12.5`. Such text is read the same in every culture, and `1e3`
+is read as 1000. A number that arrives spelled another way — typed into a text field over a numeric
+member, written by a test — is read in the session's culture: `12,5` and `1 234,5` under `hu`, `1,234.5`
+under `en`, with separators accepted only around groups of three. Anything else is not a number, and the
+field says so; a comma is never quietly read as a separator of thousands.
+
+**The kit's typed pickers follow the same rule.** `Ui.DatePicker` and `Ui.TimePicker` with
+`Type(…Input)` are typed a part at a time. Left with parts that make no value — a day and no month, an
+hour and no minute, one end of a range — the field says `Enter a valid date.` or `Enter a valid time.`
+and the save is refused; the value the picker held before is not saved in its place. With every part
+emptied the picker is simply empty: `null` where the member is nullable, and a required one says so.
+
+The demo under [When the rules run](#when-the-rules-run) has such a field: type `1.5` into Travellers and
+press Save.
 
 ---
 

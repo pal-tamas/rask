@@ -2,7 +2,9 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Rask.Core.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Forms;
+using Rask.Core.Messaging;
 using Rask.Wire;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
@@ -16,6 +18,8 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
 {
     private const string Taken = "That invoice number is taken.";
     private const string Booked = "This driver is already booked then.";
+    private const string Closed = "Closed for the year.";
+    private const string SaveFailed = "The save failed. Please try again.";
 
     [Fact]
     public async Task A_failure_naming_one_field_shows_its_message_under_that_field()
@@ -118,6 +122,91 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
         await page.Submit();
 
         Assert.Contains(">Closed for the year.</li>", page.Html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_failure_naming_no_field_on_a_form_with_no_summary_says_its_own_sentence_in_a_toast(bool namesAnUnboundField)
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Closed, namesAnUnboundField ? ["Period"] : [], Source: "ClosedYear")));
+        using var toasts = Toast.Fake();
+
+        var reported = await Reported(page.Submit);
+
+        toasts.Shown(Closed).Once();
+        toasts.Shown(Closed).As(ToastLevel.Error);
+        toasts.Shown(SaveFailed).Never();
+        Assert.Null(page.Errors[^1]);
+        var entry = Assert.Single(reported);
+        Assert.Equal(RaskLogLevel.Information, entry.Level);
+        Assert.Contains("was refused: ClosedYear", entry.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_failure_the_forms_summary_shows_raises_no_toast()
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Closed, [])), summary: true);
+        using var toasts = Toast.Fake();
+
+        await page.Submit();
+
+        Assert.Contains($">{Closed}</li>", page.Html, StringComparison.Ordinal);
+        toasts.Shown(Closed).Never();
+    }
+
+    [Fact]
+    public async Task A_failure_under_a_field_and_one_naming_none_are_both_shown_each_in_its_place()
+    {
+        var page = new InvoicePage(new RefusedException(new FieldFailure(Taken, ["Number"]), new FieldFailure(Closed, [])));
+        using var toasts = Toast.Fake();
+
+        await page.Submit();
+
+        Assert.Equal([Taken], page.Messages(page.Model, "Number"));
+        toasts.Shown(Closed).Once();
+        toasts.Shown(Taken).Never();
+        Assert.Null(page.Errors[^1]);
+    }
+
+    [Fact]
+    public async Task Several_failures_naming_no_field_are_one_toast_with_each_sentence_once_in_order()
+    {
+        var page = new InvoicePage(new RefusedException(
+            new FieldFailure(Closed, []), new FieldFailure(Booked, []), new FieldFailure(Closed, ["Period"])));
+        using var toasts = Toast.Fake();
+
+        await page.Submit();
+
+        toasts.Shown($"{Closed} {Booked}").Once();
+        toasts.Shown(Closed).Never();
+    }
+
+    [Fact]
+    public async Task A_failure_naming_no_field_inside_the_wrappers_a_call_adds_is_still_its_own_toast()
+    {
+        var page = new InvoicePage(new AggregateException(
+            new TargetInvocationException(new RefusedException(new FieldFailure(Closed, [])))));
+        using var toasts = Toast.Fake();
+
+        var reported = await Reported(page.Submit);
+
+        toasts.Shown(Closed).Once();
+        Assert.DoesNotContain(reported, e => e.Level == RaskLogLevel.Error);
+    }
+
+    [Fact]
+    public async Task A_failure_naming_no_field_in_a_session_that_draws_no_toasts_stays_the_forms_error()
+    {
+        var refused = new RefusedException(new FieldFailure(Closed, []));
+        var toaster = new Toaster();
+        var page = new InvoicePage(refused, services: new ServiceCollection().AddSingleton<IToaster>(toaster).BuildServiceProvider());
+
+        var reported = await Reported(page.Submit);
+
+        Assert.Same(refused, page.Errors[^1]);
+        Assert.Empty(toaster.Consume());
+        Assert.Contains(reported, e => e.Level == RaskLogLevel.Error && ReferenceEquals(e.Exception, refused));
     }
 
     [Fact]
@@ -327,14 +416,19 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
     {
         private readonly StubComponent _view;
 
-        internal InvoicePage(Exception? thrown, bool summary = false)
+        private readonly IServiceProvider? _services;
+
+        internal InvoicePage(Exception? thrown, bool summary = false, IServiceProvider? services = null)
         {
+            _services = services;
             Summary = summary;
             Thrown = thrown;
             Form = new EditContext(Model);
             _view = new StubComponent(Draw);
-            Html = _view.RenderAsLiveRoot();
+            Html = Render();
         }
+
+        private string Render() => _services is null ? _view.RenderAsLiveRoot() : _view.RenderAsLiveRoot(_services);
 
         internal Invoice Model { get; } = new();
 
@@ -359,9 +453,9 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
         {
             using var payload = JsonDocument.Parse("{\"form\":{}}");
 
-            await _view.TryInvokeHandlerAsync(MarkupAssert.Attr(Html, "data-rask-on-submit")!, payload.RootElement);
+            await _view.TryInvokeHandlerAsync(MarkupAssert.Attr(Html, "data-rask-on-submit")!, payload.RootElement, _services);
 
-            Html = _view.RenderAsLiveRoot();
+            Html = Render();
         }
 
         // The first keystroke in a field: all a field that waits for the next action says of the typing.
@@ -373,7 +467,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
 
             await _view.TryInvokeHandlerAsync(handler.Groups[1].Value, payload.RootElement);
 
-            Html = _view.RenderAsLiveRoot();
+            Html = Render();
         }
 
         // What was typed into a field arriving, as it does ahead of the next action.
@@ -384,7 +478,7 @@ public partial class FormFieldFailureTests : global::Rask.Core.RaskMarkup
 
             await _view.TryInvokeHandlerAsync(handler.Groups[1].Value, payload.RootElement);
 
-            Html = _view.RenderAsLiveRoot();
+            Html = Render();
         }
 
         private Component Draw() =>

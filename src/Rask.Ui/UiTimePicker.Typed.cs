@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core.Forms;
 
 namespace Rask;
 
@@ -28,7 +29,8 @@ public sealed partial class UiTimePicker<T>
 
         return box[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),
-            Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark).Attributes(("dir", "ltr"))[
+            Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark)
+                .Attributes([("dir", "ltr"), .. UiFormCommit.FirstEdit(view.Accessor, view.Context)])[
                 Segment("hour", hour, RaskStrings.Get(RaskString.TimePickerHourPlaceholder, "hh")).Id(view.Field.ControlId).Aria(Named(view, hour)).Attributes(UiTimePickerLook.Numeric),
                 ":",
                 Segment("minute", RaskStrings.Get(RaskString.PickerMinute, "Minute"), RaskStrings.Get(RaskString.TimePickerMinutePlaceholder, "mm")).Attributes(UiTimePickerLook.Numeric),
@@ -66,11 +68,17 @@ public sealed partial class UiTimePicker<T>
             .Key("whole")
             .Type(InputType.Hidden);
 
+    private static T Current(View view) => UiTimePickerValue.Single<T>(view.Chosen.Count > 0 ? view.Chosen[0] : null);
+
     private Task TypedAsync(View view, string text)
     {
         if (!TimeOnly.TryParseExact(text, Clock, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
         {
-            return Task.CompletedTask;
+            // No time: the parts were left half filled, which the frame says beside its empty value, or emptied —
+            // nothing chosen, where the bound type can say so.
+            return UnreadInput.Current is null && UiTimePickerValue.Clears<T>()
+                ? CommitAsync(view, [])
+                : UiFormCommit.UnreadAsync(this, view.Accessor, view.Context, Current(view), RaskString.ValidationTime);
         }
 
         return Off(time) ? Task.CompletedTask : CommitAsync(view, [time]);

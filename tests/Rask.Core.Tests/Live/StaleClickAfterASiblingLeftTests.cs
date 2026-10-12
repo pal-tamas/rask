@@ -5,20 +5,21 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-// A KNOWN DEFECT, pinned as it is today — not the behaviour wanted. A handler id is the handler's slot in its
-// component's walk order, handed out again on every render. When the Cancel button leaves, Delete is given
-// Cancel's id; a click on Cancel that was already on its way arrives with that id and runs Delete.
+// A handler id is the handler's slot in its component's walk order, so when the Cancel button leaves, Delete is
+// given Cancel's id. A click on Cancel that was already on its way arrives with that id — and with the number
+// of the page it was read from, which is how the server knows the id meant Cancel: it runs nothing. A click on
+// Delete sent from that same page carries the id Delete had then, and still deletes.
 //
 // It is decided on the server when the event is dispatched, so the shape of the reply that took Cancel away
-// makes no difference: the whole page, a keyed diff and a diff of one run all leave the same id behind. The
-// day ids stop being reused across renders this test fails, which is the point of it.
+// makes no difference: the whole page, a keyed diff and a diff of one run all leave the same id behind. This
+// pinned the old answer — the click ran Delete — as a known defect until ids stopped meaning another handler.
 public partial class StaleClickAfterASiblingLeftTests : global::Rask.Core.RaskMarkup
 {
     [Theory]
     [InlineData("the whole page")]
     [InlineData("a keyed diff")]
     [InlineData("a diff of one run")]
-    public async Task A_click_sent_to_a_button_that_has_since_left_runs_the_handler_that_was_given_its_id(string reply)
+    public async Task A_click_sent_to_a_button_that_has_since_left_runs_nothing_and_one_sent_to_its_neighbour_still_runs_it(string reply)
     {
         var shown = true;
         var cancelled = 0;
@@ -40,15 +41,19 @@ public partial class StaleClickAfterASiblingLeftTests : global::Rask.Core.RaskMa
         shown = false;
         Render(cache, page, ops, out var usedKeyedPath);
 
-        var ran = await page.TryInvokeHandlerAsync("h0", JsonDocument.Parse("""{"id":"h0","type":"click"}""").RootElement);
+        var cancelRan = await page.TryInvokeHandlerAsync("h0", JsonDocument.Parse("""{"id":"h0","type":"click","v":0}""").RootElement);
+        var afterCancel = (cancelled, deleted);
+        var deleteRan = await page.TryInvokeHandlerAsync("h1", JsonDocument.Parse("""{"id":"h1","type":"click","v":0}""").RootElement);
 
         Assert.Equal(reply != "the whole page", LiveDiffGate.DiffOpsAreClientSupported(ops));
         Assert.Equal(reply == "a keyed diff", usedKeyedPath);
-        Assert.True(ran);
-        Assert.Equal(0, cancelled);
-        Assert.Equal(1, deleted);
+        Assert.False(cancelRan);
+        Assert.Equal((0, 0), afterCancel);
+        Assert.True(deleteRan);
+        Assert.Equal((0, 1), (cancelled, deleted));
     }
 
+    // Renders, and says the browser was sent the result.
     private static void Render(SessionRenderCache cache, Component page, List<EditOp> ops, out bool usedKeyedPath)
     {
         string html;
@@ -58,5 +63,6 @@ public partial class StaleClickAfterASiblingLeftTests : global::Rask.Core.RaskMa
         }
 
         cache.TryComputeDiff(ops, out usedKeyedPath, html);
+        page.HandlersSent();
     }
 }

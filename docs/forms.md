@@ -247,7 +247,10 @@ When the user clears an input, `BindingHelpers.TrySetTyped` decides what the emp
 | Non-nullable value type (`int`, `DateOnly`, enum) | `default(T)` — so a number/date/enum input is clearable |
 | Non-nullable `string` | `""` (verbatim) |
 
-A value that fails to parse (`"not-a-number"` into an `int`) leaves the model unchanged.
+A value that fails to parse (`"1.5"` or `"99999999999"` into an `int`, a date half typed) leaves the model
+unchanged **and is not accepted in its place**: the field says what it could not read ("Enter a whole
+number."), ahead of "required" and of any rule, and the submit handler does not run until a value arrives
+that fits — see [what a number field says when it cannot read what was typed](forms-validation.md#what-a-number-field-says-when-it-cannot-read-what-was-typed).
 
 **Controls over a value type bind its nullable too.** `Ui.Checkbox` and `Ui.Switch` are over `bool`,
 `Ui.Rating` over `int`, `Ui.Slider` over a number and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
@@ -425,7 +428,9 @@ async Task Save(SignUp model)
 
 A handler that names the fields it is about — the store refusing a duplicate — is shown
 [under those fields](forms-validation.md#the-database-said-no) and is not an error at all; a
-DataAnnotations `ValidationException` is treated the same way. A cancelled save says nothing. See
+DataAnnotations `ValidationException` is treated the same way. A refusal that names no field shows its
+own sentence — in `Validation.Summary`, or as the error toast when the form has none — in place of
+*The save failed*. A cancelled save says nothing. See
 [a save that fails](forms-validation.md#a-save-that-fails).
 
 The fixed-list forms are untouched and still bind exactly as before:

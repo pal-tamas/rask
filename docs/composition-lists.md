@@ -206,3 +206,28 @@ once:
 Nested boundaries — the innermost one catches, leaving its siblings untouched:
 
 <!-- demo:boom-nested -->
+
+### A handler that refuses
+
+Not every exception is a fault. When the app's own code says no in a sentence written for the reader — an
+exception that carries field failures (`IFieldFailures`, which `RaskValidationException` is) or a
+`System.ComponentModel.DataAnnotations.ValidationException` — a handler that lets it through is answered
+with that sentence as an error toast. No boundary is tripped, nothing is logged as an error, the page keeps
+whatever the handler changed before it threw, and the next click is answered:
+
+```csharp
+// The confirm button of a list's bin. The store refuses: "The trailer cannot be deleted: a waybill refers to it."
+async Task Delete(Guid id)
+{
+    await Trailer.Delete(id);   // throws RaskValidationException — nothing to catch
+    _asking = false;            // not reached, so the dialog stays open, as the handler left it
+}
+```
+
+The sentence is the refusal's own, the same in Development and in Production. Several failures in one
+exception are one toast, each different sentence once, in order. A failure that names fields is said in the
+toast as well: outside a form there is no field to put it under ([in a form](forms-validation.md#the-database-said-no)
+it goes there). The exception is recognised inside an `AggregateException` or a `TargetInvocationException`
+too; a class of your own derived from `ValidationException` is not a refusal. Every other exception trips
+the boundary as above, and so does a refusal in a hand-wired host whose layout draws no toasts — there
+would be nowhere to read it.

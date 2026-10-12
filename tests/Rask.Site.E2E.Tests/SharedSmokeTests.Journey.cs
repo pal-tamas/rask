@@ -1352,6 +1352,15 @@ public abstract partial class SharedSmokeTests
         await itinerary.Locator("[data-ui-option]").Filter(new LocatorFilterOptions { HasText = "Business" }).ClickAsync();
         await Expect(itinerary.Locator("#bt-cabin")).ToContainTextAsync("Business", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(itinerary.Locator("#bt-choices")).ToHaveTextAsync("Cabin “”, insured: yes.");
+        // A fraction in the whole-number field: the browser would refuse the submit in its own words. The page
+        // says its own sentence under the field, nothing is saved, and the first key of the correction takes it away.
+        await itinerary.Locator("#bt-travellers").PressSequentiallyAsync("1.5");
+        await itinerary.Locator("#bt-travellers").PressAsync("Enter");
+        await Expect(itinerary.Locator("#bt-travellers-error")).ToHaveTextAsync("Enter a whole number.", new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Expect(Page.GetByText("Saved: Porto, for Ada")).ToHaveCountAsync(0);
+        await itinerary.Locator("#bt-travellers").PressAsync("Backspace");
+        await Expect(itinerary.Locator("#bt-travellers-error")).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await itinerary.Locator("#bt-travellers").PressAsync("Backspace");
         await itinerary.Locator("#bt-name").PressAsync("Enter");
         await Expect(Page.GetByText("Saved: Porto, for Ada"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
