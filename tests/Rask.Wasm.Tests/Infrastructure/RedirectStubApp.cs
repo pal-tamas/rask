@@ -28,17 +28,31 @@ internal sealed partial class RedirectStubApp(RouteState route) : Component
 
     protected override string? HtmlLang => null;
 
-    protected override Component? Render() => Router.Routes(_routes);
+    protected override Component? Render()
+    {
+        RepaintHold.Reached(route);
+        return Router.Routes(_routes);
+    }
 }
 
 internal sealed partial class RedirectStubLayout(RouteState route) : Component
 {
+    // A save that comes back while the page is still being repainted for the wait.
+    private async Task GoUnderTheRepaint()
+    {
+        var hold = RepaintHold.Park(route);
+        await hold.Walking.ConfigureAwait(false);
+        Go.To("/rs/late");
+        hold.Navigated();
+    }
+
     protected override Component? Render() =>
         Div[
             Span.Id("crumb")[$"crumb:{route.Title}"],
             Button.Id("to-moved").OnClick(() => { Go.To("/rs/moved"); })["to moved"],
             Button.Id("to-late").OnClick(() => { Go.To("/rs/late"); })["to late"],
             Button.Id("out").OnClick(() => Go.Out("/tenants"))["out"],
+            Button.Id("late-under-repaint").OnClick(GoUnderTheRepaint)["save, slowly painted"],
             Outlet];
 }
 

@@ -52,6 +52,23 @@ public sealed class RedirectAfterAwaitTests
         Assert.DoesNotContain("late-content", landing);
     }
 
+    // The handler's await ends on a thread of its own, beside the repaint its page gets for the wait. Whichever
+    // comes first, the destination is not mounted by that repaint: only the navigation's own render waits for it.
+    [Fact]
+    public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_once_on_the_destination()
+    {
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+
+        var frames = await redirects.Click("late-under-repaint");
+
+        var landing = Assert.Single(frames, f => LiveFrames.HistoryUrl(f) is not null);
+        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
+        Assert.Equal("push", HistoryAction(landing));
+        Assert.Contains("home-content", landing);
+        Assert.DoesNotContain(frames, f => f.Contains("late-content", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task A_first_request_whose_page_redirects_within_the_time_it_waits_is_answered_with_a_302()
     {

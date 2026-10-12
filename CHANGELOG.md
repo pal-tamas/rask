@@ -135,6 +135,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler that navigates while its page is being repainted lands once on its destination.** A handler that
+  awaits is repainted when it first yields, and its continuation — `await Save(); Go.To(…)` — runs on a thread
+  of its own. A save that came back at that moment moved the route under the repaint: the page it went to was
+  mounted and sent with no address, as a repaint of the page the reader was leaving, and whatever that page did
+  next (a redirect after its load) arrived as a further frame instead of in its place. The repaint and the
+  navigation now take turns on both hosts: a repaint that finds the navigation made leaves the page to the
+  handler's own render, which waits for it and sends it once, under one history entry.
 - **A browser session's two repaints of a running handler take turns.** A handler that awaits is repainted when
   it first yields and again before its continuation; the WebAssembly session let the two walk the tree at
   once where the host has more than one thread — never in a browser, always in a test — and the walk that

@@ -318,7 +318,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     protected override Task RenderInScopeCoreAsync() =>
         (_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending
             ? Task.CompletedTask
-            : RenderAndSendAsync(null, false);
+            : RenderAndSendAsync(null, false, midFlight: true);
 
     private string RouteUrl(RouteState route)
     {
@@ -1086,10 +1086,22 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     private bool LeavingThePage => RedirectPending || NavigationHandedOver;
 
-    private (ReadOnlyMemory<char> Html, FrameWriter? Frames)? RenderOnce(bool publishOnly)
+    // midFlight: the repaint of a page whose handler is still working. That handler navigates on its own thread,
+    // so the walk takes its turn with the navigation: made first, the page is the dispatch's to render and
+    // nothing is walked here — a walk that saw the moved route would mount the destination with nobody waiting
+    // for it. Null then.
+    private (ReadOnlyMemory<char> Html, FrameWriter? Frames)? RenderOnce(bool publishOnly, bool midFlight)
     {
-        var html = RenderTreeToHtml(publishOnly, out var frameWriter);
-        return (html, frameWriter);
+        if (!midFlight)
+        {
+            return (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
+
+        var navigator = _navigator ??= Services.GetRequiredService<Navigator>();
+        lock (navigator.Moving)
+        {
+            return navigator.NavigationPending ? null : (RenderTreeToHtml(publishOnly, out var frames), frames);
+        }
     }
 
     // Whether a render now would reach nobody, or show a page the reader has already asked to leave.
@@ -1118,8 +1130,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     // Answers whether a frame went out: false when it was withheld, repeated the last one, or had no one to go to.
     // arriving: the frame carries a navigation, so it waits for the page it goes to (RenderArrivedAsync).
+    // midFlight: the handler behind this repaint is still working, and may navigate beside it (RenderOnce).
     internal async Task<bool> RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
-        bool publishOnly = false, bool arriving = false)
+        bool publishOnly = false, bool arriving = false, bool midFlight = false)
     {
         if (NothingToSend(ref historyUrl, ref replace, auth, arriving))
         {
@@ -1136,7 +1149,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
             var rendered = arriving && _navigationBudget > TimeSpan.Zero
                 ? await RenderArrivedAsync(publishOnly).ConfigureAwait(false)
-                : RenderOnce(publishOnly);
+                : RenderOnce(publishOnly, midFlight);
             if (rendered is not var (html, frameWriter)
                 || (auth is null && (RedirectPending || (arriving && NavigationHandedOver))))
             {
