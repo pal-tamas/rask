@@ -274,7 +274,9 @@ fail: Rask.Errors[0]
 
 It is eight random characters, made on the host when the exception is first seen, and derived from nothing: not the
 exception, not the visitor, not the request. One exception keeps one reference however many times its page is drawn.
-With request tracing on, the same log line carries the host's trace id as usual.
+With request tracing on, the same log line carries the host's trace id as usual. A build-time
+[prerender](prerendering.md) shows its pages to nobody: what a boundary takes there — typically a hook reaching for a
+browser that is not there — is one Information line, and the pass itself reports a page it could not write.
 
 In **Development** the page shows everything it always has — type, message, each cause, the stack with source
 excerpts — and the reference beside them. A handler or lifecycle fault is shown over the running app instead

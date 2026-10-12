@@ -102,6 +102,40 @@ public partial class ProductionErrorPageTests
     }
 
     [Fact]
+    public async Task A_prerender_pass_notes_what_a_boundary_took_in_one_line_and_logs_no_error()
+    {
+        var thrown = Leaking();
+        var logged = new List<RaskDiagnosticEvent>();
+        var previous = RaskDiagnostics.Sink;
+        RaskDiagnostics.Sink = line =>
+        {
+            lock (logged)
+            {
+                logged.Add(line);
+            }
+        };
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                ErrorReference.RenderingForNobody();
+                ErrorReference.Of(thrown, "an error boundary from a lifecycle hook");
+            }, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            RaskDiagnostics.Sink = previous;
+        }
+
+        var line = Assert.Single(logged, line => line.Message.Contains("hunter2", StringComparison.Ordinal));
+        Assert.Equal(RaskLogLevel.Information, line.Level);
+        Assert.StartsWith("While prerendering, an exception reached an error boundary from a lifecycle hook: InvalidOperationException: ", line.Message, StringComparison.Ordinal);
+        Assert.Null(line.Exception);
+        Assert.DoesNotContain(logged, other => other.Level == RaskLogLevel.Error && ReferenceEquals(other.Exception, thrown));
+    }
+
+    [Fact]
     public void A_development_page_shows_the_type_the_message_the_cause_and_the_stack_as_before()
     {
         var html = new DefaultErrorPage(Leaking(), isDevelopment: true).ToHtml();

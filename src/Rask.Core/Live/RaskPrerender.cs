@@ -61,6 +61,7 @@ public static class RaskPrerender
         // than reimplementing the composition is the point — this has to be what a browser gets.
         var root = new RootErrorBoundary(app) { Defaults = (RaskDocumentDefaults?)services.GetService(typeof(RaskDocumentDefaults)) };
 
+        Diagnostics.ErrorReference.RenderingForNobody();
         var render = await QuiescentRender.Run(
             publishOnly => root.RenderAsLiveRoot(services, publishOnly),
             budget,

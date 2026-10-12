@@ -21,6 +21,9 @@ internal static class ErrorReference
 
     private static readonly ConditionalWeakTable<Exception, string> Known = [];
 
+    // Set inside the prerender's own async flow, so it reaches the hooks that flow starts and nothing else.
+    private static readonly AsyncLocal<bool> ForNobody = new();
+
     /// <summary>The reference of <paramref name="thrown" />, logging it with the exception the first time it is asked for.</summary>
     internal static string Of(Exception thrown) => Of(thrown, "an error page");
 
@@ -38,8 +41,31 @@ internal static class ErrorReference
             return Known.TryGetValue(thrown, out known) ? known : fresh;
         }
 
-        RaskDiagnostics.Report(
-            RaskLogLevel.Error, Category, $"An unhandled exception reached {reached}. Reference {fresh}", thrown);
+        Report(thrown, reached, fresh);
         return fresh;
+    }
+
+    /// <summary>
+    ///     Marks the calling flow as a build-time render: nobody is shown its pages, so what a boundary takes
+    ///     there is said at Information, in one line.
+    /// </summary>
+    /// <remarks>
+    ///     A prerender pass has no browser, so a hook that reaches for one faults on every page that has it —
+    ///     after the page was taken, and without harm. The pass itself reports a page it could not write.
+    /// </remarks>
+    internal static void RenderingForNobody() => ForNobody.Value = true;
+
+    private static void Report(Exception thrown, string reached, string reference)
+    {
+        if (ForNobody.Value)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Information, Category,
+                $"While prerendering, an exception reached {reached}: {thrown.GetType().Name}: {thrown.Message}");
+            return;
+        }
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Error, Category, $"An unhandled exception reached {reached}. Reference {reference}", thrown);
     }
 }

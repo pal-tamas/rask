@@ -222,6 +222,7 @@ them until tagged releases begin.
   reference: K7WQ2MZP*), and nothing of the exception. **Every exception a boundary takes is now logged once at
   Error on the new `Rask.Errors` category**, exception attached, the same reference in the message — until now a
   fault a boundary caught was not logged at all. The reference is eight random characters made on the host.
+  A build-time prerender shows its pages to nobody, so there the line is Information, without the stack.
   Development shows what it did, plus the reference. A host that never names its environment is not in
   Development, as before; a browser (WASM) app therefore shows the Production page unless it sets
   `LiveOptions.IsDevelopment`. **Breaking** for anything that read the type or message off the page (a test, a
