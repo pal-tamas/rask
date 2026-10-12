@@ -1231,11 +1231,25 @@ public static partial class FrameDiffer
         }
 
         // The ops from this one on are being rolled back, and what was said of them goes with them.
-        internal void ForgetMorphedFrom(int op) => _morphed?.RemoveAll(said => said.Op >= op);
+        internal void ForgetMorphedFrom(int op)
+        {
+            if (_morphed is not null)
+            {
+                Forget(_morphed, op);
+            }
+        }
+
+        // Apart from its caller, so the closure over `op` is only made when there is something to forget.
+        private static void Forget(List<(int Op, string Said)> morphed, int op) => morphed.RemoveAll(said => said.Op >= op);
 
         internal void ReportMorphed()
         {
-            foreach (var (_, said) in _morphed ?? [])
+            if (_morphed is null)
+            {
+                return;
+            }
+
+            foreach (var (_, said) in _morphed)
             {
                 FullPageReply.ReportMorphed(said);
             }
