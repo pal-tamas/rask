@@ -138,10 +138,12 @@ public partial class TextRootRerenderTests : global::Rask.Core.RaskMarkup
         words = "Orders";
         var html = Rerender(cache, tree, leaf, ops);
 
-        // A node appearing mid-list shifts its siblings, which the diff hands to the full-HTML morph.
+        // A node appearing mid-list is one run among siblings that still pair up: an insert at its slot.
         Assert.Equal("<div><span>before</span>Orders<span>after</span></div>", html);
-        Assert.NotEmpty(ops);
-        Assert.False(LiveDiffGate.DiffOpsAreClientSupported(ops), "a mid-list insert is the morph's to apply");
+        var op = Assert.Single(ops);
+        Assert.Equal(EditOpKind.InsertSubtree, op.Kind);
+        Assert.Equal(new[] { 0, 1 }, op.Path);
+        Assert.True(LiveDiffGate.DiffOpsAreClientSupported(ops));
     }
 
     [Theory]
