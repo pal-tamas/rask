@@ -2718,7 +2718,8 @@ public static partial class RaskEndpointExtensions
 
     // Tells the browser a dispatch is done — which is what ends the pressed control's busy mark and the bar.
     // A page that went out with reads still in flight (its budget ran out) is not done: its ack follows them,
-    // from a continuation of theirs, and the chain moves on to the next event meanwhile.
+    // or the two seconds they are given (LiveSessionBase.DefaultReadsCap), from a continuation, and the chain
+    // moves on to the next event meanwhile.
     private static Task AckAsync(LiveSession session, long seq)
     {
         if (session.TakeUnsettledReads() is not { } reads)

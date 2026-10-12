@@ -423,7 +423,9 @@ Query<Page<Order>> Orders => field ??= QueryClient.Query(() => new GetOrders(_pa
 - **The reader is told the event is done only when the rows are there.** The pressed control's busy mark
   (200 ms) and the bar across the top (300 ms) end with the server's acknowledgement, and that is sent after
   the reads the page went without — so a slow sort by `Go.With` is busy until its rows arrive, where the mark
-  used to end at the budget. The next event is not held up by it.
+  used to end at the budget. The next event is not held up by it, and the wait lasts **at most two seconds**
+  from that frame: a read that takes longer, or never returns, is told done then, and what it brings later is
+  an ordinary frame.
 - **A handler with nothing to wait for is answered at once.** A keystroke, a toggle, a counter: there is no
   delay, and not even a timer.
 - **Work blocked on JavaScript is not waited for**, nor is work you detach, nor a render nobody dispatched (a

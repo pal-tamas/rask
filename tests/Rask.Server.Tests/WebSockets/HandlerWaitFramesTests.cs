@@ -294,10 +294,40 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         await page.Press("next", seq: 2);
         var second = await page.Next();
 
-        // Neither is ever acked, and neither holds the session's chain: nothing is left queued behind them.
+        // Neither is acked before the cap, and neither holds the session's chain: nothing is left queued behind them.
         Assert.Contains("pager at 2", first, StringComparison.Ordinal);
         Assert.Contains("pager at 3", second, StringComparison.Ordinal);
         await WaitFor.True(() => page.Session.PendingHandlers == 0, "the handler chain to be empty");
+    }
+
+    [Fact]
+    public async Task A_read_that_never_comes_back_is_acked_at_the_cap_and_its_rows_still_arrive_when_it_does()
+    {
+        await using var page = await Page.Open("/w/child", output, Brief);
+        page.Session.ReadsCap = TimeSpan.FromMilliseconds(40);
+        page.Store.Hold();
+
+        await page.Press("next", seq: 1);
+        var atTheBudget = await page.NextOfAny();
+        var beforeTheAck = await page.UntilAck(1);
+        await page.Press("next", seq: 2);
+        var next = await page.Next();
+        page.Store.Release();
+        var rows = await page.Until("row p3-3");
+
+        // The read is still held when the ack is read: only the cap could have sent it. Nothing was cancelled.
+        Assert.Contains(OldRows, atTheBudget, StringComparison.Ordinal);
+        Assert.Empty(beforeTheAck);
+        Assert.Contains("pager at 3", next, StringComparison.Ordinal);
+        Assert.Contains("pager at 3", rows, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_cap_on_a_page_waiting_for_its_reads_is_two_seconds()
+    {
+        var cap = Rask.Core.Live.LiveSessionBase.DefaultReadsCap;
+
+        Assert.Equal(TimeSpan.FromSeconds(2), cap);
     }
 
     [Fact]

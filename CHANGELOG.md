@@ -22,7 +22,8 @@ them until tagged releases begin.
   nothing pending is answered at once, with no timer. (3) **The ack follows the rows.** When the budget is spent
   the frame goes out as it stands and the acknowledgement that ends the browser's busy mark and progress bar
   is sent once the remaining reads are back — also for a navigation made from a handler (`Go.With` for a sort
-  or a filter), whose slow read used to show no busy mark at all. The next event is not held up.
+  or a filter), whose slow read used to show no busy mark at all. The next event is not held up, and the
+  ack is sent after two seconds at the latest: a read that never returns does not keep a control busy.
   The budget is new: `RaskServerOptions.HandlerQuiescenceTimeout` (`Rask:Server:HandlerQuiescenceTimeout`) and
   `RaskWasmOptions.HandlerQuiescenceTimeout`, 150 ms. **For an existing app:** a page that relied on an
   intermediate state being painted the instant a handler awaited now sees it 150 ms later, or not at all when

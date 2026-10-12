@@ -644,7 +644,8 @@ you set in answer.
 Nothing on the table changes until the next page has its rows: a page change, a sort or a filter that is
 back within 150 ms is one paint, pager and rows together
 ([routing](routing.md#a-handlers-work-reaches-the-screen-once)). When the read is slower the rows the reader
-has **stay and dim to half strength** until the new ones take their place — with nothing to write:
+has **stay and dim to half strength** until the new ones take their place — for at most two seconds, after
+which they are at full strength again and the new ones simply arrive when they do — with nothing to write:
 
 ```csharp
 Ui.Table.Paginate(Ui.Pagination.Paginator(orders).OnPage(async page => { _page = page; _orders = await Orders.Page(page); }))[ … ]

@@ -498,9 +498,20 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     /// <summary>
     ///     The reads the dispatch's page went out without, as one task that completes when they are all back —
-    ///     so whoever tells the browser the dispatch is done can say so then. Null when it went out whole.
+    ///     or <see cref="ReadsCap" /> has passed — so whoever tells the browser the dispatch is done can say so
+    ///     then. Null when it went out whole.
     /// </summary>
     internal Task? TakeUnsettledReads() => Interlocked.Exchange(ref _unsettledReads, null);
+
+    /// <summary>
+    ///     How long after a page went out without its reads the browser is told the event is done anyway: the
+    ///     busy mark, the dimmed rows and the bar end then, and a read that never returns does not hold them
+    ///     until the client gives up. The reads are not cancelled, and what they bring is a frame of its own.
+    /// </summary>
+    internal static readonly TimeSpan DefaultReadsCap = TimeSpan.FromSeconds(2);
+
+    /// <summary>The cap this session waits. Settable so a test need not sit out two seconds.</summary>
+    internal TimeSpan ReadsCap { get; set; } = DefaultReadsCap;
 
     /// <summary>
     ///     What an earlier dispatch left unread is not the next one's to report. Called as a dispatch starts: one
@@ -586,7 +597,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         if (started.Unsettled is { } left)
         {
             // The scope stays open until they are back: what their continuations start is theirs too.
-            Volatile.Write(ref _unsettledReads, SettledAsync(started, left));
+            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(SettledAsync(started, left), ReadsCap));
         }
         else
         {
@@ -594,6 +605,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         return (html, frames);
+    }
+
+    // The reads, or the cap, whichever is first. The timer does not outlive reads that came back in time.
+    private static async Task WithinTheCapAsync(Task settled, TimeSpan cap)
+    {
+        using var stop = new CancellationTokenSource();
+        await Task.WhenAny(settled, Task.Delay(cap, stop.Token)).ConfigureAwait(false);
+        await stop.CancelAsync().ConfigureAwait(false);
     }
 
     // Completes when the reads a page went out without are back AND the repaint each asked for has been

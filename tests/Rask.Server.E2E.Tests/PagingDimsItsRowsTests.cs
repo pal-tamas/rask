@@ -118,6 +118,32 @@ public sealed class PagingDimsItsRowsTests(PlaywrightFixture playwright) : IClas
         Assert.Equal((false, "1", false), whileHeld);
     }
 
+    [Fact]
+    public async Task Rows_whose_read_never_comes_back_stop_being_dimmed_at_the_cap_and_are_replaced_when_it_does()
+    {
+        PagingDimPage.Gate.Release();
+        await using var session = await HookSession.OpenAsync<PagingDimChildPage>(playwright, beforeLoad: PageClock.Install);
+        var page = session.Page;
+        await Expect(page.Locator($"{Rows} tr").First).ToContainTextAsync("order 1-1");
+        await PageClock.StopAsync(page);
+        PagingDimPage.Gate.Hold();
+
+        await page.Locator($"{Pager} button:visible", new() { HasTextString = "2" }).First.ClickAsync();
+        await PagingDimPage.Gate.ReadStarted();
+        await page.Clock.RunForAsync(201);
+        await Expect(page.Locator(Rows)).ToHaveCSSAsync("opacity", "0.5", Faded);
+
+        // The page's clock is stopped, so no client backstop can end the mark: only the server's word does,
+        // two seconds after the frame that went out without the rows.
+        await Expect(page.Locator(Pager)).Not.ToHaveAttributeAsync("data-loading", "", new() { Timeout = 15_000 });
+        await Expect(page.Locator(Rows)).ToHaveCSSAsync("opacity", "1", Faded);
+        var atTheCap = await FirstRowAsync(page);
+        PagingDimPage.Gate.Release();
+
+        await Expect(page.Locator($"{Rows} tr").First).ToContainTextAsync("order 2-1");
+        Assert.Contains("order 1-1", atTheCap, StringComparison.Ordinal);
+    }
+
     // Opens the page with its clock in the test's hands and stopped, and the observers every journey reads.
     private async Task<HookSession> OpenAsync(TaskCompletionSource? acked = null)
     {
@@ -229,6 +255,41 @@ public sealed partial class PagingDimPage : Component
         await Gate.Read();
         _deleted++;
     }
+}
+
+/// <summary>The same table, whose pager only moves the number: the rows are a child's, read again in <c>OnUpdated</c>.</summary>
+public sealed partial class PagingDimChildPage : Component
+{
+    private int _page = 1;
+
+    protected override Component? HeadAssets => [Markup.Title["paging dim child"], Markup.Style[Raw.Value(UiStylesheet.Css)]];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() =>
+        Ui.Table.Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = _page, PerPage = PagingDimPage.PerPage, Total = 40 }).OnPage(page => _page = page))[
+            Ui.TableColumns[Ui.TableColumn["Order"]],
+            PagingDimRows.Page(_page)
+        ];
+}
+
+/// <summary>One page of rows. The ones it has stay until the next are back.</summary>
+public sealed partial class PagingDimRows : Component
+{
+    private int _shown = 1;
+
+    public int? Page { get; set; }
+
+    protected override async Task OnUpdated()
+    {
+        await PagingDimPage.Gate.Read();
+        _shown = Page ?? 1;
+    }
+
+    protected override Component? Render() =>
+        Ui.TableRows[
+            Enumerable.Range(1, PagingDimPage.PerPage).Select(n => Ui.TableRow.Key(n)[Ui.TableCell[$"order {_shown}-{n}"]])
+        ];
 }
 
 /// <summary>A read a test holds: at once unless held, and then not until it is let go.</summary>

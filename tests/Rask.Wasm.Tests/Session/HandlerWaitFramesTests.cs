@@ -116,6 +116,25 @@ public sealed class HandlerWaitFramesTests : ResettingTestBase, IDisposable
     }
 
     [Fact]
+    public async Task A_read_that_never_comes_back_stops_holding_the_page_at_the_cap_and_its_rows_are_painted_when_it_does()
+    {
+        var app = new HeldPagingApp { RowsAreAChilds = true };
+        var (session, click) = await Open(app, Brief);
+        session.ReadsCap = TimeSpan.FromMilliseconds(40);
+
+        await session.DispatchAsync(Click(click));
+        await session.ReadsSettledAsync();
+        var atTheCap = Encoding.UTF8.GetString(session.LastSentFrame);
+        app.Release();
+        await WaitFor.True(
+            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains("rows of 2", StringComparison.Ordinal),
+            "the rows to be painted once the read is back");
+
+        // The read was still held when the page stopped waiting on it: the busy mark ends there, not the read.
+        Assert.Contains("rows of 1", atTheCap, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_handler_with_nothing_to_wait_for_is_painted_without_waiting_however_long_the_budget()
     {
         var app = new HeldPagingApp { ReadsNothing = true };
