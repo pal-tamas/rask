@@ -21,6 +21,21 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler still running when its connection closes, or when its session is disposed, runs to its end and
+  is not reported as failing.** The repaint a handler gets at its first `await` (or when
+  `HandlerQuiescenceTimeout` is spent) could throw because the socket had just closed or a shutdown's drain
+  had given up on the handler. The dispatch then ended with that exception while the handler was still
+  running, and the session's lock went to the next event, which ran beside it. The handler is waited for
+  now, as it already was for a repaint between two of its awaits; a repaint with nobody left to reach is
+  nothing rather than a fault, so no error toast or log line is written for it.
+
+- **Nothing queued behind a handler waits for good when the session is disposed under that handler.** A
+  session disposed its two locks while a handler still held one. A disposed semaphore forgets who is
+  waiting and refuses the release, so a render, an acknowledgement or the next event queued behind the
+  handler never finished — an event left counted in the host's handler backlog. The locks are kept, the
+  handler's release wakes whoever waited, and each of them finds the session gone and leaves. A render that
+  waited out the teardown no longer renders the disposed page into buffers already returned to the pool.
+
 - **RASK011 and the routing guide no longer say an enum can be bound.** A `[RouteParam]`/`[QueryParam]`
   property is `string` or `IParsable<T>`, and an enum is neither: the message, its description and
   `docs/routing.md` now say to bind it as a `string`. Nothing about what binds has changed.

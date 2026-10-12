@@ -190,6 +190,9 @@ public class ShutdownDrainTests
         await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(html) }, ct: TestContext.Current.CancellationToken);
         await DrainGateApp.Parked.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
         var session = host.Store.Get(sessionId)!;
+        // The handler parks inside the call that puts its dispatch on the chain: until that call is back, the
+        // chain's tail is still the finished one before it, and waiting on that would prove nothing.
+        await WaitFor.True(() => !session.LastHandlerTask.IsCompleted, "the dispatch is on the chain");
         var dispatch = session.LastHandlerTask;
 
         await host.StopAsync();

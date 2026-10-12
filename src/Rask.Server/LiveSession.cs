@@ -266,16 +266,14 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         // draining on a thread-pool thread at host shutdown races the walk and throws
         // "Collection was modified; enumeration operation may not execute" out of the dispose
         // enumeration — the very class of concurrent-tree-mutation bug _renderLock exists to
-        // prevent (see its field comment). Hold it across the whole walk, then release before
-        // disposing the semaphore itself.
+        // prevent (see its field comment). Hold it across the whole walk.
         await _renderLock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         try
         {
             await ComponentLifecycle.DisposeComponentTreeAsync(View).ConfigureAwait(false);
             // Inside the lock, unlike the rest of teardown: these arrays go back to a shared pool, and a
             // render that raced this would then be writing into an array another session already owns.
-            // Everything below fails loudly on a racing caller (a disposed semaphore or scope); this
-            // would fail silently, which is the one outcome worth paying a few microseconds to avoid.
+            // A render that waited the walk out is stopped by _disposed (RenderForAsync).
             ReleasePooledBuffers();
         }
         finally
@@ -284,11 +282,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
 
         ReleaseFileStores();
-        Lock.Dispose();
-        _renderLock.Dispose();
         Scope.Dispose();
     }
 
+    // Neither teardown disposes Lock or _renderLock. A handler the session was disposed under still holds Lock,
+    // and whatever queued behind either of them is woken only by a release: a disposed semaphore forgets its
+    // waiters and refuses the release, so each of them waited for good. They hold nothing to free — no wait
+    // handle is ever asked of them — and whoever they wake finds the session gone (_disposed).
     protected override void Dispose(bool disposing)
     {
         _disposed = true;
@@ -309,17 +309,33 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
 
         ReleaseFileStores();
-        Lock.Dispose();
-        _renderLock.Dispose();
         Scope.Dispose();
     }
 
     // A handler that has navigated is not repainted mid-flight: the destination would go out before the dispatch
     // has taken its address, as a page of its own. The dispatch's render carries both.
     protected override Task RenderInScopeCoreAsync() =>
-        (_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending
+        _disposed || (_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending
             ? Task.CompletedTask
-            : RenderAndSendAsync(null, false, midFlight: true);
+            : RepaintMidFlightAsync();
+
+    // A handler outlives its connection, and its session when a shutdown's drain gives up on it. Its repaint
+    // then has nobody to reach, which is not the handler failing: it runs on, and nothing is thrown at it.
+    private async Task RepaintMidFlightAsync()
+    {
+        try
+        {
+            await RenderAndSendAsync(null, false, midFlight: true).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (_disposed || _socketCt.IsCancellationRequested || !HasOpenTransport)
+        {
+            // The connection closed under the repaint.
+        }
+        catch (ObjectDisposedException) when (_disposed)
+        {
+            // The session was disposed under the repaint.
+        }
+    }
 
     private string RouteUrl(RouteState route)
     {
@@ -1111,6 +1127,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderForAsync(
         bool publishOnly, bool arriving, bool settling, bool midFlight)
     {
+        // A render that waited out the teardown has the render lock and no page: the tree is disposed and its
+        // buffers are back in the pool, another session's by now.
+        if (_disposed)
+        {
+            return default;
+        }
+
         if (arriving && _navigationBudget > TimeSpan.Zero)
         {
             return RenderArrivedAsync(publishOnly);
