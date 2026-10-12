@@ -72,14 +72,141 @@ public class ModelRulesGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static readonly global::Rask.Core.Forms.Validate<string?> Root_Sku =\n        static value => value is { } held ? global::Shop.Sku.Validate(held) : global::System.Array.Empty<string>();",
+            "private static readonly global::Rask.Core.Forms.Validate<string?> Root_Sku =\n        global::Shop.ProductModelExtensions.__Rule_Root_Sku;",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "private static readonly global::System.Func<int?, global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> Root_Stock =\n        static async value => value is { } held ? await global::Shop.Stock.Validate(held) : global::System.Array.Empty<string>();",
+            "private static readonly global::System.Func<int?, global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>>> Root_Stock =\n        global::Shop.ProductModelExtensions.__Rule_Root_Stock;",
             source,
             StringComparison.Ordinal);
         Assert.Contains("\"Sku\" => Root_Sku,\n            \"Stock\" => Root_Stock,\n            _ => null,", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_property_that_cannot_be_null_asks_its_value_object_about_the_empty_value_and_carries_no_attribute()
+    {
+        var run = RunWithForms(Product);
+
+        var source = run.GeneratedSource("Shop.ProductModel").ReplaceLineEndings("\n");
+
+        // Text has an empty value the type can be asked about; a number has none, so the one sentence stands in.
+        Assert.Contains(
+            "internal static global::System.Collections.Generic.IEnumerable<string> __Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Sku.Validate(\"\"));",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "internal static async global::System.Threading.Tasks.ValueTask<global::System.Collections.Generic.IEnumerable<string>> __Rule_Root_Stock(int? value) =>\n        value is { } held ? await global::Shop.Stock.Validate(held) : global::Rask.Data.GeneratedModelRules.Required();",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("\n    public string? Sku { get; set; }", source.Replace("    /// <summary>The form value of <see cref=\"global::Shop.Product.Sku\" />.</summary>\n", "\n", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredAttribute()]\n    public string? Sku", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiredAttribute()]\n    public int? Stock", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_nullable_value_object_property_is_not_asked_about_nothing_and_one_with_no_rule_keeps_its_attribute()
+    {
+        var run = RunWithForms("""
+            public sealed class Item : Aggregate<Guid>
+            {
+                private Item() { }
+                public Sku? Sku { get; private set; }
+                public Money Price { get; private set; } = new(0, "EUR");
+                public Barcode Barcode { get; private set; } = new("");
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ItemModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "__Rule_Root_Sku(string? value) =>\n        value is { } held ? global::Shop.Sku.Validate(held) : global::System.Array.Empty<string>();",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("RequiredAttribute()]\n    public string? Barcode", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_write_asks_every_rule_the_form_asks_and_refuses_before_it_touches_the_database()
+    {
+        var run = RunWithForms(Product);
+
+        var source = run.GeneratedSource("Shop.ProductModel").ReplaceLineEndings("\n");
+
+        // Stock's rule is awaited, so the writes are; the rest is asked first, and in one place.
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Equal(3, source.Split("await __ValidateAwaited(model).ConfigureAwait(false);").Length - 1);
+        Assert.Contains(
+            "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Sku\", __Rule_Root_Sku(model.Sku));",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "if (model.Size is { } __held0)\n        {\n            failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Size.Code\", __Rule_SizeModel_Code(__held0.Code));\n        }",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Stock\", await __Rule_Root_Stock(model.Stock).ConfigureAwait(false));",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("throw global::Rask.Data.GeneratedModelRules.Refused(failures);", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidationException(", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_model_with_no_rule_and_no_attribute_is_asked_nothing_and_builds_nothing()
+    {
+        var run = RunWithForms("""
+            public sealed class Note : Aggregate<Guid>
+            {
+                private Note() { }
+                public string? Title { get; private set; }
+                public int? Pages { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.NoteModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("internal static void __Validate(global::Shop.NoteModel model)\n    {\n    }", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Check", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__ValidateAwaited", source, StringComparison.Ordinal);
+        Assert.Contains("__Collect(global::Shop.NoteModel model, string path, global::System.Collections.Generic.IList<global::Rask.Wire.FieldFailure>? failures)\n    {\n        return failures;\n    }", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_root_asks_its_rows_under_the_path_a_form_names_them_by_and_only_the_rows_that_have_something_to_ask()
+    {
+        var run = RunWithForms("""
+            public sealed class Order : Aggregate<Guid>
+            {
+                private readonly List<OrderLine> _lines = [];
+                private readonly List<OrderNote> _notes = [];
+                private Order() { }
+                public IReadOnlyList<OrderLine> Lines => _lines;
+                public IReadOnlyList<OrderNote> Notes => _notes;
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                private OrderLine() { }
+                public Sku Sku { get; private set; } = new("");
+            }
+            public sealed class OrderNote : Entity<Guid>
+            {
+                private OrderNote() { }
+                public string? Text { get; private set; }
+            }
+            """);
+
+        var order = run.GeneratedSource("Shop.OrderModel").ReplaceLineEndings("\n");
+        var line = run.GeneratedSource("Shop.OrderLineModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "failures = global::Shop.OrderLineModelExtensions.__Collect(row, path + \"Lines[\" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \"].\", failures);",
+            order,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("OrderNoteModelExtensions.__Collect", order, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Sku\", __Rule_Root_Sku(model.Sku));", line, StringComparison.Ordinal);
     }
 
     [Fact]

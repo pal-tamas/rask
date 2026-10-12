@@ -7,6 +7,30 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
+  value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
+  `public static Validate`:
+  (1) **The rule is asked with the empty value.** For a non-nullable property over text, an empty field asks
+  `Validate("")` and shows what it answers; over a number, a date or an id there is no empty value, so an
+  unfilled field says *This field is required.* (one English sentence for now — `GeneratedModelRules.RequiredMessage`;
+  it moves to the strings catalog). A nullable property is unchanged: empty is not asked. The generated model no
+  longer carries `[Required]` for such a property, so with the automatic validators on, an empty field now shows
+  the value object's message instead of *The Name field is required.* — and with them off
+  (`RaskValidation.AutoValidate = false`) it shows it too, where it showed nothing.
+  (2) **`X.Create(model)`, `X.Create(id, model)` and `X.Update(id, model)` ask the same rules with no form**,
+  before the database is asked anything: the value objects' rules — of the root, of a value object held inside
+  another (`Size.Code`) and of every row (`Lines[2].Sku`) — then the validation attributes, rows' attributes
+  included, which a write did not check before.
+  (3) **A refused model throws `RaskValidationException`, not `ValidationException`.** Its `Failures` name each
+  field by its form-model path, so a form shows the message under the field and remote dispatch answers 400 with
+  `errors`. **For an existing app:** `catch (ValidationException)` around a generated write no longer catches —
+  catch `RaskValidationException`; a value that only the value object's rule rejects (too long, empty) is now
+  refused by `Create`/`Update` where it used to reach the database; a `[Required(ErrorMessage = "…")]` added to an
+  aggregate only to say "required" for such a property can go — put the sentence in `Validate`. A model with no
+  rule and no attribute is asked nothing and allocates nothing.
+
 ### Added
 
 - **RASK102: a value object's `Validate` that is not the shape of a rule is a build warning.** A one-value
@@ -99,6 +123,26 @@ them until tagged releases begin.
   navigated, or never returned. They are serialised, as the server session's always were. A render asked for
   just as a dispatch ends is also no longer left to a dispatch that has stopped looking.
 
+- **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
+  names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
+  `Render()` wraps its `Children` — had its render served from the cache as a plain tag's is, children
+  included. Handed other children while none of its props changed, it went on drawing the earlier ones; and
+  once its instance had moved to another place on the page it drew ANOTHER component's: a text and a button
+  appearing in a toolbar above a table left the table's headings showing one another's words, in the whole
+  page and in a diff alike. Such an element now renders again whenever it is handed children. **For an
+  existing app:** nothing to change — remove a workaround that kept conditional children always written.
+
+- **A child that comes or goes no longer remounts the components written after it.** A component without a
+  `Key` was identified by its place among ALL the children its owner's `Render()` writes, elements included, so
+  `Div[saved ? Ui.Callout["Saved"] : null, OrderList, EditForm]` built a new `OrderList` and a new `EditForm`
+  every time the callout appeared or went: their fields reset, `OnMount` ran again — the list reloaded, the form
+  lost what its C# state held, an open modal forgot it was open — and `OnUnmount` ran for components that never
+  left the screen. A component is now the *n*-th **of its type** its owner writes, so only a child of the same
+  type coming or going ahead of it moves it; that case still needs a `Key`, as a list's rows always did
+  (`docs/composition.md`). **For an existing app:** components after a conditional sibling keep their state and
+  mount once. One that RELIED on being rebuilt when a sibling appeared — a form that reset itself because a
+  banner showed — now keeps what it had: reset it explicitly, or give it a `Key` that changes when it should
+  start over. Nothing changes for keyed components, for the unkeyed ones beside them, or for a routed page.
 - **A navigation that renders more than once tells the browser its address once.** On the Server host, a
   `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
   its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that

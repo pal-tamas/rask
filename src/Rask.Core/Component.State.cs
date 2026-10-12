@@ -42,6 +42,10 @@ public abstract partial class Component
         // components that actually cache, and leaves the rest paying a single null reference.
         public CachedSubtree? Cached;
         public int ChildPositions;
+
+        // How many children of each type the render in flight has written, which is what tells one unkeyed
+        // child from the next — see ChildOrdinals. Null until this component builds a child.
+        public (Type? Type, int Written)[]? ChildTypeCounts;
         public Dictionary<(Type, int), Component>? Children;
         public Dictionary<LiveRenderContext.ObjectKey, EditContext>? EditContextsPool;
         public ElementRef? ElementRef;
@@ -87,8 +91,8 @@ public abstract partial class Component
         // nodes on a page, so this does not pay the per-node cost the note on Cached describes.
         //
         // KeyedTypes is deliberately CUMULATIVE rather than per-frame: once a parent has identified a
-        // child type by key, that type stops being identified by its ordinal among ALL the parent's
-        // children for the rest of the parent's life. It has to. A key that is new this frame must get a
+        // child type by key, that type stops being identified by its ordinal among the parent's
+        // children of the type for the rest of the parent's life. It has to. A key that is new this frame must get a
         // FRESH instance, and the ordinal path would hand it a recycled one belonging to whichever item
         // used to sit at that position — which is the very bug being fixed, moved one step along.
         //

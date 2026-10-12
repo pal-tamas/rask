@@ -309,11 +309,13 @@ public sealed class GeneratedInputModelTests : IDisposable
         var fresh = NewModel();
         fresh.Balance = null;
 
-        var update = await Assert.ThrowsAsync<ValidationException>(() => Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken));
-        var create = await Assert.ThrowsAsync<ValidationException>(() => Invoice.Create(fresh, cancellationToken: TestContext.Current.CancellationToken));
+        var update = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(() => Invoice.Update(created.Id, edit, cancellationToken: TestContext.Current.CancellationToken));
+        var create = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(() => Invoice.Create(fresh, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("Balance", update.Message, StringComparison.Ordinal);
-        Assert.Contains("Balance", create.Message, StringComparison.Ordinal);
+        // Named by the field, the way a form reads it; the attribute's own sentence is the message.
+        Assert.Equal(["Balance"], Assert.Single(update.Failures).Fields);
+        Assert.Contains("Balance", Assert.Single(update.Failures).Message, StringComparison.Ordinal);
+        Assert.Equal(["Balance"], Assert.Single(create.Failures).Fields);
         Assert.False(IsValid(edit, out _));
         Assert.Equal("March", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
         Assert.Equal(1, await Invoice.Count(TestContext.Current.CancellationToken));

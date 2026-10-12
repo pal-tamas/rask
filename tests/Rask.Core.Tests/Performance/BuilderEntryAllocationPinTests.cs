@@ -371,8 +371,10 @@ public class BuilderEntryAllocationPinTests
         var cost = Measure(static () => new AllocBoundToMarkupHostProbe());
 
         // 5011 B/render measured 2026-08-24; 5315 B on 2026-09-28, once the 23 SVG elements MDN ships and Rask
-        // lacked joined RaskMarkup's surface (animate, feTurbulence, …); pinned at 5600 B.
-        AssertCosts(cost, 5600);
+        // lacked joined RaskMarkup's surface (animate, feTurbulence, …); pinned at 5600 B. 5611 B on 2026-10-12
+        // with no change to the runtime: every component THIS assembly declares is one more entry member on
+        // the host, about 7 B each (5539 B without the ten that day's identity tests added); pinned at 5800 B.
+        AssertCosts(cost, 5800);
     }
 
     /// <summary>

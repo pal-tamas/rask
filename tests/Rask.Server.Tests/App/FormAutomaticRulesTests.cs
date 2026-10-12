@@ -17,13 +17,25 @@ namespace Rask.Server.Tests.App;
 /// <summary>A name that is a value object, and states its own rule where the value is.</summary>
 public sealed record BerthName(string Value)
 {
+    public const int MaxLength = 255;
+    public const string Required = "Kötelező kitölteni.";
     public const string TooShort = "A berth's name has at least two characters.";
+    public const string TooLong = "A berth's name is at most 255 characters.";
 
+    // Everything about the name, the empty one included: no attribute says any of it.
     public static IEnumerable<string> Validate(string value)
     {
-        if (value.Trim().Length < 2)
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            yield return Required;
+        }
+        else if (value.Trim().Length < 2)
         {
             yield return TooShort;
+        }
+        else if (value.Length > MaxLength)
+        {
+            yield return TooLong;
         }
     }
 }
@@ -329,6 +341,57 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         Assert.Equal(0, _questions.Count);
     }
 
+    [Fact]
+    public async Task With_the_automatic_validators_off_and_no_attribute_anywhere_the_value_object_still_says_what_is_required_and_what_is_too_long()
+    {
+        var automatic = Rask.Core.Forms.RaskValidation.AutoValidate;
+        Rask.Core.Forms.RaskValidation.AutoValidate = false;
+        try
+        {
+            using var host = await StartAsync<BerthFormApp>();
+            var page = await OpenAsync(host, tenant: 7);
+            using var ws = await AttachAsync(host, page);
+
+            var untouched = await SubmitAsync(ws, page);
+            var tooLong = await CommitAsync(ws, untouched, "name", new string('x', BerthName.MaxLength + 1));
+            var submittedTooLong = await SubmitAsync(ws, tooLong);
+
+            Assert.Contains($"<p class=\"name-error\">{Shown(BerthName.Required)}</p>", untouched, StringComparison.Ordinal);
+            Assert.Contains("saves=0<", untouched, StringComparison.Ordinal);
+            Assert.Contains($"<p class=\"name-error\">{Shown(BerthName.TooLong)}</p>", tooLong, StringComparison.Ordinal);
+            Assert.Contains("saves=0<", submittedTooLong, StringComparison.Ordinal);
+            Assert.Contains("fault=none", submittedTooLong, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Rask.Core.Forms.RaskValidation.AutoValidate = automatic;
+        }
+    }
+
+    [Theory]
+    [InlineData(null, BerthName.Required)]
+    [InlineData("", BerthName.Required)]
+    [InlineData("A", BerthName.TooShort)]
+    public async Task A_create_with_no_form_behind_it_is_refused_by_the_same_rule_under_the_fields_name_before_the_database_is_asked_anything(
+        string? name, string message)
+    {
+        using var host = await StartAsync<BerthFormApp>();
+        var commandsBefore = _questions.Commands;
+
+        Rask.Cqrs.RaskValidationException refused;
+        using (Tenant.Use(7))
+        {
+            refused = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(
+                () => Berth.Create(new BerthModel { Name = name }, cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        var failure = Assert.Single(refused.Failures);
+        Assert.Equal(["Name"], failure.Fields);
+        Assert.Equal(message, failure.Message);
+        Assert.Equal(commandsBefore, _questions.Commands);
+        Assert.Equal(["Budapest|7", "Gyor|7", "Szeged|8"], await BerthsAsync(host));
+    }
+
     // The message as the page carries it: text is encoded on its way into markup, accents included.
     private static string Shown(string message) => System.Text.Encodings.Web.HtmlEncoder.Default.Encode(message);
 
@@ -451,8 +514,12 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     private sealed class StoreQuestions : DbCommandInterceptor
     {
         private int _count;
+        private int _commands;
 
         public int Count => Volatile.Read(ref _count);
+
+        /// <summary>Every command sent through the app's context, whatever it asks.</summary>
+        public int Commands => Volatile.Read(ref _commands);
 
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
             DbCommand command,
@@ -460,12 +527,23 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
             InterceptionResult<DbDataReader> result,
             CancellationToken cancellationToken = default)
         {
+            Interlocked.Increment(ref _commands);
             if (command.CommandText.Contains("SELECT EXISTS", StringComparison.Ordinal))
             {
                 Interlocked.Increment(ref _count);
             }
 
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _commands);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
         }
     }
 
