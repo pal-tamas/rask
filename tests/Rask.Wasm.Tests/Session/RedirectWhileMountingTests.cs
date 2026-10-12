@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,9 +9,21 @@ namespace Rask.Wasm.Tests.Session;
 
 // The browser host's side of a page that calls Go() as it mounts or updates: the frame the page is sent is its
 // destination's, with the destination's address and title, and nothing of the page that sent the reader on.
+//
+// A page that loads first is sent on by a frame of its own, pushed when the load ends. It is found among the
+// frames the session pushed rather than read as "the last one": the load's end also asks for a render, and on
+// more than one thread that render may be pushed after the destination's frame instead of before it.
 [Collection("WasmSession")]
-public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
+public sealed class RedirectWhileMountingTests : ResettingTestBase, IDisposable
 {
+    private readonly List<string> _frames = [];
+
+    public RedirectWhileMountingTests()
+        : base(LiveDiffMode.DisabledFull) =>
+        JSInterop.AppliedFrames = _frames;
+
+    public void Dispose() => JSInterop.AppliedFrames = null;
+
     [Fact]
     public async Task A_link_to_a_page_that_redirects_as_it_mounts_lands_on_its_destination()
     {
@@ -100,11 +111,11 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
         var session = await OpenAt("/rs/start");
 
         var loading = await Navigate(session, "/rs/late");
-        await Lands(session);
+        var landed = await Landed();
 
         Assert.Equal(("/rs/late", "push"), History(loading));
-        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
-        Assert.Contains(">Home</title>", Html(session.LastSentFrame.ToArray()), StringComparison.Ordinal);
+        Assert.Equal(("/rs/home", "replace"), History(landed));
+        Assert.Contains(">Home</title>", Html(landed), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -117,9 +128,9 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
             RegexOptions.None, TimeSpan.FromSeconds(1));
 
         await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
-        await Lands(session);
+        var landed = await Landed();
 
-        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
+        Assert.Equal(("/rs/home", "replace"), History(landed));
     }
 
     [Fact]
@@ -129,10 +140,10 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
         services.GetRequiredService<RouteState>().Path = "/rs/late";
 
         var first = await session.InitialRenderAsync();
-        await Lands(session);
+        var landed = await Landed();
 
         Assert.Contains("late-content", Html(first), StringComparison.Ordinal);
-        Assert.Equal(("/rs/home", "replace"), History(session.LastSentFrame.ToArray()));
+        Assert.Equal(("/rs/home", "replace"), History(landed));
     }
 
     [Fact]
@@ -181,10 +192,30 @@ public sealed class RedirectWhileMountingTests() : ResettingTestBase(LiveDiffMod
         Assert.Equal("/old/partners", JSInterop.LastLeftTo);
     }
 
-    private static Task Lands(WasmLiveSession session) =>
-        WaitFor.True(
-            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains("home-content", StringComparison.Ordinal),
-            "the destination in the frame the page was last sent");
+    // The first frame pushed to the page that shows the destination and says where the reader now is.
+    private async Task<byte[]> Landed()
+    {
+        string? landed = null;
+        await WaitFor.True(() => (landed = FirstPushed(IsTheDestination)) is not null, "a frame that lands on the destination");
+        return Utf8(landed!);
+    }
+
+    private static bool IsTheDestination(string frame) =>
+        frame.Contains("home-content", StringComparison.Ordinal) && History(Utf8(frame)).Url is not null;
+
+    // By index, never by enumerator: the session appends from its own thread while this reads.
+    private string? FirstPushed(Func<string, bool> isIt)
+    {
+        for (var i = 0; i < _frames.Count; i++)
+        {
+            if (_frames[i] is { } frame && isIt(frame))
+            {
+                return frame;
+            }
+        }
+
+        return null;
+    }
 
     private async Task<WasmLiveSession> OpenAt(string path)
     {

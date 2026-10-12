@@ -949,12 +949,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     /// </summary>
     private bool RedirectPending => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
 
-    internal async Task RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
+    // Answers whether a frame went out: false when it was withheld, repeated the last one, or had no one to go to.
+    internal async Task<bool> RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
         bool publishOnly = false)
     {
         if (!HasSomeoneToTell(ref historyUrl, ref replace))
         {
-            return;
+            return false;
         }
 
         using var work = EnterWorkScope();
@@ -968,7 +969,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             var html = RenderTreeToHtml(publishOnly, out var frameWriter);
             if (auth is null && RedirectPending)
             {
-                return;
+                return false;
             }
 
             var download = ConsumeDownload();
@@ -976,7 +977,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
             if (RepeatsLastFrame(jsInvokes, historyUrl, auth, download))
             {
-                return;
+                return false;
             }
 
             var renderStarted = Stopwatch.GetTimestamp();
@@ -1001,6 +1002,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             {
                 RecordSent(renderStarted, payloadBytes);
             }
+
+            return sent;
         }
         finally
         {
@@ -1077,28 +1080,23 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls into a
-    ///     single outbound payload. The first send emits the captured navigation/auth
-    ///     state; if an in-handler StateHasChanged set <c>_pendingRenderInScope</c>
-    ///     (e.g. <c>RouteState.Changed</c> subscribers on a layout above the Router),
-    ///     rebuild up to twice — re-threading <paramref name="historyUrl" />,
-    ///     <paramref
-    ///         name="replace" />
-    ///     , and <paramref name="auth" /> so the actually-sent payload
-    ///     still carries them. Dropping any of those on a rebuild silently swallows
-    ///     handler-initiated navigation, the c11b61d invariant ported from
-    ///     <c>WasmLiveSession.BuildPayloadCoalescingRerendersAsync</c>. The
-    ///     <paramref name="historyUrl" /> here is a local captured before the loop, not
-    ///     a fresh <c>Navigator.TryConsumeHistory</c> call, so re-passing it on every
-    ///     iteration does not double-push history on the client — only one frame ever
-    ///     reaches the wire because <see cref="RenderAndSendAsync" />'s byte-dedup
-    ///     suppresses spurious identical rebuilds.
+    ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls. The first send carries the
+    ///     captured navigation and auth state; if a StateHasChanged inside the dispatch set
+    ///     <c>_pendingRenderInScope</c> (a <c>RouteState.Changed</c> subscriber on a layout above the Router, a
+    ///     lifecycle hook that finished its await while the dispatch was still rendering), it renders again, up
+    ///     to twice.
     /// </summary>
+    /// <remarks>
+    ///     The address is re-threaded into a rebuild only until a frame has carried it: a frame that was withheld
+    ///     or repeated the last one took nothing to the browser, so the next one still owes it. Once it has gone
+    ///     out, a rebuild whose HTML differs is a frame of its own, and repeating the address in it would push the
+    ///     same history entry a second time — Back then lands on the page the reader is already on.
+    /// </remarks>
     internal async Task RenderAndSendCoalescingAsync(
         string? historyUrl, bool replace, AuthInstruction? auth = null)
     {
         _pendingRenderInScope = false;
-        await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        var addressed = await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
         if (auth is null && RedirectPending)
         {
             // The route moving asked for a render of its own; the caller's render of the destination is it.
@@ -1110,7 +1108,14 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         while (_pendingRenderInScope && budget-- > 0)
         {
             _pendingRenderInScope = false;
-            await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+            if (addressed)
+            {
+                await RenderAndSendAsync(null, false, auth).ConfigureAwait(false);
+            }
+            else
+            {
+                addressed = await RenderAndSendAsync(historyUrl, replace, auth).ConfigureAwait(false);
+            }
         }
 
         // Budget exhaustion was silent before: a third in-dispatch StateHasChanged
