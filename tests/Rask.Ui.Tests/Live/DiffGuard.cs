@@ -17,7 +17,8 @@ namespace Rask.UiTests.Live;
 /// <remarks>
 ///     A whole page for a keypress is tens of kilobytes where a diff is a few hundred bytes, and it lands on
 ///     top of whatever the reader typed since. So no kit component may change shape in a way the differ cannot
-///     follow: a child that comes and goes, or changes element, is keyed (see
+///     follow: one child that comes or goes among siblings that still match is followed as it is, and a child
+///     that changes element, or several that come and go apart from each other, are keyed (see
 ///     <c>docs/building-components.md</c>). <see cref="Known" /> names what is not fixed yet.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly)]
@@ -28,13 +29,10 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
     /// <summary>
     ///     What still drives a change the gate refuses — a test class, or one test of one — and where the shape
     ///     changes. Nothing here is forgiven quietly: <c>KitStateChangesAreDiffsTests</c> fails the day one of its
-    ///     own stops being refused, and the other is a component the Flux rebuild has not reached.
+    ///     own stops being refused.
     /// </summary>
     internal static readonly IReadOnlyDictionary<string, string> Known = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        // daisy-drawn, not rebuilt from Flux yet: a row that does not match the query is not rendered, and the
-        // rows are the page's own children, which nothing keys.
-        ["UiCommandTests"] = "src/Rask.Ui/UiCommandRows.cs:26",
         ["KitStateChangesAreDiffsTests.A_prop_change_the_gate_still_refuses_is_listed_until_it_is_fixed"] = "KitStateChangesAreDiffsTests.Refused",
     };
 

@@ -26,7 +26,9 @@ internal static partial class PayloadBytesReport
 {
     private const string Header = "Scenario,FullPayloadBytes,DiffPayloadBytes,DiffOpCount";
 
-    private readonly record struct Row(string Scenario, int FullBytes, int DiffBytes, int DiffOps);
+    // Shipped: the gate lets the diff through. A diff it refuses is never sent — the reply is the whole page —
+    // so its size is a number about nothing, and the check fails on it.
+    private readonly record struct Row(string Scenario, int FullBytes, int DiffBytes, int DiffOps, bool Shipped = true);
 
     public static int Run(string[] args)
     {
@@ -67,7 +69,17 @@ internal static partial class PayloadBytesReport
             // would pick that over the component it converts to, and Build<T> is no Component.
             ReportLive<HandlerShiftPage>("HandlerShiftAboveList100", writer,
                 HandlerShiftPage.RowCount(100),
-                page => page.ShowToolbarAction = true)
+                page => page.ShowToolbarAction = true),
+            // A callout arrives above a 20-row table nothing keys: one child comes in before siblings that
+            // otherwise still match. Until the differ learned to see that as ONE run, the positional walk
+            // paired the callout with the table, the gate refused the ops and the whole page went out.
+            Report("CalloutAboveTable20", writer,
+                BuildOrdersPage(saved: false),
+                BuildOrdersPage(saved: true)),
+            // An icon arrives in front of a badge's words, which are text and cannot carry a key.
+            Report("IconOnBadge", writer,
+                BuildBadgePage(icon: false),
+                BuildBadgePage(icon: true))
         };
 
         return check ? CheckAgainstBaseline(rows) : 0;
@@ -111,6 +123,15 @@ internal static partial class PayloadBytesReport
                 Console.Error.WriteLine(
                     $"::error::Scenario '{row.Scenario}' is missing from the baseline — " +
                     "add it (regenerate with `payload-bytes`) so it can't regress ungated.");
+                regressed = true;
+                continue;
+            }
+
+            if (!row.Shipped)
+            {
+                Console.Error.WriteLine(
+                    $"::error::{row.Scenario}: the gate refuses this diff, so the reply is the whole page " +
+                    $"({row.FullBytes} bytes), not the {row.DiffBytes} bytes measured.");
                 regressed = true;
                 continue;
             }
@@ -237,7 +258,7 @@ internal static partial class PayloadBytesReport
             "{0},{1},{2},{3}",
             name, fullBytes, diffBytes, ops.Count));
 
-        return new Row(name, fullBytes, diffBytes, ops.Count);
+        return new Row(name, fullBytes, diffBytes, ops.Count, LiveDiffGate.DiffOpsAreClientSupported(ops));
     }
 
     private static (RenderFrame[] Frames, string Html) CaptureLiveFrames(Component root)
@@ -364,6 +385,45 @@ internal static partial class PayloadBytesReport
             ]
         ];
     }
+
+    private static Component BuildOrdersPage(bool saved)
+    {
+        const int rowCount = 20;
+        var rows = new List<Component>(rowCount);
+        for (var i = 0; i < rowCount; i++)
+        {
+#pragma warning disable RASK022 // rows nothing keys are what this measures
+            rows.Add(Tr[Td[$"Order {i}"], Td.Class("amount")[$"{i * 10}.00"], Td[A.Href($"/orders/{i}")["open"]]]);
+#pragma warning restore RASK022
+        }
+
+        return [
+            Doctype,
+            Html[
+                Body[
+                    Main.Class("content")[
+                        H1["Orders"],
+                        saved ? Div.Class("callout").Id("saved")[Strong["Saved"], P["The order was saved."]] : null,
+                        Table.Class("sheet")[Tbody[rows]]
+                    ]
+                ]
+            ]
+        ];
+    }
+
+    private static Component BuildBadgePage(bool icon) =>
+    [
+        Doctype,
+        Html[
+            Body[
+                Main.Class("content")[
+                    H1["Orders"],
+                    Span.Class("badge")[icon ? Svg.Class("icon")[Circle.R("5")] : null, "New"],
+                    P["Two open."]
+                ]
+            ]
+        ]
+    ];
 
     private static Component BuildLargePageWithDeepTextCell(int counter)
     {
