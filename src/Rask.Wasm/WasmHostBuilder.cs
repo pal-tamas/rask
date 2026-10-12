@@ -288,7 +288,7 @@ public sealed class WasmHostBuilder
 
         await LoadUserAsync(provider).ConfigureAwait(false);
 
-        var session = new WasmLiveSession(root, provider, _diffMode);
+        var session = new WasmLiveSession(root, provider, _diffMode, WasmHostBuilderExtensions.NavigationBudget(this));
         JSInterop.Init(session);
 
         // The session registers itself with the hot-reload coordinator in the base ctor and is

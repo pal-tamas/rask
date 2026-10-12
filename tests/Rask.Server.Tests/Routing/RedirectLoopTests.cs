@@ -41,14 +41,17 @@ public sealed class RedirectLoopTests
     [Fact]
     public async Task Two_pages_that_each_load_and_then_redirect_to_the_other_are_stopped_with_an_error_the_reader_sees()
     {
-        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
+        await using var redirects = await RedirectingSession.Open(
+            "/redirect/start", LiveDiffMode.DisabledFull, navigation: TimeSpan.FromMinutes(5));
 
         await redirects.Send(new { type = "navigate", path = "/redirect/slow-ping", query = "" });
         var stopped = await redirects.Ws.ReceiveUntilAsync(
             f => f.Contains("Too many redirects", StringComparison.Ordinal), "the frame that shows the loop was refused");
         var after = await redirects.Ws.SettledAsync();
 
-        Assert.Null(LiveFrames.HistoryUrl(stopped));
+        // The navigation waited through every hop, so the page the loop stopped on is the first one sent, with
+        // its own address.
+        Assert.Matches("^/redirect/slow-p[io]ng$", LiveFrames.HistoryUrl(stopped));
         Assert.DoesNotContain(after, f => LiveFrames.HistoryUrl(f) is not null);
     }
 

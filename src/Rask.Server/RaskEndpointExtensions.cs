@@ -2004,7 +2004,7 @@ public static partial class RaskEndpointExtensions
     ///     Server-Sent Events stream by completing its response, and a POST by answering — which of those to
     ///     do is the caller's business, not this method's.
     /// </remarks>
-    internal static async ValueTask<FrameOutcome> ProcessFrameAsync(
+    internal static ValueTask<FrameOutcome> ProcessFrameAsync(
         LiveSession session,
         JsonElement root,
         bool hasType,
@@ -2019,28 +2019,27 @@ public static partial class RaskEndpointExtensions
         {
             // Auth handoff in flight: a redeem fetch + reconnect are happening on the client. Drop
             // everything except a future hello (handled before this).
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return new(new FrameOutcome(FrameStatus.Handled, null));
         }
 
         if (hasType && type.ValueEquals("navigate"u8))
         {
-            await HandleNavigateAsync(session, root, ct).ConfigureAwait(false);
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return new(QueueNavigation(session, root, payloadLength, store, limits, metrics, ct));
         }
 
         if (hasType && HandledInline(session, root, type))
         {
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return new(new FrameOutcome(FrameStatus.Handled, null));
         }
 
         if (hasType && type.ValueEquals("batch"u8))
         {
-            return ProcessBatch(session, root, payloadLength, store, limits, metrics, ct);
+            return new(ProcessBatch(session, root, payloadLength, store, limits, metrics, ct));
         }
 
         if (EventBatch.HandlerIdOf(root) is not { } handlerId)
         {
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return new(new FrameOutcome(FrameStatus.Handled, null));
         }
 
         // Dispatch the handler in ARRIVAL order while keeping the caller's reader alive, so async handlers can
@@ -2056,7 +2055,7 @@ public static partial class RaskEndpointExtensions
         var payloadBytes = (long)payloadLength;
         if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
         {
-            return new FrameOutcome(FrameStatus.Refused, "handler backlog");
+            return new(new FrameOutcome(FrameStatus.Refused, "handler backlog"));
         }
 
         // We clone the JSON element because the JsonDocument's backing buffer is disposed by the caller once
@@ -2073,7 +2072,77 @@ public static partial class RaskEndpointExtensions
             limits.HandlerTimeout,
             ct));
 
+        return new(new FrameOutcome(FrameStatus.Handled, null));
+    }
+
+    // A link the reader pressed, or Back: queued behind the handlers read before it, so the reader goes on
+    // reading while its page loads — and the next link pressed ends that wait instead of sitting it out.
+    private static FrameOutcome QueueNavigation(
+        LiveSession session,
+        JsonElement root,
+        int payloadLength,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        RaskMetrics? metrics,
+        CancellationToken ct)
+    {
+        var path = root.TryGetProperty("path", out var p) && p.ValueKind == JsonValueKind.String
+            ? p.GetString()
+            : null;
+        if (string.IsNullOrEmpty(path))
+        {
+            return new FrameOutcome(FrameStatus.Handled, null);
+        }
+
+        var payloadBytes = (long)payloadLength;
+        if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
+        {
+            return new FrameOutcome(FrameStatus.Refused, "handler backlog");
+        }
+
+        var query = root.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String
+            ? q.GetString() ?? string.Empty
+            : string.Empty;
+        var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
+
+        session.NavigationRead();
+        session.EnqueueOnHandlerChain(previous => ChainNavigationAsync(
+            previous, store, session, path, query, replace, payloadBytes, ct));
+
         return new FrameOutcome(FrameStatus.Handled, null);
+    }
+
+    // One navigation's link on the handler chain. Skipped when a newer one is already queued behind it: the
+    // reader asked for that page since, and this one would be rendered only to be replaced.
+    private static async Task ChainNavigationAsync(
+        Task previous,
+        LiveSessionStore store,
+        LiveSession session,
+        string path,
+        string query,
+        bool replace,
+        long payloadBytes,
+        CancellationToken ct)
+    {
+        try
+        {
+            await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+            if (session.NavigationStarts())
+            {
+                await HandleNavigateAsync(session, path, query, replace, ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            // The connection closed, or the session went, while this waited its turn.
+        }
+        finally
+        {
+            session.DecrementPendingHandlers();
+            store.HandlerDequeued();
+            session.SubtractPendingHandlerBytes(payloadBytes);
+        }
     }
 
     // The events one browser task produced, in one frame: every handler runs in the order its event happened,
@@ -2288,20 +2357,15 @@ public static partial class RaskEndpointExtensions
         }
 
         // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
-        // page mounts fresh under the new identity (its Mount runs against the redeemed principal).
-        // The attach flagged a pending render for this reconnect, so the flush below performs a real render
-        // against the updated route. See LiveSession.PendingAuthNavigation.
+        // page mounts fresh under the new identity (its Mount runs against the redeemed principal). It is
+        // rendered as a page reached in place: sent when its first reads are back, and a destination another
+        // application owns loads as a page instead (#1094). See LiveSession.PendingAuthNavigation.
         if (session.PendingAuthNavigation is not null)
         {
             session.PendingAuthNavigation = null;
-            routeState.Path = destination.Path;
-            routeState.Query = destination.Query;
-
-            // A destination another application owns loads as a page instead (#1094).
-            if (await NavigateAcrossApplicationsAsync(session, replace: true).ConfigureAwait(false))
-            {
-                return;
-            }
+            session.DetachedRenderAnswered();
+            await RenderArrivedAsync(session, destination, ct).ConfigureAwait(false);
+            return;
         }
 
         // Only emit a catch-up render when something asked to render during the GET-to-hello handoff window
@@ -2321,8 +2385,44 @@ public static partial class RaskEndpointExtensions
         session.InHandlerScope = true;
         try
         {
+            // The page the guard sends to may send the reader on in turn, as any page reached in place may.
+            var navigator = session.Services.GetRequiredService<Navigator>();
+            using var navigating = navigator.EnterHandler();
             redirect.ApplyTo(session.Services.GetRequiredService<RouteState>());
-            await session.RenderAndSendCoalescingAsync(redirect.Url, true).ConfigureAwait(false);
+            await session.RenderAndSendCoalescingAsync(redirect.Url, true, arriving: true).ConfigureAwait(false);
+            await FollowThePageAsync(session, navigator, redirect.Url, replace: true, arriving: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            session.InHandlerScope = false;
+            session.Lock.Release();
+            _ = session.DrainRenderRequestedAfterScope();
+        }
+    }
+
+    // Renders the page a connection attached to — a sign-in's return page, or one rebuilt from a resume
+    // record — as a page reached in place: it waits for its first reads and is sent once.
+    //
+    // The route moves inside the handler scope, because moving it asks for a render of its own: outside one,
+    // that render mounts the page first, with no dispatch to take a navigation its mount makes.
+    private static async Task RenderArrivedAsync(
+        LiveSession session, (string Path, Rask.Core.Routing.IQueryCollection Query)? moveTo, CancellationToken ct)
+    {
+        await session.Lock.WaitAsync(ct).ConfigureAwait(false);
+        session.InHandlerScope = true;
+        try
+        {
+            using var work = session.EnterWorkScope();
+            using var navigating = session.Services.GetRequiredService<Navigator>().EnterHandler();
+            if (moveTo is var (path, query))
+            {
+                var routeState = session.Services.GetRequiredService<RouteState>();
+                routeState.Path = path;
+                routeState.Query = query;
+            }
+
+            // The browser already names this page, so wherever it sends the reader on replaces that address.
+            await EnforceAuthAndRenderAsync(session, null, replace: true, arriving: true).ConfigureAwait(false);
         }
         finally
         {
@@ -2380,8 +2480,9 @@ public static partial class RaskEndpointExtensions
             // The record names a URL and a user, not what that user may see today: a role removed since the
             // record was sealed must not get the page back by resuming it. Nothing is mounted yet, so moving
             // the route here asks nobody for a render.
-            var guardUrl = await RedirectUnauthorizedRouteAsync(session).ConfigureAwait(false);
-            await session.RenderAndSendAsync(guardUrl, guardUrl is not null).ConfigureAwait(false);
+            // The page is then rendered as one reached in place, behind that same guard: it waits for its first
+            // reads, so the frame that replaces what the reader was looking at carries them.
+            await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
         }
         catch
         {
@@ -3174,21 +3275,9 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    private static async Task HandleNavigateAsync(LiveSession session, JsonElement root, CancellationToken ct)
+    private static async Task HandleNavigateAsync(
+        LiveSession session, string navPath, string navQueryString, bool replace, CancellationToken ct)
     {
-        var navPath = root.TryGetProperty("path", out var p) && p.ValueKind == JsonValueKind.String
-            ? p.GetString()
-            : null;
-        if (string.IsNullOrEmpty(navPath))
-        {
-            return;
-        }
-
-        var navQueryString = root.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String
-            ? q.GetString() ?? string.Empty
-            : string.Empty;
-        var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
-
         var fullUrl = navPath;
         if (!string.IsNullOrEmpty(navQueryString))
         {
@@ -3343,11 +3432,14 @@ public static partial class RaskEndpointExtensions
         return result.Outcome == RouteAuthorizationOutcome.Allow;
     }
 
+    // arriving: the render mounts a page nobody asked for by address — a sign-in's return page on its
+    // reconnect. A render that carries an address is always one.
     private static async Task EnforceAuthAndRenderAsync(
         LiveSession session,
         string? historyUrl,
         bool replace,
-        AuthInstruction? auth = null)
+        AuthInstruction? auth = null,
+        bool arriving = false)
     {
         var navigator = session.Services.GetRequiredService<Navigator>();
         if (auth is null && await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
@@ -3373,19 +3465,60 @@ public static partial class RaskEndpointExtensions
             }
         }
 
-        await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth).ConfigureAwait(false);
+        // A frame that carries a navigation waits for the page it goes to, and is sent once (LiveSession.
+        // RenderArrivedAsync). A sign-in's frame does not: its page mounts on the reconnect.
+        arriving = auth is null && (arriving || historyUrl is not null);
+        await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth, arriving).ConfigureAwait(false);
 
-        // A page that navigated as it mounted had its frame withheld: its destination is rendered instead, under
-        // that route's own guard, and is the address the reader gets — the live form of the first request's 302.
-        if (auth is null && await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
+        if (auth is null)
+        {
+            await FollowThePageAsync(session, navigator, historyUrl, replace, arriving).ConfigureAwait(false);
+        }
+    }
+
+    // What the page just rendered asked for in place of being shown. One that navigated as it mounted had its
+    // frame withheld: its destination is rendered instead, under that route's own guard, and is the address the
+    // reader gets — the live form of the first request's 302. So had one whose hook navigated after an await,
+    // while the dispatch was still waiting for it. And a navigation a newer one replaced is followed by nothing.
+    private static async Task FollowThePageAsync(
+        LiveSession session, Navigator navigator, string? historyUrl, bool replace, bool arriving)
+    {
+        if (arriving && session.ArrivalSuperseded)
+        {
+            // The render the route's move asked for is the newer navigation's to make.
+            session.DiscardPendingRender();
+            return;
+        }
+
+        if (await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false))
         {
             return;
         }
 
-        if (auth is null && navigator.TryConsumeRedirect(out var redirectUrl, out var redirectReplace))
+        if (navigator.TryConsumeRedirect(out var redirectUrl, out var redirectReplace))
         {
-            await EnforceAuthAndRenderAsync(session, redirectUrl, historyUrl is null ? redirectReplace : replace)
+            // With no address of its own, an arriving render is of the page the browser already names — a
+            // sign-in's return page, one rebuilt from a resume record — so where it sends on replaces it.
+            await EnforceAuthAndRenderAsync(session, redirectUrl, historyUrl is null ? redirectReplace || arriving : replace)
                 .ConfigureAwait(false);
+            return;
+        }
+
+        if (session.TakeHandedNavigation() is not { } navigate)
+        {
+            return;
+        }
+
+        navigate();
+        if (navigator.TryConsumeHistory(out var url, out _))
+        {
+            // The page that asked was never an address the reader held: the one they came by is kept or
+            // replaced as their own navigation said.
+            await EnforceAuthAndRenderAsync(session, url, historyUrl is null || replace).ConfigureAwait(false);
+        }
+        else
+        {
+            await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false);
         }
     }
 

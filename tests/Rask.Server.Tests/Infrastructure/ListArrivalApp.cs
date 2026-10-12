@@ -33,12 +33,20 @@ public sealed partial class ListArrivalApp : Component
 public sealed class ListArrivalStore
 {
     private TaskCompletionSource? _held;
+    private int _heldReads;
 
     /// <summary>How many reads have started.</summary>
     public int Reads;
 
     /// <summary>Holds every read from now until <see cref="Release" />.</summary>
-    public void Hold() => _held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    public void Hold()
+    {
+        Volatile.Write(ref _heldReads, 0);
+        _held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    /// <summary>Completes once a read has started since the last <see cref="Hold" />: the page is waiting on it.</summary>
+    public Task ReadStarted() => Rask.TestSupport.WaitFor.True(() => Volatile.Read(ref _heldReads) > 0, "a held read to start");
 
     /// <summary>Lets the held reads go, and every later one take a millisecond again.</summary>
     public void Release() => Interlocked.Exchange(ref _held, null)?.TrySetResult();
@@ -67,7 +75,13 @@ public sealed class ListArrivalStore
     private Task Read()
     {
         Interlocked.Increment(ref Reads);
-        return _held?.Task ?? Task.Delay(1);
+        if (_held is not { } held)
+        {
+            return Task.Delay(1);
+        }
+
+        Interlocked.Increment(ref _heldReads);
+        return held.Task;
     }
 }
 

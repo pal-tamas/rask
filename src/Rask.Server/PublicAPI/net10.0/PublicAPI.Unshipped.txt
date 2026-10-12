@@ -69,6 +69,8 @@ Rask.Server.RaskServerOptions.MaxPendingHandlerBytes.get -> long
 Rask.Server.RaskServerOptions.MaxPendingHandlerBytes.set -> void
 Rask.Server.RaskServerOptions.MaxPendingHandlers.get -> int
 Rask.Server.RaskServerOptions.MaxPendingHandlers.set -> void
+Rask.Server.RaskServerOptions.NavigationQuiescenceTimeout.get -> System.TimeSpan
+Rask.Server.RaskServerOptions.NavigationQuiescenceTimeout.set -> void
 Rask.Server.RaskServerOptions.RaskServerOptions() -> void
 Rask.Server.RaskServerOptions.QuiescenceTimeout.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.QuiescenceTimeout.set -> void

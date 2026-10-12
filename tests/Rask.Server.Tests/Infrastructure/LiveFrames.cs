@@ -70,8 +70,9 @@ internal static class LiveFrames
     ///         This is how a test says "and nothing else came" (the list is empty) or "whatever that produced,
     ///         I have it all" without waiting out a silence. It sends a handler frame for an id no handler has,
     ///         stamped with a <c>seq</c>, and reads until the acknowledgement of that <c>seq</c>. The reader
-    ///         takes frames in arrival order and runs a navigation to its end before reading on; handlers run
-    ///         one after another; and an acknowledgement is sent after its own dispatch's render. So when the
+    ///         takes frames in arrival order; navigations and handlers run one after another in that order,
+    ///         a navigation to the end of its wait for the page it goes to; and an acknowledgement is sent
+    ///         after its own dispatch's render. So when the
     ///         acknowledgement arrives, everything sent before it has been dispatched and has rendered.
     ///     </para>
     ///     <para>

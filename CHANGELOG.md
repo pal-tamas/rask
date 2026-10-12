@@ -68,6 +68,41 @@ them until tagged releases begin.
   ([Leaving the app](docs/routing.md#leaving-the-app--goout)).
 ### Changed
 
+- **A page reached in place is sent once, when its first reads are back.** A `NavLink`, Back, `Go()` from a
+  handler, a redirect, a guard's redirect, the page a sign-in returns to and a session rebuilt after a deploy
+  used to send the page the moment it was mounted and again when its `OnMount` / `OnUpdated` came back: two
+  whole pages a link (351 KB then 420 KB on the reported layout), three frames a `await Save(); X.Go()` — the
+  list without its address, a 74-byte frame carrying only the address, the list again — an edit page that
+  showed "no such record" first, and a tab title that flashed the layout's default. The navigation now waits
+  for the page it goes to, as the first `GET` always has, and sends ONE frame: the page, its data, its title
+  and its address. On both hosts, WebAssembly's first render included.
+  - **The budget is 150 ms** — `Rask:Server:NavigationQuiescenceTimeout` /
+    `RaskServerOptions.NavigationQuiescenceTimeout`, and `RaskWasmOptions.NavigationQuiescenceTimeout` in a
+    browser app; zero sends at once, as before. A page whose reads take longer is sent as it stands at the
+    budget and the rest follows, exactly as before; nothing is cancelled. A page with nothing pending is not
+    delayed at all.
+  - **Meanwhile the reader keeps the page they are on**, under the busy marks the client already draws (the
+    pressed button after 200 ms, the progress bar after 300 ms).
+  - **A second link pressed meanwhile ends the wait**, and nothing of the first page is sent. On the Server
+    host a `navigate` frame is now queued behind the handlers read before it instead of holding the reader, so
+    it counts against `MaxPendingHandlers` like a handler does.
+  - **A handler that has called `Go()` is not repainted until its dispatch sends the address**: the
+    destination no longer travels first, as a page of its own.
+  - **A page that calls `Go()` after an `await` is no longer shown** when it does so within the budget. Its
+    destination arrives under the history step of the navigation that led there — one `push` for a link or a
+    handler's `Go()`, where it used to be a `push` of the page in between and a `replace`.
+  - **A page that reads through `Rask.Query` is covered too**: a query read in `Render` is waited for when it
+    has nothing to show, as on the first `GET`, and now also when it was just invalidated — a save that
+    invalidates a cached list and goes to it is one frame with the fresh rows, where it was the old rows and
+    then the new. A cached query is shown at once, with no fetch.
+  - **`OnRendered` after the data.** The renders made while a page is waited for are publish-only, as the first
+    request's are, and one ordinary render follows them, so `OnRendered` still runs on the page as sent. A page
+    with a pending script call (`IJSRuntime` from `OnFirstRender`/`OnRendered`) is not waited for — that call
+    completes only once a frame has reached the browser — and arrives as it did before.
+  **For an existing app:** nothing to change. A test that counted the frames of a navigation sees one where it
+  saw two; a page that relied on its placeholder being visible on every in-app navigation now shows it only
+  when the load outlasts the budget ([routing](docs/routing.md#the-page-is-sent-when-its-first-reads-are-back)).
+
 - **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
   unique.** `public Email Email { get; private set; }` with `record Email(string Value)` used to be an EF Core
   complex type whose one column was named after the property, and EF Core has no index over a complex type's
@@ -87,6 +122,13 @@ them until tagged releases begin.
   taking its value or a parameterless constructor and its property, either of which may be private.
 
 ### Fixed
+
+- **A browser session's two repaints of a running handler take turns.** A handler that awaits is repainted when
+  it first yields and again before its continuation; the WebAssembly session let the two walk the tree at
+  once where the host has more than one thread — never in a browser, always in a test — and the walk that
+  threw took the handler or its continuation with it: about one `await Save(); Go.To(…)` in five hundred never
+  navigated, or never returned. They are serialised, as the server session's always were. A render asked for
+  just as a dispatch ends is also no longer left to a dispatch that has stopped looking.
 
 - **A kit component shows the children it is handed now, not the ones it was handed before.** An element that
   names no tag — `Ui.TableColumn`, `Ui.TableColumns`, most of the kit, and any `Element` of your own whose
