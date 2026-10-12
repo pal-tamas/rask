@@ -29,6 +29,9 @@ public sealed partial class UiDatePickerButton : Component
     /// <summary>How tall the button is.</summary>
     public Ui.DatePickerButtonSize? Size { get; set; }
 
+    /// <summary>A button that empties the picker, shown while a date is chosen. The picker's own unless set.</summary>
+    public bool? Clearable { get; set; }
+
     /// <summary>Prevents the reader from opening the picker.</summary>
     public bool? Disabled { get; set; }
 
@@ -55,13 +58,15 @@ public sealed partial class UiDatePickerButton : Component
             ["expanded"] = scope.Open ? "true" : "false",
         };
 
-        return Button
+        var height = UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerButtonSize.Base));
+        var locked = Disabled == true || scope.Disabled;
+        var button = Button
             .Id(scope.ControlId)
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiDatePickerLook.Button, UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerButtonSize.Base)), Class))
+            .Class(UiClass.Compose(UiDatePickerLook.Button, height, Class))
             .Data(Invalid == true || scope.Invalid ? MarksInvalid : Marks)
             .Role("combobox")
-            .Disabled(Disabled == true || scope.Disabled)
+            .Disabled(locked)
             .Aria(aria)
             // Enter and Space press the button, which is the browser's; the arrows open it too, as on Flux, and
             // the runtime keeps them from scrolling the page on their way.
@@ -79,5 +84,7 @@ public sealed partial class UiDatePickerButton : Component
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
+
+        return scope.Cleared(button, Clearable, height, locked);
     }
 }
