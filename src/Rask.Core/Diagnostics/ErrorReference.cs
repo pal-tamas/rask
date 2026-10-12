@@ -15,6 +15,8 @@ internal static class ErrorReference
 {
     internal const string Category = "Rask.Errors";
 
+    private const string English = "The problem has been recorded. If it keeps happening, quote this reference: {0}";
+
     // No vowels, so no words, and none of the pairs a person misreads aloud: 0/O, 1/I/L, U/V.
     private const string Alphabet = "BCDFGHJKMNPQRSTWXZ23456789";
     private const int Length = 8;
@@ -44,6 +46,10 @@ internal static class ErrorReference
         Report(thrown, reached, fresh);
         return fresh;
     }
+
+    /// <summary>What a visitor reads in place of <paramref name="thrown" />: that it was recorded, and its reference.</summary>
+    internal static string Sentence(Exception thrown, string reached = "an error page") =>
+        Globalization.RaskStrings.Get(Globalization.RaskString.ErrorReference, English, Of(thrown, reached));
 
     /// <summary>
     ///     Marks the calling flow as a build-time render: nobody is shown its pages, so what a boundary takes

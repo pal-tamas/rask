@@ -433,4 +433,10 @@ public enum RaskString
     ///     written into its <c>{0}</c>.
     /// </summary>
     ErrorReference,
+
+    /// <summary>
+    ///     What the person is told, in a toast, when a handler of theirs — a click, a change — threw and
+    ///     no boundary of the app's own was there to take it.
+    /// </summary>
+    HandlerFailed,
 }

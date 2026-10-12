@@ -288,8 +288,28 @@ public abstract partial class Component
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
         {
-            TripHandlerBoundary(boundary, owner, ex);
+            AnswerHandlerFault(boundary, owner, ex);
             return true;
+        }
+    }
+
+    // A boundary the app wrote takes its part over, as asked. The host's own, around the whole app, would
+    // replace every page for one failed click: the fault is a toast instead, the page stays as the handler
+    // left it, and the boundary is kept for a session that has nowhere to draw one.
+    private void AnswerHandlerFault(ErrorBoundary boundary, Component owner, Exception ex)
+    {
+        if (!boundary.IsRoot || !HandlerFault.Say(ex))
+        {
+            TripHandlerBoundary(boundary, owner, ex);
+            return;
+        }
+
+        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
+
+        // Null outside Development, where the overlay names the exception beside the page as it did before.
+        if (DevErrorInfo.From(ex, "handler") is { } devError)
+        {
+            RenderHandle?.ReportDevError(devError);
         }
     }
 

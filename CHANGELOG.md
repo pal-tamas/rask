@@ -38,6 +38,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR: a handler that throws no longer replaces the page.** A click, a change or any callback whose
+  handler threw a real fault used to trip the nearest `ErrorBoundary` — in an app that wrote none, the host's own,
+  so one failed click swapped the whole app for the error page. Now, when no boundary of the app's own is around
+  the component that wrote the handler, **the page stays as the handler left it** (what it set before the throw is
+  rendered, as with a refusal) and an error toast says *That did not work. Please try again.*
+  (`RaskString.HandlerFailed`, Hungarian in the kit) followed by the reference sentence of the error page; the
+  exception is logged once at Error on `Rask.Errors` with that reference, and the next click is answered. In
+  Development the toast adds the exception's type and message and the overlay still shows the rest; in
+  Production nothing of the exception is in the frame. Unchanged: a handler inside an `ErrorBoundary` you wrote
+  trips that boundary, a `Render` or lifecycle fault is the boundary's, a refusal says its own sentence, a
+  cancelled handler says nothing, a form's submit keeps *The save failed*, and a host that draws no toasts
+  keeps the boundary — a fault is never swallowed. Both hosts. An app that relied on the root error page after a
+  failed click — a test that looks for `.rask-error-boundary`, a `Try again` flow — sees the toast instead; wrap
+  the part in an `ErrorBoundary` to keep a fallback. See
+  [a handler that fails](docs/composition-lists.md#a-handler-that-fails).
+
 - **BEHAVIOUR: a handler's work reaches the screen once.** Nothing changes on screen until the handler has
   answered, as in Livewire. (1) **What a handler sets between its awaits is no longer sent at once.** It is
   withheld until the handler has run for the handler budget; a handler that finishes in time is ONE frame, its

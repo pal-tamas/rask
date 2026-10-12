@@ -286,7 +286,21 @@ No exception type, no message, no inner exception, no stack and no source reach 
 message routinely carries a connection string, a query, a path or a user's data. The texts are `RaskString.ErrorHeading`,
 `ErrorTryAgain`, `ErrorReload` and `ErrorReference` ([localization](localization.md)).
 
-The reference is how support finds it. Every exception a boundary takes — the root one or your own, whatever its
+**A handler that throws is not that page.** A click, a change, any callback whose handler throws, in a part
+of the app you wrote no `ErrorBoundary` around, keeps the page it was on — with whatever the handler changed
+before it threw — and says so in an error toast that carries the same reference:
+
+```text
+That did not work. Please try again. The problem has been recorded. If it keeps happening, quote this reference: K7WQ2MZP
+```
+
+The next click is answered as usual. The sentence is `RaskString.HandlerFailed` followed by `ErrorReference`.
+What still replaces the page, or the part your own boundary wraps, is a fault the tree cannot be drawn
+around: a `Render` or a lifecycle hook that throws, a handler inside an `ErrorBoundary` you wrote (see
+[a handler that fails](composition-lists.md#a-handler-that-fails)), and a handler in a host whose layout
+draws no toasts — there would be nowhere to say it.
+
+The reference is how support finds it. Every exception a boundary or that toast takes — the root one or your own, whatever its
 fallback draws — is logged **once at Error** on the `Rask.Errors` category, with the exception attached and the same
 reference in the message:
 
@@ -297,7 +311,7 @@ fail: Rask.Errors[0]
          at …
 ```
 
-It is eight random characters, made on the host when the exception is first seen, and derived from nothing: not the
+A handler's line reads `reached a toast from an event handler` in place of the boundary. It is eight random characters, made on the host when the exception is first seen, and derived from nothing: not the
 exception, not the visitor, not the request. One exception keeps one reference however many times its page is drawn.
 With request tracing on, the same log line carries the host's trace id as usual. A build-time
 [prerender](prerendering.md) shows its pages to nobody: what a boundary takes there — typically a hook reaching for a
@@ -305,7 +319,7 @@ browser that is not there — is one Information line, and the pass itself repor
 
 In **Development** the page shows everything it always has — type, message, each cause, the stack with source
 excerpts — and the reference beside them. A handler or lifecycle fault is shown over the running app instead
-([`rask dev`](cli.md)).
+([`rask dev`](cli.md)), and a handler's toast adds the exception's type and message after its sentence.
 
 **What decides Development:** the host's own `IHostEnvironment`, which `MapRask`/`RaskApp` read once at startup. A host
 that never says — a hand-wired host with no `IHostEnvironment`, a component rendered outside a host — falls back to
