@@ -57,9 +57,18 @@ internal static class UiSelectLook
 
     /// <summary>
     ///     The button that empties the answer, laid over the end of the listbox's button: hung from the top and,
-    ///     with <see cref="UiInputLook.SlotHeight" />, as tall as the button — not as the select, which a row can stretch.
+    ///     with <see cref="ClearHeight" />, as tall as the button — not as the select, which a row can stretch.
+    ///     Flux shows no clearable listbox to measure: inside its trigger is the only reading.
     /// </summary>
     internal const string ClearSlot = "absolute top-0 end-8 flex items-center";
+
+    /// <summary>How tall the listbox's button is at one of Flux's sizes, for the clear button laid over it.</summary>
+    internal static string ClearHeight(Ui.SelectSize size) => size switch
+    {
+        Ui.SelectSize.Sm => "h-8",
+        Ui.SelectSize.Xs => "h-6",
+        _ => "h-10",
+    };
 
     /// <summary>The chevron button at the end of the combobox's input.</summary>
     internal const string InputChevron =

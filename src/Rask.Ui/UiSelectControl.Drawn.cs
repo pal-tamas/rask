@@ -60,7 +60,7 @@ public abstract partial class UiSelectControl<T>
 
     // How tall the listbox's button is, for the clear button laid over its end.
     private string ButtonHeight(View view) =>
-        UiInputLook.SlotHeight(UiSelectLook.InputSize(view.Parts.Button?.Size ?? Height));
+        UiSelectLook.ClearHeight(view.Parts.Button?.Size ?? Height);
 
     // ----- Listbox: the button -------------------------------------------------------------------------
 
@@ -141,7 +141,7 @@ public abstract partial class UiSelectControl<T>
                 .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
                 .OnKeyDown(e => OnInputKeyAsync(e, view)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
-            Div.Class(UiClass.Compose(UiInputLook.Trailing, UiInputLook.SlotHeight(size)))[
+            Div.Class(UiInputLook.Trailing)[
                 Clears(view) ? ClearButton() : null,
                 Filter == false ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
                 Button

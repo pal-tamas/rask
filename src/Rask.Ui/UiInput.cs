@@ -220,8 +220,6 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
 
     private bool ShowsClear => Clearable == true && Disabled != true && ReadOnly != true;
 
-    private string SlotHeight => UiInputLook.SlotHeight(Size ?? Ui.InputSize.Base);
-
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -237,7 +235,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     // Flux always draws the wrapper, icons or not: it is what `Class` and an input group reach.
     private Component Box(UiWithField field)
     {
-        var leading = Icon is { } icon ? Div.Class(UiClass.Compose(UiInputLook.Leading, SlotHeight))[Glyph(icon)] : null;
+        var leading = Icon is { } icon ? Div.Class(UiInputLook.Leading)[Glyph(icon)] : null;
         var trailing = Trailing(field.ControlId);
 
         // What a list hangs from, when the input is the text box of a control that drops one.

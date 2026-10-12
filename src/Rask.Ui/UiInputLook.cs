@@ -36,17 +36,14 @@ internal static class UiInputLook
     /// <summary>The <c>&lt;input&gt;</c> itself, before size and padding.</summary>
     internal const string Control = "block w-full appearance-none";
 
-    /// <summary>
-    ///     A leading icon: over the box's left edge, not in the pointer's way. Hung from the top and, with
-    ///     <see cref="SlotHeight" />, as tall as the box — not as the wrapper, which a row can stretch.
-    /// </summary>
+    /// <summary>A leading icon: over the box's left edge, not in the pointer's way.</summary>
     internal const string Leading =
-        "pointer-events-none absolute top-0 start-0 flex items-center justify-center ps-3 text-xs "
+        "pointer-events-none absolute top-0 bottom-0 start-0 flex items-center justify-center ps-3 text-xs "
         + "border-s border-transparent text-zinc-400/75 dark:text-white/60";
 
-    /// <summary>What sits at the end: an icon, a shortcut, the clear and reveal buttons. As tall as the box, as <see cref="Leading" /> is.</summary>
+    /// <summary>What sits at the end: an icon, a shortcut, the clear and reveal buttons.</summary>
     internal const string Trailing =
-        "absolute top-0 end-0 flex items-center gap-x-1.5 pe-2 text-xs border-e border-transparent text-zinc-400";
+        "absolute top-0 bottom-0 end-0 flex items-center gap-x-1.5 pe-2 text-xs border-e border-transparent text-zinc-400";
 
     /// <summary>The 32px borderless button inside the box (Flux's small subtle button).</summary>
     internal const string Action =
@@ -143,14 +140,6 @@ internal static class UiInputLook
 
     /// <summary>What marks the <c>&lt;textarea&gt;</c>.</summary>
     internal static Dictionary<string, string?> TextareaMarks(bool invalid) => invalid ? InvalidTextarea : Textarea;
-
-    /// <summary>How tall the box is, for the icons and buttons laid over its ends.</summary>
-    internal static string SlotHeight(Ui.InputSize size) => size switch
-    {
-        Ui.InputSize.Sm => "h-8",
-        Ui.InputSize.Xs => "h-6",
-        _ => "h-10",
-    };
 
     /// <summary>Height, text and corners.</summary>
     internal static string Size(Ui.InputSize size) => size switch
