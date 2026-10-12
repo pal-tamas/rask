@@ -92,6 +92,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A browser session's two repaints of a running handler take turns.** A handler that awaits is repainted when
+  it first yields and again before its continuation; the WebAssembly session let the two walk the tree at
+  once where the host has more than one thread — never in a browser, always in a test — and the walk that
+  threw took the handler or its continuation with it: about one `await Save(); Go.To(…)` in five hundred never
+  navigated, or never returned. They are serialised, as the server session's always were. A render asked for
+  just as a dispatch ends is also no longer left to a dispatch that has stopped looking.
+
 - **A navigation that renders more than once tells the browser its address once.** On the Server host, a
   `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
   its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that

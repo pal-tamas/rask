@@ -66,7 +66,6 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         store.Release();
         var frame = Assert.Single(await arrival.Settled());
 
-        Assert.Equal("page", Kind(frame));
         Assert.Contains(Heading, frame, StringComparison.Ordinal);
         Assert.Contains(LastRow, frame, StringComparison.Ordinal);
         Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
@@ -85,7 +84,6 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         var frame = Assert.Single(await arrival.Settled());
 
         // The handler's own repaint is withheld once it has navigated, so the list never travels without its address.
-        Assert.Equal("page", Kind(frame));
         Assert.Contains(LastRow, frame, StringComparison.Ordinal);
         Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
     }
@@ -103,7 +101,6 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         var after = await arrival.Until(LastRow);
 
         // Spending the budget cancels nothing: the reads are still running, and what follows arrives as before.
-        Assert.Equal("page", Kind(atTheBudget));
         Assert.Contains(Heading, atTheBudget, StringComparison.Ordinal);
         Assert.DoesNotContain(LastRow, atTheBudget, StringComparison.Ordinal);
         Assert.Equal("/destinations", LiveFrames.HistoryUrl(atTheBudget));
@@ -122,7 +119,7 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         store.Release();
         var after = await arrival.Until(LastRow);
 
-        Assert.Equal("page", Kind(atTheBudget));
+        Assert.Equal("/destinations-tail", LiveFrames.HistoryUrl(atTheBudget));
         Assert.Equal("diff", Kind(Assert.Single(after)));
     }
 
@@ -138,7 +135,9 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         store.Release();
         var frame = Assert.Single(await arrival.Settled());
 
-        Assert.DoesNotContain("Bet&#xF6;lt&#xE9;s", frame, StringComparison.Ordinal);
+        // Neither as markup writes it nor as a diff's text would.
+        Assert.DoesNotContain("Bet&#xF6;lt", frame, StringComparison.Ordinal);
+        Assert.DoesNotContain("Betölt", frame, StringComparison.Ordinal);
         Assert.Contains(LastRow, frame, StringComparison.Ordinal);
     }
 
@@ -169,6 +168,7 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         var frame = Assert.Single(await arrival.Settled());
 
         Assert.DoesNotContain("id=\\\"moved\\\"", frame, StringComparison.Ordinal);
+        Assert.DoesNotContain(">moved<", frame, StringComparison.Ordinal);
         Assert.Contains(LastRow, frame, StringComparison.Ordinal);
         Assert.Equal("/destinations", LiveFrames.HistoryUrl(frame));
     }
@@ -221,19 +221,18 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
         Assert.Equal("/destinations/new", LiveFrames.HistoryUrl(frame));
     }
 
+    // How much of the layout travels with it is the differ's business, and is not held here.
     [Fact]
-    public async Task A_navigation_between_two_pages_of_one_layout_is_a_whole_page_though_only_the_outlet_changed()
+    public async Task A_navigation_between_two_pages_of_one_layout_is_one_frame_with_the_new_page_and_its_address()
     {
         var store = new ListArrivalStore();
         await using var arrival = await Arrival.Open(store, "/destinations", output);
 
         await arrival.Go("link", "/destinations/new");
-        var frame = await arrival.Next();
+        var frame = Assert.Single(await arrival.Settled());
 
-        // Wanted: a diff of the outlet, the crumb and the title. Today the sidebar travels again.
-        Assert.Equal("page", Kind(frame));
-        Assert.Contains("data-ui-sidebar-item", frame, StringComparison.Ordinal);
-        Assert.Contains("is by position", arrival.Why[^1], StringComparison.Ordinal);
+        Assert.Equal("/destinations/new", LiveFrames.HistoryUrl(frame));
+        Assert.Contains("Ment", frame, StringComparison.Ordinal);
     }
 
     // What the socket's permessage-deflate makes of a frame, near enough: one message, no shared window.

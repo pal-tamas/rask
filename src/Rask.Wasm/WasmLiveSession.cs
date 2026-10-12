@@ -81,6 +81,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
         _htmlBuffers.Dispose();
         _arrivals.Dispose();
+        _repaints.Dispose();
         _lock.Dispose();
     }
 
@@ -109,10 +110,24 @@ internal sealed class WasmLiveSession : LiveSessionBase
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            await BuildPayloadAsync(null, false).ConfigureAwait(false);
-            if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+            // One at a time. A handler's first repaint and the one before its continuation are asked for from
+            // two places, and on a host with more than one thread — every test of this session — they walked
+            // the tree together: one threw out of the walk, and with it went the handler's continuation or the
+            // handler itself. The server session's render lock, for the renders a dispatch makes of itself.
+            Interlocked.Increment(ref _repaintsWaiting);
+            await _repaints.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            Interlocked.Decrement(ref _repaintsWaiting);
+            try
             {
-                _htmlBuffers.Commit();
+                await BuildPayloadAsync(null, false).ConfigureAwait(false);
+                if (await TryEmitFrameAsync(false).ConfigureAwait(false))
+                {
+                    _htmlBuffers.Commit();
+                }
+            }
+            finally
+            {
+                _repaints.Release();
             }
         }
         finally
@@ -121,15 +136,36 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
+    // Serialises the repaints a handler asks for while it is still running (RenderInScopeCoreAsync).
+    private readonly SemaphoreSlim _repaints = new(1, 1);
+    private int _repaintsWaiting;
+
+    // How many of a handler's repaints are waiting their turn — for the test that holds one mid-walk.
+    internal int RepaintsWaiting => Volatile.Read(ref _repaintsWaiting);
+
+    // Already inside a dispatch's render: signal it to rebuild the payload before releasing the lock, so
+    // dispose-driven state changes (e.g. a token.Register callback that calls StateHasChanged on a parent)
+    // land in the response payload instead of waiting for the next event.
+    //
+    // The scope is re-read after the write, as the server session does: a dispatch that finished its coalescing
+    // loop and cleared the scope in between will not look at the flag again, so the request renders itself
+    // instead of being dropped. A browser has one thread and never sees that; a host with more than one —
+    // every test of this session — does.
+    private bool LeftToTheDispatch()
+    {
+        if (!InHandlerScope)
+        {
+            return false;
+        }
+
+        _pendingRenderInScope = true;
+        return InHandlerScope;
+    }
+
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
-        if (InHandlerScope)
+        if (LeftToTheDispatch())
         {
-            // Already inside a dispatch's render: signal the helper to rebuild the payload
-            // before releasing the lock so dispose-driven state changes (e.g. a token.Register
-            // callback that calls StateHasChanged on a parent) land in the response payload
-            // instead of waiting for the next event.
-            _pendingRenderInScope = true;
             return;
         }
 
