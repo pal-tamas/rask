@@ -9,7 +9,9 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.WebSockets;
 
 // A click whose render the diff gate refuses is answered with the whole page. In Development the session says
-// which node it gave up on, on Rask.Live; in production it says nothing and builds no message.
+// which node it gave up on, on Rask.Live; in production it says nothing and builds no message. A child that
+// changes element is refused only as a child of the body; inside an element of the page that element's children
+// are morphed alone, and Development says that too, as information.
 [Collection("HostEnvironment")]
 public sealed class FullPageReplyReasonTests
 {
@@ -65,6 +67,33 @@ public sealed class FullPageReplyReasonTests
     }
 
     [Fact]
+    public async Task In_development_a_child_that_changes_element_inside_the_page_is_a_diff_that_names_the_parent_morphed_for_it()
+    {
+        using var host = RaskTestHost.Create<NestedShapeSwitchApp>(environment: "Development");
+        var said = await SwapAsync(host);
+
+        var morphed = Assert.Single(said.Reasons);
+
+        Assert.StartsWith("{\"kind\":\"diff\",\"ops\":[[8,[1,1,0],\"<div id=\\\"picked\\\">Glock</div><button", said.Frame, StringComparison.Ordinal);
+        Assert.Equal(RaskLogLevel.Information, morphed.Level);
+        Assert.Contains("the children of /1/1/0 went out as one subtree", morphed.Message, StringComparison.Ordinal);
+        Assert.Contains("RemoveSubtree at /1/1/0/0 is by position, replaced by <div id=\"picked\">Glock</div>", morphed.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("whole page", morphed.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task In_production_the_same_morph_says_nothing()
+    {
+        using var host = RaskTestHost.Create<NestedShapeSwitchApp>(environment: "Production");
+        var said = await SwapAsync(host);
+
+        var reasons = said.Reasons;
+
+        Assert.StartsWith("{\"kind\":\"diff\",\"ops\":[[8,[1,1,0],", said.Frame, StringComparison.Ordinal);
+        Assert.Empty(reasons);
+    }
+
+    [Fact]
     public async Task A_press_that_only_calls_script_is_answered_with_a_diff_that_carries_the_call()
     {
         using var host = RaskTestHost.Create<ScriptOnlyApp>(environment: "Development");
@@ -104,12 +133,31 @@ public sealed class FullPageReplyReasonTests
     }
 }
 
-/// <summary>One child that is a span until the button is pressed and a div after, with a sibling behind it.</summary>
+/// <summary>
+///     One child of the body that is a span until the button is pressed and a div after, with a sibling behind
+///     it: there is no element of the page around it to send instead.
+/// </summary>
 public sealed partial class ShapeSwitchApp : Component
 {
     private bool _picked;
 
     protected override Component? HeadAssets => Title["shape-switch"];
+
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() =>
+    [
+        _picked ? Div.Id("picked")["Glock"] : Span.Id("placeholder")["Choose…"],
+        Button.Id("swap").OnClick(() => _picked = true)["swap"],
+    ];
+}
+
+/// <summary>The same child inside a <c>main</c>, which is what travels when it changes element.</summary>
+public sealed partial class NestedShapeSwitchApp : Component
+{
+    private bool _picked;
+
+    protected override Component? HeadAssets => Title["nested-shape-switch"];
 
     protected override string? HtmlLang => null;
 

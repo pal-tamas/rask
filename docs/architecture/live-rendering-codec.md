@@ -59,6 +59,7 @@ surrounding level). The op kinds (`EditOpKind`):
 | `RemoveSubtree`    | 5 | remove a contiguous run of `Length` sibling subtrees |
 | `MoveSubtree`      | 6 | move an existing sibling node (detach at source, insert at dest) |
 | `PermutationBatch` | 7 | a batch of sibling moves under one keyed parent (see below) |
+| `MorphSubtree`     | 8 | reconcile the children of the element at `Path` against the inner HTML the op carries (see [the fallback ladder](#the-fallback-ladder-fine-diff--one-run--subtree-morph--whole-page)) |
 
 ### One frame per DOM node: text & `Raw`
 
@@ -80,10 +81,11 @@ them (`Live/RenderFrame.cs`, `FrameWriter.Text`):
 unknown number of top-level nodes (zero, one, or many). A solitary `Raw` is safe (its
 nodes span the whole parent — nothing is indexed after it), but a `Raw` that shares a
 sibling level with other nodes makes every following position unreliable. When a changed
-sibling level mixes a `Raw` with other nodes, the diff sets a force-full-HTML flag
-(`DiffScratch.ForceFullHtml` → `SessionRenderCache.LastDiffForcedFullHtml`) and the render
-falls back to the morph, which reparses the markup correctly rather than shipping a
-mis-targeted positional op.
+sibling level mixes a `Raw` with other nodes, that level's ops are rolled back and its
+parent's children travel as one `MorphSubtree`, which reparses the markup correctly rather
+than shipping a mis-targeted positional op. Only at the document's own level, where there is
+no parent to name, does the diff set a force-full-HTML flag (`DiffScratch.ForceFullHtml` →
+`SessionRenderCache.LastDiffForcedFullHtml`) and the reply fall back to the whole page.
 
 ### When a diff ships vs full HTML
 
@@ -92,7 +94,8 @@ mis-targeted positional op.
 
 - **`Auto`** (default) — *choose-smaller*. Ship the diff whenever it isn't larger
   than re-sending the body. Fall back to full HTML on the first render (no baseline),
-  on untrusted structural ops, and on out-of-band side effects.
+  on untrusted structural ops (a change of shape directly under `<body>`), and on
+  out-of-band side effects.
 - **`DisabledFull`** — always full HTML; bit-for-bit pre-codec behaviour.
 - **`Forced`** — always diff when one is computable, even when larger than the body;
   for tests/benchmarks.
@@ -213,8 +216,10 @@ if ((op.Kind == InsertSubtree || RemoveSubtree || MoveSubtree || PermutationBatc
 
 The reasoning (verbatim from the source): positional structural ops can replace
 mid-list elements the morph would have preserved — ungating them unconditionally broke
-83/430 E2E tests in an earlier iteration. So **positional (keyless) structural changes
-fall back to full HTML**; only **keyed/trusted** ops ship as diff. The
+83/430 E2E tests in an earlier iteration. So a **positional (keyless) replace never ships
+as ops**: below the document's own level the differ rewrites it as a morph of its parent
+before the gate sees it (see [the fallback ladder](#the-fallback-ladder-fine-diff--one-run--subtree-morph--whole-page)),
+and what still reaches the gate untrusted falls back to full HTML. The
 `SessionRenderCache.TryComputeDiff` overload surfaces `usedKeyedPath` so the session
 knows whether the diff touched the keyed branch.
 
@@ -242,11 +247,66 @@ aside, counts 2; the same element with the same attributes of its own counts 1).
 left out because a handler that comes or goes above renumbers the ones below it; those new ids
 reach the page as ordinary `SetAttribute` ops on the shifted siblings.
 
-Still answered with the whole page: an element in place of another (`cond ? A : B`, text in place
-of an element), two children arriving apart from each other, any structural change at the
-document's own level, and a run inside `<svg>`/`<math>` (the client parses an insert in a
-`<template>`, where an SVG child read on its own is an unknown HTML element). A level beside raw
-markup is still one `MorphSubtree` of its parent. Give such children a `.Key(…)`.
+Not a run: an element in place of another (`cond ? A : B`, text in place of an element), two
+children arriving apart from each other, and a run inside `<svg>`/`<math>` (the client parses an
+insert in a `<template>`, where an SVG child read on its own is an unknown HTML element). Those
+levels are the next rung down.
+
+### The fallback ladder: fine diff → one run → subtree morph → whole page
+
+Each sibling level is answered with the first of these that can carry it, and a level settles
+before the one above it does:
+
+1. **A fine diff.** Attributes, text, keyed inserts/removes/moves, a tail: ops that name exactly
+   the nodes that changed.
+2. **One run** (above): trusted inserts or removes among siblings that still pair up.
+3. **A subtree morph.** One child took the PLACE of another — `cond ? A : B`, words that become
+   an element, a loading line that becomes a list, one page in the `Outlet` giving way to the
+   next — and the positional walk can only answer with a remove and an insert the gate refuses,
+   because it cannot tell which node stayed. `DiffPositional` says so of its own level (a level-local
+   flag: a replace happened and the level is not one run — never a scan of the ops, which would see
+   deeper levels' too), and `DiffSiblings` rolls that level's ops back to where they began and writes
+   ONE trusted `MorphSubtree` in their place (`MorphRefusedLevel`, `Live/FrameDiffer.RefusedLevel.cs`):
+   the path of the level's **parent**, in new coordinates like every other op, and the char range of
+   its inner HTML in the render. Because deeper levels settle first, the outermost refused level
+   speaks for the ones below it; a level above that is still patched node by node keeps its own ops
+   around the morph, in order. A level beside `Raw` markup takes the same rung (`MorphRawTaintedLevel`).
+4. **The whole page.** A refused level directly under `<body>` or `<html>` (the runtime's script and
+   whatever the browser or a library put beside the page live there, and there is no element of the
+   page's own to name), anything at the document's own level, a first render, a sign-in handoff or a
+   download — and any diff that is no smaller than the page (the size check below is in front of
+   every rung).
+
+What the client does with op 8 (`rask-dom.ts`): it resolves the path, shallow-clones **that element**,
+sets the clone's `innerHTML` to the fragment, and runs the same `morph()` a whole page goes through
+— no further than this one element. Cloning the element itself is what makes the fragment parse in
+context: table rows inside a `<tbody>`, options inside a `<select>`, and shapes inside an `<svg>` in
+the SVG namespace. So everything the whole-page morph guarantees holds inside the morphed parent,
+exactly as before — a focused field that streams its typing is left alone, a field holding what the
+server has not heard yet keeps it, `data-rask-managed` nodes are skipped, a `data-rask-opaque` island
+keeps its children, attributes a behaviour hook owns stay the hook's, an open `<dialog>` stays open,
+a keyed child keeps its node — and everything **outside** it is not touched at all: the focus, the
+caret, the scroll position and the expanded groups of a menu the navigation never named. An inline
+`<script>` inside the morphed parent runs when it is new or lands where a different node was, as in
+a whole-page morph, and the runtime's own tag never runs twice; a script elsewhere on the page is
+no longer re-run by a navigation, since nothing pairs it against a neighbour any more.
+
+A navigation changes `<title>` too, and `<head>` is not in the frame stream. That was already
+solved for diffs: when the rendered `<head>` differs from the last one sent, the diff carries it
+whole (`"head"`), and the client morphs `document.head` before the body ops. A page swap rides
+that — the outlet as a `MorphSubtree`, the title in the head fragment, the address in `history`.
+
+Measured on a replica of a reported app (a menu of 84 links, a header, the page in the outlet):
+a navigation between two pages of the layout went from 349,698 B to 5,859 B, a list arriving in
+place of its loading line from 417,357 B to 69,341 B (the table itself), a form in place of a
+"no such record" callout from 348,394 B to 4,398 B (`NavigationIsADiffTests`).
+
+**A morph is still by position.** Inside the morphed parent, children are paired by slot unless
+they carry keys, so a sibling after the child that changed shape is rebuilt when its tag no longer
+lines up. That is what a `.Key(…)` is for now: not bytes, but identity — the node that must stay
+the node it was (its focus, what was typed into it, its scroll) across a change of shape beside
+it. In Development each morphed level is logged on `Rask.Live` at Information — the parent's path,
+the size of its markup, and the child that changed shape — so a missing key can still be found.
 
 ### Minimal moves via LIS
 

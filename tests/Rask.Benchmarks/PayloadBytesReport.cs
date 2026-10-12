@@ -79,7 +79,19 @@ internal static partial class PayloadBytesReport
             // An icon arrives in front of a badge's words, which are text and cannot carry a key.
             Report("IconOnBadge", writer,
                 BuildBadgePage(icon: false),
-                BuildBadgePage(icon: true))
+                BuildBadgePage(icon: true)),
+            // A navigation inside one layout: a menu of sixty links and a header stay, and the page in the
+            // outlet gives way to another. One node takes the place of another there, which the gate refuses
+            // as ops by position — the whole page used to go out for it, menu and all (2,626 bytes here).
+            // Now the outlet's children travel alone, as one MorphSubtree of the outlet.
+            Report("PageSwapUnderSidebar", writer,
+                BuildLayoutPage(form: false, shipped: false),
+                BuildLayoutPage(form: true, shipped: false)),
+            // `cond ? A : B`: a status that is a <span> while the order is open and an <em> once it shipped,
+            // inside a card of that same layout. The card's status line is what travels (2,738 bytes before).
+            Report("ConditionalChildInCard", writer,
+                BuildLayoutPage(form: false, shipped: false),
+                BuildLayoutPage(form: false, shipped: true))
         };
 
         return check ? CheckAgainstBaseline(rows) : 0;
@@ -406,6 +418,41 @@ internal static partial class PayloadBytesReport
                         saved ? Div.Class("callout").Id("saved")[Strong["Saved"], P["The order was saved."]] : null,
                         Table.Class("sheet")[Tbody[rows]]
                     ]
+                ]
+            ]
+        ];
+    }
+
+    private static Component BuildLayoutPage(bool form, bool shipped)
+    {
+        const int linkCount = 60;
+        var links = new List<Component>(linkCount);
+        for (var i = 1; i <= linkCount; i++)
+        {
+#pragma warning disable RASK022 // a menu nothing keys: it never changes, which is what this measures
+            links.Add(A.Href($"/menu/{i}")[$"Menu item {i}"]);
+#pragma warning restore RASK022
+        }
+
+        Component[] listPage =
+        [
+            H1["Orders"],
+            Div.Class("card")[H2["Order 7"], P.Class("status")[shipped ? Em["Shipped"] : Span["Open"]], Footer["3 lines"]],
+            Table.Class("sheet")[Tbody[Tr[Td["Order 7"], Td.Class("amount")["70.00"]], Tr[Td["Order 8"], Td.Class("amount")["80.00"]]]],
+        ];
+        Component[] formPage =
+        [
+            H2["New order"],
+            Fieldset[Label["Name", Input.Value("").Name("name")], Label["Note", Textarea.Value("").Name("note")], Button["Save"]],
+        ];
+
+        return [
+            Doctype,
+            Html[
+                Body[
+                    Nav.Class("sidebar")[links],
+                    Div.Class("header")[Strong["Orders"], Input.Value("").Name("search")],
+                    Main.Class("content")[Div.Id("outlet")[form ? formPage : listPage]]
                 ]
             ]
         ];
