@@ -9,6 +9,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a plain property that cannot be null is required by its type, not by a generated `[Required]`.**
+  The form model of an aggregate used to carry a generated `[Required]` for every non-nullable property
+  (`int Weight`, `decimal Price`, `DateOnly`, `Guid`, `bool`, `string Name`, and a one-value value object with no
+  rule of its own). It now carries a generated rule instead — the mechanism a value object's `Validate` uses — and
+  no attribute. What changes: (1) the message is the strings catalog's `ValidationRequired` (*This field is
+  required.*, Hungarian *Kötelező kitölteni.* in the kit, yours if your catalog rewords it) instead of
+  DataAnnotations' *The Weight field is required.*; (2) a form shows it with `RaskValidation.AutoValidate = false`
+  too, where it showed nothing; (3) `X.Create(model)` / `X.Update(id, model)` refuse the same way as before, with
+  `RaskValidationException` and `Failures` under the field. What is accepted does not change: `null` was refused
+  and is; for a `string`, `""` and white space were refused by `[Required]` and still are; a nullable property is
+  still optional. **For an existing app:** code that looked for `RequiredAttribute` on a generated model no
+  longer finds one — DataAnnotations validation of the model alone (`Validator.TryValidateObject`, the attribute
+  pass on a dispatched request or an endpoint that takes `XModel`) no longer reports an unfilled field, the
+  generated write does. A bound control still says `aria-required="true"`: each generated model type registers
+  the fields its write refuses unfilled (`RaskValidation.RegisterRequiredFields`), root, nested value-object
+  model and row alike. A `[Required]` you wrote on the aggregate yourself is kept with its message, and is then
+  what says it. The value-object sentence for a number, date or id now comes from the catalog too.
+
+### Changed
+
 - **BREAKING: a non-nullable value-object property is required by its type, and the generated writes ask the
   value object's rule.** Three things change for an aggregate whose property is a one-value value object with a
   `public static Validate`:

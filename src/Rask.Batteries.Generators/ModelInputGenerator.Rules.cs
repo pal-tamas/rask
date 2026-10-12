@@ -24,7 +24,7 @@ public sealed partial class ModelInputGenerator
     ///     What the compilation offers a form's rules to be announced through. A library that models its data
     ///     and draws no form references neither, and its models are then generated without them.
     /// </summary>
-    private readonly record struct Seams(bool FieldRules, bool StoreRules);
+    private readonly record struct Seams(bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -35,7 +35,10 @@ public sealed partial class ModelInputGenerator
                 validation?.GetMembers("RegisterFieldRules").Length > 0,
                 validation?.GetMembers("RegisterStoreRules").Length > 0 &&
                 compilation.GetTypeByMetadataName("Rask.Core.Forms.IStoreRules") is not null &&
-                compilation.GetTypeByMetadataName("Rask.Data.GeneratedStoreRules") is not null);
+                compilation.GetTypeByMetadataName("Rask.Data.GeneratedStoreRules") is not null,
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationRequired").Length > 0,
+                validation?.GetMembers("RegisterRequiredFields").Length > 0);
         });
 
     /// <summary>How a one-value value object states its rule, when it does.</summary>
@@ -204,18 +207,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         s.AppendLine("    internal static void Register()");
         s.AppendLine("    {");
-        foreach (var model in models)
-        {
-            s.Append("        ").Append(RaskValidation).Append(".RegisterFieldRules(typeof(").Append(model.Type)
-                .Append("), ").Append(model.Key).AppendLine("RuleOf);");
-        }
-
-        if (store)
-        {
-            s.Append("        ").Append(RaskValidation).Append(".RegisterStoreRules(typeof(").Append(FormModelType(entity))
-                .AppendLine("), StoreRules);");
-        }
-
+        AppendRegistrations(s, entity, models, store);
         s.AppendLine("    }");
 
         foreach (var model in models)
@@ -237,6 +229,11 @@ public sealed partial class ModelInputGenerator
 
             s.AppendLine("            _ => null,");
             s.AppendLine("        };");
+
+            if (AnnouncesRequired(entity, model))
+            {
+                AppendIsRequired(s, model);
+            }
         }
 
         if (store)
@@ -245,6 +242,41 @@ public sealed partial class ModelInputGenerator
         }
 
         s.AppendLine("}");
+    }
+
+    // One registration per generated model type: a form asks by the exact type its field belongs to.
+    private static void AppendRegistrations(StringBuilder s, Entity entity, List<RuledModel> models, bool store)
+    {
+        foreach (var model in models)
+        {
+            s.Append("        ").Append(RaskValidation).Append(".RegisterFieldRules(typeof(").Append(model.Type)
+                .Append("), ").Append(model.Key).AppendLine("RuleOf);");
+            if (AnnouncesRequired(entity, model))
+            {
+                s.Append("        ").Append(RaskValidation).Append(".RegisterRequiredFields(typeof(").Append(model.Type)
+                    .Append("), ").Append(model.Key).AppendLine("IsRequired);");
+            }
+        }
+
+        if (store)
+        {
+            s.Append("        ").Append(RaskValidation).Append(".RegisterStoreRules(typeof(").Append(FormModelType(entity))
+                .AppendLine("), StoreRules);");
+        }
+    }
+
+    private static bool AnnouncesRequired(Entity entity, RuledModel model) =>
+        entity.AnnouncesRequiredFields && model.Rules.Exists(static rule => rule.Required);
+
+    // What a control asks to say aria-required: exactly the fields whose rule refuses them unfilled, so a field
+    // is announced as required where a write would enforce it and nowhere else. A switch over constants.
+    private static void AppendIsRequired(StringBuilder s, RuledModel model)
+    {
+        s.AppendLine();
+        s.Append("    private static bool ").Append(model.Key).AppendLine("IsRequired(string property) =>");
+        s.Append("        property is ")
+            .Append(string.Join(" or ", model.Rules.Where(static rule => rule.Required).Select(static rule => "\"" + rule.Property + "\"")))
+            .AppendLine(";");
     }
 
     /// <summary>
@@ -325,8 +357,10 @@ public sealed partial class ModelInputGenerator
     private static IEnumerable<RuledModel> RuledModels(Entity entity)
     {
         var root = entity.Members
-            .Where(static m => m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
-            .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
+            .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
+            .Select(static m => m.RequiredByType
+                ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
+                : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
             .ToList();
 
         if (root.Count > 0)
@@ -350,5 +384,6 @@ public sealed partial class ModelInputGenerator
 
     private sealed record RuledModel(string Type, string Key, List<FieldRule> Rules);
 
-    private sealed record FieldRule(string Property, string ModelType, string ValueObject, ValueRule Kind, bool Required);
+    /// <summary>One field's rule: its value object's <c>Validate</c>, or — with no value object to ask — only that it is filled.</summary>
+    private sealed record FieldRule(string Property, string ModelType, string? ValueObject, ValueRule Kind, bool Required);
 }

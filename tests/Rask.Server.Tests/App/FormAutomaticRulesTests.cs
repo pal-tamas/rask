@@ -65,6 +65,35 @@ public sealed class Berth : Aggregate<int>
     }
 }
 
+/// <summary>An aggregate of plain properties: nothing but their types says what must be filled.</summary>
+public sealed class Trailer : Aggregate<int>
+{
+    private Trailer() { }
+
+    public const Timestamps Stamps = Timestamps.None;
+
+    public const Concurrency Checks = Concurrency.None;
+
+    public int Weight { get; private set; }
+
+    public string Plate { get; private set; } = "";
+
+    public int? Axles { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Trailer> builder) => builder.ToTable("Trailers");
+}
+
+public sealed class LegacyTrailer
+{
+    public int Id { get; set; }
+
+    public int Weight { get; set; }
+
+    public string Plate { get; set; } = "";
+
+    public int? Axles { get; set; }
+}
+
 public sealed class LegacyBerth
 {
     public int Id { get; set; }
@@ -81,8 +110,12 @@ public sealed class LegacyQuayContext(DbContextOptions<LegacyQuayContext> option
 
     public DbSet<LegacyCrane> Cranes => Set<LegacyCrane>();
 
+    public DbSet<LegacyTrailer> Trailers => Set<LegacyTrailer>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<LegacyTrailer>().ToTable("Trailers");
+
         modelBuilder.Entity<LegacyBerth>(b =>
         {
             b.ToTable("Berths");
@@ -166,6 +199,29 @@ public sealed partial class BerthDraftFormApp : Component
             Validation.Message.Template(messages => Markup.P.Class("name-error")[string.Join(" + ", messages)]).For(() => _model.Name),
             Button["save"]
         ];
+}
+
+/// <summary>A create form that starts blank: a weight nobody has typed yet, and nothing validating it.</summary>
+public sealed partial class TrailerFormApp : Component
+{
+    private readonly TrailerModel _model = new() { Weight = null, Plate = "ABC-123" };
+    private int _saves;
+
+    protected override Component? Render() =>
+        Form.Model(_model).OnSubmit(Save)[
+            Markup.P[$"saves={_saves}"],
+            Input.Bind(() => _model.Weight).Id("weight"),
+            Validation.Message.Template(messages => Markup.P.Class("weight-error")[string.Join(" + ", messages)]).For(() => _model.Weight),
+            Input.Bind(() => _model.Axles).Id("axles"),
+            Validation.Message.Template(messages => Markup.P.Class("axles-error")[string.Join(" + ", messages)]).For(() => _model.Axles),
+            Button["save"]
+        ];
+
+    private async Task Save(TrailerModel trailer)
+    {
+        _saves++;
+        await Trailer.Create(trailer);
+    }
 }
 
 /// <summary>The same form with a rule of its own written on the field.</summary>
@@ -445,6 +501,67 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     }
 
     [Theory]
+    [InlineData("hu", "Kötelező kitölteni.")]
+    [InlineData("en", GeneratedModelRules.RequiredMessage)]
+    public async Task An_unfilled_number_that_cannot_be_null_says_the_catalogs_sentence_in_the_readers_language_with_the_automatic_validators_off(
+        string language, string sentence)
+    {
+        var automatic = Rask.Core.Forms.RaskValidation.AutoValidate;
+        var strings = Rask.Core.Globalization.RaskStrings.Source;
+        Rask.Core.Forms.RaskValidation.AutoValidate = false;
+        Rask.Core.Globalization.RaskStrings.UseSource(new HungarianRequired());
+        try
+        {
+            using var host = await StartAsync<TrailerFormApp>(language);
+            var page = await OpenAsync(host, tenant: 7);
+            using var ws = await AttachAsync(host, page);
+
+            var refused = await SubmitAsync(ws, page);
+
+            // The weight is required by its type; the axles are optional, and nothing is said about them.
+            Assert.Contains($"<p class=\"weight-error\">{Shown(sentence)}</p>", refused, StringComparison.Ordinal);
+            Assert.DoesNotContain("axles-error", refused, StringComparison.Ordinal);
+            Assert.Contains("saves=0<", refused, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Rask.Core.Globalization.RaskStrings.UseSource(strings!);
+            Rask.Core.Forms.RaskValidation.AutoValidate = automatic;
+        }
+    }
+
+    [Fact]
+    public async Task A_field_that_is_required_by_its_type_says_so_to_assistive_technology_and_an_optional_one_does_not()
+    {
+        using var host = await StartAsync<TrailerFormApp>();
+        using var berths = await StartAsync<BerthFormApp>();
+
+        var trailer = await OpenAsync(host, tenant: 7);
+        var berth = await OpenAsync(berths, tenant: 7);
+
+        // A plain int, and a value object's text: both from the type, with no attribute on either model.
+        Assert.Contains("aria-required=\"true\"", Field(trailer, "weight"), StringComparison.Ordinal);
+        Assert.Contains("aria-required=\"true\"", Field(berth, "name"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-required", Field(trailer, "axles"), StringComparison.Ordinal);
+        Assert.DoesNotContain(" required", Field(trailer, "weight"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_create_with_no_form_names_the_unfilled_plain_properties_and_asks_the_database_nothing()
+    {
+        using var host = await StartAsync<TrailerFormApp>();
+        var commandsBefore = _questions.Commands;
+
+        var refused = await Assert.ThrowsAsync<Rask.Cqrs.RaskValidationException>(
+            () => Trailer.Create(new TrailerModel { Weight = null, Plate = " " }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            [("Weight", GeneratedModelRules.RequiredMessage), ("Plate", GeneratedModelRules.RequiredMessage)],
+            refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
+        Assert.Equal(commandsBefore, _questions.Commands);
+    }
+
+    [Theory]
     [InlineData(null, BerthName.Required)]
     [InlineData("", BerthName.Required)]
     [InlineData("A", BerthName.TooShort)]
@@ -573,7 +690,7 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
     }
 
     // The documented hand-wired host over a schema somebody else created, unique indexes included.
-    private async Task<RaskTestHost> StartAsync<TApp>()
+    private async Task<RaskTestHost> StartAsync<TApp>(string? language = null)
         where TApp : Component
     {
         Action<DbContextOptionsBuilder> database = o => o.UseSqlite($"Data Source={_dbPath};Pooling=False");
@@ -592,7 +709,22 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
                 });
             },
             configureMiddleware: app => app.UseRaskData(),
-            diffMode: LiveDiffMode.DisabledFull);
+            diffMode: LiveDiffMode.DisabledFull,
+            configureCulture: language is null
+                ? null
+                : c =>
+                {
+                    c.SupportedCultures.Add("en");
+                    c.SupportedCultures.Add("hu");
+                });
+
+        // The reader's language rides on the culture cookie, on the page request and on the socket alike.
+        if (language is not null)
+        {
+            var cookie = $".AspNetCore.Culture=c%3D{language}%7Cuic%3D{language}";
+            host.Http.DefaultRequestHeaders.Add("Cookie", cookie);
+            host.WebSockets.ConfigureRequest = r => r.Headers["Cookie"] = cookie;
+        }
 
         await using var legacy = await host.Services.GetRequiredService<IDbContextFactory<LegacyQuayContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
@@ -606,6 +738,15 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         await legacy.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         return host;
+    }
+
+    /// <summary>An app's own catalog: it says the sentence in Hungarian, and nothing else.</summary>
+    private sealed class HungarianRequired : Rask.Core.Globalization.IRaskStringSource
+    {
+        public string? Get(Rask.Core.Globalization.RaskString key, string cultureTag) =>
+            key == Rask.Core.Globalization.RaskString.ValidationRequired && cultureTag.StartsWith("hu", StringComparison.Ordinal)
+                ? "Kötelező kitölteni."
+                : null;
     }
 
     /// <summary>Counts the "is there already such a row" questions the store is asked.</summary>

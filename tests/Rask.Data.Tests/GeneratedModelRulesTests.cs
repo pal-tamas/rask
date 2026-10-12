@@ -20,6 +20,20 @@ public sealed class GeneratedModelRulesTests
     }
 
     [Fact]
+    public void The_one_sentence_is_whatever_the_catalog_gave_for_the_readers_language()
+    {
+        IEnumerable<string> ownWords = ["A destination needs a name."];
+
+        var alone = GeneratedModelRules.Required("Kötelező kitölteni.");
+        var kept = GeneratedModelRules.OrRequired(ownWords, "Kötelező kitölteni.");
+        var accepted = GeneratedModelRules.OrRequired([], "Kötelező kitölteni.");
+
+        Assert.Equal(["Kötelező kitölteni."], alone);
+        Assert.Equal(["A destination needs a name."], kept);
+        Assert.Equal(["Kötelező kitölteni."], accepted);
+    }
+
+    [Fact]
     public void A_rule_that_says_nothing_adds_no_failure_and_builds_no_list()
     {
         IList<FieldFailure>? none = null;

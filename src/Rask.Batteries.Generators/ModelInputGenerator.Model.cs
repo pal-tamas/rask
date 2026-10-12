@@ -258,30 +258,21 @@ public sealed partial class ModelInputGenerator
             member.Write is { } kind
                 ? WriteOf(property, kind, "__" + kind + index.ToString(CultureInfo.InvariantCulture) + "_" + property.Name, byRef: false)
                 : null,
-            new EquatableArray<string>(ImpliedRequired(member, valueObject, property, static a => "[" + a + "]")
-                .Concat(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute))),
-            new EquatableArray<string>(ImpliedRequired(member, valueObject, property, static a => "new " + a)
-                .Concat(property.GetAttributes().Where(IsValidation).Select(RenderConstruction))));
+            new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
+            new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+            IsRequiredByType(member, valueObject, property));
     }
 
     // A column the aggregate declares non-nullable cannot be emptied: the form model's value is nullable only so a
     // form can start blank, so a null there is a field the user cleared — an error, never a silent 0 on create or a
-    // silently kept old value on update.
-    // A value object that states its own rule says this itself — it is asked with the empty value — so its
-    // property carries no attribute: the words are the type's.
-    private const string RequiredAttributeFqn = "global::System.ComponentModel.DataAnnotations.RequiredAttribute";
-
-    private static IEnumerable<string> ImpliedRequired(
-        ModelMember member,
-        ValueObjectShape? valueObject,
-        IPropertySymbol property,
-        Func<string, string> render) =>
+    // silently kept old value on update. The TYPE says so, as a generated rule with the framework's sentence, and
+    // no attribute is written. A value object that states its own rule says it in its own words instead, and a
+    // property the app marked [Required] itself keeps that attribute and its message.
+    private static bool IsRequiredByType(ModelMember member, ValueObjectShape? valueObject, IPropertySymbol property) =>
         member.Role == ModelMemberRole.Value && member.Write is not null && !member.Nullable &&
         valueObject is null or { SingleValue: true, Rule: ValueRule.None } &&
         !property.GetAttributes().Any(static a =>
-            string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal))
-            ? [render(RequiredAttributeFqn + "()")]
-            : [];
+            string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal));
 
     private static Write WriteOf(IPropertySymbol property, ModelWriteKind kind, string accessorName, bool byRef)
     {

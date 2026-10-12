@@ -55,11 +55,22 @@ public class ModelInputGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.DoesNotContain("__Check(new global::System.ComponentModel.DataAnnotations.DisplayAttribute", source, StringComparison.Ordinal);
+
+        // Required is said by the type — a generated rule with the framework's sentence — and never by an attribute.
+        Assert.DoesNotContain("RequiredAttribute", source, StringComparison.Ordinal);
         Assert.Contains(
-            "[global::System.ComponentModel.DataAnnotations.RequiredAttribute()]\n    [global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000)]\n    public decimal? Price",
+            "    [global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000)]\n    public decimal? Price",
             source.ReplaceLineEndings("\n"),
             StringComparison.Ordinal);
-        Assert.DoesNotContain("RequiredAttribute()]\n    [global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Remarks\")]\n    public string? Notes", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains(
+            "__Rule_Root_Price(decimal? value) =>\n        value is null ? global::Rask.Data.GeneratedModelRules.Required(__RequiredText()) : global::System.Array.Empty<string>();",
+            source.ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Price\", __Rule_Root_Price(model.Price));",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_Root_Notes", source, StringComparison.Ordinal);
         Assert.Contains(
             "failures = __Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", model, path, failures);",
             source,
