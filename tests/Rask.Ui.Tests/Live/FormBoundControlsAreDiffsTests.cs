@@ -101,6 +101,7 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
                         Ui.Field[Ui.Label.Badge("Required")["Before"], Ui.Input.Bind(() => answers.Before).ShowValidation(false), Ui.Error],
                         Ui.Field[Ui.Label["Under test"], control(answers), Ui.Error],
                         Ui.Field[Ui.Label["After"], Ui.Input.Bind(() => answers.After).Type(InputType.Number).ShowValidation(false), Ui.Error],
+                        Button.Id("act").Type(ButtonType.Button).OnClick(static () => { })["Recount"],
                         Ui.Button.Primary.Submit["Save"]
                     ]
                 ],
@@ -146,6 +147,9 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
         foreach (var word in new[] { "Alpha", "Beta", "Beta", "Alpha" })
         {
             await page.On($"[data-ui-option]:has-text(\"{word}\")").Click();
+
+            // The list shows the pick at once. The member hears it with the next action, and its rule then.
+            await page.On("#act").Click();
             said.Add(page.TextOf("[data-ui-select-button]") + "/" + string.Join(',', answers.Many));
         }
 

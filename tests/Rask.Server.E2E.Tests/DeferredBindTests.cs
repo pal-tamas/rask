@@ -273,6 +273,8 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         await page.ClickAsync("#save");
 
         await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Range one|Glock,Beretta|12|600|outdoor|True");
+        // The two picks drew themselves; the list was written once, by the frame of the Save.
+        await Expect(page.Locator("#list-writes")).ToHaveTextAsync("list-writes=1");
     }
 
     [Fact]
@@ -297,6 +299,114 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         await Expect(page.GetByLabel("Size")).ToHaveValueAsync("450");
         await page.ClickAsync("#save");
         await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=Range two||8|450|indoor|False");
+    }
+
+    [Fact]
+    public async Task A_kit_checkbox_and_switch_say_nothing_when_flipped_and_travel_with_Save_in_its_frame()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright, beforeLoad: CountFrames);
+        var page = session.Page;
+        await Ready(page);
+
+        var (before, framesBefore) = (await SentAsync(page), await FramesAsync(page));
+        await page.GetByLabel("Agreed").CheckAsync();
+        await page.GetByLabel("Notify").CheckAsync();
+        await page.WaitForTimeoutAsync(Wait);
+        var whileChoosing = await SentAsync(page) - before;
+        await page.ClickAsync("#save");
+
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=True|True|||");
+        Assert.Equal(0, whileChoosing);
+        // The two changes and the submit, in one frame.
+        Assert.Equal(3, await SentAsync(page) - before);
+        Assert.Equal(1, await FramesAsync(page) - framesBefore);
+    }
+
+    [Fact]
+    public async Task A_group_and_two_listboxes_draw_each_pick_and_write_the_model_once_each_with_Save()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright, beforeLoad: CountFrames);
+        var page = session.Page;
+        await Ready(page);
+
+        await page.GetByLabel("Pro").CheckAsync();
+        await page.GetByLabel("Team").CheckAsync();
+        await PickAsync(page, "#room-field", "Attic");
+        await PickAsync(page, "#extras", "Breakfast");
+        await page.Locator("#extras [data-ui-option]").Filter(new() { HasText = "Parking" }).ClickAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator("#extras [data-ui-select-button]")).ToContainTextAsync("2 selected");
+        var heardBeforeSave = await page.Locator("#heard").TextContentAsync();
+        var modelBeforeSave = await page.Locator("#model").TextContentAsync();
+        var (before, framesBefore) = (await SentAsync(page), await FramesAsync(page));
+        await page.ClickAsync("#save");
+
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=False|False|team|Attic|Breakfast,Parking");
+        // Six picks drew themselves; nothing the page wrote ran for any of them, and the page was not drawn.
+        Assert.Equal("writes=0|after=0|handlers=0", heardBeforeSave);
+        Assert.Equal("model=||", modelBeforeSave);
+        // Each member written once, by the frame that carried the submit and nothing else.
+        await Expect(page.Locator("#heard")).ToHaveTextAsync("writes=3|after=3|handlers=1");
+        Assert.Equal(1, await SentAsync(page) - before);
+        Assert.Equal(1, await FramesAsync(page) - framesBefore);
+    }
+
+    [Fact]
+    public async Task A_live_group_and_listbox_write_at_the_pick_and_the_page_reads_them_back()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright);
+        var page = session.Page;
+        await Ready(page);
+        await page.ClickAsync("#go-live");
+        await Expect(page.Locator("#mode")).ToHaveTextAsync("live");
+
+        await page.GetByLabel("Pro").CheckAsync();
+        await Expect(page.Locator("#model")).ToHaveTextAsync("model=pro||");
+        await PickAsync(page, "#room-field", "Attic");
+
+        await Expect(page.Locator("#model")).ToHaveTextAsync("model=pro|Attic|");
+        await Expect(page.Locator("#heard")).ToHaveTextAsync("writes=2|after=2|handlers=1");
+    }
+
+    [Fact]
+    public async Task A_refused_Save_keeps_the_picks_and_puts_the_message_under_the_control_it_is_about()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright);
+        var page = session.Page;
+        await Ready(page);
+
+        await PickAsync(page, "#room-field", "Basement");
+        var messageAtThePick = await page.Locator("#room-field [data-ui-error]").TextContentAsync();
+        await page.ClickAsync("#save");
+
+        await Expect(page.Locator("#room-field [data-ui-error]")).ToHaveTextAsync("Not the basement.");
+        await Expect(page.Locator("#room-field [data-ui-select-button]")).ToContainTextAsync("Basement");
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=");
+        Assert.Equal("", messageAtThePick?.Trim() ?? "");
+        await PickAsync(page, "#room-field", "Attic");
+        await Expect(page.Locator("#room-field [data-ui-error]")).ToHaveTextAsync("");
+    }
+
+    [Fact]
+    public async Task A_pick_in_a_guarded_form_is_an_unsaved_change_before_the_model_hears_it()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright);
+        var page = session.Page;
+        await Ready(page);
+        var clean = await UnsavedAsync(page);
+
+        await page.GetByLabel("Pro").CheckAsync();
+
+        Assert.False(clean);
+        Assert.True(await UnsavedAsync(page));
+        await Expect(page.Locator("#model")).ToHaveTextAsync("model=||");
+    }
+
+    private static async Task PickAsync(IPage page, string select, string option)
+    {
+        await page.ClickAsync(select + " [data-ui-select-button]");
+        await Expect(page.Locator(select + " [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.Locator(select + " [data-ui-option]").Filter(new() { HasText = option }).ClickAsync();
     }
 
     // What the page said over the socket, counted in the page: Playwright's own frame events arrive on its own
@@ -477,6 +587,7 @@ public sealed partial class DeferredRangeFormPage : Component
     [
         P.Id("saved")[$"saved={_saved}"],
         P.Id("ticked")[$"ticks={_ticks}"],
+        P.Id("list-writes")[$"list-writes={_form.IdsWritten}"],
         P.Id("is-ready")[_ready ? "ready" : "loading"],
         Button.Id("ready").OnClick(() => _ready = true)["ready"],
         Button.Id("later").OnClick(TickLater)["later"],
@@ -514,7 +625,17 @@ public sealed partial class DeferredRangeFormPage : Component
     {
         public string Name { get; set; } = "";
 
-        public List<string> Ids { get; set; } = [];
+        public int IdsWritten { get; private set; }
+
+        public List<string> Ids
+        {
+            get;
+            set
+            {
+                field = value;
+                IdsWritten++;
+            }
+        } = [];
 
         public int? Lanes { get; set; }
 
@@ -523,5 +644,110 @@ public sealed partial class DeferredRangeFormPage : Component
         public string Kind { get; set; } = "indoor";
 
         public bool Open { get; set; }
+    }
+}
+
+/// <summary>
+///     The kit's chosen controls in one guarded form: a checkbox and a switch (one element each), a radio group,
+///     a listbox and a multiple listbox the kit draws. The page counts what it was told: member writes,
+///     <c>AfterBind</c> calls and its own handlers.
+/// </summary>
+public sealed partial class DeferredChosenPage : Component
+{
+    private readonly Stay _stay = new();
+    private string _saved = "";
+    private int _after;
+    private int _handlers;
+    private bool _live;
+    private bool _ready;
+
+    protected override Component? HeadAssets => Markup.Title["deferred bind, the kit's chosen controls"];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() =>
+    [
+        P.Id("saved")[$"saved={_saved}"],
+        P.Id("model")[$"model={_stay.Plan}|{_stay.Room}|{string.Join(',', _stay.Extras)}"],
+        P.Id("heard")[$"writes={_stay.Written}|after={_after}|handlers={_handlers}"],
+        P.Id("mode")[_live ? "live" : "waiting"],
+        P.Id("is-ready")[_ready ? "ready" : "loading"],
+        Button.Id("ready").OnClick(() => _ready = true)["ready"],
+        Button.Id("go-live").OnClick(() => { _live = true; _handlers++; })["live"],
+        Form.Model(_stay).OnSubmit(Save).ConfirmLeave("Leave without saving?")[
+            Ui.Checkbox.Bind(() => _stay.Agreed).Label("Agreed"),
+            Ui.Switch.Bind(() => _stay.Notify).Label("Notify"),
+            Ui.RadioGroup.Bind(() => _stay.Plan).Label("Plan").Live(_live).AfterBind(_ => _after++)[
+                Ui.Radio.Value("pro").Label("Pro"),
+                Ui.Radio.Value("team").Label("Team")
+            ],
+            Div.Id("room-field")[
+                Ui.Field[
+                    Ui.Label["Room"],
+                    Ui.Select.Bind(() => _stay.Room).Listbox.Live(_live).Placeholder("Choose…")
+                        .Validate(room => room == "Basement" ? ["Not the basement."] : []).AfterBind(_ => _after++)[
+                        Ui.SelectOption.Key("Attic")["Attic"],
+                        Ui.SelectOption.Key("Basement")["Basement"]
+                    ],
+                    Ui.Error
+                ]
+            ],
+            Div.Id("extras")[
+                Ui.Field[
+                    Ui.Label["Extras"],
+                    Ui.Select.Bind(() => _stay.Extras).Listbox.Multiple().Live(_live).Placeholder("Choose…")
+                        .AfterBind(_ => _after++)[
+                        Ui.SelectOption.Key("Breakfast")["Breakfast"],
+                        Ui.SelectOption.Key("Parking")["Parking"]
+                    ]
+                ]
+            ],
+            Ui.Button.Primary.Submit.Id("save")["Save"]
+        ]
+    ];
+
+    private void Save()
+    {
+        _handlers++;
+        _saved = $"{_stay.Agreed}|{_stay.Notify}|{_stay.Plan}|{_stay.Room}|{string.Join(',', _stay.Extras)}";
+    }
+
+    private sealed class Stay
+    {
+        public int Written { get; private set; }
+
+        public bool Agreed { get; set; }
+
+        public bool Notify { get; set; }
+
+        public string Plan
+        {
+            get;
+            set
+            {
+                field = value;
+                Written++;
+            }
+        } = "";
+
+        public string Room
+        {
+            get;
+            set
+            {
+                field = value;
+                Written++;
+            }
+        } = "";
+
+        public List<string> Extras
+        {
+            get;
+            set
+            {
+                field = value;
+                Written++;
+            }
+        } = [];
     }
 }

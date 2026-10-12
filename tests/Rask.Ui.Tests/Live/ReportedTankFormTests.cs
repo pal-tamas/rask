@@ -38,7 +38,7 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
     public async Task A_keyed_multiple_listbox_alone_goes_from_none_to_two_and_back_with_a_diff_each_pick(bool bound, bool placeholder)
     {
         var picked = new Picks();
-        var page = Page.Render(() => Div.Class("max-w-lg p-6")[
+        var page = Acting.Render(() => Div.Class("max-w-lg p-6")[
             (bound
                 ? Ui.Select.Key("list").Bind(() => picked.Ids).Listbox.Multiple().Placeholder(placeholder ? "Válasszon…" : null)
                 : Ui.Select.Key("list").Values((ICollection<string>)[.. picked.Ids]).Listbox.Multiple().Placeholder(placeholder ? "Válasszon…" : null)
@@ -52,6 +52,9 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
         foreach (var option in new[] { "option 1", "option 2", "option 2", "option 1" })
         {
             await page.On($"[data-ui-option]:has-text(\"{option}\")").Click();
+
+            // A bound list writes its member with the next action, so the page acts before it is read.
+            await Acting.Act(page);
             said.Add(string.Join(',', picked.Ids));
         }
 
