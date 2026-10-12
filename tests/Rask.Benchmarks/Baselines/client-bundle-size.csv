@@ -4,8 +4,9 @@
 # Refreshed 2026-10-12 with the field that says what it could not read (rask-input.ts, shared by both runtimes:
 # the frame of a number, date or time input holding text it reports as "" says so; a field bound on blur is
 # sent as it is left, since the browser fires no change for it; and the browser's own refusal of a submit over
-# such a field is called off and the submit sent): rask.js 95,978 -> 97,205 (+1,227) and rask.wasm.js
-# 84,796 -> 86,022 (+1,226). And with the typed date and time parts saying what they hold when they are left —
+# such a field is called off and the submit sent — but not for a form whose handler takes what was posted,
+# which says `data-rask-unvalidated`): rask.js 95,978 -> 97,246 (+1,268) and rask.wasm.js
+# 84,796 -> 86,063 (+1,267). And with the typed date and time parts saying what they hold when they are left —
 # half filled, or emptied — instead of keeping the last whole value behind them (rask-segments.ts,
 # rask-bound.ts): rask-hooks.js 48,931 -> 49,951 (+1,020).
 #
@@ -173,6 +174,6 @@
 # Build RELEASE before measuring. rask.wasm.js is written into a source directory, and a Debug build
 # overwrites it with an unminified file — measuring that reports a regression that is not real.
 bundle,bytes
-rask.js,97205
-rask.wasm.js,86022
+rask.js,97246
+rask.wasm.js,86063
 rask-hooks.js,49951

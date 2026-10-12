@@ -45,7 +45,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => Form.Model(Empty).OnAnySubmit(_ => { }));
 
         Assert.Equal(
-            "<form data-rask-on-submit=\"h0\"></form>",
+            "<form data-rask-on-submit=\"h0\" data-rask-unvalidated></form>",
             view.RenderAsLiveRoot());
     }
 
@@ -55,7 +55,7 @@ public partial class FormTests : global::Rask.Core.RaskMarkup
         var view = new StubComponent(() => Form.Model(Empty).OnAnySubmit(async _ => { await Task.Yield(); }));
 
         Assert.Equal(
-            "<form data-rask-on-submit=\"h0\"></form>",
+            "<form data-rask-on-submit=\"h0\" data-rask-unvalidated></form>",
             view.RenderAsLiveRoot());
     }
 

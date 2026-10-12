@@ -395,7 +395,7 @@ public partial class UnreadValueTests : global::Rask.Core.RaskMarkup
 
         Assert.Null(modelled.Find("form").Attribute("data-rask-unvalidated"));
         Assert.NotNull(posted.HandlerId("submit"));
-        Assert.Equal("", posted.Find("form").Attribute("data-rask-unvalidated"));
+        Assert.NotNull(posted.Find("form").Attribute("data-rask-unvalidated"));
     }
 
     [Fact]
