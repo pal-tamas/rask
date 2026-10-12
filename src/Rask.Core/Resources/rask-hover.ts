@@ -90,6 +90,13 @@ interface Watch { looked: number; x: number; y: number; entered: boolean; }
 const LOOK_EVERY = 100;
 const watched = new Map<Element, Watch>();
 
+/**
+ * The panels the pointer walked away from, until their `toggle` is heard. Such a close hands focus to nobody:
+ * on Flux UI a hover card the pointer left leaves `document.activeElement` where it was, on the page itself
+ * when nothing had it (rask-menu-keys.ts gives a menu closed any other way back to its button).
+ */
+export const walkedFrom = new WeakSet<Element>();
+
 function watch(root: Element, e: PointerEvent): void {
     if (!watched.has(root)) {
         watched.set(root, {looked: -LOOK_EVERY, x: e.clientX, y: e.clientY, entered: true});
@@ -106,8 +113,10 @@ function look(e: PointerEvent): void {
         at.looked = e.timeStamp;
         if (!(e.target instanceof Node && root.contains(e.target))) {
             watched.delete(root);
-            if (hoverable(root)) {
-                setShown(named(root, HOVER), false);
+            const panel = named(root, HOVER);
+            if (panel && hoverable(root) && isShown(panel)) {
+                walkedFrom.add(panel);
+                setShown(panel, false);
             }
         }
     }

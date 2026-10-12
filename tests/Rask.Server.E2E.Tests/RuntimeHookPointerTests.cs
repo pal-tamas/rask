@@ -167,6 +167,28 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_panel_the_pointer_left_hands_focus_to_nobody_where_one_shut_any_other_way_hands_it_to_its_button()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        const string Active = "() => document.activeElement.id || document.activeElement.tagName";
+        // What the kit's dropdown trigger says, and what the hand-back finds a panel's button by.
+        await page.EvaluateAsync("() => document.querySelector('#hover-trigger').setAttribute('aria-haspopup', 'true')");
+
+        await page.HoverAsync("#hover-trigger");
+        await page.Mouse.MoveAsync(900, 600);
+        await page.WaitForFunctionAsync("() => !document.querySelector('#panel').matches(':popover-open')");
+        var afterLeaving = await page.EvaluateAsync<string>(
+            "async () => { await new Promise(done => setTimeout(done, 50)); return (" + Active + ")(); }");
+        await page.EvaluateAsync(
+            "async () => { const panel = document.querySelector('#panel'); panel.showPopover(); panel.hidePopover(); await new Promise(done => setTimeout(done, 50)); }");
+        var afterShutting = await page.EvaluateAsync<string>(Active);
+
+        Assert.Equal("BODY", afterLeaving);
+        Assert.Equal("hover-trigger", afterShutting);
+    }
+
+    [Fact]
     public async Task A_moving_pointer_is_looked_at_once_in_100_ms_so_it_crosses_the_gap_unseen()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);

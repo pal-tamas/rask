@@ -35,6 +35,10 @@ them until tagged releases begin.
   no more than once in 100 ms, and the panel closes when the move looked at is over neither part. A pointer
   that rested and then moves into the gap still closes it at once; one that is moving crosses the gap and
   arrives. `rask-hooks.js` is 374 bytes larger.
+- **A hover panel the pointer left no longer takes focus to its button.** A popover that closes with focus on
+  nothing hands it to the button that opens it — right for a menu shut by a press outside, and wrong for a
+  hover card the pointer merely walked away from, which on Flux leaves focus where it was. The hover hook now
+  names the panels it shuts and the hand-back passes them over. `rask-hooks.js` is 63 bytes larger.
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the
   button, and tabbing back from there left the panel open over a page that, locked, took no pointer. Focus

@@ -13,7 +13,8 @@
 // Then the walk: the same presses, pointer moves and keys on Flux's first two examples — the pressed popover
 // and the hovered one — and on the Rask page, each step writing down whether the panel is open, where focus
 // is, what the trigger says and whether the page behind is locked. Every line must agree, but for what a walk
-// names as `open`: a difference that is the runtime's hooks' to close, printed as OPEN and not failed.
+// names as `open` (none does today): a difference that is the runtime's hooks' to close, printed as OPEN and
+// not failed.
 //
 // The Rask page is static markup. What Flux does in script the kit asks the runtime for (data-rask-hover,
 // data-rask-lock, the popover's focus rules), so the page is given the runtime's hooks (runtime.mjs).
@@ -52,16 +53,12 @@ const HOVERED = ['hover', 'hoverpanel', 'leave', 'hover', 'click', 'leave', 'foc
 // nothing between them, the second into the gap). A pointer that rested and then goes into the gap in one
 // move ('gap') closes it at once. The runtime's hover hook looks the same way (rask-hover.ts).
 const GLIDED = ['hover', 'gap', 'hover', 'glide', 'hoverpanel', 'glide', 'gap', 'hover', 'leave'];
-// A panel the pointer left takes focus nowhere on Flux, where the runtime's menu keys hand it to the
-// trigger of whatever closed with focus on nothing (rask-menu-keys.ts).
-const LEFT = {
-  reason: 'the runtime hands focus to the trigger of a panel the pointer left; Flux leaves it where it was',
-  as: line => line.replace('focus on nothing', 'focus on the trigger'),
-};
+// A panel the pointer left takes focus nowhere, on both: the runtime's menu keys hand focus to the trigger of a
+// popover that closed with focus on nothing, but not of one the pointer walked away from (rask-menu-keys.ts).
 const WALKS = [
   { name: 'a press opens it', dropdown: 0, steps: PRESSED },
-  { name: 'the pointer opens it', dropdown: 1, steps: HOVERED, open: LEFT },
-  { name: 'the pointer glides across the gap', dropdown: 1, steps: GLIDED, open: LEFT },
+  { name: 'the pointer opens it', dropdown: 1, steps: HOVERED },
+  { name: 'the pointer glides across the gap', dropdown: 1, steps: GLIDED },
 ];
 
 const browser = await chromium().launch();
