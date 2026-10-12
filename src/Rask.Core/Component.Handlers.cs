@@ -298,13 +298,15 @@ public abstract partial class Component
     // left it, and the boundary is kept for a session that has nowhere to draw one.
     private void AnswerHandlerFault(ErrorBoundary boundary, Component owner, Exception ex)
     {
+        // Listed before anything is said of it: the toast's reference is logged with the exception as it is
+        // made, and the devtools list once a fault they already have. Said first, one click counted as two errors.
+        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
+
         if (!boundary.IsRoot || !HandlerFault.Say(ex))
         {
-            TripHandlerBoundary(boundary, owner, ex);
+            TripHandlerBoundary(boundary, ex);
             return;
         }
-
-        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
 
         // Null outside Development, where the overlay names the exception beside the page as it did before.
         if (DevErrorInfo.From(ex, "handler") is { } devError)
@@ -320,11 +322,8 @@ public abstract partial class Component
     // higher. For non-boundary owners (regular components), fall back to their
     // ancestor boundary. Without a boundary the exception bubbles so the dispatcher's
     // catch-and-log still fires.
-    private static void TripHandlerBoundary(ErrorBoundary boundary, Component owner, Exception ex)
-    {
-        RaskDevToolsHook.Active?.ComponentFaulted(owner, ex, ErrorSource.Action, caught: true);
+    private static void TripHandlerBoundary(ErrorBoundary boundary, Exception ex) =>
         boundary.Trip(ex, ErrorSource.Action);
-    }
 
     // The app's own code said no and the toast has its sentence: no fault, no boundary, and the page renders
     // what the handler changed before it. The toast is queued in the catch's filter, so a refusal in a session
@@ -341,6 +340,12 @@ public abstract partial class Component
     internal Delegate? HandlerOf(string id) =>
         _live?.Handlers is { } handlers && handlers.TryGetValue(id, out var entry) ? entry.Item2 : null;
 
+    // An event the browser's runtime raised by itself — a toast's time running out, a measured box — says so
+    // (`unasked`, rask-owned.ts). It is nobody's next action: what waits goes on waiting.
+    private static bool IsUnasked(JsonElement payload) =>
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty("unasked", out var mark) && mark.ValueKind == JsonValueKind.True;
+
     // What controls drawn in C# chose and have not written goes first, unless this is such a control drawing
     // itself (PendingBinds): no handler of the page reads a model that has not heard a pick. Forwarding, so
     // an event with nothing waiting anywhere pays one static read.
@@ -352,7 +357,7 @@ public abstract partial class Component
     private async ValueTask<bool> DispatchAroundPicksAsync(
         PendingBinds binds, Delegate handler, JsonElement payload, Component owner)
     {
-        if (!binds.IsOwn(owner))
+        if (!binds.IsOwn(owner) && !IsUnasked(payload))
         {
             await binds.FlushAsync(handler).ConfigureAwait(false);
         }

@@ -17,6 +17,8 @@ import {
     raskNotePendingFormState,
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
+import { isHandlerEvent } from "./rask-batch.js";
+import { isUnasked, unasked } from "./rask-owned.js";
 
 /** Any element this module reads a `value` off. */
 type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -100,9 +102,10 @@ function sendInput(el: ValueElement): void {
 // A BOUND CONTROL SAYS NOTHING UNTIL THE NEXT ACTION. That is `data-rask-bind-on="action"` beside
 // data-rask-on-change, and it is what a plain `.Bind(…)` renders, as Livewire's `wire:model` does: typing into
 // it, choosing in it and leaving it send nothing. The control is remembered here instead, and the next thing a
-// host sends — a click, a submit, a key a handler hears, another control's change, a navigation, anything a
-// behaviour hook dispatches — is preceded by the change of every control remembered, in the order they were
-// last touched (sendTypedFirst). `.Blur()` renders data-rask-bind-on="blur": remembered the same way, and
+// host sends for the READER — a click, a submit, a key a handler hears, another control's change, a
+// navigation, what a behaviour hook dispatches for a key or a press — is preceded by the change of every
+// control remembered, in the order they were last touched (sendTypedFirst). What the runtime does by itself
+// is no action and carries nothing (`unasked`, rask-owned.ts). `.Blur()` renders data-rask-bind-on="blur": remembered the same way, and
 // sent by the `change` the browser fires on leaving it, whichever comes first. `.Live()` and `.Debounce(…)`
 // render data-rask-debounce="<ms>" beside data-rask-on-input: what is typed is sent once typing has paused
 // that long, or ahead of whatever follows.
@@ -174,7 +177,7 @@ export function changeSent(el: Element): boolean {
 let sending = false;
 
 function sendOwn(run: () => void): void {
-    if (sending) {
+    if (sending || isUnasked()) {
         run();
         return;
     }
@@ -230,10 +233,15 @@ export function flushInputsNow(): void {
  * What a host calls with everything it is about to send, before it sends it: what the reader typed or chose
  * and has not been sent goes first, so no handler runs against a model that has not heard it.
  *
- * The reply to an interop call is not the reader's doing — the server asked — and carries nothing ahead of it.
+ * THE ONE RULE: only what the reader did carries it. What the runtime does by itself (`unasked`,
+ * rask-owned.ts) — a toast's time running out, a measured box, the reply to an interop call — carries nothing
+ * ahead of it, and an event of it says so to the page (`unasked`), which then writes nothing either.
  */
 export function sendTypedFirst(payload: unknown): void {
-    if (sending || (payload as { type?: unknown } | null)?.type === "jsResult") return;
+    if (isUnasked()) {
+        if (isHandlerEvent(payload)) (payload as { unasked?: boolean }).unasked = true;
+        return;
+    }
     flushInputsNow();
 }
 
@@ -393,8 +401,10 @@ function flushScroll(): void {
         if (!el.isConnected) return;
         const id = el.getAttribute("data-rask-on-scroll");
         if (!id) return;
-        // The scroll box travels as e.Target, the way MDN's JavaScript reads it (e.target.scrollTop).
-        send({ id, type: "scroll", target: raskTargetState(el, 1) });
+        // The scroll box travels as e.Target, the way MDN's JavaScript reads it (e.target.scrollTop). A box
+        // scrolls under the reader's wheel and under the runtime's own hand alike — a carousel playing, a
+        // pager's scroll-to, a tree following its cursor — and the event does not say which: nobody's action.
+        unasked(function () { send({ id, type: "scroll", target: raskTargetState(el, 1) }); });
     });
     scrollPending.clear();
 }

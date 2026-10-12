@@ -235,8 +235,8 @@ As RASK009, for `[QueryParam]`. Query binding only applies to routed pages.
 **Route/query param type must implement `IParsable<T>`** · Error
 
 A `[RouteParam]`/`[QueryParam]` property's type can't be parsed from a URL string. Bound types must
-be `string` or implement `System.IParsable<T>` (every built-in numeric, `Guid`, `DateTime`, `bool`,
-enums via custom parsing, etc. qualify).
+be `string` or implement `System.IParsable<T>` (every built-in numeric, `Guid`, `DateOnly`, `DateTime` and
+`bool` qualify; an enum does not — bind it as a `string`).
 
 **Fix:** use a parsable type, or accept the value as `string` and convert inside the page.
 

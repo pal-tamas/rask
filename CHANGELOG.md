@@ -7,8 +7,66 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+
+- **A `[QueryParam]` property keeps its initializer when the parameter is absent.** **A behaviour change.**
+  Before: `[QueryParam] public int Page { get; set; } = 1;` was `0` at `/list` — every bind reset the property
+  to its type's default, so a default of your own had to be `int? Page` and `Page ?? 1`. After: `/list` → `1`,
+  `/list?page=3` → `3`, `/list?page=abc` → `1` (an unreadable value is absent), and the same page going from
+  `?page=3` to no `page` → `1` again: the value the page was built with, not the last address's and not `0`.
+  A value your own code assigned to the property between two binds is not kept, as before. A property with
+  no initializer is unchanged (`null`, `0`, `false`), and so is `[RouteParam]`. An initializer that is an
+  object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
+  expected to be overwritten with the type's default — now sees the initializer.
+
 ### Fixed
 
+- **RASK011 and the routing guide no longer say an enum can be bound.** A `[RouteParam]`/`[QueryParam]`
+  property is `string` or `IParsable<T>`, and an enum is neither: the message, its description and
+  `docs/routing.md` now say to bind it as a `string`. Nothing about what binds has changed.
+
+- **A route segment is found by name the same way when a route is matched and when it is bound.** The match
+  looked a `[RouteParam("ID")]` up with the dictionary's own comparer while the bind ignored case, so with a
+  case-sensitive dictionary an unreadable `{id}` could pass the match and then throw. Both ignore case now.
+
+- **A query parameter its page cannot read is absent, not a 500.** `/parcels?weightFrom=abc` on a page with
+  `[QueryParam("weightFrom")] public int? WeightFrom` failed to bind: `RouteBindException`, the error page, a
+  500 on a first request and an error on a live navigation — for a link somebody mailed, kept or edited by
+  hand. A value the property cannot hold (`abc`, `1.5`, an empty one, digits past an `int`, a date that is
+  none) is now read as if the parameter were not in the URL: the property gets what it gets without it, the
+  parameters beside it are bound as usual, the page answers 200 and the address is left as written. **A
+  behaviour change**: a page that relied on the exception to refuse a bad query value now renders with the
+  type's default, for a non-nullable property too. In Development the ignored parameter is named once on the
+  `Rask.Routing` log category, without its value. A path segment is unchanged: one the page cannot read does
+  not match, and not-found answers.
+
+- **A toast leaving by itself is not the reader's next action.** A bound field waits for the next action, and
+  whatever the page sent next carried it — including the press the runtime makes on a toast's close button
+  when its time is up. Save a row, open the next one in place, type a taken name: 4.5 s later the toast went,
+  the half-typed name went with it, and the unique rule spoke under a field the reader was still in. Now only
+  what the reader did carries what waits. What the runtime does by itself is sent alone and marked
+  (`"unasked":true`), so the page writes nothing its drawn controls hold either: a toast's timed dismissal, a
+  chart's measured size, the drawer a navigation unchecks, a `scroll`, a media, animation, transition, `load`
+  or `error` event, focus a render moved, a field restored after a reload, the reply to an interop call. On
+  the Server host a `DotNet.invokeMethodAsync` call carries nothing ahead of it any more, as it never did on
+  WebAssembly.
+
+- **DevTools counts a handler that failed into a toast once.** Since a handler's fault keeps its page and says
+  so in a toast, one failed click on a page that draws toasts put `2` on the pill and two entries on the Errors
+  tab: the toast's reference was logged with the exception before the fault itself was listed, so the log line
+  was listed as a diagnostic and the fault after it. The fault is listed first now, on both hosts: one entry,
+  the handler's, with its component and the exception.
+
+- **A route segment its page cannot read is not found, not a 500.** `/destinations/99999999999999999999`
+  matched `/destinations/{id:int}` — the router never held a constraint to anything — and the page then
+  failed to bind it: `RouteBindException`, the error page, a 500. A segment that is not what its constraint
+  says (`int`, `long`, `bool`, `guid`), or that the bound property's type cannot hold (a `DateOnly`, a
+  `decimal`, an enum), now does not match: the next route is tried, and the not-found page answers, with a
+  404 on a first request and on a live navigation alike.
+
+- **The error page's tab title is translated.** The built-in error page said `Application error` in the tab
+  over a Hungarian body. The title is a string of the catalog now, `RaskString.ErrorTitle` (the kit's
+  Hungarian: `Alkalmazáshiba`); the English is unchanged.
 - **A page reached in place focuses its `autofocus` field.** A form opened by a `NavLink`, by `Go()` from a
   handler or by a redirect left its first field unfocused — `Ui.Input….Autofocus(true)` was in the markup, but a
   browser acts on `autofocus` only when it loads a document, and a navigation in an open session is a patch of

@@ -21,7 +21,7 @@ import {
     reviveScript,
 } from "./rask-morph.js";
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
-import {drive, keepsOpen, stands} from "./rask-owned.js";
+import {drive, keepsOpen, stands, unasked} from "./rask-owned.js";
 
 export {resolvePath};
 
@@ -389,7 +389,8 @@ export function applyFrameInvokes(
         const target = trap.querySelector<HTMLElement>("[autofocus]") ?? (trap as HTMLElement);
         requestAnimationFrame(function () {
             try {
-                target.focus();
+                // A render opened it; the field the reader was in is left by the runtime, not by them.
+                unasked(function () { target.focus(); });
             } catch (e) {
                 // element may have been removed again already
             }
@@ -997,7 +998,8 @@ export function applyFrameInvokes(
             ? el
             : el.querySelector("[data-rask-dismiss]");
         if (control instanceof HTMLElement) {
-            control.click();
+            // The toast's time is up, and nobody pressed anything: what the reader is typing elsewhere stays theirs.
+            unasked(function () { control.click(); });
         }
     }
 

@@ -3928,6 +3928,7 @@ Rask.Core.Globalization.RaskString.EditorUndo = 77 -> Rask.Core.Globalization.Ra
 Rask.Core.Globalization.RaskString.EditorUnlink = 80 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorHeading = 9 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorReference = 135 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ErrorTitle = 137 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorReload = 11 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ErrorTryAgain = 10 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FieldValidating = 126 -> Rask.Core.Globalization.RaskString

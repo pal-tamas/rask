@@ -220,6 +220,29 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
         Assert.Null(page.Name);
     }
 
+    [Fact]
+    public void A_segment_named_in_another_case_is_checked_before_it_is_bound()
+    {
+        var chain = new[] { typeof(UpperCaseNamePage) };
+        var segments = new Dictionary<string, string?>(StringComparer.Ordinal) { ["id"] = "abc" };
+
+        var readable = PageBinder.CanBind(chain, segments);
+
+        Assert.False(readable);
+        Assert.Throws<RouteBindException>(() => PageBinder.Bind(new UpperCaseNamePage(), segments, new QueryCollection()));
+    }
+
+    [Fact]
+    public void A_readable_segment_named_in_another_case_can_be_bound()
+    {
+        var chain = new[] { typeof(UpperCaseNamePage) };
+        var segments = new Dictionary<string, string?>(StringComparer.Ordinal) { ["id"] = "7" };
+
+        var readable = PageBinder.CanBind(chain, segments);
+
+        Assert.True(readable);
+    }
+
     public readonly record struct CustomerId(int Value) : IParsable<CustomerId>
     {
         public static CustomerId Parse(string s, IFormatProvider? provider)
@@ -281,6 +304,13 @@ public partial class PageBinderTests : global::Rask.Core.RaskMarkup
         [RouteParam] public Guid Token { get; set; }
         [RouteParam] public DateTime Cutoff { get; set; }
         [RouteParam] public bool Active { get; set; }
+        protected override Component? Render() => Span;
+    }
+
+    [SkipFactory]
+    private sealed class UpperCaseNamePage : Component
+    {
+        [RouteParam("ID")] public int Id { get; set; }
         protected override Component? Render() => Span;
     }
 
