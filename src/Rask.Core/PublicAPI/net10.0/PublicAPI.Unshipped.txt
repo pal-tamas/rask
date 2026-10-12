@@ -7125,7 +7125,9 @@ static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
 static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
 static Rask.Core.Forms.RaskValidation.HasStoreRulesFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
+static Rask.Core.Forms.RaskValidation.IsRequired(System.Type! modelType, string! fieldPath) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
+static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.Resolve(System.Type! modelType, System.IServiceProvider? services) -> Rask.Core.Forms.IAsyncFieldValidator?

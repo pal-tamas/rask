@@ -32,6 +32,7 @@ public static class RaskValidation
     private static volatile ValidatorSource[] _sources = [];
     private static volatile Dictionary<Type, Func<IServiceProvider?, IStoreRules?>> _storeRules = [];
     private static volatile Dictionary<Type, Func<string, Delegate?>> _fieldRules = [];
+    private static volatile RequiredFields _requiredFields = RequiredFields.None;
 
     /// <summary>
     ///     Whether a <c>Form</c> validates its model with no validator declared. <see langword="true" />
@@ -175,6 +176,67 @@ public static class RaskValidation
         }
 
         return written is null ? own : RuleSequence<T>.Of(own, written);
+    }
+
+    /// <summary>
+    ///     Registers which properties of one model type must be filled because a rule the type carries says
+    ///     so — a property that is required by its own type, with no <c>[Required]</c> written on it — so a
+    ///     control bound to one announces it. The seam a data layer's generator plugs into; call it once per
+    ///     model type, from a <c>[ModuleInitializer]</c>.
+    ///     <para>
+    ///         It says a field is required and enforces nothing: register only a property a rule refuses when
+    ///         it is left empty, the one <see cref="RegisterFieldRules" /> hands a rule back for. Registering a
+    ///         type again replaces what it had.
+    ///     </para>
+    /// </summary>
+    /// <param name="modelType">
+    ///     The type that declares the properties: the form's model, or the type of an object or a row nested
+    ///     in it. A type derived from it is covered too.
+    /// </param>
+    /// <param name="isRequired">
+    ///     Given a property's name, whether it must be filled. Asked once per property and the answer kept
+    ///     until a type is registered again, so it answers the same every time and may be asked from any
+    ///     thread.
+    /// </param>
+    public static void RegisterRequiredFields(Type modelType, Func<string, bool> isRequired)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(isRequired);
+
+        // A whole new set, answers and all: a bound control asks on every render and takes no lock.
+        lock (Gate)
+        {
+            _requiredFields = _requiredFields.With(modelType, isRequired);
+        }
+    }
+
+    /// <summary>
+    ///     Whether a field must be filled: its type registered it through
+    ///     <see cref="RegisterRequiredFields" />, or the member carries
+    ///     <see cref="System.ComponentModel.DataAnnotations.RequiredAttribute" />. The one question a form
+    ///     control asks to announce a required field, as <c>aria-required</c>; cheap enough to ask on every
+    ///     render.
+    /// </summary>
+    /// <param name="modelType">
+    ///     The type the path starts from. A bound control passes the type of the object that owns its
+    ///     property, with the property's name.
+    /// </param>
+    /// <param name="fieldPath">
+    ///     A property's name, or the path a field failure names it by: <c>Price.Amount</c>,
+    ///     <c>Rows[2].Weight</c>. A path is followed through the declared types of the properties it walks —
+    ///     an index stands for the collection's item type — and the question is put to the type that owns the
+    ///     last property, and to its base types: <c>Rows[2].Weight</c> asks what the row's type registered
+    ///     for <c>Weight</c>.
+    /// </param>
+    /// <returns>
+    ///     <see langword="true" /> when the field must be filled; <see langword="false" /> when nothing says
+    ///     so, or the path names no member.
+    /// </returns>
+    public static bool IsRequired(Type modelType, string fieldPath)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(fieldPath);
+        return _requiredFields.IsRequired(modelType, fieldPath);
     }
 
     /// <summary>
