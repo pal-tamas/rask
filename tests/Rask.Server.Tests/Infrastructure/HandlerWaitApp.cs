@@ -143,7 +143,17 @@ public sealed partial class HandlerWaitRows(HandlerWaitStore store) : Component
 
     public int? Page { get; set; }
 
-    protected override async Task OnUpdated() => _rows = await store.Rows("p" + Page);
+    // Two pages asked for one after the other are two reads in flight, and they come back in either order:
+    // the rows kept are the ones of the page still asked for, as any list that pages must see to.
+    protected override async Task OnUpdated()
+    {
+        var asked = Page;
+        var rows = await store.Rows("p" + asked);
+        if (asked == Page)
+        {
+            _rows = rows;
+        }
+    }
 
     protected override Component? Render() => HandlerWaitMarkup.Rows(_rows);
 }

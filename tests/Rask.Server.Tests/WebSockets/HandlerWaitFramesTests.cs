@@ -301,6 +301,26 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task Rows_that_come_back_after_the_cap_has_acked_their_page_are_still_sent()
+    {
+        await using var page = await Page.Open("/w/child", output, Brief);
+        page.Session.ReadsCap = TimeSpan.FromMilliseconds(40);
+        page.Store.Hold();
+
+        await page.Press("next", seq: 1);
+        var atTheBudget = await page.NextOfAny();
+        var beforeTheAck = await page.UntilAck(1);
+        page.Store.Release();
+        var rows = await page.Until(NewRows);
+
+        // The ack is read before the read is let go, so the cap had passed and nobody was waiting for the rows
+        // any more: the dim ended, and the data that arrives later is shown all the same.
+        Assert.Contains(OldRows, atTheBudget, StringComparison.Ordinal);
+        Assert.Empty(beforeTheAck);
+        Assert.Contains("pager at 2", rows, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_read_that_never_comes_back_is_acked_at_the_cap_and_its_rows_still_arrive_when_it_does()
     {
         await using var page = await Page.Open("/w/child", output, Brief);
@@ -316,6 +336,7 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         var rows = await page.Until("row p3-3");
 
         // The read is still held when the ack is read: only the cap could have sent it. Nothing was cancelled.
+        // Two reads are let go together and come back in either order: the page keeps the one it still asks for.
         Assert.Contains(OldRows, atTheBudget, StringComparison.Ordinal);
         Assert.Empty(beforeTheAck);
         Assert.Contains("pager at 3", next, StringComparison.Ordinal);
