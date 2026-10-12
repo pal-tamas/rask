@@ -11,10 +11,10 @@ public sealed partial class GoDemo : Component
                 .OnClick(() => Go.To("/dashboard"))["Open dashboard"],
 
             // Or update just the query, keeping the same path:
-            Select.Of<string>()
+            Ui.Select.Of<string>().Listbox.Placeholder("Sort…")
                 .OnChange(v => Go.With("sort", v))[
-                Option.Value("asc")["Sort ascending"],
-                Option.Value("desc")["Sort descending"]
+                Ui.SelectOption.Value("asc")["Sort ascending"],
+                Ui.SelectOption.Value("desc")["Sort descending"]
             ]
         ];
 }

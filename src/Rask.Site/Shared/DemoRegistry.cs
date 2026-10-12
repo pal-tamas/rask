@@ -46,9 +46,9 @@ public static partial class DemoRegistry
                 .Result(BindingTypedDemo),
             ["binding-multi"] = () => CodeSample
                 .Files(["BindingMultiDemo.cs"])
-                .Notes("The same Bind helper picks the right input type from the property's CLR type. The "
-                + "typed fields are Live, so the readout follows them. The checkbox and the select write "
-                + "as they are chosen.")
+                .Notes("Bind is the same step on every control: a checkbox for a bool, an input for a number, "
+                + "the kit's date picker for a date and its listbox for a choice. Each says Live, so the "
+                + "readout follows it.")
                 .Result(BindingMultiDemo),
             ["binding-textarea"] = () => CodeSample
                 .Files(["BindingTextareaDemo.cs"])

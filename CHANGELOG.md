@@ -14,15 +14,9 @@ them until tagged releases begin.
   `Title[route.Title is { } page ? $"{page} | Shop" : "Shop"]` — and the sign-in, registration, devices and error
   pages declare `protected override string? PageTitle => "Sign in";` instead of a `<title>` of their own. A tab
   now reads *Sign in | Shop*. An app scaffolded earlier is untouched and keeps working.
-
-### Docs
-
-- **The guides lead with Flux's controls and the conventions an app is written by.** The tutorial's pages declare
-  `PageTitle` and its grid gives every column but one a width; the data grid guide has
-  [columns that stay put](docs/data-grid.md#columns-that-stay-put) (`c.Field(p => p.Price).Class("sm:w-32")`);
-  an aggregate's `string Name` is shown required by its type, without `[Required]`; examples of a choice are the
-  listbox (`Ui.Select.Bind(…).Listbox[…]`), and the forms guide's sections on the browser's own `Input` and
-  `Select` point to `Ui.DatePicker`, `Ui.TimePicker` and the listbox as what an app normally writes.
+- **The console's tables keep their columns.** The queue, log, cache and storage grids at `/_rask` give every
+  column but one a width, so paging, a filter or a retry no longer shifts the columns under the pointer. Below
+  `sm` the stacked lines are unchanged.
 - **A save that throws now tells the reader.** An exception out of a form's `OnSubmit` that names no field used
   to change nothing on the page unless the form was written `f => …` and drew `f.Error`; only the log said so.
   The form now raises an error toast — *The save failed. Please try again.* — or, when it draws its own messages
@@ -53,6 +47,18 @@ them until tagged releases begin.
   the fields its write refuses unfilled (`RaskValidation.RegisterRequiredFields`), root, nested value-object
   model and row alike. A `[Required]` you wrote on the aggregate yourself is kept with its message, and is then
   what says it. The value-object sentence for a number, date or id now comes from the catalog too.
+
+### Docs
+
+- **The guides lead with Flux's controls and the conventions an app is written by.** The tutorial's pages declare
+  `PageTitle` and its grid gives every column but one a width; the data grid guide has
+  [columns that stay put](docs/data-grid.md#columns-that-stay-put) (`c.Field(p => p.Price).Class("sm:w-32")`);
+  an aggregate's `string Name` is shown required by its type, without `[Required]`; examples of a choice are the
+  listbox (`Ui.Select.Bind(…).Listbox[…]`), and the forms guide's sections on the browser's own `Input` and
+  `Select` point to `Ui.DatePicker`, `Ui.TimePicker` and the listbox as what an app normally writes.
+- **The site's demos use them too.** Every demo outside the kit's own reference pages picks from the listbox and
+  the date picker instead of the browser's `<select>` and date field, and the master-detail tables follow
+  [columns that stay put](docs/ui-kit.md#columns-that-stay-put).
 
 ### Changed
 

@@ -76,7 +76,7 @@ public sealed partial class HeroCode : Component
 
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
-        "Product", "Aggregate", "Guid", "Required", "MaxLength", "Range", "Route", "ProductsPage",
+        "Product", "Aggregate", "Guid", "MaxLength", "Range", "Route", "ProductsPage",
         "Component", "IQueryable", "ProductRead", "QueryClient", "QueryKey", "Ui",
     };
 
@@ -90,7 +90,7 @@ public sealed partial class HeroCode : Component
             // No DbSet, no configuration class, no registration.
             public sealed class Product : Aggregate<Guid>
             {
-                [Required, MaxLength(200)]
+                [MaxLength(200)]
                 public string Name { get; private set; } = "";
 
                 [Range(0, 1_000_000)]
@@ -119,7 +119,7 @@ public sealed partial class HeroCode : Component
                         Ui.DataGrid.Data(_products).RowKey(p => p.Id)
                             .Label("Products")[c => [
                                 c.Field(p => p.Name).Sortable(),
-                                c.Field(p => p.Price).Sortable(),
+                                c.Field(p => p.Price).Sortable().Class("sm:w-32"),
                             ]]
                     ];
                 }

@@ -1197,7 +1197,8 @@ public abstract partial class SharedSmokeTests
         await floatingForm.Locator("#ff-FullName").FillAsync("Ada Lovelace");
         await floatingForm.Locator("#ff-Email").FillAsync("ada@example.com");
         await floatingForm.Locator("#ff-Age").FillAsync("30");
-        await floatingForm.Locator("#ff-Plan").SelectOptionAsync("pro");
+        await floatingForm.Locator("#ff-Plan").ClickAsync();
+        await floatingForm.Locator("[data-ui-option]").Filter(new LocatorFilterOptions { HasText = "Pro" }).ClickAsync();
         await floatingForm.Locator("button[type=submit]").ClickAsync();
         await Expect(Page.Locator(".sample-result-body [role='status']")
                 .Filter(new LocatorFilterOptions { HasText = "Ada Lovelace" }))
@@ -1219,11 +1220,13 @@ public abstract partial class SharedSmokeTests
         // with no StateHasChanged in the demo — including the Component-style controls (BsRadioGroup /
         // BsCheckboxGroup / BsMultiSelect) whose bound writes re-render the host via the binding owner.
 
-        // Select — controlled + bound (native <select>; SelectOptionAsync matches by option value).
-        await Page.Locator("#fc-select-controlled").SelectOptionAsync("Blazor");
+        // Select — controlled + bound, each Flux's listbox: a button, and the option picked from its open list.
+        await Page.Locator("#fc-select-controlled").ClickAsync();
+        await Page.Locator("[data-ui-option]:visible").Filter(new LocatorFilterOptions { HasText = "Blazor" }).ClickAsync();
         await Expect(Page.Locator("#fc-select-controlled-out")).ToContainTextAsync("Blazor",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
-        await Page.Locator("#fc-select-bound").SelectOptionAsync("htmx");
+        await Page.Locator("#fc-select-bound").ClickAsync();
+        await Page.Locator("[data-ui-option]:visible").Filter(new LocatorFilterOptions { HasText = "htmx" }).ClickAsync();
         await Expect(Page.Locator("#fc-select-bound-out")).ToContainTextAsync("htmx",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
 
