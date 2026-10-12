@@ -34,7 +34,9 @@ public abstract partial class Component
         using var ownLifetimes = Ambient.Enter(CancellationToken.None);
         using var ownDispatch = DispatchEventTokenScope.Suspend();
         var html = WalkAsLiveRoot(services, publishOnly, sink, out var walkAgain);
-        if (!walkAgain)
+        // A page that navigated as it mounted is not walked again: the route has moved, and the next walk is the
+        // host's to make — after that route's guard, and of a page the reader is to see.
+        if (!walkAgain || Routing.Navigator.Current is { RedirectPending: true })
         {
             return html;
         }

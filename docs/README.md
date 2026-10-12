@@ -105,7 +105,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–101, RASKISLAND001–018)](diagnostics.md) | Every analyzer/generator diagnostic and every islands build error, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–102, RASKISLAND001–018)](diagnostics.md) | Every analyzer/generator diagnostic and every islands build error, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 | [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 
