@@ -580,9 +580,9 @@ it**: `ProductModel` for `Product`. Forms always bind the model, never the aggre
 settable copy of every mapped property, and:
 
 - **every property is nullable**, because a form field can be empty whatever the column is — and a column that
-  cannot be empty (`decimal Price`, `string Name`) is `[Required]` on the model, so clearing it is a validation
-  error ("The Price field is required.") rather than a silent 0. A property whose type is a value object with
-  [a rule of its own](#what-a-form-over-the-model-asks-by-itself) carries no attribute: the type says it;
+  cannot be empty (`decimal Price`, `string Name`) is **required by its type**: leaving it unfilled is a
+  validation error (*This field is required.*, in the reader's language) rather than a silent 0. No `[Required]`
+  is generated for it — see [what a form over the model asks by itself](#what-a-form-over-the-model-asks-by-itself);
 - **`new ProductModel()` holds the aggregate's defaults**: it is filled from an empty `Product`, so a create form
   starts from the same values a `Product` would;
 - **`product.ToModel()`** copies a row into a model for an edit form, `Version` included;
@@ -953,7 +953,16 @@ public static IEnumerable<string> Validate(string value)
 - a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
   says the one sentence *This field is required.* and the rule is asked once there is a value
 - a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule
-- a value object with no rule keeps the generated `[Required]`, as a plain `string Name` does
+- a **plain** non-nullable property — `int Weight`, `decimal Price`, `DateOnly Built`, `Guid OwnerId`, `bool`,
+  `string Plate` — and a value object with no rule are required the same way: an unfilled field says the one
+  sentence. For text, unfilled means `null`, `""` or only white space; for everything else, no value
+- a nullable plain property (`int? Axles`, `string? Notes`) is optional
+- a `[Required(ErrorMessage = "…")]` you wrote on the aggregate yourself is kept, with its message, and is then
+  the only thing that says it
+
+The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
+built-in translations — so it follows the reader's language, and
+[a catalog of your own](localization.md) can reword it.
 
 These rules are not attribute validation, so `RaskValidation.AutoValidate = false` does not switch them off, and
 they are the same ones `Create(model)` and `Update(id, model)` ask with no form at all.
