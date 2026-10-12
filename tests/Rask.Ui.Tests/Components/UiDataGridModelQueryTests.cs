@@ -18,11 +18,11 @@ namespace Rask.UiTests.Components;
 ///         left behind.
 ///     </para>
 ///     <para>
-///         <c>Db</c> is process-wide static state. No other class in this assembly configures it, which is
-///         what lets this one run in parallel with the rest; a second class that does would need an xUnit
-///         collection shared with this one.
+///         <c>Db</c> is process-wide static state, so every class in this assembly that configures it shares
+///         one xUnit collection (<see cref="DataDbCollection" />) and never runs beside another.
 ///     </para>
 /// </remarks>
+[Collection(DataDbCollection.Name)]
 public sealed partial class UiDataGridModelQueryTests : global::Rask.Core.RaskMarkup, IDisposable
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-ui-grid-{Guid.NewGuid():N}.db");
