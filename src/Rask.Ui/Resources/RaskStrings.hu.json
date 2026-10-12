@@ -145,5 +145,9 @@
   "ValidationNumberRange": "A szám kívül esik a megengedett tartományon.",
   "ValidationDate": "Érvényes dátumot adjon meg.",
   "ValidationTime": "Érvényes időpontot adjon meg.",
-  "FormSaveFailed": "A mentés nem sikerült. Kérjük, próbálja újra."
+  "FormSaveFailed": "A mentés nem sikerült. Kérjük, próbálja újra.",
+  "ErrorHeading": "Hiba történt",
+  "ErrorTryAgain": "Újrapróbálom",
+  "ErrorReload": "Az oldal újratöltése",
+  "ErrorReference": "A hibát rögzítettük. Ha újra előfordul, erre az azonosítóra hivatkozzon: {0}"
 }

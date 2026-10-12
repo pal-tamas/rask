@@ -2,10 +2,9 @@
 
 namespace Rask.Core.Tests.Components;
 
-// The framework's default error page shows a rich, developer-friendly view in Development (parsed stack
-// frames, source excerpts, the full inner-exception chain) and a deliberately minimal page in Production.
-// The production behaviour is security-critical: no stack, no source, no file paths, no inner exceptions
-// may leak. These pin both branches, plus the source-excerpt reader and HTML-encoding safety.
+// The framework's default error page shows a rich, developer-friendly view in Development (type, message,
+// parsed stack frames, source excerpts, the full inner-exception chain) and nothing of the exception in
+// Production: a heading, the actions and a reference. ProductionErrorPageTests holds that half in full. These pin both branches, plus the source-excerpt reader and HTML-encoding safety.
 public class DefaultErrorPageTests
 {
     // A genuinely-thrown exception, so StackTrace(ex, true) has captured frames.
@@ -68,9 +67,9 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Always_shows_heading_type_and_message()
+    public void Development_shows_the_heading_the_type_and_the_message()
     {
-        var html = Render(Thrown("boom-msg"), isDevelopment: false);
+        var html = Render(Thrown("boom-msg"), isDevelopment: true);
 
         Assert.Contains("Something went wrong", html);
         Assert.Contains("System.InvalidOperationException", html);
@@ -123,15 +122,15 @@ public class DefaultErrorPageTests
     }
 
     [Fact]
-    public void Production_hides_inner_exception_chain()
+    public void Production_shows_neither_the_exception_nor_what_caused_it()
     {
         var ex = new InvalidOperationException("outer-boom", new Exception("inner-secret"));
 
         var html = Render(ex, isDevelopment: false);
 
-        Assert.Contains("outer-boom", html);            // outermost message still shown
-        Assert.DoesNotContain("Caused by:", html);      // but no chain
-        Assert.DoesNotContain("inner-secret", html);    // and no inner detail leaks
+        Assert.DoesNotContain("outer-boom", html);
+        Assert.DoesNotContain("Caused by:", html);
+        Assert.DoesNotContain("inner-secret", html);
     }
 
     [Fact]

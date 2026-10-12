@@ -158,7 +158,13 @@ public class DispatchAsyncRoutingTests() : ResettingTestBase(LiveDiffMode.Disabl
 
         // The host wraps the app in a RootErrorBoundary, so a handler that throws paints the error page
         // rather than dropping the frame — the browser has to be told something happened.
-        Assert.Contains("Something went wrong", Encoding.UTF8.GetString(result));
+        // A browser host never says it is in Development, so the page says nothing of the exception either.
+        var painted = Encoding.UTF8.GetString(result);
+        Assert.Contains("Something went wrong", painted);
+        Assert.Contains("quote this reference: ", painted);
+        Assert.DoesNotContain("InvalidOperationException", painted);
+        Assert.DoesNotContain("boom", painted);
+        Assert.DoesNotContain("devError", painted);
 
         // Session is still usable: a subsequent dispatch for an unknown handler id returns empty,
         // proving the lock was released and the session didn't crash.

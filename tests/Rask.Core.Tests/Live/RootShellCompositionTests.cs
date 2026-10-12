@@ -87,7 +87,8 @@ public partial class RootShellCompositionTests : global::Rask.Core.RaskMarkup
 
         Assert.StartsWith("<!DOCTYPE html><html lang=\"en\">", html);
         Assert.Contains("Something went wrong", html);
-        Assert.Contains("shell went wrong", html);
+        Assert.Contains("quote this reference: ", html);
+        Assert.DoesNotContain("shell went wrong", html);
         Assert.True(root.RenderedFallback);
     }
 
