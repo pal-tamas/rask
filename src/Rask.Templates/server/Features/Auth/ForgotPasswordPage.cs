@@ -18,7 +18,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
     private AuthError _error;
     private bool _sent;
 
-    protected override Component? HeadAssets => Title["Reset your password"];
+    protected override string? PageTitle => "Reset your password";
 
     protected override Component? Content => _sent ? Sent : Ask;
 

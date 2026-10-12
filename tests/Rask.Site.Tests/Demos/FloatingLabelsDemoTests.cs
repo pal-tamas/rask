@@ -19,7 +19,7 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         await Fill(page, html, "ff-FullName", "Ada Lovelace");
         await Fill(page, html, "ff-Email", "ada@example.com");
         await Fill(page, html, "ff-Age", "30");
-        await Fill(page, html, "ff-Plan", "pro");
+        await page.On("[data-ui-option]:has-text(\"Pro\")").Click();
 
         await page.Invoke(SubmitHandler(page.Render()));
 
@@ -74,10 +74,10 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         // All three controls render. The assertion is on the TAGS, which a restyle is not entitled to change.
         Assert.Contains("<input ", html);
         Assert.Contains("<textarea ", html);
-        Assert.Contains("<select ", html);
+        Assert.Contains("data-ui-select-button", html);
 
-        // The input, the textarea and the select are Flux's now, with the label over the field: nothing floats
-        // any more. Each label is linked to its control by for/id. The ff-* ids are the browser journey's selectors.
+        // The input, the textarea and the select — its listbox — are Flux's, with the label over the field:
+        // nothing floats any more. Each label is linked to its control by for/id. The ff-* ids are the browser journey's selectors.
         Assert.DoesNotContain("class=\"floating-label\"", html);
         foreach (var prop in new[] { "FullName", "Email", "Age", "Plan", "Bio" })
         {

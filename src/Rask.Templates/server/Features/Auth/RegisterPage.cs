@@ -28,7 +28,7 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
     [QueryParam]
     public string? ReturnUrl { get; set; }
 
-    protected override Component? HeadAssets => Title["Create an account"];
+    protected override string? PageTitle => "Create an account";
 
     protected override Component? Content =>
         [

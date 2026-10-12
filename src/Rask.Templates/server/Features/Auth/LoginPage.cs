@@ -26,7 +26,7 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
     [QueryParam]
     public string? ReturnUrl { get; set; }
 
-    protected override Component? HeadAssets => Title["Sign in"];
+    protected override string? PageTitle => "Sign in";
 
     // The support check is JavaScript, so it waits for a browser to exist: on the first render this page is HTML
     // on its way out, with nothing to ask.

@@ -9,7 +9,7 @@ public sealed partial class EventsSelectDemo : Component
 
     protected override Component? Render() =>
     [
-        Ui.Select.Value(_pick)
+        Ui.Select.Value(_pick).Listbox
             .Label("Framework")
             .OnChange(v => _pick = v)
             .Class("mb-2")[

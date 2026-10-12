@@ -1,6 +1,6 @@
 namespace Rask.Site.Features;
 
-// UiSelect<T> — Rask.Core's HTMLSelectElement<T> underneath — in both shapes side by side.
+// Ui.Select, as Flux's listbox, in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the value in a field; OnChange writes it back and
 //     re-renders this consumer, so the "Picked:" readout updates live (the controlled-OnChange fix).
 //   • Bound — Ui.Select.Bind(() => model.X): two-way binds the model property through the ambient EditContext.
@@ -18,6 +18,7 @@ public sealed partial class FormControlsSelectDemo : Component
             Div.Class("col-span-12 md:col-span-6")[
                 Ui.Select
                     .Value(_controlled)
+                    .Listbox
                     .Label("Controlled (Value + OnChange)")
                     .OnChange(v => _controlled = v)
                     .Id("fc-select-controlled")
@@ -30,7 +31,7 @@ public sealed partial class FormControlsSelectDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    Ui.Select.Bind(() => _model.Framework).Live().Label("Bound (two-way)").Id("fc-select-bound").Class("mb-2")[
+                    Ui.Select.Bind(() => _model.Framework).Listbox.Live().Label("Bound (two-way)").Id("fc-select-bound").Class("mb-2")[
                         Frameworks.Select(framework => Ui.SelectOption.Key(framework.Value).Value(framework.Value)[framework.Text])
                     ]
                 ],
