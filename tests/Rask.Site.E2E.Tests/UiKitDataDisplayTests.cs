@@ -688,11 +688,12 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
             await Expect(scope.Locator("[data-ui-rows]")).ToHaveCSSAsync("opacity", "1");
             var seen = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__waits");
 
-            // Five rows the whole time; the pager marked while the old rows were still under it; faded, and back.
+            // Five rows the whole time; the pager marked while the old rows were still under it; faded once, and
+            // at full strength again with the new rows (which do not fade in: they are simply there).
             Assert.Equal(5, seen.GetProperty("fewest").GetInt32());
             Assert.True(seen.GetProperty("marked").GetBoolean(), "the pager was never marked as waiting.");
             Assert.True(seen.GetProperty("pagerAhead").GetBoolean(), "the rows were replaced before the read was back.");
-            Assert.Equal(["0.5", "1"], seen.GetProperty("opacities").EnumerateArray().Select(static o => o.GetString()).ToArray());
+            Assert.Equal(["0.5"], seen.GetProperty("opacities").EnumerateArray().Select(static o => o.GetString()).ToArray());
             await Expect(scope.Locator("[data-ui-pagination]")).Not.ToHaveAttributeAsync("data-loading", "");
         }
         finally
