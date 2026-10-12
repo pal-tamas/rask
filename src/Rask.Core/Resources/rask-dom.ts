@@ -21,6 +21,7 @@ import {
     reviveScript,
 } from "./rask-morph.js";
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
+import {drive, keepsOpen, stands} from "./rask-owned.js";
 
 export {resolvePath};
 
@@ -178,6 +179,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     const name1 = resolveName(op[2]);
                     const rawVal = op[3];
                     const newVal = rawVal == null ? "" : rawVal;
+                    if (keepsOpen(el, name1, true)) break;
                     el.setAttribute(name1, newVal);
                     // After a form-control has been interacted with, the value
                     // attribute is desynchronised from the .value/.checked property
@@ -191,6 +193,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                 const el2 = resolvePath(path);
                 if (isElement(el2)) {
                     const name2 = resolveName(op[2]);
+                    if (keepsOpen(el2, name2, false)) break;
                     el2.removeAttribute(name2);
                     syncFormProperty(el2, name2, "", false);
                 }
@@ -812,6 +815,9 @@ export function applyFrameInvokes(
 // element arrives. Only on a CHANGE: a reader who closes the popover with Escape while the page still says
 // "true" is not fought — the page hears the toggle event and updates, or it does not, and either way the next
 // time it changes its mind is the next time this acts. Rask UI's controlled Ui.Dropdown is built on it.
+//
+// A change is not carried out while the reader's own toggle of that popover is still unanswered: the render
+// that brings it is older than what the reader did (rask-owned.ts, "the reader's last word").
 (function () {
     if (typeof document === "undefined" || typeof MutationObserver !== "function") {
         return;
@@ -820,7 +826,7 @@ export function applyFrameInvokes(
     function reconcile(el: Element): void {
         const want = el.getAttribute("data-rask-popover-open");
         const popover = el as HTMLElement & { showPopover?: () => void; hidePopover?: () => void };
-        if (want === null || typeof popover.showPopover !== "function") {
+        if (want === null || typeof popover.showPopover !== "function" || stands(el, reconcile)) {
             return;
         }
         let open = false;
@@ -830,8 +836,8 @@ export function applyFrameInvokes(
             return; // an engine without the popover API
         }
         try {
-            if (want === "true" && !open) popover.showPopover();
-            else if (want === "false" && open) popover.hidePopover!();
+            if (want === "true" && !open) drive(el, function () { popover.showPopover!(); });
+            else if (want === "false" && open) drive(el, function () { popover.hidePopover!(); });
         } catch (e) {
             // not connected, or already transitioning — the next change will reconcile
         }

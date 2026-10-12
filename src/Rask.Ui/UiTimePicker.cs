@@ -338,6 +338,12 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             case Keys.Enter when cursor >= 0:
                 _open = UiTimePickerValue.Several<T>();
                 await PickAsync(view, view.Times[cursor]).ConfigureAwait(false);
+                if (!_open)
+                {
+                    // Shut from here, the list raises no toggle for the page to hear.
+                    _cursor = -1;
+                }
+
                 break;
             default:
                 break;

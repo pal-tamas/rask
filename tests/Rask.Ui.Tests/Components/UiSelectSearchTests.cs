@@ -158,12 +158,9 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         await page.On("[data-ui-select-search] input").Input("leg");
 
         await Key(page, "Enter");
-        var whileClosing = Shown(page).Count();
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
 
+        // In the render that shuts the list: a list C# shut raises no toggle for the page to wait for.
         Assert.Equal("Legal services", _picked);
-        // The rows a search hid stay hidden until the browser says the list is shut: nothing moves under the pointer.
-        Assert.Equal(1, whileClosing);
         Assert.Equal(7, Shown(page).Count());
         Assert.Equal(string.Empty, page.Find("[data-ui-select-search] input").Attribute("value") ?? string.Empty);
     }

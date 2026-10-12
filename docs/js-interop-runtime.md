@@ -368,10 +368,19 @@ that arrives some other way stands down: its listeners answer nothing and send n
 
 ### Popovers, dialogs and the page behind them
 
+**Open and shut has two hands, and the reader's comes first.** A popover with `data-rask-popover-open`, a
+dialog with `data-rask-modal-open` and a `<details>` whose `open` the page renders are opened and shut by a
+render — and by the reader, in the browser, at once. From the moment the browser opens or shuts one until the
+server has answered that event (its `toggle`, or a dialog's `close`), no render drives it: a reply rendered
+before the server heard Escape cannot open the list again. What a render was refused meanwhile is carried out
+once the answer is on the page. And what the runtime opens or shuts to match a render is not sent back:
+`OnToggle`, `OnBeforeToggle` and a dialog's `OnClose` hear what the reader did, not the page's own change of
+mind.
+
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | *(none)* | any `popover` / `popover="auto"` | When focus leaves an open one for anything but its own `popovertarget` button it closes; when a press outside closed it and focus is on `<body>`, focus goes to that button. A `popover="manual"` is left alone. |
-| `data-rask-modal-open="true"` \| `"false"` | a `<dialog>` | `showModal()` / `close()` to match, when the attribute changes or the dialog arrives — a real modal with a `::backdrop`, where a rendered `open` is not. Removing the attribute closes it too. The dialog's own `close` and `cancel` events fire as usual. |
+| `data-rask-modal-open="true"` \| `"false"` | a `<dialog>` | `showModal()` / `close()` to match, when the attribute changes or the dialog arrives — a real modal with a `::backdrop`, where a rendered `open` is not. Removing the attribute closes it too. The dialog's own `close` and `cancel` events fire as usual; the `close` of a dialog the runtime closed this way is not sent to C#. |
 | `data-rask-modal="any"` \| `"press"` \| `"escape"` \| `"none"` | a `<dialog>` | How a reader dismisses it: Escape and a press outside, a press outside only, Escape only, neither. A press outside fires a cancelable `cancel`, then closes. With no value the dialog is the platform's. |
 | `data-open` *(written)* | a dialog carrying either attribute above | Present while the dialog is shown, however it was opened or closed. |
 | `command` / `commandfor` | a `<button>` | Where the engine has no invoker commands: `show-modal`, `close`, `request-close`, and the popover three. |
