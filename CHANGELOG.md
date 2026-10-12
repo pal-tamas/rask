@@ -69,6 +69,13 @@ them until tagged releases begin.
   zero specificity; the look is unchanged (`parity.mjs table`, `pagination`: matches Flux). A new guard,
   `AnAppsClassWinsTests`, resolves the cascade from an app's one compiled sheet for every kit component that
   takes a `Class` and lists the 130 where a default still decides — there, write Tailwind's `!` (`p-0!`).
+- **A navigation that renders more than once tells the browser its address once.** On the Server host, a
+  `StateHasChanged` that arrived while a navigation was still being rendered — a page whose `OnMount` finished
+  its `await` in that moment, a layout that re-renders when the route changes — sent a second frame, and that
+  frame repeated the navigation's address. The browser pushed the same history entry twice, so Back stayed on
+  the page the reader was leaving; where that page loads and then calls `Go()`, Back sent them round to its
+  destination again. The address now travels in the first frame that goes out, and in no later one.
+
 - **A page that redirects from `OnMount` or `OnUpdated` lands on its destination, however it was reached.** A
   page that calls `Go()` as it mounts — "no partner chosen, go to the partner list", "record not found, back
   to the list" — answered a first request with a `302`, but a `NavLink` to it threw `InvalidOperationException:
