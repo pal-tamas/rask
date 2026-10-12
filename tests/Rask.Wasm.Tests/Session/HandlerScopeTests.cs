@@ -4,15 +4,14 @@ namespace Rask.Wasm.Tests.Session;
 public class HandlerScopeTests
 {
     [Fact]
-    public async Task A_render_request_inside_the_handler_scope_returns_at_once_without_taking_the_lock()
+    public void A_render_request_inside_the_handler_scope_returns_at_once_without_taking_the_lock()
     {
         var (session, _) = NewSession();
         session.InHandlerScope = true;
 
         var task = session.RequestRender();
-        var completed = await Task.WhenAny(task, Task.Delay(500, TestContext.Current.CancellationToken));
 
-        Assert.Same(task, completed);
+        // "At once" is before the call returns: the request is parked for the dispatch that holds the scope.
         Assert.True(task.IsCompletedSuccessfully);
     }
 }
