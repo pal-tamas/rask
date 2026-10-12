@@ -8,7 +8,7 @@ sending events up, nesting children, and rendering windowed or reorderable lists
 - [Children & fragments](#children--fragments)
 - [Component tiers: static method · stateless · stateful](#component-tiers-static-method--stateless--stateful)
 - [Hosting a component you built yourself](#hosting-a-component-you-built-yourself)
-- [Callbacks & context](composition-callbacks-context.md) — child→parent callbacks, provide/consume context.
+- [Callbacks & context](composition-callbacks-context.md) — child→parent callbacks (each runs for the component that wrote it), provide/consume context.
 - [Lists, toasts, drag & error boundaries](composition-lists.md) — virtualize, keyed lists, toasts, drag-and-drop, error boundaries.
 
 ---

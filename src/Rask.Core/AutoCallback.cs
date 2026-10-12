@@ -1,3 +1,5 @@
+using Rask.Core.Live;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -14,6 +16,11 @@ namespace Rask.Core;
 ///         straight into the child's prop. The returned delegate runs the original and then calls
 ///         <see cref="Component.StateHasChanged()" /> on the component that <em>owns</em> the original
 ///         (its <c>Target</c>), after awaiting any returned <see cref="System.Threading.Tasks.Task" />.
+///     </para>
+///     <para>
+///         The original is its owner's code, so it runs under its owner's lifetime
+///         (<see cref="CallbackOwnerScope" />): the calls it makes that take no token are cancelled when
+///         the owner leaves the page, and not when the component that invoked it does.
 ///     </para>
 ///     <para>
 ///         The receiver is captured once at wrap time from <c>original.Target as Component</c> — the
@@ -47,7 +54,11 @@ public static class AutoCallback
 
         return () =>
         {
-            d();
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d();
+            }
+
             r.StateHasChanged();
         };
     }
@@ -67,7 +78,11 @@ public static class AutoCallback
 
         return arg =>
         {
-            d(arg);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d(arg);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -88,7 +103,11 @@ public static class AutoCallback
         return async () =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d().ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d().ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -109,7 +128,11 @@ public static class AutoCallback
         return async arg =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d(arg).ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -130,7 +153,11 @@ public static class AutoCallback
         return async () =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d().ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d().ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -151,7 +178,11 @@ public static class AutoCallback
         return async arg =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d(arg).ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -178,7 +209,11 @@ public static class AutoCallback
 
         return (arg1, arg2) =>
         {
-            d(arg1, arg2);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d(arg1, arg2);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -199,7 +234,11 @@ public static class AutoCallback
         return async (arg1, arg2) =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d(arg1, arg2).ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg1, arg2).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -220,7 +259,11 @@ public static class AutoCallback
         return async (arg1, arg2) =>
         {
             r.MarkDirtyForAsyncHandler();
-            await d(arg1, arg2).ConfigureAwait(false);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                await d(arg1, arg2).ConfigureAwait(false);
+            }
+
             r.StateHasChanged();
         };
     }
@@ -269,9 +312,12 @@ public static class AutoCallback
             return new Func<object?, Task>(async arg =>
             {
                 r.MarkDirtyForAsyncHandler();
-                if (d.DynamicInvoke(arg) is Task t)
+                using (CallbackOwnerScope.Enter(r))
                 {
-                    await t.ConfigureAwait(false);
+                    if (d.DynamicInvoke(arg) is Task t)
+                    {
+                        await t.ConfigureAwait(false);
+                    }
                 }
 
                 r.StateHasChanged();
@@ -280,7 +326,11 @@ public static class AutoCallback
 
         return new Action<object?>(arg =>
         {
-            d.DynamicInvoke(arg);
+            using (CallbackOwnerScope.Enter(r))
+            {
+                d.DynamicInvoke(arg);
+            }
+
             r.StateHasChanged();
         });
     }

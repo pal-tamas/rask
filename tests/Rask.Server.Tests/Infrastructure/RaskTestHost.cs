@@ -11,8 +11,11 @@ internal sealed class RaskTestHost : IDisposable
 {
     private readonly WebApplication _app;
 
-    private RaskTestHost(WebApplication app, TestServer server)
+    private readonly string _pathBase;
+
+    private RaskTestHost(WebApplication app, TestServer server, string pathBase)
     {
+        _pathBase = pathBase;
         _app = app;
         Server = server;
         Http = server.CreateClient();
@@ -27,7 +30,7 @@ internal sealed class RaskTestHost : IDisposable
 
     public IServiceProvider Services => Server.Services;
 
-    public Uri WebSocketUri => new(new Uri(Server.BaseAddress, "/rask/ws").ToString().Replace("http://", "ws://"));
+    public Uri WebSocketUri => new(new Uri(Server.BaseAddress, _pathBase + "/rask/ws").ToString().Replace("http://", "ws://"));
 
     /// <summary>
     ///     Stops the host the way a SIGTERM does — fires <c>ApplicationStopping</c>, then awaits every
@@ -59,7 +62,8 @@ internal sealed class RaskTestHost : IDisposable
         Action<RaskServerOptions>? configureServer = null,
         LiveDiffMode diffMode = LiveDiffMode.Auto,
         string? environment = null,
-        Action<RaskCultureOptions>? configureCulture = null)
+        Action<RaskCultureOptions>? configureCulture = null,
+        bool endpointRouting = false)
         where TApp : Component
     {
         // Defaults to whatever WebApplication picks (Production under test, absent an env var).
@@ -100,11 +104,15 @@ internal sealed class RaskTestHost : IDisposable
         // host, but a RaskApp-built host never comes through here, and what it left behind would answer.
         if (environment is not null)
             LiveOptions.IsDevelopment = null;
-        app.MapRask<TApp>(pathBase: pathBase);
+        // The endpoint-routing overload is what a host that composes its own pipeline calls: no WebApplication.
+        if (endpointRouting)
+            ((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)app).MapRask<TApp>(pathBase: pathBase);
+        else
+            app.MapRask<TApp>(pathBase: pathBase);
 
         app.StartAsync().GetAwaiter().GetResult();
 
         var server = app.GetTestServer();
-        return new RaskTestHost(app, server);
+        return new RaskTestHost(app, server, pathBase);
     }
 }
