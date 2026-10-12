@@ -23,7 +23,6 @@ public sealed partial class UiKitActionsDemo : Component
     private bool _read = true;
     private bool _write = true;
     private bool _delete;
-    private List<string> _filters = ["open"];
 
     /// <inheritdoc />
     protected override Component? Render() =>
@@ -32,7 +31,7 @@ public sealed partial class UiKitActionsDemo : Component
         DropdownSection(),
         ContextMenuSection(),
         CommandPaletteSection(),
-        PopoverSection(),
+        UiKitPopoverDemo,
         ModalSection(),
         ConfirmationModalSection(),
         FlyoutModalSection(),
@@ -236,27 +235,6 @@ public sealed partial class UiKitActionsDemo : Component
                     Ui.MenuItem.Icon(Ui.IconName.ClipboardDocumentCheck)
                         .OnClick(() => { _lastAction = "copied the invoice link"; })["Copy invoice link"],
                     Ui.MenuItem.Danger.OnClick(() => { _lastAction = "signed out"; })["Sign out"]
-                ]
-            ]);
-
-    private Component PopoverSection() =>
-        Section(
-            "Popover — a panel, not a menu",
-            "The gap a dropdown leaves. A dropdown IS a menu: its children are rows you pick from, it says "
-            + "role=menu and it walks a cursor over them with the arrow keys. A filter panel is none of those, "
-            + "and putting one in a menu tells a screen reader it is a list of commands and traps the arrows "
-            + "inside it. Same machinery, no menu semantics — a [popover] the browser lifts, dismisses on "
-            + "Escape and on a click outside, placed with the same Position and Align everything else uses.",
-            Div.Data(Testid("ui-popover"))[
-                Ui.Popover.Trigger("Filters").Icon(Ui.IconName.Cog6Tooth).Align(Ui.Align.Start)
-                    .PanelClass("w-72")[
-                    Ui.Heading.Key("h").Level(3).Class("mb-2")["Narrow the list"],
-                    Ui.CheckboxGroup.Values(_filters).Key("f").Id("popover-filters").Label("Show")
-                        .OnChange(v => { _filters = [.. v]; })[
-                        Ui.Checkbox.Value("open").Label("Open"),
-                        Ui.Checkbox.Value("mine").Label("Assigned to me"),
-                        Ui.Checkbox.Value("old").Label("Older than a week")
-                    ]
                 ]
             ]);
 
