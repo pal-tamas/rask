@@ -49,20 +49,34 @@ jobs:
           sha=""
           if [ "$EVENT" = "workflow_dispatch" ]; then
             sha="$GITHUB_SHA"
+            say="Publishing \`$sha\` by hand: no whole run was asked about it."
           else
-            green="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/full.yml/runs?branch=main&status=success&per_page=1" \
-              --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || true)"
+            # The same question on a schedule and on a completed whole run: neither publishes a commit
+            # no `full` run passed. A run that passed on a second try counts -- the schedule in
+            # full.yml runs a commit again while it is not green.
+            read -r green run <<< "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/full.yml/runs?branch=main&status=success&per_page=1" \
+              --jq '.workflow_runs[0] | "\(.head_sha) \(.html_url)"' 2>/dev/null || true)"
             published="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
               --jq '.target_commitish // empty' 2>/dev/null || true)"
-            echo "nightly: the whole run last passed ${green:-nothing}; the last nightly is ${published:-none}."
-            if [ -n "$green" ] && [ "$green" != "$published" ]; then sha="$green"; fi
+            if [ -z "$green" ] || [ "$green" = "null" ]; then
+              green=""; say="Nothing published: no whole run has passed on main."
+            elif [ "$green" = "$published" ]; then
+              say="Nothing published: \`$green\` is the newest commit the whole run passed ($run), and the last nightly is already cut from it."
+            else
+              sha="$green"
+              say="Publishing \`$green\`, which the whole run passed: $run (the last nightly is ${published:-none})."
+            fi
           fi
+          # On the run page, because the run list shows main's head -- not the commit that is packed,
+          # and not whether anything was.
+          echo "$say" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
   publish-nightly:
     needs: pick
     if: needs.pick.outputs.sha != ''
     runs-on: ubuntu-24.04
+    timeout-minutes: 180   # a publish that hangs must end, or `nightly` (one at a time) never runs again
     env:
       SHA: ${{ needs.pick.outputs.sha }}   # the commit the whole run passed
     steps:
@@ -84,33 +98,62 @@ jobs:
       - name: Pack (prerelease)
         run: dotnet pack Rask.slnx -c Release -o ./artifacts
 
-      - name: Push prerelease to nuget.org
-        run: >-
-          dotnet nuget push "./artifacts/*.nupkg"
-          --source https://api.nuget.org/v3/index.json
-          --api-key "${{ secrets.NUGET_API_KEY }}"
-          --skip-duplicate
-
-      - name: Push prerelease to GitHub Packages (mirror)
-        run: >-
-          dotnet nuget push "./artifacts/*.nupkg"
-          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-          --api-key "${{ secrets.GITHUB_TOKEN }}"
-          --skip-duplicate
-
+      # Before the push, so a publish that fails still leaves the packages it was pushing on the run.
       - name: Upload packages as workflow artifact
         uses: actions/upload-artifact@v7
         with:
           name: nightly-packages
           path: ./artifacts/*.nupkg
 
+      # The publish script as of THIS workflow file, which is main's -- the tree above is the commit
+      # being packed, which can be older than the script's arguments. After the pack on purpose.
+      - uses: actions/checkout@v7
+        with:
+          path: .publisher
+          sparse-checkout: scripts/lib
+
+      # Dependencies first, and a package only once nuget.org SERVES what it depends on -- so whatever
+      # stops this step, nothing is listed ahead of its dependencies (2026-10-12: Rask.Server was, for
+      # every app floating `0.*-*`). Each push is retried; a re-run of this job packs the same commit,
+      # so MinVer gives the same version and --skip-duplicate picks up where it stopped.
+      # The gate is the slow part: nuget.org validates for minutes and the set is eight levels deep.
+      # Drop --gate-index to push without waiting, at the price of a package being served before a
+      # dependency of it for as long as validation happens to take.
+      - name: Push prerelease to nuget.org, dependencies first
+        id: push
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: >-
+          python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
+          --source https://api.nuget.org/v3/index.json
+          --api-key-env NUGET_API_KEY
+          --gate-index nuget.org
+          --projects src
+          --commit "$SHA"
+
+      # Not done until every package of the version can be restored. The summary on the run page names
+      # the version and the commit it was packed from: the run list shows main's head, not that.
+      - name: Wait until nuget.org serves the whole version
+        run: python3 .publisher/scripts/lib/publish_packages.py verify ./artifacts
+
+      - name: Push prerelease to GitHub Packages (mirror)
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key-env GITHUB_PACKAGES_TOKEN
+
+      # Last, and only after the version is whole: `pick` reads this release to know what is published,
+      # so a publish that failed above is tried again by the next run.
       - name: Update rolling "nightly" prerelease
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.push.outputs.version }}
         run: |
           gh release delete nightly --yes --cleanup-tag || true
           gh release create nightly ./artifacts/*.nupkg \
             --prerelease \
             --target "$SHA" \
-            --title "Nightly ($SHA)" \
-            --notes "Automated prerelease from main @ $SHA. Not published to nuget.org."
+            --title "Nightly $VERSION ($SHA)" \
+            --notes "Automated prerelease $VERSION, packed from main @ $SHA and published to nuget.org."

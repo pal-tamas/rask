@@ -401,7 +401,11 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
         // real content to render and its refresh lands over the live connection — waiting for that
         // would make every cache hit pay full latency to change nothing. Retries need no special
         // case: the task completes when the policy gives up, and the host's own budget bounds it.
-        if (StatusOf(_entry) == QueryStatus.Pending
+        //
+        // An entry that was INVALIDATED is waited for like one with nothing to show. What it holds is known
+        // to be wrong, not merely old: the reader who saved and went to the list would otherwise land on the
+        // rows from before their save, and see them replaced a moment later.
+        if ((StatusOf(_entry) == QueryStatus.Pending || _entry.NeedsRefetch)
             && FetchStatusOf(_entry) == FetchStatus.Fetching
             && _entry.InFlight is { } inFlight)
         {

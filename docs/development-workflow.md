@@ -86,7 +86,10 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
   ahead of the tag on a `ci/release/**` branch.
 - **Nightly:** `nightly.yml` runs when `full` (the whole run) ends, and takes the newest commit it has passed on `main` — it packs the MinVer
   prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages. A commit
-  `ci` did not pass publishes nothing.
+  `full` did not pass publishes nothing.
+- **Both publish through one script, dependencies first** —
+  [`scripts/lib/publish_packages.py`](../scripts/lib/publish_packages.py); see
+  [How a version reaches nuget.org](#how-a-version-reaches-nugetorg).
 - **The released version is the only one left listed.** After publishing, `release.yml` runs
   [`scripts/unlist-old-versions.sh`](../scripts/unlist-old-versions.sh), which unlists every older
   version of each package it just pushed — previous stables and the nightly prereleases alike. A
@@ -182,12 +185,79 @@ Publishing. `pages.yml` triggers when `full` completes on `main` and does nothin
 schedule is its backstop). So neither a
 prerelease package nor rask.sh is built from a commit the WHOLE set did not pass — a scoped run's green
 publishes nothing. `full` runs behind every push, one run at a time with the newest push waiting, so a
-site change is live about twenty minutes after its push and a package is on nuget.org about as soon.
+site change is live about twenty minutes after its push. A package takes longer: its publish waits for
+nuget.org level by level ([below](#how-a-version-reaches-nugetorg)).
 
 The price of a scoped push is named here once: a break the scoped run could not see is found by the
 next whole run, minutes later, with green pushes on top of it. `full` red and `ci` green means
 exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
 `workflow_dispatch` of `nightly` or `pages` publishes whatever `main` holds, verdict or not.
+
+### How a version reaches nuget.org
+
+`nightly.yml` and `release.yml` pack the solution and hand `./artifacts` to
+[`scripts/lib/publish_packages.py`](../scripts/lib/publish_packages.py). Nothing else pushes a package.
+
+```bash
+python3 scripts/lib/publish_packages.py plan   ./artifacts --projects src   # level, id, version — pushes nothing
+python3 scripts/lib/publish_packages.py push   ./artifacts --source … --api-key-env NUGET_API_KEY --gate-index nuget.org
+python3 scripts/lib/publish_packages.py verify ./artifacts                  # waits until every package is served
+```
+
+- **The set is checked first.** One version, one commit, every dependency of ours packed, and
+  (`--projects src`) exactly the projects under `src/` that are not `<IsPackable>false</IsPackable>`. A
+  set that fails is not pushed at all (exit 2).
+- **Order.** Read from the packed nuspecs: a package with no dependency in the set is level 0, and
+  every other one sits a level above the deepest thing it depends on. Today that is eight levels, from
+  `Rask.Wire` to `Rask.Server`. There is no list to keep.
+- **Gate.** A level is pushed only when nuget.org *serves* everything it depends on. Accepted is not
+  served: validation takes four to eleven minutes and finishes in no particular order, so without the
+  gate `Rask.Server` can be restorable before `Rask` is. This is what makes a publish take the better
+  part of an hour; removing `--gate-index` from the workflow trades it back for that window.
+- **Retry.** One package per `dotnet nuget push`, `--timeout 900`, five attempts with a doubling wait.
+  A timeout, a 5xx or anything unrecognised is tried again; a 429 waits what the feed asks, or a minute;
+  a 400/401/403/413 fails at once; a duplicate is success. The API key travels in the environment and
+  is struck out of everything printed.
+- **Verify.** The job is green only when the flat container — what restore reads to resolve a version
+  and to download; search and registration lag it — lists every package at the new version. Otherwise
+  it fails and names what is missing.
+- **A failed publish is finished by running it again.** *Re-run failed jobs* packs the same commit, so
+  MinVer gives the same version, and `--skip-duplicate` passes over what is already there. Whatever
+  stopped it, nothing above the failure was pushed, so the half that exists restores. A nightly that
+  is left unfinished is not waited for: the rolling `nightly` release moves only after the verify
+  step, so the next run publishes the newest green commit, whole.
+
+**Which commit is version X?** A nightly's number is the commit height since the last tag, which no run
+list shows — and a `nightly` run is listed under `main`'s head, not under the commit it packed. Three
+places say it:
+
+```bash
+# the package itself: <repository commit="…"> in its nuspec
+curl -s https://api.nuget.org/v3-flatcontainer/rask/0.23.1-alpha.0.271/rask.nuspec | grep -o 'commit="[^"]*"'
+gh release view nightly --json name,targetCommitish     # the newest nightly: "Nightly <version> (<sha>)"
+gh run view <run-id>                                    # the run's summary: version, commit, and why it was picked
+```
+
+And the other way round — does a nightly hold commit X: take that version's commit from its nuspec and
+ask git, `git merge-base --is-ancestor X <commit> && echo yes`. The number alone does not say: MinVer's
+height is not what `git describe` counts.
+
+#### 2026-10-12: a nightly that left `Rask.Server` ahead of `Rask`
+
+`0.23.1-alpha.0.273` was on nuget.org for `Rask.Server`, `Rask.Dashboard`, `Rask.Postgres` and three
+more while `Rask`, `Rask.Ui`, `Rask.Data` and the rest were still at `.271`. Every app floating
+`0.*-*` failed restore with NU1102, a production deploy among them. Three things made it possible:
+
+| Cause | What prevents it now |
+|---|---|
+| One `dotnet nuget push "./artifacts/*.nupkg"`: file-name order, so hosts went before what they depend on. Even a clean nightly served `Rask.Server` 37 seconds before `Rask` (`.271`). | Order from the nuspecs, and the gate: nothing is pushed until its dependencies are served. |
+| No retry, and the CLI's 300-second default: one stalled request ended the publish where it stood. | A push per package, a longer timeout, bounded retries; a failure stops below everything that depends on it. |
+| "Done" meant the push command exited. Nothing asked whether the version was whole, and no run said which version or commit it was. | The verify step, the summary on the run page, and a `nightly` release that moves only after both. |
+
+The rule that a nightly comes only from a commit `full` passed held throughout, on the schedule as on
+the completed run: both ask the same question in the `pick` job. The scheduled run that looked like a
+publish from a red commit had published nothing — the commit had passed `full` on a second, scheduled
+try three days earlier, and its nightly already existed. `pick` now writes what it decided on the run page.
 
 ### The workflows
 

@@ -239,6 +239,15 @@ The helpers are built on the public `Rask.Core.Forms` API you can also use direc
 - **`BindingHelpers.NotifyAndValidateField(ctx, field)`** — commit a change: marks the field
   changed + touched and re-validates (no-op when `ctx` is `null`).
 - **`Validation.Message.Template(template).For(Bind)`** — render the field's messages inside your control.
+- **`RaskValidation.IsRequired(modelType, fieldPath)` → `bool`** — whether the bound field must be filled: the
+  member is `[Required]`, or its model's type registered it with `RaskValidation.RegisterRequiredFields`. It
+  is the one question to ask before writing `aria-required="true"`; never read `RequiredAttribute` yourself,
+  or a field that is required by its type goes unannounced. A control that wraps a core `Input`, `Select` or
+  `Textarea` and passes `Bind` on gets the attribute from it. One that draws its own element asks with the
+  accessor it already has — `RaskValidation.IsRequired(acc.Target.GetType(), acc.PropertyName)` — and writes
+  it only on a role that has the state (a text box, a combobox, a checkbox, a radio group; not a slider or a
+  plain group). Cheap enough for every render: the answer is kept per field.
+  See [how a control knows a field is required](forms-validation.md#how-a-control-knows-a-field-is-required).
 
 ---
 

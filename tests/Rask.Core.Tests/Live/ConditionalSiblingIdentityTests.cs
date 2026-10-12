@@ -502,6 +502,10 @@ public sealed partial class LoadingPanel : Component
     {
         await Gate.Task;
         _loaded = true;
+
+        // Said before the test is let go: its next render must find this panel waiting to be drawn, and the
+        // mark the framework makes when this hook returns comes after the line below has woken the test.
+        StateHasChanged();
         Tally.Loaded.SetResult();
     }
 

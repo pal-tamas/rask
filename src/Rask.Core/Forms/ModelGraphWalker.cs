@@ -257,7 +257,7 @@ public static class ModelGraphWalker
     private static bool TryParseIndex(string key, out int index) =>
         int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out index);
 
-    private static List<PathSegment> SplitPath(string path)
+    internal static List<PathSegment> SplitPath(string path)
     {
         var segments = new List<PathSegment>();
         var i = 0;
@@ -305,7 +305,7 @@ public static class ModelGraphWalker
         return segments;
     }
 
-    private readonly record struct PathSegment(string Name, string? Index)
+    internal readonly record struct PathSegment(string Name, string? Index)
     {
         public bool IsIndexed => Index is not null;
     }

@@ -33,6 +33,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskValidation.RegisterRequiredFields` and `RaskValidation.IsRequired`: one question says whether a field
+  must be filled.** `RegisterRequiredFields(typeof(DestinationModel), property => property is "Name")` is the
+  seam a data layer's generator plugs into, once per model type, beside `RegisterFieldRules`; it covers the
+  types derived from the one registered. `IsRequired(modelType, fieldPath)` answers yes when the declaring
+  type registered the property or the member carries `[Required]`, follows a path through the declared types
+  (`Rows[2].Weight` asks the row's type, `Price.Amount` the type of `Price`), and keeps each answer until a
+  type is registered again, so a control can ask on every render. A form control of your own asks it instead
+  of reading `RequiredAttribute` — see `docs/forms-validation.md` and `docs/building-form-controls.md`.
 - **Five framework sentences for text a bound field cannot read**, each a `RaskString` key with its Hungarian
   built into `Rask.Ui`: `ValidationWholeNumber` "Enter a whole number.", `ValidationNumber` "Enter a number.",
   `ValidationNumberRange` "The number is out of range.", `ValidationDate` "Enter a valid date." and
@@ -72,6 +80,41 @@ them until tagged releases begin.
   ([Leaving the app](docs/routing.md#leaving-the-app--goout)).
 ### Changed
 
+- **A page reached in place is sent once, when its first reads are back.** A `NavLink`, Back, `Go()` from a
+  handler, a redirect, a guard's redirect, the page a sign-in returns to and a session rebuilt after a deploy
+  used to send the page the moment it was mounted and again when its `OnMount` / `OnUpdated` came back: two
+  whole pages a link (351 KB then 420 KB on the reported layout), three frames a `await Save(); X.Go()` — the
+  list without its address, a 74-byte frame carrying only the address, the list again — an edit page that
+  showed "no such record" first, and a tab title that flashed the layout's default. The navigation now waits
+  for the page it goes to, as the first `GET` always has, and sends ONE frame: the page, its data, its title
+  and its address. On both hosts, WebAssembly's first render included.
+  - **The budget is 150 ms** — `Rask:Server:NavigationQuiescenceTimeout` /
+    `RaskServerOptions.NavigationQuiescenceTimeout`, and `RaskWasmOptions.NavigationQuiescenceTimeout` in a
+    browser app; zero sends at once, as before. A page whose reads take longer is sent as it stands at the
+    budget and the rest follows, exactly as before; nothing is cancelled. A page with nothing pending is not
+    delayed at all.
+  - **Meanwhile the reader keeps the page they are on**, under the busy marks the client already draws (the
+    pressed button after 200 ms, the progress bar after 300 ms).
+  - **A second link pressed meanwhile ends the wait**, and nothing of the first page is sent. On the Server
+    host a `navigate` frame is now queued behind the handlers read before it instead of holding the reader, so
+    it counts against `MaxPendingHandlers` like a handler does.
+  - **A handler that has called `Go()` is not repainted until its dispatch sends the address**: the
+    destination no longer travels first, as a page of its own.
+  - **A page that calls `Go()` after an `await` is no longer shown** when it does so within the budget. Its
+    destination arrives under the history step of the navigation that led there — one `push` for a link or a
+    handler's `Go()`, where it used to be a `push` of the page in between and a `replace`.
+  - **A page that reads through `Rask.Query` is covered too**: a query read in `Render` is waited for when it
+    has nothing to show, as on the first `GET`, and now also when it was just invalidated — a save that
+    invalidates a cached list and goes to it is one frame with the fresh rows, where it was the old rows and
+    then the new. A cached query is shown at once, with no fetch.
+  - **`OnRendered` after the data.** The renders made while a page is waited for are publish-only, as the first
+    request's are, and one ordinary render follows them, so `OnRendered` still runs on the page as sent. A page
+    with a pending script call (`IJSRuntime` from `OnFirstRender`/`OnRendered`) is not waited for — that call
+    completes only once a frame has reached the browser — and arrives as it did before.
+  **For an existing app:** nothing to change. A test that counted the frames of a navigation sees one where it
+  saw two; a page that relied on its placeholder being visible on every in-app navigation now shows it only
+  when the load outlasts the budget ([routing](docs/routing.md#the-page-is-sent-when-its-first-reads-are-back)).
+
 - **BREAKING: a one-value value object is stored as a converted scalar column, so it can be indexed and made
   unique.** `public Email Email { get; private set; }` with `record Email(string Value)` used to be an EF Core
   complex type whose one column was named after the property, and EF Core has no index over a complex type's
@@ -109,6 +152,39 @@ them until tagged releases begin.
   separator of thousands wherever it stands. What a number input sends — digits and a dot — is read as before
   in every culture; any other spelling is read in the session's culture (`12,5` and `1 234,5` under `hu`,
   `1,234.5` under `en`, groups of three only) or is no number, and the field says so.
+- **A browser session's two repaints of a running handler take turns.** A handler that awaits is repainted when
+  it first yields and again before its continuation; the WebAssembly session let the two walk the tree at
+  once where the host has more than one thread — never in a browser, always in a test — and the walk that
+  threw took the handler or its continuation with it: about one `await Save(); Go.To(…)` in five hundred never
+  navigated, or never returned. They are serialised, as the server session's always were. A render asked for
+  just as a dispatch ends is also no longer left to a dispatch that has stopped looking.
+- **build/release: a version reaches nuget.org dependencies first, and the publish is not done until all of it
+  is there.** The nightly pushed every package with one command, in file-name order, and a stalled request on
+  2026-10-12 ended it with `Rask.Server` at `0.23.1-alpha.0.273` and `Rask` still at `.271` — so an app
+  floating `0.*-*` could not restore (NU1102) until the next nightly. Nightly and release now publish through
+  `scripts/lib/publish_packages.py`: the order is read from the packed nuspecs, a package is pushed only once
+  nuget.org serves what it depends on, each push is retried, and the job fails with the list of what is
+  missing unless every package of the version is served. The run page names the version and the commit it
+  was packed from. **For an existing app:** nothing to change; a version that is only partly published no
+  longer breaks a restore, and a new nightly now takes the better part of an hour to appear.
+- **A sortable table heading aligned to the end keeps its label by that edge.** `Ui.TableColumn.End.Sortable()`
+  drew the chevron after the label, so the heading's words ended 28 px short of the right-aligned numbers under
+  them. As Flux does for `<flux:table.column sortable align="end">`, the button now runs the other way — chevron
+  first, then the label — and hangs the chevron into the space before it (`flex-row-reverse`, `-ms-8`), which
+  also stops the chevron widening a narrow number column. The label ends 8 px from the cell's edge, the button's
+  own padding, exactly as Flux's does. Start- and centre-aligned headings are unchanged.
+
+- **A field that must be filled says so to a screen reader: a bound control writes `aria-required="true"`.**
+  A field required by its type — a non-nullable value-object property of a Rask.Data model, which carries no
+  `[Required]` — announced nothing, and neither did any `[Required]` member bound through the kit's Flux
+  controls or a plain `Input`, `Select` or `Textarea`. Every bound control now asks
+  `RaskValidation.IsRequired`: the plain three, and `Ui.Input`, `Ui.Textarea`, `Ui.Select` (native, and the
+  listbox and combobox trigger), `Ui.Checkbox`, `Ui.Switch`, `Ui.RadioGroup`, `Ui.DatePicker`, `Ui.TimePicker`
+  and the rest of the kit, on the element that carries their other `aria-*`. Only `aria-required`, never the
+  native `required` (no browser bubble); an `aria-required` written on the control wins; a radio, a range, a
+  slider and a plain `group` (`Ui.CheckboxGroup`, `Ui.Otp`, a typed date) write none, their roles having no
+  such state. **For an existing app:** markup that is compared byte for byte gains the attribute on fields
+  bound to a `[Required]` member.
 - **A bound field no longer keeps its stored value as if it had been typed when the text does not fit its
   type.** `Input.Bind(() => model.Weight)` over an `int` that received `99999999999`, `1.5` or `1e3` — text a
   number input accepts — failed to parse, left the model as it was and said nothing: on a new form the field

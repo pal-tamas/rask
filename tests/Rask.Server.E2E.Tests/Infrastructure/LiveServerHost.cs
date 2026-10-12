@@ -46,7 +46,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
     public static async Task<LiveServerHost> StartAsync<TApp>(
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
-        string? environment = null, bool endpointRouting = false, Action<IServiceCollection>? services = null)
+        string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
+        Action<IServiceCollection>? services = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -61,7 +62,11 @@ internal sealed class LiveServerHost : IAsyncDisposable
         builder.Services.AddRouting();
         // Ahead of Rask's own registrations: the languages an app ships are the first ones said.
         services?.Invoke(builder.Services);
-        builder.Services.AddRask(live, o => o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200));
+        builder.Services.AddRask(live, o =>
+        {
+            o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
+            server?.Invoke(o);
+        });
 
         if (cookieSignIn)
         {

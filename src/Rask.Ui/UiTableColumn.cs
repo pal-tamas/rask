@@ -6,7 +6,8 @@ namespace Rask;
 /// One heading of a <see cref="UiTable" />: Flux's <c>flux:table.column</c>. It is the <c>&lt;th&gt;</c>.
 /// </summary>
 /// <remarks>
-/// A sortable heading draws its label as a button with a chevron beside it. The table does not sort
+/// A sortable heading draws its label as a button with a chevron beside it — after the label, or before
+/// it when the heading is aligned to the end, so the label stays by that edge. The table does not sort
 /// anything: the page keeps which column is sorted and which way, says so with <see cref="Sorted" /> and
 /// <see cref="Direction" />, and reorders its rows when <see cref="OnSort" /> fires.
 /// </remarks>
@@ -19,6 +20,9 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     private const string SortGroup = "group/sortable";
 
     private const string SortButton = "-my-1 -ms-2 flex items-center gap-1 px-2 py-1 text-start";
+
+    // An end-aligned heading draws its chevron before the label, hung into the space on that side.
+    private const string SortButtonAtEnd = "-my-1 -ms-8 flex flex-row-reverse items-center gap-1 px-2 py-1 text-start";
 
     private const string SortIcon = "rounded-sm text-zinc-400 group-hover/sortable:text-zinc-800 dark:group-hover/sortable:text-white";
 
@@ -105,7 +109,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     }
 
     private Component SortControl() =>
-        Button.Type(ButtonType.Button).Class(SortButton).Data("ui-table-sortable", "")[
+        Button.Type(ButtonType.Button).Class(Align is Ui.Align.End ? SortButtonAtEnd : SortButton).Data("ui-table-sortable", "")[
             Div[Children ?? []],
             Div.Class(SortIcon)[Indicator()]
         ];

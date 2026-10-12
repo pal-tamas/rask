@@ -50,9 +50,15 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
-    public WasmLiveSession(Component view, IServiceProvider services, LiveDiffMode diffMode)
+    // How long a frame that carries a navigation waits for the page it goes to. Zero sends at once.
+    private readonly TimeSpan _navigationBudget;
+
+    public WasmLiveSession(
+        Component view, IServiceProvider services, LiveDiffMode diffMode, TimeSpan navigationBudget = default)
         : base(view, services, diffMode)
     {
+        _navigationBudget = navigationBudget;
+
         // Bind this session to the runtime so its BeginInvokeJS queues onto JsInvokes.
         (services.GetService<WasmJSRuntime>())?.AttachHost(this);
 
@@ -81,6 +87,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         ComponentLifecycle.DisposeComponentTree(View);
         // Single-threaded in the browser: no render can race this, so the arrays go straight back to the pool.
         _htmlBuffers.Dispose();
+        _arrivals.Dispose();
         _lock.Dispose();
         _inScopeRender.Dispose();
     }
@@ -99,11 +106,21 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // internal `await Task.Yield()` would otherwise Post its continuation back through
         // HandlerSyncContext, which re-enters this same method via _render — a render loop on
         // the WASM JS task queue.
+        // A handler that has navigated is not repainted mid-flight: the destination would be shown before the
+        // dispatch has taken its address. The dispatch's render carries both.
+        if ((_navigator ??= Services.GetRequiredService<Navigator>()).NavigationPending)
+        {
+            return;
+        }
+
         var prevCtx = SynchronizationContext.Current;
         SynchronizationContext.SetSynchronizationContext(null);
         try
         {
-            await _inScopeRender.WaitAsync().ConfigureAwait(false);
+            // Counted while it waits, for the test that holds the first of two mid-walk.
+            Interlocked.Increment(ref _inScopeRendersWaiting);
+            await _inScopeRender.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            Interlocked.Decrement(ref _inScopeRendersWaiting);
             try
             {
                 await BuildPayloadAsync(null, false).ConfigureAwait(false);
@@ -123,22 +140,41 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
+    private int _inScopeRendersWaiting;
+
+    // How many mid-await renders are waiting their turn — for the test that holds one mid-walk.
+    internal int InScopeRendersWaiting => Volatile.Read(ref _inScopeRendersWaiting);
+
+    // Already inside a dispatch's render: signal it to rebuild the payload before releasing the lock, so
+    // dispose-driven state changes (e.g. a token.Register callback that calls StateHasChanged on a parent)
+    // land in the response payload instead of waiting for the next event.
+    //
+    // The scope is re-read after the write, as the server session does: a dispatch that finished its coalescing
+    // loop and cleared the scope in between will not look at the flag again, so the request renders itself
+    // instead of being dropped. A browser has one thread and never sees that; a host with more than one —
+    // every test of this session — does.
+    private bool LeftToTheDispatch()
+    {
+        if (!InHandlerScope)
+        {
+            return false;
+        }
+
+        _pendingRenderInScope = true;
+        return InHandlerScope;
+    }
+
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
-        if (InHandlerScope)
+        if (LeftToTheDispatch())
         {
-            // Already inside a dispatch's render: signal the helper to rebuild the payload
-            // before releasing the lock so dispose-driven state changes (e.g. a token.Register
-            // callback that calls StateHasChanged on a parent) land in the response payload
-            // instead of waiting for the next event.
-            _pendingRenderInScope = true;
             return;
         }
 
         // The app's services made ambient for exactly this work, as the server session does — how a Rask.Data
         // save inside it finds the IDataChanges that refreshes this page's queries.
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         try
         {
@@ -186,6 +222,14 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
     protected override bool TryNavigateCore(Action navigate)
     {
+        // The dispatch that mounted the asking page is still waiting for it: it makes the navigation itself,
+        // in that page's place, so the page is never shown.
+        if (_arriving)
+        {
+            _handedOver ??= navigate;
+            return true;
+        }
+
         _ = NavigateFromHookAsync(navigate);
         return true;
     }
@@ -195,7 +239,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Never inline: the hook asking may be inside the very render this navigation has to wait for.
         await Task.Yield();
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         try
         {
@@ -212,8 +256,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
                 return;
             }
 
-            await BuildPayloadCoalescingRerendersAsync(url, true).ConfigureAwait(false);
-            if (await TryEmitFrameAsync(true).ConfigureAwait(false))
+            if (await BuildPayloadCoalescingRerendersAsync(url, true, arriving: true).ConfigureAwait(false)
+                && await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 _htmlBuffers.Commit();
             }
@@ -234,7 +278,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
     public async Task<byte[]> InitialRenderAsync()
     {
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         try
         {
@@ -248,9 +292,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).
             // The first page may send the reader on as it mounts; the address then changes in place.
+            // And it is waited for like any page reached in place: what the browser shows meanwhile is the
+            // document it loaded, which a baked page already fills.
             using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
-            await BuildPayloadCoalescingRerendersAsync(null, true).ConfigureAwait(false);
-            if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
+            if (!await BuildPayloadCoalescingRerendersAsync(null, true, arriving: true).ConfigureAwait(false)
+                || !await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
             }
@@ -338,7 +384,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root, bool copyFrame)
     {
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         try
         {
@@ -366,7 +412,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         var submits = EventBatch.AnnounceSubmits(View, events);
         try
@@ -443,7 +489,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             using (navigator.EnterHandler())
             {
-                if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
+                if (!await View.TryInvokeHandlerAsync(handlerId, root, Services, CancellationToken.None).ConfigureAwait(false))
                 {
                     return Array.Empty<byte>();
                 }
@@ -478,7 +524,14 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private async Task<byte[]> RenderAndEmitAsync(string? historyUrl, bool historyReplace, bool copyFrame)
     {
-        await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace).ConfigureAwait(false);
+        // A render that carries a navigation waits for the page it goes to; one a newer navigation replaced
+        // shows nothing.
+        if (!await BuildPayloadCoalescingRerendersAsync(historyUrl, historyReplace, arriving: historyUrl is not null)
+                .ConfigureAwait(false))
+        {
+            return Array.Empty<byte>();
+        }
+
         // EmitFrame pushes the frame (zero-copy) unless it's byte-identical to the last
         // sent one; force the send when a navigation URL must flow even if the rendered
         // output is unchanged. No send → no-op (empty byte array to the test seam).
@@ -506,6 +559,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
             : string.Empty;
         var replace = root.TryGetProperty("replace", out var rEl) && rEl.ValueKind == JsonValueKind.True;
 
+        // Before the lock: this is what ends the wait of the navigation holding it.
+        _arrivals.Read();
+        return await NavigateAsync(navPath, navQueryString, replace, copyFrame).ConfigureAwait(false);
+    }
+
+    private async Task<byte[]> NavigateAsync(string navPath, string navQueryString, bool replace, bool copyFrame)
+    {
         var fullUrl = navPath;
         if (!string.IsNullOrEmpty(navQueryString))
         {
@@ -513,10 +573,16 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
 
         using var work = EnterWorkScope();
-        await _lock.WaitAsync().ConfigureAwait(false);
+        await _lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
         InHandlerScope = true;
         try
         {
+            // A newer navigation is already waiting behind this one: the reader asked for that page since.
+            if (!_arrivals.Starts())
+            {
+                return Array.Empty<byte>();
+            }
+
             var routeState = Services.GetRequiredService<RouteState>();
             routeState.Path = navPath;
             routeState.Query = QueryString.Parse(navQueryString);
@@ -525,9 +591,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
             {
                 // The page a navigation mounts may send the reader on, as it may from a handler.
                 using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
-                await BuildPayloadCoalescingRerendersAsync(fullUrl, replace).ConfigureAwait(false);
+
                 // Navigation always flows — force the send even when the rendered output is unchanged.
-                if (!await TryEmitFrameAsync(true).ConfigureAwait(false))
+                if (!await BuildPayloadCoalescingRerendersAsync(fullUrl, replace, arriving: true).ConfigureAwait(false)
+                    || !await TryEmitFrameAsync(true).ConfigureAwait(false))
                 {
                     return Array.Empty<byte>();
                 }
@@ -553,8 +620,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    private async Task BuildPayloadCoalescingRerendersAsync(string? historyUrl,
-        bool replace, bool publishOnly = false)
+    // arriving: the payload carries a navigation, so each build waits for the page it goes to (RenderArrivedAsync).
+    // False when a newer navigation ended that wait: nothing was built, and nothing is to be sent.
+    private async Task<bool> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
+        bool replace, bool publishOnly = false, bool arriving = false)
     {
         // First build emits any pending history navigation. If a dispose callback (or other
         // synchronous code reached during RenderAsLiveRoot) requested another render via
@@ -581,34 +650,51 @@ internal sealed class WasmLiveSession : LiveSessionBase
         _pendingRenderInScope = false;
         var budget = 2;
         FollowRedirect(ref historyUrl, ref replace, ref budget);
-        await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+        if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving).ConfigureAwait(false))
+        {
+            _pendingRenderInScope = false;
+            return false;
+        }
+
         while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
-            await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false);
+            if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving).ConfigureAwait(false))
+            {
+                _pendingRenderInScope = false;
+                return false;
+            }
         }
 
         // Commit the final, actually-sent render as the new diff baseline exactly once.
         _renderCache?.Snapshot();
 
-        // Budget exhaustion surfaces a third queued in-dispatch render that won't
-        // flush — the next event picks up the trailing state. Match the server-side
-        // telemetry so dispatch-render-loop bugs are greppable on either runtime.
-        if (_pendingRenderInScope)
-        {
-            RaskDiagnostics.Report(
-                RaskLogLevel.Warning,
-                "Rask.Wasm",
-                "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
-                "in-dispatch render was queued and dropped. Inspect any handlers " +
-                "that re-trigger StateHasChanged in OnRendered / dispose " +
-                "callbacks during this dispatch.");
+        DropARenderPastTheBudget();
+        return true;
+    }
 
-            // Consume it: reported and dropped ON PURPOSE. Leaving it set would hand it to
-            // DrainRenderRequestedAfterScope, which would re-render, exhaust the budget again and
-            // loop — the runaway the budget exists to stop.
-            _pendingRenderInScope = false;
+    // Budget exhaustion surfaces a third queued in-dispatch render that won't
+    // flush — the next event picks up the trailing state. Match the server-side
+    // telemetry so dispatch-render-loop bugs are greppable on either runtime.
+    private void DropARenderPastTheBudget()
+    {
+        if (!_pendingRenderInScope)
+        {
+            return;
         }
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Warning,
+            "Rask.Wasm",
+            "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
+            "in-dispatch render was queued and dropped. Inspect any handlers " +
+            "that re-trigger StateHasChanged in OnRendered / dispose " +
+            "callbacks during this dispatch.");
+
+        // Consume it: reported and dropped ON PURPOSE. Leaving it set would hand it to
+        // DrainRenderRequestedAfterScope, which would re-render, exhaust the budget again and
+        // loop — the runaway the budget exists to stop.
+        _pendingRenderInScope = false;
     }
 
     // A page that navigated as it mounted or updated: the payload just built is of a page the reader is not to
@@ -625,7 +711,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
         {
-            return false;
+            return FollowHandedNavigation(ref historyUrl, ref replace, ref budget);
         }
 
         replace = replace || (historyUrl is null && redirectReplace);
@@ -634,52 +720,169 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return true;
     }
 
+    // A hook of the page being waited for navigated after an await: the dispatch makes that navigation in the
+    // page's place. The page never had an address, so the one the reader came by is kept or replaced as their
+    // own navigation said — and replaced when they made none.
+    private bool FollowHandedNavigation(ref string? historyUrl, ref bool replace, ref int budget)
+    {
+        if (_handedOver is not { } navigate)
+        {
+            return false;
+        }
+
+        _handedOver = null;
+        navigate();
+        if (_navigator!.TryConsumeExit(out var exit))
+        {
+            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+        }
+
+        if (!_navigator.TryConsumeHistory(out var url, out _))
+        {
+            return false;
+        }
+
+        replace = replace || historyUrl is null;
+        historyUrl = url;
+        budget = 2;
+        return true;
+    }
+
     private Navigator? _navigator;
+
+    // The navigate calls made and not yet started, and the wait a newer one ends.
+    private readonly NavigationArrivals _arrivals = new();
+
+    // The browser has one thread, so plain fields: nothing here is read while something else writes it.
+    private bool _arriving;
+    private Action? _handedOver;
+
+    private bool LeavingThePage => _navigator!.RedirectPending || _handedOver is not null;
+
+    /// <summary>
+    ///     Renders the page a navigation goes to, and renders it again as the lifecycle work that render
+    ///     started comes back, until none is pending or the navigation budget is spent — the server host's
+    ///     <c>RenderArrivedAsync</c>, over the same waves. Null when a newer navigation ended the wait.
+    /// </summary>
+    private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderArrivedAsync(bool publishOnly)
+    {
+        _navigator ??= Services.GetRequiredService<Navigator>();
+        var superseded = _arrivals.Superseded;
+        if (_arrivals.AnyQueued)
+        {
+            return null;
+        }
+
+        ReadOnlyMemory<char> html = default;
+        FrameWriter? frameWriter = null;
+        _arriving = true;
+        _handedOver = null;
+        try
+        {
+            await QuiescentRender.Run(
+                again =>
+                {
+                    // A page that has sent the reader on is not rendered again: its destination is next.
+                    if (!again || !LeavingThePage)
+                    {
+                        html = RenderTreeToHtml(publishOnly || again, out frameWriter);
+                    }
+
+                    return string.Empty;
+                },
+                _navigationBudget,
+                // A call into the page's script completes only once a frame has carried it there.
+                isBlocked: () => JsInvokes.HasPending || LeavingThePage,
+                cancellationToken: superseded).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (superseded.IsCancellationRequested)
+        {
+            return null;
+        }
+        finally
+        {
+            _arriving = false;
+        }
+
+        return (html, frameWriter);
+    }
 
     // commitCache=false defers the render-cache rotation to the caller (the coalescing loop),
     // so intermediate rebuilds diff against the stable last-sent baseline instead of against
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
     // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
     // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
-    internal async Task BuildPayloadAsync(string? historyUrl, bool replace,
-        bool publishOnly = false, bool commitCache = true)
+    // Points the route at the guard's redirect when the reader may not see the page it is on, and answers the
+    // address the browser should then show; null when the page is allowed.
+    private async Task<string?> GuardRouteAsync()
+    {
+        var routeState = Services.GetRequiredService<RouteState>();
+        if (!RouteResolver.TryResolve(routeState.Path, out var chain))
+        {
+            return null;
+        }
+
+        var user = Services.GetService<IUserProvider>()?.Current
+                   ?? new ClaimsPrincipal(new ClaimsIdentity());
+        var authResult = await RouteAuthorizationGuard
+            .Evaluate(Services, chain, user)
+            .ConfigureAwait(false);
+        if (authResult.Outcome == RouteAuthorizationOutcome.Allow)
+        {
+            return null;
+        }
+
+        if (authResult.Outcome == RouteAuthorizationOutcome.Forbid)
+        {
+            routeState.Path = RouteAuthorizationGuard.ForbidPath;
+            routeState.Query = QueryCollection.Empty;
+            return RouteAuthorizationGuard.ForbidPath;
+        }
+
+        var returnUrl = "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(routeState.Path, routeState.Query));
+        routeState.Path = RouteAuthorizationGuard.ChallengePath;
+        routeState.Query = QueryString.Parse(returnUrl);
+        return RouteAuthorizationGuard.ChallengePath + returnUrl;
+    }
+
+    // False when the payload carried a navigation a newer one replaced while its page was awaited.
+    internal async Task<bool> BuildPayloadAsync(string? historyUrl, bool replace,
+        bool publishOnly = false, bool commitCache = true, bool arriving = false)
     {
         await Task.Yield();
 
-        var routeState = Services.GetRequiredService<RouteState>();
-        if (RouteResolver.TryResolve(routeState.Path, out var chain))
+        if (await GuardRouteAsync().ConfigureAwait(false) is { } guardUrl)
         {
-            var user = Services.GetService<IUserProvider>()?.Current
-                       ?? new ClaimsPrincipal(new ClaimsIdentity());
-            var authResult = await RouteAuthorizationGuard
-                .Evaluate(Services, chain, user)
-                .ConfigureAwait(false);
-            if (authResult.Outcome != RouteAuthorizationOutcome.Allow)
-            {
-                var originalUrl = QueryString.Build(routeState.Path, routeState.Query);
-                var redirectPath = authResult.Outcome == RouteAuthorizationOutcome.Forbid
-                    ? RouteAuthorizationGuard.ForbidPath
-                    : RouteAuthorizationGuard.ChallengePath;
-                routeState.Path = redirectPath;
-                if (authResult.Outcome == RouteAuthorizationOutcome.Challenge)
-                {
-                    routeState.Query = QueryString.Parse("?returnUrl=" + Uri.EscapeDataString(originalUrl));
-                    historyUrl = redirectPath + "?returnUrl=" + Uri.EscapeDataString(originalUrl);
-                }
-                else
-                {
-                    routeState.Query = QueryCollection.Empty;
-                    historyUrl = redirectPath;
-                }
-
-                replace = true;
-            }
+            historyUrl = guardUrl;
+            replace = true;
         }
 
         // Render + decide diff-vs-full + write the frame — shared with the Server host
         // (LiveSessionBase). WASM has no AuthInstruction in the diff codec (the route-auth guard
         // above already redirected), so auth is null; the data-rask-root id is the constant "wasm".
-        var html = RenderTreeToHtml(publishOnly, out var frameWriter);
+        ReadOnlyMemory<char> html;
+        FrameWriter? frameWriter;
+        if (arriving && _navigationBudget > TimeSpan.Zero)
+        {
+            if (await RenderArrivedAsync(publishOnly).ConfigureAwait(false) is not var (settled, frames))
+            {
+                return false;
+            }
+
+            (html, frameWriter) = (settled, frames);
+        }
+        else
+        {
+            html = RenderTreeToHtml(publishOnly, out frameWriter);
+        }
+
+        // A page that sent the reader on while it was awaited is not written: the caller builds its destination.
+        if (arriving && _handedOver is not null)
+        {
+            _writeBuffer.ResetWrittenCount();
+            return true;
+        }
+
         var download = ConsumeDownload();
 
         // Drain IJSRuntime calls queued during the render walk (e.g. an OnRendered focus). They
@@ -694,5 +897,6 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         // The built frame lives in _writeBuffer; EmitFrame pushes it zero-copy. The rendered chars stay
         // in _htmlBuffers.Current for the caller's noop-guard / diff-cache baseline (committed on send).
+        return true;
     }
 }

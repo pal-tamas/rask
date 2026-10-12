@@ -83,6 +83,9 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
         {
             ["controls"] = scope.CalendarId,
         };
+
+        // The typed date is a plain group, a role with no required state.
+        aria.Remove("required");
         if (Label is not null)
         {
             aria["labelledby"] = field.LabelId;
