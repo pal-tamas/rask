@@ -71,9 +71,10 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_pick_writes_the_bound_time_and_says_so_on_the_button()
     {
         var model = new Booking();
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Locale("en-US").Label("Starts at"));
+        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At).Locale("en-US").Label("Starts at"));
 
         await page.On("[data-time=\"09:30\"]").Click();
+        await Acting.Act(page);
 
         Assert.Equal(new TimeOnly(9, 30), model.At);
         Assert.Equal("9:30 AM", page.TextOf("[data-ui-time-picker-button] [dir=\"auto\"]"));
@@ -95,9 +96,10 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_second_press_on_the_chosen_time_takes_it_back()
     {
         var model = new Booking { At = new TimeOnly(9, 30) };
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At));
+        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At));
 
         await page.On("[data-time=\"09:30\"]").Click();
+        await Acting.Act(page);
 
         Assert.Null(model.At);
         Assert.Contains("Select a time", page.Html, StringComparison.Ordinal);
@@ -211,11 +213,12 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     public async Task Enter_picks_the_time_under_the_cursor_and_closes_the_list()
     {
         var model = new Booking();
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At));
+        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At));
         await page.On("[popover]").Raise("toggle", Opened);
 
         await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"End\"}");
         await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"Enter\"}");
+        await Acting.Act(page);
 
         Assert.Equal(new TimeOnly(23, 30), model.At);
         Assert.Contains("data-rask-popover-open=\"false\"", page.Html, StringComparison.Ordinal);
@@ -295,14 +298,17 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_whole_time_in_the_hidden_field_is_the_typed_time_and_an_unavailable_one_is_not_taken()
     {
         var model = new Booking();
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).Locale("en-US")
+        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).Locale("en-US")
             .Unavailable([new TimeOnly(3, 0)]));
 
         await page.On("[data-rask-segments] input[type=\"hidden\"]").Change(string.Empty);
+        await Acting.Act(page);
         var unfinished = model.At;
         await page.On("[data-rask-segments] input[type=\"hidden\"]").Change("21:05");
+        await Acting.Act(page);
         var evening = model.At;
         await page.On("[data-rask-segments] input[type=\"hidden\"]").Change("03:00");
+        await Acting.Act(page);
 
         Assert.Null(unfinished);
         Assert.Equal(new TimeOnly(21, 5), evening);
@@ -367,10 +373,11 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     public async Task A_clearable_picker_shows_its_button_only_while_a_time_is_chosen()
     {
         var model = new Booking { At = new TimeOnly(9, 30) };
-        var page = Page.Render(() => Ui.TimePicker.Bind(() => model.At).Clearable());
+        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At).Clearable());
         var before = page.Html;
 
         await page.On("[aria-label=\"Clear\"]").Click();
+        await Acting.Act(page);
 
         Assert.Contains("aria-label=\"Clear\"", before, StringComparison.Ordinal);
         Assert.Null(model.At);

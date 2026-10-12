@@ -6,7 +6,7 @@ public sealed partial class BindingTextareaDemo : Component
 
     protected override Component? Render() =>
     [
-        Ui.Textarea.Bind(() => _model.Notes).Label("Jot something down…")
+        Ui.Textarea.Bind(() => _model.Notes).Live().Label("Jot something down…")
             .Id("bind-textarea")
             .Rows(3)
             .Placeholder("Jot something down…").Class("mb-2"),

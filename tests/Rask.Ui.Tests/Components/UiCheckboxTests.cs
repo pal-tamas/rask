@@ -161,9 +161,10 @@ public partial class UiCheckboxTests : global::Rask.Core.RaskMarkup
     public async Task Ticking_a_checkbox_of_a_group_adds_its_value_in_the_order_the_choices_are_written()
     {
         var model = new Account { Topics = ["jobs"] };
-        var page = Page.Render(() => Topics(model));
+        var page = Acting.Render(() => Topics(model));
 
         await page.On("#f-topics-news").Change("true");
+        await Acting.Act(page);
 
         Assert.Equal(["news", "jobs"], model.Topics);
     }
@@ -172,9 +173,10 @@ public partial class UiCheckboxTests : global::Rask.Core.RaskMarkup
     public async Task Clearing_a_checkbox_of_a_group_takes_its_value_out()
     {
         var model = new Account { Topics = ["news", "jobs"] };
-        var page = Page.Render(() => Topics(model));
+        var page = Acting.Render(() => Topics(model));
 
         await page.On("#f-topics-news").Change("false");
+        await Acting.Act(page);
 
         Assert.Equal(["jobs"], model.Topics);
     }
@@ -183,13 +185,14 @@ public partial class UiCheckboxTests : global::Rask.Core.RaskMarkup
     public async Task A_group_binds_a_set_of_values_of_any_type()
     {
         var model = new Account();
-        var page = Page.Render(() =>
+        var page = Acting.Render(() =>
             Ui.CheckboxGroup.Bind(() => model.Days).Label("Days")[
                 Ui.Checkbox.Value(1).Label("Monday"),
                 Ui.Checkbox.Value(2).Label("Tuesday")
             ]);
 
         await page.On("#f-days-2").Change("true");
+        await Acting.Act(page);
 
         Assert.Equal([2], model.Days);
     }

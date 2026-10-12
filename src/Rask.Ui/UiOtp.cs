@@ -25,7 +25,7 @@ namespace Rask;
 /// Flux's shows the capital — the runtime's hook does not change case.
 /// </para>
 /// </remarks>
-public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormControl
+public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormControl, IDeferredBind
 {
     // What the hidden field last reported, as it was typed. It is rendered back unchanged while it still spells
     // the code: the runtime tells its own value coming back from a new one by the exact text.
@@ -80,6 +80,13 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     /// <inheritdoc />
     public Callback<string> AfterBind { get; set; }
 
+    /// <summary>
+    ///     Writes the model as soon as it is chosen, and validates then:
+    ///     <c>Ui.Otp.Bind(() =&gt; m.Code).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
+    ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
+    /// </summary>
+    public bool? Live { get; set; }
+
     /// <summary>Runs with the code when its last cell is filled.</summary>
     public Callback<string> OnComplete { get; set; }
 
@@ -103,7 +110,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
         var cells = Children?.Any() == true ? Children.ToList() : Drawn();
         var total = Number(cells, 0);
         var mode = Mode ?? Ui.OtpMode.Numeric;
-        var live = new Live(accessor, context, UiOtpCode.Filter(current, mode, total), mode, total);
+        var live = new Cells(accessor, context, UiOtpCode.Filter(current, mode, total), mode, total);
         var scope = new UiOtpScope(
             live.Code.Length,
             total,
@@ -167,12 +174,12 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
         return new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal) { ["labelledby"] = label };
     }
 
-    private string Shown(Live live) =>
+    private string Shown(Cells live) =>
         _typed is { } typed && string.Equals(UiOtpCode.Filter(typed, live.Mode, live.Total), live.Code, StringComparison.Ordinal)
             ? typed
             : live.Code;
 
-    private async Task TypedAsync(Live live, string raw)
+    private async Task TypedAsync(Cells live, string raw)
     {
         _typed = raw;
         var code = UiOtpCode.Filter(raw, live.Mode, live.Total);
@@ -189,5 +196,5 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     }
 
     // What one render resolved, for the handler it registered.
-    private sealed record Live(ExpressionAccessor.Accessor? Accessor, EditContext? Context, string Code, Ui.OtpMode Mode, int Total);
+    private sealed record Cells(ExpressionAccessor.Accessor? Accessor, EditContext? Context, string Code, Ui.OtpMode Mode, int Total);
 }

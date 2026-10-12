@@ -39,12 +39,16 @@ public partial class UiTextareaTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Typing_into_a_bound_textarea_writes_the_model()
+    public async Task What_is_typed_into_a_bound_textarea_reaches_the_model_with_the_next_action()
     {
         var model = new Order();
-        var page = Page.Render(() => Form.Model(model)[Ui.Textarea.Bind(() => model.Notes).Label("Order notes")]);
-
+        var page = Page.Render(() => Form.Model(model)[
+            Ui.Textarea.Bind(() => model.Notes).Label("Order notes"),
+            Button.OnClick(() => { })["Save"]
+        ]);
         await page.Type("Extra pickles.").Into("Order notes");
+
+        await page.Click("Save");
 
         Assert.Equal("Extra pickles.", model.Notes);
     }

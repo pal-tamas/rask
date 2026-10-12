@@ -4835,7 +4835,14 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .motion-safe:animate-pulse .status .status-primary
 div .flex-1 .sample-result-body
-form .flex .flex-col .gap-3
+form .flex .flex-col .gap-4
+div .gap-4 .grid .md:grid-cols-3
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block .relative .w-full
+input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
 div .dark:text-white/60 .text-sm .text-zinc-500
@@ -4847,6 +4854,50 @@ label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .
 div .dark:text-white/60 .text-sm .text-zinc-500
 textarea .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .p-3 .placeholder:text-zinc-400 .resize-y .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
 div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
+div .gap-4 .grid .md:grid-cols-3
+div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+div .block
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .cursor-default .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:shadow-none .flex .group/select-button .h-10 .items-center .overflow-hidden .pe-3 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
+div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .flex-1 .gap-2 .group-disabled/select-button:text-zinc-500 .min-w-0 .text-start .text-zinc-700
+span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
+svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
+path
+div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
+div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .flex .items-center .min-w-0
+div .flex .items-center
+div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
+svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 .shrink-0
+path
+div .flex .flex-col .gap-1 .min-w-0
+div .[[data-ui-select-button]_&amp;]:truncate
+div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .flex .items-center .min-w-0
+div .flex .items-center
+div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
+svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 .shrink-0
+path
+div .flex .flex-col .gap-1 .min-w-0
+div .[[data-ui-select-button]_&amp;]:truncate
+div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .flex .items-center .min-w-0
+div .flex .items-center
+div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
+svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 .shrink-0
+path
+div .flex .flex-col .gap-1 .min-w-0
+div .[[data-ui-select-button]_&amp;]:truncate
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
+div .[&amp;&gt;[data-ui-control]~[data-ui-description]]:col-start-2 .[&amp;&gt;[data-ui-control]~[data-ui-error]]:col-start-2 .[&amp;&gt;[data-ui-error]]:mt-1 .[&amp;&gt;[data-ui-label]~[data-ui-control]]:col-start-2 .[&amp;&gt;[data-ui-label]~[data-ui-control]]:row-start-1 .[&amp;&gt;[data-ui-label]~[data-ui-error]]:col-start-1 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .gap-x-3 .gap-y-1.5 .grid .has-[&gt;[data-ui-control]~[data-ui-label]]:grid-cols-[auto_1fr] .has-[&gt;[data-ui-label]~[data-ui-control]]:grid-cols-[1fr_auto] .min-w-0
+label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+div .dark:text-white/60 .text-sm .text-zinc-500
+label .bg-zinc-800/15 .cursor-auto .dark:bg-transparent .dark:border .dark:border-white/20 .dark:has-checked:bg-fx-accent .dark:has-checked:border-0 .dark:has-disabled:border-white/10 .flex .group/switch .h-5 .has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color] .has-checked:bg-fx-accent .has-disabled:opacity-50 .items-center .min-w-8 .outline-offset-2 .relative .rounded-full .transition .w-8
+input .sr-only
+span .bg-white .dark:translate-x-[2px] .group-has-checked/switch:bg-fx-accent-foreground .group-has-checked/switch:translate-x-[15px] .rounded-full .size-3.5 .transition .translate-x-[3px]
+div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 div
 button .bg-fx-accent .border .border-black/10 .dark:border-0 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-fx-accent/90 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .pe-4 .ps-3 .relative .rounded-lg .shadow-[inset_0px_1px_color-mix(in_oklab,var(--color-white)_20%,transparent)] .text-fx-accent-foreground .text-sm .whitespace-nowrap

@@ -96,9 +96,10 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     public async Task The_code_the_runtime_reports_is_written_to_the_bound_member()
     {
         var model = new Login { Code = "12" };
-        var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
+        var page = Acting.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
 
         await page.On(Field).Input("123");
+        await Acting.Act(page);
 
         Assert.Equal("123", model.Code);
     }
@@ -109,9 +110,10 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         // The runtime ignores a render that says what it announced, and takes anything else for the page
         // changing the code — which would write over the keys typed since.
         var model = new Login();
-        var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Alphanumeric);
+        var page = Acting.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Alphanumeric);
 
         var html = await page.On(Field).Input("ab1");
+        await Acting.Act(page);
 
         Assert.Equal("AB1", model.Code);
         Assert.Contains("value=\"ab1\"", Hidden(html), StringComparison.Ordinal);
@@ -132,9 +134,10 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     public async Task The_code_keeps_the_characters_of_its_mode_with_letters_upper_cased(Ui.OtpMode mode, string reported, string expected)
     {
         var model = new Login();
-        var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Mode(mode));
+        var page = Acting.Render(() => Ui.Otp.Bind(() => model.Code).Length(6).Mode(mode));
 
         await page.On(Field).Input(reported);
+        await Acting.Act(page);
 
         Assert.Equal(expected, model.Code);
     }
@@ -152,9 +155,10 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     public async Task A_code_longer_than_its_cells_is_cut_to_them()
     {
         var model = new Login();
-        var page = Page.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
+        var page = Acting.Render(() => Ui.Otp.Bind(() => model.Code).Length(6));
 
         await page.On(Field).Input("12345678");
+        await Acting.Act(page);
 
         Assert.Equal("123456", model.Code);
     }

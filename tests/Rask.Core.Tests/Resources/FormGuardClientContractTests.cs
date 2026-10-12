@@ -15,6 +15,16 @@ public class FormGuardClientContractTests
     private static string ServerJs => Read("src", "Rask.Server", "Resources", "rask.ts");
     private static string WasmJs => Read("src", "Rask.Wasm", "Resources", "rask.wasm.ts");
     private static string MorphJs => Read("src", "Rask.Core", "Resources", "rask-morph.ts");
+    private static string InputJs => Read("src", "Rask.Core", "Resources", "rask-input.ts");
+
+    // The one place a change frame is built, for a change the browser fires and for a control that waited.
+    private static string ChangeFrame(string js)
+    {
+        var at = js.IndexOf("export function changeFrame(", StringComparison.Ordinal);
+        Assert.True(at > 0, "rask-input.ts no longer builds the change frame");
+
+        return js[at..js.IndexOf("\n}\n", at, StringComparison.Ordinal)];
+    }
 
     [Fact]
     public void Both_hosts_arm_the_guards_through_the_shared_recorder()
@@ -23,10 +33,11 @@ public class FormGuardClientContractTests
         // lagging frame would have to carry" — and the two copies covered `value` and `checked` while
         // neither covered `selected`, so a <select> had no guard at all. One recorder, called from both,
         // is what stops that recurring: a control added to it is covered everywhere at once.
+        Assert.Contains("raskNotePendingFormState(field);", ChangeFrame(InputJs), StringComparison.Ordinal);
         foreach (var js in new[] { ServerJs, WasmJs })
         {
             var dispatch = ChangeDispatch(js);
-            Assert.Contains("raskNotePendingFormState(t);", dispatch, StringComparison.Ordinal);
+            Assert.Contains("send(changeFrame(t));", dispatch, StringComparison.Ordinal);
 
             // And it may not go back to noting a guard inline, which is how the two copies drifted
             // apart. (The Server's redeploy restore arms raskNotePendingChecked separately and
@@ -44,11 +55,13 @@ public class FormGuardClientContractTests
         // both got <select multiple> wrong in the same way — `select.value` is the FIRST selected
         // option, so picking three reported one. The fix has to live in one place or the next control
         // with a non-obvious "current value" repeats it.
+        var frame = ChangeFrame(InputJs);
+        Assert.Contains("raskChangeFrameValue(", frame, StringComparison.Ordinal);
+        Assert.Contains("raskChangeFrameValues(", frame, StringComparison.Ordinal);
         foreach (var js in new[] { ServerJs, WasmJs })
         {
             var dispatch = ChangeDispatch(js);
-            Assert.Contains("raskChangeFrameValue(", dispatch, StringComparison.Ordinal);
-            Assert.Contains("raskChangeFrameValues(", dispatch, StringComparison.Ordinal);
+            Assert.Contains("send(changeFrame(t));", dispatch, StringComparison.Ordinal);
 
             // And no host may go back to reading the property directly, which is what it did before.
             Assert.DoesNotContain("t.checked ? \"true\" : \"false\"", dispatch, StringComparison.Ordinal);

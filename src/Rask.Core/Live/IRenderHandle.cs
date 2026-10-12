@@ -74,4 +74,8 @@ public interface IRenderHandle
     // it only says whether SOME host in this process configured cultures, which is not a fact about
     // the render in front of you.
     internal bool HasCulture => false;
+
+    // The values this session's controls chose that wait for the next action (Forms/PendingBinds). A handle
+    // that is not a session holds none, and a control under it writes as it is chosen.
+    internal Forms.PendingBinds? PendingBinds => null;
 }

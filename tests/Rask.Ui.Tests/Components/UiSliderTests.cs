@@ -63,10 +63,10 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_bound_slider_writes_the_value_back_while_the_thumb_moves()
+    public async Task A_live_slider_writes_the_value_back_while_the_thumb_moves()
     {
         var model = new Mixer { Volume = 40 };
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Volume));
+        var page = Page.Render(() => Ui.Slider.Bind(() => model.Volume).Live());
 
         var html = await page.On("input").Input("70");
 
@@ -94,9 +94,10 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     public async Task A_reported_value_is_held_to_the_step_and_the_ends(string reported, int expected)
     {
         var model = new Mixer { Volume = 40 };
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Volume).Step(10));
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Volume).Step(10));
 
         await page.On("input").Input(reported);
+        await Acting.Act(page);
 
         Assert.Equal(expected, model.Volume);
     }
@@ -105,9 +106,10 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     public async Task A_slider_over_a_decimal_keeps_a_fractional_step_exact()
     {
         var model = new Mixer { Gain = 0.1m };
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Gain).Max(1).Step(0.1));
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Gain).Max(1).Step(0.1));
 
         var html = await page.On("input").Input("0.3");
+        await Acting.Act(page);
 
         Assert.Equal(0.3m, model.Gain);
         Assert.Contains("step=\"0.1\"", html, StringComparison.Ordinal);
@@ -150,9 +152,10 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     {
         var model = new Mixer();
         var before = model.Band;
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Band).Range());
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Band).Range());
 
         await page.On("input[aria-valuetext=\"80 end range\"]").Input("60");
+        await Acting.Act(page);
 
         Assert.Equal([20, 60], model.Band);
         Assert.NotSame(before, model.Band);
@@ -162,9 +165,10 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     public async Task A_thumb_reported_past_its_neighbour_stops_at_it()
     {
         var model = new Mixer();
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Band).Range());
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Band).Range());
 
         await page.On("input[aria-valuetext=\"20 start range\"]").Input("95");
+        await Acting.Act(page);
 
         Assert.Equal([80, 80], model.Band);
     }
@@ -213,12 +217,13 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     public async Task Pressing_a_tick_moves_the_thumb_to_its_value()
     {
         var model = new Mixer { Volume = 1 };
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Volume).Min(1).Max(5)[
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Volume).Min(1).Max(5)[
             Ui.SliderTick.Value(2),
             Ui.SliderTick.Value(4)
         ]);
 
         await page.On("[data-value=\"4\"]").Click();
+        await Acting.Act(page);
 
         Assert.Equal(4, model.Volume);
     }
@@ -227,12 +232,13 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
     public async Task Pressing_a_tick_of_a_range_moves_the_nearer_thumb()
     {
         var model = new Mixer();
-        var page = Page.Render(() => Ui.Slider.Bind(() => model.Band).Range()[
+        var page = Acting.Render(() => Ui.Slider.Bind(() => model.Band).Range()[
             Ui.SliderTick.Value(30),
             Ui.SliderTick.Value(70)
         ]);
 
         await page.On("[data-value=\"70\"]").Click();
+        await Acting.Act(page);
 
         Assert.Equal([20, 70], model.Band);
     }

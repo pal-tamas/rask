@@ -1,3 +1,4 @@
+using Rask.Core.Forms;
 using System.Linq.Expressions;
 using Rask.Core.Components;
 
@@ -19,8 +20,11 @@ namespace Rask;
 /// with a <see cref="UiRadioIndicator" /> wherever you place it.
 /// </para>
 /// </remarks>
-public sealed partial class UiRadio : Component, IUiFormControl
+public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
 {
+    // A radio answers for its group: choosing it is the group's value, written when the group says.
+    bool? IDeferredBind.Live => _group?.Live;
+
     private UiRadioScope? _group;
     private string? _ownId;
 

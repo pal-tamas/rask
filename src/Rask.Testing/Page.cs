@@ -40,6 +40,11 @@ public partial class Page : IRenderHandle
         Html = Render();
     }
 
+    // What the page's controls chose and the model has not been told yet, as a live session holds it.
+    private Rask.Core.Forms.PendingBinds? _pendingBinds;
+
+    Rask.Core.Forms.PendingBinds? IRenderHandle.PendingBinds => _pendingBinds ??= new Rask.Core.Forms.PendingBinds(_root);
+
     /// <summary>The current rendered HTML, reflecting the component's state as of the last render.</summary>
     public string Html { get; private set; }
 
@@ -305,8 +310,17 @@ public partial class Page : IRenderHandle
 
         // Resolved per call, not captured: a handler re-renders, and the node from the previous render is
         // then stale. Re-resolving means `var save = page.On("#save")` keeps working across renders.
-        private Task<string> Dispatch(string domEvent, string? jsonPayload) =>
-            page.Invoke(page.HandlerIdFor(selector, domEvent), jsonPayload);
+        // What page.Type(…) left waiting goes first, as it does in a browser — except ahead of the field's own
+        // `input`, `change` and `edit`, which are how a test says exactly what a field sent.
+        private async Task<string> Dispatch(string domEvent, string? jsonPayload)
+        {
+            if (domEvent is not ("input" or "change" or "edit"))
+            {
+                await page.SendWhatWaits().ConfigureAwait(false);
+            }
+
+            return await page.Invoke(page.HandlerIdFor(selector, domEvent), jsonPayload).ConfigureAwait(false);
+        }
 
         private static string JsonValuePayload(string value) =>
             "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(value) + "}";

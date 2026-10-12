@@ -3,7 +3,8 @@ namespace Rask.Site.Features;
 // UiInput<T> — Rask.Core's HTMLInputElement<T> underneath — in both shapes side by side.
 //   • Controlled — Value + OnChange: the parent owns the text; OnChange fires on commit (blur/Enter) and
 //     re-renders this consumer so the "Echo:" readout updates (the controlled-OnChange fix).
-//   • Bound — Input.Bind(() => model.X): two-way binds and streams per keystroke through the EditContext.
+//   • Bound — Ui.Input.Bind(() => model.X): two-way binds through the EditContext. A bound field waits for
+//     the next action; Live() writes the model as it is typed, so the "Echo:" readout follows.
 public sealed partial class FormControlsInputDemo : Component
 {
     private string _controlled = "";
@@ -22,7 +23,7 @@ public sealed partial class FormControlsInputDemo : Component
             ],
             Div.Class("col-span-12 md:col-span-6")[
                 Form.Model(_model)[
-                    Ui.Input.Bind(() => _model.Text).Label("Bound (two-way)")
+                    Ui.Input.Bind(() => _model.Text).Live().Label("Bound (two-way)")
                         .Id("fc-input-bound").Class("mb-2")
                 ],
                 P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[
