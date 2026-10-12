@@ -259,11 +259,11 @@ public sealed class EndpointSecurityTests
         Assert.Equal("\"hi:payload\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
-    private static string Url(string name, string message) =>
+    internal static string Url(string name, string message) =>
         $"/_rask/cqrs/request/{Uri.EscapeDataString(name)}"
         + $"?{RemoteEndpointDefaults.MessageQueryParameter}={Uri.EscapeDataString(message)}";
 
-    private static HttpRequestMessage Request(
+    internal static HttpRequestMessage Request(
         HttpMethod method,
         string name,
         bool authenticated = false,
@@ -314,14 +314,28 @@ public sealed class EndpointSecurityTests
         return await client.SendAsync(request);
     }
 
-    private static TestServer Host(Action<CqrsServerOptions>? configure = null)
+    // A host that names no environment is what a HostBuilder gives: Production.
+    internal static TestServer Host(
+        Action<CqrsServerOptions>? configure = null, string? environment = null, ILoggerProvider? logs = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
             web.UseTestServer();
+            if (environment is not null)
+            {
+                web.UseEnvironment(environment);
+            }
+
             web.ConfigureServices(services =>
             {
-                services.AddLogging(b => b.ClearProviders());
+                services.AddLogging(b =>
+                {
+                    b.ClearProviders();
+                    if (logs is not null)
+                    {
+                        b.AddProvider(logs);
+                    }
+                });
                 services.AddRouting();
                 services.AddAuthentication("Test")
                     .AddScheme<AuthenticationSchemeOptions, HeaderAuthHandler>("Test", static _ => { });

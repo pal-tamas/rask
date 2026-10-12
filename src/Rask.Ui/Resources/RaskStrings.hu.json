@@ -150,5 +150,6 @@
   "ErrorTryAgain": "Újrapróbálom",
   "ErrorReload": "Az oldal újratöltése",
   "ErrorReference": "A hibát rögzítettük. Ha újra előfordul, erre az azonosítóra hivatkozzon: {0}",
+  "HandlerFailed": "Nem sikerült. Kérjük, próbálja újra.",
   "ErrorTitle": "Alkalmazáshiba"
 }

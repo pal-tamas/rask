@@ -425,7 +425,8 @@ its type and message — and it is logged as an error. The same value's `Error` 
 (`f => [ f.Error is null ? null : … ]`), for a page that wants to draw more than the toast.
 
 To handle it yourself, catch it in the handler. What the handler catches never reaches the form, so
-there is no toast:
+there is no toast. A handler outside a form that throws gets a sentence of its own
+([a handler that fails](composition-lists.md#a-handler-that-fails)):
 
 ```csharp
 async Task Save(SignUp model)

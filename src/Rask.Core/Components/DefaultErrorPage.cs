@@ -40,9 +40,6 @@ public sealed class DefaultErrorPage : Component
 
     private const string ReferenceStyle = "margin:0 0 1rem;font-size:0.9rem;color:#4b5563;";
 
-    private const string ReferenceEnglish =
-        "The problem has been recorded. If it keeps happening, quote this reference: {0}";
-
     // How many source lines to show on each side of the throwing line.
     private const int SourceRadius = 5;
 
@@ -145,8 +142,7 @@ public sealed class DefaultErrorPage : Component
             .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reload"] = "" })[
                 RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);
 
-        children.Add(P.Style(ReferenceStyle)[
-            RaskStrings.Get(RaskString.ErrorReference, ReferenceEnglish, ErrorReference.Of(_error))]);
+        children.Add(P.Style(ReferenceStyle)[ErrorReference.Sentence(_error)]);
 
         // The exception itself — its type, its message, what caused it, where it was thrown — is written
         // for the person who can read the code. A visitor in Production gets the reference above and nothing

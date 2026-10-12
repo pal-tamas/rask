@@ -192,7 +192,7 @@ the visuals — a sortable list and a kanban board built on the same primitive:
 ## Error boundaries
 
 An error boundary catches an exception thrown by a descendant — during an event handler **or** during
-render — and shows a fallback instead of tearing down the whole app. The nearest boundary handles it;
+render — and shows a fallback instead of tearing down the whole app. The nearest boundary you wrote handles it;
 everything outside it (the navbar, the rest of the page) keeps running, and `Recover` restores the
 healthy subtree. Boundaries nest, so a local failure stays local.
 
@@ -229,5 +229,47 @@ exception are one toast, each different sentence once, in order. A failure that 
 toast as well: outside a form there is no field to put it under ([in a form](forms-validation.md#the-database-said-no)
 it goes there). The exception is recognised inside an `AggregateException` or a `TargetInvocationException`
 too; a class of your own derived from `ValidationException` is not a refusal. Every other exception trips
-the boundary as above, and so does a refusal in a hand-wired host whose layout draws no toasts — there
-would be nowhere to read it.
+the boundary you wrote around it, or is [a handler that fails](#a-handler-that-fails). A refusal in a
+hand-wired host whose layout draws no toasts goes to the boundary too — there would be nowhere to read it.
+
+### A handler that fails
+
+A handler that throws anything else — the database is down, a null where a row should be — with **no
+`ErrorBoundary` of yours around it** does not replace the page. The page stays as the handler left it, the
+reader gets one error toast, and the next click is answered:
+
+```text
+That did not work. Please try again. The problem has been recorded. If it keeps happening, quote this reference: K7WQ2MZP
+```
+
+```csharp
+// No try/catch, no boundary: the list, its filter text and the open dialog are all still there.
+async Task Delete(Guid id)
+{
+    _attempts++;                 // rendered: it happened before the throw
+    await Trailer.Delete(id);    // throws SqlException
+    _asking = false;             // not reached
+}
+```
+
+Nothing of the exception is in the toast or in the frame that carries it outside Development; it is logged
+once at Error on `Rask.Errors` with the reference the toast shows
+([what a visitor sees](lifecycle.md#what-a-visitor-sees-when-something-throws)). In Development the toast
+adds the exception's type and message, and the overlay shows the rest. The sentence is
+`RaskString.HandlerFailed` ([localization](localization.md)).
+
+Which of the two a fault gets is decided by where the handler was **written**:
+
+| The handler | What the reader gets |
+| --- | --- |
+| is written in a component with no boundary of yours around it | the toast; the page stays |
+| is written in a component inside an `ErrorBoundary` you wrote | that boundary's fallback, as above — a boundary is a request to take that part over |
+| is the page's, handed to a child or a kit control (`Ui.Button.OnClick(Delete)`, `Ui.Pagination.OnPage`, a select's `OnChange`) | decided by the page that wrote it, not by where the control sits |
+| throws after an `await` | the same as before one |
+| is a form's submit | [the form's own sentence](forms-validation.md#a-save-that-fails), *The save failed. Please try again.* |
+| throws `OperationCanceledException` | nothing: the work was called off |
+| runs where no toast can be drawn (a hand-wired host with no outlet) | the boundary, as before — a fault is never swallowed |
+
+A `Render` or a lifecycle hook that throws is never a toast: there is no page left to keep, so the nearest
+boundary — yours, or the app's own error page — takes it. To say something of your own for one failure,
+catch it in the handler and raise the toast you want.

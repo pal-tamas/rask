@@ -42,13 +42,13 @@ public sealed class OpsOptions
     public LogLevel LogMinimumLevel { get; set; } = LogLevel.Information;
 
     /// <summary>
-    /// Serve the dashboard to anyone, with no authorization, in every environment. Default <c>false</c>,
-    /// and there is no reason to change it on a reachable host: the panels expose job payloads, stored
-    /// email bodies and log lines, so an open dashboard is close to publishing your database. It exists
-    /// only so a deliberately unauthenticated internal tool doesn't have to invent a dummy policy.
+    /// Asks for the dashboard to be served to anyone, with no authorization. <b>Honoured in Development
+    /// only</b>, where the dashboard is open already; in every other environment — and on a host that names
+    /// none — it is ignored and a warning at startup says so. The panels expose job payloads, stored email
+    /// bodies and log lines, so an open dashboard is close to publishing your database.
     /// <para>
-    /// Leaving this <c>false</c> and defining no <c>RaskDashboard</c> policy is the safe path: the
-    /// dashboard denies everyone outside Development rather than opening.
+    /// Outside Development the dashboard always requires the <c>RaskDashboard</c> policy: define it to say
+    /// who may operate the app, or leave it undefined and the dashboard denies everyone.
     /// </para>
     /// </summary>
     public bool AllowAnonymousAccess { get; set; }

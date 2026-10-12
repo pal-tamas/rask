@@ -533,6 +533,7 @@ they say when you set nothing.
 | `ValidationTime` | Validation | `Enter a valid time.` |
 | `FormSaveFailed` | Form | `The save failed. Please try again.` |
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
+| `HandlerFailed` | Toast | `That did not work. Please try again.` |
 | `ErrorTitle` | Error page | `Application error` |
 
 ## Docker

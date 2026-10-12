@@ -28,6 +28,13 @@ public sealed class ErrorBoundary : Component
 
     internal Exception? Error { get; private set; }
 
+    /// <summary>The boundary the host puts around the whole app, which the app did not write.</summary>
+    /// <remarks>
+    ///     A handler's fault that only this one would take is said in a toast and the page stays
+    ///     (<c>HandlerFault</c>): a boundary the app wrote is a request to take that part over, and this is not.
+    /// </remarks>
+    internal bool IsRoot { get; init; }
+
     /// <summary>Where <see cref="Error" /> came from. Meaningless when <see cref="Error" /> is null.</summary>
     /// <remarks>
     ///     Hides the builder entry named after the <c>&lt;source&gt;</c> tag, which is what this member

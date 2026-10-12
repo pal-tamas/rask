@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Net.Http.Headers;
 using Rask.Hosting.Shared;
 using Rask.Wire;
@@ -16,7 +18,7 @@ using Rask.Wire;
 namespace Rask.Cqrs.Server;
 
 /// <summary>Maps the two endpoints a Rask.Cqrs client dispatches to.</summary>
-public static class RaskCqrsEndpointExtensions
+public static partial class RaskCqrsEndpointExtensions
 {
     /// <summary>
     ///     Maps the <c>GET</c>/<c>POST</c> pair that receives remotely dispatched messages.
@@ -57,9 +59,11 @@ public static class RaskCqrsEndpointExtensions
                       ?? throw new InvalidOperationException(
                           "MapRaskCqrs() needs AddRaskCqrsServer() to have run during startup.");
 
+        var faults = FaultAnswer.For(endpoints.ServiceProvider, options);
+
         var group = endpoints.MapGroup(string.Empty);
-        group.MapGet(pattern, (RequestDelegate)(context => HandleAsync(context, options, fromQuery: true)));
-        group.MapPost(pattern, (RequestDelegate)(context => HandleAsync(context, options, fromQuery: false)));
+        group.MapGet(pattern, (RequestDelegate)(context => HandleAsync(context, options, faults, fromQuery: true)));
+        group.MapPost(pattern, (RequestDelegate)(context => HandleAsync(context, options, faults, fromQuery: false)));
 
         // A third route, and only for bytes: a chunk of a file too large to ride in one request. It is a
         // literal segment under the same prefix, so it is covered by the same authorization and the same
@@ -236,7 +240,7 @@ public static class RaskCqrsEndpointExtensions
             : "anonymous:" + ClientNetwork.Of(context.Connection.RemoteIpAddress);
     }
 
-    private static async Task HandleAsync(HttpContext context, CqrsServerOptions options, bool fromQuery)
+    private static async Task HandleAsync(HttpContext context, CqrsServerOptions options, FaultAnswer faults, bool fromQuery)
     {
         if (await AdmitAsync(context, options, fromQuery).ConfigureAwait(false) is not { LocalInvoker: { } invoker } contract)
         {
@@ -258,11 +262,11 @@ public static class RaskCqrsEndpointExtensions
         catch (JsonException ex)
         {
             await ProblemAsync(context, StatusCodes.Status400BadRequest, "Malformed message",
-                options.IncludeExceptionDetail ? ex.Message : null).ConfigureAwait(false);
+                faults.ShowsDetail ? ex.Message : null).ConfigureAwait(false);
             return;
         }
 
-        var (completed, result) = await InvokeAsync(context, invoker, message, options).ConfigureAwait(false);
+        var (completed, result) = await InvokeAsync(context, invoker, message, faults).ConfigureAwait(false);
         if (completed)
         {
             await WriteResultAsync(context, contract, result).ConfigureAwait(false);
@@ -328,7 +332,7 @@ public static class RaskCqrsEndpointExtensions
         HttpContext context,
         RemoteLocalInvoker invoker,
         object message,
-        CqrsServerOptions options)
+        FaultAnswer faults)
     {
         try
         {
@@ -362,10 +366,11 @@ public static class RaskCqrsEndpointExtensions
         }
         catch (Exception ex)
         {
-            // Opaque by default: an exception message is written for an operator, not for a browser, and
-            // routinely names tables, paths and internal identifiers.
+            // Opaque outside Development: an exception message is written for an operator, not for a
+            // browser, and routinely names tables, paths and internal identifiers. The reference is what
+            // the caller can quote, and the log line beside the exception carries the same one.
             await ProblemAsync(context, StatusCodes.Status500InternalServerError, "Handler failed",
-                options.IncludeExceptionDetail ? ex.ToString() : null).ConfigureAwait(false);
+                faults.ShowsDetail ? ex.ToString() : null, ProblemType, errors: null, faults.Record(ex)).ConfigureAwait(false);
             return (false, null);
         }
     }
@@ -674,7 +679,8 @@ public static class RaskCqrsEndpointExtensions
         string title,
         string? detail,
         string type,
-        IReadOnlyDictionary<string, string[]>? errors)
+        IReadOnlyDictionary<string, string[]>? errors,
+        string? reference = null)
     {
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
@@ -689,6 +695,11 @@ public static class RaskCqrsEndpointExtensions
             if (detail is not null)
             {
                 writer.WriteString("detail", detail);
+            }
+
+            if (reference is not null)
+            {
+                writer.WriteString("reference", reference);
             }
 
             if (errors is not null)

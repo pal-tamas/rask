@@ -180,6 +180,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ValidationTime", 0),
         ("FormSaveFailed", 0),
         ("ErrorReference", 1),
+        ("HandlerFailed", 0),
         ("ErrorTitle", 0),
     ];
 

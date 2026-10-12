@@ -37,6 +37,7 @@
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\ClientNetwork.cs" Link="Shared\ClientNetwork.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\ErrorReferenceId.cs" Link="Shared\ErrorReferenceId.cs"/>
   </ItemGroup>
 
   <!-- The dispatch/codec generator, as an analyzer only: consumers get the code generation without a

@@ -123,7 +123,7 @@ internal sealed class RootErrorBoundary : Component
         // receives the exception and Recover. Same positional identity either way: GetOrCreate keys on
         // (type, position), and this is the only ErrorBoundary this method resolves — the shell
         // elements below are counted per type, so adding them cannot move it.
-        var boundary = (ErrorBoundary)ctx.GetOrCreate(typeof(ErrorBoundary), static _ => new ErrorBoundary());
+        var boundary = (ErrorBoundary)ctx.GetOrCreate(typeof(ErrorBoundary), static _ => new ErrorBoundary { IsRoot = true });
 
         RenderedFallback = false;
         FallbackError = null;

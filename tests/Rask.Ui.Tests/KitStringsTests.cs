@@ -266,6 +266,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationNumberRange), nameof(RaskString.ValidationDate), nameof(RaskString.ValidationTime),
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
+        nameof(RaskString.HandlerFailed),
         nameof(RaskString.ErrorTitle),
     ];
 

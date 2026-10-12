@@ -71,9 +71,9 @@ builder.Services.AddRaskDashboard<AppDbContext>(o =>
 ```
 
 Every one of these is also `Rask:Ops` in `appsettings.json` (`"RefreshInterval": "00:00:02"`,
-`"Actions": "All"`), and the callback runs after the section and wins. That includes `AllowAnonymousAccess`,
-which opens the console to everyone — settable from an environment variable, so guard the deploy environment's
-variables as carefully as the code.
+`"Actions": "All"`), and the callback runs after the section and wins. `AllowAnonymousAccess` is the one
+that opens nothing outside Development: there the console always requires the `RaskDashboard` policy, and a
+host that sets it is told at startup that it was ignored.
 
 Panels poll, compare, and only re-render on a real change — an idle system produces no diff and no
 WebSocket traffic. The loop is bounded on purpose: every open tab is a reader competing with the

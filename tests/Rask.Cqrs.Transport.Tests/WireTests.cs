@@ -156,15 +156,28 @@ public sealed class WireTests
     }
 
     [Fact]
-    public async Task Turning_on_exception_detail_is_what_puts_the_cause_on_the_wire()
+    public async Task Turning_on_exception_detail_in_development_is_what_puts_the_cause_on_the_wire()
     {
         // The inverse, so the previous case is pinned as a choice rather than an accident of plumbing.
-        await using var wire = Wire.Connect(configureServer: o => o.IncludeExceptionDetail = true);
+        await using var wire = Wire.Connect(configureServer: o => o.IncludeExceptionDetail = true, environment: "Development");
 
         var error = await Assert.ThrowsAsync<RemoteDispatchException>(
             () => wire.SendAsync<int>(new Explodes(), TestContext.Current.CancellationToken));
 
         Assert.Contains("hunter2", error.Detail ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Turning_on_exception_detail_in_production_puts_nothing_of_the_cause_on_the_wire()
+    {
+        await using var wire = Wire.Connect(configureServer: o => o.IncludeExceptionDetail = true);
+
+        var error = await Assert.ThrowsAsync<RemoteDispatchException>(
+            () => wire.SendAsync<int>(new Explodes(), TestContext.Current.CancellationToken));
+
+        Assert.Equal((int)HttpStatusCode.InternalServerError, error.StatusCode);
+        Assert.DoesNotContain("hunter2", error.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", error.Detail ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]

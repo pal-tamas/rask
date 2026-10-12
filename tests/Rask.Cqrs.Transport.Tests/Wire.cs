@@ -84,15 +84,22 @@ internal sealed class Wire : IAsyncDisposable
     /// <param name="roles">Roles that caller holds.</param>
     /// <param name="configureServer">Endpoint options.</param>
     /// <param name="configureClient">Transport options.</param>
+    /// <param name="environment">The server's environment; a host that names none is Production.</param>
     public static Wire Connect(
         string? user = "tester",
         string? roles = null,
         Action<CqrsServerOptions>? configureServer = null,
-        Action<CqrsClientOptions>? configureClient = null)
+        Action<CqrsClientOptions>? configureClient = null,
+        string? environment = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
             web.UseTestServer();
+            if (environment is not null)
+            {
+                web.UseEnvironment(environment);
+            }
+
             web.ConfigureServices(services =>
             {
                 services.AddLogging(b => b.ClearProviders());
