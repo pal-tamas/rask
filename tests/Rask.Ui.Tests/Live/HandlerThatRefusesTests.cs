@@ -4,6 +4,8 @@ using Rask.Core.Messaging;
 using Rask.Wire;
 using Page = Rask.Testing.Page;
 
+#pragma warning disable RASK014 // a test-defined component has no generated chain entry
+
 namespace Rask.UiTests.Live;
 
 /// <summary>
@@ -43,6 +45,31 @@ public partial class HandlerThatRefusesTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task What_the_handler_changed_after_an_await_and_before_it_was_refused_is_on_the_page()
+    {
+        var trailers = new Trailers(refuses: true);
+        var page = trailers.Draw();
+        await page.Click("Remove ABC-123");
+
+        await page.Click("Delete");
+
+        Assert.Equal("attempts=1", page.TextOf("#attempts"));
+    }
+
+    [Fact]
+    public async Task A_component_of_the_page_shows_what_its_own_refused_handler_changed_after_an_await()
+    {
+        var bin = new CountingBin();
+        var page = Page.Render(
+            () => Div[Main[bin], Ui.Toast], new ServiceCollection().AddSingleton<IToaster, Toaster>().BuildServiceProvider());
+
+        await page.Click("Delete");
+
+        Assert.Equal("attempts=1", page.TextOf("#bin-attempts"));
+        Assert.Contains(Referenced, page.Find("[data-ui-toast-dialog]").TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task The_confirm_can_be_pressed_again_and_a_delete_that_goes_through_closes_the_dialog()
     {
         var trailers = new Trailers(refuses: true);
@@ -68,6 +95,7 @@ public partial class HandlerThatRefusesTests : global::Rask.Core.RaskMarkup
     {
         private bool _asking;
         private bool _deleted;
+        private int _attempts;
 
         internal bool Refuses { get; set; } = refuses;
 
@@ -75,6 +103,7 @@ public partial class HandlerThatRefusesTests : global::Rask.Core.RaskMarkup
             Page.Render(
                 () => Div[
                     Main[
+                        P.Id("attempts")[$"attempts={_attempts}"],
                         Ul[_deleted ? null : Li[Span["ABC-123"], Ui.Button.Aria("label", "Remove ABC-123").OnClick(() => _asking = true)["Bin"]]],
                         Ui.Modal.Open(_asking).OnClose(() => _asking = false)[
                             Ui.Heading["Delete the trailer?"],
@@ -88,6 +117,7 @@ public partial class HandlerThatRefusesTests : global::Rask.Core.RaskMarkup
         private async Task Delete()
         {
             await Task.Yield();
+            _attempts++;
             if (Refuses)
             {
                 throw new Refused(Referenced);
@@ -95,6 +125,22 @@ public partial class HandlerThatRefusesTests : global::Rask.Core.RaskMarkup
 
             _deleted = true;
             _asking = false;
+        }
+    }
+
+    // A component with state of its own, as an app's bin is: it counts after the store was asked.
+    private sealed class CountingBin : Component
+    {
+        private int _attempts;
+
+        protected override Component? Render() =>
+            Div[P.Id("bin-attempts")[$"attempts={_attempts}"], Ui.Button.OnClick(Delete)["Delete"]];
+
+        private async Task Delete()
+        {
+            await Task.Delay(1);
+            _attempts++;
+            throw new Refused(Referenced);
         }
     }
 }

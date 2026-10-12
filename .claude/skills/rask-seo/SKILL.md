@@ -33,6 +33,7 @@ own ("blazor", "react"). Map every new page to one:
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |
 | show a database unique-constraint / duplicate-key error under the form field in C#, EF Core unique index validation message | `forms-validation` (#the-database-said-no) |
 | show an error message when a form's save throws in C#, exception in a submit handler without try/catch, ValidationException to the form | `forms-validation` (#a-save-that-fails) |
+| show a "cannot delete, still referenced" message from a click handler in C#, validation exception from an event handler as a toast instead of an error page | `composition-lists` (#a-handler-that-refuses) |
 | unsaved changes warning / confirm before leaving a form in a C# web app | `forms` (#ask-before-leaving-unsaved-changes) |
 | number input reads as empty / "required" shown for an invalid number, input type=number validation message in C#, whole-number field rejects a decimal | `forms-validation` (#what-a-number-field-says-when-it-cannot-read-what-was-typed) |
 | page title in a layout's breadcrumb / dynamic document title per route in a C# web app, no flash on first load | `routing` (#a-pages-title--pagetitle-and-routetitle) |
