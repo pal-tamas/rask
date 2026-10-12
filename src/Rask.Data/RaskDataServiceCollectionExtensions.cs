@@ -44,9 +44,10 @@ public static partial class RaskDataServiceCollectionExtensions
             // commit before anyone refetches.
             services.AddSingleton<ISaveChangesInterceptor, DataChangesInterceptor>();
 
-            // After every other: it replaces a unique index's violation with the message the index carries, by
-            // throwing — and an interceptor after it would not be told the save failed.
-            services.AddSingleton<ISaveChangesInterceptor, UniqueViolationInterceptor>();
+            // After every other: it replaces a refusal the model has a sentence for — a unique index's violation,
+            // the delete of a referenced row — by throwing, and an interceptor after it would not be told the
+            // save failed.
+            services.AddSingleton<ISaveChangesInterceptor, ViolationMessageInterceptor>();
         }
 
 #pragma warning disable S3251 // implemented only by the browser build (Browser/); a server build has nothing to wire
