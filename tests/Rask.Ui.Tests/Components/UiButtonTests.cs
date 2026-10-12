@@ -297,9 +297,10 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var tipped = Ui.Button.Tooltip("Save").TooltipKbd("⌘S")["Save"].ToHtml();
         var inline = Ui.Button.Kbd("esc")["Cancel"].ToHtml();
 
-        // Measured on Flux: `kbd` alone is no tooltip, it is 12px of zinc-400 after the label.
+        // Measured on Flux: `kbd` alone is no tooltip, it is 12px of zinc-400 after the label — and the label
+        // beside it is bare, where one beside an icon is wrapped.
         Assert.EndsWith(">Save <span class=\"ps-1 text-zinc-300\">&#x2318;S</span></div></div>", tipped, StringComparison.Ordinal);
-        Assert.EndsWith("<span>Cancel</span><div class=\"text-xs text-zinc-400\">esc</div></button>", inline, StringComparison.Ordinal);
+        Assert.EndsWith(">Cancel<div class=\"text-xs text-zinc-400\">esc</div></button>", inline, StringComparison.Ordinal);
         Assert.DoesNotContain("data-ui-tooltip", inline, StringComparison.Ordinal);
     }
 

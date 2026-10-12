@@ -2086,12 +2086,40 @@ a link is only reachable by clicking it. `data-rask-close-on-pick` closes a dial
 has reached its handler. The field shows the shortcut in both platforms' words and the runtime marks a Mac
 (`data-rask-mac` on `<html>`), so the stylesheet shows ⌘K there and Ctrl K everywhere else.
 
-**`Ui.Popover` is a panel, not a menu.** `Ui.Dropdown` IS a menu — its children are rows you pick from, it says
-`role="menu"` and it walks a keyboard cursor over them. A filter panel, a colour picker or a bubble of help is
-none of those, and putting one in a menu tells a screen reader it is a list of commands and traps the arrow
-keys inside it. `Ui.Popover` is the same machinery — a `[popover]` the browser lifts into the top layer and
-dismisses on Escape and on a click outside, placed with the same `Position`/`Align` — with `role="dialog"` and
-ordinary Tab movement inside.
+**`Ui.Popover` is Flux's popover: extra content in a panel beside a button.** For what is not a menu — a form,
+a set of filters, a card about a person. It is the second child of the `Ui.Dropdown` that holds its trigger,
+exactly as `flux:popover` sits in `flux:dropdown`, and everything about where it opens and what opens it is the
+dropdown's:
+
+```csharp
+Ui.Dropdown[
+    Ui.Button.Icon(Ui.IconName.AdjustmentsHorizontal).IconTrailing(Ui.IconName.ChevronDown)["Options"],
+    Ui.Popover.Class("flex flex-col gap-4")[
+        Ui.RadioGroup.Bind(() => _sort).Label("Sort by")[
+            Ui.Radio.Value("active").Label("Recently active"),
+            Ui.Radio.Value("posted").Label("Date posted")
+        ],
+        Ui.Separator.Subtle,
+        Ui.Button.Subtle.Sm.Class("justify-start -m-2 px-2!").OnClick(Reset)["Reset to default"]
+    ]
+]
+```
+
+| Flux | Rask |
+|---|---|
+| `flux:dropdown position="top" align="end"` | `Ui.Dropdown.Top.End` |
+| `flux:dropdown gap="16" offset="32"` | `Ui.Dropdown.Gap(16).Offset(32)` |
+| `flux:dropdown hover` | `Ui.Dropdown.Hover()` — the pointer opens it; a press and Enter still do |
+| `flux:dropdown wire:model="open"` | `Ui.Dropdown.Open(_open).OnToggle(open => _open = open)` |
+| `flux:popover class="w-80 p-0"` | `Ui.Popover.Class("w-80 p-0")` — its width, padding, radius and shadow weigh nothing, so yours win |
+
+The panel is a `[popover]` the trigger names with `popovertarget`, so the browser opens it, lifts it into the top
+layer and closes it on Escape and on a press anywhere else. It is no menu and says no role. Focus stays on the
+trigger as it opens — the panel takes none — and Tab walks from there into the panel; Shift+Tab off the trigger,
+or Tab past the panel's last control, closes it. While one a press opened is up, the page behind neither scrolls
+nor takes the pointer (`data-rask-lock`), so a press on anything else only closes it; one the pointer opened
+locks nothing. An open panel carries `data-open` once the page has heard it open, which is what Flux's own
+`data-open:flex` styles by, and a closed one is never displayed whatever layout its `Class` gives it.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every
 path are computed during the render, to the numbers Flux's own layout arrives at, for the box the chart has in

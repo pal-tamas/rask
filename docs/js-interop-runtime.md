@@ -436,7 +436,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
-| *(none)* | any `popover` / `popover="auto"` | When focus leaves an open one for anything but its own `popovertarget` button it closes; when a press outside closed it and focus is on `<body>`, focus goes to that button. A `popover="manual"` is left alone. |
+| *(none)* | any `popover` / `popover="auto"` | When focus leaves an open one for anything but its own `popovertarget` button it closes, and so it does when focus leaves that button for anything but the popover; when a press outside closed it and focus is on `<body>`, focus goes to that button. A `popover="manual"` is left alone. |
 | `data-rask-modal-open="true"` \| `"false"` | a `<dialog>` | `showModal()` / `close()` to match, when the attribute changes or the dialog arrives — a real modal with a `::backdrop`, where a rendered `open` is not. Removing the attribute closes it too. The dialog's own `close` and `cancel` events fire as usual. |
 | `data-rask-modal="any"` \| `"press"` \| `"escape"` \| `"none"` | a `<dialog>` | How a reader dismisses it: Escape and a press outside, a press outside only, Escape only, neither. A press outside fires a cancelable `cancel`, then closes. With no value the dialog is the platform's. |
 | `data-open` *(written)* | a dialog carrying either attribute above | Present while the dialog is shown, however it was opened or closed. |

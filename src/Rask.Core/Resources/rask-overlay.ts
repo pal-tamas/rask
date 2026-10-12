@@ -4,7 +4,9 @@
 //     covers; close one by pressing outside and focus is on <body>, so a keyboard user is back at the top of the
 //     document. An auto popover therefore closes when focus leaves it for anything but its own invoker, and
 //     one that an outside press closed hands focus to the button that opens it. (Escape is the browser's, and
-//     it already hands focus back.)
+//     it already hands focus back.) The same from the other end: a panel that takes no focus as it opens
+//     leaves it on its invoker, and Shift+Tab from there is focus leaving the pair just as surely — measured
+//     on Flux UI's popover, which closes.
 //   * A DIALOG A RENDER OPENS (data-rask-modal-open). A render can only write attributes, and `open` on a
 //     <dialog> shows it non-modally: no top layer, no ::backdrop, no inert page. So the dialog says
 //     data-rask-modal-open="true" | "false" and this calls showModal() / close() to match — on a CHANGE only,
@@ -39,12 +41,19 @@ function isAuto(panel: Element): boolean {
     return kind === "" || kind === "auto";
 }
 
+// The open panel that the invoker around `target` names, or null.
+function invoked(doc: Document, target: EventTarget | null): Element | null {
+    const invoker = near(target, "[popovertarget]");
+    const panel = invoker ? doc.getElementById(invoker.getAttribute("popovertarget") || "") : null;
+    return panel && isShown(panel) ? panel : null;
+}
+
 let pressedAt = 0;
 let pressed: EventTarget | null = null;
 
 function installPopoverFocus(doc: Document): void {
     listen("focusout", function (e) {
-        const panel = near(e.target, "[popover]");
+        const panel = near(e.target, "[popover]") || invoked(doc, e.target);
         const next = e.relatedTarget;
         // No relatedTarget is focus leaving the window, or a press on something that takes none: not a Tab.
         if (!panel || !(next instanceof Element) || !isAuto(panel) || panel.contains(next) || invokes(next, panel)) {

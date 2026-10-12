@@ -207,6 +207,7 @@ public sealed class DeferredBindClientTests
     [InlineData("anAnimationEnding", "animationend:faded~")]
     [InlineData("anImageArriving", "load:arrived~")]
     [InlineData("anInteropReply", "jsResult:7")]
+    [InlineData("aFieldARenderFocused", "focus:arrived~")]
     public void What_the_runtime_does_by_itself_is_sent_alone_and_marked_with_nothing_typed_ahead_of_it(string doing, string alone)
     {
         if (Run() is not { } root)

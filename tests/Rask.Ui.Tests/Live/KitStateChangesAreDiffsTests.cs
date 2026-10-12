@@ -60,6 +60,8 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
         ["badge icon"] = on => Ui.Badge.Icon(on ? Ui.IconName.Check : null)["New"],
         ["callout icon"] = on => Ui.Callout.Icon(on ? Ui.IconName.Check : null).Heading("Saved"),
         ["navlist item icon"] = on => Ui.Navlist[Ui.NavlistItem.Href("/").Icon(on ? Ui.IconName.Check : null)["Inbox"]],
+        // The keys beside a button's words: the words stay bare, as Flux leaves them, and the keys arrive after.
+        ["button kbd"] = on => Ui.Button.Kbd(on ? "S" : null)["Save"],
     };
 
     /// <summary>
@@ -77,8 +79,6 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
             "src/Rask.Ui/UiButton.cs:316 — bare words become a <span> beside the icon"),
         ["button trailing icon"] = (on => Ui.Button.IconTrailing(on ? Ui.IconName.ChevronDown : null)["Save"], 354,
             "src/Rask.Ui/UiButton.cs:319 — bare words become a <span> beside the icon"),
-        ["button kbd"] = (on => Ui.Button.Kbd(on ? "S" : null)["Save"], 59,
-            "src/Rask.Ui/UiButton.cs:318 — bare words become a <span> beside the keys"),
         ["avatar icon for a name"] = (on => on ? Ui.Avatar.Icon(Ui.IconName.Check) : Ui.Avatar.Name("Ada Lovelace"), 359,
             "src/Rask.Ui/UiAvatar.cs:172 — an <svg> in place of the initials' <span>"),
         ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null), 1315,

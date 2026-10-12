@@ -1257,10 +1257,22 @@ public abstract partial class SharedSmokeTests
         // so the button's own label is the assertion: "Saving…" while the (deliberately slow) handler
         // runs, back to "Sign up" once it returns, with the readout outside the form showing what was
         // saved. This is the browser half of the feature; the flag itself is unit-tested in FormTests.
+        // The busy label is on screen for the 800 ms the handler takes, and a press can hold the page's one
+        // thread longer than that before this test is handed back to look (1,072 ms in one run, the label come
+        // and gone). So the page itself notes every label the button is given, and that is what is asked.
         await Page.Locator("#fss-input").FillAsync("ada");
+        await Page.EvaluateAsync(
+            """
+            () => {
+                const labels = window.__fssLabels = [];
+                const note = () => labels.push(document.querySelector('#fss-submit')?.textContent ?? '');
+                new MutationObserver(note).observe(document.querySelector('#fss-form'),
+                    { subtree: true, childList: true, characterData: true, attributes: true });
+            }
+            """);
         await Page.Locator("#fss-submit").ClickAsync();
-        await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Saving",
-            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Page.WaitForFunctionAsync("() => window.__fssLabels.some(label => label.includes('Saving'))", null,
+            new PageWaitForFunctionOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#fss-out")).ToContainTextAsync("ada",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
