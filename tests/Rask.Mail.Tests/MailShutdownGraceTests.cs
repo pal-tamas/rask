@@ -20,11 +20,11 @@ public sealed class MailShutdownGraceTests
         await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
-        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         var stop = h.Processor.StopAsync(CancellationToken.None);
         sender.Release!.SetResult();
-        await stop.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await stop.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.Single(sender.Sent);
         var mail = await h.SingleMailAsync();
@@ -47,9 +47,9 @@ public sealed class MailShutdownGraceTests
         await h.Queue.Send(Email.To("ada@example.com").Subject("Hi").Html("<p>hi</p>"), TestContext.Current.CancellationToken);
 
         await h.Processor.StartAsync(CancellationToken.None);
-        await sender.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await sender.Entered.Task.WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
-        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await h.Processor.StopAsync(CancellationToken.None).WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         var mail = await h.SingleMailAsync();
         Assert.Null(mail.ProcessedAt);

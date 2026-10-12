@@ -78,7 +78,7 @@ public sealed class BatteriesTogetherTests
                     .Publish(new OrderPlaced("ann@example.com"), TestContext.Current.CancellationToken);
             }
 
-            await Until(() => !inbox.Received.IsEmpty);
+            await Rask.TestSupport.WaitFor.True(() => !inbox.Received.IsEmpty, "the receipt never arrived");
         }
         finally
         {
@@ -134,15 +134,5 @@ public sealed class BatteriesTogetherTests
             c.Logs.Off();
         });
         return app.Build<TogetherApp>();
-    }
-
-    private static async Task Until(Func<bool> condition)
-    {
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-        while (!condition())
-        {
-            Assert.True(DateTime.UtcNow < deadline, "the receipt never arrived");
-            await Task.Delay(20, TestContext.Current.CancellationToken);
-        }
     }
 }
