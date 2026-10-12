@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Server.E2E.Tests.Infrastructure;
@@ -26,6 +25,9 @@ public sealed class PagingDimsItsRowsTests(PlaywrightFixture playwright) : IClas
 
     // The handler's read is held far longer than the default budget, so the page is sent at the budget.
     private static readonly LocatorAssertionsToHaveCSSOptions Faded = new() { Timeout = 10_000 };
+
+    // Bounds a hang, never the work.
+    private static readonly TimeSpan Hang = TimeSpan.FromSeconds(30);
 
     [Fact]
     public async Task A_slow_next_page_keeps_every_row_and_dims_them_from_200_ms_until_the_new_rows_arrive()
@@ -80,13 +82,13 @@ public sealed class PagingDimsItsRowsTests(PlaywrightFixture playwright) : IClas
     [Fact]
     public async Task A_next_page_that_is_back_in_time_never_marks_the_pager_and_never_fades_a_row()
     {
-        var acks = new ConcurrentQueue<string>();
-        await using var session = await OpenAsync(acks);
+        var acked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var session = await OpenAsync(acked);
         var page = session.Page;
 
         await page.Locator($"{Pager} button:visible", new() { HasTextString = "2" }).First.ClickAsync();
         await Expect(page.Locator($"{Rows} tr").First).ToContainTextAsync("order 2-1");
-        await WaitFor.True(() => !acks.IsEmpty, "the handler's ack to reach the browser");
+        await acked.Task.WaitAsync(Hang, TestContext.Current.CancellationToken);
 
         // The press has been answered, so the second of page time that follows has no mark left to make.
         await page.Clock.RunForAsync(1_000);
@@ -117,7 +119,7 @@ public sealed class PagingDimsItsRowsTests(PlaywrightFixture playwright) : IClas
     }
 
     // Opens the page with its clock in the test's hands and stopped, and the observers every journey reads.
-    private async Task<HookSession> OpenAsync(ConcurrentQueue<string>? acks = null)
+    private async Task<HookSession> OpenAsync(TaskCompletionSource? acked = null)
     {
         PagingDimPage.Gate.Release();
         var session = await HookSession.OpenAsync<PagingDimPage>(playwright, beforeLoad: page =>
@@ -126,7 +128,7 @@ public sealed class PagingDimsItsRowsTests(PlaywrightFixture playwright) : IClas
             {
                 if (frame.Text?.StartsWith("{\"type\":\"ack\"", StringComparison.Ordinal) == true)
                 {
-                    acks?.Enqueue(frame.Text);
+                    acked?.TrySetResult();
                 }
             };
             return PageClock.Install(page);
@@ -183,7 +185,8 @@ public sealed partial class PagingDimPage : Component
     /// <summary>What every handler here awaits.</summary>
     internal static HeldRead Gate { get; } = new();
 
-    protected override Component? HeadAssets => Markup.Title["paging dim"];
+    // The kit's sheet, which is what dims the rows.
+    protected override Component? HeadAssets => [Markup.Title["paging dim"], Markup.Style[Raw.Value(UiStylesheet.Css)]];
 
     protected override string? HtmlLang => "en";
 
@@ -232,17 +235,18 @@ public sealed partial class PagingDimPage : Component
 internal sealed class HeldRead
 {
     private TaskCompletionSource? _held;
-    private int _started;
+    private TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public void Hold()
     {
-        Volatile.Write(ref _started, 0);
+        _started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
     public void Release() => Interlocked.Exchange(ref _held, null)?.TrySetResult();
 
-    public Task ReadStarted() => WaitFor.True(() => Volatile.Read(ref _started) > 0, "the held read to start");
+    /// <summary>Completes once a handler is waiting on the held read. Thirty seconds bounds a hang.</summary>
+    public Task ReadStarted() => _started.Task.WaitAsync(TimeSpan.FromSeconds(30));
 
     public Task Read()
     {
@@ -251,7 +255,7 @@ internal sealed class HeldRead
             return Task.CompletedTask;
         }
 
-        Interlocked.Increment(ref _started);
+        _started.TrySetResult();
         return held.Task;
     }
 }
