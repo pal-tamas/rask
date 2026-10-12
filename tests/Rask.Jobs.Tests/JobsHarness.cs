@@ -260,7 +260,7 @@ public sealed class JobsHarness : IAsyncDisposable
         TimeSpan? timeout = null,
         [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(condition))] string? expression = null)
     {
-        var limit = timeout ?? TimeSpan.FromSeconds(10);
+        var limit = timeout ?? Rask.TestSupport.WaitFor.HangCeiling;
         var deadline = DateTime.UtcNow + limit;
         while (!await condition())
         {
