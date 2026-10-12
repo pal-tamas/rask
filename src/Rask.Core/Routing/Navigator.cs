@@ -34,6 +34,17 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// <summary>How many pages in a row may each send the reader on as they mount before it is a loop.</summary>
     internal const int MaxRedirects = 10;
 
+    /// <summary>
+    ///     Held while a navigation moves the route, and by a session while it repaints the page a handler is
+    ///     still working on.
+    /// </summary>
+    /// <remarks>
+    ///     A handler past an await navigates on its own thread, beside that repaint. The two take turns, so the
+    ///     repaint either finds the navigation made and leaves the page to the dispatch, or has walked the tree
+    ///     before the route moved — never a walk that mounts the destination with no navigation waiting for it.
+    /// </remarks>
+    internal Lock Moving { get; } = new();
+
     private bool _dirty;
     private bool _inHandler;
     private bool _inInitialRender;
@@ -81,13 +92,16 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        routeState.Path = url.Path;
-        routeState.Query = string.IsNullOrEmpty(url.QueryString)
-            ? QueryCollection.Empty
-            : QueryString.Parse(url.QueryString);
-        _replace = replace;
-        Navigated();
+        lock (Moving)
+        {
+            BeforeNavigating();
+            routeState.Path = url.Path;
+            routeState.Query = string.IsNullOrEmpty(url.QueryString)
+                ? QueryCollection.Empty
+                : QueryString.Parse(url.QueryString);
+            _replace = replace;
+            Navigated();
+        }
     }
 
     /// <summary>
@@ -104,12 +118,15 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        ArgumentNullException.ThrowIfNull(path);
-        routeState.Path = path;
-        routeState.Query = QueryCollection.Empty;
-        _replace = replace;
-        Navigated();
+        lock (Moving)
+        {
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(path);
+            routeState.Path = path;
+            routeState.Query = QueryCollection.Empty;
+            _replace = replace;
+            Navigated();
+        }
     }
 
     /// <summary>
@@ -128,13 +145,16 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        ArgumentNullException.ThrowIfNull(path);
-        ArgumentNullException.ThrowIfNull(query);
-        routeState.Path = path;
-        routeState.Query = BuildCollection(query);
-        _replace = replace;
-        Navigated();
+        lock (Moving)
+        {
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(path);
+            ArgumentNullException.ThrowIfNull(query);
+            routeState.Path = path;
+            routeState.Query = BuildCollection(query);
+            _replace = replace;
+            Navigated();
+        }
     }
 
     /// <summary>
@@ -180,20 +200,23 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        ArgumentNullException.ThrowIfNull(key);
-        var dict = ToDictionary(routeState.Query);
-        if (value is null)
+        lock (Moving)
         {
-            dict.Remove(key);
-        }
-        else
-        {
-            dict[key] = value;
-        }
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(key);
+            var dict = ToDictionary(routeState.Query);
+            if (value is null)
+            {
+                dict.Remove(key);
+            }
+            else
+            {
+                dict[key] = value;
+            }
 
-        routeState.Query = new QueryCollection(dict);
-        Navigated();
+            routeState.Query = new QueryCollection(dict);
+            Navigated();
+        }
     }
 
     /// <summary>
@@ -209,23 +232,26 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        ArgumentNullException.ThrowIfNull(values);
-        var dict = ToDictionary(routeState.Query);
-        foreach (var kv in values)
+        lock (Moving)
         {
-            if (kv.Value is null)
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(values);
+            var dict = ToDictionary(routeState.Query);
+            foreach (var kv in values)
             {
-                dict.Remove(kv.Key);
+                if (kv.Value is null)
+                {
+                    dict.Remove(kv.Key);
+                }
+                else
+                {
+                    dict[kv.Key] = kv.Value;
+                }
             }
-            else
-            {
-                dict[kv.Key] = kv.Value;
-            }
-        }
 
-        routeState.Query = new QueryCollection(dict);
-        Navigated();
+            routeState.Query = new QueryCollection(dict);
+            Navigated();
+        }
     }
 
     /// <summary>Removes a single query parameter from the current path. Missing keys are a no-op.</summary>
@@ -238,12 +264,15 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        ArgumentNullException.ThrowIfNull(key);
-        var dict = ToDictionary(routeState.Query);
-        dict.Remove(key);
-        routeState.Query = new QueryCollection(dict);
-        Navigated();
+        lock (Moving)
+        {
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(key);
+            var dict = ToDictionary(routeState.Query);
+            dict.Remove(key);
+            routeState.Query = new QueryCollection(dict);
+            Navigated();
+        }
     }
 
     /// <summary>Removes all query parameters from the current path, keeping the path.</summary>
@@ -255,9 +284,12 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             return;
         }
 
-        BeforeNavigating();
-        routeState.Query = QueryCollection.Empty;
-        Navigated();
+        lock (Moving)
+        {
+            BeforeNavigating();
+            routeState.Query = QueryCollection.Empty;
+            Navigated();
+        }
     }
 
     /// <summary>

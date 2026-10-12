@@ -226,7 +226,7 @@ public sealed class ListArrivalFramesTests(ITestOutputHelper output)
     public async Task A_navigation_between_two_pages_of_one_layout_is_one_frame_with_the_new_page_and_its_address()
     {
         var store = new ListArrivalStore();
-        await using var arrival = await Arrival.Open(store, "/destinations", output);
+        await using var arrival = await Arrival.Open(store, "/destinations", output, Patient);
 
         await arrival.Go("link", "/destinations/new");
         var frame = Assert.Single(await arrival.Settled());
