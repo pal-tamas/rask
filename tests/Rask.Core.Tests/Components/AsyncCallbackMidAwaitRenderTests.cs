@@ -8,8 +8,8 @@ namespace Rask.Core.Tests.Components;
 // A component's async callback must be able to show an INTERMEDIATE state — the spinner around a fetch —
 // without the consumer reaching for StateHasChanged.
 //
-// Rask already renders mid-await: when a handler's task actually yields, InvokeWithRenderingAsync renders
-// through the HandlerSyncContext. But that render serves any clean component from the render cache, so it
+// Rask renders mid-await once the handler has run for the handler budget (at once, when a host sets it to
+// zero, as the handle here does): InvokeWithRenderingAsync renders through the HandlerSyncContext. But that render serves any clean component from the render cache, so it
 // only shows the intermediate state if the component whose state changed is marked dirty BEFORE the await.
 //
 // The DOM-handler path always did that (TryInvokeHandlerAsync: "Set BEFORE running so intermediate renders
@@ -21,10 +21,10 @@ namespace Rask.Core.Tests.Components;
 public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
-    public async Task State_set_mid_await_is_rendered_without_StateHasChanged()
+    public async Task State_set_mid_await_is_rendered_without_StateHasChanged_once_the_budget_is_spent()
     {
         var host = new Host();
-        host.RenderHandle = new RenderingHandle(host);
+        host.RenderHandle = new RenderingHandle(host, TimeSpan.FromMilliseconds(20));
 
         var html = host.RenderAsLiveRoot(RenderHarness.EmptyServices());
         Assert.Contains("state: idle", html, StringComparison.Ordinal);
@@ -34,10 +34,10 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
         using var doc = JsonDocument.Parse("{}");
         var dispatch = host.TryInvokeHandlerAsync(clickId!, doc.RootElement);
 
-        // Suspended inside the await. This is the whole point: the consumer never called StateHasChanged,
-        // yet its intermediate state must already be on screen.
+        // Suspended inside the await, past the budget. This is the whole point: the consumer never called
+        // StateHasChanged, yet its intermediate state is on screen.
         await host.Consumer.Started.Task;
-        Assert.Contains("state: busy", host.LastHtml, StringComparison.Ordinal);
+        await WaitFor.True(() => host.LastHtml.Contains("state: busy", StringComparison.Ordinal), "the repaint at the budget");
 
         host.Consumer.Release.SetResult();
         await dispatch;
@@ -47,6 +47,25 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task State_set_mid_await_is_never_rendered_when_the_callback_finishes_within_the_budget()
+    {
+        var host = new Host();
+        host.RenderHandle = new RenderingHandle(host, TimeSpan.FromMinutes(5));
+        var html = host.RenderAsLiveRoot(RenderHarness.EmptyServices());
+        var clickId = MarkupAssert.Attr(html, "data-rask-on-click");
+        using var doc = JsonDocument.Parse("{}");
+
+        var dispatch = host.TryInvokeHandlerAsync(clickId!, doc.RootElement);
+        await host.Consumer.Started.Task;
+        host.Consumer.Release.SetResult();
+        await dispatch;
+
+        // Nothing was painted between the press and the handler's end: the reader never saw "busy".
+        Assert.DoesNotContain(host.Painted, static painted => painted.Contains("state: busy", StringComparison.Ordinal));
+        Assert.Contains("state: done", host.RenderAsLiveRoot(RenderHarness.EmptyServices()), StringComparison.Ordinal);
+    }
+
     // Re-renders on request and records the markup, so the test can read what the mid-await render produced.
     //
     // One render at a time, as a live session's render gate guarantees. Without it the callback resuming on the pool
@@ -54,9 +73,11 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
     // alive sets the first was enumerating: "Collection was modified", once in four full-suite runs (#1104). A Monitor
     // rather than a semaphore, so a render requested from inside a render on the same thread still goes through, as it
     // did before; only a render from another thread waits.
-    private sealed class RenderingHandle(Host view) : IRenderHandle
+    private sealed class RenderingHandle(Host view, TimeSpan budget = default) : IRenderHandle
     {
         private readonly Lock _gate = new();
+
+        TimeSpan IRenderHandle.HandlerRepaintBudget => budget;
 
         public Task RequestRender()
         {
@@ -75,6 +96,7 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
             lock (_gate)
             {
                 view.LastHtml = view.RenderAsLiveRoot(RenderHarness.EmptyServices());
+                view.Painted.Add(view.LastHtml);
             }
         }
     }
@@ -83,6 +105,9 @@ public partial class AsyncCallbackMidAwaitRenderTests : global::Rask.Core.RaskMa
     {
         public readonly Consumer Consumer = new();
         public string LastHtml = "";
+
+        // Every repaint the handle was asked for, in order.
+        public readonly List<string> Painted = [];
 
         protected override Component? Render()
         {

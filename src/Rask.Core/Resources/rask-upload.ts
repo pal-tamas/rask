@@ -18,7 +18,8 @@
 
 import {disown, own} from "./rask-owned.js";
 
-const HOLDER = "[data-rask-loading]";
+// Not a scope (`within`, rask-loading.ts): that marks what is around a press, and holds no upload.
+const HOLDER = '[data-rask-loading]:not([data-rask-loading="within"])';
 
 /** One file input's dispatch in flight. */
 export interface Upload {

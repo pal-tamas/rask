@@ -114,4 +114,71 @@ public sealed class LoadingStateTests
         Assert.True(root.GetProperty("afterEndMorphClean").GetBoolean());
         Assert.True(root.GetProperty("morphRemovedRenderedMark").GetBoolean());
     }
+
+    [Fact]
+    public void A_scope_is_the_nearest_element_above_the_press_that_says_within_unless_anything_says_off()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var scope = root.GetProperty("scopeOf");
+        Assert.True(scope.GetProperty("descendant").GetBoolean());
+        Assert.True(scope.GetProperty("itself").GetBoolean());
+        Assert.True(scope.GetProperty("none").GetBoolean());
+        Assert.True(scope.GetProperty("underOptOut").GetBoolean());
+        Assert.True(scope.GetProperty("optOutBetween").GetBoolean());
+
+        // A press that is neither a control's nor inside a scope opens nothing to end.
+        Assert.True(scope.GetProperty("nothingToMark").GetBoolean());
+    }
+
+    [Fact]
+    public void A_scope_is_marked_loading_after_the_delay_and_is_neither_busy_nor_unpressable()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        Assert.False(root.GetProperty("scopeBeforeDelay").GetBoolean());
+
+        var after = root.GetProperty("scopeAfterDelay");
+        Assert.True(after.GetProperty("loading").GetBoolean());
+        Assert.True(after.GetProperty("control").GetBoolean(), "the pressed control lost its own mark.");
+
+        // aria-busy stays on the control: a pager is not a control, and a region that says busy is read as one
+        // whose content is changing, which the rows are and the pager is not.
+        Assert.False(after.GetProperty("busy").GetBoolean());
+        Assert.False(after.GetProperty("visibly").GetBoolean());
+        Assert.True(after.GetProperty("owns").GetBoolean());
+        Assert.False(after.GetProperty("ownsBusy").GetBoolean());
+    }
+
+    [Fact]
+    public void A_scopes_mark_outlives_the_render_that_replaces_the_pressed_control_and_ends_with_the_dispatch()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        Assert.True(root.GetProperty("scopeMarkSurvivesTheRender").GetBoolean());
+        Assert.False(root.GetProperty("scopeAfterEnd").GetBoolean());
+    }
+
+    [Fact]
+    public void A_scope_waits_for_a_press_on_something_that_is_not_a_control_and_for_the_last_of_two()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        Assert.True(root.GetProperty("scopeMarkedByAPlainOwner").GetBoolean());
+        Assert.True(root.GetProperty("scopeAfterFirstOfTwo").GetBoolean(), "the first of two dispatches took the mark off.");
+        Assert.False(root.GetProperty("scopeAfterSecondOfTwo").GetBoolean());
+        Assert.True(root.GetProperty("renderedScopeMarkKept").GetBoolean());
+    }
 }

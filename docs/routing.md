@@ -393,6 +393,55 @@ In a WebAssembly app it is `host.Configure(o => o.NavigationQuiescenceTimeout = 
 for an app whose pages read from a slow store and would rather wait than flash; set it to zero to send every
 page the moment it is mounted.
 
+### A handler's work reaches the screen once
+
+The same holds for a page that stays where it is. **Nothing changes on screen until the handler has
+answered** — as in Livewire — so paging, sorting and filtering arrive as one frame, the pager and the rows
+together, however the page loads them:
+
+```csharp
+// the handler awaits the read itself
+.OnPage(async page => { _page = page; _rows = await Orders.Page(page); })
+
+// the handler only moves the number, and a child reads again in OnUpdated
+.OnPage(page => _page = page)          // … OrderRows.Page(_page)
+
+// or a query's key moves
+Query<Page<Order>> Orders => field ??= QueryClient.Query(() => new GetOrders(_page));
+
+// or the address does: sort and filter that live in the query string
+.OnSort(() => Go.With("sort", "date"))
+```
+
+- **What a handler sets between its awaits is not sent while it runs.** `_loading = true; _rows = null;`
+  before a read that is back in time is never seen: the reader keeps the rows they have, and gets the new
+  ones. A handler that finishes within the budget is one frame, its last.
+- **The render after the handler waits for the reads its change started** — a child's `OnUpdated`, a
+  `Rask.Query` fetch whose key moved or that a save invalidated — exactly as a navigation waits for its page.
+- **The budget is 150 ms**: for the handler, counted from when it starts, and then again for the reads the
+  render after it started. Spending it cancels nothing: the page is sent as it stands at that moment, and the
+  rest follows when it arrives. So a slow page change shows the
+  pager ahead of the old rows for a while, and a long save shows its "Saving…" — at 150 ms rather than at
+  once. Past the budget every later `await` repaints as it lands, as before.
+- **The reader is told the event is done only when the rows are there.** The pressed control's busy mark
+  (200 ms) and the bar across the top (300 ms) end with the server's acknowledgement, and that is sent after
+  the reads the page went without — so a slow sort by `Go.With` is busy until its rows arrive, where the mark
+  used to end at the budget. The next event is not held up by it, and the wait lasts **at most two seconds**
+  from that frame: a read that takes longer, or never returns, is told done then, and what it brings later is
+  an ordinary frame.
+- **A handler with nothing to wait for is answered at once.** A keystroke, a toggle, a counter: there is no
+  delay, and not even a timer.
+- **Work blocked on JavaScript is not waited for**, nor is work you detach, nor a render nobody dispatched (a
+  timer's `StateHasChanged`, a subscription's value): those are sent as they stand.
+
+```jsonc
+{ "Rask": { "Server": { "HandlerQuiescenceTimeout": "00:00:00.150" } } }   // default; "00:00:00" repaints at every await
+```
+
+In a WebAssembly app it is `host.Configure(o => o.HandlerQuiescenceTimeout = 150.Milliseconds)`. Zero turns it
+off: every intermediate state is sent the moment the handler awaits, and nothing is waited for. The kit's table dims
+its rows while a page change is slow — see [tables](ui-kit.md#a-slow-page-change-dims-the-rows).
+
 ## Programmatic navigation — `Go`
 
 `Go` moves the user from code, with nothing injected — a typed route goes on its own (`Routes.UserPage(42).Go()`),

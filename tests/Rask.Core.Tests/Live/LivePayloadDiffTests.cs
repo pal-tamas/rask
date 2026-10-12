@@ -12,6 +12,22 @@ namespace Rask.Core.Tests.Live;
 public class LivePayloadDiffTests
 {
     [Fact]
+    public void A_diff_payload_carries_a_development_fault_beside_its_ops()
+    {
+        var ops = new List<EditOp> { new(EditOpKind.UpdateText, new[] { 0, 1, 0 }, null, "attempts=1") };
+        var output = new ArrayBufferWriter<byte>(256);
+
+        LivePayload.BuildPayloadUtf8Diff(
+            output, ops, devError: new DevErrorInfo("handler", "InvalidOperationException", "refused", "at Save()"));
+
+        // A handler that changed the page and then threw: the change and the fault are one frame.
+        using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(output.WrittenSpan));
+        Assert.Equal(1, doc.RootElement.GetProperty("ops").GetArrayLength());
+        Assert.Equal("InvalidOperationException", doc.RootElement.GetProperty("devError").GetProperty("title").GetString());
+        Assert.Equal("refused", doc.RootElement.GetProperty("devError").GetProperty("message").GetString());
+    }
+
+    [Fact]
     public void A_diff_payload_serializes_the_kind_and_the_ops()
     {
         var ops = new List<EditOp>

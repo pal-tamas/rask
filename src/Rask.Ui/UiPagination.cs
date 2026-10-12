@@ -25,7 +25,10 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiPagination : Component
 {
-    private static readonly UiPartMarker Marker = new("ui-pagination");
+    // `within`: the runtime marks the pager while a press inside it is unanswered (rask-loading.ts). The page
+    // number that was pressed is replaced by the render that answers it, so the mark has to live on the root —
+    // which is what a table dims its rows by (ui.css).
+    private static readonly UiPartMarker Marker = new UiPartMarker("ui-pagination").And("rask-loading", "within");
 
     private const string Counted =
         "@container flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-700";

@@ -272,6 +272,13 @@ backstop. Opt a control — or a container of them — out with `data-rask-loadi
 (`Ui.Button.Loading(false)`), and opt a non-button element in with `data-rask-loading`. See
 [ui-kit.md](ui-kit.md#buttons-that-wait).
 
+The mark lasts until the page the handler answered with is whole: when a slow read outlives the handler, the
+control stays busy until its rows have arrived. A container can ask to be marked too
+(`data-rask-loading="within"`, which `Ui.Pagination` writes): it gets `data-loading` **only** — a styling
+hook, which is what a table dims its rows by. It is not `aria-busy`, because it is not the control, and
+nothing inside it becomes unpressable or leaves the tab order: the rows stay readable and clickable, and
+only the control that was pressed says it is busy.
+
 ## Toasts
 
 `Ui.Toast` is Flux's toast, announced as Flux announces it: the host is `role="status"` and each toast is

@@ -1277,12 +1277,12 @@ import {
     // order and acks each after its render, so an ack for seq N means every seq up to N is done.
     const loadingBySeq = new Map<number, LoadingTicket>();
 
-    // Marks `owner`'s control as waiting on the dispatch `payload` just became. Nothing to mark when the
-    // send was suppressed (no seq) or the element is not a control that waits.
+    // Marks `owner`'s control, and the scope around it, as waiting on the dispatch `payload` just became.
+    // Nothing to mark when the send was suppressed (no seq) or neither is there.
     function trackLoading(owner: Element | null, payload: Record<string, unknown>): void {
-        const el = loadingTarget(owner);
-        if (!el || typeof payload.seq !== "number") return;
-        loadingBySeq.set(payload.seq, beginLoading(el));
+        if (typeof payload.seq !== "number") return;
+        const ticket = beginLoading(loadingTarget(owner), owner);
+        if (ticket) loadingBySeq.set(payload.seq, ticket);
     }
 
     function settleLoading(upTo: number): void {
@@ -1741,7 +1741,7 @@ import {
         const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
         if (isVisiblyLoading(submitter)) return;
         // Started now rather than when the frame goes out, so the files uploading first are waited on too.
-        const ticket = submitter ? beginLoading(submitter) : null;
+        const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
         submitForm(t as HTMLFormElement).then(
             (payload) => {
                 if (ticket && typeof payload.seq === "number") loadingBySeq.set(payload.seq, ticket);

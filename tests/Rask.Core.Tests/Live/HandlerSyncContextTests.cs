@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
@@ -13,7 +14,7 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
-    public async Task A_post_renders_before_and_after_each_continuation()
+    public async Task With_no_repaints_withheld_a_post_renders_before_and_after_each_continuation()
     {
         var renderCount = 0;
         var ctx = new HandlerSyncContext(() =>
@@ -30,6 +31,62 @@ public class HandlerSyncContextTests
 
         Assert.Equal(2, ran);
         Assert.Equal(4, renderCount);
+    }
+
+    [Fact]
+    public async Task A_post_made_before_the_repaints_open_runs_its_continuation_and_repaints_nothing()
+    {
+        var renderCount = 0;
+        var ctx = new HandlerSyncContext(
+            () =>
+            {
+                Interlocked.Increment(ref renderCount);
+                return Task.CompletedTask;
+            },
+            repaintsFrom: Stopwatch.GetTimestamp() + (5 * 60 * Stopwatch.Frequency));
+        var ran = 0;
+
+        ctx.Post(_ => Interlocked.Increment(ref ran), null);
+        ctx.Post(_ => Interlocked.Increment(ref ran), null);
+        await ctx.DrainAsync();
+
+        Assert.Equal(2, ran);
+        Assert.Equal(0, renderCount);
+    }
+
+    [Fact]
+    public async Task A_post_made_once_the_repaints_have_opened_renders_before_and_after_its_continuation()
+    {
+        var renderCount = 0;
+        var ctx = new HandlerSyncContext(
+            () =>
+            {
+                Interlocked.Increment(ref renderCount);
+                return Task.CompletedTask;
+            },
+            repaintsFrom: Stopwatch.GetTimestamp() - 1);
+
+        ctx.Post(static _ => { }, null);
+        await ctx.DrainAsync();
+
+        Assert.Equal(2, renderCount);
+    }
+
+    [Fact]
+    public void A_copy_withholds_its_repaints_until_the_same_moment()
+    {
+        var renderCount = 0;
+        var ctx = new HandlerSyncContext(
+            () =>
+            {
+                renderCount++;
+                return Task.CompletedTask;
+            },
+            repaintsFrom: Stopwatch.GetTimestamp() + (5 * 60 * Stopwatch.Frequency));
+
+        ctx.CreateCopy().Send(static _ => { }, null);
+
+        Assert.Equal(0, renderCount);
     }
 
     [Fact]

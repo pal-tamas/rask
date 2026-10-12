@@ -639,6 +639,39 @@ page number. A `Sortable()` heading draws its label as a button with a chevron, 
 the heading is clicked or its button is activated from the keyboard. `Sorted` and `Direction` are what
 you set in answer.
 
+### A slow page change dims the rows
+
+Nothing on the table changes until the next page has its rows: a page change, a sort or a filter that is
+back within 150 ms is one paint, pager and rows together
+([routing](routing.md#a-handlers-work-reaches-the-screen-once)). When the read is slower the rows the reader
+has **stay and dim to half strength** until the new ones take their place — for at most two seconds, after
+which they are at full strength again and the new ones simply arrive when they do — with nothing to write:
+
+```csharp
+Ui.Table.Paginate(Ui.Pagination.Paginator(orders).OnPage(async page => { _page = page; _orders = await Orders.Page(page); }))[ … ]
+```
+
+The pager and the headings stay at full strength (they are what says something is happening), the rows stay
+readable and clickable, and a button inside a row — a Delete with a slow handler — marks itself and leaves the
+table alone. No `Loading` prop, no `IsPlaceholderData` branch: the runtime marks what was pressed once it has
+waited 200 ms, and the kit's sheet dims the rows by that mark.
+
+| What waits | The mark | Written by |
+| --- | --- | --- |
+| the pager — a page number, Previous, Next, or anything else inside it | `data-loading` on the pager's root | `Ui.Pagination` (`data-rask-loading="within"`), under the table (`Paginate(…)`) or right after it |
+| a sortable heading | `data-loading` + `aria-busy` on its `<th>` | `Ui.TableColumn.Sortable()` (`data-rask-loading`) |
+| anything else you decide — a filter above the table | `data-loading` on the table | you: `.Data("loading", "")` on the `Ui.Table` while its rows are stale |
+
+Flux documents no loading treatment for a table. The model is Livewire's own — `data-loading` on what was
+pressed and `has-data-loading:opacity-50` on what it replaces
+([Livewire: loading states](https://livewire.laravel.com/docs/4.x/loading-states)) — so a table of your own
+markup can do the same: `has-[[data-loading]]:opacity-50`, around anything carrying `data-rask-loading="within"`.
+
+**Keep the rows.** The dim is for rows that are still there. A handler that awaits the read keeps them by
+itself (`_orders = await …` replaces them only when it is back); a page that empties them first
+(`_orders = null`) has nothing to dim, and shows its placeholder when the read is slow. A `Rask.Query` page
+keeps them with `KeepPreviousData` ([queries](query.md#a-key-that-a-handler-moves)).
+
 **Sticky parts need a background.** `Ui.TableColumns.Sticky()` holds the headings at the top of the box,
 and a sticky `Ui.TableColumn` with sticky `Ui.TableCell`s under it holds a column at the left. Give each
 `.Class("bg-white dark:bg-zinc-900")`, or the rows show through. A sticky column casts a shadow once the
@@ -978,6 +1011,13 @@ outside the scroll area, full width with its rule above — and it keeps its hei
 ```csharp
 Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Load)).Id("orders")[ … ]
 ```
+
+**While the next page loads.** The pager's root carries `data-rask-loading="within"`, so the runtime marks it
+with `data-loading` once a press inside it has waited 200 ms, and takes the mark off when the page that
+answers it is whole. The page number that was pressed is replaced by that page's render, which is why the
+mark lives on the root. A table dims its rows by it
+([above](#a-slow-page-change-dims-the-rows)); a list of your own can too —
+`Div.Class("has-[+[data-ui-pagination][data-loading]]:opacity-50")[rows]`, with the pager right after it.
 
 **Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
 paginator's `PerPage`, and the choice is a `Ui.Select` of your own beside the pager. Go back to the first
@@ -1341,6 +1381,12 @@ kit's older one, and your own CSS can style `[data-loading]` on any control. `da
 opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
 throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
 dispatch over the same channel.
+
+**The wait ends when the page is whole, not when the handler returns.** A handler's own intermediate state is
+not painted while it runs, and the page it answers with waits 150 ms for the reads it started
+([routing](routing.md#a-handlers-work-reaches-the-screen-once)); when those are slower, the button stays busy
+until they are back. And `data-rask-loading="within"` on a container marks it — `data-loading` only — for a
+press anywhere inside: that is how a table knows its pager is waiting.
 
 ## What is in it
 

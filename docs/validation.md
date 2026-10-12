@@ -136,6 +136,15 @@ request.
 Inside a form nobody catches it. A submit handler that throws an exception carrying field failures
 leaves each message [under its field](forms-validation.md#the-database-said-no).
 
+What raises it:
+
+- a validator that rejected the request before its handler ran
+- a save that violated a unique index declared with a message,
+  [`IsUnique("…")`](data.md#what-a-unique-indexs-violation-says) — under the index's fields
+- a delete of a row that is still referenced, on an aggregate that says what that means —
+  [`OnDelete(behavior, "…")` or `WhenReferenced("…")`](data.md#what-deleting-a-referenced-row-says) — under the
+  empty key, because it is about no field
+
 ### The browser checks first
 
 On a WebAssembly client the request is validated **before** it is sent, so an invalid command costs a

@@ -86,6 +86,29 @@ public static class QuiescentRender
         using var quiescence = QuiescenceScope.Begin();
         var html = renderWave(false);
 
+        return await Waves(quiescence, html, renderWave, budget, isBlocked, maxWaves, renderRequested, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     The waves after a first render the caller made itself, with <paramref name="quiescence" /> collecting
+    ///     what that render started: wait for it, render again, and repeat.
+    /// </summary>
+    /// <remarks>
+    ///     For a live session, whose first render is every update's: it opens no scope and comes here only when
+    ///     that render started something. When the budget is spent the work still out is left on the scope
+    ///     (<see cref="QuiescenceScope.Unsettled" />) for whoever has to know when it is back.
+    /// </remarks>
+    internal static async Task<QuiescentRenderResult> Waves(
+        QuiescenceScope quiescence,
+        string html,
+        Func<bool, string> renderWave,
+        TimeSpan budget,
+        Func<bool>? isBlocked = null,
+        int maxWaves = DefaultMaxWaves,
+        Func<bool>? renderRequested = null,
+        CancellationToken cancellationToken = default)
+    {
         var deadline = DateTime.UtcNow + budget;
         var waves = 0;
         var requestedWaves = 0;
@@ -120,7 +143,7 @@ public static class QuiescentRender
         var remaining = deadline - DateTime.UtcNow;
         if (remaining <= TimeSpan.Zero || !wavesLeft)
         {
-            quiescence.MarkTimedOut();
+            quiescence.MarkTimedOut(batch);
             return false;
         }
 
@@ -131,7 +154,7 @@ public static class QuiescentRender
         }
         catch (TimeoutException)
         {
-            quiescence.MarkTimedOut();
+            quiescence.MarkTimedOut(batch);
             return false;
         }
     }

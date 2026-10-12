@@ -137,6 +137,9 @@ using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tena
 using (Tenant.Use(42)) { /* … */ }                 // a numbered tenant: `public int? TenantId { get; private set; }`
 builder.Services.AddRaskTenant(sp => …);            // the tenant from the request instead of the claim (Guid?, int?, long?)
 b.HasIndex(d => d.Name).IsUnique("Already taken.");   // a collision fails as a RaskValidationException, not a DbUpdateException
+b.HasMany<Note>().WithOne().HasForeignKey(n => n.TrailerId)
+ .OnDelete(DeleteBehavior.Restrict, "Still on a note.");   // so does deleting a row that relationship references
+b.WhenReferenced("Still in use.");                    // …and one any other table references (unmapped ones too)
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
 var one = await Product.Where(p => p.Id == id).First(CancellationToken);

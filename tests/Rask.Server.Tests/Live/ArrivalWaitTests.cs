@@ -7,7 +7,8 @@ using Rask.Server.Transport;
 namespace Rask.Server.Tests.Live;
 
 /// <summary>
-///     What the wait for a page reached in place costs a page that has nothing to wait for: nothing.
+///     What the wait for a page reached in place, and for a handler's page, costs a page that has nothing to
+///     wait for: nothing.
 /// </summary>
 /// <remarks>
 ///     Driven at the session, over a connection that takes a frame without yielding, so the answer is exact:
@@ -90,10 +91,84 @@ public sealed class ArrivalWaitTests
         Assert.DoesNotContain("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_handlers_render_with_nothing_pending_is_sent_before_the_call_returns_under_a_budget_of_minutes()
+    {
+        var (session, transport) = Attached(new Still(), LongerThanATestMayRun);
+
+        var sending = session.RenderAndSendAsync(null, replace: false, settling: true);
+
+        Assert.True(sending.IsCompletedSuccessfully);
+        Assert.Contains("still", Assert.Single(transport.Sent), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_handlers_render_whose_component_is_still_reading_is_held_back_until_the_read_returns()
+    {
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, transport) = Attached(new Reading(read.Task), LongerThanATestMayRun);
+        session.InHandlerScope = true;
+
+        var sending = session.RenderAndSendAsync(null, replace: false, settling: true);
+        var sentWhileReading = transport.Sent.Count;
+        read.SetResult();
+        await sending;
+
+        Assert.Equal(0, sentWhileReading);
+        Assert.Contains("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
+        Assert.Null(session.TakeUnsettledReads());
+    }
+
+    [Fact]
+    public async Task A_handlers_render_sent_at_the_budget_leaves_the_read_it_went_without_for_the_ack_to_wait_on()
+    {
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, transport) = Attached(new Reading(read.Task), TimeSpan.FromMilliseconds(20));
+        session.InHandlerScope = true;
+
+        await session.RenderAndSendAsync(null, replace: false, settling: true);
+        var left = session.TakeUnsettledReads();
+        var outWhileReading = left is { IsCompleted: false };
+        read.SetResult();
+        await left!;
+
+        Assert.True(outWhileReading);
+        Assert.DoesNotContain("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
+        Assert.Null(session.TakeUnsettledReads());
+    }
+
+    [Fact]
+    public void A_handler_budget_of_zero_sends_a_page_at_once_though_its_mount_is_still_reading()
+    {
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, transport) = Attached(new Reading(read.Task), TimeSpan.Zero);
+        session.InHandlerScope = true;
+
+        var sending = session.RenderAndSendAsync(null, replace: false, settling: true);
+
+        Assert.True(sending.IsCompletedSuccessfully);
+        Assert.DoesNotContain("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
+        Assert.Null(session.TakeUnsettledReads());
+    }
+
+    [Fact]
+    public void A_render_nobody_dispatched_does_not_wait_for_the_reads_it_starts()
+    {
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, transport) = Attached(new Reading(read.Task), LongerThanATestMayRun);
+        session.InHandlerScope = true;
+
+        var sending = session.RenderAndSendAsync(null, replace: false);
+
+        // A timer's render, a query's value landing: sent as it stands, as before.
+        Assert.True(sending.IsCompletedSuccessfully);
+        Assert.Single(transport.Sent);
+    }
+
     private static (LiveSession Session, Sink Transport) Attached(Component view, TimeSpan budget)
     {
         var services = new ServiceCollection();
-        services.AddSingleton(new RaskServerLimits { NavigationQuiescenceTimeout = budget });
+        services.AddSingleton(new RaskServerLimits { NavigationQuiescenceTimeout = budget, HandlerQuiescenceTimeout = budget });
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
         var provider = services.BuildServiceProvider();
