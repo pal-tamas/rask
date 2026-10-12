@@ -52,6 +52,7 @@ public sealed class UiKitTableDemoTests
 
         // The table has a width and a floor for the phone; every column but the second has its own.
         Assert.True(page.Find("#ui-fleet").HasClass("w-full") && page.Find("#ui-fleet").HasClass("min-w-160"));
+        Assert.Contains(" min-w-0\"><div class=\"block overflow-auto\"><table id=\"ui-fleet\"", page.Html, StringComparison.Ordinal);
         Assert.Equal(["w-40", "", "w-36", "w-24"], first);
         Assert.Equal(first, second);
         Assert.Equal(first, empty);

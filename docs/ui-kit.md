@@ -686,7 +686,9 @@ Ui.Table.Class("w-full min-w-160").Paginate(pager)[
 - **`min-w-160` is for the phone.** When the widths add up to more than the screen, the column without one
   would get nothing. With a minimum (40rem here: the three widths plus 15rem for the rest) the table keeps
   its columns and scrolls sideways inside its own box — the scroll area `Ui.Table` always renders — and the
-  page does not. `ContainerClass` (Flux's `container:class`) is for a height, `max-h-80`; sideways needs nothing.
+  page does not. `ContainerClass` (Flux's `container:class`) is for a height, `max-h-80`; sideways needs
+  nothing — **unless the table is an item of a grid or a flex row**, which grows to its content: there the box
+  itself becomes 40rem wide and the page scrolls instead. Say `.ContainerClass("min-w-0")` and it stays in.
 - `Sticky()` and `Bleed()` work as before. A sticky column takes its width like any other.
 
 `Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two

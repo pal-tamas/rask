@@ -49,6 +49,8 @@ public sealed partial class UiKitDataDisplayDemo
         return Ui.Table
             .Id("ui-fleet")
             .Class("w-full min-w-160")
+            // The demo stacks its parts in a grid, and a grid item grows to its content unless told it may not.
+            .ContainerClass("min-w-0")
             .Paginate(Ui.Pagination
                 .Paginator(new UiPaginator { Page = _fleetPage, PerPage = FleetPageSize, Total = jobs.Count })
                 .OnPage(page => { _fleetPage = page; }))[
