@@ -148,6 +148,8 @@ const NATIVE = {
   'ui-date-picker-select': 'div',
   // The time picker: the list of times is a popover the browser opens.
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
+  // The color picker: a modal <dialog> the runtime shows, and the box Flux scripts its Select button through.
+  'ui-color-picker': 'div', 'ui-color-picker-select': 'div',
   // The slider and the one-time code: a box around native inputs.
   'ui-slider': 'div', 'ui-otp': 'div',
   // The tabs: a role="tablist" of buttons, with the runtime's arrow keys (rask-tabs.ts).
@@ -175,13 +177,16 @@ const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
 // cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
-const EXTRA = ['data-ui-chart-hover'];
+// …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
+// whether the dialog is Flux's sheet: Flux asks the window.
+const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet'];
 // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
 // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
 // how each says where the popup goes is not compared; where it ends up is — its offset from the root it
 // floats beside, like every other node's.
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
-const placed = (a, b) => 'popover' in b.attrs && a.style.position === 'absolute' && b.style.position === 'fixed';
+// The same holds for a modal <dialog> the kit anchors to its trigger (the color picker's).
+const placed = (a, b) => ('popover' in b.attrs || b.tag === 'dialog') && a.style.position === 'absolute' && b.style.position === 'fixed';
 // A group whose parts are the browser's while they are typed into (docs/js-interop-runtime.md, rask-bound.ts)
 // holds ONE <input type="hidden"> that the page binds. Flux's custom element carries its value itself and
 // has no such node, so that field is no child here.

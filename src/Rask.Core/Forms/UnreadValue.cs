@@ -50,6 +50,7 @@ internal static class UnreadValue
         RaskString.ValidationNumber => "Enter a number.",
         RaskString.ValidationNumberRange => "The number is out of range.",
         RaskString.ValidationDate => "Enter a valid date.",
+        RaskString.ValidationColor => "Enter a valid color.",
         _ => "Enter a valid time.",
     });
 
