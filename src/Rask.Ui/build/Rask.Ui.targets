@@ -497,10 +497,9 @@
   <PropertyGroup>
     <RaskUiWriteFlags Condition="'$(RaskUiWriteFlags)' == ''">false</RaskUiWriteFlags>
     <_RaskUiFlagsOutput>wwwroot/flags</_RaskUiFlagsOutput>
-    <!-- From the package: build/flags, which the twin of these targets in buildTransitive/ reads too.
-         In this repository: the kit's own Flags folder. -->
-    <_RaskUiFlagsSource>$(MSBuildThisFileDirectory)flags</_RaskUiFlagsSource>
-    <_RaskUiFlagsSource Condition="!Exists('$(_RaskUiFlagsSource)/LICENSE.txt')">$(MSBuildThisFileDirectory)../build/flags</_RaskUiFlagsSource>
+    <!-- From the package: flags/ at its root, one folder up from these targets and from their twin in
+         buildTransitive/. In this repository: the kit's own Flags folder, one folder up as well. -->
+    <_RaskUiFlagsSource>$(MSBuildThisFileDirectory)../flags</_RaskUiFlagsSource>
     <_RaskUiFlagsSource Condition="!Exists('$(_RaskUiFlagsSource)/LICENSE.txt')">$(MSBuildThisFileDirectory)../Flags</_RaskUiFlagsSource>
   </PropertyGroup>
 
@@ -530,7 +529,7 @@
           BeforeTargets="BeforeBuild">
     <!-- Fails rather than warns: the project asked for the flags by name, and without them every Ui.Flag is an empty frame. -->
     <Error Condition="'@(_RaskUiFlagFile)' == ''"
-           Text="Rask.Ui: this project set RaskUiWriteFlags=true but the flag drawings could not be found ($(_RaskUiFlagsSource)), so $(_RaskUiFlagsOutput) cannot be written and every Ui.Flag would draw an empty frame. From the package they ship as build/flags; in this repository they are src/Rask.Ui/Flags, written by scripts/flux/flags.mjs."/>
+           Text="Rask.Ui: this project set RaskUiWriteFlags=true but the flag drawings could not be found ($(_RaskUiFlagsSource)), so $(_RaskUiFlagsOutput) cannot be written and every Ui.Flag would draw an empty frame. From the package they ship as flags/ at its root; in this repository they are src/Rask.Ui/Flags, written by scripts/flux/flags.mjs."/>
 
     <Copy SourceFiles="@(_RaskUiFlagFile)"
           DestinationFolder="$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)"

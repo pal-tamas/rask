@@ -897,7 +897,7 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
 
 - Flag (2026-10-13): `Ui.Flag` is a `<span>` frame around a lazy `<img>`. The drawings are FILES
   (`src/Rask.Ui/Flags/`, country-flag-icons 1.6.20, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
-  from the pinned tarball and writes `UiFlagRegistry.g.cs`), packed as `build/flags` and copied to
+  from the pinned tarball and writes `UiFlagRegistry.g.cs`), packed ONCE as `flags/` at the package root (not under `build/`: `PackagingContractTests` wants every `build/` item twinned, which would ship them twice) and copied to
   `wwwroot/flags` only for a project that says `RaskUiWriteFlags` (`Rask.Ui.targets`; the browser half of a
   one-project WASM app owns them, as it owns the editor's engine — `ClientCompanionGenerationTests`). `UN` and
   `CQ`: Flux serves them from artwork whose licence could not be established, so they are not shipped. The
