@@ -106,6 +106,7 @@ public sealed partial class KitFieldFramePage : KitFramePage
             Part("textarea", Ui.Textarea.Value(_notes).Label("Notes").OnChange(v => _notes = v)),
             Part("field", Ui.Field[Ui.Label["Email"], Ui.Input.Value(_name).Id("in-field").OnChange(v => _name = v), Ui.Description["Never shared."]]),
             Part("slider", Ui.Slider.Value(_volume).OnChange(v => _volume = v)),
+            Part("slider-bound", Ui.Slider.Bind(() => _choices.Volume)),
             Part("otp", Ui.Otp.Value(_code).Length(4).OnChange(v => _code = v)),
             Part("file-upload", Ui.FileUpload.Id("files").Label("Upload files").Multiple()[
                 Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("PNG up to 10MB")
@@ -114,6 +115,8 @@ public sealed partial class KitFieldFramePage : KitFramePage
 
     private sealed class Choices
     {
+        public int Volume { get; set; } = 30;
+
         public ICollection<string> Channels { get; set; } = ["mail"];
     }
 }

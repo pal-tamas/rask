@@ -103,6 +103,8 @@ internal static class KitGestures
     /// <summary>A drag that starts on <paramref name="selector" /> and goes <paramref name="by" /> pixels along.</summary>
     public static KitGesture DragBy(string selector, int by, bool release) => new(release ? "drag and release" : "drag, still held", async page =>
     {
+        // The pointer is moved by coordinates, which reach nothing below the fold: a drag there pressed on no part at all.
+        await page.Locator(selector).First.ScrollIntoViewIfNeededAsync();
         var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
         var (x, y) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
         await page.Mouse.MoveAsync(x, y);
