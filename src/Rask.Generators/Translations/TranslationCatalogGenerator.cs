@@ -182,6 +182,8 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ErrorReference", 1),
         ("HandlerFailed", 0),
         ("ErrorTitle", 0),
+        ("DatePickerConfirmRange", 0),
+        ("DatePickerPresetsPlaceholder", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

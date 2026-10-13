@@ -28,8 +28,9 @@ public sealed partial class DatePickerOpenParity : DatePickerParity
         + "})()</script>";
 
     // Flux's page goes on below its last example; this one ends there. Without the room, the last popups would
-    // have to open upwards.
-    private const string Room = "<style>body{padding-bottom:900px}</style>";
+    // have to open upwards. And above its first: an example is measured in the middle of the screen, where the
+    // pointer that opened it stays — over the same day of a phone's sheet on both pages.
+    private const string Room = "<style>body{padding:900px 0}</style>";
 
     public override string Page => "date-picker-open";
 

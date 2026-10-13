@@ -2602,6 +2602,17 @@ cell is a `gridcell` with `aria-selected` and its button carries the full date a
 calendar in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button come
 with it. A day closes it on the pick, a range on its second click.
 
+**On a phone** — under 640 px — it is what Flux's is there, with nothing to write for it: the same popup is a
+sheet centred over a page dimmed 10%, one month whatever `Months` says, days 44px a thumb can press, the presets
+a native select under the days, and **Cancel** and **Select date** (**Select range** on a range) at its foot. A
+pick marks the day and writes nothing; the button writes it — through the same binding, so a plain `Bind` takes
+it with the reader's next action and `.Live()` at once — and Cancel, Escape and a press on the dimmed page leave
+the value as it was. The stylesheet decides which of the two it is (`sm:`), and the page hears it from the
+browser through a box only the stylesheet sizes (`data-rask-measure`), so a window dragged across 640 px changes
+with the next pick. A day marked on a sheet that was then closed is still marked when it opens again, and its
+button still writes it: that is Flux's own, measured. `Ui.Calendar` folds to one month and the larger days the
+same way.
+
 ```csharp
 Ui.DatePicker.Bind(() => booking.Arrival).Label("Arrival")                         // DateOnly
 Ui.DatePicker.Range.Bind(() => booking.Stay).Label("Stay").Min(today).MinRange(3)  // mode="range": UiDateRange

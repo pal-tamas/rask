@@ -16,7 +16,7 @@ internal static class UiCalendarLook
     internal const string HeaderEnd = "flex items-center";
 
     internal const string Step =
-        "flex items-center justify-center size-8 rounded-lg text-start cursor-auto text-zinc-400 "
+        "flex items-center justify-center size-8 max-sm:size-10 rounded-lg text-start cursor-auto text-zinc-400 "
         + "hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white "
         + "disabled:opacity-50 disabled:pointer-events-none";
 
@@ -35,13 +35,21 @@ internal static class UiCalendarLook
     internal const string SelectHost = "text-sm font-medium text-zinc-800 dark:text-white";
 
     internal const string Select =
-        "appearance-none h-8 ps-2 pe-[1.35rem] rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700";
+        "appearance-none h-8 max-sm:h-10 ps-2 max-sm:ps-3 pe-[1.35rem] rounded-lg bg-zinc-100 dark:bg-white/10 dark:[&>option]:bg-zinc-700";
 
     internal const string Months = "relative flex justify-center gap-4 p-2";
 
-    internal const string Heading = "flex items-center h-8 px-2 mb-2";
+    internal const string Heading = "flex items-center h-8 max-sm:h-10 px-2 mb-2";
 
-    internal const string HeadingHidden = "flex items-center h-8 px-2 mb-2 opacity-0";
+    internal const string HeadingHidden = "flex items-center h-8 max-sm:h-10 px-2 mb-2 opacity-0";
+
+    // Under 640 px Flux draws one month whatever `months` says: the others are folded away by the stylesheet
+    // until the page has heard how wide it is (Narrow), and are not drawn from then on.
+    internal const string MonthFolded = "max-sm:hidden";
+
+    // A box only the stylesheet sizes, which tells the page whether the calendar is drawn for a phone: two
+    // wide below `sm`, one from there up. Flux asks the window.
+    internal const string Narrow = "absolute top-0 start-0 h-px w-px max-sm:w-0.5 invisible pointer-events-none";
 
     internal const string HeadingText = "text-sm font-medium text-zinc-800 dark:text-white";
 
@@ -85,14 +93,28 @@ internal static class UiCalendarLook
 
     internal const string DotSelected = "size-1 rounded-full bg-fx-accent-foreground";
 
+    // Under 640 px Flux draws a day a thumb can press and a week the phone can hold: measured there are Xs (40),
+    // Sm and Base (44) and Xl (48). Lg is 48 at every width; Xxl has no example, and is drawn as Xl on a phone.
     internal static string Cell(Ui.CalendarSize size) => size switch
     {
-        Ui.CalendarSize.Xs => "size-9",
-        Ui.CalendarSize.Sm => "size-10",
+        Ui.CalendarSize.Xs => "size-9 max-sm:size-10",
+        Ui.CalendarSize.Sm => "size-10 max-sm:size-11",
         Ui.CalendarSize.Lg => "size-12",
-        Ui.CalendarSize.Xl => "size-14",
-        Ui.CalendarSize.Xxl => "size-16",
+        Ui.CalendarSize.Xl => "size-14 max-sm:size-12",
+        Ui.CalendarSize.Xxl => "size-16 max-sm:size-12",
         _ => "size-11",
+    };
+
+    // With the week's number before it a row holds eight cells, and under 640 px Flux draws each 40 (measured
+    // at Sm and Base; the larger sizes have no example and would not fit a phone at their own).
+    internal static string CellBesideWeek(Ui.CalendarSize size) => size switch
+    {
+        Ui.CalendarSize.Xs => "size-9 max-sm:size-10",
+        Ui.CalendarSize.Sm => "size-10",
+        Ui.CalendarSize.Lg => "size-12 max-sm:size-10",
+        Ui.CalendarSize.Xl => "size-14 max-sm:size-10",
+        Ui.CalendarSize.Xxl => "size-16 max-sm:size-10",
+        _ => "size-11 max-sm:size-10",
     };
 
     /// <summary>A day's cell: rounded where a row or a range starts and ends, tinted inside a range.</summary>

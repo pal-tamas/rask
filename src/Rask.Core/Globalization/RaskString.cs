@@ -442,4 +442,10 @@ public enum RaskString
 
     /// <summary>The title of the tab while the error page stands in for the whole app.</summary>
     ErrorTitle,
+
+    /// <summary>The button that writes the range a range date picker holds: on a phone, and where it confirms.</summary>
+    DatePickerConfirmRange,
+
+    /// <summary>The option a phone's list of preset ranges shows while it names none.</summary>
+    DatePickerPresetsPlaceholder,
 }

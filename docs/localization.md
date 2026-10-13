@@ -535,6 +535,8 @@ they say when you set nothing.
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |
 | `ErrorTitle` | Error page | `Application error` |
+| `DatePickerConfirmRange` | Date picker | `Select range` |
+| `DatePickerPresetsPlaceholder` | Date picker | `Choose predefined range...` |
 
 ## Docker
 
