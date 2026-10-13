@@ -30,7 +30,8 @@ internal static class FaultedLoads
 
     internal static bool Take(Component component)
     {
-        if (!Any || !Faulted.Remove(component))
+        // Asked first without the lock a removal takes: nearly every component the walk asks about has none.
+        if (!Any || !Faulted.TryGetValue(component, out _) || !Faulted.Remove(component))
         {
             return false;
         }

@@ -27,7 +27,7 @@ internal static class HeldHookFault
 
     internal static bool Any => Volatile.Read(ref _held) != 0;
 
-    /// <summary>Test seam: whether a fault of <paramref name="component" /> is waiting for the walk.</summary>
+    /// <summary>Whether a fault of <paramref name="component" /> is waiting for the walk. Takes no lock.</summary>
     internal static bool Holds(Component component) => Held.TryGetValue(component, out _);
 
     internal static void Hold(Component component, Exception fault)
@@ -40,7 +40,8 @@ internal static class HeldHookFault
 
     internal static Exception? Take(Component component)
     {
-        if (!Any || !Held.Remove(component, out var fault))
+        // Asked first without the lock a removal takes: nearly every component the walk asks about has none.
+        if (!Any || !Holds(component) || !Held.Remove(component, out var fault))
         {
             return null;
         }
