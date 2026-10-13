@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **A reconnect no longer hands a live page back the user its sign-in check had taken away.** The Server host
+  re-checks an open page's user at most every 30 seconds (`ISessionRevalidator`), and a reconnect re-seeded the
+  principal from its cookie or token without asking again — so a session ended or narrowed a moment earlier acted
+  under the old principal until the interval next came round, each time it reconnected. A connection is now
+  checked as it attaches, before anything is rendered or dispatched for it.
+- **A live session whose user was signed out is not adopted by another signed-in user.** Once its principal was
+  cleared the session had no owner to compare with, so the socket, the HTTP fallback, an upload and a download
+  accepted any signed-in holder of its id — on a page still holding what it had mounted for the previous user.
+  Such a session now answers its former user or nobody.
+- [What ties a live page to its user](docs/authentication.md#what-ties-a-live-page-to-its-user) states the rule
+  in full, for a `RaskApp` and for a hand-wired host.
+
 ### Added
 
 - **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:

@@ -164,8 +164,7 @@ internal sealed class DevToolsServerEndpoints : IRaskServerDevTools
         // The same binding upload and download make: the request must come from the page's own origin, and carry the
         // identity of whoever owns the inspected session.
         if (!RaskEndpointExtensions.IsSameOrigin(context.Request)
-            || !RaskEndpointExtensions.SameSessionUser(
-                context.User, inspected.Services.GetRequiredService<SessionUserProvider>().Current))
+            || !RaskEndpointExtensions.MayDrive(context.User, inspected))
         {
             return StatusCodes.Status403Forbidden;
         }

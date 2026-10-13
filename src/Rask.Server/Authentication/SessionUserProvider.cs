@@ -21,6 +21,10 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
     /// </summary>
     public ClaimsPrincipal Current { get; private set; } = new(new ClaimsIdentity());
 
+    // The last signed-in principal this session held, kept after a sign-out clears Current: who a session that
+    // has no user any more used to belong to (RaskEndpointExtensions.MayDrive).
+    internal ClaimsPrincipal? LastSignedIn { get; private set; }
+
     /// <summary>
     ///     Raised when <see cref="Current" /> is replaced by a different principal, so UI that depends on
     ///     who is signed in re-renders. Setting the same instance again raises nothing.
@@ -39,6 +43,11 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
         ArgumentNullException.ThrowIfNull(user);
         var prev = Current;
         Current = user;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            LastSignedIn = user;
+        }
+
         if (!ReferenceEquals(prev, user))
         {
             Changed?.Invoke(this, EventArgs.Empty);

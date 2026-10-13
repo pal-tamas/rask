@@ -22,8 +22,7 @@ internal sealed class DevToolsServerInspection(
 
     public DevToolsFeed? Open(string? sessionId, string? token) =>
         endpoints.FindInspected(store, sessionId, token) is { } inspected
-        && RaskEndpointExtensions.SameSessionUser(
-            viewer.Current, inspected.Services.GetRequiredService<SessionUserProvider>().Current)
+        && RaskEndpointExtensions.MayDrive(viewer.Current, inspected)
             // Created on first use, so a panel that opens before the page has sent anything still follows what comes.
             ? feeds.For(inspected)
             : null;
