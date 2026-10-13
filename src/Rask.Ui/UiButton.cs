@@ -70,8 +70,15 @@ public sealed partial class UiButton : UiElement, IUiHost
     /// </summary>
     public Ui.IconVariant? IconVariant { get; set; }
 
-    /// <summary>The icon after the label.</summary>
-    public Ui.IconName? IconTrailing { get; set; }
+    /// <summary>
+    ///     What stands after the label: an icon by name, or content of your own — Flux's <c>icon:trailing</c>
+    ///     prop and its <c>iconTrailing</c> slot, <c>.IconTrailing(Ui.Badge.Sm["3"])</c>.
+    /// </summary>
+    /// <remarks>
+    ///     One step for both, so the last one written is what is drawn. Content is placed as it is, where the
+    ///     icon would stand, and the button pads itself as it does around an icon.
+    /// </remarks>
+    public UiInputIcon? IconTrailing { get; set; }
 
     /// <summary>
     ///     As wide as it is tall, with no padding. Automatic for a button with no children;
@@ -174,7 +181,10 @@ public sealed partial class UiButton : UiElement, IUiHost
     // caller set, either way: a flag that flips between renders must not change what the button is made of.
     private bool Loads => IsButton && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
 
-    private bool HasParts => Icon is not null || IconTrailing is not null || Loads || Kbd is not null;
+    // A trailing icon or trailing content. Nothing handed to the step (a null component) is neither.
+    private bool Trails => IconTrailing is { Name: not null } or { Content: not null };
+
+    private bool HasParts => Icon is not null || Trails || Loads || Kbd is not null;
 
     /// <inheritdoc />
     protected override string? ResolveClass()
@@ -199,7 +209,7 @@ public sealed partial class UiButton : UiElement, IUiHost
             Class);
     }
 
-    private UiButtonClasses.Shape Shape => (IsSquare, Icon is not null, IconTrailing is not null) switch
+    private UiButtonClasses.Shape Shape => (IsSquare, Icon is not null, Trails) switch
     {
         (true, _, _) => UiButtonClasses.Shape.Square,
         (_, true, true) => UiButtonClasses.Shape.IconBoth,
@@ -316,9 +326,18 @@ public sealed partial class UiButton : UiElement, IUiHost
             Icon is { } icon ? Glyph(icon, loads) : null,
             .. Label(loads),
             Kbd is { } kbd ? Div.Class("text-xs text-zinc-400")[kbd] : null,
-            IconTrailing is { } trailing ? Glyph(trailing, loads) : null,
+            Trailing(loads),
         ];
     }
+
+    // Flux puts its slot's content straight into the button, last, with nothing around it (measured on the
+    // popover page: a badge after the label's span).
+    private Component? Trailing(bool loads) => IconTrailing switch
+    {
+        { Content: { } content } => content,
+        { Name: { } name } => Glyph(name, loads),
+        _ => null,
+    };
 
     // Over the whole button and invisible until the runtime — or Loading(true) — marks it.
     private static Component Indicator() =>
@@ -357,6 +376,6 @@ public sealed partial class UiButton : UiElement, IUiHost
             return [Span.Class("transition-opacity [[data-loading]>&]:opacity-0")[label]];
         }
 
-        return Icon is null && IconTrailing is null ? label : [Span[label]];
+        return Icon is null && !Trails ? label : [Span[label]];
     }
 }

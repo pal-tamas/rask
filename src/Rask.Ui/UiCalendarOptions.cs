@@ -51,5 +51,8 @@ internal sealed record UiCalendarOptions(
     /// <summary>The popover a pick that finishes the choice closes, when the grid sits in a date picker.</summary>
     internal string? Closes { get; init; }
 
-    internal static DateOnly Now() => DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().Date);
+    /// <summary>The clock a calendar reads today from. A test that snapshots markup pins it.</summary>
+    internal static TimeProvider Clock { get; set; } = TimeProvider.System;
+
+    internal static DateOnly Now() => DateOnly.FromDateTime(Clock.GetLocalNow().Date);
 }

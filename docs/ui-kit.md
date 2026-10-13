@@ -304,6 +304,7 @@ the other — and size the drawing: 16px beside a label, 20px alone.
 ```csharp
 Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"]
 Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"]
+Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]        // Flux's iconTrailing slot: content in the icon's place
 Ui.Button.Icon(Ui.IconName.XMark).AriaLabel("Close")          // no children: a square. Name it.
 Ui.Button.Icon(Ui.IconName.Cog6Tooth).Tooltip("Settings")     // a tooltip names it too: Flux's wrapper, by aria-labelledby
 Ui.Button.Icon(Ui.IconName.Moon).Tooltip("Toggle dark mode").TooltipKbd("D").TooltipPosition(Ui.TooltipPosition.Bottom)
@@ -322,7 +323,7 @@ Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"], Ui.Button["Top"]]   // 
 | `Variant` | `Ui.ButtonVariant`: `Outline` (default) `Primary` `Filled` `Danger` `Ghost` `Subtle` |
 | `Size` | `Ui.ButtonSize`: `Base` (default) `Sm` `Xs` |
 | `Color` | `Ui.Color`: Tailwind's seventeen hues, `Red` … `Rose`, and its five grays. A hue recolours every variant but `Danger`; a gray changes only `Primary` |
-| `Icon`, `IconTrailing` | a `Ui.IconName`; `IconVariant` picks another drawing of it |
+| `Icon`, `IconTrailing` | a `Ui.IconName`; `IconVariant` picks another drawing of it. `IconTrailing` also takes a component — Flux's `iconTrailing` slot — placed as it is where the icon would stand, the button padded as around an icon. One step: naming an icon AND handing content in one chain is RASK044 |
 | `Square` | as wide as tall. Automatic with an icon and no children; `Square(false)` turns that off |
 | `Align` | `Ui.Align.Start` / `Center` / `End`, for a button wider than its content |
 | `Inset` | `Ui.Inset` flags — `Top`, `Bottom`, `Left`, `Right`, `All` — for a ghost or subtle button |
@@ -2118,7 +2119,8 @@ layer and closes it on Escape and on a press anywhere else. It is no menu and sa
 trigger as it opens — the panel takes none — and Tab walks from there into the panel; Shift+Tab off the trigger,
 or Tab past the panel's last control, closes it. While one a press opened is up, the page behind neither scrolls
 nor takes the pointer (`data-rask-lock`), so a press on anything else only closes it; one the pointer opened
-locks nothing. An open panel carries `data-open` once the page has heard it open, which is what Flux's own
+locks nothing. An open panel carries `data-open` from the moment it opens — the runtime writes it in the browser
+(`data-rask-open-mark`), so no round trip stands between the press and the layout — which is what Flux's own
 `data-open:flex` styles by, and a closed one is never displayed whatever layout its `Class` gives it.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every

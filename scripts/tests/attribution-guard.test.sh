@@ -150,6 +150,14 @@ assert_commit_msg "accepts a clean commit"        0 'feat(forms): add RadioGroup
 assert_commit_msg "accepts a clean merge"          0 'Merge branch main into topic\n'
 assert_commit_msg "still rejects a bad subject"    1 'random text\n'
 
+# The header's length is commitlint.config.ts's rule, and CI applies it to pull requests only. A 105-character
+# header once went straight to main through this hook, which was taken for the hook not having run.
+header_of() { printf 'fix(core): %s' "$(printf '%*s' "$(($1 - 11))" '' | tr ' ' 'x')"; }
+assert_commit_msg "accepts a header of 100 characters"  0 "$(header_of 100)\n"
+assert_commit_msg "rejects a header of 101 characters"  1 "$(header_of 101)\n"
+assert_commit_msg "a long BODY line is not the header"  0 "fix(core): x\n\n$(header_of 140)\n"
+assert_commit_msg "a long merge header still passes"    0 "Merge $(header_of 140)\n"
+
 echo "==> .githooks/pre-push (the real hook, isolated repository)"
 
 # Driven in a throwaway repository rather than this one: the hook makes commits' worth of decisions

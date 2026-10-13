@@ -15,13 +15,15 @@
 //   * a pick closes the popover the menu sits in — unless the row, or something around it, says
 //     data-rask-keep-open, or the row opens a submenu;
 //   * Tab out of an open menu closes it, the way a menu is left;
-//   * a click outside closes it (the browser's) and focus goes back to its trigger (ours).
+//   * a click outside closes it (the browser's) and focus goes back to its trigger (ours); a panel the pointer
+//     opened and then left hands focus to nobody.
 // Escape is not touched: closing the popover on Escape is the browser's, and it hands focus back to the trigger.
 // A menu that names its row with aria-activedescendant instead of focusing it is pressed the same way.
 //
 // The role is the whole request, as a tablist's is: a page with a `[role=menu]` loads the hooks
 // (rask-hook-loader.ts), and a page with no menu does not download this.
 
+import {walkedFrom} from "./rask-hover.js";
 import {isShown, listen, near, page, setShown} from "./rask-owned.js";
 import {cursorOf, flyoutOf, isOff, isOpen, kept, land, ROW as ITEM, rowOf, rowsOf, setOpen} from "./rask-menu.js";
 
@@ -225,11 +227,13 @@ if (page) {
 
     // The browser hands focus back to the trigger when Escape closes a popover, and not when a click outside
     // does: that leaves it on the page, and a keyboard user back at the top. So a popover that closes with focus
-    // nowhere hands it to the button that opens it. `toggle` does not bubble; it is caught on the way down.
+    // nowhere hands it to the button that opens it — but for one the pointer walked away from (rask-hover.ts):
+    // measured on Flux UI's hover card, that close leaves focus where it was, on nothing when nothing had it.
+    // `toggle` does not bubble; it is caught on the way down.
     listen("toggle", function (e) {
         const panel = e.target;
         if (!(panel instanceof HTMLElement) || !panel.id || (e as ToggleEvent).newState !== "closed"
-            || (doc.activeElement && doc.activeElement !== doc.body)) {
+            || walkedFrom.delete(panel) || (doc.activeElement && doc.activeElement !== doc.body)) {
             return;
         }
         const invokers = doc.querySelectorAll<HTMLElement>("[popovertarget][aria-haspopup]");

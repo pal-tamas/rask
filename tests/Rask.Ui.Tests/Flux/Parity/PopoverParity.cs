@@ -34,6 +34,7 @@ public sealed partial class PopoverParity : FluxParity
         // `icon:class`, `icon-trailing:class` and `label:class`: classes Flux's props hand to a part.
         + ".pp-icons-400>[data-ui-icon]{color:var(--color-zinc-400)}.pp-icons-300>[data-ui-icon]{color:var(--color-zinc-300)}"
         + ".pp-icons-75>[data-ui-icon]{opacity:.75}"
+        + ".pp-pull{margin-right:-.25rem}.pp-nums{font-variant-numeric:tabular-nums}"
         + ".pp-icons-quiet>[data-ui-icon]{color:var(--color-zinc-400)}:where(.dark) .pp-icons-quiet>[data-ui-icon]{color:var(--color-zinc-300)}"
         + ".pp-labels>[data-ui-field]>[data-ui-label]{color:var(--color-zinc-500)}"
         + ":where(.dark) .pp-labels>[data-ui-field]>[data-ui-label]{color:var(--color-zinc-400)}"
@@ -134,9 +135,10 @@ public sealed partial class PopoverParity : FluxParity
 
     private static Component Categories(bool opened) =>
         Ui.Dropdown[
-            // Flux's button with a badge in its `iconTrailing` SLOT. Ui.Button's IconTrailing names an icon, so
-            // this trigger is a box of Flux's size: the panel is placed against it.
-            Opens(DropdownParity.Room("width:150.8px;height:40px"), opened),
+            // A badge in the button's `iconTrailing` slot, with the example's own `-mr-1` and `tabular-nums`.
+            Opens(
+                Ui.Button.Icon(Ui.IconName.Tag).IconTrailing(Ui.Badge.Sm.Class("pp-pull")[Span.Class("pp-nums")["3"]]).Class("pp-icons-400"),
+                opened)["Categories"],
             Ui.Popover.Class("pp-max-w-18 flex flex-col gap-4")[
                 Ui.CheckboxGroup.Values(["fantasy", "science-fiction", "thriller"]).Id("picked").Variant(Ui.CheckboxGroupVariant.Pills)[
                     Ui.Checkbox.Value("fantasy").Label("Fantasy"),
@@ -186,11 +188,10 @@ public sealed partial class PopoverParity : FluxParity
             Button.Type(ButtonType.Button).Data("parity-skip", "self")
                 .Style("width:13.5rem;border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;background:var(--color-zinc-100)"),
             opened);
-        // `data-open:flex` is said by the panel's own mark, which the page writes once it has heard the
-        // toggle. A static page hears nothing, so the dropdown that is measured open is rendered as open.
-        var dropdown = opened ? Ui.Dropdown.Bottom.Center.Open(true) : Ui.Dropdown.Bottom.Center;
 
-        return dropdown[
+        // `data-open:flex` is said by the panel's own mark, which the runtime writes as the panel opens
+        // (rask-toggle.ts): parity-popover.mjs gives the page the hooks before it is measured.
+        return Ui.Dropdown.Bottom.Center[
             trigger[
                 Div.Class("pp-bar").Style("align-self:stretch;width:2px;border-radius:calc(infinity * 1px)"),
                 Div[Ui.Heading["Team sync"], Ui.Text.Class("mt-1")["10:00 AM"]]

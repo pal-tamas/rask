@@ -41,26 +41,18 @@ public sealed partial class UiPopover : Component
 
     private UiPopupHost? _host;
 
-    private bool _open;
-
     /// <summary>Classes for the panel — its width, its layout, a larger radius or shadow.</summary>
     public string? Class { get; set; }
-
-    // _open is a FIELD, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
 
     /// <inheritdoc />
     protected override Component? Render()
     {
         _host = Context.Get<UiPopupHost>();
 
-        var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-popover"] = "" };
-        if (_host?.Controlled ?? _open)
-        {
-            // Flux's mark on the open panel, which its own examples style by (`data-open:flex`).
-            data["open"] = "";
-        }
+        // Flux's mark on the open panel, which its own examples style by (`data-open:flex`), is the runtime's
+        // to write (rask-toggle.ts): there in the task that opens the panel, where a render would bring it a
+        // round trip later.
+        var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-popover"] = "", ["rask-open-mark"] = "" };
 
         if (_host?.Hover != true)
         {
@@ -91,10 +83,9 @@ public sealed partial class UiPopover : Component
 
     private async Task OnToggleAsync(ToggleEvent e)
     {
-        _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
         if (_host is { } host)
         {
-            await host.Toggled(_open).ConfigureAwait(false);
+            await host.Toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
         }
     }
 }

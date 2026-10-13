@@ -596,15 +596,25 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (the hover example opens by `data-rask-hover`) and then walks both. Measured on Flux: focus stays on the
   trigger as it opens (no `autofocus` here, unlike a menu), Tab goes into the panel, Shift+Tab off the trigger
   closes it, a second press closes it (the locked page takes the press), ArrowDown does nothing; `data-open` on
-  the dropdown, the trigger AND the panel — the kit writes the panel's from C# once the toggle is heard, so
-  `data-open:flex` applies a render later than Flux's. Flux's panel is `popover="manual"` + script, the kit's
-  `popover="auto"`. OPEN, both the hover hook's and printed as OPEN by the script: (1) Flux closes a hovered
-  panel from a pointer-move check that runs at most once in ~100 ms (a jump into the gap after a rest closes at
-  once; a move made straight after another is not looked at), `rask-hover.ts` closes in the pointerout, so a
-  real pointer gliding across a gap never arrives — true of the rail's menus too; (2) a panel the pointer left
-  takes focus nowhere on Flux, and `rask-menu-keys.ts` hands it to the trigger. Stand-ins on its parity page:
-  the category trigger (a badge in Flux's `iconTrailing` SLOT, which `Ui.Button` has not), the docs' three grey
-  filler lines. `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
+  the dropdown, the trigger AND the panel — the panel's is the RUNTIME's (`data-rask-open-mark`, rask-toggle.ts:
+  written in the `beforetoggle`, so `data-open:flex` applies in the frame the panel opens; the dropdown's and
+  the trigger's are still C#'s, a render later). So the event example is no longer rendered `Open(true)`, and
+  `popover-open` only matches on a page that has the hooks, which `parity-popover.mjs` gives it. Flux's panel is `popover="manual"` + script, the kit's
+  `popover="auto"`. Measured again 2026-10-13 and built into `rask-hover.ts`: Flux
+  closes a hovered panel from a pointer-move check that runs at most once in 100 ms (83 ms after the last move
+  looked at: passed over; 113 ms: looked at). The move that brings the pointer in is not one of them, coming
+  back over the trigger or the panel does not restart the 100 ms, and there is no trailing look — a pointer
+  that stops outside after a passed-over move leaves the panel open. A panel opened by Enter is not watched
+  until the pointer comes over it. A panel the pointer left takes focus nowhere on Flux (Escape, a second
+  press and a press outside all end with it on the trigger — it never left: the locked page takes the press), so
+  `rask-menu-keys.ts` hands focus to the trigger of a popover that closed with focus on nothing EXCEPT one
+  `rask-hover.ts` shut (`walkedFrom`). All three walks read ok; none is OPEN. Flux's page now and then does
+  not open under a pointer whose first move ever lands on the trigger: a walk parks the pointer first. Stand-ins on its parity page: the docs' three grey
+  filler lines. The category trigger is the real button: `Ui.Button.IconTrailing` takes a component too
+  (`UiInputIcon`, the input's union — Flux's `iconTrailing` slot), placed LAST in the button with no wrapper and
+  no marker of its own, the button padded as around a trailing icon (measured: 150.8×40, `ps-3 pe-3`, label in
+  its span). Flux's button REFERENCE lists no slot at all; the slot is only in the popover page's example, and
+  no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
@@ -631,8 +641,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   menu) — the item's look in a menu is `in-data-ui-menu:` utilities, and every rail-only utility is
   `sidebar-rail:not-in-data-ui-menu:` because the menu is INSIDE the collapsed sidebar. Flux gives the rail
   button no accessible name (its heading span is `display:none`); the kit writes the same. Flux neither
-  animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it at once, on both
-  (no delay, no safe area): move straight across the 5px gap.
+  animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it with the first
+  pointer move that is looked at (once in 100 ms, see the popover's note): at once after a rest, and a moving
+  pointer crosses the 5px gap. No safe area.
 - **Layout parity:** `parity.mjs layouts/<slug>` → `measureLayouts` (`lib.mjs`: `VIEWS` × states `rail` / `open`,
   put there by pressing `CONTROLS`), one document per demo from a `FluxLayoutParity`. `LayoutDemo.Utilities`
   are the demos' own classes, unlayered: never a bare `.bg-white{}` there — the kit's menu says `bg-white` and
@@ -674,10 +685,10 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Component | Writes | Gets |
 |---|---|---|
 | Tooltip (and Button's `Tooltip`) | root `data-rask-tooltip="<bubble id>"`; bubble `popover="manual"`; `interactive`: `aria-expanded="false"` + `aria-controls` on the trigger | shown at 0 ms on pointer and keyboard focus, hidden on leave / blur / Escape / press, top layer for any trigger, `aria-expanded` mirrored |
-| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens over trigger or panel, closes over neither, a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
+| Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
-| any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button |
+| any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
 | Menu submenu (WIRED: `UiMenuSubmenu`) | its row `data-rask-safe-area` (no value: the flyout is the next element, as Flux has it, with no id), no `OnClick`; the flyout rendered always and shown by the stylesheet from `[data-open]` on the wrapper, which the RUNTIME writes — never `:hover`, never a render | Flux's safe area; a flyout that opens under the pointer, stays when the pointer leaves the menu and closes when another row is entered; ArrowRight / Enter / Space / ArrowLeft; its submenu's row lit while the arrows are inside it; a tap toggles |
 | Modal (state-driven) | `<dialog data-rask-modal-open="true|false">` instead of `open` | `showModal()`, `::backdrop`, closes when the state says so; `OnClose` / `OnCancel` still fire |
@@ -696,6 +707,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Date picker presets | `[role=radiogroup]` `data-rask-roving`; each preset `[role=radio]` button with `OnClick` selecting it, `tabindex` 0 on the checked one | arrows walk and select, wrapping |
 | Tooltip `Toggleable()` | non-button trigger wrapper: `data-rask-toggle="<bubble id>"` + `aria-expanded="false"` + `tabindex="0"`, bubble `popover="manual"`; a `<button>` trigger: `popovertarget` + `aria-expanded="false"`, bubble `popover` | Flux's toggleable tooltip: click / Enter / Space toggle, Escape / outside press / Tab away close; `aria-expanded` mirrored |
 | any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
+| Popover panel (WIRED: `Ui.Popover`) | `data-rask-open-mark` (bare) on the `[popover]`; NO `data-open` from the render | `data-open` while it shows, from the `beforetoggle` on (the same task as the open), held against the render; one already open when the hooks arrive is marked then |
 | Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
 | Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
 | A control waits on its handler; what is around it waits too | Nothing for a `<button>`. `data-rask-loading` (bare) on any other element that carries the handler (WIRED: a sortable `Ui.TableColumn`'s `<th>`); `data-rask-loading="within"` on a container whose pressed control is REPLACED by the render that answers it (WIRED: `Ui.Pagination`'s root); `data-rask-loading="off"` to opt out. CSS from `[data-loading]` / `has-[[data-loading]]:` — the table's rows dim by it in `ui.css` | Livewire's `data-loading` + `has-data-loading:opacity-50` (Flux documents no table loading state). The control gets `data-loading` + `aria-busy` after 200 ms and refuses a second press; a `within` container gets `data-loading` ONLY. Core runtime (`rask-loading.ts`), not a hook module: nothing to add to `HOOK_ATTRIBUTES`. The mark ends when the page is whole — the ack after the reads the frame went without |

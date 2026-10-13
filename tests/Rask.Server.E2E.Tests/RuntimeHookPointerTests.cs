@@ -141,6 +141,8 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
         var focus = await session.FocusAsync();
         await page.HoverAsync("#panel-link");
         var overPanel = await session.ShownAsync("#panel");
+        // A move is looked at once in 100 ms, and the one onto the panel was: the pointer rests before it leaves.
+        await page.WaitForTimeoutAsync(150);
         await page.Mouse.MoveAsync(900, 600);
 
         Assert.True(overTrigger);
@@ -151,7 +153,7 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
-    public async Task The_gap_between_a_hover_trigger_and_its_panel_belongs_to_neither()
+    public async Task A_pointer_that_came_to_rest_closes_a_hover_panel_with_its_first_move_into_the_gap()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
         var page = session.Page;
@@ -160,8 +162,60 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
         var box = await page.Locator("#hover-trigger").BoundingBoxAsync();
         await page.Mouse.MoveAsync(box!.X + 10, box.Y + box.Height + 5);
 
-        // Flux's panel sat 10px under its trigger and closed on the first pixel of the gap.
+        // Flux's panel sat 10px under its trigger: the move that opened it is not looked at, the next one is.
         Assert.False(await session.ShownAsync("#panel"));
+    }
+
+    [Fact]
+    public async Task A_panel_the_pointer_left_hands_focus_to_nobody_where_one_shut_any_other_way_hands_it_to_its_button()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        const string Active = "() => document.activeElement.id || document.activeElement.tagName";
+        // What the kit's dropdown trigger says, and what the hand-back finds a panel's button by.
+        await page.EvaluateAsync("() => document.querySelector('#hover-trigger').setAttribute('aria-haspopup', 'true')");
+
+        await page.HoverAsync("#hover-trigger");
+        await page.Mouse.MoveAsync(900, 600);
+        await page.WaitForFunctionAsync("() => !document.querySelector('#panel').matches(':popover-open')");
+        var afterLeaving = await page.EvaluateAsync<string>(
+            "async () => { await new Promise(done => setTimeout(done, 50)); return (" + Active + ")(); }");
+        await page.EvaluateAsync(
+            "async () => { const panel = document.querySelector('#panel'); panel.showPopover(); panel.hidePopover(); await new Promise(done => setTimeout(done, 50)); }");
+        var afterShutting = await page.EvaluateAsync<string>(Active);
+
+        Assert.Equal("BODY", afterLeaving);
+        Assert.Equal("hover-trigger", afterShutting);
+    }
+
+    [Fact]
+    public async Task A_moving_pointer_is_looked_at_once_in_100_ms_so_it_crosses_the_gap_unseen()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        await page.HoverAsync("#hover-trigger");
+
+        // Moves made in one task are as close together as moves get: the first is looked at, the second is not.
+        var crossing = await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const move = (over, at) => over.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: at, clientY: at }));
+                move(document.querySelector('#hover-trigger'), 1);
+                move(document.body, 2);
+                return document.querySelector('#panel').matches(':popover-open');
+            }
+            """);
+        var later = await page.EvaluateAsync<bool>(
+            """
+            async () => {
+                await new Promise(done => setTimeout(done, 150));
+                document.body.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 3, clientY: 3 }));
+                return document.querySelector('#panel').matches(':popover-open');
+            }
+            """);
+
+        Assert.True(crossing, "a move made straight after one that was looked at closed the panel");
+        Assert.False(later, "a move over neither, 150 ms on, left the panel open");
     }
 
     [Fact]

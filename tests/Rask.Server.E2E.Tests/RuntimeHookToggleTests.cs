@@ -133,6 +133,34 @@ public sealed class RuntimeHookToggleTests(PlaywrightFixture playwright) : IClas
         await Expect(page.Locator("#trigger")).ToHaveAttributeAsync("aria-expanded", "true");
         await Expect(page.Locator("#command")).ToHaveAttributeAsync("aria-expanded", "false");
     }
+
+    [Fact]
+    public async Task A_popover_that_asks_says_data_open_in_the_task_that_opens_it_and_one_that_does_not_never_gains_it()
+    {
+        await using var session = await HookSession.OpenAsync<ToggleHookPage>(playwright);
+        var page = session.Page;
+
+        // One task: what is read between the two calls is what the first frame of the open panel is drawn with.
+        var marks = await page.EvaluateAsync<bool[]>(
+            """
+            () => {
+                const panel = document.querySelector('#marked');
+                panel.showPopover();
+                const whileOpen = panel.hasAttribute('data-open');
+                panel.hidePopover();
+                return [whileOpen, panel.hasAttribute('data-open')];
+            }
+            """);
+        await page.ClickAsync("#marked-trigger");
+        await Expect(page.Locator("#marked")).ToHaveAttributeAsync("data-open", "");
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator("#marked")).Not.ToHaveAttributeAsync("data-open", "");
+        await page.ClickAsync("#native");
+        await Expect(page.Locator("#native")).ToHaveAttributeAsync("aria-expanded", "true");
+
+        Assert.Equal([true, false], marks);
+        Assert.Null(await page.GetAttributeAsync("#panel", "data-open"));
+    }
 }
 
 /// <summary>Popovers and the elements that open them, written out by hand.</summary>
@@ -149,6 +177,8 @@ public sealed partial class ToggleHookPage : Component
         <button id="bare" type="button" popovertarget="panel">bare</button>
         <button id="command" type="button" commandfor="panel" command="toggle-popover" aria-expanded="false">command</button>
         <div id="panel" popover style="inset:auto;top:300px;left:100px">Panel</div>
+        <button id="marked-trigger" type="button" popovertarget="marked">marked</button>
+        <div id="marked" popover data-rask-open-mark style="inset:auto;top:400px;left:100px">Marked</div>
         <div style="height:3000px"></div>
         """;
 

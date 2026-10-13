@@ -5,11 +5,20 @@
 // dialog. Only showPopover() promotes it, and nothing but a click on a <button popovertarget> calls that for
 // free. So an element names its popover by id, and the runtime shows and hides it on the pointer and the
 // keyboard, with no delay — measured on Flux UI's live tooltip and `flux:dropdown hover`, both of which open
-// in the pointerenter's own task and close in the pointerleave's.
+// in the pointerenter's own task. The tooltip closes in the pointerleave's.
 //
 // Both are keyed on the ROOT that wraps the trigger and its popover, so "over the root" means over either:
 // the popover is the root's descendant in the DOM even though it paints in the top layer. The pixels between
-// the two belong to neither — crossing the gap slowly closes it, exactly as it does there.
+// the two belong to neither.
+//
+// A hover PANEL does not close in the pointerleave. Measured on Flux's popover page (2026-10-12): once the
+// pointer has been over the trigger or the panel, Flux looks at a pointer move at most once in 100 ms and
+// closes the panel when the move it looks at is over neither. So a pointer that rested and then jumps into
+// the gap closes it at once; one that is MOVING crosses a 10px gap unseen and arrives (a move 83 ms after
+// the last one looked at was passed over, one 113 ms after was not). Nothing looks again on its own: a
+// pointer that stops outside after a move that was passed over leaves the panel open until it next moves.
+// The move that brought the pointer in is not one of those looked at, and coming back over the trigger or
+// the panel does not start the 100 ms again.
 //
 // Delegated: pointerover / pointerout on the document, with the relatedTarget boundary test that turns them
 // into enter / leave (the pair that does not bubble). Nothing is attached per element, so a page with no
@@ -75,6 +84,44 @@ function showUnfocused(panel: HTMLElement | null): void {
     }
 }
 
+// The hover roots the pointer has been over and not yet been seen to leave, each with when a move was last
+// looked at for it and the move that brought the pointer in — which is the one move not looked at.
+interface Watch { looked: number; x: number; y: number; entered: boolean; }
+const LOOK_EVERY = 100;
+const watched = new Map<Element, Watch>();
+
+/**
+ * The panels the pointer walked away from, until their `toggle` is heard. Such a close hands focus to nobody:
+ * on Flux UI a hover card the pointer left leaves `document.activeElement` where it was, on the page itself
+ * when nothing had it (rask-menu-keys.ts gives a menu closed any other way back to its button).
+ */
+export const walkedFrom = new WeakSet<Element>();
+
+function watch(root: Element, e: PointerEvent): void {
+    if (!watched.has(root)) {
+        watched.set(root, {looked: -LOOK_EVERY, x: e.clientX, y: e.clientY, entered: true});
+    }
+}
+
+function look(e: PointerEvent): void {
+    for (const [root, at] of Array.from(watched)) {
+        const entering = at.entered && at.x === e.clientX && at.y === e.clientY;
+        at.entered = false;
+        if (entering || e.timeStamp - at.looked < LOOK_EVERY) {
+            continue;
+        }
+        at.looked = e.timeStamp;
+        if (!(e.target instanceof Node && root.contains(e.target))) {
+            watched.delete(root);
+            const panel = named(root, HOVER);
+            if (panel && hoverable(root) && isShown(panel)) {
+                walkedFrom.add(panel);
+                setShown(panel, false);
+            }
+        }
+    }
+}
+
 function hoverable(root: Element): boolean {
     const condition = root.getAttribute("data-rask-hover-if");
     try {
@@ -96,6 +143,13 @@ if (page) {
         const hover = near(e.target, "[" + HOVER + "]");
         if (hover && crosses(hover, e) && hoverable(hover)) {
             showUnfocused(named(hover, HOVER));
+            watch(hover, e as PointerEvent);
+        }
+    }, {capture: true, passive: true});
+
+    listen("pointermove", function (e) {
+        if (watched.size) {
+            look(e as PointerEvent);
         }
     }, {capture: true, passive: true});
 
@@ -107,10 +161,6 @@ if (page) {
             if (!focusVisibleIn(tooltip)) {
                 tip(tooltip, false);
             }
-        }
-        const hover = near(e.target, "[" + HOVER + "]");
-        if (hover && crosses(hover, e) && hoverable(hover)) {
-            setShown(named(hover, HOVER), false);
         }
     }, {capture: true, passive: true});
 

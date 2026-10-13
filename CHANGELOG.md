@@ -41,6 +41,13 @@ them until tagged releases begin.
   recovers (the root's `Try again`, or the `retry` handed to your `Fallback`), and Back or any other address
   from the root error page draws that page.
 
+- **`Ui.Button.IconTrailing` takes content as well as an icon — Flux's `iconTrailing` slot.**
+  `Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]` beside `Ui.Button.IconTrailing(Ui.IconName.ChevronDown)`.
+  The content is placed as it is, last in the button with nothing around it, and the button pads itself as it
+  does around a trailing icon (measured on Flux's popover page, whose category trigger is now the real button
+  on the parity page and in the site's demo). One step, as `Ui.Input`'s: the property's type is `UiInputIcon?`
+  (was `Ui.IconName?`), every call site that names an icon compiles unchanged, and naming an icon and handing
+  content in one chain is RASK044. Code that READ `button.IconTrailing` as an icon name reads `.Name` now.
 - **A generated URL leaves out a query key no value was given for.** **A behaviour change.** Before:
   `[QueryParam] public int Page { get; set; } = 1;` → `Routes.OrdersPage()` was `/orders?Page=` — a
   non-nullable query property's key was always written, empty when its argument was left out. After:
@@ -72,6 +79,22 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
+  on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
+  idiom laid the panel out late. The runtime writes it now: a `[popover]` carrying `data-rask-open-mark` gets
+  `data-open` in the task that opens it and loses it in the one that closes it, held against the render, as a
+  dialog's is. `Ui.Popover` writes the attribute and no longer renders `data-open` itself (the dropdown and
+  the trigger still do). `rask-hooks.js` is 487 bytes larger.
+- **A panel the pointer opens can be reached with a real mouse.** `data-rask-hover` (`Ui.Dropdown.Hover()`, the
+  hover card, the sidebar rail's menus) closed its panel in the `pointerout`, so the first pointer event in the
+  gap between the trigger and the panel shut it. It closes as measured on Flux now: a pointer move is looked at
+  no more than once in 100 ms, and the panel closes when the move looked at is over neither part. A pointer
+  that rested and then moves into the gap still closes it at once; one that is moving crosses the gap and
+  arrives. `rask-hooks.js` is 374 bytes larger.
+- **A hover panel the pointer left no longer takes focus to its button.** A popover that closes with focus on
+  nothing hands it to the button that opens it — right for a menu shut by a press outside, and wrong for a
+  hover card the pointer merely walked away from, which on Flux leaves focus where it was. The hover hook now
+  names the panels it shuts and the hand-back passes them over. `rask-hooks.js` is 63 bytes larger.
 - **A handler still running when its connection closes, or when its session is disposed, runs to its end and
   is not reported as failing.** The repaint a handler gets at its first `await` (or when
   `HandlerQuiescenceTimeout` is spent) could throw because the socket had just closed or a shutdown's drain
@@ -86,6 +109,15 @@ them until tagged releases begin.
   handler never finished — an event left counted in the host's handler backlog. The locks are kept, the
   handler's release wakes whoever waited, and each of them finds the session gone and leaves. A render that
   waited out the teardown no longer renders the disposed page into buffers already returned to the pool.
+
+- **The browser host's session ends the same way.** Nothing in a browser disposes a WASM session today —
+  it lives as long as the page — so this reaches the hosts that do: tests, and any second boot. Disposed
+  under a running handler, the session threw `ObjectDisposedException` out of the dispatch when the handler
+  ended, reported the handler's repaint as the handler failing, left the event queued behind it waiting for
+  good, and went on waiting out the handler budget for a page nobody would see. Now the handler runs to its
+  end and nothing is thrown; whatever waited behind it is woken and leaves; the wait for a handler's reads
+  ends with the session; nothing of the disposed page is rendered or pushed to the browser; and disposing
+  twice is disposing once.
 
 - **Shift+Tab off the button of an open popover closes it.** An auto popover closed when focus left the PANEL
   for anything but its button; one that takes no focus as it opens (`Ui.Popover`, as Flux's) leaves focus on the

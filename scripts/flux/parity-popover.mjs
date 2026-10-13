@@ -13,7 +13,8 @@
 // Then the walk: the same presses, pointer moves and keys on Flux's first two examples — the pressed popover
 // and the hovered one — and on the Rask page, each step writing down whether the panel is open, where focus
 // is, what the trigger says and whether the page behind is locked. Every line must agree, but for what a walk
-// names as `open`: a difference that is the runtime's hooks' to close, printed as OPEN and not failed.
+// names as `open` (none does today): a difference that is the runtime's hooks' to close, printed as OPEN and
+// not failed.
 //
 // The Rask page is static markup. What Flux does in script the kit asks the runtime for (data-rask-hover,
 // data-rask-lock, the popover's focus rules), so the page is given the runtime's hooks (runtime.mjs).
@@ -47,23 +48,17 @@ const PRESSED = ['click', 'wheel', 'clickpanel', 'Tab', 'Escape', 'click', 'clic
   'focus', 'Space', 'Tab', 'Shift+Tab', 'Shift+Tab', 'focus', 'ArrowDown', 'hover', 'leave'];
 const HOVERED = ['hover', 'hoverpanel', 'leave', 'hover', 'click', 'leave', 'focus', 'Enter', 'Tab', 'Escape', 'focus', 'Space', 'Escape'];
 // Measured on Flux (2026-10-12): the pointer leaving closes its panel from a pointer-move check that runs at
-// most once in about 100 ms, so a move made straight after another one is not looked at — a pointer gliding
-// off the trigger keeps the panel for up to that long, and reaches it across a narrow gap. The runtime's hover
-// hook closes in the pointerout itself (rask-hover.ts), so the first move that lands in the gap closes it.
-const GLIDED = ['hover', 'glide', 'hoverpanel'];
-// …and a panel the pointer left takes focus nowhere on Flux, where the runtime's menu keys hand it to the
-// trigger of whatever closed with focus on nothing (rask-menu-keys.ts).
-const LEFT = {
-  reason: 'the runtime hands focus to the trigger of a panel the pointer left; Flux leaves it where it was',
-  as: line => line.replace('focus on nothing', 'focus on the trigger'),
-};
+// most once in 100 ms, so a move made straight after another one is not looked at — a pointer gliding off the
+// trigger keeps the panel for up to that long, and reaches it across a narrow gap ('glide': two moves with
+// nothing between them, the second into the gap). A pointer that rested and then goes into the gap in one
+// move ('gap') closes it at once. The runtime's hover hook looks the same way (rask-hover.ts).
+const GLIDED = ['hover', 'gap', 'hover', 'glide', 'hoverpanel', 'glide', 'gap', 'hover', 'leave'];
+// A panel the pointer left takes focus nowhere, on both: the runtime's menu keys hand focus to the trigger of a
+// popover that closed with focus on nothing, but not of one the pointer walked away from (rask-menu-keys.ts).
 const WALKS = [
   { name: 'a press opens it', dropdown: 0, steps: PRESSED },
-  { name: 'the pointer opens it', dropdown: 1, steps: HOVERED, open: LEFT },
-  {
-    name: 'the pointer glides across the gap', dropdown: 1, steps: GLIDED,
-    open: { reason: 'rask-hover.ts closes in the pointerout; Flux looks at most every 100 ms or so' },
-  },
+  { name: 'the pointer opens it', dropdown: 1, steps: HOVERED },
+  { name: 'the pointer glides across the gap', dropdown: 1, steps: GLIDED },
 ];
 
 const browser = await chromium().launch();
@@ -144,6 +139,10 @@ async function walkOne(url, walk, prefix) {
   await dropdown.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const trigger = (await dropdown.evaluateHandle(el => el.firstElementChild)).asElement();
   const panel = await dropdown.$(`[data-${prefix}-popover]`);
+  // A pointer comes from somewhere: Flux's page now and then does not open under a pointer whose first move
+  // ever lands on the trigger.
+  await page.mouse.move(4, 450);
+  await page.waitForTimeout(200);
   const centre = async el => {
     const box = await el.boundingBox();
     return [box.x + box.width / 2, box.y + box.height / 2];
@@ -162,6 +161,10 @@ async function walkOne(url, walk, prefix) {
     else if (step === 'glide') {
       const from = await centre(trigger);
       await page.mouse.move(from[0] + 6, from[1] + 10);
+      await page.mouse.move(from[0] + 12, from[1] + 21);
+    }
+    else if (step === 'gap') {
+      const from = await centre(trigger);
       await page.mouse.move(from[0] + 12, from[1] + 21);
     }
     else if (step === 'clickpanel') await page.mouse.click(...onPanel.map((v, i) => (i ? v : v - 80)));
