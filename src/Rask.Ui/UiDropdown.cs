@@ -39,8 +39,6 @@ public sealed partial class UiDropdown : Component
 
     private readonly int _instance = Interlocked.Increment(ref _instances);
 
-    private bool _open;
-
     /// <summary>Which side of the trigger the menu opens on. Below, unless this says otherwise.</summary>
     public Ui.DropdownPosition? Position { get; set; }
 
@@ -87,10 +85,6 @@ public sealed partial class UiDropdown : Component
         return this;
     }
 
-    // _open is a FIELD, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
-
     private string Prefix => "uidd-" + _instance.ToString(CultureInfo.InvariantCulture);
 
     private string PanelId => Prefix + "-panel";
@@ -104,36 +98,28 @@ public sealed partial class UiDropdown : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var open = Open ?? _open;
         var parts = (Children ?? []).Where(child => child is not null).ToList();
-        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync, Hover == true, Place()) { ToggleDraws = !OnToggle.HasValue };
+        // The page hears of the reader opening and closing it only when it asked to: the popover is the browser's.
+        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, OnToggle.HasValue ? ToggledAsync : null, Hover == true, Place());
 
         var root = Div
             // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.
             .Class(UiClass.Compose(_owner is null ? "inline-flex" : "", Class))
             .Style("anchor-name:--" + Prefix)
-            .Data(Marks(open));
+            .Data(Marks());
 
         return root[
-            parts.Count > 0 ? Trigger(parts[0]!, open) : null,
+            parts.Count > 0 ? Trigger(parts[0]!, Open == true) : null,
             Context.Provide(host)[parts.Skip(1)]
         ];
     }
 
-    private static readonly Dictionary<string, string?> Closed = new(StringComparer.Ordinal) { ["ui-dropdown"] = "" };
-
-    private static readonly Dictionary<string, string?> Opened = new(StringComparer.Ordinal) { ["ui-dropdown"] = "", ["open"] = "" };
-
-    // Flux's marker and its `data-open`, and — for one that opens on hover — the runtime's hook: the root wraps
+    // Flux's marker, the request for its `data-open` while the panel shows (the runtime writes it, in the task
+    // the browser opens the panel in), and — for one that opens on hover — the runtime's hook: the root wraps
     // the trigger and the panel, so "over the root" is over either.
-    private Dictionary<string, string?> Marks(bool open)
+    private Dictionary<string, string?> Marks()
     {
-        if (Hover != true && _owner is null)
-        {
-            return open ? Opened : Closed;
-        }
-
-        var marks = new Dictionary<string, string?>(open ? Opened : Closed, StringComparer.Ordinal);
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-dropdown"] = "", [UiInvoker.OpenMark] = PanelId };
         if (Hover == true)
         {
             marks["rask-hover"] = PanelId;
@@ -160,8 +146,6 @@ public sealed partial class UiDropdown : Component
 
     private async Task ToggledAsync(bool open)
     {
-        _open = open;
-
         // Controlled: tell the page only about a change it did not make itself — the runtime showing the popover
         // because Open became true fires this same event.
         if (open != Open)

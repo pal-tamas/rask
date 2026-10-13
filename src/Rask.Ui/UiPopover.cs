@@ -72,31 +72,20 @@ public sealed partial class UiPopover : Component
             data["rask-popover-open"] = controlled ? "true" : "false";
         }
 
-        if (_host?.ToggleDraws != false)
-        {
-            // Open or shut, nobody of the page's is told: the toggle is heard only to draw (UiDraws).
-            data["rask-draws"] = "toggle";
-        }
-
         // No `autofocus`: Flux leaves focus on the trigger, and Tab goes from there into the panel after it.
         var panel = Div
             .Id(_host?.PanelId)
             .Popover(Popover.Auto)
             .TabIndex(-1)
             .Class(UiClass.Compose(Panel, Class))
-            .Data(data)
-            // The SOLE writer of the open state: the browser opens the popover and closes it on Escape, a press
-            // outside and Tab, and this is where C# hears which.
-            .OnToggle(OnToggleAsync);
+            .Data(data);
+        if (_host?.Toggled is { } toggled)
+        {
+            // The browser opens the popover and closes it on Escape, a press outside and Tab. A page that asked
+            // to hear which is told here; one that did not is sent nothing.
+            panel = panel.OnToggle(e => toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
+        }
 
         return (_host is { } host ? panel.Style(host.Style) : panel)[Children ?? []];
-    }
-
-    private async Task OnToggleAsync(ToggleEvent e)
-    {
-        if (_host is { } host)
-        {
-            await host.Toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)).ConfigureAwait(false);
-        }
     }
 }

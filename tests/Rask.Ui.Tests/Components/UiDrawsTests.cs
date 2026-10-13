@@ -111,13 +111,15 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_panel_nobody_listens_to_opens_as_drawing_and_one_the_page_hears_is_an_action()
+    public void A_panel_nobody_listens_to_sends_nothing_at_all_and_one_the_page_hears_is_an_action()
     {
         var silent = Page.Render(() => Ui.Dropdown[Ui.Button["Open"], Ui.Menu[Ui.MenuItem["One"]]]);
         var heard = Page.Render(() => Ui.Dropdown.OnToggle(_ => { })[Ui.Button["Open"], Ui.Menu[Ui.MenuItem["One"]]]);
 
-        Assert.Equal("toggle", Draws(silent, "[role=\"menu\"]"));
+        Assert.Null(silent.Find("[role=\"menu\"]").Attribute("data-rask-on-toggle"));
+        Assert.NotNull(heard.Find("[role=\"menu\"]").Attribute("data-rask-on-toggle"));
         Assert.Null(Draws(heard, "[role=\"menu\"]"));
+        Assert.Null(Draws(silent, "[role=\"menu\"]"));
     }
 
     [Fact]

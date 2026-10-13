@@ -143,12 +143,12 @@ public abstract partial class UiSelectControl<T>
                     InputMarks(view, view.Field.Invalid || slot?.Invalid == true),
                     ("click", true),
                     ("blur", true),
-                    ("input", slot?.OnInput.HasValue != true),
+                    ("input", TypingDraws),
                     ("keydown", KeysDraw(view))))
                 .Ref(_input)
                 .OnClick(() => OnInputClickAsync(view))
-                .OnBlur(OnInputBlur)
-                .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
+                .OnBlur(OnInputBlurAsync)
+                .OnInput(AtEveryKey(opens: true))
                 .OnKeyDown(e => OnInputKeyAsync(e, view)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
@@ -229,7 +229,7 @@ public abstract partial class UiSelectControl<T>
         // The words typed narrow the list; the answer is the option picked.
         marks[UiRuntimeMarks.Unguarded] = null;
 
-        return marks;
+        return UiSearchPause.Over(marks, _pause, PausedAsync);
     }
 
     private Dictionary<string, string?> TriggerMarks(View view, string marker, bool invalid, bool anchors)
@@ -286,7 +286,8 @@ public abstract partial class UiSelectControl<T>
                 .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name))
             : [];
 
-    // The answer whose row a render took away is still the answer, and still posted.
+    // An answer whose row a render took away is still an answer, and still posted: after the ones among the rows.
     private static IEnumerable<string> Posted(View view) =>
-        view.AnswerRow is null && view.Answer is { } kept ? [kept.FormValue] : view.PickedRows.Select(row => row.Option.FormValue);
+        view.PickedRows.Select(row => row.Option.FormValue)
+            .Concat(view.Answers.Where(answer => answer.Row is null).Select(answer => answer.Face.FormValue));
 }

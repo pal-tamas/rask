@@ -388,7 +388,9 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("data-rask-popover-open", uncontrolled, StringComparison.Ordinal);
         Assert.Contains("data-rask-popover-open=\"true\"", open, StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"true\"", open, StringComparison.Ordinal);
-        Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-open=\"\"", open);
+        // `data-open` follows the popover the runtime shows, and is the runtime's to write.
+        Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-rask-open-mark=\"uidd-\\d+-panel\"", open);
+        Assert.DoesNotContain("data-open", open, StringComparison.Ordinal);
     }
 
     [Fact]

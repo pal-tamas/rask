@@ -84,6 +84,18 @@ internal static class UiPillboxLook
         [UiRuntimeMarks.Unguarded] = null,
     };
 
+    /// <summary>
+    ///     What marks the search field over a pillbox's list: Flux's marker, and of the keys only the list's own
+    ///     (<see cref="UiListKeys.Search" />) — a letter is the field's <c>input</c>, not a second round trip.
+    /// </summary>
+    internal static readonly Dictionary<string, string?> SearchMarks = new(StringComparer.Ordinal)
+    {
+        ["data-ui-pillbox-input"] = null,
+        ["data-rask-keys"] = UiListKeys.Search,
+        ["data-rask-clear-keys"] = UiListKeys.PillsClear,
+        [UiRuntimeMarks.Unguarded] = null,
+    };
+
     /// <summary>The padding and corners of the trigger at each size.</summary>
     /// <param name="small">Flux's <c>size="sm"</c>.</param>
     internal static string TriggerSize(bool small) =>

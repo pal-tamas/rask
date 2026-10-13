@@ -84,6 +84,17 @@ internal static class UiSelectLook
         "text-zinc-400/75 dark:text-white/60 "
         + "[[data-ui-input]:hover_&]:text-zinc-800 dark:[[data-ui-input]:hover_&]:text-white";
 
+    /// <summary>
+    ///     What the search field over a list asks of the runtime: of the keys only the list's own
+    ///     (<see cref="UiListKeys.Search" />) — a letter is the field's <c>input</c>, not a second round trip.
+    /// </summary>
+    internal static readonly Dictionary<string, string?> SearchMarks = new(StringComparer.Ordinal)
+    {
+        ["data-rask-keys"] = UiListKeys.Search,
+        // What is typed here finds an option; the option picked is the value (rask-leave.ts).
+        [UiRuntimeMarks.Unguarded] = null,
+    };
+
     /// <summary>The button that empties the search field.</summary>
     internal const string SearchClearButton =
         "relative inline-flex items-center justify-center gap-2 size-8 rounded-md text-sm font-medium whitespace-nowrap "

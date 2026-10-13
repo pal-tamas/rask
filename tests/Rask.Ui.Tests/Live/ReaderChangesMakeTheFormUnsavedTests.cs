@@ -178,6 +178,17 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     }
 
     [Fact]
+    public void A_toggle_that_is_neither_bound_nor_listened_to_is_the_browsers_own_and_no_data_of_the_form()
+    {
+        var page = Draw(new Answers(), _ => Ui.Toggle.Icon(Ui.IconName.Bolt));
+
+        var toggle = page.Find("[role=\"switch\"]");
+
+        Assert.Null(toggle.Attribute("data-rask-on-click"));
+        Assert.Null(page.Find("form").Attribute(Edited));
+    }
+
+    [Fact]
     public async Task A_form_that_does_not_ask_before_leaving_is_not_marked()
     {
         var answers = new Answers();

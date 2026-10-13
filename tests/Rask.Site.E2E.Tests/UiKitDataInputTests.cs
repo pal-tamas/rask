@@ -699,8 +699,89 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(scope.Locator("[data-ui-option]:visible")).ToHaveTextAsync(["Berlin", "Bern"]);
         await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Bern" }).ClickAsync();
 
-        await Expect(Page.Locator("[data-testid='ui-select-store-state']")).ToHaveTextAsync("City: Bern. Queries: 1.");
+        // One query for the word, and one for the empty field the pick left behind it: the page's search follows the field.
+        await Expect(Page.Locator("[data-testid='ui-select-store-state']")).ToHaveTextAsync("City: Bern. Queries: 2.");
         await Expect(Page.Locator("#ui-select-store")).ToContainTextAsync("Bern");
+    });
+
+    [Fact]
+    public Task A_combobox_that_waits_for_a_pause_asks_the_store_once_and_picks_from_its_answer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-combobox']");
+        var input = Page.Locator("#ui-select-backend");
+
+        await input.ClickAsync();
+        await Expect(scope.Locator("[data-ui-option]:visible")).ToHaveCountAsync(6);
+        // One `input` for the whole word: how fast a loaded runner types is not what the pause is held to here.
+        await input.FillAsync("an");
+        await Expect(scope.Locator("[data-ui-option]:visible")).ToHaveTextAsync(["Branding", "Analytics", "Performance"]);
+        await scope.Locator("[data-ui-option]:visible", new LocatorLocatorOptions { HasTextString = "Analytics" }).ClickAsync();
+
+        // The search for "an", then the words the input went on to say: the page's search follows the input.
+        await Expect(Page.Locator("[data-testid='ui-combobox-state']")).ToContainTextAsync("Found: Analytics. Searches: 2.");
+        await Expect(input).ToHaveValueAsync("Analytics");
+    });
+
+    [Fact]
+    public Task A_pillbox_search_that_waits_for_a_pause_asks_the_store_once_and_adds_a_pill_from_its_answer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox']");
+        var state = Page.Locator("[data-testid='ui-pillbox-state']");
+
+        await Page.Locator("#ui-pillbox-store").ClickAsync();
+        var field = Page.Locator("#ui-pillbox-store").Locator("xpath=..").Locator("[data-ui-pillbox-search] input");
+        await Expect(field).ToBeFocusedAsync();
+        await field.FillAsync("script");
+        await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveTextAsync(["JavaScript", "TypeScript"]);
+        await scope.Locator("[data-ui-listbox-option]:visible", new LocatorLocatorOptions { HasTextString = "TypeScript" }).ClickAsync();
+
+        // The search for "script", and the empty one the pick left behind it.
+        await Expect(state).ToContainTextAsync("Stored: TypeScript. Searches: 2.");
+        await Expect(field).ToHaveValueAsync(string.Empty);
+    });
+
+    [Fact]
+    public Task A_pillbox_input_that_waits_for_a_pause_asks_the_store_once_and_keeps_its_pills_under_the_next_search() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-pillbox-combobox']");
+        var state = Page.Locator("[data-testid='ui-pillbox-combobox-state']");
+        var input = Page.Locator("#ui-pillbox-backend");
+
+        await input.ClickAsync();
+        await input.FillAsync("des");
+        await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveTextAsync(["Design"]);
+        await scope.Locator("[data-ui-listbox-option]:visible").ClickAsync();
+        await Expect(state).ToContainTextAsync("Found: Design. Searches: 2.");
+        // Back in the input, as a reader who goes on to type is: the press on the row left focus in the list.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend)")).ToHaveAttributeAsync("aria-expanded", "false");
+        await input.ClickAsync();
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend)")).ToHaveAttributeAsync("aria-expanded", "true");
+        await input.FillAsync("sal");
+        await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveTextAsync(["Sales"]);
+
+        // The answer no longer holds Design's option, and its pill stands all the same.
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend) [data-value]")).ToHaveTextAsync(["Design"]);
+        await Expect(state).ToContainTextAsync("Found: Design. Searches: 3.");
+    });
+
+    [Fact]
+    public Task An_autocomplete_that_waits_for_a_pause_asks_the_store_once_and_takes_the_item_pressed() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var input = Page.Locator("#ui-autocomplete-city");
+        var state = Page.Locator("[data-testid='ui-autocomplete-city-state']");
+
+        await input.ClickAsync();
+        await input.FillAsync("ber");
+        await Expect(state).ToHaveTextAsync("City: ber. Searches: 1.");
+        await Page.Locator("[data-testid='ui-autocomplete'] [data-ui-autocomplete-item]:visible", new PageLocatorOptions { HasTextString = "Bern" }).ClickAsync();
+
+        await Expect(state).ToHaveTextAsync("City: Bern. Searches: 2.");
+        await Expect(input).ToHaveValueAsync("Bern");
     });
 
     [Fact]
@@ -834,7 +915,8 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     public Task The_searchable_pillbox_filters_from_its_search_field() => RunAsync(async () =>
     {
         await OpenAsync();
-        var scope = Page.Locator("[data-testid='ui-pillbox']");
+        // The pillbox itself: the section holds a second one with a search field, over a store.
+        var scope = Page.Locator("[data-ui-pillbox]:has(#ui-pillbox-searchable)");
         var search = scope.Locator("[data-ui-pillbox-search] input");
 
         await Page.Locator("#ui-pillbox-searchable").ClickAsync();

@@ -27,6 +27,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
+  `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
+  `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
+  once with the final text when typing has paused, the browser counts the pause and sends nothing meanwhile,
+  a row pressed or Enter during it picks from the list as drawn and the unsent text is dropped, and a pause
+  ending on the text last heard asks nothing. The first key in a closed combobox or pillbox opens the list and
+  asks the page nothing. On `Ui.Autocomplete`, which has no search callback apart from its value, the pause
+  is when what was typed reaches `OnChange` or the bound member (`Debounce` implies `Live()`, as on
+  `Ui.Input`); its list still narrows at every key. Without the step nothing changes. One reading for the
+  five (`UiSearchPause`). `UiSearchDebounceTests`, `SearchDebounceTests`.
+
 - **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
   beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
   another. Generated code calls it; an app has no reason to.
@@ -53,11 +64,11 @@ them until tagged releases begin.
   field, the next month of a calendar, a tab. **After:** an event a kit control hears only to draw itself is
   sent alone. The typed fields stay in the browser, values other controls chose stay held in the session,
   no rule runs — and everything still travels, in order, ahead of the next real action: a button, a submit,
-  a `.Live()` control, a navigation, anything that reaches your code. What only draws: a list, a dropdown, a
-  menu, a popover, a date, time or command palette opening and closing; the cursor of a select, a combobox,
+  a `.Live()` control, a navigation, anything that reaches your code. What only draws: a list, a date, time
+  or command palette opening and closing (a dropdown, a menu and a popover nobody listens to send nothing at
+  all); the cursor of a select, a combobox,
   a pillbox, an autocomplete, a time picker and a calendar (keys and pointer); a search field with no
-  `OnInput`; a calendar's month steps and month/year lists; an unheard `Ui.Tabs`; the reveal button of a
-  password field; and the **pick** of a bound control that does not say `.Live()` — listbox, combobox,
+  `OnInput`; a calendar's month steps and month/year lists; an unheard `Ui.Tabs`; and the **pick** of a bound control that does not say `.Live()` — listbox, combobox,
   pillbox, autocomplete, calendar, date picker, time picker (one time), rating, filter, checkbox and radio
   group, slider, OTP — because that pick itself waits. What is still an action: a pick with `.Live()` or
   with `Value`/`OnChange`; `Ui.SelectSearch.OnInput` / `Ui.PillboxInput.OnInput`; a "create" row (and, in
@@ -68,6 +79,23 @@ them until tagged releases begin.
   runtime sends those as it sends what it does by itself (`unasked`). An app that read a model in a
   handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
   a list was merely opened now sees it speak with the next action.
+- **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
+  backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
+  `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words
+  when a combobox goes on to say its answer. `OnInput` of `Ui.SelectSearch` / `Ui.SelectInput` /
+  `Ui.PillboxSearch` / `Ui.PillboxInput` now hears those too — once, and only when the page had heard
+  otherwise — so a page that answers a search no longer holds the last search's rows behind an empty field.
+  A list opened and shut with nothing typed tells the page nothing. Taking a pill off empties the input among
+  the pills, as Flux does.
+- **A create row is handed what the field holds when it is pressed.** Under `Debounce` the page may not have
+  heard the last letters; Flux sends the text with the press, and `OnClick` now gets it from the field.
+- **A search field over a list sends only the list's own keys** (`data-rask-keys`, always — it was written
+  only beside `Debounce`): a letter typed into `Ui.SelectSearch` or `Ui.PillboxSearch` is its `input` and no
+  longer a `keydown` round trip as well. A pillbox's input hears Backspace only while it is empty
+  (`Backspace:empty`, a new form of a `data-rask-keys` entry).
+- **`Ui.Autocomplete` takes its input's `change` only once its list is shut.** A press on an item leaves the
+  input first; a page that answered what was typed with other items drew them under that press and the press
+  ran nothing. The pick, or the list shutting, hands the text over instead; an emptied input still tells at once.
 
 - **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
   pressed.** **A behaviour change under 640 px**, with nothing to change in an app — the same component, the same
@@ -239,6 +267,15 @@ them until tagged releases begin.
   `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
   attached. `StateHasChanged()` from any thread is documented as supported
   (`docs/lifecycle.md#following-a-singletons-event`).
+- **A pillbox keeps its pills when a search brings rows without them.** The pills were drawn from the rows
+  rendered, so under `Filter(false)` a pill whose option the page's answer left out vanished while the model
+  went on holding the value — and could no longer be taken off. Measured on Flux's "With backend search":
+  three picked, a search that leaves one option and then none, and the three pills stand in the order picked;
+  the cross on one whose option is not rendered takes it out of the value. The pillbox now keeps what each
+  answer showed when it was last drawn, keyed by its value, for as long as the value holds it (as `Ui.Select`
+  does for its one answer); a named select of several posts them too. A value that leaves takes its face with
+  it, and one no render ever drew an option for has no pill. No new API. `UiPillboxKeptAnswersTests`,
+  `PillboxKeptAnswersTests`.
 
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
@@ -1440,6 +1477,22 @@ them until tagged releases begin.
   `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
 
 ### Performance
+
+- **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
+  shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
+  field the reader had typed into since. The runtime turns the field to text and back in the click
+  (`data-rask-view`) and says so on the button with Flux's `data-viewable-open`.
+- **Opening and closing a dropdown, a popover or a context menu sends the server nothing** — as in Flux UI,
+  where that is its own script's and Livewire hears only a bound value or an action the page wrote. The
+  panel's `toggle` was sent on every open, Escape and press outside, and answered with a render, whether or not
+  the page had asked to hear it: one frame each way per open and per close, two for a pointer crossing a
+  `Hover()` dropdown or a collapsed sidebar's rail. Now it is sent only to a page that gave `OnToggle`; `data-open`
+  on the dropdown, its trigger and a context menu's area is written by the runtime in the task the browser
+  opens the panel in (`data-rask-open-mark="<panel id>"`), a round trip sooner than a render brought it. Frames
+  per gesture, before → after: open 1 → 0, Escape 1 → 0, press outside 1 → 0, hover in and out 2 → 0. A new
+  gate, `KitDrawsWithoutAskingTests`, puts every kit component through a pointer, the keyboard, opening,
+  paging and dragging on a live Server page and holds each gesture to a frame budget: nothing for what is only
+  drawn, the frames owed for a value or a callback, and a list of what still round-trips that can only shrink.
 
 - **A child that changes element is answered with its parent, not the whole page — and so is a navigation
   inside a layout.** `cond ? A : B`, words that become an element, a loading line that becomes a table, a

@@ -3,8 +3,6 @@ namespace Rask;
 // What sits at the end of the box: the shortcut, the clear, copy and reveal buttons, the trailing icon.
 public sealed partial class UiInput<T>
 {
-    private bool _viewing;
-
     private Component? Trailing(string inputId)
     {
         Component?[] parts =
@@ -12,7 +10,7 @@ public sealed partial class UiInput<T>
             Kbd is { } kbd ? Span.Class("pe-2")[kbd] : null,
             ShowsClear ? ClearButton(inputId) : null,
             Copyable == true ? CopyButton(inputId) : null,
-            Viewable == true ? ViewButton() : null,
+            Viewable == true ? ViewButton(inputId) : null,
             IconTrailing is { } icon ? Glyph(icon) : null,
         ];
 
@@ -40,13 +38,14 @@ public sealed partial class UiInput<T>
             Ui.Icon.Name(Ui.IconName.ClipboardDocument).Mini.Class(UiInputLook.NotCopied)
         ];
 
-    private Component ViewButton() =>
-        ActionButton(RaskStrings.Get(RaskString.InputTogglePassword, "Toggle password visibility"), _viewing ? ("viewable-open", string.Empty) : null)
-            .Class(UiInputLook.Action)
-            .Attributes((UiDraws.Mark, "click"))
-            .OnClick(() => _viewing = !_viewing)[
-            Ui.Icon.Name(Ui.IconName.EyeSlash).Mini.Class(_viewing ? null : "hidden"),
-            Ui.Icon.Name(Ui.IconName.Eye).Mini.Class(_viewing ? "hidden" : null)
+    // Showing what was typed is the browser's own business, as it is Flux's: the runtime turns the field into
+    // text and back (`data-rask-view`) and says which on the button, `data-viewable-open`, where Flux says it.
+    // Nothing is sent, so nothing typed since is at stake in a render.
+    private static Component ViewButton(string inputId) =>
+        ActionButton(RaskStrings.Get(RaskString.InputTogglePassword, "Toggle password visibility"), ("rask-view", inputId))
+            .Class(UiInputLook.Action)[
+            Ui.Icon.Name(Ui.IconName.EyeSlash).Mini.Class(UiInputLook.Viewing),
+            Ui.Icon.Name(Ui.IconName.Eye).Mini.Class(UiInputLook.NotViewing)
         ];
 
     // One data bag per button: a second .Data call would replace the first.

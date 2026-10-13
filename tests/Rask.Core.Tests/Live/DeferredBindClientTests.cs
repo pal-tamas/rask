@@ -93,6 +93,21 @@ public sealed class DeferredBindClientTests
         Assert.Equal(["change:Dee", "keydown:keys"], beforeAHandledKey);
     }
 
+    [Fact]
+    public void A_key_heard_only_from_an_empty_field_is_not_sent_while_the_field_holds_text()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var overText = Sent(root, "backspaceOverText");
+        var inAnEmptyField = Sent(root, "backspaceInAnEmptyField");
+
+        Assert.Empty(overText);
+        Assert.Equal(["keydown:pills"], inAnEmptyField);
+    }
+
     [Theory]
     [InlineData("beforeATableEvent", "change:Eve", "dblclick:twice")]
     [InlineData("beforeAPointerEntering", "change:Fay", "mouseenter:over")]

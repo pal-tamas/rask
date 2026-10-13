@@ -57,24 +57,17 @@ public sealed partial class UiNavmenu : Component
             data["rask-popover-open"] = controlled ? "true" : "false";
         }
 
-        if (_host?.ToggleDraws != false)
-        {
-            // Open or shut, nobody of the page's is told: the toggle is heard only to draw (UiDraws).
-            data["rask-draws"] = "toggle";
-        }
-
         var nav = Nav
             .Id(_host?.PanelId ?? "uinavmenu-" + _instance.ToString(CultureInfo.InvariantCulture))
             .Popover(Popover.Auto)
             .Class(UiClass.Compose(UiMenuRow.Box, Class))
-            .Data(data)
-            .OnToggle(OnToggleAsync);
+            .Data(data);
+        if (_host?.Toggled is { } toggled)
+        {
+            // Only a page that asked to hear the reader open or close it is told.
+            nav = nav.OnToggle(e => toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
+        }
 
         return (_host is { } host ? nav.Style(host.Style) : nav)[Children ?? []];
     }
-
-    private Task OnToggleAsync(ToggleEvent e) =>
-        _host is { } host
-            ? host.Toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal))
-            : Task.CompletedTask;
 }
