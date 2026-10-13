@@ -111,7 +111,8 @@ internal static class UiSelectLook
         + "[[data-ui-pillbox-search]:has(input:placeholder-shown)_&]:hidden";
 
     /// <summary>The list under a search field: the part of the popup that scrolls.</summary>
-    internal const string SearchedList = "block overflow-auto cursor-default -me-[.3125rem] -my-[.3125rem] pe-[.3125rem] py-[.3125rem]";
+    internal const string SearchedList =
+        "block overflow-auto cursor-default -me-[.3125rem] -my-[.3125rem] pe-[.3125rem] py-[.3125rem] [:where(&)]:max-h-[20rem]";
 
     /// <summary>The button's height, text and corners at one of Flux's sizes.</summary>
     internal static string ButtonSize(Ui.SelectSize size) => size switch

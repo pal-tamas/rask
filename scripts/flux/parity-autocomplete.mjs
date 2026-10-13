@@ -18,6 +18,8 @@ await openParity({
   root: '[data-flux-autocomplete], [data-ui-autocomplete]',
   trigger: 'input[role=combobox]',
   popup: '[data-flux-autocomplete-items], [data-ui-autocomplete-items]',
+  // Held at the viewport's edges, and opened there (placement.mjs).
+  edges: [0, 1],
   rows: '[data-flux-autocomplete-item], [data-ui-autocomplete-item]',
   // Flux's custom elements and the native element Rask.Ui writes in their place, with the same role.
   native: { 'ui-select': 'div', 'ui-field': 'div', 'ui-label': 'label', 'ui-options': 'div', 'ui-option': 'div', 'ui-empty': 'div' },

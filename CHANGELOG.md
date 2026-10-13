@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A panel of the kit stays inside the viewport, exactly as Flux UI's does.** **A behaviour change.** A menu,
+  a popover, a context menu, the list of a select, an autocomplete or a pillbox, a calendar and a list of times
+  used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a
+  filter flyout by the right edge hung off it (225 px for a 480 px panel on a phone), a user menu at the foot
+  of a sidebar opened past the bottom, a centred panel never turned at all. Each now says where it wants to be
+  (`data-rask-place="bottom start 5 0"`) and the runtime's new `rask-place.ts` hook does what Flux's script
+  does, measured on its live pages with every trigger held at each edge of a 390 × 844 and a 1920 × 1080
+  viewport: the side asked for, then the other alignment (the offset mirrored), then the opposite side — the
+  first that fits, else the roomier — the panel slid back to stay 5 px inside the edge, and one taller than
+  what is left held to that height and scrolling inside. The anchor rules stay as the placement with no
+  script; with it a panel is placed in the task that opens it and is never drawn where the rules alone would
+  leave it. Nothing to change in an app: no new prop, and the hook sends the page nothing. It is in the
+  on-demand hooks bundle (`rask-hooks.js`), so `rask.js` and `rask.wasm.js` are byte for byte what they were.
+  `scripts/flux/placement.mjs` holds every family's landing to Flux's at those edges, from each family's
+  open-state parity script.
 - **`Ui.Button.IconTrailing` takes content as well as an icon — Flux's `iconTrailing` slot.**
   `Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]` beside `Ui.Button.IconTrailing(Ui.IconName.ChevronDown)`.
   The content is placed as it is, last in the button with nothing around it, and the button pads itself as it

@@ -31,6 +31,8 @@ public partial class HookBundleContractTests
     {
         ["data-rask-hover-if"] = "on a data-rask-hover",
         ["data-rask-open-mark"] = "on a popover, which is what loads the hooks",
+        ["data-rask-place"] = "on a popover, which is what loads the hooks",
+        ["data-rask-placed"] = "written by the place hook",
         ["data-rask-segment"] = "inside a data-rask-segments",
         ["data-rask-plot-area"] = "inside a data-rask-plot",
         ["data-rask-plot-row"] = "inside a data-rask-plot",

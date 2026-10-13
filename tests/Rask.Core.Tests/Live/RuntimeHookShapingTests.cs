@@ -262,6 +262,97 @@ public sealed class RuntimeHookShapingTests
         Assert.True(owned.GetProperty("checked").GetBoolean());
     }
 
+    // A landing as the fixture writes it: x, y and the height it is held to, "-" when it is not.
+    private static string Landed(JsonElement landing) =>
+        string.Join(' ', landing.EnumerateArray().Select(part => part.ValueKind == JsonValueKind.Null ? "-" : part.GetDouble().ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)));
+
+    [Fact]
+    public void A_panel_with_room_lands_where_it_asked_and_one_without_takes_the_other_side_or_the_other_alignment()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var place = root.GetProperty("place");
+        var over = place.GetProperty("over").EnumerateArray().Select(Landed).ToArray();
+
+        Assert.Equal("800 445 -", Landed(place.GetProperty("fits")));
+        // Its bottom edge on the viewport's still fits, inside the 5 px a held height keeps — and a pixel lower
+        // it goes over the trigger.
+        Assert.Equal(["800 545 -", "800 790 285", "800 451 -"], over);
+        Assert.Equal("1708 445 -", Landed(place.GetProperty("end")));
+        Assert.Equal("1694 645 -", Landed(place.GetProperty("corner")));
+        Assert.Equal("40 445 -", Landed(place.GetProperty("start")));
+    }
+
+    [Fact]
+    public void A_panel_within_five_pixels_of_an_edge_is_slid_back_and_one_wider_than_the_viewport_keeps_its_start_in_view()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var place = root.GetProperty("place");
+        var phone = place.GetProperty("phone").EnumerateArray().Select(Landed).ToArray();
+
+        Assert.Equal("1723 445 -", Landed(place.GetProperty("slid")));
+        Assert.Equal("5 445 -", Landed(place.GetProperty("centred")));
+        Assert.Equal("5 445 -", Landed(place.GetProperty("wide")));
+        Assert.Equal(["193 345 -", "5 345 -"], phone);
+    }
+
+    [Fact]
+    public void An_offset_turns_with_the_alignment_and_a_panel_beside_its_trigger_turns_to_the_other_side()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var place = root.GetProperty("place");
+        var offset = place.GetProperty("offset").EnumerateArray().Select(Landed).ToArray();
+        var beside = place.GetProperty("beside").EnumerateArray().Select(Landed).ToArray();
+
+        Assert.Equal(["832 445 -", "1691 445 -"], offset);
+        Assert.Equal(["931 275 -", "1592 275 -", "931 785 -"], beside);
+        Assert.Equal("734 445 -", Landed(place.GetProperty("rtl")));
+    }
+
+    [Fact]
+    public void A_panel_taller_than_the_room_takes_the_roomier_side_and_is_held_to_what_is_left_five_pixels_from_the_edge()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var place = root.GetProperty("place");
+        var tall = place.GetProperty("tall").EnumerateArray().Select(Landed).ToArray();
+        var brim = place.GetProperty("brim").EnumerateArray().Select(Landed).ToArray();
+
+        Assert.Equal(["800 445 630", "800 5 530", "931 5 1070"], tall);
+        // What the hook then does with a height the panel barely scrolls in is a browser's to show
+        // (RuntimeHookPlaceTests): this is the height it is offered.
+        Assert.Equal(["800 5 290", "800 5 290", "800 6 -"], brim);
+    }
+
+    [Fact]
+    public void A_menu_at_the_pointer_reaches_back_from_it_and_opens_over_it_at_the_bottom_of_the_viewport()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var pointer = root.GetProperty("place").GetProperty("pointer").EnumerateArray().Select(Landed).ToArray();
+
+        // At the left edge its end on the pointer would put it out of view: its start goes there instead. And
+        // one taller than the viewport, which is never held to a height, runs past the bottom edge.
+        Assert.Equal(["400 305 -", "100 955 -", "400 305 -"], pointer);
+    }
+
     [Fact]
     public void A_button_says_it_copied_for_as_long_as_Flux_shows_its_tick()
     {

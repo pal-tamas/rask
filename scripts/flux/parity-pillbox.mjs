@@ -22,6 +22,8 @@ await openParity({
   root: '[data-flux-pillbox], [data-ui-pillbox]',
   trigger: '[data-flux-pillbox-trigger], [data-ui-pillbox-trigger]',
   popup: '[popover]',
+  // Held at the viewport's edges, and opened there (placement.mjs).
+  edges: [0, 1, 2],
   rows: '[data-flux-listbox-option], [data-ui-listbox-option]',
   allRows: '[data-flux-listbox-option], [data-ui-listbox-option], [data-flux-option-create], [data-ui-option-create]',
   search: '[data-flux-pillbox-search], [data-ui-pillbox-search]',

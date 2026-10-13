@@ -617,6 +617,24 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
+- Where a panel LANDS (2026-10-13, the owner: exactly as Flux's). Flux places every panel by script, and the
+  kit's anchor rules could only turn one to the other side. Measured on Flux's live pages by holding a host
+  `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`scripts/flux/placement.mjs`, which every
+  open-state script now ends with — `EDGES` is the list of places, `landings()` the comparison, Flux's side
+  cached as `edges.json`): the side asked for, then the other alignment, then the opposite side, then that with
+  the other alignment — the first that fits the viewport EDGE TO EDGE (no padding: a panel 3 px from the edge
+  is not turned); when none fits, the one that overflows least. Then it is slid along the trigger's edge to
+  stay 5 px inside (one wider than the viewport keeps its start at 5), and one taller than the room 5 px
+  from the edge gets that as `max-height`. Not held to a height: a context menu (it runs past the edge on
+  Flux), and a panel that scrolls itself and would overflow by under 2 px once held — a `flex flex-col gap-4`
+  popover absorbs up to 15 px that way and hangs that far past the edge on Flux, so it does here. Flux's
+  inline `max-height` is STICKY between two opens of one panel (it measures the held height the second time);
+  the kit starts every open fresh — not reproduced, and `placement.mjs` asks its tall places last for that reason.
+  The tooltip is NOT on the hook: its `position-area` + 5 px insets already keep it in view (see the tooltip's
+  line in the parity results). A submenu's flyout still only turns to the other side (`flip-inline`): unmeasured.
+  Found by holding panels at a phone's width, and fixed: a navmenu row is `py-2` under 1024 px (36px) and
+  `py-1.5` from there; the twenty-rem limit of a select with a search field is its LIST's, not its popup's.
+
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
 - **Two checkboxes, no script.** `Ui.Sidebar` holds `#sidebar-open` (slid over the page; `data-rask-uncheck-on-navigate`)
   and `#sidebar-rail` (narrowed; `data-rask-persist="flux-sidebar-collapsed-desktop"`), and every control is a
@@ -688,6 +706,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
+| every panel anchored to a trigger (WIRED: `Ui.Menu`, `Ui.Navmenu`, `Ui.Popover` through `UiPopupHost.Place`; the select, autocomplete and pillbox lists through `UiAnchor.Place`; the date and time popups; a context menu, which names no anchor and sits at the pointer) | `data-rask-place="<side> <align> <gap> <offset>"` on the `[popover]`, beside the CSS anchor rules in its `style` (`position-anchor:--x` against an element whose `style` says `anchor-name:--x`), which stay what places it with no script | Flux's placement (`rask-place.ts`): flip the side → flip the alignment (the offset mirrored) → slide back 5 px inside the edge → hold to the height that is left; placed in the task that opens it, never drawn where the anchor rules alone leave it; one rule per open panel in the runtime's own stylesheet, keyed on `data-rask-placed`; nothing sent |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
 | Menu submenu (WIRED: `UiMenuSubmenu`) | its row `data-rask-safe-area` (no value: the flyout is the next element, as Flux has it, with no id), no `OnClick`; the flyout rendered always and shown by the stylesheet from `[data-open]` on the wrapper, which the RUNTIME writes — never `:hover`, never a render | Flux's safe area; a flyout that opens under the pointer, stays when the pointer leaves the menu and closes when another row is entered; ArrowRight / Enter / Space / ArrowLeft; its submenu's row lit while the arrows are inside it; a tap toggles |

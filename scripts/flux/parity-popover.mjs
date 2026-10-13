@@ -16,8 +16,12 @@
 // names as `open` (none does today): a difference that is the runtime's hooks' to close, printed as OPEN and
 // not failed.
 //
+// Last, WHERE IT LANDS with no room: every dropdown of the page opened with its trigger held at the edges of
+// a phone and of a desktop, and with more in the panel than fits (placement.mjs).
+//
 // The Rask page is static markup. What Flux does in script the kit asks the runtime for (data-rask-hover,
-// data-rask-lock, the popover's focus rules), so the page is given the runtime's hooks (runtime.mjs).
+// data-rask-lock, data-rask-place, the popover's focus rules), so the page is given the runtime's hooks
+// (runtime.mjs).
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-popover.mjs [--refresh] [--all]     # --refresh re-measures Flux
@@ -31,6 +35,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, measurePage, root } from './lib.mjs';
+import { landings } from './placement.mjs';
 import { runtime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -73,11 +78,11 @@ if (!existsSync(raskPage)) {
   process.exit(1);
 }
 
-// A page that is opened by hover and walked gets the runtime, once: FluxParityPages writes it without.
+// A page that is opened by hover and walked gets the runtime: FluxParityPages writes it without. Written again
+// on every run, so the hooks on the page are the hooks in the tree.
 const html = await readFile(raskPage, 'utf8');
-if (!html.includes(HOOKS)) {
-  await writeFile(raskPage, html.replace('</body>', () => `${HOOKS}<script>${runtime('rask-hooks.ts').replaceAll('</script', '<\\/script')}</script></body>`));
-}
+const bare = html.includes(HOOKS) ? `${html.slice(0, html.indexOf(HOOKS))}</body></html>` : html;
+await writeFile(raskPage, bare.replace('</body>', () => `${HOOKS}<script>${runtime('rask-hooks.ts').replaceAll('</script', '<\\/script')}</script></body>`));
 
 if (!existsSync(file) || flag('refresh')) {
   const open = { light: [], dark: [] };
@@ -111,12 +116,31 @@ for (const walk of WALKS) {
   if (off || flag('all')) print(walk, theirs, mine);
 }
 
-await browser.close();
 console.log(differs ? `\nflux parity: the popover walks differently in ${differs} walk(s).\n` : '\nflux parity: the popover walks as Flux\'s does.\n');
+
+const dropdowns = await count(fluxUrl);
+const astray = await landings(browser, {
+  name: 'popover', refresh: flag('refresh'), all: flag('all'),
+  flux: { url: fluxUrl, host: '[data-preview-wrapper] [data-flux-dropdown]', panel: '[data-flux-popover]' },
+  rask: { url: pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', 'popover.html')).href, host: '[data-preview-wrapper] [data-ui-dropdown]', panel: '[data-ui-popover]' },
+  hosts: dropdowns.map((hover, index) => (hover ? { index, open: 'hover' } : index)),
+});
+await browser.close();
+console.log(astray ? `\nflux parity: the popover lands elsewhere for ${astray} dropdown(s).\n` : '\nflux parity: the popover lands where Flux\'s does.\n');
+differs += astray;
 
 const rest = args.filter(a => a !== '--refresh');
 const parity = spawnSync(process.execPath, [join(fileURLToPath(new URL('.', import.meta.url)), 'parity.mjs'), 'popover-open', ...rest], { stdio: 'inherit' });
 process.exit(differs || parity.status ? 1 : 0);
+
+// Flux's dropdowns in page order: whether the pointer opens each.
+async function count(url) {
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
+  const hovered = await page.evaluate(() => [...document.querySelectorAll('[data-preview-wrapper] [data-flux-dropdown]')].map(el => el.hasAttribute('hover')));
+  await page.close();
+  return hovered;
+}
 
 function print(walk, theirs, mine) {
   walk.steps.forEach((step, i) => {

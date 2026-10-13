@@ -81,7 +81,9 @@ public sealed partial class UiContext : Component
     protected override Component? Render()
     {
         var parts = (Children ?? []).Where(child => child is not null).ToList();
-        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail, ToggledAsync);
+        var host = new UiPopupHost(
+            PanelId, PanelStyle(), Open, Detail, ToggledAsync,
+            Place: PointerPlace(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0)));
 
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-context"] = "" };
         if (Disabled != true)
@@ -117,6 +119,26 @@ public sealed partial class UiContext : Component
     // the menu, whose style attribute a render rewrites. Which of the menu's corners lands there is a translate:
     // "end" puts the menu's end edge on the pointer, so the menu reaches back from it.
     private string PanelStyle() => PointerStyle(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0));
+
+    /// <summary>
+    ///     The same place for the runtime, which keeps the open menu inside the viewport (rask-place.ts): a menu
+    ///     that names no anchor sits against the pointer.
+    /// </summary>
+    internal static string PointerPlace(Ui.ContextPosition position, int? distance, (int X, int Y) offset)
+    {
+        var above = position is Ui.ContextPosition.TopEnd or Ui.ContextPosition.TopCenter or Ui.ContextPosition.TopStart;
+        var align = position switch
+        {
+            Ui.ContextPosition.BottomStart or Ui.ContextPosition.TopStart => "start",
+            Ui.ContextPosition.BottomCenter or Ui.ContextPosition.TopCenter => "center",
+            _ => "end",
+        };
+        // The runtime counts an offset from the edge the menu is aligned to, and the gap away from the pointer.
+        var gap = (distance ?? 5) + (above ? -offset.Y : offset.Y);
+        var along = string.Equals(align, "end", StringComparison.Ordinal) ? -offset.X : offset.X;
+
+        return string.Create(CultureInfo.InvariantCulture, $"{(above ? "top" : "bottom")} {align} {gap} {along}");
+    }
 
     /// <summary>The style that puts a menu at the pointer. A menu named by <see cref="Target" /> uses the default.</summary>
     internal static string PointerStyle(Ui.ContextPosition position, int? distance, (int X, int Y) offset)

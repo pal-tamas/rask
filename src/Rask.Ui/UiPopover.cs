@@ -54,6 +54,11 @@ public sealed partial class UiPopover : Component
         // round trip later.
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-popover"] = "", ["rask-open-mark"] = "" };
 
+        if (_host?.Place is { } place)
+        {
+            data["rask-place"] = place;
+        }
+
         if (_host?.Hover != true)
         {
             // The page behind neither scrolls nor takes the pointer, as under Flux's (rask-lock.ts). Not under

@@ -9,6 +9,9 @@
 // and parity.mjs compares the two as it compares any page: the popup's box, look and contents, and where it
 // sits against the trigger it belongs to.
 //
+// Then WHERE IT LANDS with no room: the first pickers of the page opened with their trigger held at the edges
+// of a phone and of a desktop, and with more in the popup than fits (placement.mjs).
+//
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages          # writes the Rask pages
 //         node scripts/flux/parity-date.mjs date-picker [--refresh] [--all]  # --refresh re-measures Flux
 //         node scripts/flux/parity-date.mjs time-picker --section interval
@@ -17,8 +20,9 @@ import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, measurePage, root } from './lib.mjs';
+import { landings } from './placement.mjs';
 
 const args = process.argv.slice(2);
 const slug = args.find(a => a === 'date-picker' || a === 'time-picker');
@@ -38,9 +42,20 @@ if (!existsSync(file) || args.includes('--refresh')) {
   console.log(`flux: ${open.light.length} ${slug} example(s) measured open`);
 }
 
+// Flux's date popup is a <dialog> it opens itself, its list of times a popover; the kit's are both popovers.
+const popup = slug === 'date-picker' ? 'dialog' : '[popover]';
+const edges = await chromium().launch();
+const astray = await landings(edges, {
+  name: `${slug}-open`, refresh: args.includes('--refresh'), all: args.includes('--all'), width: 260, hosts: [0, 1, 2],
+  flux: { url: `https://fluxui.dev/components/${slug}`, host: `[data-preview-wrapper] [data-flux-${slug}]`, panel: popup, trigger: '[data-parity-open]', prepare: page => page.evaluate(mark, slug) },
+  rask: { url: pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', `${slug}-open.html`)).href, host: `[data-preview-wrapper] [data-ui-${slug}]`, panel: popup, trigger: '[data-parity-open]' },
+});
+await edges.close();
+console.log(astray ? `\nflux parity: the ${slug}'s popup lands elsewhere for ${astray} picker(s).\n` : `\nflux parity: the ${slug}'s popup lands where Flux's does.\n`);
+
 const rest = args.filter(a => a !== '--refresh' && a !== slug);
 const parity = spawnSync(process.execPath, [join(fileURLToPath(new URL('.', import.meta.url)), 'parity.mjs'), `${slug}-open`, ...rest], { stdio: 'inherit' });
-process.exit(parity.status ?? 1);
+process.exit(astray ? 1 : parity.status ?? 1);
 
 // Runs in the page. Marks what a reader presses to open each picker: the picker itself where its trigger
 // fills it (a press at the centre lands on the button), or the button beside the typed fields where the
