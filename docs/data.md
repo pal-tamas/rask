@@ -1169,8 +1169,9 @@ That gives the table a `TenantId` column, a query filter no read can compose awa
 every index that does not already name it. The column is a shadow one; an entity that reads its tenant declares
 `public Guid? TenantId { get; private set; }` — or `int?` / `long?` where tenants are numbered, and the declared
 type is then the column's. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant`
-claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), so the read above
-filters with nothing passed to it; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
+claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), asked once by a request
+and [at every event by a live page](multi-tenancy.md#from-the-request-a-resolver), so the read above
+filters with nothing passed to it and a page follows its user into the tenant they chose; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
 crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.
 `RaskAppDbContext` applies it; a context of your own calls `modelBuilder.ApplyRaskConventions(this)`.

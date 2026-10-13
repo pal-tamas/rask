@@ -72,6 +72,27 @@ internal sealed class QueryEntry
         _fetchOwed = true;
     }
 
+    /// <summary>
+    ///     Which reader the entry's result belongs to: moved on by <see cref="Forget" />, so a fetch that started
+    ///     before it cannot land its result after it.
+    /// </summary>
+    public int Generation { get; private set; }
+
+    /// <summary>
+    ///     Drops what is held — it was read for a user or a tenant the session no longer acts for — and whatever
+    ///     fetch is bringing more of it. Unlike <see cref="Invalidate" />, nothing is served meanwhile.
+    /// </summary>
+    public void Forget()
+    {
+        Generation++;
+        CancelInFlight();
+        InFlight = null;
+        Data = null;
+        HasData = false;
+        Error = null;
+        Invalidate();
+    }
+
     /// <summary>Tells every observer to re-read, without changing what is held.</summary>
     public void NotifyChanged() => Notify();
 
@@ -127,8 +148,13 @@ internal sealed class QueryEntry
         _fetchCts = cancellation;
     }
 
-    public void Succeeded(object? data, DateTimeOffset now)
+    public void Succeeded(object? data, DateTimeOffset now, int generation)
     {
+        if (generation != Generation)
+        {
+            return;
+        }
+
         Data = data;
         HasData = true;
         Error = null;
@@ -139,8 +165,13 @@ internal sealed class QueryEntry
         Notify();
     }
 
-    public void Failed(Exception error)
+    public void Failed(Exception error, int generation)
     {
+        if (generation != Generation)
+        {
+            return;
+        }
+
         Error = error;
         // Deliberately keeps Data and HasData. A refetch that fails should leave what is on screen
         // there with an error beside it, rather than blanking a working page because the network
@@ -155,8 +186,13 @@ internal sealed class QueryEntry
     ///     The fetch was cancelled rather than finishing. Clears the in-flight state but leaves the
     ///     fetch owed, because nothing was actually retrieved: the next observer should try again.
     /// </summary>
-    public void Abandoned()
+    public void Abandoned(int generation)
     {
+        if (generation != Generation)
+        {
+            return;
+        }
+
         InFlight = null;
         ReleaseCancellation();
     }

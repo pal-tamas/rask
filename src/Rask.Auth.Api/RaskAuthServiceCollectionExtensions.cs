@@ -112,8 +112,7 @@ public static class RaskAuthServiceCollectionExtensions
         services.TryAddSingleton<IInstanceClaimStore, InstanceClaimStore<TContext>>();
         services.TryAddSingleton<IAuthContexts, AuthContexts<TContext>>();
 
-        // The resumed-session cache, and the keys reset and confirmation links are sealed with — the same keys the cookie is.
-        services.AddMemoryCache();
+        // The keys reset and confirmation links are sealed with — the same keys the cookie is.
         services.AddDataProtection();
 
         // The client address a throttle is keyed on, for a sign-in that arrives through a component rather than a request.

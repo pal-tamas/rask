@@ -129,9 +129,11 @@ builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().Te
 ```
 
 The function is handed the services of the work in flight and returns its tenant, or `null` when it belongs to
-none. It is asked **once per scope and the answer is kept**: as an HTTP request starts, and as a live session
-opens — for as long as that session lives, so a session does not change tenant because a later message
-arrived without the request that opened it. `Current.Tenant`, every filter and every stamp then use it.
+none. A request asks it **once**, as it starts. A live session asks it **at every event** — as a connection
+attaches (one that attaches while a handler runs, when that handler has finished: a handler works in one tenant
+from start to end), before each handler, and as the page's address moves — so the tenant a page works in is the
+one its user has *now*, as it would be if each update were a request. `Current.Tenant`, every filter and every stamp
+then use the answer.
 
 | | With a resolver registered |
 |---|---|
@@ -146,15 +148,30 @@ arrived without the request that opened it. `Current.Tenant`, every filter and e
 | The work | `sp` | When it is asked |
 |---|---|---|
 | an HTTP request — an endpoint, a controller, the GET that renders a page | that request's `RequestServices` | as the request reaches `UseRaskData()`, after authentication |
-| a live session — a page's handlers, its re-renders | the **session's** own scope, which lives as long as the page is open | once, on the session's first render, which runs inside the request that opened the page; never again |
+| a live session — a page's handlers, its re-renders | the **session's** own scope, which lives as long as the page is open | on the session's first render, inside the request that opened the page; then again as each connection attaches, before each handler and as the address moves. A render the server starts itself works in the tenant the last of those named |
 
-So a resolver that goes through a **singleton** reading `IHttpContextAccessor` — the shape most apps already
-have for "which customer is this request for" — works for both: when the session is asked, the request that
-opened it is still in flight, and what it answers then is kept for every later message on the socket, whatever
-that socket's own request looks like. The signed-in user is there too, in both: `Current.Principal` is
-`HttpContext.User` for a request and the user the session was opened by for a session.
+**Where a live page's resolver can read the tenant from.** At an event the request in flight is the page's
+*connection* — the socket's upgrade, or a post of the HTTP fallback — not the page's own `GET`:
 
-Three things to know when writing one:
+| The tenant lives in | Read it from | At an event |
+|---|---|---|
+| the signed-in user | `Current.Principal` | the session's principal as it is now: after a revalidator replaced it, after a reconnect brought a new token |
+| the host name, or a cookie | `IHttpContextAccessor` | the connection's request carries both, as the page's did |
+| the page's address — `/t/{tenant}/…` | `sp.GetRequiredService<RouteState>().Path` | the session's own route, which follows the page as it navigates in place. **Not** the request's path or its route values: the connection's request is `/rask/ws` |
+| a header only the page's request carried, a route value of the `GET` | — | is not there. See below |
+
+```csharp
+builder.Services.AddRaskTenant(sp => TenantIn(sp.GetRequiredService<RouteState>().Path));      // /t/7/orders → 7
+builder.Services.AddRaskTenant(_ => PartnerOf(Current.Principal));                              // the token's claim
+```
+
+**A resolver that stops answering is told so.** One that named a tenant when the page opened and names none at
+an event — for the same user, on the same page — has not learned anything new: it read something only the
+page's own request carried. Reading nothing then would look exactly like an empty table, so the first read of
+the tenant **throws** a `MissingTenantException` that says so and names the two places above. A user who signed
+out, or a page that navigated to an address with no tenant in it, is taken at the resolver's word: no tenant.
+
+Three more things to know when writing one:
 
 - **A live session's scope is not a request's.** A *scoped* object a middleware filled in for the request is a
   different, empty instance in the session's scope — read the request through `IHttpContextAccessor`, or
@@ -163,6 +180,9 @@ Three things to know when writing one:
   there is no request. Return `null` then; do not assume one.
 - **It must not read the tenant it is being asked for.** Resolve it from the request, or from a table that is
   not tenant-scoped (the table of tenants itself); a resolver that reads `Current.Tenant` is told so.
+
+What a session's [queries](query.md) read for the tenant before is dropped when the answer changes, and read
+again for the new one.
 
 `AddRaskTenant` is called once; a second registration is refused at startup.
 
@@ -267,7 +287,10 @@ line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", 
 ## Writes stamp it, and it never moves
 
 A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed. An update that
-would move a row to another tenant is refused: copy the row into the other tenant instead. The column is never
+would move a row to another tenant is refused: copy the row into the other tenant instead. **A row belongs to
+the tenant it was loaded in**: saving or deleting one while another tenant is in flight — or none — is refused
+with an `InvalidOperationException`, and so is adding a row that already names another tenant, or a child to an
+aggregate loaded in another; `Tenant.Across()` is how to do any of them on purpose. The column is never
 on the generated form model, declared or not, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
 is refused too, unless the row's `TenantId` is already set, because "across" names no tenant to stamp.
 
@@ -330,7 +353,7 @@ Worth knowing exactly, because each is a place a review should look:
 | `IgnoreQueryFilters()` on EF Core's own `IQueryable` | lifts every filter, the tenant's included | EF Core's meaning of the call. `Invoice.IgnoreQueryFilters()` — Rask's — lifts soft delete only |
 | raw SQL — `FromSql`, `ExecuteSql`, `SqlQuery` | whatever the SQL says | Rask does not rewrite SQL; a `FromSql` composed over an entity set still gets the filter |
 | `BulkInsert` with `SkipChangeTracking` | writes rows with **no tenant stamp** | it replaces the change tracker, and the interceptors with it. Set `TenantId` on each row, or use the default path |
-| a row whose `TenantId` the entity set itself | is saved into that tenant | the stamp fills an unset tenant and leaves a set one alone; only the entity can set it, through its private setter |
+| a row whose `TenantId` the entity set itself | is saved into that tenant — inside `Tenant.Across()`, or when it is the tenant in flight; refused otherwise | the stamp fills an unset tenant and leaves a set one alone; only the entity can set it, through its private setter |
 | a context of your own that does not call `ApplyRaskConventions(this)` | no filter, no stamp | the conventions are what add them |
 | a second mapping of the same table — a legacy `DbContext` beside Rask's | that context's own rules | Rask filters what goes through its contexts and nothing else |
 
