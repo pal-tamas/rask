@@ -18,6 +18,10 @@ them until tagged releases begin.
   cleared the session had no owner to compare with, so the socket, the HTTP fallback, an upload and a download
   accepted any signed-in holder of its id — on a page still holding what it had mounted for the previous user.
   Such a session now answers its former user or nobody.
+- **A refused attach is logged.** A connection that names a session it may not drive is answered exactly like one
+  naming an id that never existed, so nothing told an operator it had happened. `Rask.Live` now logs it at
+  Information with the reason — another user, an anonymous connection on a session that has a user, an unknown
+  id — and a fingerprint of the id; never the id, a claim or a token.
 - [What ties a live page to its user](docs/authentication.md#what-ties-a-live-page-to-its-user) states the rule
   in full, for a `RaskApp` and for a hand-wired host.
 

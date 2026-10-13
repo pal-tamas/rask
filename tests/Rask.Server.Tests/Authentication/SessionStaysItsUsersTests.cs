@@ -48,6 +48,21 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal("alice:user", Saves(host).Single().Now);
     }
 
+    // A host that signs in only the requests under its path base: the socket is one of them, because the path base is
+    // part of its route and not moved into Request.PathBase.
+    [Fact]
+    public async Task Under_a_path_base_the_socket_is_a_request_under_it_and_carries_the_user_as_the_page_does()
+    {
+        using var host = CreateHost(pathBase: "/uj");
+        var (sessionId, save) = await OpenPageAsync(host, "alice", "/uj");
+        host.Services.GetRequiredService<Directory>().Admins.Clear();
+
+        using var ws = await AttachAsync(host, sessionId, "alice");
+        await ClickAsync(host, ws, save);
+
+        Assert.Equal(new Save("alice:user", "alice:admin", "alice"), Saves(host).Single());
+    }
+
     // Stated, not endorsed: the reconnect replaces the principal and re-checks the route's guard, and mounts nothing.
     [Fact]
     public async Task What_a_page_read_from_the_principal_as_it_mounted_is_kept_across_a_same_user_reconnect()
@@ -226,9 +241,9 @@ public sealed partial class SessionStaysItsUsersTests
 
     private static Save[] Saves(RaskTestHost host) => [.. host.Services.GetRequiredService<Ledger>().Saves];
 
-    private static async Task<(string SessionId, string SaveHandler)> OpenPageAsync(RaskTestHost host, string user)
+    private static async Task<(string SessionId, string SaveHandler)> OpenPageAsync(RaskTestHost host, string user, string path = "/")
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Add(UserHeader, user);
         using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
         var html = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -279,7 +294,7 @@ public sealed partial class SessionStaysItsUsersTests
         return await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
-    private static RaskTestHost CreateHost(bool revalidate = false, bool stampUser = true) =>
+    private static RaskTestHost CreateHost(bool revalidate = false, bool stampUser = true, string pathBase = "") =>
         RaskTestHost.Create<OwnedPageApp>(
             services =>
             {
@@ -295,14 +310,14 @@ public sealed partial class SessionStaysItsUsersTests
             {
                 if (stampUser)
                 {
-                    app.Use(StampUserAsync);
+                    app.Use((ctx, next) => StampUserAsync(ctx, next, pathBase));
                 }
-            });
+            }, pathBase: pathBase);
 
     // Signs the request in as whoever the header names, with the rights the directory holds for them at that moment.
-    private static Task StampUserAsync(HttpContext ctx, RequestDelegate next)
+    private static Task StampUserAsync(HttpContext ctx, RequestDelegate next, string pathBase)
     {
-        if (ctx.Request.Headers.TryGetValue(UserHeader, out var name) && !string.IsNullOrEmpty(name))
+        if (ctx.Request.Path.StartsWithSegments(pathBase) && ctx.Request.Headers.TryGetValue(UserHeader, out var name) && !string.IsNullOrEmpty(name))
         {
             var directory = ctx.RequestServices.GetRequiredService<Directory>();
             ctx.User = Directory.Principal(name!, directory.Admins.Contains(name!));

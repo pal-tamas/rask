@@ -290,10 +290,42 @@ Without one, an open page keeps the principal it attached with until it reconnec
 
 **A hand-wired host** gets all of this from one thing: `HttpContext.User` must be the user on the page's `GET`
 *and* on the socket's upgrade, which is the same pipeline — `UseAuthentication()` with a default scheme, or a
-middleware that sets `HttpContext.User`, ahead of `MapRask`. A token read from a cookie is fine; the cookie's path
-must cover the app's path base, where `/rask/ws` and `/_rask/…` live. A user the app works out some other way —
+middleware that sets `HttpContext.User`, ahead of `MapRask`. A user the app works out some other way —
 its own scoped service filled from the request, a second scheme authenticated by hand inside a page — is one
 Rask never sees: the session then belongs to nobody, and its id is the only thing guarding it.
+
+A page's own connections are requests like any other, and they have to be signed in the same way as the page.
+`MapRask<App>(pathBase: "/app")` puts them under that prefix as ordinary route patterns — it does not move
+anything into `Request.PathBase`, so `Request.Path` is the whole address:
+
+| Request | Path under `pathBase: "/app"` |
+|---|---|
+| The socket | `/app/rask/ws` |
+| The HTTP fallback | `/app/_rask/stream/{session}`, `/app/_rask/send/{session}`, `/app/_rask/leave/{session}` |
+| Files | `/app/_rask/upload/{session}`, `/app/_rask/download/{session}/{token}` |
+| The sign-in relay | `/app/_rask/auth/redeem` |
+
+So a token read from a cookie is read for the prefix, not for "a page":
+
+```csharp
+options.Events = new JwtBearerEvents
+{
+    OnMessageReceived = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/app") && context.Request.Cookies.TryGetValue("token", out var token))
+        {
+            context.Token = token;
+        }
+
+        return Task.CompletedTask;
+    },
+};
+```
+
+and the cookie's `Path` is that prefix or wider. An event that reads the cookie only for a `GET` of a page, or a
+cookie scoped to the page's own address, signs the page in and leaves its socket anonymous: the session is its
+user's, the socket is nobody's, and the socket is refused and the tab reloads. A principal also needs a
+`ClaimTypes.NameIdentifier` (or `ClaimTypes.Name`) on those requests, not only on the page's.
 
 ## Passwords and throttling
 

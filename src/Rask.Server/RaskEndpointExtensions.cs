@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -2303,12 +2304,15 @@ public static partial class RaskEndpointExtensions
         // and all — so a leaked id tells a stranger nothing, not even that it is live (#1075). Peek, not Get:
         // Get cancels the session's pending removal, which a refused hello must not be able to do. It is
         // cancelled below, once this connection has actually attached.
-        var session = store.Peek(sessionId) is { } existing && MayAttach(user, existing) ? existing : null;
+        var existing = store.Peek(sessionId);
+        var session = existing is not null && MayAttach(user, existing) ? existing : null;
         if (session is null)
         {
-            return await ResumeAttachAsync(
+            var rebuilt = await ResumeAttachAsync(
                 resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
+            ReportRefusedAttach(sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
+            return rebuilt;
         }
 
         // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
@@ -2336,6 +2340,31 @@ public static partial class RaskEndpointExtensions
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // The wire gives every refusal the same answer, so this line is where an operator learns which it was. It names
+    // a fingerprint of the id, never the id — that is the secret a holder drives a session with — and nobody: no
+    // claim and no token. An id this host never had whose page was rebuilt from a resume record is every tab after
+    // a deploy, and is not reported.
+    private static void ReportRefusedAttach(string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
+    {
+        if (existing is null && rebuilt)
+        {
+            return;
+        }
+
+        var reason = (existing, user.Identity?.IsAuthenticated) switch
+        {
+            (null, _) => "no session has that id",
+            (_, true) => "it belongs to another user",
+            _ => "it has a user and the connection is anonymous",
+        };
+        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Information, "Rask.Live",
+            $"Rask Live: refused to attach a connection to session #{fingerprint}: {reason}."
+            + (rebuilt ? " The connection's own page was rebuilt from its resume record." : " The tab reloads."));
     }
 
     // The session acts for whoever its connection carries, as the sign-in behind them stands now. The cookie or
