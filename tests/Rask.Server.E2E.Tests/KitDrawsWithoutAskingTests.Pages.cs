@@ -102,6 +102,16 @@ public sealed class KitOwnDrawsWithoutAskingTests(PlaywrightFixture playwright) 
     public Task A_gesture_that_only_changes_what_is_drawn_sends_the_server_nothing(string component) => HoldAsync(component);
 }
 
+/// <summary><see cref="KitDrawsWithoutAskingTests" /> for the leave guard.</summary>
+public sealed class KitLeaveDrawsWithoutAskingTests(PlaywrightFixture playwright) : KitDrawsWithoutAskingTests(playwright), IClassFixture<PlaywrightFixture>
+{
+    public static TheoryData<string> Components => Drawn<KitLeaveFramePage>();
+
+    [Theory]
+    [MemberData(nameof(Components))]
+    public Task A_gesture_that_only_changes_what_is_drawn_sends_the_server_nothing(string component) => HoldAsync(component);
+}
+
 /// <summary>The budget lists themselves: every row names a gesture that is counted, once, on a page that is walked.</summary>
 public sealed class KitFrameBudgetTests
 {
@@ -117,6 +127,7 @@ public sealed class KitFrameBudgetTests
         typeof(KitChartFramePage),
         typeof(KitEditorFramePage),
         typeof(KitOwnFramePage),
+        typeof(KitLeaveFramePage),
     ];
 
     [Fact]

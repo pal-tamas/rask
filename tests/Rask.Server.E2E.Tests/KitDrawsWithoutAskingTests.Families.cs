@@ -13,7 +13,7 @@ public abstract partial class KitDrawsWithoutAskingTests
 
     private const string NextMonth = " [aria-label='Next month']";
     private const string PreviousMonth = " [aria-label='Previous month']";
-    private const string ADay = " [aria-label='Tuesday, January 20, 2026']";
+    private const string ADay = " [role=gridcell] button >> nth=20";
     private const string ColorButton = "[data-c='color-picker'] [data-ui-color-picker-swatch-button]";
     private const string ColorArea = "[data-c='color-picker'] dialog [data-rask-drag]";
     private const string CommandButton = "[data-c='command'] > button";
@@ -58,8 +58,8 @@ public abstract partial class KitDrawsWithoutAskingTests
             Typing("[data-c='textarea'] textarea", "abc"), TypingThenLeaving("[data-c='textarea'] textarea", "abc")),
         ["field"] = On<KitFieldFramePage>("field"),
         ["slider"] = On<KitFieldFramePage>("slider",
-            Drag("[data-c='slider'] input", release: false),
-            Drag("[data-c='slider'] input", release: true),
+            DragBy("[data-c='slider'] [data-ui-slider-thumb]", 120, release: false),
+            DragBy("[data-c='slider'] [data-ui-slider-thumb]", 120, release: true),
             Keys("arrow keys", Focusing("[data-c='slider'] input"), "ArrowRight", "ArrowRight", "ArrowLeft", "End", "Home")),
         ["otp"] = On<KitFieldFramePage>("otp",
             Typing("[data-c='otp'] [data-ui-otp-input]", "12", "typing half the code"),
@@ -159,12 +159,24 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["editor"] = On<KitEditorFramePage>("editor",
             Typing("[data-c='editor'] [contenteditable]", "abc"),
             TypingThenLeaving("[data-c='editor'] [contenteditable]", "abc"),
-            Press("press a toolbar button", "[data-c='editor'] [data-ui-editor-toolbar] button, [data-c='editor'] button")),
+            Twice("open and close the toolbar's list of styles", "[data-c='editor'] [role=toolbar] [role=combobox]"),
+            Press("press a toolbar button with nothing selected", "[data-c='editor'] [role=toolbar] button >> nth=1")),
+        ["confirm-leave"] = On<KitLeaveFramePage>("confirm-leave",
+            Typing("#leave-title", "abc", "typing in the guarded form"),
+            new("ask to leave, be asked, and stay", async page =>
+            {
+                await page.ClickAsync("#leave-go");
+                await page.Locator("dialog[open] button").Filter(new() { HasTextString = "Stay" }).ClickAsync();
+            }, async page =>
+            {
+                await page.FocusAsync("#leave-title");
+                await page.Keyboard.TypeAsync("abc");
+            })),
 
         ["tree"] = On<KitOwnFramePage>("tree",
             Cursor(Focusing("[data-c='tree'] [role=tree]")),
             Press("press a node", "[data-c='tree'] [role=treeitem]")),
-        ["data-grid"] = On<KitOwnFramePage>("data-grid", Press("sort a column", "[data-c='data-grid'] th button, [data-c='data-grid'] th")),
+        ["data-grid"] = On<KitOwnFramePage>("data-grid", Press("sort a column", "[data-c='data-grid'] th button")),
         ["rating"] = On<KitOwnFramePage>("rating", Press("rate", "[data-c='rating'] input >> nth=4")),
         ["filter"] = On<KitOwnFramePage>("filter", Press("filter", "[data-c='filter'] input >> nth=1")),
         ["swap"] = On<KitOwnFramePage>("swap", Press("swap", "[data-c='swap'] button, [data-c='swap'] label")),

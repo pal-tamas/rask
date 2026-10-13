@@ -1298,6 +1298,18 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Opening and closing a dropdown, a popover or a context menu sends the server nothing** — as in Flux UI,
+  where that is its own script's and Livewire hears only a bound value or an action the page wrote. The
+  panel's `toggle` was sent on every open, Escape and press outside, and answered with a render, whether or not
+  the page had asked to hear it: one frame each way per open and per close, two for a pointer crossing a
+  `Hover()` dropdown or a collapsed sidebar's rail. Now it is sent only to a page that gave `OnToggle`; `data-open`
+  on the dropdown, its trigger and a context menu's area is written by the runtime in the task the browser
+  opens the panel in (`data-rask-open-mark="<panel id>"`), a round trip sooner than a render brought it. Frames
+  per gesture, before → after: open 1 → 0, Escape 1 → 0, press outside 1 → 0, hover in and out 2 → 0. A new
+  gate, `KitDrawsWithoutAskingTests`, puts every kit component through a pointer, the keyboard, opening,
+  paging and dragging on a live Server page and holds each gesture to a frame budget: nothing for what is only
+  drawn, the frames owed for a value or a callback, and a list of what still round-trips that can only shrink.
+
 - **A child that changes element is answered with its parent, not the whole page — and so is a navigation
   inside a layout.** `cond ? A : B`, words that become an element, a loading line that becomes a table, a
   callout that becomes a form, and above all the page in an `Outlet` giving way to the next: one node takes the

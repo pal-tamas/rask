@@ -127,3 +127,25 @@ public sealed partial class KitOwnFramePage : KitFramePage
 
     private sealed record Package(int Id, string Name, int Downloads);
 }
+
+/// <summary>A form that asks before its unsaved edits are left, and the dialog it asks in.</summary>
+public sealed partial class KitLeaveFramePage : KitFramePage
+{
+    private readonly Draft _draft = new();
+
+    protected override Component? Render() =>
+        Div.Id("stage")[
+            Part("confirm-leave",
+                Form.Model(_draft).OnSubmit(_ => { }).NoValidate(true).ConfirmLeave("Leave without saving?")[
+                    Input.Bind(() => _draft.Title).Id("leave-title"),
+                    Button.Type(ButtonType.Submit)["Save"]
+                ],
+                NavLink.Href("/elsewhere").Id("leave-go")["Elsewhere"],
+                Ui.ConfirmLeave.Stay("Stay").Leave("Leave"))
+        ];
+
+    private sealed class Draft
+    {
+        public string Title { get; set; } = string.Empty;
+    }
+}

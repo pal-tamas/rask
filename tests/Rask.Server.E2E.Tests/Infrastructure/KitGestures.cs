@@ -100,6 +100,20 @@ internal static class KitGestures
     public static KitGesture Drag(string selector, bool release, Func<IPage, Task>? arrange = null) =>
         new(release ? "drag and release" : "drag, still held", page => DragAsync(page, selector, release), arrange);
 
+    /// <summary>A drag that starts on <paramref name="selector" /> and goes <paramref name="by" /> pixels along.</summary>
+    public static KitGesture DragBy(string selector, int by, bool release) => new(release ? "drag and release" : "drag, still held", async page =>
+    {
+        var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
+        var (x, y) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
+        await page.Mouse.MoveAsync(x, y);
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(x + by, y, new MouseMoveOptions { Steps = 12 });
+        if (release)
+        {
+            await page.Mouse.UpAsync();
+        }
+    });
+
     /// <summary>A press on one part and then on another (the same one when only one is named).</summary>
     public static KitGesture Twice(string name, string first, string? second = null, Func<IPage, Task>? arrange = null) => new(name, async page =>
     {
