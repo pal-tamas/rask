@@ -221,8 +221,8 @@
 # 2026-10-13, a handler that hears a field's pause and that nothing else sends (data-rask-on-pause,
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
-# 2026-10-13, a carousel's autoplay holds while focus is inside it, and a padded track rests where scroll snap would leave it, the slide nearest marked (rask-carousel.ts): rask-hooks.js 51,687 -> 52,170 (+483). The two runtimes are unchanged.
+# 2026-10-13, a carousel's autoplay holds while focus is inside it, and a padded track rests where scroll snap would leave it, the slide nearest marked (rask-carousel.ts): rask-hooks.js 56,371 -> 57,158 (+787). The two runtimes are unchanged.
 bundle,bytes
 rask.js,101724
 rask.wasm.js,90507
-rask-hooks.js,56371
+rask-hooks.js,57158
