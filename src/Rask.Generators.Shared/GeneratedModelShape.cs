@@ -555,13 +555,12 @@ internal static class GeneratedModelShape
 
         public ModelValueObject? Of(ITypeSymbol type, int depth, ImmutableHashSet<string> seen)
         {
-            if (depth >= MaxValueObjectDepth || type is not INamedTypeSymbol named ||
-                !AggregateShape.IsValueObjectType(named.WithNullableAnnotation(NullableAnnotation.NotAnnotated)))
+            if (depth >= MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(type) is not { } named)
             {
                 return null;
             }
 
-            var typeName = named.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat);
+            var typeName = named.ToDisplayString(TypeFormat);
             if (seen.Contains(typeName))
             {
                 return null;

@@ -209,30 +209,26 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
             foreach (var property in properties)
             {
-                if (property.Type is not INamedTypeSymbol type ||
-                    !AggregateShape.IsValueObjectType(type) ||
+                if (AggregateShape.ValueObjectTypeOf(property.Type) is not { } type ||
                     property.GetAttributes().Any(static a =>
                         a.AttributeClass?.ToDisplayString() is "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute"))
                 {
                     continue;
                 }
 
-                var typeName = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 if (seen.Contains(typeName))
                 {
                     continue;
                 }
 
-                var stored = AggregateShape.StoredProperties(type).ToList();
-                var singleValue = stored.Count == 1 && !AggregateShape.IsValueObjectType(stored[0].Type)
-                    ? stored[0].Name
-                    : null;
+                var singleValue = AggregateShape.HoldsOneValue(type) ? AggregateShape.StoredProperties(type).First().Name : null;
 
                 var path = prefix.Add(property.Name);
                 var pathTypes = types.Add(typeName);
                 paths.Add(new ValueObjectPath(
-                    new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue));
+                    new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue,
+                    Optional: property.Type.IsValueType && !type.Equals(property.Type, SymbolEqualityComparer.Default)));
                 Walk(type, path, pathTypes, seen.Add(typeName));
             }
         }
@@ -685,11 +681,12 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             var self = group.First(p => p.Segments.Count == 1);
             var nested = group
                 .Where(p => p.Segments.Count > 1)
-                .Select(p => new ValueObjectPath(
-                    new EquatableArray<string>(p.Segments.Skip(1)),
-                    new EquatableArray<string>(p.Types.Skip(1)),
-                    p.SingleValue,
-                    p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key))
+                .Select(p => p with
+                {
+                    Segments = new EquatableArray<string>(p.Segments.Skip(1)),
+                    Types = new EquatableArray<string>(p.Types.Skip(1)),
+                    ColumnPrefix = p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key,
+                })
                 .ToList();
 
             // A one-value type held by the entity itself IS its value's column: a converted scalar named after the
@@ -703,7 +700,10 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                 continue;
             }
 
-            source.Append(indent).Append(receiver).Append(".ComplexProperty(x => x.").Append(group.Key);
+            // An optional struct (`T?`) fits both of EF Core's overloads — the struct's and the open one — so the
+            // struct is named.
+            source.Append(indent).Append(receiver).Append(".ComplexProperty")
+                .Append(self.Optional ? "<" + self.Types[0] + ">" : "").Append("(x => x.").Append(group.Key);
 
             // Inside another value object a one-value type is still a complex type, but its one column takes the
             // property's name — `Price_Currency`, not `Price_Currency_Value`.
@@ -825,7 +825,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         EquatableArray<string> Segments,
         EquatableArray<string> Types,
         string? SingleValue,
-        string? ColumnPrefix = null);
+        string? ColumnPrefix = null,
+        bool Optional = false);
 
     // Internal so the model generator's Create asks "is this a strongly-typed id, and over what" of the same
     // definition the registry registers the value converter from.

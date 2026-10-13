@@ -956,7 +956,8 @@ public static IEnumerable<string> Validate(string value)
   with no form) still says *This field is required.*
 - a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
   says the one sentence *This field is required.* and the rule is asked once there is a value
-- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule
+- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule — and
+  so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the `decimal?` it holds
 - a **plain** non-nullable property — `int Weight`, `decimal Price`, `DateOnly Built`, `Guid OwnerId`, `bool`,
   `string Plate` — and a value object with no rule are required the same way: an unfilled field says the one
   sentence. For text, unfilled means `null`, `""` or only white space; for everything else, no value
@@ -1479,6 +1480,23 @@ public sealed class Customer : Aggregate<Guid>
 **A one-value value object is one column named after the property**, so `Email Email` is stored as `Email`, and a
 form model carries it as its value, `string? Email`. A value object with several values is prefixed by the
 property, and a form model carries it as a nested model.
+
+**Declare it nullable and it is optional** — a class or a struct alike:
+
+```csharp
+public readonly record struct Percent(decimal Value)
+{
+    public static IEnumerable<string> Validate(decimal value) => value is < 0 or > 100 ? ["0 to 100."] : [];
+}
+
+public Email? Backup { get; private set; }        // nullable column Backup,   form field string?  Backup
+public Percent? Discount { get; private set; }    // nullable column Discount, form field decimal? Discount
+```
+
+An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent.Validate` by the
+form and by `Create`/`Update`, and the read face shows `decimal? Discount`. A nullable struct of **several**
+values (`Money?` over a `record struct`) is not unwrapped: the form model carries the struct as it is, and its
+mapping is yours to write in `Configure`.
 
 That one column is an ordinary scalar column with a conversion — the value object goes in and out through its
 one value — so everything a column can have, it can have, configured on the property itself:

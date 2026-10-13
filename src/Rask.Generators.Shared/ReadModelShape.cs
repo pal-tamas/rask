@@ -112,7 +112,7 @@ internal static class ReadModelShape
             }
 
             // A value object is not a member of its own: it is the columns it maps to.
-            if (AggregateShape.IsValueObjectType(property.Type))
+            if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
             {
                 Flatten(property.Type, property.Name, property.Name, property.Name, members, 0, cancellationToken);
                 continue;
@@ -304,7 +304,7 @@ internal static class ReadModelShape
         int depth,
         CancellationToken cancellationToken)
     {
-        if (depth >= AggregateShape.MaxValueObjectDepth || valueObject is not INamedTypeSymbol named)
+        if (depth >= AggregateShape.MaxValueObjectDepth || AggregateShape.ValueObjectTypeOf(valueObject) is not { } named)
         {
             return;
         }
@@ -312,7 +312,7 @@ internal static class ReadModelShape
         var stored = AggregateShape.StoredProperties(named).ToList();
 
         // A value object holding one value takes the owner's own column name rather than a compound one.
-        if (stored.Count == 1 && !AggregateShape.IsValueObjectType(stored[0].Type))
+        if (AggregateShape.HoldsOneValue(named))
         {
             members.Add(new ReadMember(
                 memberPrefix,
@@ -337,7 +337,7 @@ internal static class ReadModelShape
             var column = columnPrefix + "_" + property.Name;
             var path = pathPrefix + "." + property.Name;
 
-            if (AggregateShape.IsValueObjectType(property.Type))
+            if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
             {
                 Flatten(property.Type, member, column, path, members, depth + 1, cancellationToken);
                 continue;

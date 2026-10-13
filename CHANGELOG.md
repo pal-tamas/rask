@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
+  property like `public NormPercent? Discount { get; private set; }` over
+  `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
+  carried the struct itself (`NormPercent? Discount`), its `Validate` was never run — not by a form, not by
+  `Create`/`Update`, and with no RASK102 for a misshapen one — the read face showed the struct, and the
+  generated mapping left the property out, so EF Core refused the model unless `Configure` mapped it by hand.
+  It is now exactly what a nullable reference-type value object (`Sku?`) has always been: the form model and
+  the wire carry the held value (`decimal? Discount`), an empty field is stored as `NULL` and is neither
+  required nor put to the rule, a filled one is asked `NormPercent.Validate` by the form and by the writes, the
+  column is a nullable converted scalar that takes `HasMaxLength` and a unique index (rows holding nothing never
+  collide), the read face shows `decimal? Discount`, and RASK102 reports a `Validate` of the wrong shape. **What
+  to change:** code that set or read the model's property as the struct — `model.Discount = new NormPercent(5)`
+  becomes `model.Discount = 5`, `model.Discount?.Value` becomes `model.Discount` — and a read-face query that
+  reached `.Value`. A hand-written `HasConversion` for the property in `Configure` still wins and can be deleted.
+  Unchanged: a non-nullable struct value object, and a nullable struct of several values (`Money?`), which stays
+  the plain value it was.
 - **RASK102 names the two `Validate` shapes that invite the miss.** A value object over a number, a date or
   an id whose rule takes the value as nullable — `Validate(decimal? value)` on `NormPercent(decimal Value)` —
   was already reported, with a reason that only stated the mismatch; it now says what to write: "declare it
