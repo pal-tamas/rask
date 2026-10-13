@@ -321,6 +321,24 @@ function say(input: HTMLInputElement, text: string, announce: "" | "input" | "ch
     }
 }
 
+// Empties a search field whose list has shut, and tells the page nothing: the reader picked, or left, and the
+// text went with the list. A pause the page was waiting out (`data-rask-on-pause`, rask-input.ts) is called
+// off the way a character being composed calls it off, so the search that was never asked stays unasked.
+function forget(input: HTMLInputElement): void {
+    if (input.value === "") {
+        return;
+    }
+    saying = true;
+    try {
+        input.value = "";
+        if (input.hasAttribute("data-rask-on-pause") && typeof InputEvent === "function") {
+            input.dispatchEvent(new InputEvent("input", {bubbles: true, isComposing: true}));
+        }
+    } finally {
+        saying = false;
+    }
+}
+
 // What a strict input says while its list is shut: the answer it was rendered with, or the row just picked
 // until a render has said so itself.
 function answer(state: State, input: HTMLInputElement): string {
@@ -427,9 +445,7 @@ function settle(root: Element): void {
         return;
     }
     if (input && (popup.contains(input) || has(root, "clears"))) {
-        if (input.value !== "") {
-            say(input, "", "input");
-        }
+        forget(input);
     } else if (input && has(root, "strict")) {
         say(input, answer(state, input), "");
         if (page!.activeElement === input) {

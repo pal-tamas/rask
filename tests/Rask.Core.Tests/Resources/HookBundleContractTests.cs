@@ -58,6 +58,7 @@ public partial class HookBundleContractTests
         ["data-rask-list-group"] = "inside a data-rask-list",
         ["data-rask-list-remove"] = "inside a data-rask-list",
         ["data-rask-on-click"] = "the runtime's own handler mark; the list hook leaves a press on one to it",
+        ["data-rask-on-pause"] = "the runtime's own pause mark (rask-input.ts); the list hook calls a pending one off as its list shuts",
         ["data-rask-locked"] = "written by the lock hook",
         ["data-rask-gutter"] = "written by the lock hook",
         ["data-rask-managed"] = "the morph's own mark",
