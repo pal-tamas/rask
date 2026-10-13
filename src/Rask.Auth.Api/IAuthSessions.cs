@@ -15,6 +15,14 @@ internal interface IAuthSessions
     /// </summary>
     Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// What a live page asks before each event: <paramref name="held" /> itself while its session lives and its user's
+    /// row still says what that principal was built from, a principal built anew when the row says otherwise, and
+    /// <see langword="null" /> when the session has ended, expired, or its user is gone. The row is read every time.
+    /// </summary>
+    ValueTask<ClaimsPrincipal?> RevalidateAsync(
+        Guid sessionId, ClaimsPrincipal held, CancellationToken cancellationToken = default);
+
     /// <summary>Ends one session.</summary>
     Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default);
 

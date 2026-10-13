@@ -121,6 +121,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _metrics = metrics;
         _clock = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
         _batchWindowStart = _clock.GetTimestamp();
+
+        _tenant = Rask.Data.ResolvedTenant.For(scope.ServiceProvider);
+        if (_tenant is not null)
+        {
+            _tenantRoute = scope.ServiceProvider.GetRequiredService<RouteState>();
+            _tenantRoute.Changed += OnRouteMoved;
+        }
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }
@@ -155,11 +162,113 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         set => _pendingAuthHandoff = value;
     }
 
-    // When the session's principal was last checked against its sign-in (Environment.TickCount64), so the check
-    // runs at most every RevalidateUserEvery rather than before every dispatch. The dispatch path reads and writes
-    // it, one dispatch at a time; an attach zeroes it, so a connection is checked before it acts. The two can
-    // overlap when a tab reconnects mid-dispatch, and the worst that costs is one check too many.
-    internal long LastUserRevalidation { get; set; }
+    // Who the session acts for, and what asks whether they still are. Held, so an event resolves neither.
+    private SessionUserProvider? _users;
+    private ISessionRevalidator? _revalidator;
+    private bool _revalidatorResolved;
+
+    internal SessionUserProvider Users => _users ??= Services.GetRequiredService<SessionUserProvider>();
+
+    internal ISessionRevalidator? Revalidator
+    {
+        get
+        {
+            if (!_revalidatorResolved)
+            {
+                _revalidator = Services.GetService<ISessionRevalidator>();
+                _revalidatorResolved = true;
+            }
+
+            return _revalidator;
+        }
+    }
+
+    // The app's tenant resolver's answer for this session (AddRaskTenant), or null when it registered none.
+    private readonly Rask.Data.ResolvedTenant? _tenant;
+    private readonly RouteState? _tenantRoute;
+
+    // Who and where the resolver was last asked for. A resolver that named a tenant and names none for the same
+    // user on the same page read something this session's connection does not carry (ResolvedTenant.AskAgain).
+    private string? _tenantPath;
+    private bool _readerChanged;
+
+    /// <summary>
+    ///     Asks the app's tenant resolver again — as an event starts, and as the page's address moves — so a tab
+    ///     opened before its user chose another tenant works in the one they chose from its next action. What
+    ///     the session read for the old one is dropped.
+    /// </summary>
+    internal void AskTenantAgain()
+    {
+        if (_tenant is not { } tenant)
+        {
+            return;
+        }
+
+        var path = _tenantRoute!.Path;
+        var sameReader = !_readerChanged && (_tenantPath is null || string.Equals(_tenantPath, path, StringComparison.Ordinal));
+        _readerChanged = false;
+        _tenantPath = path;
+
+        if (Rask.SessionDataScope.AskAgain(tenant, Services, sameReader))
+        {
+            ForgetReads(readerChanged: false);
+        }
+    }
+
+    // The address moved: a resolver that reads the tenant from it has another answer now. One that throws is
+    // asked again by whatever reads the tenant next, which is where its failure belongs.
+    private void OnRouteMoved(object? sender, EventArgs e)
+    {
+        try
+        {
+            AskTenantAgain();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live", "Rask Live: the tenant resolver threw as the page's address moved", ex);
+        }
+    }
+
+    /// <summary>Drops what the session's query cache holds: it was read for a user or a tenant that has changed.</summary>
+    internal void ForgetReads(bool readerChanged = true)
+    {
+        _readerChanged |= readerChanged;
+        (Services.GetService<Rask.Querying.IQueryClient>() as Rask.Querying.SessionQueryClient)?.Forget();
+    }
+
+    // Whether the next event asks who the user is: always, except for the later events of a frame that carried
+    // several — one task of the browser, and one request's worth of asking.
+    internal WhoAnswer WhoAnswered { get; set; }
+
+    // When the user was last asked about (Environment.TickCount64). Every event asks; a render nobody asked for
+    // asks only when this is older than RaskEndpointExtensions.PushedRenderTrusts.
+    internal long LastUserCheck { get; set; }
+
+    // The session had a user and the revalidator said their sign-in has ended. Set until the page has been sent
+    // to the sign-in page, which is where such a session goes whether its page was guarded or not.
+    internal bool SignInEnded { get; set; }
+
+    // The principal the attached connection carried, as its request authenticated it: what the browser's
+    // credential said when the transport opened, before any revalidator replaced it.
+    internal ClaimsPrincipal? ConnectionUser { get; set; }
+
+    // How many times the browser asked whether its credential still names this session's user in the current
+    // second: the question is cheap and is still not free to ask in a loop.
+    private long _whoWindowStart;
+    private int _whoAsked;
+
+    internal bool AdmitWhoQuestion(int maxPerSecond)
+    {
+        var now = Environment.TickCount64;
+        if (now - Volatile.Read(ref _whoWindowStart) >= 1000)
+        {
+            Volatile.Write(ref _whoWindowStart, now);
+            Volatile.Write(ref _whoAsked, 0);
+        }
+
+        return Interlocked.Increment(ref _whoAsked) <= maxPerSecond;
+    }
 
     // What the client's current resume record was built from. -1 means it has none, so the first payload
     // always carries one. The URL is tracked alongside the version because a navigation moves the page
@@ -453,7 +562,12 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         InHandlerScope = true;
         try
         {
-            await RenderAndSendAsync(null, false, publishOnly: publishOnly).ConfigureAwait(false);
+            // Nobody asked for this render, so nothing has asked who it is for: a page that only ever listens
+            // would otherwise go on drawing for a user whose sign-in ended.
+            if (await RaskEndpointExtensions.MayPushAsync(this).ConfigureAwait(false))
+            {
+                await RenderAndSendAsync(null, false, publishOnly: publishOnly).ConfigureAwait(false);
+            }
         }
         finally
         {
@@ -796,6 +910,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _renderRequestedWhileDetached = false;
         return publishOnly ? RequestPublishRender() : RequestRender();
     }
+
+    /// <summary>The connection that has just attached is owed a render: its user's rights are not the ones the page shows.</summary>
+    internal void OweAttachedRender() => _renderRequestedWhileDetached = true;
 
     /// <summary>The render asked for while detached is being made by the caller, as a page reached in place.</summary>
     internal void DetachedRenderAnswered() => _renderRequestedWhileDetached = false;

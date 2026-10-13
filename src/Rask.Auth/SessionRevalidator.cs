@@ -11,7 +11,7 @@ internal sealed class SessionRevalidator(IAuthSessions sessions) : ISessionReval
         ArgumentNullException.ThrowIfNull(principal);
 
         return AuthPrincipal.SessionId(principal) is { } sessionId
-            ? await sessions.ResumeAsync(sessionId, cancellationToken).ConfigureAwait(false)
+            ? await sessions.RevalidateAsync(sessionId, principal, cancellationToken).ConfigureAwait(false)
             : null;
     }
 }

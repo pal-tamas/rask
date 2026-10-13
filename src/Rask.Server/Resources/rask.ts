@@ -44,6 +44,7 @@ import {
     OPEN_TIMEOUT_MS,
     type LiveConnection,
 } from "./rask-http-transport.js";
+import { createAuthWatch } from "./rask-auth-watch.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -206,6 +207,40 @@ import {
     let attempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let suppressEvents = false;
+    const WHO_TIMEOUT_MS = 5000;
+    // Set while the connection is dropped on purpose because the browser's credential changed (rask-auth-watch.ts):
+    // the next one opens at once, with no backoff and nothing on screen.
+    let authReopen = false;
+    // Other tabs of this browser, for the one thing they tell each other: the credential changed, ask again.
+    const authChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("rask-auth") : null;
+    const authWatch = createAuthWatch({
+        // Bounded: what the page sends waits for this answer, and a request that never comes back must not hold
+        // it for ever. No answer is "not the same", and the connection is opened again.
+        ask: () => fetch(prependBase("/_rask/auth/who/" + encodeURIComponent(sessionId ?? "")), {
+            credentials: "same-origin",
+            cache: "no-store",
+            signal: AbortSignal.timeout(WHO_TIMEOUT_MS),
+        }).then((response) => response.ok ? response.json() : {same: false}),
+        reopen: reopenForAuth,
+        release: flushQueue,
+        tellOthers: () => authChannel?.postMessage(1),
+        now: () => Date.now(),
+        focused: () => document.hasFocus(),
+        visible: () => document.visibilityState === "visible",
+        cookieOnEveryFrame: () => httpConn !== null,
+        bootedWithUser: root.hasAttribute("data-rask-user"),
+    });
+    if (authChannel) authChannel.onmessage = () => authWatch.noticed();
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") authWatch.noticed();
+        else authWatch.left();
+    });
+    window.addEventListener("focus", () => authWatch.noticed());
+    window.addEventListener("blur", () => authWatch.left());
+    // A page brought back from the back/forward cache was never told anything while it was there.
+    window.addEventListener("pageshow", (e: PageTransitionEvent) => {
+        if (e.persisted) authWatch.noticed();
+    });
     const overlay = installOverlay();
     // The reconnect overlay doubles as the auth-handshake indicator. During a sign-in/out the
     // socket is deliberately closed and reconnected to pick up the new cookie; that reconnect is
@@ -294,6 +329,26 @@ import {
         }
     }
 
+    // What waited — for a connection, or for an answer about who the browser is now — leaves in the order it came.
+    function flushQueue(): void {
+        if (!open || !conn || !conn.isOpen) return;
+        for (const m of queue) conn.send(m);
+        queue.length = 0;
+    }
+
+    // The browser's credential is not the one this connection opened with. Open it again, so the upgrade carries
+    // the new one: the server then adopts the principal, or refuses the tab, as it does for any connection.
+    function reopenForAuth(): void {
+        if (!conn || !conn.isOpen) return;
+        authReopen = true;
+        try {
+            deliberateClose = true;
+            conn.close(1000, "auth-changed");
+        } catch (e) {
+            authReopen = false;
+        }
+    }
+
     // Everything a connection does once it is open, whichever transport carries it. `sendHello` is the socket's:
     // an HTTP stream names its session in the request that opened it, so there is no hello to send.
     function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
@@ -309,8 +364,9 @@ import {
             if (resumeToken) hello.resume = resumeToken;
             sendHello(JSON.stringify(hello));
         }
-        for (const m of queue) conn!.send(m);
-        queue.length = 0;
+        // The upgrade has just carried the browser's cookie as it is now, so nothing is owed an answer.
+        authWatch.opened();
+        flushQueue();
         // Values the field restore put back into the DOM at boot, pushed to the server now that there is a
         // connection to push them over — so the model ends up holding what the page shows rather than the
         // pristine values it rendered. Sent after the hello, so the session exists. The runtime's doing, not an
@@ -537,6 +593,16 @@ import {
 
     function scheduleReconnect(code?: number): void {
         if (reconnectTimer !== null || sessionExpired) return;
+        // Dropped on purpose, to be opened again with the cookie as it is now: no backoff, and nothing on screen.
+        // What the reader does meanwhile waits in the queue and leaves on the new connection.
+        if (authReopen) {
+            authReopen = false;
+            open = false;
+            resetPending();
+            attempt = 0;
+            connect();
+            return;
+        }
         // Close code 1001 is "going away" — the drain's own close handshake. It is the belt to the
         // shutdown frame's braces: if the frame was missed (sent while this socket was mid-render, say),
         // the close status still identifies a deployment. An aborted socket is 1006, which is not this.
@@ -956,6 +1022,17 @@ import {
         // long. Say the true thing and get back on screen fast.
         if (serverShuttingDown) {
             reloadForUpdate();
+            return;
+        }
+
+        // The tab had a user and its connection was refused: load the page again, and say so, so that a browser
+        // that carries nobody any more lands on the sign-in page with the way back — and one that carries the
+        // same user, or another, simply gets the page (RaskEndpointExtensions.SentToSignIn). No message: the
+        // reader did nothing wrong, and the next page says what is needed.
+        if (authWatch.hadUser) {
+            sessionExpired = true;
+            document.cookie = "rask-ended=1; Max-Age=30; Path=/; SameSite=Lax";
+            location.reload();
             return;
         }
 
@@ -1564,7 +1641,8 @@ import {
         const msg = JSON.stringify(frame);
         const devtools = window.__raskDevtoolsHook;
         if (devtools) devtools.send(frame, new TextEncoder().encode(msg).length);
-        if (open && conn && conn.isOpen) conn.send(msg);
+        // Nothing leaves while it is in doubt who the browser is now (rask-auth-watch.ts).
+        if (open && conn && conn.isOpen && !authWatch.holds()) conn.send(msg);
         else queue.push(msg);
     }
 
@@ -1593,6 +1671,8 @@ import {
             body: JSON.stringify({ticket: auth.ticket, session: sessionId}),
             credentials: "same-origin"
         }).then(() => {
+            // This tab changed the browser's credential: the others ask about it before their next frame.
+            authChannel?.postMessage(1);
             try {
                 deliberateClose = true;
                 if (conn) conn.close(1000, "auth-refresh");
