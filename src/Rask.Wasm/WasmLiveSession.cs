@@ -270,7 +270,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             InHandlerScope = false;
             _lock.Release();
-            _ = DrainRenderRequestedAfterScope();
+            _ = DrainRenderRequestedAfterScope(afterRequestedRender: true);
         }
     }
 
@@ -771,32 +771,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Commit the final, actually-sent render as the new diff baseline exactly once.
         _renderCache?.Snapshot();
 
-        DropARenderPastTheBudget();
+        // A request still parked here is past the budget, and is NOT dropped: the scope's end hands it to
+        // DrainRenderRequestedAfterScope, which makes it a render of its own, as the server session does.
+        // Dropping it left the state last written undrawn until the next event. The budget bounds one
+        // dispatch; what comes without end after it is slowed and named by RenderPace.
         return true;
-    }
-
-    // Budget exhaustion surfaces a third queued in-dispatch render that won't
-    // flush — the next event picks up the trailing state. Match the server-side
-    // telemetry so dispatch-render-loop bugs are greppable on either runtime.
-    private void DropARenderPastTheBudget()
-    {
-        if (!_pendingRenderInScope)
-        {
-            return;
-        }
-
-        RaskDiagnostics.Report(
-            RaskLogLevel.Warning,
-            "Rask.Wasm",
-            "[Rask.WasmLiveSession] Coalesce-loop budget exhausted; a third " +
-            "in-dispatch render was queued and dropped. Inspect any handlers " +
-            "that re-trigger StateHasChanged in OnRendered / dispose " +
-            "callbacks during this dispatch.");
-
-        // Consume it: reported and dropped ON PURPOSE. Leaving it set would hand it to
-        // DrainRenderRequestedAfterScope, which would re-render, exhaust the budget again and
-        // loop — the runaway the budget exists to stop.
-        _pendingRenderInScope = false;
     }
 
     // A page that navigated as it mounted or updated: the payload just built is of a page the reader is not to

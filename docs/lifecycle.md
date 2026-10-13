@@ -458,10 +458,28 @@ Unlike a poll loop inside one component, this producer is **decoupled from the c
 across navigations (and, on the Server, across every session), and no first render is ever waiting on it.
 
 Each consumer subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected) once
-it leaves the tree. The loop runs on a background thread, so `StateHasChanged()` crosses threads — safe here: it
-schedules a render under the subscriber's own session lock and is a no-op once the component unmounts. Publish the
-producer's state as a single immutable snapshot swapped by reference, so a reader on the render thread cannot catch
-a half-built one.
+it leaves the tree. Publish the producer's state as a single immutable snapshot swapped by reference, so a reader on
+the render thread cannot catch a half-built one.
+
+### Following a singleton's event
+
+`source.Changed += StateHasChanged` is the supported way to follow anything outside the page, and
+`StateHasChanged()` may be called **from any thread**: a `BackgroundService` raising its event straight from the
+pool, several threads at once, with no dispatcher and no `await`. It never renders on top of a render in flight —
+it marks the component and asks its session, which draws under its own lock. Three things are guaranteed:
+
+- **The last state is always drawn.** Whatever was marked when the call returned reaches the reader's page without
+  another event, wherever the call landed: while a handler runs, inside a render, after a read came back, between
+  two connections.
+- **Calls that land together are drawn together.** While the session is handling an event or rendering, every call
+  is folded into the next render rather than given one of its own. A dispatch renders at most three times; what is
+  asked for after that is one more render straight after the dispatch.
+- **A runaway is slowed and named, never spun.** A component that asks for a render from every `Render()` would
+  otherwise never stop. After ten renders in a row that were each asked for while the one before was being made,
+  each further one waits 250 ms, and a warning on `Rask.Live` names the component types that asked. The page stays
+  current and the reader's events are answered in between.
+
+Mutate the state **before** the call, and do not call `StateHasChanged()` from `Render()` itself.
 
 ### Hosted services
 

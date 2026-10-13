@@ -185,6 +185,7 @@ public abstract partial class Component
             }
 
             comp.Live.StateDirty = true;
+            handle.Asked(comp);
             _ = handle.RequestPublishRender();
         }, this, TaskContinuationOptions.ExecuteSynchronously);
     }

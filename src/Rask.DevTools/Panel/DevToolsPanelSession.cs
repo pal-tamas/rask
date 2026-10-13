@@ -33,7 +33,6 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
     // into an exception on a thread-pool continuation. Without AvailableWaitHandle it holds nothing to release.
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    private bool _pendingRenderInScope;
     private bool _lastBuildHadJsInvokes;
     private int _disposed;
 
@@ -186,7 +185,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
         {
             InHandlerScope = false;
             _lock.Release();
-            _ = DrainRenderRequestedAfterScope();
+            _ = DrainRenderRequestedAfterScope(afterRequestedRender: true);
         }
     }
 
@@ -211,17 +210,6 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
         }
     }
 
-    private Task DrainRenderRequestedAfterScope()
-    {
-        if (!_pendingRenderInScope || IsDisposed)
-        {
-            return Task.CompletedTask;
-        }
-
-        _pendingRenderInScope = false;
-        return RequestPublishRender();
-    }
-
     // Every build diffs against the last SENT render; only the final one, which is the one sent, becomes the baseline.
     private async Task BuildCoalescingAsync(bool publishOnly)
     {
@@ -236,9 +224,8 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
 
         _renderCache?.Snapshot();
 
-        // Dropped on purpose once the budget is spent, as the hosts do: carrying it would loop a component that asks for a
-        // render from every render.
-        _pendingRenderInScope = false;
+        // A request still parked once the budget is spent is not dropped, as on the hosts: the scope's end makes it a
+        // render of its own (LiveSessionBase.DrainRenderRequestedAfterScope), so the feed is never one render behind.
     }
 
     private async Task BuildPayloadAsync(bool publishOnly, bool commitCache)

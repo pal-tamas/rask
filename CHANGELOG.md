@@ -179,6 +179,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A page that follows a background source is never left one render behind.** In production: a date filter
+  "did not work" until something else happened on the page, with `Coalesce-loop budget exhausted … a third
+  in-dispatch render was queued and dropped` in the log. A dispatch renders at most three times, and a render
+  asked for after that was dropped on purpose, to stop a component that asks from every render. It could not tell
+  that from three honest causes arriving together — a route change, a read coming back, a singleton's event raised
+  from pool threads (`board.Changed += StateHasChanged`) — and the state written last stayed undrawn until the
+  next event. Nothing is dropped now, on either host or in the DevTools panel: the request is one more render
+  straight after the dispatch. A true runaway is bounded instead by what it is: after ten renders in a row each
+  asked for during the one before, every further one waits 250 ms, and one warning on `Rask.Live` names the
+  component types that asked (the old warning named nothing). Two smaller losses on the same path are closed: a
+  `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
+  attached. `StateHasChanged()` from any thread is documented as supported
+  (`docs/lifecycle.md#following-a-singletons-event`).
+
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
   frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on
