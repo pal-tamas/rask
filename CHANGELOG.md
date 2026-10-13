@@ -139,6 +139,18 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
+  trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
+  that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from
+  the first time) was read as a name of the button's own, so it was ALSO given `aria-describedby` with the same
+  id. Whether that happened depended on how often the button had been walked: a first response renders in
+  waves, as many as its awaited reads take, so a list read in `OnUpdated` was served with the doubled link on
+  most requests and without it on about one in 150 — the same `GET`, two documents — and a live page flipped
+  between the two as it re-rendered. The tooltip's own id no longer counts as another name: an icon button
+  carries `aria-labelledby` alone (as Flux writes it), a button with words `aria-describedby` alone, however
+  many times it is rendered. Markup that tested for `aria-describedby="ui-tooltip-…"` on an icon button was
+  testing for the fault. Every other id the kit makes up — a field's `f-field-<n>`, a select's list, a menu, a
+  modal, tabs, an accordion — was checked through the same path and was already the same on every response.
 - **A select goes on saying its answer when a search brings rows that no longer include it.** With
   `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
   placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count
