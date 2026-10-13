@@ -23,7 +23,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
+                     "ui-text-controls", "ui-toggle", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
                      "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-file-upload", "ui-bound", "ui-mask",
                  })
         {
@@ -942,6 +942,55 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(Page.Locator("[data-testid='ui-date-picker-state']")).ToContainTextAsync("Arrival: ",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(field).Not.ToContainTextAsync("Select a date");
+    });
+
+    [Fact]
+    public Task On_a_phone_the_picker_is_a_sheet_that_writes_its_day_when_select_date_is_pressed() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            var picker = Page.Locator("[data-testid='ui-date-picker'] [data-ui-date-picker]").First;
+            var field = picker.Locator("[data-ui-date-picker-button]");
+            var state = Page.Locator("[data-testid='ui-date-picker-state']");
+            var dialog = picker.Locator("dialog");
+            await field.ScrollIntoViewIfNeededAsync();
+            await field.ClickAsync();
+            await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            // The page has heard that this is the sheet: no day closes the popup any more.
+            await Expect(dialog.Locator("[popovertargetaction]")).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+            var box = await dialog.BoundingBoxAsync();
+            var day = await dialog.Locator("td[data-date]:not([data-outside]) button:not([disabled])").Nth(4).BoundingBoxAsync();
+
+            // A pick marks the day; Cancel leaves the value as it was.
+            await dialog.Locator("td[data-date]:not([data-outside]) button:not([disabled])").Nth(4).ClickAsync();
+            await Expect(dialog.Locator("td[data-selected]")).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+            await Expect(dialog).ToBeVisibleAsync();
+            await Expect(state).ToHaveTextAsync("No arrival chosen.");
+            await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).ClickAsync();
+            await Expect(dialog).ToBeHiddenAsync();
+            await Expect(field).ToContainTextAsync("Select a date");
+
+            // Opened again, another day, and the button writes it.
+            await field.ClickAsync();
+            await Expect(dialog).ToBeVisibleAsync();
+            await dialog.Locator("td[data-date]:not([data-outside]) button:not([disabled])").Nth(6).ClickAsync();
+            await Expect(dialog.Locator("td[data-selected] button")).ToHaveTextAsync("7", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+            await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Select date", Exact = true }).Last.ClickAsync();
+
+            await Expect(dialog).ToBeHiddenAsync();
+            await Expect(state).ToContainTextAsync("Arrival: ", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+            await Expect(field).Not.ToContainTextAsync("Select a date");
+            Assert.Equal(324, box!.Width);
+            Assert.Equal(33, box.X);
+            Assert.Equal(44, day!.Width);
+            Assert.Equal(44, day.Height);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 
     [Fact]

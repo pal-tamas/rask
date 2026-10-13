@@ -13,7 +13,9 @@
 
   "DatePickerPlaceholder": "Válasszon dátumot",
   "DatePickerRangePlaceholder": "Válasszon időszakot",
-  "DatePickerConfirm": "Kiválasztás",
+  "DatePickerConfirm": "Dátum kiválasztása",
+  "DatePickerConfirmRange": "Időszak kiválasztása",
+  "DatePickerPresetsPlaceholder": "Válasszon előre megadott időszakot...",
   "DatePickerCancel": "Mégse",
   "DatePickerMonth": "Hónap",
   "DatePickerDay": "Nap",
@@ -196,5 +198,14 @@
   "ErrorTitle": "Alkalmazáshiba",
   "NotFoundTitle": "Az oldal nem található",
   "NotFoundBody": "Ezen a címen nincs oldal: {0}",
-  "NotFoundBackHome": "Vissza a kezdőlapra"
+  "NotFoundBackHome": "Vissza a kezdőlapra",
+
+  "CarouselRole": "lapozó",
+  "CarouselLabel": "Elemek",
+  "CarouselSlideRole": "dia",
+  "CarouselSlideLabel": "{0} / {1}",
+  "CarouselPrevious": "Előző dia",
+  "CarouselNext": "Következő dia",
+  "CarouselIndicators": "Válassza ki a megjelenítendő diát",
+  "CarouselShowSlide": "{0}. dia megjelenítése"
 }

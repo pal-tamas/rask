@@ -58,6 +58,7 @@ public abstract partial class Component
             slotState.Slot0 = default;
             slotState.Rest = null;
             slotState.Stamp = 0;
+            slotState.Held = 0;
         }
 
         // Per-component slot index, reset the first time this component registers in a given root
@@ -70,6 +71,7 @@ public abstract partial class Component
         }
 
         var index = slotState.LocalCount++;
+        slotState.Held = Math.Max(slotState.Held, slotState.LocalCount);
         ref var slot = ref SlotAt(slotState, index);
         var id = slot.Id ??= MintSlotId(rootState, slotComponent, index);
         Settle(ref slot, handler, rootState);
@@ -79,12 +81,39 @@ public abstract partial class Component
 
     private static void BeginSlotRun(Component slotComponent, HandlerState slotState, HandlerState rootState)
     {
+        Vacate(slotState, rootState);
         slotState.Stamp = rootState.Generation;
         slotState.LocalCount = 0;
         if (slotState.Forgotten)
         {
             RememberHandlerSlots(slotComponent, slotState, rootState);
         }
+    }
+
+    // The slots the last walk did not reach: a list that lost rows leaves its last slots holding the handlers of
+    // the page before it. They are said to hold nothing since that walk's page, so an event from that page or a
+    // later one does not count them among the handlers the page had (Component.StaleEvents) — counted, the
+    // handlers of two pages stood side by side, what the render worked out for each page told them apart, and
+    // a click on a row that was still there found no row the same and ran nothing.
+    private static void Vacate(HandlerState slotState, HandlerState rootState)
+    {
+        for (var i = slotState.LocalCount; i < slotState.Held; i++)
+        {
+            ref var slot = ref SlotAt(slotState, i);
+            if (slot.Handler is not { } held)
+            {
+                continue;
+            }
+
+            slot.Older = slot.Before;
+            slot.OlderSince = slot.BeforeSince;
+            slot.Before = held;
+            slot.BeforeSince = slot.Since;
+            slot.Handler = null;
+            slot.Since = rootState.Version;
+        }
+
+        slotState.Held = Math.Min(slotState.Held, slotState.LocalCount);
     }
 
     /// <summary>
@@ -766,6 +795,9 @@ public abstract partial class Component
 
         /// <summary>Slots this component has used so far in the generation named by <see cref="Stamp" />.</summary>
         public int LocalCount;
+
+        /// <summary>How many of the first slots may hold a handler: the most any walk reached since slots were last vacated.</summary>
+        public int Held;
 
         /// <summary>
         ///     The id for slot 0 — a scalar, so the common single-handler component never allocates an

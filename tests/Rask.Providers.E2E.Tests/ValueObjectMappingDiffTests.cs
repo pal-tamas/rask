@@ -42,6 +42,36 @@ public sealed class ValueObjectMappingDiffTests
     }
 
     [Fact]
+    public void On_sql_server_a_one_value_value_object_inside_another_is_no_migration_either_way()
+    {
+        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseSqlServer(OfflineSqlServer).Options);
+        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseSqlServer(OfflineSqlServer).Options);
+
+        var (forward, back) = ValueObjectMappingDiff.Between(complex, scalar);
+
+        Assert.Empty(forward);
+        Assert.Empty(back);
+        Assert.Equal(
+            ValueObjectMappingDiff.Columns(complex, ValueObjectMappingDiff.NestedTable),
+            ValueObjectMappingDiff.Columns(scalar, ValueObjectMappingDiff.NestedTable));
+    }
+
+    [Fact]
+    public void On_postgresql_a_one_value_value_object_inside_another_is_no_migration_either_way()
+    {
+        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseNpgsql(OfflinePostgres).Options);
+        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseNpgsql(OfflinePostgres).Options);
+
+        var (forward, back) = ValueObjectMappingDiff.Between(complex, scalar);
+
+        Assert.Empty(forward);
+        Assert.Empty(back);
+        Assert.Equal(
+            ValueObjectMappingDiff.Columns(complex, ValueObjectMappingDiff.NestedTable),
+            ValueObjectMappingDiff.Columns(scalar, ValueObjectMappingDiff.NestedTable));
+    }
+
+    [Fact]
     public void The_columns_are_the_ones_each_inner_type_and_its_facets_ask_for()
     {
         using var scalar = new ScalarShapeContext(new DbContextOptionsBuilder<ScalarShapeContext>().UseSqlServer(OfflineSqlServer).Options);

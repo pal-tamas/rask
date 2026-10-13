@@ -223,6 +223,16 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ColorSwatchSlate", 0),
         ("ColorSwatchBlack", 0),
         ("ColorSwatchWhite", 0),
+        ("DatePickerConfirmRange", 0),
+        ("DatePickerPresetsPlaceholder", 0),
+        ("CarouselRole", 0),
+        ("CarouselLabel", 0),
+        ("CarouselSlideRole", 0),
+        ("CarouselSlideLabel", 2),
+        ("CarouselPrevious", 0),
+        ("CarouselNext", 0),
+        ("CarouselIndicators", 0),
+        ("CarouselShowSlide", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

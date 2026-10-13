@@ -15,6 +15,18 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
 {
     private static readonly UiPartMarker Marker = new("ui-calendar");
 
+    // The box the runtime measures (rask-plot.ts), and the parity tool's name for a node Flux has none of.
+    private static readonly Dictionary<string, string?> NarrowMarks = new(StringComparer.Ordinal)
+    {
+        ["ui-calendar-narrow"] = "",
+        ["rask-measure"] = "",
+    };
+
+    // What the box measures as: two wide on a phone, one elsewhere.
+    private const string NarrowBox = "2 1";
+
+    private const string WideBox = "1 1";
+
     private static readonly Dictionary<string, string?> StaticMonths = new(StringComparer.Ordinal) { ["ui-calendar-months"] = "" };
 
     // The runtime's two hooks for a grid of days: the keys handled here do not scroll the page behind it (Space
@@ -47,7 +59,8 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         bool marked = true)
     {
         var view = ViewOf(options, state, picks);
-        var months = Enumerable.Range(0, options.Months).Select(view.AddMonths).ToList();
+        // One month on a phone, whatever was asked for: Flux's script draws no other there.
+        var months = Enumerable.Range(0, state.Narrow ? 1 : options.Months).Select(view.AddMonths).ToList();
         var shown = months.SelectMany(month => Weeks(options, month)).SelectMany(week => week).ToHashSet();
         var stop = TabStop(options, state, picks, months, shown);
         // A paging key lets go of the focus for the one render it causes: no day asks for it, and it falls to
@@ -89,10 +102,20 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                     ]
                 ]
             ],
-            grids[months.Select(month => Month(options, state, picks, month, month == host ? stop : null, follows))],
-            footer
+            grids[months.Select((month, at) => Month(options, state, picks, month, month == host ? stop : null, follows, at > 0))],
+            footer,
+            options.Months > 1 || options.InPopup ? Narrow(state) : null
         ];
     }
+
+    // Asked only where the answer changes something: several months, or a date picker's popup.
+    private static global::Rask.Core.Component Narrow(UiCalendarState state) =>
+        Span.Class(UiCalendarLook.Narrow).Data(NarrowMarks).Aria("hidden", "true")[
+            Input
+                .Value(state.Narrow ? NarrowBox : WideBox)
+                .OnInput(box => { state.Narrow = string.Equals(box, NarrowBox, StringComparison.Ordinal); })
+                .Type(InputType.Hidden)
+        ];
 
     // Two months side by side draw the days between them twice. The tab stop is one button: the day in its own
     // month where that month is shown, else the first month that draws it as a neighbour's.
@@ -196,12 +219,13 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     // ---- one month --------------------------------------------------------------------------------
 
     private static global::Rask.Core.Component Month(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly? stop, bool follows)
+        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly? stop, bool follows, bool folded)
     {
-        var cell = UiCalendarLook.Cell(options.Size);
+        var cell = Cell(options);
         var names = options.Culture.DateTimeFormat;
+        var grid = Div.Key(month.DayNumber).Role("grid").Data("month", "");
 
-        return Div.Key(month.DayNumber).Role("grid").Data("month", "")[
+        return (folded ? grid.Class(UiCalendarLook.MonthFolded) : grid)[
             Div.Class(options.SelectableHeader ? UiCalendarLook.HeadingHidden : UiCalendarLook.Heading)[
                 Div.Class(UiCalendarLook.HeadingText)[month.ToString("Y", options.Culture)]
             ],
@@ -230,6 +254,9 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             ]
         ];
     }
+
+    private static string Cell(UiCalendarOptions options) =>
+        options.WeekNumbers ? UiCalendarLook.CellBesideWeek(options.Size) : UiCalendarLook.Cell(options.Size);
 
     private static global::Rask.Core.Component Weekday(string cell, object key, string name) =>
         Th.Key(key).Class(UiClass.Compose("p-0", UiCalendarLook.Weekday, cell)).Attributes(("scope", "col"))[
@@ -268,7 +295,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var unavailable = options.Unavailable?.Contains(day) == true;
         var blocked = Blocked(options, picks, day);
         var today = day == options.Today;
-        var cell = UiCalendarLook.Cell(options.Size);
+        var cell = Cell(options);
         var name = day.ToString("D", options.Culture);
 
         var td = Td

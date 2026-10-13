@@ -19,6 +19,11 @@ namespace Rask;
 /// pick that finishes the choice closes it on the same click. A form control like the kit's inputs:
 /// <see cref="Label" />, <see cref="Description" /> and validation work as they do there.
 /// </para>
+/// <para>
+/// <b>On a phone</b> — under 640 px — it is what Flux's is there: the same popup centred over a dimmed page, one
+/// month of larger days, and Cancel and a selecting button under them. A pick marks the day and writes nothing;
+/// the button writes it, and Cancel, Escape and a press outside leave the value as it was.
+/// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day or a range.</typeparam>
 public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind
@@ -37,7 +42,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     {
         ["rask-popover-open"] = "false",
         ["rask-lock"] = "",
-        // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this.
+        // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this, and
+        // leaves it to the stylesheet where that says so (the phone's sheet).
         ["rask-place"] = "bottom start 5 0",
     };
 
@@ -207,6 +213,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private bool Confirms => WithConfirmation == true;
 
+    // A pick is held for the popup's button: where the picker confirms, and on a phone, where Flux's always does.
+    private bool Holds => Confirms || _state.Narrow;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -224,7 +233,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             return UiFormCommit.CommitAsync(this, acc, ctx, value);
         }
 
-        Task Choose(T value) => Confirms ? Hold(value) : Commit(value);
+        Task Choose(T value) => Holds ? Hold(value) : Commit(value);
 
         var scope = new UiDatePickerScope
         {
@@ -316,6 +325,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>What stands before the months: a range picker's preset list.</summary>
     private protected virtual Component? Aside(T? current, UiCalendarOptions options, Func<T, Task> choose) => null;
 
+    /// <summary>What stands under the months, over the buttons: a range picker's presets as a phone lists them.</summary>
+    private protected virtual Component? Below(T? current, UiCalendarOptions options, Func<T, Task> choose) => null;
+
     /// <summary>A day as the button shows it: the locale's long date without its weekday, the month abbreviated.</summary>
     private protected static string Medium(DateOnly date, CultureInfo culture)
     {
@@ -332,12 +344,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     // The months in the popup, a range's presets before them and the confirming buttons under them.
     private Component Calendar(string id, UiCalendarOptions options, T? shown, Func<T, Task> choose, Func<T, Task> commit) =>
         UiCalendarGrid.Render(
-            options with { Id = id, InPopup = true, Closes = Confirms ? null : PopoverId },
+            options with { Id = id, InPopup = true, Closes = Holds ? null : PopoverId },
             _state,
             Picks(shown, choose),
             UiDatePickerLook.Calendar,
             Aside(shown, options, choose) ?? Div.Class(UiDatePickerLook.Aside),
-            Footer(commit),
+            Fragment[Below(shown, options, choose), Footer(commit)],
             marked: false);
 
     private Component OwnTrigger() =>
@@ -354,34 +366,31 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
             // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
             // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
-            .Attributes(
-                ("autofocus", ""),
-                (UiDraws.Mark, "toggle"),
-                ("style", "position-anchor:--" + PopoverId
-                          + ";inset:auto;top:anchor(bottom);left:anchor(left)"
-                          + ";position-try-fallbacks:flip-block,flip-inline;margin:5px 0"))
+            .Attributes(("autofocus", ""), (UiDraws.Mark, "toggle"), ("style", "position-anchor:--" + PopoverId))
             .OnToggle(e =>
             {
                 _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
                 if (!_open)
                 {
-                    // Reopening goes back to the chosen day's month, and a choice nobody confirmed is gone.
+                    // Reopening goes back to the chosen day's month, and a choice nobody confirmed is gone —
+                    // but not on a phone: Flux's sheet opens again with the day that was marked on it, and its
+                    // button still writes that day (measured: pick, Cancel, open, Select).
                     _state.Forget();
-                    _pending = default;
+                    _pending = _state.Narrow ? _pending : default;
                 }
             })[
             Div.Class(UiDatePickerLook.FocusPlaceholder).Data(FocusPlaceholder.With(null)).TabIndex(0),
             calendar
         ];
 
-    // Flux's two buttons, there in every picker and shown when a choice waits to be confirmed. The confirming
+    // Flux's two buttons, there in every picker and shown where a choice waits to be confirmed. The confirming
     // click is heard on the box around the button, where Flux hears it too: both close the popup themselves.
     private Component Footer(Func<T, Task> commit) =>
-        Div.Class(Confirms ? UiDatePickerLook.Footer : UiDatePickerLook.FooterHidden)[
-            Div.Class("inline")[
+        Div.Class(Confirms ? UiDatePickerLook.Footer : UiDatePickerLook.FooterPhone)[
+            Div.Class(UiDatePickerLook.FooterButton)[
                 Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")[RaskStrings.Get(RaskString.DatePickerCancel, "Cancel")]
             ],
-            Div.Class("inline").Role("button").TabIndex(0)
+            Div.Class(UiDatePickerLook.FooterButton).Role("button").TabIndex(0)
                 .Attributes(UiDraws.Marks(("click", UiDraws.Waits(this, Bind is not null))))
                 .OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]

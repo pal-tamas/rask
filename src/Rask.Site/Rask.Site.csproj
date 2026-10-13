@@ -104,6 +104,8 @@
          that path. WASM apps that DO mark methods [JSInvokable] should add a
          [DynamicDependency] on those methods (standard Blazor WASM mitigation). -->
     <NoWarn>$(NoWarn);IL2104</NoWarn>
+    <!-- The showcase draws Ui.Flag: its drawings are files in wwwroot/flags, copied there at build. -->
+    <RaskUiWriteFlags>true</RaskUiWriteFlags>
   </PropertyGroup>
 
   <ItemGroup>

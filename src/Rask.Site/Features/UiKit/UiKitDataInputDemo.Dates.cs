@@ -51,7 +51,8 @@ public sealed partial class UiKitDataInputDemo
             "Date picker — Flux UI's, example by example",
             "A field-shaped button over the calendar in a popover the browser opens and closes: a day closes it on "
             + "the pick, a range on its second click, a preset at once. Type(Input) swaps the button for month, day "
-            + "and year fields typed as one: a part that is full moves on to the next.",
+            + "and year fields typed as one: a part that is full moves on to the next. On a phone the popup is "
+            + "Flux's sheet over the page: a pick marks the day, and Select date writes it.",
             Div.Data(Testid("ui-date-picker")).Class("grid max-w-3xl gap-6 sm:grid-cols-2")[
                 Example("A day", "ui-date-picker-state", _arrival == default ? "No arrival chosen." : $"Arrival: {Iso(_arrival)}",
                     Ui.DatePicker.Value(_arrival).Key("day").Label("Arrival").OnChange(d => { _arrival = d; })),

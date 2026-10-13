@@ -17,8 +17,8 @@ public sealed partial class UiKitActionsPage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "Buttons, modals and dropdowns as C# components — Rask",
-            "Flux UI's button and button group as typed C# components, with a dropdown, modal, swap, theme "
-            + "controller and floating action button driven from C# fields.",
+            "Flux UI's button and button group as typed C# components, with a dropdown, context menu, modal "
+            + "and popover whose state is a plain C# field on the page.",
             Routes.UiKitActionsPage());
 
     /// <inheritdoc />
@@ -32,7 +32,7 @@ public sealed partial class UiKitActionsPage : Component
         ],
         CodeSample
             .Files(["UiKitButtonDemo.cs", "UiKitActionsDemo.cs"])
-            .Notes("The dropdown's open state, the dialog's, and the swap's face are plain fields on the "
+            .Notes("The dropdown's open state and the dialog's are plain fields on the "
                 + "demo component, changed in a callback and redrawn by the live diff. Nothing here is a "
                 + "checkbox or a <details>.")
             .Result(UiKitActionsDemo)

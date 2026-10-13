@@ -210,9 +210,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -593,6 +593,38 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
   run and fill it from the hidden field.
 
+- The date picker and the calendar ON A PHONE (2026-10-13, the owner: what Flux's is there). Measured at 390 × 844,
+  and the switch at 639 / 640: Flux's dialog is `showModal()`ed at EVERY width and its look is CSS alone — under
+  640 px `position: fixed` in the middle of the viewport (324 × 416 for one month of five weeks), no border,
+  `shadow-xl`, `max-height: 100%`, `::backdrop` black at 10%; ONE month in the DOM whatever `months` says (its
+  script draws no other); days 44 px (Xs 40, Sm and Base 44, Xl 48; 40 beside week numbers), steps and the
+  month heading 40 px, the header's selects 40 px with `ps-3`; the presets list hidden and a second
+  `ui-calendar-presets` holding a native select (14px, `shadow-2xs`, `px-4` around it, first option "Choose
+  predefined range..." disabled); the footer `flex`, `p-4`, its two wrappers `block`; trigger `min-w-[12rem]`,
+  16px. What a pick DOES is decided when it is made, by the width then: open at 900 and narrowed, the next pick
+  is held; open at 390 and widened, it writes and closes. Cancel, Escape and a press on the backdrop close and
+  write nothing — and leave the calendar's own mark, so the sheet opens again with that day lit and "Select
+  date" still writes it (a quirk, kept). The range's button reads "Select range". The standalone calendar
+  changes the same way (it has no footer). The TIME picker does not: same popover and rows under 640 px, only
+  its trigger is 12rem and 16px there (the kit's is 240px and 14px at every width — measured, not built).
+  How the kit does it: ONE markup, `sm:` / `max-sm:` utilities, the popup still a `popover` (the kit's
+  translation of Flux's dialog at every width, so no focus trap — Tab leaves and closes it, as on a desktop).
+  The anchor rules moved from the dialog's `style` into `sm:` classes (only `position-anchor` stays inline,
+  which `rask-place.ts` reads the anchor from) and `max-sm:[--rask-place:none]` stands the placement hook down:
+  a panel whose `--rask-place` computes to `none` is the stylesheet's. C# has to know the width for two things
+  only — a pick is held, and the months past the first are not drawn (the arrows must not walk into a hidden
+  month) — and hears it through `UiCalendarGrid`'s probe, a 1px box that is 2px under `sm`, measured by the
+  existing `data-rask-measure` hook into `UiCalendarState.Narrow` (drawn only where it changes something: several
+  months, or a picker's popup; `EXTRA` in `parity.mjs` knows it as `data-ui-calendar-narrow`). Until the page
+  has heard — a static parity page never does — the stylesheet folds the other months (`max-sm:hidden`), and
+  `lib.mjs` does not collect a `[data-month]` that is itself `display: none`. The colour picker's sheet asks the
+  same question the same way; if a third control needs it, the probe becomes one shared helper.
+  Harness: `parity.mjs <page> --view 390x844` measures both pages in that viewport (Flux's cache is
+  `measurements@390x844.json`); a `<dialog>` that is `position: fixed` on both sides is held to its place in
+  the VIEWPORT and what is inside it to the dialog; `parity-date.mjs date-picker` runs loaded + open at both
+  sizes and the landings at 390, 640 and 1920, and `--live <url>` walks Flux's first example against a running
+  site's picker at 390 (open, pick, pick, Cancel, open, pick, Select date, Escape, backdrop, Select date).
+
 - Popover (2026-10-12): `Ui.Popover` is the PANEL, the second child of `Ui.Dropdown`, which places it with the
   menu's own anchor code (`UiPopupHost`). `parity-popover.mjs` measures Flux's page once per dropdown (eleven)
   with that one open — the `data-parity-open` route, not an `open.mjs` config — gives the Rask page the runtime
@@ -672,10 +704,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   it, or its `popovertarget` button): its `position-area` rules agreed with Flux at nine ordinary places and
   differed where a tooltip came within 5 px of an edge (Flux keeps the side and holds the height; the rules
   turned it). A submenu's flyout still only turns to the other side (`flip-inline`): unmeasured.
-  NOT BUILT, found here: under 640 px Flux's DATE PICKER is another control — a modal centred in the viewport
-  over a page dimmed 10%, days 44 px, the trigger `min-w-[12rem]`, and Cancel / "Select date" under the
-  calendar (a pick does not close it). The kit shows its one popup at every width, kept in view by the hook;
-  `parity-date.mjs` therefore holds the date picker's landing at 640 and 1920, the time picker's at 390 too.
+  Under 640 px Flux's DATE PICKER is another thing, and the kit's is too since 2026-10-13 — below.
   Found by holding panels at a phone's width, and fixed: a navmenu row is `py-2` under 1024 px (36px) and
   `py-1.5` from there; the twenty-rem limit of a select with a search field is its LIST's, not its popup's.
 
@@ -750,6 +779,8 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
+| a panel that is something else under a breakpoint (WIRED: `Ui.DatePicker`'s popup) | `max-sm:[--rask-place:none]` beside `data-rask-place`; the anchor rules as `sm:` utilities, `position-anchor` alone in `style` | not placed while `--rask-place` computes to `none`: the stylesheet's, and placed again above the breakpoint, asked on every pass |
+| a calendar of several months, a date picker's popup (WIRED: `UiCalendarGrid`) | a box only the stylesheet sizes (`w-px max-sm:w-0.5`) with `data-rask-measure` and its one bound hidden field, rendered `"1 1"` / `"2 1"` | the page hears which side of `sm` it is on, with no frame where it already says so; `unasked` |
 | every panel anchored to a trigger (WIRED: `Ui.Menu`, `Ui.Navmenu`, `Ui.Popover` through `UiPopupHost.Place`; the select, autocomplete and pillbox lists through `UiAnchor.Place`; the date and time popups; `Ui.TooltipContent`; a context menu, which names no anchor and sits at the pointer) | `data-rask-place="<side> <align> <gap> <offset>"` on the `[popover]`, beside the CSS anchor rules in its `style` (`position-anchor:--x` against an element whose `style` says `anchor-name:--x`), which stay what places it with no script | Flux's placement (`rask-place.ts`): flip the side → flip the alignment (the offset mirrored) → slide back 5 px inside the edge → hold to the height that is left; placed in the task that opens it, never drawn where the anchor rules alone leave it; one rule per open panel in the runtime's own stylesheet, keyed on `data-rask-placed`; nothing sent |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
@@ -785,7 +816,8 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
-| Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
+| Carousel (WIRED: `UiCarousel`, `UiCarouselControls`) | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction` on each arrow's wrapper; `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` | position flags, arrows, indicators, autoplay (held under the pointer and while focus is inside) |
+| Toggle, unbound and unheard (WIRED: `UiToggle`) | `data-rask-switch` (bare) on the `<button role="switch">`, NO `OnClick`; `aria-checked` and `data-checked` rendered for where it starts (`rask-switch.ts`) | a press, Space and Enter flip both in the browser, held against the render; nothing is sent |
 | Pagination `scroll-to` | root `data-rask-scroll-to="<selector>"` (`rask-scroll.ts`) | a press on a button or link inside brings the selector's element into view; the press still runs |
 
 Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
@@ -896,6 +928,53 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   on Flux's page: an `invalid` file item (it takes the invalid input's border), sizes beyond KB (`UiFileSize`
   follows the reference's B / KB / MB / GB), the icon of a two-line item with no image. The site's demo reads a
   chosen picture for its preview, which Flux's page does on the server.
+
+- Flag (2026-10-13): `Ui.Flag` is a `<span>` frame around a lazy `<img>`. The drawings are FILES
+  (`src/Rask.Ui/Flags/`, country-flag-icons 1.6.20, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
+  from the pinned tarball and writes `UiFlagRegistry.g.cs`), packed ONCE as `flags/` at the package root (not under `build/`: `PackagingContractTests` wants every `build/` item twinned, which would ship them twice) and copied to
+  `wwwroot/flags` only for a project that says `RaskUiWriteFlags` (`Rask.Ui.targets`; the browser half of a
+  one-project WASM app owns them, as it owns the editor's engine — `ClientCompanionGenerationTests`). `UN` and
+  `CQ`: Flux serves them from artwork whose licence could not be established, so they are not shipped. The
+  parity page compares the FRAME (a file:// page has no `/flags`); that the files are served and drawn is
+  `UiKitFlagTests` on the site. Found through its page: Flux's `flux:select.option` given BOTH `label` and
+  content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
+  draws the `Label` in place of its children, so the flag page's two selects are written without it.
+
+- Toggle (2026-10-13): `Ui.Toggle` is a real `<button role="switch">` where Flux writes a `<ui-switch>` — the
+  element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
+  press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides
+  what the toggle holds and takes the pointer; `disabled` is 50%, no pointer, no shadow, out of the tab order.
+  All of that is the button's own and the runtime's `data-loading`. A toggle with no `Bind` and no `OnChange`
+  carries NO handler and `data-rask-switch`: the hook flips `aria-checked` / `data-checked` in the browser and
+  zero frames are sent (the owner, 2026-10-13: a gesture that only changes what a component DRAWS sends the
+  server nothing, as Flux — `UiDrawnInTheBrowserTests` counts the socket for it and for the carousel). With a `Tooltip` it renders
+  `Ui.Tooltip` around the button, which names it (`aria-labelledby`), as Flux does. `Icon` is the input's
+  union (`UiInputIcon`): Flux's `icon` prop and its `icon` slot under one name. NOT an `IFormControl<bool>`:
+  one of those must be opened with `Bind` or `Value`, and Flux's toggle is used with neither. So it commits
+  through `PendingBinds` itself; listened to but unbound, its state is a field seeded from `Checked` and
+  re-seeded when the page hands it a different one. With `Bind` AND `OnChange` it is live (`IDeferredBind.Live`): Flux's
+  `wire:model` + `wire:change` is one request. OPEN, the owner's call: whether it should also take `Value`
+  as the switch does (`Checked` is Flux's own name for the same thing, as on `Ui.Checkbox`).
+  Unmeasured: slot children as the label, a label beside a tooltip. `Ui.Swap` went with it; daisyUI's `swap`
+  is excluded on the `@plugin` line.
+
+- Carousel (2026-10-13): `Ui.Carousel` / `Ui.CarouselSlide` / `Ui.CarouselControls`, wired to the hook as the
+  table says, with `data-rask-carousel-indicators` on the row of dots (Flux's `ui-carousel-indicators`, which
+  carries no marker). Rendered at its start — first slide and first dot selected, previous arrow disabled,
+  `data-at-start` on the root and both wrappers — and the hook owns every one of those from then on, so NO
+  carousel state is C#'s and there is nothing to bind. A slide learns its place from the carousel
+  (`UiCarouselSlide.Placed`, an internal step that marks it changed). `Fade()` is a scroll-driven mask in
+  `ui.css` where Flux's script writes `--flux-carousel-fade-left/right`; the harness neither pauses nor records
+  it. `node scripts/flux/parity-carousel.mjs` is the walk: Flux's eight live carousels and the parity page with
+  `rask-carousel.ts` (or `--live <url>` — the site's demo keeps Flux's order for its first eight), one line a
+  step, equal line for line; `--record` prints Flux's alone. Recorded there and built: Enter and Space press an
+  arrow, the arrow keys / Home / End on an arrow do nothing, a pointer drag does not scroll, Tab stops are the
+  track then each enabled arrow; page advance moves by the slides WHOLLY in view; autoplay rewinds with a
+  smooth scroll and holds under the pointer AND while focus is inside (the hook gained the second on this
+  merge); with `wrap="rewind"` (set on Flux's live element) NO `data-at-end` is written anywhere, so the next
+  arrow stays shown at the end. Flux's reflected props (`snap`, `scroll`, `advance`, `wrap`, `autoplay` as plain attributes) and its
+  `data-ready` are not written. Unmeasured, no example on Flux's page: `arrows:position="outside"`,
+  `snap="mandatory"`, `scroll="instant"`, `disabled`, `arrows:class`.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

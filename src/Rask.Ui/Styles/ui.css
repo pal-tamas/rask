@@ -68,10 +68,13 @@
 */
 @source not "./daisyui.mjs";
 
+/* Nor the flag drawings Ui.Flag serves as files: path data, not markup, and 254 files to read for nothing. */
+@source not "../Flags";
+
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline;
+  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap, carousel;
 }
 
 @theme {
@@ -747,6 +750,55 @@
   @keyframes ui-tabs-scrolled {
     to {
       --ui-tabs-scrolled: 100%;
+    }
+  }
+}
+
+/*
+  A FADING CAROUSEL FADES ONLY THE EDGE THAT HAS MORE BEHIND IT.
+
+  Flux's script writes how far the track has scrolled into a custom property, and the track's mask reads
+  it. Here two registered percentages run from one end of the track's own scroll to the other, so the left
+  fade is absent at the start, the right one at the end, and both are 64px wide in between — Flux's
+  numbers. A track that does not overflow has no timeline, the properties keep their initial 100%, and
+  nothing fades.
+
+  Behind @supports, as the table's shadow is: without scroll timelines the animation would land on its last
+  frame and fade the left edge of a carousel that has not moved.
+*/
+@property --ui-carousel-fade-start {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --ui-carousel-fade-end {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@layer rask {
+  @keyframes ui-carousel-fade {
+    from {
+      --ui-carousel-fade-start: 100%;
+      --ui-carousel-fade-end: 0%;
+    }
+
+    to {
+      --ui-carousel-fade-start: 0%;
+      --ui-carousel-fade-end: 100%;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    [data-ui-carousel-track][data-fade] {
+      mask-image:
+        linear-gradient(to left, #000 max(100% - 64px, var(--ui-carousel-fade-start)), transparent 100%),
+        linear-gradient(to right, #000 max(100% - 64px, var(--ui-carousel-fade-end)), transparent 100%);
+      mask-composite: intersect;
+      animation: ui-carousel-fade linear both;
+      animation-timeline: scroll(self inline);
     }
   }
 }
@@ -1655,7 +1707,7 @@
 */
 @layer rask {
   [data-ui-calendar] select,
-  [data-ui-date-picker] select {
+  [data-ui-date-picker] select:not([data-ui-select-native]) {
     background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E");
     background-position: right 0.25rem center;
     background-repeat: no-repeat;

@@ -40,7 +40,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         foreach (var id in new[]
                  {
                      "ui-button", "ui-button-variants", "ui-button-groups", "ui-dropdown", "ui-context-menu", "ui-command",
-                     "ui-modal", "ui-modal-confirm", "ui-modal-flyout", "ui-modal-floating", "ui-modal-options", "ui-modal-state", "ui-swap",
+                     "ui-modal", "ui-modal-confirm", "ui-modal-flyout", "ui-modal-floating", "ui-modal-options", "ui-modal-state",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -828,26 +828,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync();
-    });
-
-    [Fact]
-    public Task The_swap_flips_its_face_and_says_so() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-swap']");
-        var swap = scope.Locator("button.swap");
-
-        await Expect(swap).ToHaveAttributeAsync("aria-pressed", "false");
-        await Expect(scope).ToContainTextAsync("Playing");
-
-        await swap.ClickAsync();
-
-        // The class is what daisyUI draws from, and aria-pressed is what a screen reader reads. A swap
-        // that changed one without the other would look right and announce nothing.
-        await Expect(swap).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("swap-active"));
-        await Expect(swap).ToHaveAttributeAsync("aria-pressed", "true");
-        await Expect(scope).ToContainTextAsync("Muted");
     });
 
     [Fact]

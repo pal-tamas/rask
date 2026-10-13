@@ -7,8 +7,29 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **A reconnect no longer hands a live page back the user its sign-in check had taken away.** The Server host
+  re-checks an open page's user at most every 30 seconds (`ISessionRevalidator`), and a reconnect re-seeded the
+  principal from its cookie or token without asking again — so a session ended or narrowed a moment earlier acted
+  under the old principal until the interval next came round, each time it reconnected. A connection is now
+  checked as it attaches, before anything is rendered or dispatched for it.
+- **A live session whose user was signed out is not adopted by another signed-in user.** Once its principal was
+  cleared the session had no owner to compare with, so the socket, the HTTP fallback, an upload and a download
+  accepted any signed-in holder of its id — on a page still holding what it had mounted for the previous user.
+  Such a session now answers its former user or nobody.
+- **A refused attach is logged.** A connection that names a session it may not drive is answered exactly like one
+  naming an id that never existed, so nothing told an operator it had happened. `Rask.Live` now logs it at
+  Information with the reason — another user, an anonymous connection on a session that has a user, an unknown
+  id — and a fingerprint of the id; never the id, a claim or a token.
+- [What ties a live page to its user](docs/authentication.md#what-ties-a-live-page-to-its-user) states the rule
+  in full, for a `RaskApp` and for a hand-wired host.
+
 ### Added
 
+- **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
+  beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
+  another. Generated code calls it; an app has no reason to.
 - **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
   a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
   `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
@@ -48,6 +69,26 @@ them until tagged releases begin.
   handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
   a list was merely opened now sees it speak with the next action.
 
+- **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
+  pressed.** **A behaviour change under 640 px**, with nothing to change in an app — the same component, the same
+  steps, one markup. Measured on Flux's live page at 390 × 844 and held to it example by example
+  (`scripts/flux/parity-date.mjs`, as loaded, open, landing and a walk): the popup is centred in the viewport over
+  a page dimmed 10%, with no border and a deeper shadow; it draws ONE month whatever `Months` says, days 44px
+  (40px beside week numbers), month steps 40px; a range's presets are a native select under the days; and
+  **Cancel** and **Select date** — **Select range** on a range — stand at its foot. A pick marks the day and
+  writes nothing: the button writes it, through the binding the picker already has (a plain `Bind` with the
+  reader's next action, `.Live()` at once), and Cancel, Escape and a press on the dimmed page leave the value as
+  it was. As on Flux, a day marked on a sheet that was closed is still marked when it opens again. The trigger
+  is 16px text and at least 12rem wide there (14px and 240px from 640 px up). The stylesheet decides which of
+  the two it is, so the breakpoint is stated once: the page hears it from the browser through a box only the
+  stylesheet sizes (`data-rask-measure`, an existing hook), and `rask-place.ts` leaves a panel whose
+  `--rask-place` computes to `none` to the stylesheet — a window dragged across 640 px with the popup open
+  changes hands as it goes. From 640 px up nothing changed: the popup hangs under its trigger and a pick
+  writes and closes. `Ui.Calendar` is Flux's on a phone too: one month, the larger days and steps. Two looks
+  came with it at every width, both Flux's: a range picker that confirms says **Select range** (was "Select
+  date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
+  `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
+  640 px — only its trigger is 16px text and 12rem there — and is not changed here.
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
@@ -89,8 +130,7 @@ them until tagged releases begin.
   `scripts/flux/placement.mjs` holds every family's landing to Flux's at those edges, from each family's
   open-state parity script. Two looks came out of holding panels at a phone's width and are Flux's now: a
   `Ui.NavmenuItem` is 36px tall under 1024 px (was 32px at every width), and a select with a search field
-  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all). Not built: under
-  640 px Flux's date picker is a centred modal with its own footer; the kit's is the same popup at every width.
+  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all).
 - **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`
   page of its own got an untitled tab and, in a Hungarian app, English. Its heading, sentence and link are
   the catalog's `NotFoundTitle`, `NotFoundBody` and `NotFoundBackHome`, with Hungarian in the kit ("Az oldal
@@ -187,6 +227,46 @@ them until tagged releases begin.
   runtime raises by itself — a chart writing the size it was measured at — is not counted either. A field
   whose text is its value (`Ui.Input`, `Ui.Autocomplete`) counts as before, and so do an app's own inputs.
 
+- **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
+  awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
+  frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on
+  its way out"), for the navigation's own frame to carry; but the navigation takes its turn BEHIND the handler,
+  which was awaiting the answer to a call nobody had been sent. Neither moved: on a live Server page the link
+  did nothing for seconds, and over a bare socket no frame came at all. A frame that carries a call into the
+  browser is now sent whatever is queued behind it (`LiveSession.NothingToSend`). Seen as Escape in a combobox
+  `Ui.Select` followed at once by a nav link; the shape is any app handler's.
+
+- **A one-value value object inside a constructor-built value object no longer stops the app at startup
+  ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
+  aggregate compiled, and then EF Core refused the model — *No suitable constructor was found … Cannot bind
+  'Early'* — because the inner `Sku` was mapped as a complex type, and a constructor parameter binds to a column
+  only. A one-value value object is now a converted scalar column wherever it is held, the rule the aggregate's own
+  properties already followed: `ValueObjectColumn.Map(b0.Property(x => x.Early), (Sku v) => v.Value)` under the
+  column name it always had (`Terms_Early`). **Nothing migrates**: EF Core's migration differ finds no operation
+  between the two mappings on SQLite, SQL Server and PostgreSQL, one and two levels deep, with a length and a
+  precision on the column, for a class and a struct, nullable and not; only the order of columns in a table
+  created from scratch differs. Two things an app may have written against the old mapping change with it, for
+  the value-object shape that already worked (one built through its members): `Configure` reaches the inner
+  value as a property, not a complex type — `ComplexProperty(c => c.Price).ComplexProperty(m => m.Currency)
+  .Property(v => v.Value)` becomes `ComplexProperty(c => c.Price).Property(m => m.Currency)` — and a query on
+  the write model that reached `c.Price.Currency.Value` no longer translates (compare the whole value, or use the
+  read face), exactly as on the aggregate itself. Still not mapped: a constructor-built value object holding
+  another of SEVERAL values — build the outer one through its members.
+- **The read face reads nothing as nothing for a nullable one-value value object inside another value
+  object.** `Sku? Early` (or a one-value struct held as `T?`) inside a value object was stored correctly, and the
+  read face then threw *The data is NULL at ordinal 0* on a row that held none: the column's nullability was read
+  off the inner value, not off the optional value object around it. It is the scalar's own now.
+- **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
+  The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
+  declared `__held0` (CS0128 inside generated code). They are numbered.
+- **A row pressed as the pointer arrives is picked, after a list lost rows.** The pointer coming over a row
+  of a kit list is a render of its own, so a press that follows it at once is read from the page before that
+  render and is matched to its row by what tells the rows of one page apart. A list that had just answered a
+  search with fewer rows left its last handler slots holding the long list's handlers; counted among that
+  page's handlers, they made what every render works out anew look like what tells rows apart, no row was the
+  same, and the press ran nothing — a city picked from the store's answer on rask.sh stayed unpicked. Slots a
+  walk does not reach are now said to hold nothing from that walk's page on. Both hosts.
+  `StaleClickAfterRowsLeftTests`, `SelectSearchDebounceTests`.
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from
@@ -354,6 +434,61 @@ them until tagged releases begin.
 
 ### Added
 
+- **BREAKING: `Ui.Carousel` is Flux's `flux:carousel`**, with `Ui.CarouselSlide` and `Ui.CarouselControls`.
+  It was daisyUI's wrapper around `carousel-item` children; daisyUI's `carousel` rules leave the kit's sheet.
+  ```csharp
+  Ui.Carousel[Div.Class("carousel-item w-full")[photo], …]                 // was
+  Ui.Carousel[Ui.CarouselSlide.Class("w-full")[photo], …]                  // now
+  ```
+  Previous and next arrows over the slides (`Arrows(false)`, `ArrowsPosition`: `Inside` / `Overlap` /
+  `Outside`, `ArrowsClass`), `Indicators()`, `Autoplay()` + `AutoplayInterval`, `Fade()`, `Bleed()`, `Snap`,
+  `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
+  `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
+  runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
+  with nothing sent to the page — zero frames either way on a Server page (`UiDrawnInTheBrowserTests`). A
+  carousel that rewinds says no `data-at-end`, as Flux's does not, so its next arrow stays at the end. Its
+  accessible names are eight new catalog entries (`CarouselRole`,
+  `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
+  `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
+  it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
+  live carousels and the kit's with the same pointer and keys — arrows, both ends, Enter and Space, the
+  indicators, external controls, page advance, autoplay under the pointer, under focus and with reduced
+  motion — and holds every step equal.
+- **A carousel's autoplay holds while focus is inside it** (`data-rask-carousel` with `data-autoplay`), as it
+  holds under the pointer, and starts afresh when both are gone. Measured on Flux: no move in 7 s with focus
+  on an arrow, the next one 3.5 s after it left.
+
+- **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+  `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
+  outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for
+  your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
+  `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
+  written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound with `OnChange` it reports each
+  turn. With neither, a press only changes what it draws, so the browser turns it and nothing is sent to the
+  server (`data-rask-switch`, a new runtime hook: `aria-checked` and `data-checked` flip on a press of a
+  `<button role="switch">` that carries it, held against the morph). While its handler runs it shows a spinner and takes no press. Measured from
+  Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
+- **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
+  toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:
+  ```csharp
+  Ui.Swap.AccessibleLabel("Mute").On(muteIcon).Off(soundIcon).Active(muted).OnChange(on => muted = on)   // was
+  Ui.Toggle.Tooltip("Mute").OnIcon(Ui.IconName.SpeakerXMark).OffIcon(Ui.IconName.SpeakerWave)
+      .Checked(muted).OnChange(on => muted = on)                                                         // now
+  ```
+  It says `role="switch"` and `aria-checked` where the swap said `aria-pressed`. There is no rotate or flip.
+
+- **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
+  region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
+  `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing
+  beside it names the country (empty by default: decoration). Measured from Flux's page and held to it by
+  `node scripts/flux/parity.mjs flag`. **The 254 drawings are files, not part of the assembly**: an app that
+  shows flags sets `<RaskUiWriteFlags>true</RaskUiWriteFlags>` and the build copies them into
+  `wwwroot/flags` with their notice; an app that does not carries none of their 172 KB, and the package grows
+  by 82 KB. In a one-project WebAssembly app the browser half writes them. They are
+  [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
+  vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
+  the empty frame, as an unknown code does.
 - **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
   `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
   `Search` at every keystroke (unchanged when the step is absent). After:
