@@ -49,6 +49,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["filter"] = (typeof(UiFilter<>), a => Ui.Filter.Bind(() => a.One).Group("one").Options([.. Words.Select(word => ((string?)word, word))]), page => Last(page, "input[type=\"radio\"]", "change", "on")),
         ["menu checkbox"] = (typeof(UiMenuCheckbox), a => Ui.Menu[Ui.MenuCheckbox.Bind(() => a.Alerts)["Alerts"]], page => page.On("[data-rask-on-click]").Click()),
         ["menu radio group"] = (typeof(UiMenuRadioGroup<>), a => Ui.Menu[Ui.MenuRadioGroup.Bind(() => a.One)[Words.Select(word => Ui.MenuRadio.Key(word).Value(word)[word])]], page => First(page, "[data-rask-on-click]", "click")),
+        ["toggle"] = (typeof(UiToggle), a => Ui.Toggle.Bind(() => a.Alerts).Icon(Ui.IconName.Bolt), page => page.On("[role=\"switch\"]").Click()),
         ["file item, removed"] = (typeof(UiFileItemRemove), _ => Ui.FileItemRemove.OnClick(() => { }), page => page.On("[data-ui-file-item-remove]").Click()),
     };
 
