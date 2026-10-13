@@ -7186,7 +7186,6 @@ static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
 static Rask.Core.Forms.RaskValidation.HasStoreRulesFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.IsRequired(System.Linq.Expressions.LambdaExpression! bound) -> bool
-static Rask.Core.Forms.RaskValidation.IsRequired(System.Type! modelType, string! fieldPath) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
 static Rask.Core.Forms.RaskValidation.RegisterOptionalFields(System.Type! modelType, System.Func<string!, bool>! isOptional) -> void
 static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void

@@ -33,13 +33,14 @@ them until tagged releases begin.
   as required and refused the empty address a save now accepts. `RegisterOptionalFields(typeof(OrderModel),
   property => property is "Billing")` says which properties of a model hold a part that may be left wholly
   empty; the generated models call it, as they call `RegisterRequiredFields`. Under such a property nothing is
-  announced (`IsRequired(typeof(OrderModel), "Billing.Street")` is false, `"Shipping.Street"` stays true), and
+  announced (`IsRequired(() => order.Billing.Street)` is false, `() => order.Shipping.Street` stays true), and
   the rule a field's type carries is asked only about a value that was filled in; the save says what a part
   that *was* given lacks, under the field. A control asks with the expression it is bound with —
   `RaskValidation.IsRequired(() => order.Billing.Street)` — which is what every `Ui.*` control and a plain
-  `Input`, `Select` and `Textarea` now do; a control of your own that asked
-  `IsRequired(acc.Target.GetType(), acc.PropertyName)` still compiles and answers by the type alone, so
-  [ask with `Bind`](docs/building-form-controls.md) to answer for the place.
+  `Input`, `Select` and `Textarea` now do. **BREAKING:** `RaskValidation.IsRequired(Type, string)` is no longer
+  public — it could only answer by the type. A control of your own that asked
+  `IsRequired(acc.Target.GetType(), acc.PropertyName)` asks `RaskValidation.IsRequired(Bind)` instead
+  ([building form controls](docs/building-form-controls.md)).
 - **`X.Create(id, model)` for an integer key the application assigns.** An `Aggregate<int>` (or any integer key)
   whose own `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()` was given the creates of a stored
   identity — `Create(model)`, `Create(x => …)`, documented *"The key is assigned by the database"* — so every row

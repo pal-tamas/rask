@@ -276,7 +276,7 @@ public static class RaskValidation
     ///     <see langword="true" /> when the field must be filled; <see langword="false" /> when nothing says
     ///     so, or the path names no member.
     /// </returns>
-    public static bool IsRequired(Type modelType, string fieldPath)
+    internal static bool IsRequired(Type modelType, string fieldPath)
     {
         ArgumentNullException.ThrowIfNull(modelType);
         ArgumentNullException.ThrowIfNull(fieldPath);
@@ -284,8 +284,8 @@ public static class RaskValidation
     }
 
     /// <summary>
-    ///     Whether the field a bind expression ends in must be filled: what
-    ///     <see cref="IsRequired(Type, string)" /> answers for its last property, unless the expression walks
+    ///     Whether the field a bind expression ends in must be filled: its last property carries
+    ///     <c>[Required]</c> or was registered (<see cref="RegisterRequiredFields" />), unless the expression walks
     ///     through an object that may be left wholly empty (<see cref="RegisterOptionalFields" />). The
     ///     question a control that draws itself asks with the expression it was bound with; nothing is
     ///     evaluated and nothing is built, so it is cheap enough to ask on every render.

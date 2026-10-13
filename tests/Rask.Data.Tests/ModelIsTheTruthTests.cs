@@ -387,13 +387,13 @@ public sealed class ModelIsTheTruthTests : IDisposable
     [Fact]
     public void A_form_announces_a_nested_field_as_required_where_it_must_be_there_and_not_where_it_may_be_absent()
     {
-        var model = typeof(HarborModel);
+        var model = new HarborModel();
 
-        var root = RaskValidation.IsRequired(model, "Name");
-        var mustBeThere = (RaskValidation.IsRequired(model, "Gate.Code"), RaskValidation.IsRequired(model, "Address.Street"));
-        var mustBeThereTwoDown = RaskValidation.IsRequired(model, "Address.Berth.Dock");
-        var mayBeAbsent = (RaskValidation.IsRequired(model, "Spare.Dock"), RaskValidation.IsRequired(model, "Annex.Street"));
-        var mayBeAbsentTwoDown = RaskValidation.IsRequired(model, "Annex.Berth.Dock");
+        var root = RaskValidation.IsRequired(() => model.Name);
+        var mustBeThere = (RaskValidation.IsRequired(() => model.Gate!.Code), RaskValidation.IsRequired(() => model.Address!.Street));
+        var mustBeThereTwoDown = RaskValidation.IsRequired(() => model.Address!.Berth!.Dock);
+        var mayBeAbsent = (RaskValidation.IsRequired(() => model.Spare!.Dock), RaskValidation.IsRequired(() => model.Annex!.Street));
+        var mayBeAbsentTwoDown = RaskValidation.IsRequired(() => model.Annex!.Berth!.Dock);
 
         // The same two value-object types are held both ways — HarborAddress as Address and Annex, HarborBerth
         // as Address.Berth and Spare — and each slot answers for itself.
