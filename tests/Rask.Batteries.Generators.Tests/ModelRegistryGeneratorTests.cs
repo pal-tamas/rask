@@ -197,8 +197,50 @@ public class ModelRegistryGeneratorTests
 
         var registry = run.GeneratedSource("__RaskModelRegistry");
 
+        // Compiling is all this one proves — that the namespace is there. That the mapping BUILDS a model and
+        // round-trips is NestedOneValueValueObjectTests in Rask.Data.Tests, on a real database: a mapping EF Core
+        // refuses at startup compiles just as well (#1244).
         Assert.Empty(run.GeneratedCompileErrors());
-        Assert.Contains(".Property(v => v.Value).HasColumnName(\"Limit_Currency\")", registry, StringComparison.Ordinal);
+        Assert.Contains(
+            "global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Currency), (global::Shop.Currency v) => v.Value).HasColumnName(\"Limit_Currency\");",
+            registry,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_one_value_value_object_is_a_converted_scalar_at_every_depth_under_the_column_its_path_names()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed record Sku(string Value);
+            public readonly record struct Weight(int Value);
+            public sealed record Label(Sku Code, Sku? Alias, Weight? Tare, int Copies);
+            public sealed class Route
+            {
+                private Route() { }
+                public Label Label { get; private set; } = null!;
+                public string Carrier { get; private set; } = "";
+            }
+            public sealed class Parcel : Aggregate<Guid>
+            {
+                private Parcel() { }
+                public Sku Sku { get; private set; } = new("");
+                public Label Label { get; private set; } = null!;
+                public Route Route { get; private set; } = null!;
+            }
+            """);
+
+        var registry = run.GeneratedSource("__RaskModelRegistry");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("ValueObjectColumn.Map(__Shop_Parcel.Property(x => x.Sku), (global::Shop.Sku v) => v.Value);", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Code), (global::Shop.Sku v) => v.Value).HasColumnName(\"Label_Code\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Alias), (global::Shop.Sku v) => v.Value).HasColumnName(\"Label_Alias\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Map(b0.Property(x => x.Tare), (global::Shop.Weight v) => v.Value).HasColumnName(\"Label_Tare\");", registry, StringComparison.Ordinal);
+        Assert.Contains("ValueObjectColumn.Map(b1.Property(x => x.Code), (global::Shop.Sku v) => v.Value).HasColumnName(\"Route_Label_Code\");", registry, StringComparison.Ordinal);
+        Assert.DoesNotContain(".Property(v => v.Value)", registry, StringComparison.Ordinal);
     }
 
     [Fact]

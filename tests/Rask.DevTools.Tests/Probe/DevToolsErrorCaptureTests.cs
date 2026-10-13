@@ -85,11 +85,11 @@ public sealed class DevToolsErrorCaptureTests
 
         await socket.SendJsonAsync(new { id = handlers[1], type = "click" }, ct: TestContext.Current.CancellationToken);
 
-        Assert.True(await DevToolsLivePage.WaitFor(
-            () => feed.Errors.Snapshot().Any(e => e.Kind == DevToolsErrorKind.Render), TimeSpan.FromSeconds(5)),
-            "the render fault was never listed for its page");
-
-        var error = feed.Errors.Snapshot().Single(e => e.Kind == DevToolsErrorKind.Render);
+        // The frame that draws the error page: the fault is listed where it is thrown and each component it unwinds
+        // through adds itself after, so only once the boundary has drawn is the list of them whole.
+        var page = await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        Assert.Contains("Something went wrong", page, StringComparison.Ordinal);
+        var error = Assert.Single(feed.Errors.Snapshot(), listed => listed.Kind == DevToolsErrorKind.Render);
         Assert.Equal("the render failed on purpose", error.Message);
         Assert.Equal(nameof(DevToolsThrowingChild), error.Path[^1]);
         Assert.Contains(nameof(DevToolsTestFrame), error.Path);

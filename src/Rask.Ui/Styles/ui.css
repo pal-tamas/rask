@@ -1655,7 +1655,7 @@
 */
 @layer rask {
   [data-ui-calendar] select,
-  [data-ui-date-picker] select {
+  [data-ui-date-picker] select:not([data-ui-select-native]) {
     background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20fill=%22%2300000040%22%20class=%22size-4%22%3E%3Cpath%20fill-rule=%22evenodd%22%20d=%22M4.22%206.22a.75.75%200%200%201%201.06%200L8%208.94l2.72-2.72a.75.75%200%201%201%201.06%201.06l-3.25%203.25a.75.75%200%200%201-1.06%200L4.22%207.28a.75.75%200%200%201%200-1.06Z%22%20clip-rule=%22evenodd%22/%3E%3C/svg%3E");
     background-position: right 0.25rem center;
     background-repeat: no-repeat;
