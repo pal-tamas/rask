@@ -154,7 +154,9 @@ public sealed partial class UiToggle : Component, IDeferredBind
             .Class(UiClass.Compose(Frame, Shape(), Surface(), Class))
             .Data((on, heard) switch { (true, true) => On, (false, true) => Off, (true, false) => OwnOn, _ => OwnOff });
 
-        var toggle = (heard ? button.OnClick(TurnAsync) : button)[
+        // Bound and waiting, the turn is held for the next action: the press only draws it (UiDraws).
+        var draws = UiDraws.Marks(("click", UiDraws.Waits(this, Bind is not null)));
+        var toggle = (heard ? button.Attributes(draws).OnClick(TurnAsync) : button)[
             Div.Class(Spinner).Data(LoadingMark).Aria("hidden", "true")[
                 Ui.Icon.Name(Ui.IconName.Loading).Class(Small ? "size-4" : "size-5")
             ],
@@ -171,6 +173,9 @@ public sealed partial class UiToggle : Component, IDeferredBind
     {
         var (accessor, context, on) = Read();
         var next = !on;
+
+        // The reader's change, held or written: a form that asks before it is left counts it (ReaderEdits).
+        ReaderEdits.Note(this);
         if (accessor is null)
         {
             _own = next;

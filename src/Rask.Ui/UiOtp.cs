@@ -130,6 +130,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
                 .Aria(Names(field))[
                 Input.Value(Shown(live))
                     .OnInput(raw => TypedAsync(live, raw))
+                    // A code typed into a field that waits is held for the next action: its `input` only draws it.
+                    .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
                     .Type(InputType.Hidden)
                     .Name(Name)
                     .Disabled(Disabled == true),

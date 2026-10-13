@@ -154,6 +154,33 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
         await Expect(page.Locator("#plan")).ToHaveValueAsync("pro");
     }
 
+    [Fact]
+    public async Task A_tab_chosen_in_a_form_that_asks_before_it_is_left_is_an_unsaved_change_as_any_bound_pick_is()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+        await page.ClickAsync("#guarded [role=tab] >> nth=1");
+        var chosen = watched.Frames();
+
+        await page.ClickAsync("#away");
+
+        Assert.Equal((0, 0), chosen);
+        await Expect(page.Locator("dialog[open] button").Filter(new() { HasTextString = "Stay" })).ToBeVisibleAsync();
+        Assert.DoesNotContain("/elsewhere", page.Url, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_form_whose_tabs_nobody_touched_is_left_without_a_question()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+
+        await page.ClickAsync("#away");
+
+        await page.WaitForURLAsync("**/elsewhere");
+        await Expect(page.Locator("dialog[open]")).ToHaveCountAsync(0);
+    }
+
     // aria-selected of each tab, each tab's tabindex, and the tab that has focus.
     private const string Row = """
         id => {
@@ -202,6 +229,7 @@ public sealed partial class TabsBrowserPage : Component
 {
     private readonly View _view = new();
     private readonly Profile _profile = new();
+    private readonly Draft _draft = new();
     private int _ticks;
     private int _refused;
     private string _heard = "list";
@@ -240,7 +268,12 @@ public sealed partial class TabsBrowserPage : Component
                     Ui.TabPanel.Name("plan")[Ui.Input.Bind(() => _profile.Plan).Label("Plan").Id("plan")]
                 ],
                 Ui.Button.Submit.Id("save")["Save"]
-            ]]
+            ]],
+            Div.Id("guarded")[Form.Model(_draft).OnSubmit(_ => { }).NoValidate(true).ConfirmLeave("Leave without saving?")[
+                Views(Ui.Tabs.Key("guarded").Segmented.Bind(() => _draft.View))
+            ]],
+            NavLink.Href("/elsewhere").Id("away")["Elsewhere"],
+            Ui.ConfirmLeave.Stay("Stay").Leave("Leave")
         ];
 
     private static Component Views(UiTabs row) =>
@@ -278,6 +311,11 @@ public sealed partial class TabsBrowserPage : Component
         public string Live { get; set; } = "list";
 
         public string Form { get; set; } = "name";
+    }
+
+    private sealed class Draft
+    {
+        public string View { get; set; } = "list";
     }
 
     private sealed class Profile

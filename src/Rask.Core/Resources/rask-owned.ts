@@ -146,6 +146,29 @@ export function isUnasked(): boolean {
     return !!seam.unasked;
 }
 
+// A CONTROL THAT DRAWS ITSELF ON THE PAGE'S SIDE hears the reader too: a list opened, a row the pointer is
+// over, the next month. The page hears those only to draw the control again, and in Livewire, whose rule a
+// bound control follows, they are no request at all. They are therefore no action either: the element says
+// which of its handlers only draw — `data-rask-draws="toggle keydown"`, by event name — and an event for one
+// of them is sent as `unasked` is, with nothing ahead of it and nothing written for it. What reaches code the
+// app wrote, or writes a value now, is not named there, and is an action as before.
+
+/** Whether the handler `el` has for `name` only draws its control. */
+export function draws(el: Element, name: string): boolean {
+    const names = el.getAttribute("data-rask-draws");
+    return !!names && (" " + names + " ").indexOf(" " + name + " ") >= 0;
+}
+
+/** Sends what `el` heard as `name`: the reader's action, or nobody's where the handler only draws. */
+export function tell<T>(el: Element, name: string, send: () => T): T {
+    if (!draws(el, name)) {
+        return send();
+    }
+    let answer: T;
+    unasked(function () { answer = send(); });
+    return answer!;
+}
+
 // ----- Shared helpers ---------------------------------------------------------------------------------
 
 /** The document, or null where there is none to listen on: the Node fixtures import these modules too. */

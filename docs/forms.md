@@ -86,8 +86,17 @@ filter. A control you only read in the submit handler needs nothing.
 
 - **An action** is anything that reaches your code: a press on a button or a link with a handler, a
   submit, Enter in a field, a key an `OnKeyDown` hears, another control's `.Live()` or `.Blur()` change, a
-  navigation, an event a kit component raises (a tab, a menu item, a dragged row). Each is preceded by the
+  navigation, an event a kit component raises into your code (a tab with `OnChange`, a menu item, a
+  dragged row). Each is preceded by the
   values that waited, so a handler never reads a model that has not heard what was typed.
+- **A kit control drawing itself is not an action.** Opening a `Ui.Select`, a `Ui.Dropdown`, a date or a
+  time picker, moving its cursor with the arrows or the pointer, typing in its search field, paging a
+  calendar, switching a `Ui.Tabs` nobody listens to: the page hears those only because it is what draws the
+  control, and in Flux they are no request at all. Nothing that waits is written for them, so a rule of a
+  field above the list does not speak when the list is opened. A **pick** in a bound control that waits is
+  the same — the pick itself waits. What does count: a pick in a control that says `.Live()` or is held
+  with `Value`/`OnChange`, a search field with an `OnInput` of yours, a `Ui.Dropdown.OnToggle`, a
+  `Ui.Tabs.OnChange`, a "create" row — anything that reaches your code.
 - **What the page does by itself is not an action.** A toast whose time is up closing itself, a chart
   reporting the size it was measured at, a list scrolling, a video playing on, an animation ending, an
   image arriving, the reply to a JavaScript call, a call your script makes into .NET: none of them writes
@@ -518,9 +527,16 @@ unsaved one asks, with its own message.
 
 Three things to know:
 
-- **What counts as an edit is the browser's `input` and `change` events** inside the form. A control that
-  changes a value only in C# — a button whose `OnClick` sets a property — fires neither, so it does not
-  make the form unsaved by itself.
+- **What counts as an edit** is the browser's `input` and `change` events inside the form, and every value
+  the reader chooses in a kit control that draws itself — a listbox, a combobox or a pillbox option, a pill
+  taken away, a day in a `Ui.Calendar` or a `Ui.DatePicker`, a time, a colour, a rating, a picker's clear
+  button, a `Ui.FileItemRemove`. The browser raises no event for those, so the page that hears the press
+  says so on the form, bound with `Bind` or held with `Value`/`OnChange` alike, written to the model yet or
+  not. Opening a list, moving through a calendar and typing in a list's search field change nothing and
+  count for nothing. A value the page writes by itself is no edit, and neither is a button of your own
+  whose `OnClick` sets a property.
+- **A pick is counted once the page has heard it**, which is a round trip after the press. A reader who
+  picks and follows a link within that instant is not asked.
 - **Which way Back went** is read from the Navigation API. On a browser without it (Safari before 26.2,
   Firefox before 147) a refused Back or Forward still leaves the reader on the page with the right
   address, but as a new history entry — and Back and Forward ask with `confirm` there even when the

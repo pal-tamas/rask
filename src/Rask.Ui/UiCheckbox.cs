@@ -211,7 +211,8 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
             .Name(Attributes?.ContainsKey("name") == true ? null : Name)
             .Disabled(Disabled == true || _group?.Disabled == true)
             .Aria(field.Aria)
-            .Attributes(UiOptionLook.Marks(Attributes))
+            // In a group that waits, a tick is held with the others: the box's `change` only draws it.
+            .Attributes(UiDraws.With(UiOptionLook.Marks(Attributes), ("change", _group?.Draws == true)))
             .Class(UiOptionLook.Native);
 
     // The browser reports the box's state, not a toggle: a missed frame cannot leave the two out of step.

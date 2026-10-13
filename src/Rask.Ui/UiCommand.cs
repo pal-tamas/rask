@@ -102,7 +102,7 @@ public sealed partial class UiCommand : Component
             .Aria(("label", Label), ("expanded", "true"), ("controls", ListId), ("autocomplete", "list"))
             // Enter presses the highlighted option in the runtime, because what an option DOES — a handler, a link —
             // is only reachable by clicking it; C# cannot follow an href.
-            .Attributes(("data-rask-press-active", null));
+            .Attributes(("data-rask-press-active", null), UiRuntimeMarks.NotFormData);
 
     private Component Palette(HTMLInputElement<string> box, UiMenuScope scope)
     {

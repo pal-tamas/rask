@@ -156,7 +156,8 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
             .Disabled(Disabled == true)
             .OnChange(_ => _group?.Choose(Value) ?? Task.CompletedTask)
             .Aria(field.Aria)
-            .Attributes(UiOptionLook.Marks(Attributes))
+            // In a group that waits, the choice is held: the radio's `change` only draws it.
+            .Attributes(UiDraws.With(UiOptionLook.Marks(Attributes), ("change", _group?.Draws == true)))
             .Class(UiOptionLook.Native);
 
     private object? Words() => Children?.Any() == true ? Children : Label;

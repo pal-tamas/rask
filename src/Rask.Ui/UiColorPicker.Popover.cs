@@ -105,7 +105,7 @@ public sealed partial class UiColorPicker
             Context.Provide(scope)[layout],
             // Flux asks the window how wide it is; the kit asks the stylesheet, through a box only it sizes.
             Span.Class(UiColorPickerLook.SheetProbe).Data(ProbeMarks).Aria("hidden", "true")[
-                Input.Value(SheetBox[_sheet ? 0 : 1]).OnInput(Measured).Type(InputType.Hidden)
+                Input.Value(SheetBox[_sheet ? 0 : 1]).OnInput(Measured).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData)
             ]
         ];
     }
