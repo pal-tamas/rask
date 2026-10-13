@@ -112,7 +112,7 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         }
 
         await OverAsync(page, "room", "Design services");
-        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        await LeaveAsync(page);
         var left = await SeeAsync(page, "room");
         await page.Keyboard.PressAsync("ArrowUp");
 
@@ -135,10 +135,10 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         await OverAsync(page, "room", "Web development");
         var pointed = await SeeAsync(page, "room");
         await page.Keyboard.PressAsync("ArrowDown");
-        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        await LeaveAsync(page);
         var keyed = await SeeAsync(page, "room");
         await OverAsync(page, "room", "Other");
-        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        await LeaveAsync(page);
         var dark = await SeeAsync(page, "room");
         await page.Keyboard.PressAsync("Enter");
 
@@ -287,6 +287,9 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     private static string Lit(string state) => state.Split(" | ")[1];
+
+    // Off the list in one move: a glide across the rows below would light each on the way out.
+    private static Task LeaveAsync(IPage page) => page.Mouse.MoveAsync(900, 650);
 
     // What the list shows now. The runtime answers in the key's own task, so there is nothing to wait for.
     private static Task<string> SeeAsync(IPage page, string list) => page.EvaluateAsync<string>(State, list);

@@ -56,6 +56,8 @@ interface State {
     id: string;
     /** The pointer lit it. */
     pointed: boolean;
+    /** Nobody chose it: it is where opening, or typing, put the cursor. */
+    auto: boolean;
     /** The pointer left the list: no row is lit until a key or the pointer says one. */
     none: boolean;
     /** Something was typed: a cursor that loses its row starts again from the top, not from the picked row. */
@@ -90,7 +92,7 @@ function stateOf(root: Element): State {
     let state = states.get(root);
     if (!state) {
         states.set(root, state = {
-            cursor: null, id: "", pointed: false, none: false, top: false, typing: false, acts: false,
+            cursor: null, id: "", pointed: false, auto: false, none: false, top: false, typing: false, acts: false,
             said: null, over: null, shown: false, pressed: false, resumes: false,
         });
     }
@@ -215,6 +217,7 @@ function light(root: Element, row: HTMLElement | null, pointed: boolean = false)
     state.cursor = row;
     state.id = row ? row.id : "";
     state.pointed = !!row && pointed;
+    state.auto = false;
     if (row) {
         state.none = false;
     }
@@ -222,8 +225,9 @@ function light(root: Element, row: HTMLElement | null, pointed: boolean = false)
 }
 
 // Where the cursor is after the rows changed — a search, a render: where it was while it still can be, and
-// otherwise back to the start.
-function place(root: Element): void {
+// otherwise back to the start. A render's rows (`again`) move a cursor nobody chose back to the start as well:
+// a search the page answered puts it on the first row of the answer, not on the row it happened to be on.
+function place(root: Element, again: boolean = false): void {
     const state = stateOf(root);
     const rows = rowsOf(root);
     let at = state.cursor;
@@ -232,8 +236,10 @@ function place(root: Element): void {
         const again = page!.getElementById(state.id);
         at = again && rows.indexOf(again) >= 0 ? again : null;
     }
-    if (at && rows.indexOf(at) >= 0 && !skips(at)) {
+    if (at && rows.indexOf(at) >= 0 && !skips(at) && !(again && state.auto)) {
+        const auto = state.auto;
         light(root, at, state.pointed);
+        state.auto = auto;
         return;
     }
     if (state.none) {
@@ -253,6 +259,7 @@ function place(root: Element): void {
         }
     }
     light(root, picked || first);
+    state.auto = true;
 }
 
 // Hides what the search leaves out. A list the page filters is left as rendered.
@@ -291,9 +298,9 @@ function filter(root: Element): void {
 }
 
 // …and puts the cursor back among the rows that are left.
-function refilter(root: Element): void {
+function refilter(root: Element, again: boolean = false): void {
     filter(root);
-    place(root);
+    place(root, again);
 }
 
 // Writes into a text input as the module, not the reader, and tells the page as far as `announce` says.
@@ -355,7 +362,7 @@ function watch(): void {
             }
             for (const record of records) {
                 if (popup.contains(record.target)) {
-                    refilter(root);
+                    refilter(root, true);
                     break;
                 }
             }
@@ -529,7 +536,7 @@ function picked(root: Element, row: HTMLElement, pointed: boolean): void {
     }
     // After this click has reached the page's own handler, not before: what closing empties, a create row's
     // handler still has to be sent.
-    setTimeout(function () {
+    afterClick(function () {
         if (!stays) {
             setShown(popup, false);
             return;
@@ -543,7 +550,24 @@ function picked(root: Element, row: HTMLElement, pointed: boolean): void {
             }
             refilter(root);
         }
-    }, 0);
+    });
+}
+
+// What follows a press once the page has heard it: run when the click reaches the window, past every listener
+// on the document — and by a timer as well, for a click that was handed over late and never travels there.
+let pending: (() => void)[] = [];
+
+function settlePress(): void {
+    const runs = pending;
+    pending = [];
+    for (const run of runs) {
+        run();
+    }
+}
+
+function afterClick(run: () => void): void {
+    pending.push(run);
+    setTimeout(settlePress, 0);
 }
 
 function disabled(el: Element): boolean {
@@ -552,6 +576,9 @@ function disabled(el: Element): boolean {
 
 if (page) {
     const doc = page;
+    if (typeof window !== "undefined") {
+        window.addEventListener("click", settlePress);
+    }
 
     // `toggle` and `beforetoggle` do not bubble; they are caught on the way down. Before, so that what the
     // list says about itself is there in the task it opens — as Flux UI writes it.
