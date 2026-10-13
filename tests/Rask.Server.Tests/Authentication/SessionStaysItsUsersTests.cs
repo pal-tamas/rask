@@ -99,7 +99,6 @@ public sealed partial class SessionStaysItsUsersTests
         using var ws = await AttachAsync(host, sessionId, "alice");
 
         host.Services.GetRequiredService<Directory>().Admins.Clear();
-        host.Store.Peek(sessionId)!.LastUserRevalidation = 0;
         await ClickAsync(host, ws, save);
 
         Assert.Equal("alice:user", Saves(host).Single().Now);
