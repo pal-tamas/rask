@@ -179,6 +179,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A row of `Ui.Select` pressed before the page answered the list opening is picked.** A press that outlives
+  its page reaches the handler that is the same as the one it was sent to, among the two a slot remembers. The
+  select's handlers closed over what each of its renders worked out, so no two renders made the same one, and
+  three renders in flight — the list opening, a first pick, the next row lighting up — forgot the page the
+  second press was read from: it ran nothing, and a reader on a slow line who pressed two rows of a multiple
+  listbox kept one. Its handlers now read the latest render when they run and close over a row's place and
+  value only, so they are the same handler from render to render; a press on a row that holds another value
+  by then still picks nothing. Both hosts. `SelectPressFromAnOlderPageTests`, `DeferredBindTests` (which also
+  waited on `aria-expanded`, the browser's own word, for the page to have heard — the flake this was).
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
   frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on

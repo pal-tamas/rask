@@ -50,7 +50,18 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
-    private Task ClickedAsync(PointerEvent e, int index, View view)
+    // The row pressed is the one that held `value` when the press was read. A press that outlived its page finds
+    // this handler by that value (Component.StaleEvents), so the row at `index` now is the one the reader saw.
+    private Task ClickedAsync(PointerEvent e, int index, T value)
+    {
+        var view = Latest;
+
+        return index < view.Parts.Rows.Count && Same(view.Parts.Rows[index].Value, value)
+            ? PressedAsync(e, index, view)
+            : Task.CompletedTask;
+    }
+
+    private Task PressedAsync(PointerEvent e, int index, View view)
     {
         _pointer = (e.ClientX, e.ClientY);
         _pointerActs = IsMultiple;

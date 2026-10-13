@@ -47,7 +47,7 @@ public abstract partial class UiSelectControl<T>
 
         if (!off)
         {
-            trigger = trigger.OnClick(OnPillTriggerClickAsync).OnKeyDown(e => OnButtonKeyAsync(e, view));
+            trigger = trigger.OnClick(OnPillTriggerClickAsync).OnKeyDown(e => OnButtonKeyAsync(e, Latest));
         }
 
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
@@ -56,7 +56,7 @@ public abstract partial class UiSelectControl<T>
                 PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Count, slot?.Placeholder ?? Placeholder)],
                 Div.Class(UiPillboxLook.Pills)[
                     Div.Class(UiPillboxLook.Contents)[
-                        pills.Count > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(row => Pill(view, row, off))] : null
+                        pills.Count > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(row => Pill(row, off))] : null
                     ],
                     PillsCombobox ? PillInput(view, pills.Count, off) : null
                 ]
@@ -93,15 +93,16 @@ public abstract partial class UiSelectControl<T>
             ? Span.Class(UiPillboxLook.Placeholder).Data("ui-pillbox-placeholder", "")[placeholder]
             : null;
 
-    private Component Pill(View view, Row row, bool off)
+    private Component Pill(Row row, bool off)
     {
+        var value = row.Value;
         var small = IsSmall(Pills!.Trigger);
         var remove = Div.Class(UiClass.Compose(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small)));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
         return Div.Key(row.Option.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", row.Option.FormValue)[
             Div.Class(UiPillboxLook.PillWords)[row.Option.SelectedText],
-            (off ? remove : remove.OnClick(() => RemoveAsync(row.Value, view)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
+            (off ? remove : remove.OnClick(() => RemoveAsync(value, Latest)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
 
@@ -139,7 +140,7 @@ public abstract partial class UiSelectControl<T>
             .Attributes(UiPillboxLook.InputMarks(placeholder))
             .Ref(_input)
             .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
-            .OnKeyDown(e => OnPillInputKeyAsync(e, view));
+            .OnKeyDown(e => OnPillInputKeyAsync(e, Latest));
     }
 
     private Dictionary<string, string?> PillTriggerAria(View view, bool plain)
