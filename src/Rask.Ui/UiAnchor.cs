@@ -12,6 +12,31 @@ namespace Rask;
 /// </remarks>
 internal static class UiAnchor
 {
+    /// <summary>
+    ///     The same place in the runtime's words, for the popover's <c>data-rask-place</c>: what keeps the open
+    ///     list inside the viewport where the anchor rules alone would leave it hanging off (rask-place.ts).
+    /// </summary>
+    /// <param name="position">The side it opens on. Below when unset.</param>
+    /// <param name="align">The edge it lines up with. The start when unset.</param>
+    internal static string Place(Ui.Position? position, Ui.Align? align)
+    {
+        var side = position switch
+        {
+            Ui.Position.Top => "top",
+            Ui.Position.Left => "left",
+            Ui.Position.Right => "right",
+            _ => "bottom",
+        };
+        var along = align switch
+        {
+            Ui.Align.Center => "center",
+            Ui.Align.End => "end",
+            _ => "start",
+        };
+
+        return side + " " + along + " 5 0";
+    }
+
     /// <summary>The popover's placement style.</summary>
     /// <param name="name">The anchor's name, without its dashes.</param>
     /// <param name="position">The side it opens on. Below when unset.</param>

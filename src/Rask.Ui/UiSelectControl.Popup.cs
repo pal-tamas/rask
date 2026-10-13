@@ -12,7 +12,11 @@ public abstract partial class UiSelectControl<T>
             .Key("list")
             .Id(PanelId)
             .Popover(Popover.Auto)
-            .Class(UiClass.Compose(UiListboxLook.Popup, HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls, PillPopupLook(), OptionsClass))
+            .Class(UiClass.Compose(
+                HasSearchField ? UiListboxLook.PopupOverList : UiListboxLook.Popup,
+                HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls,
+                PillPopupLook(),
+                OptionsClass))
             .Attributes(PopupMarks())
             .OnToggle(OnPopupToggleAsync);
 
@@ -45,6 +49,7 @@ public abstract partial class UiSelectControl<T>
             // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
             ["data-rask-lock"] = null,
             ["style"] = UiAnchor.Under(Prefixed, Position, Align),
+            ["data-rask-place"] = UiAnchor.Place(Position, Align),
         };
         if (_open)
         {

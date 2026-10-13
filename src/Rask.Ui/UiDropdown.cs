@@ -106,7 +106,7 @@ public sealed partial class UiDropdown : Component
     {
         var open = Open ?? _open;
         var parts = (Children ?? []).Where(child => child is not null).ToList();
-        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync, Hover == true);
+        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, ToggledAsync, Hover == true, Place());
 
         var root = Div
             // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.
@@ -169,6 +169,27 @@ public sealed partial class UiDropdown : Component
             await OnToggle.Invoke(open).ConfigureAwait(false);
         }
     }
+
+    // What the anchor rules below cannot do, the runtime does from this (rask-place.ts): the other alignment when
+    // this one does not fit, a slide back inside the viewport's edge, a height that fits what is left.
+    private string Place() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"{Side(Position ?? Ui.DropdownPosition.Bottom)} {Along(Align ?? Ui.DropdownAlign.Start)} {Gap ?? 5} {Offset ?? 0}");
+
+    private static string Side(Ui.DropdownPosition position) => position switch
+    {
+        Ui.DropdownPosition.Top => "top",
+        Ui.DropdownPosition.Left => "left",
+        Ui.DropdownPosition.Right => "right",
+        _ => "bottom",
+    };
+
+    private static string Along(Ui.DropdownAlign align) => align switch
+    {
+        Ui.DropdownAlign.Center => "center",
+        Ui.DropdownAlign.End => "end",
+        _ => "start",
+    };
 
     // Placement by CSS anchor positioning, in a style attribute: nothing here is scanned by Tailwind, so the
     // values are built freely. Each edge is an inset measured from the trigger's — the gap on the edge that

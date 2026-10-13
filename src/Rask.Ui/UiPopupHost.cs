@@ -10,10 +10,15 @@ namespace Rask;
 /// <param name="Detail">A value for the panel's <c>data-detail</c>.</param>
 /// <param name="Toggled">Tells the host the reader opened or closed the panel.</param>
 /// <param name="Hover">The pointer opens the panel, so the page behind it keeps its pointer and its scroll.</param>
+/// <param name="Place">
+///     The same place in the runtime's words, for the panel's <c>data-rask-place</c>: the side, the alignment,
+///     the gap and the offset. The runtime keeps the open panel inside the viewport from it (rask-place.ts).
+/// </param>
 internal sealed record UiPopupHost(
     string PanelId,
     string Style,
     bool? Controlled,
     string? Detail,
     Func<bool, Task> Toggled,
-    bool Hover = false);
+    bool Hover = false,
+    string? Place = null);

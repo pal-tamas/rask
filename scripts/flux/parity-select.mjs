@@ -24,6 +24,8 @@ await openParity({
   root: '[data-flux-select], [data-ui-select]',
   trigger: 'button[role=combobox], input[role=combobox]',
   popup: '[data-flux-options], [data-ui-options]',
+  // Held at the viewport's edges, and opened there (placement.mjs).
+  edges: [0, 1, 4, 7, 9],
   rows: '[data-flux-option], [data-ui-option]',
   allRows: '[data-flux-option], [data-ui-option], [data-flux-option-create], [data-ui-option-create]',
   search: '[data-flux-select-search], [data-ui-select-search]',

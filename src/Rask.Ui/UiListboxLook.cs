@@ -11,13 +11,22 @@ namespace Rask;
 /// </remarks>
 internal static class UiListboxLook
 {
-    /// <summary>The popup's box: white, as wide as what it hangs from, at most twenty rem tall.</summary>
-    internal const string Box =
-        "[:where(&)]:max-h-[20rem] p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
+    private const string Look =
+        "p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
         + "border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-start";
+
+    /// <summary>The popup's box: white, as wide as what it hangs from, at most twenty rem tall.</summary>
+    internal const string Box = "[:where(&)]:max-h-[20rem] " + Look;
 
     /// <summary>The popup of a select or a pillbox: the box, never narrower than twelve rem.</summary>
     internal const string Popup = "[:where(&)]:min-w-48 " + Box;
+
+    /// <summary>
+    ///     The popup that holds a search field over its list. The LIST is what is at most twenty rem tall
+    ///     (<see cref="UiSelectLook.SearchedList" />), so the popup is that and the field: measured on Flux with
+    ///     more options than fit, 362px where a plain list is 320.
+    /// </summary>
+    internal const string PopupOverList = "[:where(&)]:min-w-48 " + Look;
 
     /// <summary>The popup when it is the list itself, and scrolls.</summary>
     internal const string Scrolls = "overflow-y-auto";

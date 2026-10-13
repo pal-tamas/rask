@@ -110,8 +110,20 @@ async function open(page, wrapper, opener) {
   await wrapper.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const box = await opener.boundingBox();
   const at = [box.x + box.width / 2, box.y + box.height / 2];
-  if (await opener.getAttribute('data-parity-open') === 'hover') await page.mouse.move(...at);
-  else await page.mouse.click(...at);
+  if (await opener.getAttribute('data-parity-open') === 'hover') {
+    // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
+    // lands on the trigger (its hover example measured closed, in one scheme of two). Parked first, then
+    // brought over, and waited on until the popup shows — or a second of frames has gone by.
+    await page.mouse.move(4, 4);
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.mouse.move(at[0] - 3, at[1] - 3);
+    await page.mouse.move(...at);
+    await wrapper.evaluate(el => new Promise(done => {
+      let frames = 0;
+      const look = () => (el.querySelector(':popover-open') || ++frames > 60 ? done() : requestAnimationFrame(look));
+      look();
+    }));
+  } else await page.mouse.click(...at);
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
 

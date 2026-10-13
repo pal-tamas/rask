@@ -34,7 +34,7 @@ public sealed partial class UiTooltipContent : Component
         var content = Div
             .Class(Look, Place(scope.Position, scope.Align), Class)
             .Popover(scope.Toggled ? Rask.Core.Popover.Auto : Rask.Core.Popover.Manual)
-            .Data("ui-tooltip-content", null);
+            .Data(Marks(scope));
 
         if (scope.Id.Length != 0)
         {
@@ -62,6 +62,32 @@ public sealed partial class UiTooltipContent : Component
             ? content[Children, " ", Span.Class("ps-1 text-zinc-300")[kbd]]
             : content[Children ?? []];
     }
+
+    // Flux's marker, and the same place in the runtime's words (rask-place.ts). Flux's tooltip is placed as
+    // its menus are — measured with the trigger held at the viewport's edges: it keeps its side 3 px from an
+    // edge where the rules below would turn it, is slid along its trigger, and is held to the height left.
+    private static Dictionary<string, string?> Marks(UiTooltipScope scope) => new(StringComparer.Ordinal)
+    {
+        ["ui-tooltip-content"] = null,
+        ["rask-place"] = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Side(scope.Position)} {Along(scope.Align)} {scope.Gap ?? 5} {scope.Offset ?? 0}"),
+    };
+
+    private static string Side(Ui.TooltipPosition position) => position switch
+    {
+        Ui.TooltipPosition.Bottom => "bottom",
+        Ui.TooltipPosition.Left => "left",
+        Ui.TooltipPosition.Right => "right",
+        _ => "top",
+    };
+
+    private static string Along(Ui.TooltipAlign align) => align switch
+    {
+        Ui.TooltipAlign.Start => "start",
+        Ui.TooltipAlign.End => "end",
+        _ => "center",
+    };
 
     // The side is CSS anchor positioning's position-area. The inset towards the trigger is Flux's gap of 5px
     // and the insets on the other sides keep it that far inside the viewport — insets rather than margins,

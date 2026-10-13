@@ -333,6 +333,37 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
+    public void A_text_rule_with_a_nullable_parameter_is_asked_with_the_empty_string_and_never_null()
+    {
+        var run = RunWithForms("""
+            public sealed record Label(string Value)
+            {
+                public static IEnumerable<string> Validate(string? value) => string.IsNullOrEmpty(value) ? ["Name it."] : [];
+            }
+            public sealed class Shelf : Aggregate<Guid>
+            {
+                private Shelf() { }
+                public Label Label { get; private set; } = new("");
+                public Label? Note { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ShelfModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "__Rule_Root_Label(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Label.Validate(\"\"), __RequiredText());",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "__Rule_Root_Note(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::System.Array.Empty<string>();",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Label.Validate(null", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Label.Validate(value)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_Validate_of_any_other_shape_is_not_a_rule_and_neither_is_one_on_a_value_object_of_several_values()
     {
         var run = RunWithForms(Product);

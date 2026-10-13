@@ -1558,7 +1558,11 @@ Ui.Dropdown[
 
 **The browser owns the open state and the cursor; the page hears a pick.** The menu is a `[popover]` the trigger opens with
 `popovertarget`, so the browser opens and closes it — top layer, Escape, a click outside — with no runtime at
-all, and it is placed with CSS anchor positioning. While it is open the page behind does not scroll and does
+all, and it is placed with CSS anchor positioning. **Every panel the kit opens against a trigger stays inside
+the viewport as Flux's does** — a menu, a popover, a tooltip, a list of options, a calendar, a list of times: when
+there is no room where it asked to be it takes the other alignment, then the other side, is slid back to stay
+5px inside the edge, and one taller than what is left is held to that height and scrolls inside (the runtime's
+`data-rask-place` hook, `docs/js-interop-runtime.md`; nothing to write in an app). While it is open the page behind does not scroll and does
 not take the pointer, so a click outside only closes it (`data-rask-lock` on the menu — a dropdown's and a
 context menu's alike, as on Flux; a menu the pointer opened, `Hover()`, locks nothing and takes no focus). Where
 the reader is in an open menu is not the page's state either: the runtime keeps the cursor in the browser
@@ -1878,7 +1882,8 @@ In a listbox with no search the create row is always shown and `OnClick` is hand
 case where the page opens a form of its own.
 
 **No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
-trigger, 5px under it, at most 20rem tall, and it flips when it would not fit. The browser opens it on a
+trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
+kept inside the viewport as every panel is. The browser opens it on a
 click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard below is C#,
 recorded on fluxui.dev and matched.
 
@@ -2090,8 +2095,8 @@ Ui.Context[
 
 The runtime opens it: an element carrying `data-rask-contextmenu="<popover id>"` shows that popover at the pointer
 in place of the browser's menu, straight away and on either host — a round trip first would be a lag felt on every
-right-click — and pulls it back inside the viewport near an edge. It lands where Flux's does: below the pointer,
-the menu's END edge on it. `Position` (`.BottomEnd` `.BottomCenter` `.BottomStart` `.TopEnd` `.TopCenter`
+right-click. It lands where Flux's does: below the pointer, the menu's END edge on it — and near an edge of
+the viewport over the pointer, or its start edge on it, slid back to stay 5px inside. `Position` (`.BottomEnd` `.BottomCenter` `.BottomStart` `.TopEnd` `.TopCenter`
 `.TopStart`), `Gap` and `Offset((x, y))` move it; `Target("id")` opens a `Ui.Menu.Id("id")` written somewhere
 else; `Detail` lands on the menu as `data-detail`; `Disabled` leaves the browser's own menu alone. The ContextMenu
 key and Shift+F10 open it at the focused element, which is why the area above is focusable — and unlike Flux's,

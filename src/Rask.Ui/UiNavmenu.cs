@@ -39,6 +39,11 @@ public sealed partial class UiNavmenu : Component
     {
         _host = Context.Get<UiPopupHost>();
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-navmenu"] = "" };
+        if (_host?.Place is { } place)
+        {
+            data["rask-place"] = place;
+        }
+
         if (_host?.Hover != true)
         {
             // The page behind neither scrolls nor takes the pointer, as under Flux's (rask-lock.ts). Not under
