@@ -1519,7 +1519,9 @@ them until tagged releases begin.
   all a press on it sends. The page keeps the last word: a tab it chooses itself — a refused save opening the
   tab with the first mistake, an `OnChange` that does not take the choice — is the one shown, also when it
   is the tab the page rendered before. A `Findable()` group's match selects its tab in the browser too.
-  Fields on a panel that is not shown stay in their form, keep what was typed and are submitted.
+  Fields on a panel that is not shown stay in their form, keep what was typed and are submitted. The DevTools
+  panel on a WebAssembly page — a frame the page writes, with no hook loader of its own — now carries the
+  behaviour hooks too, so its tabs, and whatever else the kit draws in the browser, work there as on a page.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click
