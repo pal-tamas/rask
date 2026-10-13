@@ -1450,6 +1450,18 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Switching a tab sends the server nothing** — as in Flux UI, whose script selects the tab and shows its
+  panel, and where Livewire hears only a model. Every tab of `Ui.Tabs` carried a click handler, so a press
+  was a frame and a render and three arrow keys were three (1 → 0 and 3 → 0, plain and segmented, with a
+  panel group or without). The runtime now moves `aria-selected`, the roving `tabindex` and `data-selected`
+  on the tabs and `hidden`, `tabindex` and `data-selected` on the panels in the press (`data-rask-tabs`,
+  `rask-tabs.ts`), and the selected tab is painted from `data-selected`, as Flux paints it. What the page
+  reads is one hidden field in the row: `.Bind(() => m.Tab)` travels with the reader's next action,
+  `.Bind(…).Live()` and `OnChange` hear it at once (one frame a choice), and a `Ui.Tab`'s own `OnClick` is
+  all a press on it sends. The page keeps the last word: a tab it chooses itself — a refused save opening the
+  tab with the first mistake, an `OnChange` that does not take the choice — is the one shown, also when it
+  is the tab the page rendered before. A `Findable()` group's match selects its tab in the browser too.
+  Fields on a panel that is not shown stay in their form, keep what was typed and are submitted.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click

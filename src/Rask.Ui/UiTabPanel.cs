@@ -11,7 +11,8 @@ namespace Rask;
 ///     </para>
 ///     <para>
 ///     Every panel is rendered and the ones not shown are <c>hidden</c>, so switching tabs shows markup
-///     that is already there. The shown panel is a tab stop: Tab leaves the row for what it opened.
+///     that is already there — in the browser, with nothing sent, and a field on a panel that is not shown
+///     stays in its form with what was typed into it. The shown panel is a tab stop: Tab leaves the row for what it opened.
 ///     </para>
 /// </remarks>
 public sealed partial class UiTabPanel : Component
@@ -43,7 +44,7 @@ public sealed partial class UiTabPanel : Component
 
         var panel = Div
             .Id(group?.PanelId(Name))
-            .Class(UiClass.Compose(PanelClass(shown, group?.Findable == true), Class))
+            .Class(UiClass.Compose(group?.Findable == true ? Findable : "pt-8", Class))
             .Data((shown ? SelectedMarker : Marker).With(null))
             .Role("tabpanel")
             .TabIndex(shown ? 0 : -1);
@@ -59,9 +60,9 @@ public sealed partial class UiTabPanel : Component
         }
 
         // `hidden="until-found"` keeps the words where find-in-page can reach them, and the browser raises
-        // `beforematch` on the panel it is about to reveal — which is the moment to select its tab.
+        // `beforematch` on the panel it is about to reveal — where the runtime selects its tab (rask-tabs.ts).
         return group is { Findable: true } && tabs is not null
-            ? panel.Attributes(("hidden", "until-found")).OnBeforeMatch(_ => tabs.Select(Name))[Children ?? []]
+            ? panel.Attributes(("hidden", "until-found"))[Children ?? []]
             : panel.Hidden(true)[Children ?? []];
     }
 
@@ -77,10 +78,8 @@ public sealed partial class UiTabPanel : Component
         return group is null ? Selected != false : Selected == true;
     }
 
-    // An until-found panel still takes its padding's room, so it is lifted out of the flow and made inert.
-    private static string PanelClass(bool shown, bool findable) => (shown, findable) switch
-    {
-        (false, true) => "pt-8 absolute opacity-0 pointer-events-none",
-        _ => "pt-8",
-    };
+    // An until-found panel still takes its padding's room, so while it is not the one shown it is lifted out
+    // of the flow and made inert — from `data-selected`, which the runtime moves with the tab.
+    private const string Findable =
+        "pt-8 not-data-selected:absolute not-data-selected:opacity-0 not-data-selected:pointer-events-none";
 }

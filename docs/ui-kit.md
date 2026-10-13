@@ -592,6 +592,15 @@ panel has Flux's top padding (`pt-8`); another is said as Flux's own examples sa
 
 A count beside a label is a child, like any other content: `Ui.Tab.Name("open")["Open", Ui.Badge["12"]]`.
 
+**Selecting a tab is the browser's**, as it is Flux's script's: a press moves `aria-selected`, the tab stop
+and `data-selected`, shows the tab's panel, and by itself sends the server nothing. What the page reads is the
+row's value, by its binding's timing — `.Bind(() => Tab)` writes it with the reader's next action,
+`.Bind(() => Tab).Live()` and `.OnChange(…)` hear it at once — and a `Ui.Tab`'s own `OnClick`. The page keeps
+the last word: set the bound property (or pass another `Value`) from a handler and that tab is shown, whatever
+the reader last pressed. That is what makes a long form in tabs work: the fields on the panels that are not
+shown stay in the form with what was typed into them and are submitted with it, and a save that is refused
+sets the tab to the one with the first mistake.
+
 **The keyboard** is the runtime's, for every `role="tablist"` ([accessibility.md](accessibility.md#tabs)):
 ArrowRight/ArrowDown and ArrowLeft/ArrowUp move to the next and the previous tab, past a disabled one and
 around the ends, and **select as they go**. Only the selected tab is a tab stop, so Tab leaves the row for the
@@ -1736,14 +1745,14 @@ which is what lets a dropdown close itself when the action inside it completes.
 Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[ trigger, Ui.Menu[ … ] ]
 ```
 
-**The page owns it, in C#.** `Ui.Tabs`, a `Ui.Toggle` given `Checked` and `Ui.Modal`'s `Open` path hold their state in a field and
+**The page owns it, in C#.** A `Ui.Toggle` given `Checked` and `Ui.Modal`'s `Open` path hold their state in a field and
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
 all, and `Expanded` is only the state it starts in — see [Accordion](#accordion).
 
-**And one whose state is a value.** `Ui.Tabs` keeps its selected tab itself until the page binds it — see
-[Tabs](#tabs).
+**And one whose state is a value.** `Ui.Tabs` selects in the browser, and tells the page the selected tab's
+name when the page binds it or listens — see [Tabs](#tabs).
 
 **And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
 owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.

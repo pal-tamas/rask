@@ -3,8 +3,8 @@ using System.Globalization;
 namespace Rask;
 
 /// <summary>
-///     What a <see cref="UiTabs" /> tells the tabs inside it: how they are drawn, which one is selected, and
-///     how to select another.
+///     What a <see cref="UiTabs" /> tells the tabs inside it: how they are drawn and which one is
+///     selected.
 /// </summary>
 /// <remarks>
 ///     The tabs are written by the CALLER, inside the tablist's children, so there is no call site at which
@@ -15,21 +15,14 @@ internal sealed class UiTabScope(
     Ui.TabsVariant variant,
     Ui.TabsSize size,
     string? chosen,
-    bool flagged,
-    Func<string, Task> select,
-    bool? live = null)
+    bool flagged)
 {
-    internal bool? Live => live;
-
     private int _count;
     private string? _shown;
 
     internal Ui.TabsVariant Variant => variant;
 
     internal Ui.TabsSize Size => size;
-
-    /// <summary>Selects a tab by name: the tablist's own handler, which writes the page's state.</summary>
-    internal Func<string, Task> Select => select;
 
     /// <summary>The selected tab's name, as far as the tabs rendered so far say.</summary>
     internal string? Selected => chosen ?? _shown;

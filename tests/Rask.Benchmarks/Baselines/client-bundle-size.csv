@@ -227,7 +227,8 @@
 # 2026-10-13, a password shown and hidden in the click (data-rask-view, rask-field.ts — Ui.Input.Viewable): rask-hooks.js 56,937 -> 57,280 (+343); its name in the loader's list is +5 in rask.js (101,729) and rask.wasm.js (90,512).
 # Both of the above together, by sum (carousel + switch on main at 57,546; the open mark and the viewable input +533): 58,079.
 # 2026-10-13, a key heard only from an empty field (`Backspace:empty`, rask-events.ts): rask.js and rask.wasm.js +60 each, on main at 101,731 / 90,514: 101,791 / 90,574.
+# 2026-10-13, a tab is selected and its panel shown in the browser, the bound field told and the page's own choice followed (data-rask-tabs, rask-tabs.ts): rask-hooks.js 58,079 -> 59,939 (+1,860). The two runtimes are unchanged.
 bundle,bytes
 rask.js,101796
 rask.wasm.js,90579
-rask-hooks.js,58079
+rask-hooks.js,59939

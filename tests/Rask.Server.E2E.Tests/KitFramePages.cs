@@ -184,6 +184,14 @@ public sealed partial class KitOverlayFramePage : KitFramePage
 /// <summary>What shows one view of several: which one is shown is the browser's to keep.</summary>
 public sealed partial class KitNavigationFramePage : KitFramePage
 {
+    private readonly Shown _shown = new();
+    private string _view = "list";
+
+    private sealed class Shown
+    {
+        public string Panel { get; set; } = "profile";
+    }
+
     protected override Component? Render() =>
         Div.Id("stage")[
             Part("tabs", Ui.TabGroup[
@@ -193,6 +201,15 @@ public sealed partial class KitNavigationFramePage : KitFramePage
                 Ui.TabPanel.Name("billing")["Your plan."]
             ]),
             Part("tabs-segmented", Ui.Tabs.Segmented[Ui.Tab.Name("list")["List"], Ui.Tab.Name("board")["Board"], Ui.Tab.Name("timeline")["Timeline"]]),
+            Part("tabs-bound", Ui.TabGroup[
+                Ui.Tabs.Bind(() => _shown.Panel)[Ui.Tab.Name("profile")["Profile"], Ui.Tab.Name("account")["Account"], Ui.Tab.Name("billing")["Billing"]],
+                Ui.TabPanel.Name("profile")["Your name."],
+                Ui.TabPanel.Name("account")["Your email."],
+                Ui.TabPanel.Name("billing")["Your plan."]
+            ]),
+            Part("tabs-heard", Ui.Tabs.Segmented.Value(_view).OnChange(view => _view = view)[
+                Ui.Tab.Name("list")["List"], Ui.Tab.Name("board")["Board"], Ui.Tab.Name("timeline")["Timeline"]
+            ]),
             Part("navbar", Ui.Navbar[
                 Ui.NavbarItem.Key("1").Href("#").Current(true)["Home"],
                 Ui.NavbarItem.Key("2").Href("#").Icon(Ui.IconName.PuzzlePiece).Badge("12")["Features"],

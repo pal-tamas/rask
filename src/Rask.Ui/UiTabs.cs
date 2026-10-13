@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
 
@@ -20,12 +21,23 @@ namespace Rask;
 ///     The keyboard is the runtime's, for any <c>role="tablist"</c>: the arrow keys move to the next tab that
 ///     is not disabled, wrapping at the ends, and select it as they go. Only the selected tab is a tab stop.
 ///     </para>
+///     <para>
+///     Selecting a tab is drawn in the browser, as Flux's script does it, and by itself sends the page
+///     nothing. What the page reads is one hidden field in the row, bound like any other: a plain
+///     <c>Bind</c> travels with the reader's next action, <c>.Live()</c> and <c>OnChange</c> hear it at once.
+///     The page still has the last word: a tab it chooses itself is the one shown.
+///     </para>
 /// </remarks>
-public sealed partial class UiTabs : Component, IDeferredBind
+public sealed partial class UiTabs : Component
 {
     private static readonly UiPartMarker Marker = new("ui-tabs");
 
     private string? _selected;
+
+    // What the browser last said it shows, the tab last rendered, and how often the page chose another itself.
+    private string? _told;
+    private string? _drawn;
+    private int _turn;
 
     /// <summary>How the tabs are drawn. A row on a hairline unless this says otherwise.</summary>
     public Ui.TabsVariant? Variant { get; set; }
@@ -69,17 +81,10 @@ public sealed partial class UiTabs : Component, IDeferredBind
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var accessor = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
-        var held = accessor is null ? Value : Held(accessor);
+        var held = Bind is { } bind ? ExpressionAccessor.Parse(bind).Getter() as string : Value;
         var variant = Variant ?? Ui.TabsVariant.Default;
         var chosen = string.IsNullOrEmpty(held) ? _selected : held;
-        var scope = new UiTabScope(
-            variant,
-            Size ?? Ui.TabsSize.Base,
-            chosen,
-            chosen is null && AnyTabSaysSelected(),
-            name => SelectAsync(name, accessor),
-            Live);
+        var scope = new UiTabScope(variant, Size ?? Ui.TabsSize.Base, chosen, chosen is null && AnyTabSaysSelected());
 
         if (Context.Get<UiTabGroupScope>() is { } group)
         {
@@ -89,38 +94,52 @@ public sealed partial class UiTabs : Component, IDeferredBind
         var scrolls = Scrollable == true;
         var list = Div
             .Class(UiClass.Compose(ListClass(variant, scope.Size, scrolls), Class))
-            .Data(Marker.With(null))
+            .Data(Marker.With(null, "rask-tabs", Says(chosen)))
             .Role("tablist")[
+            Field(chosen),
             Context.Provide(scope)[Children ?? []]
         ];
 
         return scrolls ? ScrollArea(list, variant) : list;
     }
 
-    private async Task SelectAsync(string name, ExpressionAccessor.Accessor? accessor)
+    // The tab the page says is selected, behind a turn that moves only when the page chose it itself: what
+    // answers the browser's own choice is an echo, which may come late and is not drawn over a later one.
+    private string? Says(string? chosen)
     {
-        // Remembered even when the page holds the value: a page that stops passing one keeps the tab it was on.
-        _selected = name;
-        if (accessor is not null)
+        var browser = _told ?? _drawn;
+        if (browser is not null && !string.Equals(browser, chosen, StringComparison.Ordinal))
         {
-            var context = BindingHelpers.ResolveBindingContext(accessor.Target);
-            await PendingBinds.Commit(this, accessor.Field, context, name, Write, SettleAsync).ConfigureAwait(false);
-
-            bool Write()
-            {
-                accessor.Setter(name);
-                return true;
-            }
-
-            Task SettleAsync() => BindingHelpers.NotifyAndValidateField(context, accessor.Field);
+            _turn++;
         }
 
-        await OnChange.Invoke(name).ConfigureAwait(false);
+        (_told, _drawn) = (null, chosen);
+        return chosen is null ? null : string.Create(CultureInfo.InvariantCulture, $"{_turn} {chosen}");
     }
 
-    // The tab chosen and not yet written is the one shown (PendingBinds), then the model's.
-    private string? Held(ExpressionAccessor.Accessor accessor) =>
-        (PendingBinds.TryPeek(this, accessor.Field, out var chosen) ? chosen : accessor.Getter()) as string;
+    // The one field the page reads the selected tab from, written by the runtime as a tab is chosen.
+    private HTMLInputElement<string>? Field(string? chosen)
+    {
+        if (Bind is { } bind)
+        {
+            var bound = Input.Bind(bind).Type(InputType.Hidden).AfterBind(ToldAsync);
+            return Live == true ? bound.Live() : bound;
+        }
+
+        if (OnChange.HasValue)
+        {
+            return Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).OnChange(ToldAsync);
+        }
+
+        return Value is null ? null : Input.Value(chosen ?? string.Empty).Type(InputType.Hidden);
+    }
+
+    private async Task ToldAsync(string name)
+    {
+        // Remembered even when the page holds the value: a page that stops passing one keeps the tab it was on.
+        (_told, _selected) = (name, name);
+        await OnChange.Invoke(name).ConfigureAwait(false);
+    }
 
     // A later tab's `Selected` has to be known before the first tab renders, or the first would claim the row.
     private bool AnyTabSaysSelected() => (Children ?? []).Any(child => child is UiTab { Selected: true });
