@@ -2183,7 +2183,9 @@
   It is a modal <dialog>, which the browser centres. From `sm` up Flux hangs it under the trigger, five pixels
   away and flush with its start: CSS anchor positioning against the trigger, whose name each picker hands down
   in --ui-color-picker-anchor (a name must be one picker's own, and a rule cannot make one up) — the same
-  anchoring the date picker's popup states inline. Below `sm` the browser's centring stands: there the popover
+  anchor rules the date picker's popup states inline. The runtime's placement (data-rask-place) is not asked:
+  it places popovers, and this is a modal dialog that below `sm` is not placed at all. There the browser's
+  centring stands: the popover
   is Flux's sheet over the page, and the page behind it does not scroll, which only a stylesheet can make
   depend on the width.
 */

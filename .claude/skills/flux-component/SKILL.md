@@ -637,8 +637,12 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`) under `data-rask-measure`, and the
   page reads the width it is told — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
   media-queried `:root:has()` rule in `ui.css`, not `data-rask-lock`: the lock depends on the width, and Flux
-  locks nothing at pointer widths. Placement is the date picker's anchoring said as a rule (the name comes down
-  in `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
+  locks nothing at pointer widths. Placement is the date picker's anchor rules said in `ui.css` (the name comes down in
+  `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
+  **NOT on `data-rask-place`**: `rask-place.ts` places what is `:popover-open`, reads the anchor from the panel's
+  inline style, and would hang the sheet under its trigger. So near an edge this panel only turns to the other
+  side (`position-try-fallbacks`), where Flux also slides it and holds its height. To wire it the hook has to
+  take an open modal `<dialog>`, find an anchor named by a rule, and stand down below `sm`.
   **The maths is Flux's to the last bit** (`UiColorValue`, found by typing 126 colours with channels on a half
   into the live picker: channels /255, HSV held as percentages, back through chroma; one formula pair of sixteen
   had no miss), and so is the reading of a typed colour (`UiColorComputed` writes what the browser's computed

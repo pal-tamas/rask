@@ -2761,7 +2761,9 @@ takes the sentence away. A picker bound to nothing a form could show a message i
 
 **How.** The popover is a native modal `<dialog>` the button opens by `command="show-modal"`; the runtime shows
 and closes it when the page says so (`data-rask-modal-open`), dismisses it (`data-rask-modal="any"`) and is hung
-under the trigger by CSS anchor positioning, as the date picker's popup is. The pointer is the runtime's:
+under the trigger by the CSS anchor rules the date picker's popup uses (near an edge it turns to the other side;
+the runtime's `data-rask-place`, which also slides a panel and holds its height, places popovers and is not
+asked here). The pointer is the runtime's:
 the area and each track are `data-rask-drag` surfaces, so a thumb is under the pointer every frame and the page
 hears one event a frame through one bound field a surface. The sliders hold native range inputs for the
 keyboard, and those, the area and the palette keep their keys from the page
