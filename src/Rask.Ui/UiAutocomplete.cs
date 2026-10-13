@@ -28,7 +28,10 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
     /// <summary>The text, when the page holds it. Pair it with <see cref="OnChange" />.</summary>
     public string? Value { get; set; }
 
-    /// <summary>Called with the text when it is picked, cleared, or typed and left.</summary>
+    /// <summary>
+    ///     Called with the text when it is picked, cleared, or typed and left — and, with <see cref="Debounce" />,
+    ///     once typing has paused.
+    /// </summary>
     public Callback<string> OnChange { get; set; }
 
     /// <summary>The member the input reads and writes: Flux's <c>wire:model</c>.</summary>
@@ -46,6 +49,20 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
     ///     written with the next action, and travels with that — Flux's <c>wire:model</c>.
     /// </summary>
     public bool? Live { get; set; }
+
+    /// <summary>
+    ///     How long typing must pause before the page holds what was typed:
+    ///     <c>Ui.Autocomplete.Value(_city).OnChange(Search).Debounce(250.Milliseconds)</c>, for suggestions that
+    ///     come from a database. Flux's <c>wire:model.live.debounce.250ms</c>. Without it the text reaches the
+    ///     page when it is picked, cleared or left. The browser counts the pause; an item picked during it is
+    ///     the text, and what was typed before it is dropped. A bound autocomplete writes its member then, as
+    ///     with <see cref="Live" />. <see cref="TimeSpan.Zero" /> is every keystroke.
+    /// </summary>
+    public TimeSpan? Debounce { get; set; }
+
+    // A pause is a way of being live: Flux's `.live.debounce`, and the input's own Debounce.
+    /// <inheritdoc />
+    bool? IDeferredBind.Live => Live == true || Debounce is not null ? true : null;
 
     /// <summary>The input's type. Text when unset.</summary>
     public InputType? Type { get; set; }
@@ -126,8 +143,8 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
         var view = Read();
         var input = Ui.Input
             .Value(_typing ? _search : view.Text)
-            .OnInput(Typed)
-            .OnChange(CommitAsync)
+            .OnInput(TypedAsync)
+            .OnChange(LeftAsync)
             .Id(UiFieldId.Derive(Id, Bind, Label))
             .Ref(_input)
             .Type(Type)
@@ -160,6 +177,8 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
                 Keys = UiListKeys.Text,
                 ClearKeys = Keys.Escape,
                 OnClick = Opened,
+                Pause = UiSearchPause.Of(Debounce),
+                AtPause = PausedAsync,
             });
 
         return Div.Class(UiAutocompleteLook.Root).Attributes(UiAutocompleteLook.RootMarks)[input, Popup(view)];
@@ -193,7 +212,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .Class(UiClass.Compose(UiListboxLook.Box, UiListboxLook.Scrolls, UiAutocompleteLook.Items, ContainerClass))
             .Aria("multiselectable", "true")
             .Attributes(PopupMarks())
-            .OnToggle(OnToggle)[
+            .OnToggle(OnToggleAsync)[
             view.Items.Select(item => Row(view, item)),
             // Flux's `ui-empty`: a place for a message it documents no way to fill. Kept, so the list is its list.
             Div.Class(UiAutocompleteLook.Empty).Attributes(view.Shown.Contains(true) ? Hidden : [])

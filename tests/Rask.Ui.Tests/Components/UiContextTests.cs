@@ -118,13 +118,16 @@ public partial class UiContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_area_says_it_is_open_while_the_menu_is_up_and_its_menu_is_the_one_a_dropdown_takes()
+    public void The_area_asks_the_runtime_to_say_it_is_open_and_its_menu_is_the_one_a_dropdown_takes()
     {
         var page = Page.Render(Menu());
 
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
+        var panel = Regex.Match(page.Html, "<div id=\"([^\"]+)\"[^>]*popover").Groups[1].Value;
 
-        Assert.Matches("<div[^>]*data-ui-context=\"\"[^>]*data-open=\"\"", page.Html);
+        // `data-open` while the menu is up is the runtime's to write, and the page is not told the menu opened.
+        Assert.Matches("<div[^>]*data-ui-context=\"\"[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"", page.Html);
+        Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
         // The same menu, so the same cursor: the runtime's, in the browser.
         Assert.Matches("<div[^>]*role=\"menu\"[^>]* data-rask-menu-cursor=\"\"|<div[^>]* data-rask-menu-cursor=\"\"[^>]*role=\"menu\"", page.Html);
     }

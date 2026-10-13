@@ -153,8 +153,14 @@ function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
     // data-rask-keys="ArrowDown ArrowUp Enter Escape Tab": the only keys this element's handler hears, by
     // KeyboardEvent.key. A combobox acts on five; every letter typed into it was otherwise a round trip and a
     // render that changed nothing, ahead of the `input` that does.
+    // A key written "Backspace:empty" is heard only from a field that holds nothing: in a pillbox's input it
+    // takes the last pill off there, and is the text's own everywhere else — which the page cannot tell apart
+    // while the field waits for a pause and has sent none of what it holds.
     var keys = t.getAttribute("data-rask-keys");
-    if (keys !== null && keys.split(" ").indexOf(e.key) < 0) { return; }
+    if (keys !== null) {
+        var heard = keys.split(" ");
+        if (heard.indexOf(e.key) < 0 && (heard.indexOf(e.key + ":empty") < 0 || (t as HTMLInputElement).value)) { return; }
+    }
     send(Object.assign(raskDomPayload(e, type), {id: t.getAttribute(attr), type: type}));
 }
 

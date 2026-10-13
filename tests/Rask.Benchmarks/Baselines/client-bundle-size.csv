@@ -223,7 +223,11 @@
 # (+344). rask-hooks.js is unchanged.
 # 2026-10-13, a panel whose --rask-place computes to none is left to the stylesheet (the date picker's phone sheet, rask-place.ts): rask-hooks.js 56,675 -> 56,747 (+72), measured on main, whose hooks bundle builds to 56,675 where this file said 56,371. The two runtimes are unchanged.
 # 2026-10-13, a carousel's autoplay holds while focus is inside it, a padded track rests where scroll snap would leave it, one that rewinds says no end (rask-carousel.ts), and a switch nobody listens to is turned in the browser (data-rask-switch, rask-switch.ts): rask-hooks.js 56,747 -> 57,546 (+799); its attribute in the loader: rask.js 101,724 -> 101,731 and rask.wasm.js 90,507 -> 90,514 (+7 each).
+# 2026-10-13, data-open on what NAMES a popover — a dropdown, its trigger, a context area — so opening one asks the server nothing (data-rask-open-mark="<id>", rask-toggle.ts): rask-hooks.js 56,747 -> 56,937 (+190). The two runtimes are unchanged.
+# 2026-10-13, a password shown and hidden in the click (data-rask-view, rask-field.ts — Ui.Input.Viewable): rask-hooks.js 56,937 -> 57,280 (+343); its name in the loader's list is +5 in rask.js (101,729) and rask.wasm.js (90,512).
+# Both of the above together, by sum (carousel + switch on main at 57,546; the open mark and the viewable input +533): 58,079.
+# 2026-10-13, a key heard only from an empty field (`Backspace:empty`, rask-events.ts): rask.js and rask.wasm.js +60 each, on main at 101,731 / 90,514: 101,791 / 90,574.
 bundle,bytes
-rask.js,101731
-rask.wasm.js,90514
-rask-hooks.js,57546
+rask.js,101796
+rask.wasm.js,90579
+rask-hooks.js,58079

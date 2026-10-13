@@ -37,6 +37,7 @@ public sealed partial class UiKitDataInputDemo
     private int? _project;
     private int? _found;
     private string _projectSearch = "";
+    private int _projectQueries;
 
     private Component SelectSection() =>
         Section(
@@ -172,9 +173,9 @@ public sealed partial class UiKitDataInputDemo
     private Component ComboboxSection() =>
         Section(
             "Combobox",
-            "A text input that filters the list under it as you type. With Filter(false) the page answers each "
-            + "keystroke itself — a query, here a list — and Ui.SelectOptionCreate offers to make an option of what was "
-            + "typed once it names none that exists.",
+            "A text input that filters the list under it as you type. With Filter(false) the page answers the "
+            + "search itself — a query, here a list — and Debounce on Ui.SelectInput asks it once typing has paused. "
+            + "Ui.SelectOptionCreate offers to make an option of what was typed once it names none that exists.",
             Div.Data(Testid("ui-combobox")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-3")[
                 Ui.Select.Key("combobox").Value(_typed).OnChange(picked => _typed = picked).Combobox.Placeholder("Choose industry...").Id("ui-select-combobox")[
                     Industries.Select(name => Ui.SelectOption.Key("combobox-" + name)[name])
@@ -184,15 +185,22 @@ public sealed partial class UiKitDataInputDemo
                     _projects.Select(project => Ui.SelectOption.Key("create-" + project.Id).Value(project.Id)[project.Name]),
                     Ui.SelectOptionCreate.MinLength(2).OnClick(CreateProject)["Create new project"]
                 ],
-                Ui.Select.Key("backend").Value(_found).OnChange(picked => _found = picked).Combobox.Filter(false)[
-                    Ui.SelectInput.Placeholder("Start typing...").OnInput(text => _projectSearch = text),
+                Ui.Select.Key("backend").Value(_found).OnChange(picked => _found = picked).Combobox.Filter(false).Id("ui-select-backend")[
+                    Ui.SelectInput.Placeholder("Start typing...").OnInput(SearchProjects).Debounce(250.Milliseconds),
                     _projects.Where(Named).Select(project => Ui.SelectOption.Key("backend-" + project.Id).Value(project.Id)[project.Name]),
                     Ui.SelectOptionEmpty.WhenLoading("Loading projects...")["No projects found."]
                 ],
                 P.Class("text-sm text-ui-muted sm:col-span-3").Data(Testid("ui-combobox-state"))[
-                    $"Industry: {_typed ?? "none"}. Project: {ProjectName(_project) ?? "none"}."
+                    $"Industry: {_typed ?? "none"}. Project: {ProjectName(_project) ?? "none"}. "
+                    + $"Found: {ProjectName(_found) ?? "none"}. Searches: {_projectQueries}."
                 ]
             ]);
+
+    private void SearchProjects(string text)
+    {
+        _projectQueries++;
+        _projectSearch = text;
+    }
 
     private bool Named((int Id, string Name) project) =>
         project.Name.Contains(_projectSearch, StringComparison.CurrentCultureIgnoreCase);

@@ -196,6 +196,9 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
             return Task.CompletedTask;
         });
         await session.HooksLoadedAsync();
+        // What the page says as it boots — its hello, a restored field — may still be on its way when the hooks
+        // have loaded: on a loaded machine one such frame was counted as the panel's. The socket goes quiet first.
+        await session.Page.WaitForTimeoutAsync(300);
         var before = Volatile.Read(ref sent);
 
         await OpenedAsync(session, "right");

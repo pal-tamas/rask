@@ -32,7 +32,7 @@ public abstract partial class UiSelectControl<T>
         var off = IsOff(view.Parts);
         // With nothing to type into, the trigger is the combobox; otherwise it is the button over one.
         var plain = !Searches;
-        var pills = PillRows(view);
+        var pills = view.Answers;
         var trigger = Div
             .Key(TriggerKey)
             .TabIndex(PillsCombobox || off ? -1 : 0)
@@ -53,12 +53,12 @@ public abstract partial class UiSelectControl<T>
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
         return trigger[
             Div.Key("picked").Class(UiPillboxLook.Selected)[
-                PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Count, slot?.Placeholder ?? Placeholder)],
+                PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholder)],
                 Div.Class(UiPillboxLook.Pills)[
                     Div.Class(UiPillboxLook.Contents)[
-                        pills.Count > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(row => Pill(row, off))] : null
+                        pills.Length > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(answer => Pill(answer, off))] : null
                     ],
-                    PillsCombobox ? PillInput(view, pills.Count, off) : null
+                    PillsCombobox ? PillInput(view, pills.Length, off) : null
                 ]
             ],
             Clears(view) ? ClearButton() : null,
@@ -73,35 +73,22 @@ public abstract partial class UiSelectControl<T>
     private bool IsSmall(UiPillboxTrigger? slot) =>
         slot?.Size is { } size ? size == Ui.PillboxSize.Sm : Height == Ui.SelectSize.Sm;
 
-    // In the order they were picked, as Flux shows them — not the order the options are written in.
-    private static List<Row> PillRows(View view)
-    {
-        List<Row> rows = [];
-        foreach (var value in view.Picked)
-        {
-            if (view.Parts.Rows.Find(row => Same(row.Value, value)) is { } row)
-            {
-                rows.Add(row);
-            }
-        }
-
-        return rows;
-    }
-
     private static Component? PillPlaceholder(int pills, string? placeholder) =>
         pills == 0 && placeholder is not null
             ? Span.Class(UiPillboxLook.Placeholder).Data("ui-pillbox-placeholder", "")[placeholder]
             : null;
 
-    private Component Pill(Row row, bool off)
+    // One pill for each answer that has a face (Remember), in the order they were picked, as Flux shows them —
+    // not the order the options are written in, and whether or not the option is among the rows now.
+    private Component Pill(Answer answer, bool off)
     {
-        var value = row.Value;
+        var value = answer.Value;
         var small = IsSmall(Pills!.Trigger);
         var remove = Div.Class(UiClass.Compose(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small)));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
-        return Div.Key(row.Option.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", row.Option.FormValue)[
-            Div.Class(UiPillboxLook.PillWords)[row.Option.SelectedText],
+        return Div.Key(answer.Face.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", answer.Face.FormValue)[
+            Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
             (off ? remove : remove.OnClick(() => RemoveAsync(value, Latest)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
@@ -137,9 +124,9 @@ public abstract partial class UiSelectControl<T>
             .Disabled(off)
             .Class(UiClass.Compose(UiPillboxLook.Input, slot?.Class))
             .Aria(aria)
-            .Attributes(UiPillboxLook.InputMarks(placeholder))
+            .Attributes(UiSearchPause.Over(UiPillboxLook.InputMarks(placeholder), _pause, PausedAsync))
             .Ref(_input)
-            .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
+            .OnInput(AtEveryKey(opens: true))
             .OnKeyDown(e => OnPillInputKeyAsync(e, Latest));
     }
 
@@ -189,9 +176,6 @@ public abstract partial class UiSelectControl<T>
 
     private string? PillListLook() => Pills is null ? null : UiPillboxLook.SearchedList;
 
-    private Dictionary<string, string?> SearchInputMarks() =>
-        Pills is null ? [] : UiPillboxLook.InputMarks(null);
-
     private Component?[] RowContent(UiSelectOption option) =>
         Pills is null ? [UiListboxRow.Content(option)] : UiPillboxRow.Content(option);
 
@@ -227,22 +211,22 @@ public abstract partial class UiSelectControl<T>
     private async Task OnPopupToggleAsync(ToggleEvent e)
     {
         OnToggle(e);
-        if (PillsCombobox && !_open)
+        if (_open)
         {
-            // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
-            await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+            return;
         }
-        else if (!_open)
-        {
-            await ForgetUnheardAsync().ConfigureAwait(false);
-        }
+
+        // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
+        await SettleAsync(held: PillsCombobox).ConfigureAwait(false);
     }
 
     private async Task OnPillInputKeyAsync(KeyboardEvent e, View view)
     {
         switch (e.Key)
         {
-            case Keys.Backspace when view.Search.Length == 0 && view.Picked.Count > 0:
+            // Heard only from an empty input (UiListKeys.Pills). The page's own reading of the text is asked
+            // where it is known: an input that waits holds what no render has drawn.
+            case Keys.Backspace when (Waits || view.Search.Length == 0) && view.Picked.Count > 0:
                 await CommitAsync([.. view.Picked.Take(view.Picked.Count - 1)]).ConfigureAwait(false);
                 break;
             case Keys.Escape or Keys.Tab:
@@ -268,21 +252,29 @@ public abstract partial class UiSelectControl<T>
     // Empties the pillbox's own input — unless the browser already has — and tells the page that holds the search.
     private async Task ForgetTypedAsync(View view, bool emptied = false)
     {
-        if (view.Search.Length == 0)
+        if (view.Search.Length == 0 && !Waits)
         {
             return;
         }
 
         var cursor = _cursor;
-        await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
+        await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
         _typing = false;
         _cursor = cursor;
         if (!emptied)
         {
-            await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+            UiInputReach.Tell(_input, string.Empty);
         }
     }
 
-    private Task RemoveAsync(T value, View view) =>
-        CommitAsync([.. view.Picked.Where(held => !Same(held, value))]);
+    // Flux empties what was typed when a pill is taken off, as at a pick (measured: "re" typed, a pill's cross
+    // pressed, the input is empty and the list still open).
+    private async Task RemoveAsync(T value, View view)
+    {
+        await CommitAsync([.. view.Picked.Where(held => !Same(held, value))]).ConfigureAwait(false);
+        if (PillsCombobox)
+        {
+            await ForgetAtChoiceAsync(view).ConfigureAwait(false);
+        }
+    }
 }
