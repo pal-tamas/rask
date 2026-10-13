@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **RASK102 names the two `Validate` shapes that invite the miss.** A value object over a number, a date or
+  an id whose rule takes the value as nullable — `Validate(decimal? value)` on `NormPercent(decimal Value)` —
+  was already reported, with a reason that only stated the mismatch; it now says what to write: "declare it
+  'decimal', because an unfilled field is never put to the rule and a property that is not nullable is required
+  by its type". A `Validate` taking its value by `ref`, `out` or `ref readonly` was taken for the rule and the
+  generated call then failed to compile inside generated code (CS1620); it is now reported — "it takes its
+  value by 'ref', and a rule is handed the value itself" — and the field is required by its type like any
+  other without a rule. `in` stays a rule, and so does `Validate(string? value)` over a `string`, which is
+  asked with the empty string and never `null`. Nothing changes in what runs for an empty field.
 - **A panel of the kit stays inside the viewport, exactly as Flux UI's does.** **A behaviour change.** A menu,
   a popover, a context menu, a tooltip, the list of a select, an autocomplete or a pillbox, a calendar and a
   list of times used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a

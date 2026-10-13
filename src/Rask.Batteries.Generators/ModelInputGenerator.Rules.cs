@@ -134,16 +134,46 @@ public sealed partial class ModelInputGenerator
             return $"it takes {method.Parameters.Length} parameters, not the one value";
         }
 
-        if (!SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, held))
+        return WhyNotTheValue(method.Parameters[0], held) ?? (IsMessages(method.ReturnType) || IsAwaitedMessages(method.ReturnType)
+            ? null
+            : $"it returns '{method.ReturnType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', not the messages");
+    }
+
+    // Null when the parameter takes the held value as the generated call hands it over: by value, or by 'in'.
+    private static string? WhyNotTheValue(IParameterSymbol parameter, ITypeSymbol held)
+    {
+        if (parameter.RefKind is not (RefKind.None or RefKind.In))
         {
-            return $"its parameter is '{method.Parameters[0].Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', "
-                   + $"not the '{held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}' it holds";
+            return $"it takes its value by '{RefWord(parameter.RefKind)}', and a rule is handed the value itself";
         }
 
-        return IsMessages(method.ReturnType) || IsAwaitedMessages(method.ReturnType)
-            ? null
-            : $"it returns '{method.ReturnType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)}', not the messages";
+        if (SymbolEqualityComparer.Default.Equals(parameter.Type, held))
+        {
+            return null;
+        }
+
+        var declared = parameter.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        var value = held.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        var reason = $"its parameter is '{declared}', not the '{value}' it holds";
+
+        // The one miss that reads as a rule: 'decimal?' so the rule can say "required" — which it is never asked.
+        return IsNullableOf(parameter.Type, held)
+            ? reason + $"; declare it '{value}', because an unfilled field is never put to the rule and a property "
+                     + "that is not nullable is required by its type"
+            : reason;
     }
+
+    private static bool IsNullableOf(ITypeSymbol type, ITypeSymbol held) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, TypeArguments.Length: 1 } nullable &&
+        SymbolEqualityComparer.Default.Equals(nullable.TypeArguments[0], held);
+
+    private static string RefWord(RefKind kind) =>
+        kind switch
+        {
+            RefKind.Ref => "ref",
+            RefKind.Out => "out",
+            _ => "ref readonly",
+        };
 
     private static bool IsAwaitedMessages(ITypeSymbol type) =>
         type is INamedTypeSymbol { Name: "ValueTask" or "Task", TypeArguments.Length: 1 } awaited &&
