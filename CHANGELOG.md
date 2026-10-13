@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`
+  page of its own got an untitled tab and, in a Hungarian app, English. Its heading, sentence and link are
+  the catalog's `NotFoundTitle`, `NotFoundBody` and `NotFoundBackHome`, with Hungarian in the kit ("Az oldal
+  nem található" · "Ezen a címen nincs oldal: /x" · "Vissza a kezdőlapra"), and the heading is the tab's
+  `<title>` too, over the app's own. **`NotFoundBody` carries the path as `{0}` now** — English
+  `No route is registered for {0}.`, before the prefix `No route is registered for ` — so a translation
+  puts the path where its sentence wants it. A catalog entry written without `{0}` still works: the path
+  follows it, as it did. The path is written as text; the status stays 404.
+
 - **A lifecycle hook that faults with no boundary of the app's shows the built-in error page.** **A behaviour
   change.** Before: `protected override async Task OnMount() => _rows = await Load();` whose read threw
   *before its first real await* — a cache or a validation that throws at once, a read that had already

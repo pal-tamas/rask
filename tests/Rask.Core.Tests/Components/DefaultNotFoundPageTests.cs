@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -48,6 +49,56 @@ public partial class DefaultNotFoundPageTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("Page not found", html);
         Assert.Contains(">/<", html);
+    }
+
+    [Fact]
+    public void It_says_in_one_sentence_that_nothing_is_at_the_path()
+    {
+        using var _ = BeginRoute("/missing");
+
+        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+
+        Assert.Matches("No route is registered for <code[^>]*>/missing</code>\\.</p>", html);
+    }
+
+    [Fact]
+    public void A_path_that_carries_markup_is_written_as_text()
+    {
+        using var _ = BeginRoute("/<img src=x onerror=alert(1)>");
+
+        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+
+        Assert.Contains("/&lt;img src=x onerror=alert(1)&gt;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_path_that_reads_like_a_placeholder_is_shown_as_it_was_asked_for()
+    {
+        using var _ = BeginRoute("/{0}/{1}");
+
+        var html = DefaultNotFoundPage.RenderForLive()!.ToHtml();
+
+        Assert.Matches("<code[^>]*>/\\{0\\}/\\{1\\}</code>", html);
+    }
+
+    [Fact]
+    public void It_titles_the_tab_over_the_apps_own_title()
+    {
+        var services = new ServiceCollection().AddSingleton(new RouteState { Path = "/missing" }).BuildServiceProvider();
+        var app = new TitledApp();
+
+        var html = new RootErrorBoundary(app).RenderAsLiveRoot(services);
+
+        Assert.Equal("Page not found", Regex.Match(html, "<title[^>]*>([^<]*)<").Groups[1].Value);
+        Assert.Single(Regex.Matches(html, "<title"));
+    }
+
+    private sealed class TitledApp : Component
+    {
+        protected override Component? HeadAssets => Title["the app"];
+
+        protected override Component? Render() => Div[DefaultNotFoundPage];
     }
 
     private static IDisposable BeginRoute(string path)

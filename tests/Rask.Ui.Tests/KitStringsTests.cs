@@ -132,6 +132,36 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("Application error", hungarian, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_built_in_not_found_page_speaks_hungarian_to_a_hungarian_visitor_and_english_otherwise()
+    {
+        using var services = new ServiceCollection()
+            .AddSingleton(new global::Rask.Core.Routing.RouteState { Path = "/nincs/ilyen" }).BuildServiceProvider();
+#pragma warning disable RASK014 // the host wraps the app in the root boundary: here the test is the host
+        string Document() => new global::Rask.Core.Live.RootErrorBoundary(new AppWithNoSuchPage()).RenderAsLiveRoot(services).AsText();
+#pragma warning restore RASK014
+
+        var hungarian = KitCulture.In("hu-HU", Document);
+        var english = KitCulture.In("en-US", Document);
+
+        Assert.Equal("Az oldal nem található", Regex.Match(hungarian, "<title[^>]*>([^<]*)<").Groups[1].Value);
+        Assert.Matches("<h1[^>]*>Az oldal nem található</h1>", hungarian);
+        Assert.Matches("Ezen a címen nincs oldal: <code[^>]*>/nincs/ilyen</code></p>", hungarian);
+        Assert.Matches("<a[^>]*>Vissza a kezdőlapra</a>", hungarian);
+        Assert.Equal("Page not found", Regex.Match(english, "<title[^>]*>([^<]*)<").Groups[1].Value);
+        Assert.Matches("No route is registered for <code[^>]*>/nincs/ilyen</code>\\.</p>", english);
+        Assert.Matches("<a[^>]*>Back to home</a>", english);
+        Assert.DoesNotContain("Page not found", hungarian, StringComparison.Ordinal);
+    }
+
+    [global::Rask.Core.SkipFactory]
+    private sealed class AppWithNoSuchPage : global::Rask.Core.Component
+    {
+#pragma warning disable RASK014 // the router draws this page for a path nothing answers: here the test does
+        protected override global::Rask.Core.Component? Render() => new global::Rask.Core.Components.DefaultNotFoundPage();
+#pragma warning restore RASK014
+    }
+
     [global::Rask.Core.SkipFactory]
     private sealed class AppThatThrows : global::Rask.Core.Component
     {
@@ -268,6 +298,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),
         nameof(RaskString.ErrorTitle),
+        nameof(RaskString.NotFoundTitle), nameof(RaskString.NotFoundBody), nameof(RaskString.NotFoundBackHome),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

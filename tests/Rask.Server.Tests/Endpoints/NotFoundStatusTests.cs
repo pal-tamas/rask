@@ -37,6 +37,22 @@ public class NotFoundStatusTests
     }
 
     [Fact]
+    public async Task The_built_in_page_titles_the_tab_and_names_the_path_as_text_and_nothing_else_of_the_request()
+    {
+        using var host = RaskTestHost.Create<RoutedTestApp>();
+
+        var response = await host.Http.GetAsync("/no-such/%3Cb%3Epage?token=hunter2", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("Page not found", System.Text.RegularExpressions.Regex.Match(body, "<title[^>]*>([^<]*)<").Groups[1].Value);
+        Assert.Matches("No route is registered for <code[^>]*>/no-such/&lt;b&gt;page</code>\\.</p>", body);
+        Assert.Contains(">Back to home</a>", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<b>page", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_matched_route_stays_200()
     {
         using var host = RaskTestHost.Create<RoutedTestApp>();

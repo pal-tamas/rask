@@ -51,7 +51,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("PickerSecond", 0),
         ("PickerClear", 0),
         ("NotFoundTitle", 0),
-        ("NotFoundBody", 0),
+        ("NotFoundBody", 1),
         ("NotFoundBackHome", 0),
         ("ErrorHeading", 0),
         ("ErrorTryAgain", 0),
