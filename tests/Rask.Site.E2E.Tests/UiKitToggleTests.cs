@@ -15,14 +15,13 @@ namespace Rask.Site.E2E.Tests;
 public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
-    private const string Waiting =
-        "toggle => new Promise(resolve => { const started = performance.now(); const look = () => { "
-        + "const waits = toggle.hasAttribute('data-loading'); "
-        + "const shown = getComputedStyle(toggle.querySelector('[data-ui-loading-indicator]')).opacity === '1'; "
-        + "const inert = getComputedStyle(toggle).pointerEvents === 'none'; "
-        + "if (waits && shown && inert) return resolve('spinner shown, no pointer'); "
-        + "if (performance.now() - started > 5000) return resolve(`never: waits=${waits} shown=${shown} inert=${inert}`); "
-        + "requestAnimationFrame(look); }; look(); })";
+    // Notes, from before the press, whether the runtime ever marked the button waiting. A look taken AFTER the press
+    // can miss the whole save: the first handler a WebAssembly page runs keeps the browser's one thread long enough
+    // on a slow machine for the mark to come and go before the next look gets in.
+    private const string Watch =
+        "toggle => { window.__toggleWaited = false; new MutationObserver(() => { "
+        + "if (toggle.hasAttribute('data-loading')) window.__toggleWaited = true; })"
+        + ".observe(toggle, { attributes: true, attributeFilter: ['data-loading'] }); }";
 
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Wasm";
@@ -83,13 +82,21 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
         var says = scope.Locator("[data-testid='ui-toggle-saves']");
         await Expect(says).ToContainTextAsync("Saved as inactive · 0 saves");
 
+        await toggle.EvaluateAsync(Watch);
+
         await toggle.ClickAsync();
 
-        // The save takes 600 ms: after 200 the runtime marks the button, the spinner takes the icon's place and
-        // the button takes no pointer. Watched by the page itself, in one look: the wait is over in 400 ms.
-        Assert.Equal("spinner shown, no pointer", await toggle.EvaluateAsync<string>(Waiting));
+        // The member is written before the page's handler runs, and the handler takes 600 ms: the runtime marks
+        // the button after 200, and takes the mark off when the answer is in.
         await Expect(says).ToContainTextAsync("Saved as active · 1 saves", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__toggleWaited"), "the toggle was never marked data-loading while it saved.");
         await Expect(toggle).Not.ToHaveAttributeAsync("data-loading", "");
+        // What the mark draws, held still rather than caught in passing: the spinner in the icon's place, no pointer.
+        await toggle.EvaluateAsync("toggle => toggle.setAttribute('data-loading', '')");
+        await Expect(toggle.Locator("[data-ui-loading-indicator]")).ToHaveCSSAsync("opacity", "1");
+        await Expect(toggle.Locator("svg[fill='currentColor']")).ToHaveCSSAsync("opacity", "0");
+        await Expect(toggle).ToHaveCSSAsync("pointer-events", "none");
+        await toggle.EvaluateAsync("toggle => toggle.removeAttribute('data-loading')");
         await Expect(toggle).ToHaveAttributeAsync("aria-checked", "true");
     });
 
