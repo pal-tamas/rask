@@ -19,7 +19,7 @@ Everything is on by default with zero configuration; you opt in to *exporting* i
 `Rask.Core` and the WASM host take no dependency on `Microsoft.Extensions.Logging` — instead they
 report diagnostics through an internal seam (`RaskDiagnostics`). On the server, `MapRask<TApp>()`
 bridges that seam to your application's `ILogger` automatically. From then on every framework
-diagnostic — a lifecycle hook that threw with no ancestor `ErrorBoundary`, a component `Dispose`
+diagnostic — a lifecycle hook that threw in a component rendered outside a host, a component `Dispose`
 that faulted, a duplicate sibling `Key`, a malformed WebSocket frame, an event handler that threw —
 is logged through an `ILogger` named for the diagnostic's category, at the matching level, with the
 original exception attached:

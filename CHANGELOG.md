@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A lifecycle hook that faults with no boundary of the app's shows the built-in error page.** **A behaviour
+  change.** Before: `protected override async Task OnMount() => _rows = await Load();` whose read threw
+  *before its first real await* — a cache or a validation that throws at once, a read that had already
+  completed — in a component with no `ErrorBoundary` of the app's around it was one `Rask.Lifecycle` log line,
+  and the page stayed on its placeholder for good; the first `GET` answered 200. (A hook that threw after an
+  `await` already reached the host's boundary.) After: every lifecycle fault — `OnMount`, `OnUpdated`,
+  `OnFirstRender`, `OnRendered`, before or after an `await`, in a page, a layout or a child however deep —
+  reaches the boundary a fault of that component's `Render` reaches, in the same pass: the built-in error
+  page, with the reference the `Rask.Errors` Error line carries and nothing of the exception outside
+  Development. A first `GET` whose hook faults before the response is sent answers **500**; a page already
+  painted on its placeholder is repainted as the error page in the frame that follows. An `ErrorBoundary`
+  the app wrote around the component trips as before, and now also for a hook that throws before its first
+  await. A hook that faults after its component left the page is still only recorded.
+- **In Development a lifecycle fault replaces the page too.** **A behaviour change.** Before: the overlay
+  over the running app, which stayed on its placeholder. After: the error page with the exception, its
+  stack and source, as a render fault shows it. The overlay is a handler's fault only.
+- **`Try again` runs the load that faulted again, and another address leaves the error page.** **A behaviour
+  change.** Before: recovering a boundary after a hook fault drew the component as its failed load left it —
+  on its placeholder, with nothing on the way — and a navigation from the host's error page showed the error
+  page again. After: the component whose `OnMount`/`OnUpdated` faulted gets both again when its boundary
+  recovers (the root's `Try again`, or the `retry` handed to your `Fallback`), and Back or any other address
+  from the root error page draws that page.
+
 - **A generated URL leaves out a query key no value was given for.** **A behaviour change.** Before:
   `[QueryParam] public int Page { get; set; } = 1;` → `Routes.OrdersPage()` was `/orders?Page=` — a
   non-nullable query property's key was always written, empty when its argument was left out. After:

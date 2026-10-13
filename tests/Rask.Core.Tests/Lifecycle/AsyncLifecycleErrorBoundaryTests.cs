@@ -49,11 +49,11 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
     }
 
     [Fact]
-    public async Task An_async_fault_with_no_boundary_logs_to_the_console_error()
+    public async Task An_async_fault_with_no_boundary_anywhere_logs_to_the_console_error_once_a_walk_has_met_the_component()
     {
         var sp = RenderHarness.EmptyServices();
         var child = new FaultingComponent(FaultPoint.MountAsync);
-        // No boundary — the existing log-and-swallow path should fire.
+        // No boundary, and no walk yet: the fault waits for the walk that says so, then is logged.
 
         var origErr = Console.Error;
         // The logging happens on the threadpool continuation while this test reads the buffer, so the
@@ -66,9 +66,12 @@ public partial class AsyncLifecycleErrorBoundaryTests : global::Rask.Core.RaskMa
             {
                 child.RaiseLifecycleBeforeRender(true);
                 await child.Fault.Task;
-                await WaitFor.True(() => sw.Text.Contains("mount-async", StringComparison.Ordinal),
-                    Budget, "the fault to reach Console.Error");
+                await WaitFor.True(() => HeldHookFault.Holds(child), Budget, "the fault to wait for the walk");
             }
+
+            _ = new StubComponent(() => Div[child]).RenderAsLiveRoot(sp);
+            await WaitFor.True(() => sw.Text.Contains("mount-async", StringComparison.Ordinal),
+                Budget, "the fault to reach Console.Error");
         }
         finally
         {

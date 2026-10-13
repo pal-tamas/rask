@@ -606,6 +606,10 @@ the budget is sent as **one** frame — the form with its record — and "No suc
 trailer that does not exist. A read that outlasts the budget is painted as the `null` branch first and as the
 form when it lands; the page is drawn again when its hook's `await` completes, with nothing to call.
 
+A read that **throws** shows the [built-in error page](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component)
+in place of the page (the first `GET` answers 500). To say a sentence of your own instead, wrap the read in
+`try`/`catch` and draw it from `Render`.
+
 A form is its **model's** form: `Form.Model(model)` keeps one `EditContext` per model instance, so handing it
 another instance — the next record under the same `Key`, a record read again — is a new form with that
 instance's values, and nothing typed into the previous one is left in its fields.

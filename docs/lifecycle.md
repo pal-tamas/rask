@@ -240,14 +240,15 @@ every render gets two follow-ups per request, and the rest goes over the live co
 
 ## Gotcha: a faulted async hook takes the page, not the component
 
-**If an async hook faults, it trips the nearest `ErrorBoundary` — and in a live app there is always one.** The host
-wraps your `App` in an implicit root boundary, and every component is stamped with the boundary above it during the
-render walk, so a faulting `OnMount` / `OnUpdated` / `OnRendered` renders that boundary's fallback
-rather than logging quietly.
+**If a lifecycle hook faults, it trips the nearest `ErrorBoundary` — and in a live app there is always one.** The host
+wraps your `App` in an implicit root boundary, so a faulting `OnMount` / `OnUpdated` / `OnFirstRender` / `OnRendered`
+renders that boundary's fallback rather than logging quietly. It makes no difference where in the hook it throws —
+on its first line, in a read that fails before it ever awaits, or after an `await` — nor how deep the component
+is: a page, a layout, a child of a child.
 
 The practical symptom is therefore the opposite of what you might expect: not a component stuck forever on a loading
-placeholder, but **the whole page replaced by an error page** — because the boundary that caught it is the root one,
-unless you put a closer boundary in the way.
+placeholder, but **the whole page replaced by an error page** — the one a `Render` that throws gets — because the
+boundary that caught it is the root one, unless you put a closer boundary in the way.
 
 ```csharp
 // Without a boundary of your own, a throw here replaces the entire document.
@@ -262,18 +263,30 @@ ErrorBoundary.Fallback((ex, retry) => Div[
 ]
 ```
 
+What the reader gets, on both hosts:
+
+| The hook faults | The reader sees | The first `GET` answers |
+|---|---|---|
+| before the page is sent — on the first request, or within the [navigation's wait](routing.md#the-page-is-sent-when-its-first-reads-are-back) | the error page, never the placeholder | **500** |
+| after the page was painted on its placeholder (a read that outlasted the wait, an `OnRendered`) | the placeholder, then the error page in the frame that follows | 200 — it was already sent |
+| inside an `ErrorBoundary` you wrote | your fallback, the rest of the page as it was | 200 |
+| after its component left the page | nothing: leaving cancels the load, and what that throws is recorded at Information | — |
+
 Two things follow:
 
 - **Scope the damage yourself.** An `ErrorBoundary` around the risky subtree keeps the rest of the page alive, and its
   `Fallback` receives a `retry` callback that clears the error and re-renders that subtree. A `try/catch` inside the
   hook is still the right tool when you want to render an error *state* rather than a fallback.
 - **The root error page offers `Try again` as well as `Reload this page`.** The first clears the error and re-renders
-  in place, keeping the session, the state and the scroll position — enough for the common case, a handler that threw
-  and damaged nothing. A render that faults deterministically simply lands back on the error page, and then the reload
-  is what you want.
+  in place, keeping the session and the state. **A load that faulted is run again**: the component whose `OnMount` or
+  `OnUpdated` threw gets both once more, so `Try again` tries the read and not only the drawing — the same for the
+  `retry` your own `Fallback` is handed. A render or a load that faults deterministically simply lands back on the
+  error page, and then the reload is what you want.
+- **The error page stands in for the page that faulted, not for the app.** Back, or any other address, is another
+  page, and it is drawn; one that faults too gets the error page again.
 
-The initial GET for a page whose render faulted answers **500**, not 200 — the body is still the error page, so both
-buttons work.
+The initial GET for a page whose render or hook faulted before it was sent answers **500**, not 200 — the body is
+still the error page, so both buttons work.
 
 ### What a visitor sees when something throws
 
@@ -323,8 +336,9 @@ With request tracing on, the same log line carries the host's trace id as usual.
 browser that is not there — is one Information line, and the pass itself reports a page it could not write.
 
 In **Development** the page shows everything it always has — type, message, each cause, the stack with source
-excerpts — and the reference beside them. A handler or lifecycle fault is shown over the running app instead
-([`rask dev`](cli.md)), and a handler's toast adds the exception's type and message after its sentence.
+excerpts — and the reference beside them, for a render and for a lifecycle hook alike. A handler's fault is shown
+over the running app instead ([`rask dev`](cli.md)), and a handler's toast adds the exception's type and message
+after its sentence.
 
 **What decides Development:** the host's own `IHostEnvironment`, which `MapRask`/`RaskApp` read once at startup. A host
 that never says — a hand-wired host with no `IHostEnvironment`, a component rendered outside a host — falls back to

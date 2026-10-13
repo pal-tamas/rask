@@ -82,14 +82,34 @@ public abstract partial class Component
         if (firstRender)
         {
             Live.HasInitialized = true;
-            InvokeAsyncLifecycleWithRendering(OnMount);
+            InvokeAsyncLifecycleWithRendering(OnMount, isLoad: true);
         }
 
         if (firstRender || propsChanged)
         {
             Live.PropsDirty = true;
-            InvokeAsyncLifecycleWithRendering(OnUpdated);
+            InvokeAsyncLifecycleWithRendering(OnUpdated, isLoad: true);
         }
+    }
+
+    /// <summary>
+    ///     Called by the walk where it meets this component: runs a load that faulted again, once the boundary
+    ///     that took the fault shows its children again — "Try again", or the reader coming back.
+    /// </summary>
+    /// <remarks>
+    ///     Here and not where the parent renders: a parent with nothing new to draw is served from its cache,
+    ///     and the walk still passes through its children. Never while the walk has yet to hand over the fault.
+    /// </remarks>
+    internal void LoadAgainOnceRecovered()
+    {
+        if (Boundary is not { Error: null } || HeldHookFault.Holds(this) || !FaultedLoads.Take(this))
+        {
+            return;
+        }
+
+        Live.StateDirty = true;
+        InvokeAsyncLifecycleWithRendering(OnMount, isLoad: true);
+        InvokeAsyncLifecycleWithRendering(OnUpdated, isLoad: true);
     }
 
     internal void RaiseOnRendered(bool publishOnly = false)
@@ -224,7 +244,7 @@ public abstract partial class Component
         return running ?? Task.CompletedTask;
     }
 
-    private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke)
+    private void InvokeAsyncLifecycleWithRendering(Func<Task> invoke, bool isLoad = false)
     {
         var prev = SynchronizationContext.Current;
 
@@ -234,7 +254,7 @@ public abstract partial class Component
         // where it is not (see the field it is stored in). One lookup now serves both the context
         // and the Track below, which used to do its own.
         var quiescence = QuiescenceScope.Current;
-        var ctx = new LifecycleSyncContext(this, quiescence);
+        var ctx = new LifecycleSyncContext(this, quiescence) { IsLoad = isLoad };
         SynchronizationContext.SetSynchronizationContext(ctx);
         Task task;
         try { task = invoke(); }
@@ -244,7 +264,8 @@ public abstract partial class Component
         {
             if (task.IsFaulted)
             {
-                ReportLifecycleFault(this, task.Exception);
+                ReportLifecycleFault(this, task.Exception, beforeItsFirstAwait: true);
+                NoteFaultedLoad(this, isLoad);
             }
 
             return;
@@ -288,6 +309,7 @@ public abstract partial class Component
         if (t.IsFaulted)
         {
             ReportLifecycleFault(comp, t.Exception);
+            NoteFaultedLoad(comp, ctx.IsLoad);
             return;
         }
 
@@ -297,6 +319,14 @@ public abstract partial class Component
         }
 
         comp.StateHasChanged();
+    }
+
+    private static void NoteFaultedLoad(Component comp, bool isLoad)
+    {
+        if (isLoad && !comp.IsTornDown)
+        {
+            FaultedLoads.Note(comp);
+        }
     }
 
     private static ErrorBoundary? ResolveHandlerBoundary(Component owner) =>
@@ -310,14 +340,18 @@ public abstract partial class Component
     // doing nothing without a debugger attached.
     [System.Diagnostics.DebuggerDisableUserUnhandledExceptions]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ReportLifecycleFault(Component comp, AggregateException? ex)
+    private static void ReportLifecycleFault(Component comp, AggregateException? ex, bool beforeItsFirstAwait = false)
     {
-        var actual = ex?.InnerException ?? ex;
-        if (actual is null)
+        if ((ex?.InnerException ?? ex) is { } actual)
         {
-            return;
+            ReportHookFault(comp, actual, beforeItsFirstAwait);
         }
+    }
 
+    [System.Diagnostics.DebuggerDisableUserUnhandledExceptions]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ReportHookFault(Component comp, Exception actual, bool beforeItsFirstAwait = false)
+    {
         // A component that has left the page has nothing to show an error on, and its boundary now holds the
         // page the visitor went to. Leaving cancels its load, and a provider may report that cancellation as a
         // failure of its own (EF's execution strategy does), so this is ordinary: recorded, never displayed.
@@ -332,6 +366,11 @@ public abstract partial class Component
             return;
         }
 
+        if (HoldUntilWalked(comp, actual, beforeItsFirstAwait))
+        {
+            return;
+        }
+
         // Prefer the boundary: it'll re-render with the fallback. Fall back to a diagnostics
         // report only when there is no ancestor boundary, so a faulting hook is never silent.
         var boundary = comp.Boundary;
@@ -343,11 +382,71 @@ public abstract partial class Component
             return;
         }
 
-        RaskDevToolsHook.Active?.ComponentFaulted(comp, actual, ErrorSource.Lifecycle, caught: false);
+        ReportUnboundedFault(comp, actual);
+    }
+
+    // The walk stamps a component's boundary where it meets it, and OnMount / OnUpdated start before that. A
+    // fault from one of them that early waits for the walk (HeldHookFault): it is already on its way when the
+    // hook threw before its first await — and then it takes the fault whether or not a boundary is stamped,
+    // so the page that pass draws is the fallback — and it is asked for when the hook threw on another thread.
+    private static bool HoldUntilWalked(Component comp, Exception fault, bool beforeItsFirstAwait)
+    {
+        var walkIsComing = beforeItsFirstAwait && LiveRenderContext.CurrentSync is not null;
+        if (!walkIsComing && (comp.Boundary is not null || comp.GetLifecycleFlag(FlagHasRenderedOnce)))
+        {
+            return false;
+        }
+
+        HeldHookFault.Hold(comp, fault);
+        if (!walkIsComing)
+        {
+            comp.StateHasChanged();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Called by the walk where it meets this component, its boundary just stamped: throws the fault a
+    ///     hook of it left waiting, so the boundary around it takes it as it takes a fault of its render.
+    /// </summary>
+    internal void ThrowHeldHookFault()
+    {
+        if (HeldHookFault.Take(this) is not { } fault)
+        {
+            return;
+        }
+
+        if (Boundary is null)
+        {
+            ReportUnboundedFault(this, fault);
+            return;
+        }
+
+        System.Diagnostics.Debugger.BreakForUserUnhandledException(fault);
+        RaskDevToolsHook.Active?.ComponentFaulted(this, fault, ErrorSource.Lifecycle, caught: true);
+        HeldHookFault.Throwing(fault);
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(fault);
+    }
+
+    // Leaving: a failed load has nothing to be tried again for, and a fault no walk came for is recorded as
+    // any fault of a component that has left is.
+    private void ForgetFaultsOnLeaving()
+    {
+        FaultedLoads.Take(this);
+        if (HeldHookFault.Take(this) is { } fault)
+        {
+            ReportHookFault(this, fault);
+        }
+    }
+
+    private static void ReportUnboundedFault(Component comp, Exception fault)
+    {
+        RaskDevToolsHook.Active?.ComponentFaulted(comp, fault, ErrorSource.Lifecycle, caught: false);
         RaskDiagnostics.Report(
             RaskLogLevel.Error,
             "Rask.Lifecycle",
             $"Rask lifecycle hook on {comp.GetType().Name} faulted",
-            actual);
+            fault);
     }
 }
