@@ -9,11 +9,12 @@ namespace Rask.Core.Live;
 /// <remarks>
 ///     <para>
 ///         A request that is not drawn inside the dispatch it landed in is never dropped: it is a render of its
-///         own, straight after. Such a render may leave a request behind in turn — a burst from another thread
-///         does, a few times — and a component that asks for a render from every <c>Render</c> does, for ever.
-///         The two are told apart by length alone: past <see cref="Streak" /> such renders in a row, each one
-///         waits <see cref="Pause" /> first. The page stays current, the session's lock is free between them for
-///         the reader's events, and the server does not spin.
+///         own, straight after. Such a render may be asked for another while it is being made — a burst from
+///         another thread does that, a few times — and a component that asks for a render from every
+///         <c>Render</c> does, for ever. The two are told apart by length alone: past <see cref="Streak" />
+///         renders in a row that were each asked for during the one before, each further one waits
+///         <see cref="Pause" /> first. The page stays current, the session's lock is free between them for the
+///         reader's events, and the server does not spin.
 ///     </para>
 ///     <para>A row ends when <see cref="Quiet" /> passes without one.</para>
 /// </remarks>
@@ -54,9 +55,13 @@ internal sealed class RenderPace
     private bool _pausing;
     private volatile bool _listening;
 
-    /// <summary>Counts one more render made for a request its scope left behind, and says when it is made.</summary>
+    /// <summary>Says when the render for a request a scope left behind is made.</summary>
     /// <param name="sessionId">The session, as its report names it. Null where a process has only one.</param>
-    internal Turn Next(string? sessionId)
+    /// <param name="chained">
+    ///     Whether that scope was itself such a render, so this one continues a row. One left behind by an
+    ///     event's dispatch starts none: a source that ticks while the reader works is not a runaway.
+    /// </param>
+    internal Turn Next(string? sessionId, bool chained)
     {
         string? report = null;
         Turn turn;
@@ -69,15 +74,19 @@ internal sealed class RenderPace
                 _askers.Clear();
             }
 
-            _lastAt = now;
-            _inARow++;
-            _listening = _inARow >= ListenFrom;
+            if (chained)
+            {
+                _lastAt = now;
+                _inARow++;
+                _listening = _inARow >= ListenFrom;
+            }
+
             if (_inARow < Streak)
             {
                 return Turn.Now;
             }
 
-            if (_inARow == Streak || _inARow % SaidAgainEvery == 0)
+            if (chained && (_inARow == Streak || _inARow % SaidAgainEvery == 0))
             {
                 report = Report(sessionId);
                 _askers.Clear();

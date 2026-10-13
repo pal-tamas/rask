@@ -270,7 +270,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             InHandlerScope = false;
             _lock.Release();
-            _ = DrainRenderRequestedAfterScope();
+            _ = DrainRenderRequestedAfterScope(afterRequestedRender: true);
         }
     }
 

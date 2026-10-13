@@ -458,7 +458,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         {
             InHandlerScope = false;
             Lock.Release();
-            _ = DrainRenderRequestedAfterScope();
+            _ = DrainRenderRequestedAfterScope(afterRequestedRender: true);
         }
     }
 

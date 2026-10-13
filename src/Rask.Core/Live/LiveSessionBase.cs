@@ -332,7 +332,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // HTML is byte-identical, forcing the client to morph identical markup and stripping DOM state JS applied since
     // the last frame. It also fires no OnRendered on a component that has rendered before, which is what ends a
     // component that asks for a render from every OnRendered; one that asks from every Render is slowed by RenderPace.
-    internal Task DrainRenderRequestedAfterScope()
+    //
+    // afterRequestedRender: the scope that ended was itself a render made for a request, not an event's dispatch —
+    // what RenderPace counts a row of.
+    internal Task DrainRenderRequestedAfterScope(bool afterRequestedRender = false)
     {
         if (!_pendingRenderInScope)
         {
@@ -340,7 +343,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         _pendingRenderInScope = false;
-        return _pace.Next(DevToolsSessionId) switch
+        return _pace.Next(DevToolsSessionId, afterRequestedRender) switch
         {
             RenderPace.Turn.Now => RequestPublishRender(),
             RenderPace.Turn.AfterAPause => RenderAfterAPauseAsync(),
