@@ -261,8 +261,7 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         await Ready(page);
 
         await page.GetByLabel("Name").FillAsync("Range one");
-        await page.ClickAsync("[data-ui-select-button]");
-        await Expect(page.Locator("[data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        await OpenListAsync(page, "form");
         await page.Locator("[data-ui-option]").Filter(new() { HasText = "Glock" }).ClickAsync();
         await page.Locator("[data-ui-option]").Filter(new() { HasText = "Beretta" }).ClickAsync();
         await page.Keyboard.PressAsync("Escape");
@@ -351,6 +350,30 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         Assert.Equal(1, await FramesAsync(page) - framesBefore);
     }
 
+    // A reader ahead of the line: the list is opened and two rows are pressed before the page has answered any
+    // of it. The opening, the first pick and the second row lighting up are each a render of the list, so the
+    // second press was read from a page three renders old by the time it is heard.
+    [Fact]
+    public async Task Two_rows_pressed_before_the_page_answered_the_opening_of_the_list_are_both_picked()
+    {
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright, beforeLoad: HoldReplies);
+        var page = session.Page;
+        await Ready(page);
+        await page.EvaluateAsync("() => { window.__holding = true; }");
+
+        await page.ClickAsync("#extras [data-ui-select-button]");
+        await page.Locator("#extras [data-ui-option]").Filter(new() { HasText = "Breakfast" }).ClickAsync();
+        await page.Locator("#extras [data-ui-option]").Filter(new() { HasText = "Parking" }).ClickAsync();
+        var drawnWhileHeld = await page.Locator("#extras [data-ui-select-button]").TextContentAsync();
+        await page.EvaluateAsync("() => window.__release()");
+
+        await Expect(page.Locator("#extras [data-ui-select-button]")).ToContainTextAsync("2 selected");
+        Assert.Contains("Choose…", drawnWhileHeld, StringComparison.Ordinal);
+        await page.Keyboard.PressAsync("Escape");
+        await page.ClickAsync("#save");
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=False|False|||Breakfast,Parking");
+    }
+
     [Fact]
     public async Task A_live_group_and_listbox_write_at_the_pick_and_the_page_reads_them_back()
     {
@@ -404,9 +427,16 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
 
     private static async Task PickAsync(IPage page, string select, string option)
     {
-        await page.ClickAsync(select + " [data-ui-select-button]");
-        await Expect(page.Locator(select + " [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        await OpenListAsync(page, select);
         await page.Locator(select + " [data-ui-option]").Filter(new() { HasText = option }).ClickAsync();
+    }
+
+    // Open once the PAGE says so. The button's `aria-expanded` is the browser's own word, written at the press
+    // (rask-toggle.ts): it is true before the page has heard that the list opened.
+    private static async Task OpenListAsync(IPage page, string select)
+    {
+        await page.ClickAsync(select + " [data-ui-select-button]");
+        await Expect(page.Locator(select + " [data-rask-popover-open]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
     }
 
     // What the page said over the socket, counted in the page: Playwright's own frame events arrive on its own
@@ -422,6 +452,25 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
             window.__sent += frame.type === "batch" ? frame.events.length : 1;
             window.__frames++;
             return send.call(this, data);
+        };
+        """);
+
+    // The socket's replies wait in the page while the test says so, and land in order once it lets go: a line
+    // slower than the reader, with no clock in it.
+    private static Task HoldReplies(IPage page) => page.AddInitScriptAsync(
+        """
+        window.__holding = false;
+        const held = [];
+        window.__release = function () {
+            window.__holding = false;
+            for (const deliver of held.splice(0)) deliver();
+        };
+        const listen = WebSocket.prototype.addEventListener;
+        WebSocket.prototype.addEventListener = function (type, listener, options) {
+            if (type !== "message") return listen.call(this, type, listener, options);
+            return listen.call(this, type, function (e) {
+                if (window.__holding) held.push(() => listener(e)); else listener(e);
+            }, options);
         };
         """);
 
