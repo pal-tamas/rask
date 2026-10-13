@@ -226,7 +226,8 @@ async function walkBoth(browser, liveUrl, phone, wait) {
       const lines = [];
       for (const step of walk.steps) {
         await act(page, picker, prefix, step, phone).catch(e => lines.push(`${step}: could not (${String(e.message).split('\n')[0].slice(0, 80)})`));
-        await page.waitForTimeout(side === 'flux' ? 250 : wait);
+        // Flux's page settles a step a moment after it — its focus after a touch on a slider most of all.
+        await page.waitForTimeout(side === 'flux' ? 400 : wait);
         lines.push(`${step} -> ${step === 'clipboard' ? await page.evaluate(() => navigator.clipboard.readText()) : await observe(picker, prefix).catch(e => `nothing to observe (${String(e.message).split('\n')[0].slice(0, 60)})`)}`);
       }
       sides.push(lines);
