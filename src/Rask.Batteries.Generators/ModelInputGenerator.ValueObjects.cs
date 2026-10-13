@@ -236,44 +236,36 @@ public sealed partial class ModelInputGenerator
         };
     }
 
-    // `given` is a non-null nested model; `current` is the value object the aggregate holds now, which may be null (a
-    // reference type, or a nullable property). Each member is the model's value when it gives one, else the current one,
-    // else the member type's default — so a model that names only Amount still builds a whole Money.
-    private static string MergeExpression(string given, string current, ValueObjectShape shape, bool currentNullable, ref int local)
+    // The value object built from a nested model that is there, and from nothing else: the model is the truth, so
+    // a member it holds nothing for is stored as nothing, the same as a property of the aggregate itself. A member
+    // the value object declares non-nullable never arrives empty, because the model was refused before this ran.
+    // Its default stands in only to keep this an expression that cannot throw. The prefix names the pattern
+    // variables, which stay in scope to the end of the block the expression is written in.
+    private static string FromModelExpression(string given, ValueObjectShape shape, ref int local, string prefix = "__v")
     {
-        var currentMayBeNull = currentNullable || !shape.IsValueType;
-        var access = currentMayBeNull ? "?." : ".";
         var counter = local;
 
         string Member(ValueObjectMember member)
         {
-            var currentMember = current + access + member.Name;
-            var fallback = currentMayBeNull && !member.Nullable ? " ?? default(" + member.ValueTypeName + ")!" : "";
+            var access = given + "." + member.Name;
+            var empty = "default(" + member.ValueTypeName + ")" + (member.Nullable ? "" : "!");
 
-            switch (member.ValueObject)
+            if (member.ValueObject is not { } valueObject)
             {
-                case null:
-                    return "(" + given + "." + member.Name + " ?? " + currentMember + fallback + ")";
-
-                case { SingleValue: true } single:
-                {
-                    var inner = "__v" + (counter++).ToString(CultureInfo.InvariantCulture);
-                    return "(" + given + "." + member.Name + " is { } " + inner + " ? " +
-                           BuildExpression(single, _ => inner) + " : " + currentMember + fallback + ")";
-                }
-
-                default:
-                {
-                    var inner = "__v" + (counter++).ToString(CultureInfo.InvariantCulture);
-                    var merged = MergeExpression(inner, currentMember, member.ValueObject, currentMayBeNull || member.Nullable, ref counter);
-                    return "(" + given + "." + member.Name + " is { } " + inner + " ? " + merged + " : " + currentMember + fallback + ")";
-                }
+                return member.Nullable ? access : "(" + access + " ?? " + empty + ")";
             }
+
+            var inner = prefix + (counter++).ToString(CultureInfo.InvariantCulture);
+            var built = valueObject.SingleValue
+                ? BuildExpression(valueObject, _ => inner)
+                : FromModelExpression(inner, valueObject, ref counter, prefix);
+
+            return "(" + access + " is { } " + inner + " ? " + built + " : " + empty + ")";
         }
 
-        var built = BuildExpression(shape, Member);
+        var whole = BuildExpression(shape, Member);
         local = counter;
-        return built;
+        return whole;
     }
 
     // What one element is carried as on the form model, declared INSIDE the model class.
@@ -291,18 +283,16 @@ public sealed partial class ModelInputGenerator
             ? modelType + "." + nested.ModelName
             : ElementModelType(collection);
 
-    // One element, rebuilt from its form model. Unlike a single value object there is nothing to merge with:
-    // a value in a collection has no identity, so nothing addresses the element that was there before. A
-    // member the form did not set therefore takes its type's default, which is what an unbound field means.
-    private static string FromElementExpression(string source, ValueObjectShape shape) =>
-        shape.SingleValue
-            ? BuildExpression(shape, member => Fallback(source, member))
-            : BuildExpression(shape, member => member.ValueObject is null
-                ? Fallback(source + "." + member.Name, member)
-                : FromElementExpression(source + "." + member.Name, member.ValueObject));
+    // One element, rebuilt from its form model exactly as a single value object is: what the model holds, and
+    // nothing for a member it leaves empty.
+    private static string FromElementExpression(string source, ValueObjectShape shape)
+    {
+        var local = 0;
 
-    private static string Fallback(string access, ValueObjectMember member) =>
-        "(" + access + " ?? default(" + member.ValueTypeName + ")!)";
+        return shape.SingleValue
+            ? BuildExpression(shape, member => "(" + source + " ?? default(" + member.ValueTypeName + ")!)")
+            : FromModelExpression(source, shape, ref local, "__e");
+    }
 
     // The model's copy of a value object: the value itself for a one-value one, a nested model otherwise.
     private static string ToModelExpression(string source, ValueObjectShape shape, bool nullable, string modelType)

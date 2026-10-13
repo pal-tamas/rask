@@ -871,19 +871,42 @@ When a page shows the order between loading and changing it, the same rules run 
 
 ### How a form save writes
 
-A save writes **what the form holds**, property by property:
+**The model is the truth.** A save stores what the model holds, property by property, and reads nothing back
+from the row to fill a gap:
 
 | The model's value | The aggregate's property | What is saved |
 | --- | --- | --- |
 | a value | any | the value |
 | `null` | declared nullable (`string? Notes`) | `null`: the user emptied the field |
-| `null` | not nullable (`string Name`) | nothing: the property keeps its value |
-| a nested value-object model | a value object | merged over the value object the row holds, by the same rules |
+| `null` | not nullable (`string Name`) | nothing: the write is refused, *This field is required.* under `Name` |
+| a nested value-object model | a value object | the value object **built from the nested model alone**, by the same rules |
+| `null` | a value object declared nullable (`Address? Billing`) | `null`: every column of it |
+| `null` | a value object that is not nullable (`Money Price`) | nothing: the write is refused, under `Price` |
 | `Version` is `null` | | no concurrency check |
 
-So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, and a model a
-command built with only some properties set leaves the non-nullable rest alone. To change a few properties from
-code, `Product.Update(id, p => p.Reprice(price))` says so directly.
+The rules are the same one level down, and at every level below that. `Address` holds `string Street`,
+`string? Floor` and `int? Door`; a reader who empties the floor has emptied it:
+
+```csharp
+var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+model.Address!.Floor = null;                  // what an emptied field binds
+model.Address.Door = null;
+
+await Customer.Update(id, model);             // Address_Floor NULL, Address_Door NULL, Address_Street untouched
+
+model.Address.Street = null;
+await Customer.Update(id, model);             // RaskValidationException: "Address.Street" — This field is required.
+```
+
+So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, an update that
+changes nothing writes nothing — text stored as `''` stays `''`, it is not turned into `NULL` — and a model is
+never a patch: one built in code with only some members set clears the nullable rest and is refused for the
+required rest. To change a few properties from code, `Product.Update(id, p => p.Reprice(price))` says so
+directly. A member that is text and cannot be empty is refused when it holds `''` or white space as well, as a
+root property is; declare it `string?` where the table really holds empty text.
+
+The same holds for a create, which builds the value object from the model and nothing else: a member the model
+leaves empty is not filled from the default the aggregate's initializer gave it.
 
 A form save writes properties through the aggregate's private setters, with generated `[UnsafeAccessor]`s and no
 reflection. **It does not call the aggregate's methods**, so a rule that must hold for form input belongs in a
@@ -967,7 +990,10 @@ public static IEnumerable<string> Validate(string value)
 
 A control bound to a field that is required this way says `aria-required="true"`
 ([how a control knows](forms-validation.md#how-a-control-knows-a-field-is-required)): each generated model type
-— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled.
+— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled. A
+member of a value object of several values is such a field: `string Street` on `Address` is required under
+`Address.Street`, `string? Floor` is optional, and the validation attributes the value object's own properties
+carry are checked by the write under the same path.
 
 The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
 built-in translations — so it follows the reader's language, and

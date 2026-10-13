@@ -401,8 +401,10 @@ public sealed partial class ModelInputGenerator
         foreach (var nested in entity.ValueObjects.Where(static v => !v.SingleValue))
         {
             var rules = nested.Members
-                .Where(static m => m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
-                .Select(static m => new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
+                .Where(static m => m.RequiredByType || m.ValueObject is { SingleValue: true, Rule: not ValueRule.None })
+                .Select(static m => m.RequiredByType
+                    ? new FieldRule(m.Name, m.ModelType, null, ValueRule.Sync, Required: true)
+                    : new FieldRule(m.Name, m.ModelType, m.ValueObject!.TypeName, m.ValueObject.Rule, !m.Nullable))
                 .ToList();
 
             if (rules.Count > 0)

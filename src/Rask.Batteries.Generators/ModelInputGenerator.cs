@@ -272,5 +272,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         ValueObjectShape? ValueObject,
         EquatableArray<string> Attributes,
         string ValueTypeName,
-        Write? Write);
+        Write? Write,
+        EquatableArray<string> Checks,
+        bool RequiredByType);
 }

@@ -354,8 +354,65 @@ public class ModelInputGeneratorTests
         Assert.Contains("public sealed partial class PackagingModel", source, StringComparison.Ordinal);
         Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
         Assert.Contains("public PackagingModel? Box { get; set; }", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Shop.Money((__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), (__v0.Currency ?? entity.Total?.Currency ?? default(string)!))", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money((__v0.Amount ?? default(decimal)!), (__v0.Currency ?? default(string)!))", source, StringComparison.Ordinal);
         Assert.Contains("new global::Shop.Packaging { Cost = ", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_nested_model_is_the_whole_value_object_so_an_empty_member_is_stored_empty_and_a_required_one_is_refused()
+    {
+        var run = Run("""
+            using System;
+            using System.ComponentModel.DataAnnotations;
+            using Rask.Data;
+            namespace Shop;
+            public sealed record Zip(string Value);
+            public sealed record Geo(decimal Lat, decimal? Alt);
+            public sealed record Address(string Street, string? Floor, int? Door, Zip Code, Zip? OldCode, Geo At, Geo? Was, [property: Range(1, 9)] int Zone);
+            public sealed class Depot : Aggregate<Guid>
+            {
+                private Depot() { }
+                public Address Site { get; private set; } = null!;
+                public Address? Annex { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.DepotModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Empty(GeneratedWarnings(run));
+
+        // Built from the model alone: nothing reads the value object the aggregate holds.
+        Assert.DoesNotContain("?? entity.", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(": entity.", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "new global::Shop.Address((__v0.Street ?? default(string)!), __v0.Floor, __v0.Door, " +
+            "(__v0.Code is { } __v1 ? new global::Shop.Zip(__v1) : default(global::Shop.Zip)!), " +
+            "(__v0.OldCode is { } __v2 ? new global::Shop.Zip(__v2) : default(global::Shop.Zip?)), " +
+            "(__v0.At is { } __v3 ? new global::Shop.Geo((__v3.Lat ?? default(decimal)!), __v3.Alt) : default(global::Shop.Geo)!), " +
+            "(__v0.Was is { } __v4 ? new global::Shop.Geo((__v4.Lat ?? default(decimal)!), __v4.Alt) : default(global::Shop.Geo?)), " +
+            "(__v0.Zone ?? default(int)!))",
+            source,
+            StringComparison.Ordinal);
+
+        // What cannot be empty is refused before that runs, under the path a form names the field by.
+        Assert.Contains("failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Site.Street\", __Rule_AddressModel_Street(__held0.Street));", source, StringComparison.Ordinal);
+        Assert.Contains("failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Site.Code\", __Rule_AddressModel_Code(__held0.Code));", source, StringComparison.Ordinal);
+        Assert.Contains("failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Site.At.Lat\", __Rule_GeoModel_Lat(", source, StringComparison.Ordinal);
+        Assert.Contains("failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Site.At\", global::Rask.Data.GeneratedModelRules.Required(__RequiredText()));", source, StringComparison.Ordinal);
+        Assert.Contains("failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Site\", global::Rask.Data.GeneratedModelRules.Required(__RequiredText()));", source, StringComparison.Ordinal);
+        Assert.Contains("\"Annex.Street\", __Rule_AddressModel_Street(", source, StringComparison.Ordinal);
+        Assert.Contains(", \"Zone\", __held0, path + \"Site.\", failures);", source, StringComparison.Ordinal);
+
+        // What may be empty is asked nothing: not the optional members, and not the optional value objects.
+        Assert.DoesNotContain("__Rule_AddressModel_Floor", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_AddressModel_Door", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__Rule_AddressModel_OldCode", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Annex\", global::Rask.Data.GeneratedModelRules.Required", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Site.Was\", global::Rask.Data.GeneratedModelRules.Required", source, StringComparison.Ordinal);
+
+        // And a control bound to a nested field is told it is required, as one bound to a root field is.
+        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\" or \"Zone\";", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -383,7 +440,7 @@ public class ModelInputGeneratorTests
 
         var source = run.GeneratedSource("Shop.OrderModel");
         Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Shop.Money((__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), (__v0.Currency ?? entity.Total?.Currency ?? default(string)!))", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money((__v0.Amount ?? default(decimal)!), (__v0.Currency ?? default(string)!))", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Display", source, StringComparison.Ordinal);
     }
 
@@ -418,7 +475,7 @@ public class ModelInputGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
 
         var source = run.GeneratedSource("Shop.OrderModel");
-        Assert.Contains("new global::Shop.Money { Amount = (__v0.Amount ?? entity.Total?.Amount ?? default(decimal)!), Currency = (__v0.Currency ?? entity.Total?.Currency ?? default(global::Shop.CurrencyCode)!) }", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Shop.Money { Amount = (__v0.Amount ?? default(decimal)!), Currency = (__v0.Currency ?? default(global::Shop.CurrencyCode)!) }", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -493,12 +550,12 @@ public class ModelInputGeneratorTests
         Assert.Contains("private static extern global::Shop.Address __NewAddressModel();", source, StringComparison.Ordinal);
         Assert.Contains("private static global::Shop.Address __BuildAddressModel(string p0, string? p1)", source, StringComparison.Ordinal);
         Assert.Contains("__SetterAddressModel_Street(value, p0);", source, StringComparison.Ordinal);
-        Assert.Contains("__BuildAddressModel((__v0.Street ?? entity.Destination?.Street ?? default(string)!), (__v0.City ?? entity.Destination?.City))", source, StringComparison.Ordinal);
-        Assert.Contains("__BuildAddressModel((__v1.Street ?? entity.ReturnTo?.Street ?? default(string)!), (__v1.City ?? entity.ReturnTo?.City))", source, StringComparison.Ordinal);
+        Assert.Contains("__BuildAddressModel((__v0.Street ?? default(string)!), __v0.City)", source, StringComparison.Ordinal);
+        Assert.Contains("__BuildAddressModel((__v1.Street ?? default(string)!), __v1.City)", source, StringComparison.Ordinal);
 
         // Private constructor naming every property.
         Assert.Contains("private static extern global::Shop.Weight __NewWeightModel(decimal p0, string p1);", source, StringComparison.Ordinal);
-        Assert.Contains("__NewWeightModel((__v2.Amount ?? entity.Weight?.Amount ?? default(decimal)!), (__v2.Unit ?? entity.Weight?.Unit ?? default(string)!))", source, StringComparison.Ordinal);
+        Assert.Contains("__NewWeightModel((__v2.Amount ?? default(decimal)!), (__v2.Unit ?? default(string)!))", source, StringComparison.Ordinal);
 
         // A struct: its own public constructor, then setters reached by reference.
         Assert.Contains("var value = new global::Shop.Dimensions();", source, StringComparison.Ordinal);
@@ -605,7 +662,7 @@ public class ModelInputGeneratorTests
         var source = run.GeneratedSource("Shop.OrderModel");
         Assert.Contains("public MoneyModel? Total { get; set; }", source, StringComparison.Ordinal);
         Assert.Contains("public MoneyModel2? Fee { get; set; }", source, StringComparison.Ordinal);
-        Assert.Contains("new global::Billing.Money((__v1.Cents ?? entity.Fee?.Cents ?? default(long)!), (__v1.Unit ?? entity.Fee?.Unit ?? default(string)!))", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Billing.Money((__v1.Cents ?? default(long)!), (__v1.Unit ?? default(string)!))", source, StringComparison.Ordinal);
     }
 
     [Fact]

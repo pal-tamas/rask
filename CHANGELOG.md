@@ -102,6 +102,44 @@ them until tagged releases begin.
   date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
   `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
   640 px — only its trigger is 16px text and 12rem there — and is not changed here.
+- **BREAKING: the model is the truth — a nested value-object model is stored as it stands, never merged over the
+  row.** `Update(id, model)` built a value object of several values member by member as *the model's value, else
+  the stored one*, so a field the reader emptied kept what it had: `model.Address.Floor = null` left the floor in
+  the row, and nothing a form could post cleared it. A property of the aggregate itself has long behaved the
+  other way. Both now follow one rule, at every level of nesting, for `Update` and for `Create`:
+
+  ```csharp
+  var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+  model.Address!.Floor = null;
+  await Customer.Update(id, model);
+  // before: Address_Floor stays '2'            after: Address_Floor is NULL
+
+  await Customer.Update(id, new CustomerModel { Name = "Ada", Address = new() { Door = 9 } });
+  // before: Door 9, Street and Floor kept      after: refused — "Address.Street": This field is required.
+  ```
+
+  - a member the value object declares nullable (`string? Floor`, `int? Door`, `Zip? Old`) is stored as `NULL`
+    when the model holds nothing for it;
+  - a member it declares non-nullable (`string Street`, `int Zone`, a one-value value object with no rule, a
+    value object of several values) is **required by its type**: the write throws `RaskValidationException`
+    with *This field is required.* under the field's path (`Address.Street`, `Address.Berth.Dock`) and writes
+    nothing, and a control bound to it says `aria-required="true"`. Text that is `''` or white space counts as
+    unfilled there, as it does for a root property — declare the member `string?` where a table holds empty text;
+  - `model.Address = null` for a value object that is not nullable is refused under `Address`; it used to leave
+    the stored one alone. For a nullable one it clears every column, as before;
+  - a create no longer fills a member the model leaves empty from the default the aggregate's initializer gave
+    the value object (`new(0m, "EUR")`): `new ProductModel()` already holds those defaults, a nested model built
+    by hand does not;
+  - the validation attributes on a value object's own properties (`[Range(1, 9)] int Zone`) are now checked by
+    `Create(model)` and `Update(id, model)`, under the nested path — they were copied to the nested model and
+    checked by a form only;
+  - an update that changes nothing still writes nothing: text stored as `''` stays `''`.
+
+  **Migrating:** a model is not a patch. Code that sent a nested model with only some members set starts from
+  the stored one (`(await Customer.Model(id))!`, then change what changes) or says the change directly
+  (`Customer.Update(id, c => c.MoveTo(address))`). The same holds for an element of a value collection, which
+  was already replaced whole: a nullable one-value value object inside it is now `null` when unfilled, not one
+  built around `null`. See [how a form save writes](docs/data.md#how-a-form-save-writes).
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model

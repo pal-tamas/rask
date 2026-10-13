@@ -302,8 +302,8 @@ public sealed partial class ModelInputGenerator
 
     // ---- plumbing ----
     // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
-    // emptied that field; a non-nullable scalar cannot be null here, since __Validate has refused the model first. A
-    // nested value-object model merges what it gives over the value object the aggregate holds.
+    // emptied that field; a non-nullable one cannot be null here, since __Validate has refused the model first. A
+    // nested value-object model is the whole value object: what it leaves empty is stored empty, never kept.
 
     private static void AppendApply(StringBuilder s, Entity entity)
     {
@@ -320,7 +320,7 @@ public sealed partial class ModelInputGenerator
             {
                 null => given,
                 { SingleValue: true } single => BuildExpression(single, _ => given),
-                { } valueObject => MergeExpression(given, "entity." + member.Name, valueObject, member.Nullable, ref local),
+                { } valueObject => FromModelExpression(given, valueObject, ref local),
             };
 
             s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given).AppendLine(")");

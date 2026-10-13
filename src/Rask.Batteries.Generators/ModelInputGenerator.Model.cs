@@ -269,7 +269,12 @@ public sealed partial class ModelInputGenerator
     // no attribute is written. A value object that states its own rule says it in its own words instead, and a
     // property the app marked [Required] itself keeps that attribute and its message.
     private static bool IsRequiredByType(ModelMember member, ValueObjectShape? valueObject, IPropertySymbol property) =>
-        member.Role == ModelMemberRole.Value && member.Write is not null && !member.Nullable &&
+        member.Role == ModelMemberRole.Value && member.Write is not null &&
+        IsRequiredByType(member.Nullable, valueObject, property);
+
+    // The same for a member of a value object of several values, which is a field of its own on the nested model.
+    private static bool IsRequiredByType(bool nullable, ValueObjectShape? valueObject, IPropertySymbol property) =>
+        !nullable &&
         valueObject is null or { SingleValue: true, Rule: ValueRule.None } &&
         !property.GetAttributes().Any(static a =>
             string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal));
@@ -372,7 +377,9 @@ public sealed partial class ModelInputGenerator
                 m.Property.Type.ToDisplayString(TypeFormat),
                 m.Write is { } kind
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
-                    : null);
+                    : null,
+                new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+                IsRequiredByType(m.Nullable, nested, m.Property));
         }).ToList();
 
         var shape = new ValueObjectShape(
