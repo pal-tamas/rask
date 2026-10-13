@@ -1,4 +1,10 @@
 #nullable enable
+override Rask.Web.Types.LanguageModelToolDeclaration.Equals(object? obj) -> bool
+override Rask.Web.Types.LanguageModelToolDeclaration.GetHashCode() -> int
+override Rask.Web.Types.LanguageModelToolDeclaration.ToString() -> string!
+override Rask.Web.Types.PushSubscriptionKeys.Equals(object? obj) -> bool
+override Rask.Web.Types.PushSubscriptionKeys.GetHashCode() -> int
+override Rask.Web.Types.PushSubscriptionKeys.ToString() -> string!
 Rask.Web.CookieStore
 Rask.Web.CustomElements
 Rask.Web.Document
@@ -2491,6 +2497,15 @@ Rask.Web.Types.KeyframeEffect.PseudoElement.get -> System.Threading.Tasks.ValueT
 Rask.Web.Types.KeyframeEffect.SetComposite(Rask.Web.Types.CompositeOperation value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.KeyframeEffect.SetIterationComposite(Rask.Web.Types.IterationCompositeOperation value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.KeyframeEffect.SetPseudoElement(string? value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.LanguageModelCreateCoreOptions.Tools.get -> Rask.Web.Types.LanguageModelToolDeclaration![]?
+Rask.Web.Types.LanguageModelToolDeclaration
+Rask.Web.Types.LanguageModelToolDeclaration.<Clone>$() -> Rask.Web.Types.LanguageModelToolDeclaration!
+Rask.Web.Types.LanguageModelToolDeclaration.Description.get -> string!
+Rask.Web.Types.LanguageModelToolDeclaration.Description.init -> void
+Rask.Web.Types.LanguageModelToolDeclaration.Equals(Rask.Web.Types.LanguageModelToolDeclaration? other) -> bool
+Rask.Web.Types.LanguageModelToolDeclaration.LanguageModelToolDeclaration() -> void
+Rask.Web.Types.LanguageModelToolDeclaration.Name.get -> string!
+Rask.Web.Types.LanguageModelToolDeclaration.Name.init -> void
 Rask.Web.Types.LatencyMode
 Rask.Web.Types.LineAlignSetting
 Rask.Web.Types.Location
@@ -3753,7 +3768,16 @@ Rask.Web.Types.PushSubscriptionJSON.<Clone>$() -> Rask.Web.Types.PushSubscriptio
 Rask.Web.Types.PushSubscriptionJSON.Endpoint.get -> string?
 Rask.Web.Types.PushSubscriptionJSON.Endpoint.init -> void
 Rask.Web.Types.PushSubscriptionJSON.Equals(Rask.Web.Types.PushSubscriptionJSON? other) -> bool
+Rask.Web.Types.PushSubscriptionJSON.Keys.get -> Rask.Web.Types.PushSubscriptionKeys?
 Rask.Web.Types.PushSubscriptionJSON.PushSubscriptionJSON() -> void
+Rask.Web.Types.PushSubscriptionKeys
+Rask.Web.Types.PushSubscriptionKeys.<Clone>$() -> Rask.Web.Types.PushSubscriptionKeys!
+Rask.Web.Types.PushSubscriptionKeys.Auth.get -> string?
+Rask.Web.Types.PushSubscriptionKeys.Auth.init -> void
+Rask.Web.Types.PushSubscriptionKeys.Equals(Rask.Web.Types.PushSubscriptionKeys? other) -> bool
+Rask.Web.Types.PushSubscriptionKeys.P256dh.get -> string?
+Rask.Web.Types.PushSubscriptionKeys.P256dh.init -> void
+Rask.Web.Types.PushSubscriptionKeys.PushSubscriptionKeys() -> void
 Rask.Web.Types.PushSubscriptionOptions
 Rask.Web.Types.PushSubscriptionOptions.UserVisibleOnly.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.PushSubscriptionOptionsInit
@@ -4194,6 +4218,7 @@ Rask.Web.Types.RsaOtherPrimesInfo.R.init -> void
 Rask.Web.Types.RsaOtherPrimesInfo.RsaOtherPrimesInfo() -> void
 Rask.Web.Types.RsaOtherPrimesInfo.T.get -> string?
 Rask.Web.Types.RsaOtherPrimesInfo.T.init -> void
+Rask.Web.Types.Sanitizer.SetJavascriptURLs(bool allow) -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.SVGAngle
 Rask.Web.Types.SVGAngle.ConvertToSpecifiedUnits(int unitType) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.SVGAngle.NewValueSpecifiedUnits(int unitType, double valueInSpecifiedUnits) -> System.Threading.Tasks.ValueTask
@@ -6388,6 +6413,8 @@ static Rask.Web.Types.JsonWebKey.operator !=(Rask.Web.Types.JsonWebKey? left, Ra
 static Rask.Web.Types.JsonWebKey.operator ==(Rask.Web.Types.JsonWebKey? left, Rask.Web.Types.JsonWebKey? right) -> bool
 static Rask.Web.Types.KeySystemTrackConfiguration.operator !=(Rask.Web.Types.KeySystemTrackConfiguration? left, Rask.Web.Types.KeySystemTrackConfiguration? right) -> bool
 static Rask.Web.Types.KeySystemTrackConfiguration.operator ==(Rask.Web.Types.KeySystemTrackConfiguration? left, Rask.Web.Types.KeySystemTrackConfiguration? right) -> bool
+static Rask.Web.Types.LanguageModelToolDeclaration.operator !=(Rask.Web.Types.LanguageModelToolDeclaration? left, Rask.Web.Types.LanguageModelToolDeclaration? right) -> bool
+static Rask.Web.Types.LanguageModelToolDeclaration.operator ==(Rask.Web.Types.LanguageModelToolDeclaration? left, Rask.Web.Types.LanguageModelToolDeclaration? right) -> bool
 static Rask.Web.Types.LockInfo.operator !=(Rask.Web.Types.LockInfo? left, Rask.Web.Types.LockInfo? right) -> bool
 static Rask.Web.Types.LockInfo.operator ==(Rask.Web.Types.LockInfo? left, Rask.Web.Types.LockInfo? right) -> bool
 static Rask.Web.Types.LockManagerSnapshot.operator !=(Rask.Web.Types.LockManagerSnapshot? left, Rask.Web.Types.LockManagerSnapshot? right) -> bool
@@ -6490,6 +6517,8 @@ static Rask.Web.Types.PublicKeyCredentialUserEntity.operator !=(Rask.Web.Types.P
 static Rask.Web.Types.PublicKeyCredentialUserEntity.operator ==(Rask.Web.Types.PublicKeyCredentialUserEntity? left, Rask.Web.Types.PublicKeyCredentialUserEntity? right) -> bool
 static Rask.Web.Types.PushSubscriptionJSON.operator !=(Rask.Web.Types.PushSubscriptionJSON? left, Rask.Web.Types.PushSubscriptionJSON? right) -> bool
 static Rask.Web.Types.PushSubscriptionJSON.operator ==(Rask.Web.Types.PushSubscriptionJSON? left, Rask.Web.Types.PushSubscriptionJSON? right) -> bool
+static Rask.Web.Types.PushSubscriptionKeys.operator !=(Rask.Web.Types.PushSubscriptionKeys? left, Rask.Web.Types.PushSubscriptionKeys? right) -> bool
+static Rask.Web.Types.PushSubscriptionKeys.operator ==(Rask.Web.Types.PushSubscriptionKeys? left, Rask.Web.Types.PushSubscriptionKeys? right) -> bool
 static Rask.Web.Types.PushSubscriptionOptionsInit.operator !=(Rask.Web.Types.PushSubscriptionOptionsInit? left, Rask.Web.Types.PushSubscriptionOptionsInit? right) -> bool
 static Rask.Web.Types.PushSubscriptionOptionsInit.operator ==(Rask.Web.Types.PushSubscriptionOptionsInit? left, Rask.Web.Types.PushSubscriptionOptionsInit? right) -> bool
 static Rask.Web.Types.RTCConfiguration.operator !=(Rask.Web.Types.RTCConfiguration? left, Rask.Web.Types.RTCConfiguration? right) -> bool
@@ -9879,7 +9908,6 @@ Rask.Web.Types.LanguageModelCreateCoreOptions.SamplingMode.get -> Rask.Web.Types
 Rask.Web.Types.LanguageModelCreateCoreOptions.SamplingMode.init -> void
 Rask.Web.Types.LanguageModelCreateCoreOptions.Temperature.get -> double?
 Rask.Web.Types.LanguageModelCreateCoreOptions.Temperature.init -> void
-Rask.Web.Types.LanguageModelCreateCoreOptions.Tools.get -> Rask.Web.Types.LanguageModelTool![]?
 Rask.Web.Types.LanguageModelCreateCoreOptions.Tools.init -> void
 Rask.Web.Types.LanguageModelCreateCoreOptions.TopK.get -> double?
 Rask.Web.Types.LanguageModelCreateCoreOptions.TopK.init -> void
@@ -9913,14 +9941,6 @@ Rask.Web.Types.LanguageModelPromptOptions.LanguageModelPromptOptions() -> void
 Rask.Web.Types.LanguageModelPromptOptions.OmitResponseConstraintInput.get -> bool?
 Rask.Web.Types.LanguageModelPromptOptions.OmitResponseConstraintInput.init -> void
 Rask.Web.Types.LanguageModelSamplingMode
-Rask.Web.Types.LanguageModelTool
-Rask.Web.Types.LanguageModelTool.<Clone>$() -> Rask.Web.Types.LanguageModelTool!
-Rask.Web.Types.LanguageModelTool.Description.get -> string!
-Rask.Web.Types.LanguageModelTool.Description.init -> void
-Rask.Web.Types.LanguageModelTool.Equals(Rask.Web.Types.LanguageModelTool? other) -> bool
-Rask.Web.Types.LanguageModelTool.LanguageModelTool() -> void
-Rask.Web.Types.LanguageModelTool.Name.get -> string!
-Rask.Web.Types.LanguageModelTool.Name.init -> void
 Rask.Web.Types.LargestContentfulPaint
 Rask.Web.Types.LargestContentfulPaint.Equals(Rask.Web.Types.LargestContentfulPaint? other) -> bool
 Rask.Web.Types.LargestContentfulPaint.Id.init -> void
@@ -11317,9 +11337,6 @@ override Rask.Web.Types.LanguageModelMessage.ToString() -> string!
 override Rask.Web.Types.LanguageModelPromptOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.LanguageModelPromptOptions.GetHashCode() -> int
 override Rask.Web.Types.LanguageModelPromptOptions.ToString() -> string!
-override Rask.Web.Types.LanguageModelTool.Equals(object? obj) -> bool
-override Rask.Web.Types.LanguageModelTool.GetHashCode() -> int
-override Rask.Web.Types.LanguageModelTool.ToString() -> string!
 override Rask.Web.Types.LargestContentfulPaint.<Clone>$() -> Rask.Web.Types.LargestContentfulPaint!
 override Rask.Web.Types.LargestContentfulPaint.Equals(object? obj) -> bool
 override Rask.Web.Types.LargestContentfulPaint.GetHashCode() -> int
@@ -11737,8 +11754,6 @@ static Rask.Web.Types.LanguageModelMessage.operator !=(Rask.Web.Types.LanguageMo
 static Rask.Web.Types.LanguageModelMessage.operator ==(Rask.Web.Types.LanguageModelMessage? left, Rask.Web.Types.LanguageModelMessage? right) -> bool
 static Rask.Web.Types.LanguageModelPromptOptions.operator !=(Rask.Web.Types.LanguageModelPromptOptions? left, Rask.Web.Types.LanguageModelPromptOptions? right) -> bool
 static Rask.Web.Types.LanguageModelPromptOptions.operator ==(Rask.Web.Types.LanguageModelPromptOptions? left, Rask.Web.Types.LanguageModelPromptOptions? right) -> bool
-static Rask.Web.Types.LanguageModelTool.operator !=(Rask.Web.Types.LanguageModelTool? left, Rask.Web.Types.LanguageModelTool? right) -> bool
-static Rask.Web.Types.LanguageModelTool.operator ==(Rask.Web.Types.LanguageModelTool? left, Rask.Web.Types.LanguageModelTool? right) -> bool
 static Rask.Web.Types.LargestContentfulPaint.operator !=(Rask.Web.Types.LargestContentfulPaint? left, Rask.Web.Types.LargestContentfulPaint? right) -> bool
 static Rask.Web.Types.LargestContentfulPaint.operator ==(Rask.Web.Types.LargestContentfulPaint? left, Rask.Web.Types.LargestContentfulPaint? right) -> bool
 static Rask.Web.Types.MemoryAttribution.operator !=(Rask.Web.Types.MemoryAttribution? left, Rask.Web.Types.MemoryAttribution? right) -> bool
@@ -12096,10 +12111,6 @@ Rask.Web.Types.LanguageModel.MeasureContextUsage(Rask.Web.Types.LanguageModelMes
 Rask.Web.Types.LanguageModel.MeasureContextUsage(Rask.Web.Types.LanguageModelMessage![]! input, Rask.Web.Types.LanguageModelPromptOptions! options) -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.LanguageModel.MeasureContextUsage(string! input) -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.LanguageModel.MeasureContextUsage(string! input, Rask.Web.Types.LanguageModelPromptOptions! options) -> System.Threading.Tasks.ValueTask<double>
-Rask.Web.Types.LanguageModel.Prompt(Rask.Web.Types.LanguageModelMessage![]! input) -> System.Threading.Tasks.ValueTask<string!>
-Rask.Web.Types.LanguageModel.Prompt(Rask.Web.Types.LanguageModelMessage![]! input, Rask.Web.Types.LanguageModelPromptOptions! options) -> System.Threading.Tasks.ValueTask<string!>
-Rask.Web.Types.LanguageModel.Prompt(string! input) -> System.Threading.Tasks.ValueTask<string!>
-Rask.Web.Types.LanguageModel.Prompt(string! input, Rask.Web.Types.LanguageModelPromptOptions! options) -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.LanguageModel.PromptStreaming(Rask.Web.Types.LanguageModelMessage![]! input) -> Rask.Web.Types.ReadableStream!
 Rask.Web.Types.LanguageModel.PromptStreaming(Rask.Web.Types.LanguageModelMessage![]! input, Rask.Web.Types.LanguageModelPromptOptions! options) -> Rask.Web.Types.ReadableStream!
 Rask.Web.Types.LanguageModel.PromptStreaming(string! input) -> Rask.Web.Types.ReadableStream!
@@ -13227,7 +13238,6 @@ Rask.Web.Types.PerformanceMeasureOptions.End.get -> string?
 Rask.Web.Types.PerformanceMeasureOptions.End.init -> void
 Rask.Web.Types.PerformanceMeasureOptions.Start.get -> string?
 Rask.Web.Types.PerformanceMeasureOptions.Start.init -> void
-Rask.Web.Types.PushSubscriptionJSON.Keys.get -> System.Collections.Generic.Dictionary<string!, string!>?
 Rask.Web.Types.PushSubscriptionJSON.Keys.init -> void
 Rask.Web.Types.RTCIceServer.Urls.get -> string![]!
 Rask.Web.Types.RTCIceServer.Urls.init -> void
