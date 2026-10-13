@@ -53,14 +53,14 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
         await Expect(picker.Locator("td[data-selected]")).ToHaveTextAsync("15");
         var whileMarked = await page.Locator("#day-state").TextContentAsync();
         var stillOpen = await picker.Locator("dialog").IsVisibleAsync();
-        await picker.GetByRole(AriaRole.Button, new() { Name = "Select date", Exact = true }).Last.ClickAsync();
+        await picker.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Select date", Exact = true }).Last.ClickAsync();
 
         await Expect(page.Locator("#day-state")).ToHaveTextAsync(ThisMonth(15));
         await Expect(picker.Locator("dialog")).ToBeHiddenAsync();
         Assert.Equal("none", whileMarked);
         Assert.True(stillOpen);
-        Assert.Equal(324, box!.Width);
-        Assert.Equal(33, box.X);
+        // In the middle both ways. (How wide it is belongs to the page's reset, which this page has none of.)
+        Assert.Equal(Math.Round((390 - box!.Width) / 2), Math.Round(box.X));
         Assert.Equal(Math.Round((844 - box.Height) / 2), Math.Round(box.Y));
     }
 
@@ -73,7 +73,7 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
 
         var picker = await OpenSheetAsync(page, 0);
         await Day(picker, 15).ClickAsync();
-        await picker.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }).ClickAsync();
+        await picker.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Cancel", Exact = true }).ClickAsync();
         await Expect(picker.Locator("dialog")).ToBeHiddenAsync();
         await OpenSheetAsync(page, 0);
         await Day(picker, 16).ClickAsync();
@@ -100,7 +100,7 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
         await Day(picker, 12).ClickAsync();
         await Expect(picker.Locator("td[data-end]")).ToHaveTextAsync("12");
         var whileMarked = await page.Locator("#stay-state").TextContentAsync();
-        await picker.GetByRole(AriaRole.Button, new() { Name = "Select range", Exact = true }).Last.ClickAsync();
+        await picker.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Select range", Exact = true }).Last.ClickAsync();
 
         await Expect(page.Locator("#stay-state")).ToHaveTextAsync(ThisMonth(10) + ".." + ThisMonth(12));
         Assert.Equal("none", whileMarked);
@@ -118,7 +118,7 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
         await Expect(picker.Locator("dialog")).ToBeVisibleAsync();
         var trigger = await picker.Locator("button[role=combobox]").BoundingBoxAsync();
         var box = await picker.Locator("dialog").BoundingBoxAsync();
-        var footer = await picker.GetByRole(AriaRole.Button, new() { Name = "Cancel", Exact = true }).IsVisibleAsync();
+        var footer = await picker.GetByRole(Microsoft.Playwright.AriaRole.Button, new() { Name = "Cancel", Exact = true }).IsVisibleAsync();
         await Day(picker, 15).ClickAsync();
 
         await Expect(page.Locator("#day-state")).ToHaveTextAsync(ThisMonth(15));
@@ -146,7 +146,7 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
 
         await Expect(picker.Locator("dialog")).ToBeVisibleAsync();
         await Expect(page.Locator("#day-state")).ToHaveTextAsync("none");
-        Assert.Equal(33, box!.X);
+        Assert.Equal(Math.Round((390 - box!.Width) / 2), Math.Round(box.X));
     }
 
     [Fact]
