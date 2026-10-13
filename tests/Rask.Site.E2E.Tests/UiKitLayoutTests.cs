@@ -312,6 +312,8 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         Assert.Equal(icon.Y, panel.Y, 1.0);
         await Page.Mouse.MoveAsync(panel.X + 40, icon.Y + (icon.Height / 2));
         await Expect(menu).ToBeVisibleAsync();
+        // A move is looked at once in 100 ms, as on Flux, and the one onto the menu was: the pointer rests first.
+        await Page.WaitForTimeoutAsync(150);
         await Page.Mouse.MoveAsync(900, 500);
         await Expect(menu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
 

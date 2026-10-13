@@ -153,6 +153,8 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
         // Straight onto the panel, which keeps it. Then away from both.
         await Page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
         await Expect(panel).ToBeVisibleAsync();
+        // A move is looked at once in 100 ms, as on Flux, and the one onto the panel was: the pointer rests first.
+        await Page.WaitForTimeoutAsync(150);
         await Page.Mouse.MoveAsync(box.X + box.Width + 80, box.Y + box.Height + 80);
         await Expect(panel).ToBeHiddenAsync();
     });
