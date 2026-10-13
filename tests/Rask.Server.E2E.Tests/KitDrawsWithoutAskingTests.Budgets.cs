@@ -69,7 +69,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["date-picker: close by a press outside"] = 1,
         ["date-picker: page the month"] = 2,
         ["date-picker: pick a day"] = 2,
-        ["input-viewable: show and hide the password"] = 2,
         ["tabs-segmented: switch by a press"] = 1,
         ["tabs-segmented: switch by the arrows"] = 3,
         ["tabs: switch by a press"] = 1,

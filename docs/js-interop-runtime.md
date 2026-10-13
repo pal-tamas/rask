@@ -462,6 +462,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | `data-rask-copy="<id>"` | a button | Copies that element's value (or text) in the click itself, then carries `data-copied` for 2 s. |
+| `data-rask-view="<id>"` | a button | A click shows that password field as text and the next hides it again; the button carries `data-viewable-open` while it shows. Both are held against the render and nothing is sent. `Ui.Input.Viewable()` writes it. |
 | `data-rask-clear="<id>"` | a button | Empties that field, fires `input` and `change` on it, and focuses it. |
 | `data-rask-clear-keys="Escape"` | an `<input>` or `<textarea>` | A listed key (`KeyboardEvent.key`, a space between) pressed in the field empties it, in the browser and at the key. Your `OnKeyDown` hears the key; no `input` is fired. Empty it from the handler instead and it loses what was typed during the round trip. |
 | `data-rask-focus="<id>"` | any element | Focuses that element after a click. |

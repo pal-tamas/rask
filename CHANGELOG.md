@@ -1298,6 +1298,10 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
+  shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
+  field the reader had typed into since. The runtime turns the field to text and back in the click
+  (`data-rask-view`) and says so on the button with Flux's `data-viewable-open`.
 - **Opening and closing a dropdown, a popover or a context menu sends the server nothing** — as in Flux UI,
   where that is its own script's and Livewire hears only a bound value or an action the page wrote. The
   panel's `toggle` was sent on every open, Escape and press outside, and answered with a render, whether or not

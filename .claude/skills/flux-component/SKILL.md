@@ -789,6 +789,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Modal (state-driven) | `<dialog data-rask-modal-open="true|false">` instead of `open` | `showModal()`, `::backdrop`, closes when the state says so; `OnClose` / `OnCancel` still fire |
 | Modal | `data-rask-modal="any|press|escape|none"` from `dismissible` × `escapable` (both → `any`, outside only → `press`, Escape only → `escape`, neither → `none`); `data-rask-lock="scroll"`; keep `command`/`commandfor` | the four dismissals, `cancel` for a press outside, `data-open` while shown, a fallback where invoker commands are missing, Flux's modal lock |
 | Input `copyable` | button `data-rask-copy="<input id>"`; style the tick on `[data-copied]` | clipboard in the click, 2 s copied state |
+| Input `viewable` (WIRED: `UiInput.ViewButton`) | button `data-rask-view="<input id>"`, NO `OnClick`, no field in C#; the two icons from `in-data-viewable-open:` | the field turned to text and back in the click, `data-viewable-open` on the button meanwhile, both held against the render |
 | Input `clearable` | button `data-rask-clear="<input id>"` (no `OnClick`) | emptied, `input` fired, focus in the field |
 | Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
