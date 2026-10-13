@@ -39,6 +39,12 @@ internal sealed class UiInputHost
     /// <summary>What a click in the input does to the list.</summary>
     internal required Action OnClick { get; init; }
 
+    /// <summary>How long typing pauses before <see cref="AtPause" /> hears the text, in milliseconds. 0 for no pause.</summary>
+    internal int Pause { get; init; }
+
+    /// <summary>What hears the input's text once typing has paused.</summary>
+    internal Func<string, Task>? AtPause { get; init; }
+
     /// <summary>The input's marks with what the runtime is asked for over them: which keys to send, which empty it.</summary>
     /// <param name="input">What marks the input as Flux's.</param>
     internal Dictionary<string, string?> MarksOver(IReadOnlyDictionary<string, string?> input)
@@ -49,7 +55,7 @@ internal sealed class UiInputHost
             marks["data-rask-clear-keys"] = ClearKeys;
         }
 
-        return marks;
+        return AtPause is null ? marks : UiSearchPause.Over(marks, Pause, AtPause);
     }
 
     /// <summary>The field's ARIA with the combobox's over it.</summary>

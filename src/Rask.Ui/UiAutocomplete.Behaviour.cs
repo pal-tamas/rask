@@ -80,13 +80,21 @@ public sealed partial class UiAutocomplete
         return picked?.Index ?? UiSelectNav.FirstEnabled(view.Items.Count, view.Skips);
     }
 
-    private void Typed(string text)
+    // The list's own reading of a keystroke: it opens on the items that hold the text. The page holds the text
+    // when it is picked or left — or at every keystroke, for a pause of none.
+    private Task TypedAsync(string text)
     {
         _search = text;
         _typing = true;
         _open = true;
         _cursor = First;
+
+        return Debounce is { } pause && pause <= TimeSpan.Zero ? CommitAsync(text) : Task.CompletedTask;
     }
+
+    // The pause the browser counted has ended (`data-rask-on-pause`): the page holds what was typed. Not once
+    // the reader has picked, emptied or left meanwhile: the text went then, and the page holds what came of it.
+    private Task PausedAsync(string text) => _typing ? CommitAsync(text) : Task.CompletedTask;
 
     private void Opened()
     {
@@ -99,13 +107,14 @@ public sealed partial class UiAutocomplete
     // The browser closed the popover: Escape, a click elsewhere. It never opens one — only a render does, and
     // the toggle that render causes arrives after it, when the list may be shut again. Taken as news, that
     // late "open" opened the list, whose own toggle shut it, and so on for as long as the page was up.
-    private void OnToggle(ToggleEvent e)
+    private async Task OnToggleAsync(ToggleEvent e)
     {
         if (string.Equals(e.NewState, "open", StringComparison.Ordinal))
         {
             return;
         }
 
+        var typed = _open && _typing ? _search : null;
         if (_open)
         {
             _open = false;
@@ -113,7 +122,18 @@ public sealed partial class UiAutocomplete
         }
 
         _typing = false;
+        if (typed is not null)
+        {
+            // A click elsewhere keeps what was typed: the input's own `change` came while the list was open.
+            await CommitAsync(typed).ConfigureAwait(false);
+        }
     }
+
+    // The input's own `change`: what was typed, as the input is left. Not while the list is open — a press on
+    // an item leaves the input first, and a page that answers the text with other items would draw them under
+    // that press. The pick, or the list shutting, says what the page holds then. An emptied input is told at
+    // once all the same: that is its clear button, whose `change` is no leaving.
+    private Task LeftAsync(string text) => _open && text.Length > 0 ? Task.CompletedTask : CommitAsync(text);
 
     private void Close()
     {

@@ -1952,6 +1952,12 @@ ends on the text the page last heard asks nothing again; the field's clear butto
 Without `Filter(false)` the select goes on hiding rows at every keystroke and only `OnInput` waits.
 `Debounce(TimeSpan.Zero)` is every keystroke, as on `Ui.Input`.
 
+**The page's search follows the field.** When the select itself rewrites the field — the list shuts and the
+field is emptied, a pick among several empties it — `OnInput` hears that text too, once, and only when the
+page thinks otherwise: after a search for "ber" and a pick it is called with `""`, so the page goes back to
+the rows it starts from. Measured on Flux's backend-search examples, where the `search` model is written
+`""` on Escape and on a click elsewhere. A list opened and shut with nothing typed tells the page nothing.
+
 **The answer stays in the button when the rows change.** A search the page answers may bring rows that no
 longer include the option picked. The select goes on saying it, as Flux's does: the button (and a combobox's
 input, and the hidden input of a named select) keep the picked option's words, icon and avatar for as long
@@ -2009,6 +2015,26 @@ Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
 
 In a listbox with no search the create row is always shown and `OnClick` is handed an empty string — the
 case where the page opens a form of its own.
+
+**Search from the database.** `Debounce` on `Ui.SelectInput` is the same step as on `Ui.SelectSearch`: one
+query for a word.
+
+```csharp
+Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
+    Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds),
+    _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name])
+]
+
+private async Task Search(string text) =>
+    _users = await User.Where(u => u.Name.Contains(text)).OrderBy(u => u.Name).Take(20).ToList();
+```
+
+Nothing is sent while the reader types into the open list; the first key in a closed one opens it, and asks
+the page nothing. A row pressed, or Enter, during the pause picks from the list as drawn and the text typed
+since is dropped. The input then says the answer, and `OnInput` hears those words — Flux's `search` model is
+its input's text, so after a pick of "Analytics" the page is asked for "Analytics", and for `""` when Escape
+empties a closed combobox. The create row offers itself from the text the page last heard, and its `OnClick`
+is handed what the input holds when it is pressed, typed-since included (Flux sends the two together).
 
 **No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
 trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
@@ -2075,6 +2101,31 @@ It takes what Flux documents for it, which is the input's own list: `Type`, `Lab
 as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
 `OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
 
+**Suggestions from the database.** `Debounce(250.Milliseconds)` hands the page what was typed once typing has
+paused as well — Flux's `wire:model.live.debounce.250ms` — and the page answers it with the items:
+
+```csharp
+Ui.Autocomplete.Value(_city).OnChange(Search).Debounce(250.Milliseconds).Label("City")[
+    _found.Select(city => Ui.AutocompleteItem.Key(city)[city])
+]
+
+private async Task Search(string text)
+{
+    _city = text;
+    _found = await City.Where(c => c.Name.Contains(text)).OrderBy(c => c.Name).Take(20).Select(c => c.Name).ToList();
+}
+```
+
+The autocomplete has no search callback apart from its value: what is typed IS what it holds, so the pause
+is when the value arrives. The list still narrows at every keystroke — Flux's autocomplete has no
+`filter` to turn off — and only the page waits. An item pressed during the pause is the text, and what was
+typed before it is never handed over; Escape empties; the clear button tells the page at once. A bound
+autocomplete writes its member at the pause: `Debounce` is a way of being `Live()`, as on `Ui.Input`, so
+`Bind(() => m.City).Debounce(…)` needs no `.Live()` beside it, and `AfterBind` is where the search goes.
+Without the step nothing changes: `.Live()` alone writes a pick, a clear and a leave at once, and never what
+is being typed. The input's own `change` is not taken while the list is open — a press on an item leaves the
+input first — so a click elsewhere hands over what was typed as the list shuts.
+
 No script: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the filter and the
 picking are C#. As recorded on Flux's page:
 
@@ -2116,7 +2167,7 @@ Ui.Pillbox.Bind(() => model.Skills).Combobox.Placeholder("Choose skills...")[…
 | `Ui.PillboxOption` | `Value`, `Label`, `SelectedLabel` (what its pill says), `Disabled()`, `Filterable(false)` (a search never hides it), or children of your own — an icon beside the words. The pill shows the words alone. |
 | `Ui.PillboxOptionCreate` | `MinLength`, `OnClick` handed the text as typed. Offered once that text is long enough and names no option; with nothing to type into it is always there, and opens a form of the page's own. Written before the options, it is drawn before them. |
 | `Ui.PillboxOptionEmpty` | What the list says when nothing matches; `WhenLoading` while the page answers. |
-| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Invalid()`. |
+| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput` / `Debounce`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Debounce` / `Invalid()`. |
 
 Creating the option that is not there, with the page holding what was typed:
 
@@ -2128,6 +2179,33 @@ Ui.Pillbox.Bind(() => model.TagIds).Combobox[
 ]
 ```
 
+**Search from the database.** `Filter(false)` leaves the options to the page, and `Debounce` on the input
+among the pills — or on `Ui.PillboxSearch`, over the list — asks it once typing has paused, as
+`Ui.SelectSearch.Debounce` does:
+
+```csharp
+Ui.Pillbox.Bind(() => model.TagIds).Combobox.Filter(false)[
+    Ui.PillboxInput.OnInput(Search).Debounce(250.Milliseconds).Placeholder("Choose tags..."),
+    _found.Select(tag => Ui.PillboxOption.Key(tag.Id).Value(tag.Id)[tag.Name])
+]
+
+private async Task Search(string text) =>
+    _found = await Tag.Where(t => t.Name.Contains(text)).OrderBy(t => t.Name).Take(20).ToList();
+```
+
+Nothing is sent while the reader types into the open list. A row pressed, or Enter, during the pause adds
+the pill from the list as drawn, and the text typed since is dropped. A pick, a pill taken off and the list
+shutting each empty what was typed, and `OnInput` then hears `""` when the page had heard a search — as
+Flux's `search` model does. Backspace is heard only from an input that holds nothing, where it takes the last
+pill off.
+
+**The pills stay when the rows change.** A search the page answers may bring rows that no longer hold a
+picked option. The pillbox keeps what each answer showed when it was last drawn, for as long as the value
+holds it: the pills stand, in the order picked, the cross on one still takes it out of the value, and
+Backspace still takes the last. A select of several goes on counting and posting them the same way. A value
+that leaves takes what it showed with it, and a value no render ever drew an option for has no pill — render
+its option once, or keep it among the rows the search answers with. Measured on Flux's "With backend search".
+
 It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
 page, where it differs from the select's listbox:
 
@@ -2136,7 +2214,7 @@ page, where it differs from the select's listbox:
 | A click, Space, ArrowDown, ArrowUp | Open the list. Enter on the closed trigger does nothing. |
 | Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
 | A letter on the closed trigger | Switches the next option that starts with it, without opening. |
-| The cross on a pill | Takes that option off; the list stays as it was. |
+| The cross on a pill | Takes that option off; the list stays as it was, and what was typed among the pills is emptied. |
 | The pointer leaving the list | No row is lit any more. |
 | Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
 | Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
