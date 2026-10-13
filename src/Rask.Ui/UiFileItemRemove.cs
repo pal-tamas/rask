@@ -1,3 +1,5 @@
+using Rask.Core.Forms;
+
 namespace Rask;
 
 /// <summary>
@@ -27,11 +29,19 @@ public sealed partial class UiFileItemRemove : Component
             .Variant(Ui.ButtonVariant.Subtle)
             .Size(Ui.ButtonSize.Sm)
             .Square()
-            .OnClick(OnClick)
+            .OnClick(OnClick.HasValue ? new Callback(Removed) : default)
             .AriaLabel(AriaLabel ?? RaskStrings.Get(RaskString.FileItemRemove, "Remove file"))
             .Data(Marker.With(null))
             .Class(UiClass.Compose("cursor-pointer", Class))[
             // A child, not the button's Icon: alone in a square that one is drawn at 20px, and Flux's is 16.
             Ui.Icon.Name(Ui.IconName.XMark).Micro
         ];
+
+    // A file taken off the list is the reader's change, whatever the page then does with it: a form that asks
+    // before it is left counts it.
+    private Task Removed()
+    {
+        ReaderEdits.Note(this);
+        return OnClick.Invoke().AsTask();
+    }
 }

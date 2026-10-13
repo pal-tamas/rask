@@ -39,7 +39,10 @@ public abstract partial class UiSelectControl<T>
             .Role(plain ? "combobox" : "button")
             .Class(UiClass.Compose(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class))
             .Aria(PillTriggerAria(view, plain))
-            .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain));
+            .Attributes(UiDraws.With(
+                PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain),
+                ("click", !off),
+                ("keydown", !off && KeysDraw(view))));
         if (!PillsCombobox)
         {
             trigger = trigger.Id(view.Field.ControlId);
@@ -89,7 +92,7 @@ public abstract partial class UiSelectControl<T>
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
         return Div.Key(answer.Face.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", answer.Face.FormValue)[
             Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
-            (off ? remove : remove.OnClick(() => RemoveAsync(value, Latest)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
+            (off ? remove : remove.Attributes(UiDraws.Marks(("click", CommitDraws))).OnClick(() => RemoveAsync(value, Latest)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
 
@@ -124,7 +127,10 @@ public abstract partial class UiSelectControl<T>
             .Disabled(off)
             .Class(UiClass.Compose(UiPillboxLook.Input, slot?.Class))
             .Aria(aria)
-            .Attributes(UiSearchPause.Over(UiPillboxLook.InputMarks(placeholder), _pause, PausedAsync))
+            .Attributes(UiDraws.With(
+                UiSearchPause.Over(UiPillboxLook.InputMarks(placeholder), _pause, PausedAsync),
+                ("input", TypingDraws),
+                ("keydown", KeysDraw(view))))
             .Ref(_input)
             .OnInput(AtEveryKey(opens: true))
             .OnKeyDown(e => OnPillInputKeyAsync(e, Latest));

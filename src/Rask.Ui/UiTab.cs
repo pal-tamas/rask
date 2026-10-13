@@ -110,6 +110,7 @@ public sealed partial class UiTab : Component, IDeferredBind
             .TabIndex(selected ? 0 : -1)
             .Type(ButtonType.Button)
             .Disabled(Disabled == true)
+            .Attributes(UiDraws.Marks(("click", scope.SelectDraws && !OnClick.HasValue)))
             .OnClick(() => PickAsync(scope, name));
 
         button = group is null

@@ -17,7 +17,7 @@ import { inRoot, send } from "./rask-host.js";
 import { closestFrom } from "./rask-morph.js";
 import { domEvents } from "./generated/rask-dom-events.js";
 import { raskDomPayload } from "./rask-dom-payload.js";
-import { begun, isOurs, said, unasked, unsaid } from "./rask-owned.js";
+import { begun, isOurs, said, tell, unasked, unsaid } from "./rask-owned.js";
 
 // Events with a listener of their own below or in a host: click (the hosts' submit/popover/loading guards),
 // keydown/keyup (the `data-rask-keys` filter), the drag four (seeding, drop-target marking, dedupe), scroll (coalesced in
@@ -56,7 +56,8 @@ domEvents.forEach(function (row) {
         msg.id = target.getAttribute(attr);
         msg.type = name;
         var answer: unknown;
-        if (readers && !ours) { answer = send(msg); } else { unasked(function () { answer = send(msg); }); }
+        var owner = target;
+        if (readers && !ours) { answer = tell(owner, name, function () { return send(msg); }); } else { unasked(function () { answer = send(msg); }); }
         if (opens && !ours && name !== "beforetoggle") { said(target, typeof msg.seq === "number" ? msg.seq : answer); }
     }, { capture: true, passive: !prevent });
 });
@@ -84,7 +85,8 @@ function raskEnterLeave(sourceEvent: string, name: string): void {
         var msg = raskDomPayload(e, name);
         msg.id = target.getAttribute(attr);
         msg.type = name;
-        send(msg);
+        var owner = target;
+        tell(owner, name, function () { return send(msg); });
     }, { capture: true, passive: true });
 }
 
@@ -161,7 +163,8 @@ function raskSendKey(e: KeyboardEvent, attr: string, type: string): void {
         var heard = keys.split(" ");
         if (heard.indexOf(e.key) < 0 && (heard.indexOf(e.key + ":empty") < 0 || (t as HTMLInputElement).value)) { return; }
     }
-    send(Object.assign(raskDomPayload(e, type), {id: t.getAttribute(attr), type: type}));
+    var owner = t;
+    tell(owner, type, function () { return send(Object.assign(raskDomPayload(e, type), {id: owner.getAttribute(attr), type: type})); });
 }
 
 document.addEventListener("keydown", function (e) { raskSendKey(e, "data-rask-on-keydown", "keydown"); });

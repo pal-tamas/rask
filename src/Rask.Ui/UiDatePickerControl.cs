@@ -366,7 +366,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
             // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
             // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
-            .Attributes(("autofocus", ""), ("style", "position-anchor:--" + PopoverId))
+            .Attributes(("autofocus", ""), (UiDraws.Mark, "toggle"), ("style", "position-anchor:--" + PopoverId))
             .OnToggle(e =>
             {
                 _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
@@ -390,7 +390,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Div.Class(UiDatePickerLook.FooterButton)[
                 Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")[RaskStrings.Get(RaskString.DatePickerCancel, "Cancel")]
             ],
-            Div.Class(UiDatePickerLook.FooterButton).Role("button").TabIndex(0).OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
+            Div.Class(UiDatePickerLook.FooterButton).Role("button").TabIndex(0)
+                .Attributes(UiDraws.Marks(("click", UiDraws.Waits(this, Bind is not null))))
+                .OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
             ]
         ];
@@ -417,6 +419,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             SelectableHeader = SelectableHeader == true,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
+            PickDraws = UiDraws.Waits(this, Bind is not null),
         };
     }
 }

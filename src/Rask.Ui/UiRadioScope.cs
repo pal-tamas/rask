@@ -10,6 +10,7 @@ namespace Rask;
 /// <param name="Current">The group's value.</param>
 /// <param name="Choose">Makes a radio's value the group's.</param>
 /// <param name="Live">The group's <c>Live</c>: whether a choice is written as it is made.</param>
+/// <param name="Draws">Whether a choice is held for the next action, so a part's own event only draws it (<see cref="UiDraws" />).</param>
 internal sealed record UiRadioScope(
     string GroupId,
     string Name,
@@ -19,4 +20,5 @@ internal sealed record UiRadioScope(
     bool Invalid,
     object? Current,
     Func<object?, Task> Choose,
-    bool? Live = null);
+    bool? Live = null,
+    bool Draws = false);

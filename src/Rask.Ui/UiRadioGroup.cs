@@ -104,7 +104,8 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
             field.Invalid,
             current,
             value => value is T typed ? UiFormCommit.CommitAsync(this, accessor, context, typed) : Task.CompletedTask,
-            Live);
+            Live,
+            Draws: UiDraws.Waits(this, Bind is not null));
 
         // The radios are grouped by name already; the GROUP has a name of its own to announce — the heading.
         var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);

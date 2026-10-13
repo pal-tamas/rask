@@ -18,7 +18,7 @@ import {
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
 import { isHandlerEvent } from "./rask-batch.js";
-import { isUnasked, unasked } from "./rask-owned.js";
+import { draws, isUnasked, unasked } from "./rask-owned.js";
 
 /** Any element this module reads a `value` off. */
 type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -56,7 +56,7 @@ function answered(el: ValueElement): void {
     const value = held.get(el);
     if (value !== undefined) {
         held.delete(el);
-        sendOwn(function () { dispatchInput(el, value); });
+        sendFor(el, function () { dispatchInput(el, value); });
     }
 }
 
@@ -199,6 +199,12 @@ function sendOwn(run: () => void): void {
     }
 }
 
+// A field whose `input` only draws its control — a list's search, with nobody of the page's listening
+// (`data-rask-draws`, rask-owned.ts) — is no action: it goes alone, and what waits goes on waiting.
+function sendFor(el: ValueElement, run: () => void): void {
+    if (draws(el, "input")) unasked(run); else sendOwn(run);
+}
+
 function pause(el: ValueElement): void {
     clearTimeout(paused.get(el));
     paused.set(el, window.setTimeout(function () {
@@ -218,10 +224,9 @@ function ask(el: ValueElement, composing: boolean): void {
 
 function flushInputs(): void {
     inputRaf = 0;
-    sendOwn(function () {
-        inputPending.forEach(sendInput);
-        inputPending.clear();
-    });
+    const typed = Array.from(inputPending);
+    inputPending.clear();
+    typed.forEach(function (el) { sendFor(el, function () { sendInput(el); }); });
 }
 
 export function flushInputsNow(): void {
@@ -327,7 +332,7 @@ document.addEventListener("input", (e) => {
     }
 
     if (t.hasAttribute("data-rask-on-change")) {
-        sendOwn(function () { sendInput(t); });
+        sendFor(t, function () { sendInput(t); });
         return;
     }
 
