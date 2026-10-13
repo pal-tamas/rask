@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Ui.Tests"/>
+    <InternalsVisibleTo Include="Rask.Site.Tests"/>
   </ItemGroup>
 
 

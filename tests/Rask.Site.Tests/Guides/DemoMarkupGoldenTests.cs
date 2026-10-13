@@ -34,6 +34,17 @@ namespace Rask.Site.Tests.Guides;
 // then read `git diff` on the .golden.txt before committing. That diff IS the review.
 public sealed class DemoMarkupGoldenTests
 {
+    // A calendar with no value opens on today's month and marks today with a class, so the skeleton would
+    // change every midnight. The kit's clock is pinned to the day the golden was taken.
+    static DemoMarkupGoldenTests() => UiCalendarOptions.Clock = new GoldenDay();
+
+    private sealed class GoldenDay : TimeProvider
+    {
+        public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
+
+        public override DateTimeOffset GetUtcNow() => new(2026, 10, 12, 12, 0, 0, TimeSpan.Zero);
+    }
+
     // Opening tags. Attribute values are HTML-encoded by the serializer, so no raw '>' can appear inside
     // one and this can't run past the tag.
     private static readonly Regex Tags = new(
