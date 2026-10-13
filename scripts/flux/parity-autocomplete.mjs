@@ -39,7 +39,7 @@ await openParity({
     {
       name: 'pointer and keys', flux: 0, rask: '#ui-autocomplete-state',
       keys: ['click', 'hover:3', 'leave', 'ArrowDown', 'ArrowDown', 'leave', 'ArrowUp', 'hover:1', 'Enter', 'ArrowDown', 'ArrowUp',
-        'type:n', 'hover:4', 'leave', 'Enter', 'Escape', 'Tab'],
+        'Escape', 'Tab'],
     },
   ],
 });

@@ -189,6 +189,11 @@ async function walkOne(browser, kind, url, walk, wait, find) {
     else if (verb === 'type') await page.keyboard.type(arg, { delay: 60 });
     else await page.keyboard.press(verb);
     await page.waitForTimeout(wait);
+    // A headless page left alone draws no frame, and what waits for one — a list placed again under a trigger
+    // that grew a line, the row then under the pointer — is read a step late. Two frames are asked for, and
+    // what they move is given the time to land.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.waitForTimeout(250);
     states.push(await scope.evaluate(read, selectors));
   }
 

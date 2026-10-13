@@ -356,13 +356,32 @@ function watch(): void {
             for (const record of records) {
                 if (popup.contains(record.target)) {
                     refilter(root);
-                    return;
+                    break;
+                }
+            }
+            if (stateOf(root).acts) {
+                // The pointer picked and the list stayed open: a pill added to the trigger pushes the rows down
+                // under a pointer at rest, and Flux's cursor is on whichever row is under it then.
+                // Once the trigger has grown and the list has been placed under it again (rask-place.ts does
+                // that a frame after the size changed).
+                // Looked at more than once: how soon the rows have settled is the layout's to say, not ours.
+                for (const after of [100, 300, 600]) {
+                    setTimeout(function () { under(root); }, after);
                 }
             }
         });
         unwatch();
     });
     watcher.observe(page.documentElement, {subtree: true, childList: true});
+}
+
+// Lights the row the pointer is resting on, when it is one of this list's.
+function under(root: Element): void {
+    const at = open.has(root) && pointerX === pointerX ? page!.elementFromPoint(pointerX, pointerY) : null;
+    const row = at ? at.closest<HTMLElement>(OPTION) : null;
+    if (row && row.closest(ROOT) === root && !skips(row) && stateOf(root).cursor !== row) {
+        light(root, row, true);
+    }
 }
 
 function unwatch(): void {
@@ -568,12 +587,14 @@ if (page) {
         }
     }, true);
 
-    listen("pointermove", function (e) {
+    // The mouse's events, not the pointer's: a row that slides under a pointer at rest is told to the page as a
+    // mouseover (the browser catching up after a layout), and as no pointer event at all.
+    listen("mousemove", function (e) {
         pointerX = e.clientX;
         pointerY = e.clientY;
     }, {capture: true, passive: true});
 
-    listen("pointerover", function (e) {
+    listen("mouseover", function (e) {
         const row = near(e.target, OPTION);
         const root = row ? row.closest(ROOT) : null;
         const from = e.relatedTarget;
@@ -588,7 +609,7 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    listen("pointerout", function (e) {
+    listen("mouseout", function (e) {
         const list = near(e.target, "[role=listbox]");
         const root = list ? list.closest(ROOT) : null;
         const to = e.relatedTarget;
