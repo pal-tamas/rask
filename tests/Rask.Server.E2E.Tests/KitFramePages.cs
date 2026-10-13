@@ -122,6 +122,7 @@ public sealed partial class KitFieldFramePage : KitFramePage
 public sealed partial class KitOverlayFramePage : KitFramePage
 {
     private bool _confirming;
+    private bool _heard;
     private bool _drafts;
     private string _sort = "active";
 
@@ -137,6 +138,11 @@ public sealed partial class KitOverlayFramePage : KitFramePage
                 ]
             ]),
             Part("dropdown-hover", Ui.Dropdown.Hover()[Ui.Button.Id("hover-open")["Hover"], Ui.Menu[Ui.MenuItem["One"], Ui.MenuItem["Two"]]]),
+            // The one dropdown on the page that asked to hear the reader open and close it.
+            Part("dropdown-heard", Ui.Dropdown.OnToggle(open => _heard = open)[
+                Ui.Button.Id("heard-open")[_heard ? "Open" : "Closed"],
+                Ui.Menu[Ui.MenuItem["One"], Ui.MenuItem["Two"]]
+            ]),
             Part("context", Ui.Context[
                 Div.Id("context-area").Style("width:200px;height:60px;border:1px dashed gray")["Right click"],
                 Ui.Menu[Ui.MenuItem["Copy"], Ui.MenuItem["Paste"]]

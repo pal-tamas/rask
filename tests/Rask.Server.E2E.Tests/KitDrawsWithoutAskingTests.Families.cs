@@ -68,6 +68,7 @@ public abstract partial class KitDrawsWithoutAskingTests
 
         ["dropdown"] = On<KitOverlayFramePage>("dropdown", Popup("#dropdown-open", "[data-c='dropdown'] [popover]")),
         ["dropdown-hover"] = On<KitOverlayFramePage>("dropdown-hover"),
+        ["dropdown-heard"] = On<KitOverlayFramePage>("dropdown-heard", Popup("#heard-open", "[data-c='dropdown-heard'] [popover]")),
         ["context"] = On<KitOverlayFramePage>("context",
             RightPress("open by a right press", "#context-area"),
             Pointer("[data-c='context'] [popover]", RightPressing("#context-area"), "pointer over the open popup"),
