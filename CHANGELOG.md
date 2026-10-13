@@ -179,6 +179,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
+  awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
+  frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on
+  its way out"), for the navigation's own frame to carry; but the navigation takes its turn BEHIND the handler,
+  which was awaiting the answer to a call nobody had been sent. Neither moved: on a live Server page the link
+  did nothing for seconds, and over a bare socket no frame came at all. A frame that carries a call into the
+  browser is now sent whatever is queued behind it (`LiveSession.NothingToSend`). Seen as Escape in a combobox
+  `Ui.Select` followed at once by a nav link; the shape is any app handler's.
+
 - **A one-value value object inside a constructor-built value object no longer stops the app at startup
   ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
   aggregate compiled, and then EF Core refused the model — *No suitable constructor was found … Cannot bind

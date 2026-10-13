@@ -1160,7 +1160,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // A link pressed since is waiting its turn, and its page is the one the reader asked for: what this
         // render would show is on its way out, and whatever it carries besides rides that page's frame.
-        if (auth is null && _arrivals.AnyQueued)
+        // But for a call into the browser: the handler that made it is awaiting its answer, and the navigation
+        // waits its turn BEHIND that handler — held back for the navigation's frame, the call was never sent,
+        // the handler never finished and the link went unanswered. A frame that carries one goes now.
+        if (auth is null && _arrivals.AnyQueued && !JsInvokes.HasPending)
         {
             ArrivalSuperseded = arriving;
             return true;
