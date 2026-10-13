@@ -127,6 +127,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK100](#rask100) | Error | `[BlazorParameter]` names a parameter the hosted component does not declare |
 | [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
 | [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
+| [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2253,6 +2254,55 @@ warning at that site with a reason.
 A project that does not build warnings-as-errors still builds: it shows this warning and the rule is not run.
 
 ---
+
+## RASK103
+
+**A constructor-built value object holds a value object of several values** · Error
+
+A value object of several values is stored as an EF Core **complex type**, and EF Core binds a constructor
+parameter to a **column** — never to a complex type. So a value object whose every constructor takes one cannot
+be built when a row is read, and EF Core refuses the whole model when the app starts (*No suitable constructor
+was found … Cannot bind 'Label'*). The build says it first, at the parameter:
+
+```csharp
+public sealed record Label(string Code, int Copies);            // several values: a complex type
+
+public sealed record Route(Label Label, string Carrier);        // ✗ RASK103, on `Label`
+
+public sealed class Parcel : Aggregate<Guid>
+{
+    public Route Route { get; private set; } = …;
+}
+```
+
+> 'Route' is built through its constructor and holds 'Label', a value object of several values; EF Core cannot
+> bind it. Give 'Route' a private parameterless constructor and private setters.
+
+What it names: a record, a record struct or a class whose constructors ALL take a value object of several values
+(nullable or not, a class or a struct), wherever the mapping reaches it — on the aggregate, inside another value
+object, or on a row inside the aggregate. It is reported once, however many places hold it.
+
+**Not reported**, because EF Core builds them: a value object built through its members; one with a constructor
+that does not take it; a record that keeps its constructor and adds a private parameterless one; and a holder of
+**one-value** value objects only (`record Terms(Sku Early, int Days)`) — those are columns, and bind. A property
+marked `[NotMapped]` and a type no aggregate holds are not looked at.
+
+**Fix:** let EF Core build it through its members.
+
+```csharp
+public sealed class Route
+{
+    private Route() { }
+
+    public Label Label { get; private set; } = null!;
+    public string Carrier { get; private set; } = "";
+
+    public static Route Of(Label label, string carrier) => new() { Label = label, Carrier = carrier };
+}
+```
+
+A record that should stay one keeps its positional constructor and gains a private parameterless one:
+`public sealed record Route(Label Label, string Carrier) { private Route() : this(null!, "") { } }`.
 
 ## RASKVAL001
 
