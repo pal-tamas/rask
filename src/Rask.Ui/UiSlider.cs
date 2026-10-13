@@ -121,7 +121,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         var field = UiWithField.For(this);
         var (accessor, context, current) = UiFormCommit.Resolve(this);
         var scale = UiSliderScale.Of(Min, Max, Step, MinStepsBetween);
-        var live = new Drawn(accessor, context, scale, scale.Normalize(UiSliderValue.Read(current), IsRange()));
+        var live = _latest = new Drawn(accessor, context, scale, scale.Normalize(UiSliderValue.Read(current), IsRange()));
         var ticks = Ticks(live);
         var inside = TickPosition == Ui.SliderTickPosition.Inside;
 
@@ -162,7 +162,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         }
 
         var inside = TickPosition == Ui.SliderTickPosition.Inside;
-        var scope = new UiSliderScope(live.Scale, live.Values, inside, Disabled == true ? null : to => PickAsync(live, to));
+        var scope = new UiSliderScope(live.Scale, live.Values, inside, Disabled == true ? null : to => PickAsync(Latest, to));
 
         return Div.Class(inside ? UiSliderLook.TicksInside : UiSliderLook.TicksBelow)
             .Data("ui-slider-tick-position", inside ? "inside" : "below")[
@@ -196,7 +196,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         }
 
         var control = Input.Value(UiSliderScale.Text(live.Values[thumb]))
-            .OnInput(raw => MovedAsync(live, thumb, raw))
+            .OnInput(raw => MovedAsync(Latest, thumb, raw))
             .Type(InputType.Range)
             .Id(thumb == 0 ? field.ControlId : null)
             .Min(UiSliderScale.Text(lowest))
@@ -205,6 +205,8 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
             .Disabled(Disabled == true)
             .Aria(Names(field, live, thumb))
             .Class(UiSliderLook.Control)
+            // A thumb moved in a slider that waits is held for the next action: its `input` only draws it.
+            .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
             .Style(reach);
 
         return BigStep is { } big and > 0 ? control.Data("rask-big-step", UiSliderScale.Text((decimal)big)) : control;
@@ -256,5 +258,12 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     }
 
     // What one render resolved, for the handlers it registered.
+    // What the last render drew. A handler reads it when it runs and closes over none of it: a thumb dragged
+    // faster than the page answers sends its moves from an older page, and a handler made of one render's view
+    // is a different one every render — the third in flight forgot the first, and the move ran nothing.
+    private Drawn? _latest;
+
+    private Drawn Latest => _latest ?? throw new InvalidOperationException("The slider has not been drawn.");
+
     private sealed record Drawn(ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiSliderScale Scale, decimal[] Values);
 }
