@@ -30,7 +30,10 @@ them until tagged releases begin.
   Development. A first `GET` whose hook faults before the response is sent answers **500**; a page already
   painted on its placeholder is repainted as the error page in the frame that follows. An `ErrorBoundary`
   the app wrote around the component trips as before, and now also for a hook that throws before its first
-  await. A hook that faults after its component left the page is still only recorded.
+  await. A hook that faults after its component left the page is still only recorded. A fault that lands
+  while its page is being drawn — after the walk met the component, before the walk is over — is reported
+  where it lands, so a page rendered once (a test host, a prerender) does not keep it for a walk that never
+  comes.
 - **In Development a lifecycle fault replaces the page too.** **A behaviour change.** Before: the overlay
   over the running app, which stayed on its placeholder. After: the error page with the exception, its
   stack and source, as a render fault shows it. The overlay is a handler's fault only.

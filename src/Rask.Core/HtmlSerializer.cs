@@ -695,11 +695,8 @@ internal static class HtmlSerializer
             component.LoadAgainOnceRecovered();
         }
 
-        // A hook of it that faulted before the walk got here: thrown now, to the boundary just stamped.
-        if (HeldHookFault.Any)
-        {
-            component.ThrowHeldHookFault();
-        }
+        // A hook of it that faulted before the walk got here is thrown now, to the boundary just stamped.
+        component.MetByTheWalk();
     }
 
     // Read once: the devtools see the whole component, render AND subtree walk, as one span. The parent is
