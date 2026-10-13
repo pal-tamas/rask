@@ -91,7 +91,7 @@ filter. A control you only read in the submit handler needs nothing.
   values that waited, so a handler never reads a model that has not heard what was typed.
 - **A kit control drawing itself is not an action.** Opening a `Ui.Select`, a `Ui.Dropdown`, a date or a
   time picker, moving its cursor with the arrows or the pointer, typing in its search field, paging a
-  calendar, switching a `Ui.Tabs` nobody listens to: the page hears those only because it is what draws the
+  calendar: the page hears those only because it is what draws the
   control, and in Flux they are no request at all. Nothing that waits is written for them, so a rule of a
   field above the list does not speak when the list is opened. A **pick** in a bound control that waits is
   the same — the pick itself waits. What does count: a pick in a control that says `.Live()` or is held
