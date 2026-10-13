@@ -604,6 +604,11 @@ public static partial class RaskEndpointExtensions
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
+        if (SentToSignIn(httpContext, path, user, pathBaseNormalized))
+        {
+            return;
+        }
+
         var appFactoryForPath = selector.FactoryFor(path);
         var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
         var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
@@ -797,6 +802,12 @@ public static partial class RaskEndpointExtensions
         // A page that arrives asking for a behaviour hook gets the hooks' script in the same response, so they
         // run straight after the runtime rather than a round trip later (HookBundleTag).
         var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
+
+        // Rendered for somebody: the tab remembers, so that losing them later sends it to the sign-in page.
+        if (session.Users.IsSignedIn)
+        {
+            html = LivePayload.InjectSignedInAttr(html);
+        }
 
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
@@ -1071,6 +1082,7 @@ public static partial class RaskEndpointExtensions
 
     private static void MapSessionEndpoints(IEndpointRouteBuilder endpoints, string pathBase)
     {
+        endpoints.MapGet(pathBase + WhoPath, (RequestDelegate)WhoAsync);
         endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
                 RedeemAuthTicketAsync(ctx, ctx.RequestServices.GetRequiredService<IAuthTicketStore>())))
             .DisableAntiforgery();

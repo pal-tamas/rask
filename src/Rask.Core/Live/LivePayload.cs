@@ -998,6 +998,12 @@ public static class LivePayload
     ///     The one shape every per-response body stamp shares; no value, or a page with no body, leaves the
     ///     HTML as it was.
     /// </summary>
+    /// <summary>
+    ///     Stamps <c>data-rask-user</c> onto <c>&lt;body&gt;</c>: the page was rendered for somebody. The client
+    ///     reads it once as it boots, so a tab knows it had a user when a later connection is refused for having none.
+    /// </summary>
+    internal static string InjectSignedInAttr(string html) => InjectBodyAttr(html, "data-rask-user", "1");
+
     private static string InjectBodyAttr(string html, string name, string? value)
     {
         if (string.IsNullOrEmpty(value))

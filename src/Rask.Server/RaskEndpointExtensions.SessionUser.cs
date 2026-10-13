@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
@@ -218,7 +219,7 @@ public static partial class RaskEndpointExtensions
 
     // Where a session whose sign-in ended goes instead of the page it is on, guarded or not: the sign-in page,
     // with the way back. Null once it is there.
-    private static GuardRedirect? SignInAgain(LiveSession session, string path, IQueryCollection query)
+    private static GuardRedirect? SignInAgain(LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         if (!session.SignInEnded)
         {
@@ -230,7 +231,7 @@ public static partial class RaskEndpointExtensions
             ? null
             : new GuardRedirect(
                 RouteAuthorizationGuard.ChallengePath,
-                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query)));
+                "?returnUrl=" + Uri.EscapeDataString(Rask.Core.Routing.QueryString.Build(path, query)));
     }
 
     // Said once, as the app's live endpoints are mapped: with sign-in and nothing to ask, an open page keeps whatever its connection
@@ -257,5 +258,107 @@ public static partial class RaskEndpointExtensions
     {
         var all = schemes.GetAllSchemesAsync();
         return !all.IsCompletedSuccessfully || all.Result.Any();
+    }
+
+    private const string WhoPath = "/_rask/auth/who/{sessionId}";
+
+    // How often one session's tab may ask. It asks as it comes back to the reader and before an event after a
+    // pause: a handful of times a minute.
+    private const int WhoQuestionsPerSecond = 4;
+
+    private static readonly byte[] WhoSameSomebody = "{\"same\":true,\"user\":true}"u8.ToArray();
+    private static readonly byte[] WhoSameNobody = "{\"same\":true,\"user\":false}"u8.ToArray();
+    private static readonly byte[] WhoOther = "{\"same\":false}"u8.ToArray();
+
+    /// <summary>
+    ///     Answers a tab asking whether the browser's credential still names the user its connection opened with.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A socket sees the browser's cookie once, at its upgrade. When the cookie changes afterwards — signed
+    ///         in, out, or issued again with another tenant, by this app or by another one on the host — an open tab
+    ///         has no way to know. This request is authenticated like any other, so it carries the cookie as it is
+    ///         now; the tab asks as it becomes the reader's again, and opens its connection anew when the answer is
+    ///         anything but "the same". The attach then adopts the principal, or refuses it, as it always did.
+    ///     </para>
+    ///     <para>
+    ///         It says nothing else: no claim, no name. A session that does not exist and one that is not the
+    ///         caller's get the same answer, so an id tells a stranger nothing.
+    ///     </para>
+    /// </remarks>
+    private static Task WhoAsync(HttpContext ctx)
+    {
+        ctx.Response.Headers.CacheControl = "no-store";
+        if (!IsSameOrigin(ctx.Request) || IsCrossSiteFetch(ctx.Request))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var session = sessionId is null ? null : ctx.RequestServices.GetRequiredService<LiveSessionStore>().Peek(sessionId);
+        if (session is not null && !session.AdmitWhoQuestion(WhoQuestionsPerSecond))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            return Task.CompletedTask;
+        }
+
+        ctx.Response.ContentType = "application/json";
+        return ctx.Response.Body.WriteAsync(WhoAnswerFor(session, UserOf(ctx)), ctx.RequestAborted).AsTask();
+    }
+
+    private static byte[] WhoAnswerFor(LiveSession? session, ClaimsPrincipal request)
+    {
+        if (session is null || !MayDrive(request, session))
+        {
+            return WhoOther;
+        }
+
+        // What the connection carried, not what a revalidator has made of it since: the question is whether the
+        // browser would bring another credential if the connection were opened again.
+        var attached = session.ConnectionUser ?? session.Users.Current;
+        if (!PrincipalRights.Same(attached, request))
+        {
+            return WhoOther;
+        }
+
+        return PrincipalRights.IsSignedIn(request) ? WhoSameSomebody : WhoSameNobody;
+    }
+
+    /// <summary>The cookie a tab sets before it reloads because its connection was refused after it had a user.</summary>
+    internal const string EndedCookie = "rask-ended";
+
+    /// <summary>
+    ///     Sends a tab that had a user and has none now to the sign-in page, with the way back — the page's own
+    ///     request being the first place the server sees that the browser no longer carries anybody.
+    /// </summary>
+    /// <remarks>
+    ///     The tab says it had one, by a cookie that lasts seconds: Rask cannot tell from an anonymous request. A
+    ///     visitor who never signed in never sets it, and a public page goes on serving them. All the cookie can do
+    ///     is redirect its own bearer, once.
+    /// </remarks>
+    private static bool SentToSignIn(HttpContext ctx, string path, ClaimsPrincipal user, string pathBase)
+    {
+        if (!ctx.Request.Cookies.ContainsKey(EndedCookie))
+        {
+            return false;
+        }
+
+        // The tab wrote it from script; the answer that removes it has no reason to stay readable by one.
+#pragma warning disable S2092 // a removal, of a cookie that carries nothing: marked Secure it would not be taken over http, where the tab set it
+        ctx.Response.Cookies.Delete(
+            EndedCookie, new CookieOptions { Path = "/", HttpOnly = true, Secure = ctx.Request.IsHttps });
+#pragma warning restore S2092
+        if (PrincipalRights.IsSignedIn(user)
+            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        ctx.Response.StatusCode = StatusCodes.Status302Found;
+        ctx.Response.Headers.Location = pathBase + RouteAuthorizationGuard.ChallengePath
+            + "?returnUrl=" + Uri.EscapeDataString(path + ctx.Request.QueryString.Value);
+        ctx.Response.Headers.CacheControl = "no-store";
+        return true;
     }
 }
