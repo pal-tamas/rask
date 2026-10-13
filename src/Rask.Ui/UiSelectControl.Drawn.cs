@@ -87,27 +87,30 @@ public abstract partial class UiSelectControl<T>
     // What the button says: the placeholder, the one picked option as its row draws it, or a count. One of the
     // three at a time, as Flux stamps them — and each under its own key, so going from one to another is a keyed
     // swap the live diff ships. Unkeyed, a span against a div is a change it answers with the whole page.
+    //
+    // The answers counted are the value's, not the rows': Flux's "3 selected" stands when a search has taken
+    // two of the three out of the list. One answer is said as its row draws it, or as the select last drew it
+    // once the row has gone (Remember) — the same key and the same shape, so a render that brings other options
+    // changes nothing in the button.
     private Component? PickedContent(View view, string? placeholder)
     {
-        var picked = view.PickedRows.ToList();
-        if (picked.Count == 0)
+        var count = view.Picked.Count;
+        if (count > 1)
+        {
+            return Div.Key("count").Class(UiSelectLook.Picked)[
+                count.ToString(System.Globalization.CultureInfo.CurrentCulture) + " " + (SelectedSuffix ?? RaskStrings.Get(RaskString.SelectSelectedSuffix, "selected"))
+            ];
+        }
+
+        if (view.Answer is not { } answer)
         {
             return placeholder is null
                 ? null
                 : Span.Key("placeholder").Class(UiSelectLook.Placeholder).Data("ui-select-placeholder", "")[placeholder];
         }
 
-        if (picked.Count > 1)
-        {
-            return Div.Key("count").Class(UiSelectLook.Picked)[
-                picked.Count.ToString(System.Globalization.CultureInfo.CurrentCulture) + " " + (SelectedSuffix ?? RaskStrings.Get(RaskString.SelectSelectedSuffix, "selected"))
-            ];
-        }
-
-        var option = picked[0].Option;
-
-        return Div.Key("option:" + option.FormValue).Class(UiSelectLook.Picked).Data("value", option.FormValue)[
-            UiListboxRow.Content(option, option.SelectedLabel, inList: false)
+        return Div.Key("option:" + answer.FormValue).Class(UiSelectLook.Picked).Data("value", answer.FormValue)[
+            view.AnswerRow is { } row ? UiListboxRow.Content(row.Option, row.Option.SelectedLabel, inList: false) : UiListboxRow.Content(answer)
         ];
     }
 
@@ -269,7 +272,11 @@ public abstract partial class UiSelectControl<T>
     // The drawn variants post nothing by themselves, so a named select carries its answer in hidden inputs.
     private IEnumerable<Component?> PostedValues(View view) =>
         Name is { } name
-            ? view.PickedRows.Select(row => row.Option.FormValue).DefaultIfEmpty(string.Empty)
+            ? Posted(view).DefaultIfEmpty(string.Empty)
                 .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name))
             : [];
+
+    // The answer whose row a render took away is still the answer, and still posted.
+    private static IEnumerable<string> Posted(View view) =>
+        view.AnswerRow is null && view.Answer is { } kept ? [kept.FormValue] : view.PickedRows.Select(row => row.Option.FormValue);
 }

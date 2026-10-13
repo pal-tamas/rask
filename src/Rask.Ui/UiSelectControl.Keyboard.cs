@@ -379,7 +379,10 @@ public abstract partial class UiSelectControl<T>
     private Callback<string> SearchHeard(View view) =>
         (PillsCombobox ? view.Parts.Input?.OnInput : view.Parts.Search?.OnInput) ?? default;
 
-    private static string PickedWords(View view) => view.PickedRows.FirstOrDefault()?.Option.SelectedText ?? string.Empty;
+    // The combobox's words for its answer: the first picked row's, or the answer's as last drawn once a search
+    // the page answers has taken its row away.
+    private static string PickedWords(View view) =>
+        view.PickedRows.FirstOrDefault()?.Option.SelectedText ?? view.Answer?.SelectedText ?? string.Empty;
 
     private async Task CreateAsync(View view)
     {

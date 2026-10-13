@@ -82,6 +82,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A select goes on saying its answer when a search brings rows that no longer include it.** With
+  `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
+  placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count
+  of the rows still drawn — while the model kept the value. Measured on Flux (fluxui.dev/components/select):
+  the picked option stays stamped in the button when its option leaves the list or every option is replaced,
+  the backend-search combobox shows "Infrastructure" over a list that holds only "Branding", and "3 selected"
+  stands with none of the three rows left. The select now keeps the face of the answer it last drew — words,
+  icon, avatar, posted value — for as long as the value is that one, under the same key and shape, so a render
+  that brings other options changes nothing in the button; several answers are counted from the value. No
+  row is marked picked while the answer is not among them, and the cursor opens on the first row, as Flux's.
+  Content that is more than words is kept as its words. A value set from code that no render ever drew an
+  option for still shows the placeholder (Flux's page as loaded does too; after a pick Flux would go on
+  showing the option picked before, which the kit does not). No new API.
+
 - **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
   on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
   idiom laid the panel out late. The runtime writes it now: a `[popover]` carrying `data-rask-open-mark` gets

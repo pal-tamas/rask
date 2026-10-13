@@ -41,10 +41,15 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
     // The list open and its search field focused, with the page's time stopped from then on.
     private static async Task OpenListAsync(IPage page, string select)
     {
+        await OpenWhileTimeRunsAsync(page, select);
+        await PageClock.StopAsync(page);
+    }
+
+    private static async Task OpenWhileTimeRunsAsync(IPage page, string select)
+    {
         await page.ClickAsync($"#{select} [data-ui-select-button]");
         await Expect(page.Locator($"#{select} [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
         await Expect(Field(page, select)).ToBeFocusedAsync();
-        await PageClock.StopAsync(page);
     }
 
     [Fact]
@@ -162,6 +167,27 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
         Assert.Equal(string.Empty, searchesAtTheArrow);
         await Expect(page.Locator("#searches")).ToHaveTextAsync("[ber]");
         await Expect(page.Locator("#store [data-ui-option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
+    }
+
+    [Fact]
+    public async Task The_button_goes_on_saying_the_answer_when_the_store_answers_a_search_with_other_rows()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var button = page.Locator("#store [data-ui-select-button]");
+        await OpenWhileTimeRunsAsync(page, "store");
+        await Option(page, "store", "Walther").ClickAsync();
+        await Expect(button).ToHaveTextAsync("Walther");
+        await OpenListAsync(page, "store");
+
+        await Field(page, "store").PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause);
+        await Expect(page.Locator("#store [data-ui-option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
+        await page.Keyboard.PressAsync("Escape");
+
+        await Expect(button).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(button).ToHaveTextAsync("Walther");
+        await Expect(page.Locator("#picked")).ToHaveTextAsync("Walther");
     }
 
     [Fact]

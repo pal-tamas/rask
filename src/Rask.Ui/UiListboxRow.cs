@@ -17,30 +17,45 @@ internal static class UiListboxRow
     /// <param name="words">Words in place of the option's own: its <c>SelectedLabel</c>, in the button.</param>
     /// <param name="inList">False for the copy in the select's button.</param>
     internal static Component Content(UiSelectOption option, string? words = null, bool inList = true) =>
-        Div.Class(inList && option.Description is not null ? UiListboxLook.OptionBodyTall : UiListboxLook.OptionBody)[
+        Content(
+            option.Avatar,
+            option.Icon,
+            option.IconVariant,
+            option.IconClass,
+            option.Description,
+            option.Text,
+            words is null && option.HasCustomContent ? option.Children! : [words ?? option.Text],
+            inList);
+
+    /// <summary>The button's copy of an option that is no longer among the rows, from the face the select kept.</summary>
+    /// <param name="face">What the option showed when it was last drawn.</param>
+    internal static Component Content(UiOptionFace face) =>
+        Content(face.Avatar, face.Icon, face.IconVariant, face.IconClass, face.Description, face.Text, [face.SelectedText], inList: false);
+
+    private static Component Content(
+        string? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string? description, string name,
+        IEnumerable<Component?> words, bool inList) =>
+        Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : UiListboxLook.OptionBody)[
             Div.Class(UiListboxLook.OptionLead)[
                 Div.Class(UiListboxLook.Indicator)[Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)],
-                Lead(option)
+                Lead(avatar, icon, iconVariant, iconClass, name)
             ],
             Div.Class(UiListboxLook.OptionText)[
-                Div.Class(option.Avatar is null ? UiListboxLook.Words : UiListboxLook.WordsBesideAvatar)[Words(option, words)],
-                option.Description is { } description ? P.Class(UiListboxLook.Description).Data("ui-text", "")[description] : null
+                Div.Class(avatar is null ? UiListboxLook.Words : UiListboxLook.WordsBesideAvatar)[words],
+                description is null ? null : P.Class(UiListboxLook.Description).Data("ui-text", "")[description]
             ]
         ];
 
-    private static IEnumerable<Component?> Words(UiSelectOption option, string? words) =>
-        words is null && option.HasCustomContent ? option.Children! : [words ?? option.Text];
-
     // The avatar wins over the icon, as Flux says.
-    private static Component? Lead(UiSelectOption option)
+    private static Component? Lead(string? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string name)
     {
-        if (option.Avatar is { } avatar)
+        if (avatar is not null)
         {
-            return Avatar(avatar, option.Text);
+            return Avatar(avatar, name);
         }
 
-        return option.Icon is { } icon
-            ? Ui.Icon.Name(icon).Variant(option.IconVariant ?? Ui.IconVariant.Mini).Class(UiClass.Compose(UiListboxLook.Icon, option.IconClass))
+        return icon is { } drawn
+            ? Ui.Icon.Name(drawn).Variant(iconVariant ?? Ui.IconVariant.Mini).Class(UiClass.Compose(UiListboxLook.Icon, iconClass))
             : null;
     }
 

@@ -1819,6 +1819,19 @@ ends on the text the page last heard asks nothing again; the field's clear butto
 Without `Filter(false)` the select goes on hiding rows at every keystroke and only `OnInput` waits.
 `Debounce(TimeSpan.Zero)` is every keystroke, as on `Ui.Input`.
 
+**The answer stays in the button when the rows change.** A search the page answers may bring rows that no
+longer include the option picked. The select goes on saying it, as Flux's does: the button (and a combobox's
+input, and the hidden input of a named select) keep the picked option's words, icon and avatar for as long
+as the value is that one, and several answers are counted from the value — "3 selected" — whatever rows are
+drawn. No row is marked picked while the answer is not among them. Content that is more than words (a
+swatch beside a name) is kept as its words. A value the page sets itself to something no render ever drew
+an option for has nothing to say and shows the placeholder — keep that row among the options when you load
+a form with a stored answer:
+
+```csharp
+_found = await Customer.Where(c => c.Id == m.CustomerId || c.Name.Contains(text)).Take(20).ToList();
+```
+
 **Multiple.** Open the select on a collection — `Bind` over a `List<T>`, a `T[]` or a `HashSet<T>`, or
 `Values(tags)` with `OnChange` — and `.Listbox.Multiple()` picks several. Picking a row switches it and
 leaves the list open; the button names the one picked option, or counts them:
