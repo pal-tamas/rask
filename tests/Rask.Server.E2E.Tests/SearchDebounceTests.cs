@@ -26,11 +26,26 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
     private static ILocator Row(IPage page, string control, string name) =>
         page.Locator($"#{control} [role=option]:not([data-hidden])").Filter(new() { HasText = name });
 
-    private async Task<HookSession> OpenAsync()
+    private SocketFrames? _trace;
+
+    private async Task Traced(Func<Task> act)
     {
-        var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, beforeLoad: async page =>
+        try
+        {
+            await act();
+        }
+        catch (PlaywrightException e)
+        {
+            throw new InvalidOperationException(e.Message.Split('\n')[0] + Environment.NewLine + "TRACE" + Environment.NewLine + _trace!.Trace());
+        }
+    }
+
+    private async Task<HookSession> OpenAsync(Action<RaskServerOptions>? server = null)
+    {
+        var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, server: server, beforeLoad: async page =>
         {
             await SentFrames.Count(page);
+            _trace = SocketFrames.Of(page);
             await HeldReplies.Install(page);
             await PageClock.Install(page);
         });
@@ -122,7 +137,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         var field = await OpenComboboxAsync(page);
         await field.PressSequentiallyAsync("ber");
         await Row(page, "combo", "Walther").ClickAsync();
-        await Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther");
+        await Traced(() => Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther"));
         var searches = await SearchesAfterAsync(page, "combo");
 
         // The input says its answer, and the page's search follows the input, as Flux's does.
@@ -335,7 +350,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await page.Clock.RunForAsync(Pause / 4);
 
         await Row(page, "auto", "Bersa").ClickAsync();
-        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa"));
         var searches = await SearchesAfterAsync(page, "auto");
 
         await Expect(searches).ToHaveTextAsync("[Bersa]");
@@ -379,6 +394,94 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await HeldReplies.ReleaseAsync(page);
 
         await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+    }
+
+    [Fact]
+    public async Task Explore_D_auto_typed_answers_land_after_the_clock_ran()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await HeldReplies.HoldAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+        await HeldReplies.ReleaseAsync(page);
+
+        await Row(page, "auto", "Bersa").ClickAsync();
+
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+    }
+
+    [Fact]
+    public async Task Explore_E_auto_typed_answers_and_press_all_held()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await HeldReplies.HoldAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+        await HeldReplies.ReleaseAsync(page);
+        await Expect(Row(page, "auto", "Bersa")).ToBeVisibleAsync();
+        await HeldReplies.HoldAsync(page);
+        await Row(page, "auto", "Bersa").ClickAsync();
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public async Task Explore_F_auto_no_repaint_budget(int run)
+    {
+        Assert.True(run >= 0);
+        await using var session = await OpenAsync(options => options.HandlerQuiescenceTimeout = TimeSpan.Zero);
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+
+        await Row(page, "auto", "Bersa").ClickAsync();
+
+        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa"));
+    }
+
+    public static TheoryData<int> Delays => [.. Enumerable.Range(0, 40).Select(i => 100 + (i * 3))];
+
+    [Theory]
+    [MemberData(nameof(Delays))]
+    public async Task Explore_G_auto_answer_lands_as_the_budget_ends(int delay)
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+        await Expect(Row(page, "auto", "Bersa")).ToBeVisibleAsync();
+        await Row(page, "auto", "Bersa").HoverAsync();
+        await RoundTripAsync(page);
+
+        await HeldReplies.HoldAsync(page);
+        await Row(page, "auto", "Bersa").ClickAsync();
+        await Task.Delay(delay, TestContext.Current.CancellationToken);
+        await HeldReplies.ReleaseAsync(page);
+
+        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa", new() { Timeout = 2000 }));
     }
 
     [Fact]

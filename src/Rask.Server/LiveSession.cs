@@ -320,10 +320,29 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             ? Task.CompletedTask
             : RepaintMidFlightAsync();
 
+    // A CALL FOR THE BROWSER THAT A HANDLER WAITS ON LEAVES WHILE THE HANDLER WAITS. The dispatch's own render
+    // comes when the handler has ended, and a handler that awaits `element.Focus()` ends when the browser has
+    // answered — so the call cannot ride that render. It rides a repaint of the page as it stands: the one the
+    // handler's budget buys (Component.InvokeWithRenderingAsync), then one before and after each continuation
+    // that comes back through the handler's context (HandlerSyncContext). A continuation that left that context
+    // — every `ConfigureAwait(false)`, so all of the kit — is repainted by nobody. Its call sat in the queue,
+    // the handler waited on it, and the dispatch waited on the handler: a pick that awaited two calls in a row
+    // wrote the first and then held its session until the handler's time ran out. Seen only when the browser's
+    // answer to the first call came back after the budget's repaint had returned, which over a real line is
+    // every time. So once that repaint has gone, a call queued inside the dispatch is sent as it is queued.
+    private Task SendWhatTheHandlerWaitsOnAsync() =>
+        _repaintedMidFlight && JsInvokes.HasPending ? RenderInScopeCoreAsync() : Task.CompletedTask;
+
+    // The page of the dispatch in hand has gone out once while its handler was still working. Until then the
+    // budget's repaint is still to come and carries whatever was queued before it.
+    private volatile bool _repaintedMidFlight;
+
     // A handler outlives its connection, and its session when a shutdown's drain gives up on it. Its repaint
     // then has nobody to reach, which is not the handler failing: it runs on, and nothing is thrown at it.
     private async Task RepaintMidFlightAsync()
     {
+        // Before the walk: a call queued while it runs may have missed its drain, and is sent after it.
+        _repaintedMidFlight = true;
         try
         {
             await RenderAndSendAsync(null, false, midFlight: true).ConfigureAwait(false);
@@ -445,6 +464,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // will not look at the flag again, so this request renders itself instead of being dropped.
             if (InHandlerScope)
             {
+                await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
                 return;
             }
         }
@@ -1340,6 +1360,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         string? historyUrl, bool replace, AuthInstruction? auth = null, bool arriving = false, bool settle = true)
     {
         _pendingRenderInScope = false;
+        _repaintedMidFlight = false;
         var addressed = await RenderAndSendAsync(
             historyUrl, replace, auth, arriving: arriving, settling: settle && auth is null && !arriving)
             .ConfigureAwait(false);

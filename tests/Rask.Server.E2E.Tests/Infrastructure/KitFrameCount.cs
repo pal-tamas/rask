@@ -14,55 +14,51 @@ internal sealed record KitCount(string Gesture, KitFrames Frames, string? Error)
 ///     Puts a component's page through its gestures, each on a page loaded afresh, and counts the frames of each.
 /// </summary>
 /// <remarks>
-///     Time is the page's own: after a gesture the page's clock is run on by two seconds, so a debounce, a hover
-///     delay or a timer that would send something has fired, and then the socket is watched until it has been
-///     quiet for a while in real time, which is what a round trip takes.
+///     Nothing counted here depends on how fast the machine is. While a gesture is made the page's clock stands
+///     still, and the gesture itself gives the page an animation frame after each key, press and step of the
+///     pointer and waits for the server's answer to it (<see cref="KitGestures.BeatAsync" />): a field that sends
+///     once a frame sends once a key, however many keys a fast machine fits into a frame. Afterwards the clock
+///     is run on by two seconds, so a debounce, a hover delay or a timer that would send something has fired,
+///     and the count is read once the server has answered everything and the socket has been quiet for a while.
 /// </remarks>
 internal static class KitFrameCount
 {
     private const int QuietMs = 300;
 
+    // A wait here is for a condition — a part to press, an answer — and this is only how long a broken one hangs.
+    private const int StuckMs = 60_000;
+
     public static async Task<IReadOnlyList<KitCount>> OfAsync<TPage>(
         PlaywrightFixture playwright, IReadOnlyList<KitGesture> gestures)
         where TPage : Rask.Core.Component
     {
-        var frames = new Counter();
         await using var host = await LiveServerHost.StartAsync<TPage>(blockWebSockets: false, staticFiles: true);
         await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = 1280, Height = 800 } });
         var page = await context.NewPageAsync();
         await PageClock.Install(page);
         await SlowMachine.ApplyAsync(page);
-        await page.AddInitScriptAsync(
-            """
-            window.WebSocket = class extends WebSocket {
-                constructor(...args) { super(...args); this.addEventListener('open', () => { window.__raskOpen = true; }); }
-            };
-            """);
-        page.WebSocket += (_, socket) =>
-        {
-            socket.FrameSent += (_, _) => frames.Sent();
-            socket.FrameReceived += (_, _) => frames.Received();
-        };
-        page.SetDefaultTimeout(15_000);
+        await KitSocket.Install(page);
+        page.SetDefaultTimeout(StuckMs);
         var counted = new List<KitCount>();
         foreach (var gesture in gestures)
         {
             try
             {
-                counted.Add(new KitCount(gesture.Name, await OneAsync(page, host.BaseUrl, frames, gesture, typeof(TPage).Name), null));
+                counted.Add(new KitCount(gesture.Name, await OneAsync(page, host.BaseUrl, gesture, typeof(TPage).Name, counted.Count + 1), null));
             }
             catch (Exception failure) when (failure is PlaywrightException or TimeoutException)
             {
                 // A gesture that could not be made says so beside the others, which are still counted.
                 counted.Add(new KitCount(gesture.Name, default, failure.Message.Split('\n')[0]));
                 await page.Mouse.UpAsync();
+                await page.Clock.ResumeAsync();
             }
         }
 
         return counted;
     }
 
-    private static async Task<KitFrames> OneAsync(IPage page, string baseUrl, Counter frames, KitGesture gesture, string name)
+    private static async Task<KitFrames> OneAsync(IPage page, string baseUrl, KitGesture gesture, string name, int nth)
     {
         await page.GotoAsync(baseUrl + "/");
         await ReadyAsync(page);
@@ -78,12 +74,15 @@ internal static class KitFrameCount
             await arrange(page);
         }
 
-        await SettleAsync(page, frames);
-        var before = frames.Now;
+        await SettleAsync(page);
+        // From here the page's time passes only when the gesture, or the settling after it, says so.
+        await PageClock.StopAsync(page, nth);
+        var before = await KitSocket.CountAsync(page);
         await gesture.Do(page);
-        await SettleAsync(page, frames);
-        var after = frames.Now;
+        await SettleAsync(page);
+        var after = await KitSocket.CountAsync(page);
         await page.Mouse.UpAsync();
+        await page.Clock.ResumeAsync();
         return new KitFrames(after.Sent - before.Sent, after.Received - before.Received);
     }
 
@@ -105,21 +104,29 @@ internal static class KitFrameCount
     // The socket is open, and the hooks have run when the page asked for them.
     private static async Task ReadyAsync(IPage page)
     {
-        await page.WaitForFunctionAsync("() => window.__raskOpen === true");
+        await KitSocket.OpenAsync(page);
         await page.WaitForFunctionAsync(
             "() => !document.querySelector('script[data-rask-hooks]') || !(window.__raskHookSeam && window.__raskHookSeam.missed)");
     }
 
-    private static async Task SettleAsync(IPage page, Counter frames)
+    // Everything asked is answered, the page's timers have had their time, and nothing more comes of either.
+    private static async Task SettleAsync(IPage page)
     {
+        await KitSocket.AnsweredAsync(page);
         await page.Clock.FastForwardAsync(2000);
-        var last = frames.Now;
+        var last = await KitSocket.CountAsync(page);
         var quietSince = Environment.TickCount64;
         var started = quietSince;
-        while (Environment.TickCount64 - quietSince < QuietMs && Environment.TickCount64 - started < 8000)
+        while (Environment.TickCount64 - quietSince < QuietMs)
         {
+            if (Environment.TickCount64 - started > StuckMs)
+            {
+                throw new TimeoutException("The socket was never quiet: something sends for as long as the page is up.");
+            }
+
             await Task.Delay(50);
-            var now = frames.Now;
+            await KitSocket.AnsweredAsync(page);
+            var now = await KitSocket.CountAsync(page);
             if (now != last)
             {
                 last = now;
@@ -128,17 +135,5 @@ internal static class KitFrameCount
                 await page.Clock.FastForwardAsync(500);
             }
         }
-    }
-
-    private sealed class Counter
-    {
-        private int _sent;
-        private int _received;
-
-        public KitFrames Now => new(Volatile.Read(ref _sent), Volatile.Read(ref _received));
-
-        public void Sent() => Interlocked.Increment(ref _sent);
-
-        public void Received() => Interlocked.Increment(ref _received);
     }
 }
