@@ -133,6 +133,59 @@ public sealed class SessionTests
         Assert.False(await RowExistsAsync(harness, sessionId));
     }
 
+    // The row is read; only building an identical principal from it is saved, and the page's own check then costs nothing.
+    [Fact]
+    public async Task A_live_page_is_handed_back_the_principal_it_holds_while_its_user_s_row_says_the_same()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+
+        Assert.Same(held, asked);
+    }
+
+    [Fact]
+    public async Task A_live_page_is_handed_another_principal_at_once_when_a_role_was_taken_away()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        await using (var db = harness.NewContext())
+        {
+            var user = await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id, TestContext.Current.CancellationToken);
+            foreach (var role in user.Roles.ToArray())
+            {
+                user.RevokeRole(role);
+            }
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+
+        Assert.NotSame(held, asked);
+        Assert.Empty(asked!.FindAll(ClaimTypes.Role));
+    }
+
+    [Fact]
+    public async Task A_live_page_is_told_nobody_at_once_when_its_session_was_ended()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        await Sessions(harness).EndAllAsync(owner.Id, cancellationToken: TestContext.Current.CancellationToken);
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+
+        Assert.Null(asked);
+    }
+
     private static async Task<bool> RowExistsAsync(AuthHarness harness, Guid sessionId)
     {
         await using var db = harness.NewContext();
