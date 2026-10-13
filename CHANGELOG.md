@@ -27,6 +27,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
+  `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
+  at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
+  (*No suitable constructor was found … Cannot bind 'Label'*). The build now says so at the parameter, with the
+  way out — "Give 'Route' a private parameterless constructor and private setters." Reported for a record, a
+  record struct and a class whose constructors all take one, on the aggregate, inside another value object or on
+  a row inside the aggregate. Not reported for what EF Core builds: a value object built through its members,
+  one with a constructor that does not take it, a record with an added private parameterless constructor, and a
+  holder of one-value value objects only. An app that had this shape did not start, so nothing that ran breaks.
 - **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
   `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
   `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
