@@ -3841,6 +3841,14 @@ Rask.Core.Globalization.RaskCultureResolver
 Rask.Core.Globalization.RaskCultureServiceCollectionExtensions
 Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CalendarToday = 15 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselIndicators = 144 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselLabel = 139 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselNext = 143 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselPrevious = 142 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselRole = 138 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselShowSlide = 145 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideLabel = 141 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideRole = 140 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CommandEmpty = 106 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveLeave = 98 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveStay = 97 -> Rask.Core.Globalization.RaskString

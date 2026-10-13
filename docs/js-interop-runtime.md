@@ -523,7 +523,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 | --- | --- | --- |
 | `data-rask-carousel` | the root | On a scroll of its `[data-rask-carousel-track]` and on a resize: `data-at-start` / `data-at-end` on the root and on every `[data-direction]` wrapper, `disabled` on each wrapper's button, `data-selected` on the slide nearest the start and on its button in `[data-rask-carousel-indicators]` (with `aria-current="true"`). A press on a `[data-direction="next" \| "previous"]` button scrolls a slide; on an indicator, to that slide. |
 | `data-advance="page"`, `data-wrap="rewind"`, `data-scroll="instant"` | the root | Move by the slides in view; go back to the first from the end; do not animate. |
-| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
+| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and while focus is inside the root, starts afresh when both are gone, and never starts under `prefers-reduced-motion`. |
 | `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
 
 ### Scrolling

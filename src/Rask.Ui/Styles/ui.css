@@ -74,7 +74,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap;
+  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap, carousel;
 }
 
 @theme {
@@ -750,6 +750,55 @@
   @keyframes ui-tabs-scrolled {
     to {
       --ui-tabs-scrolled: 100%;
+    }
+  }
+}
+
+/*
+  A FADING CAROUSEL FADES ONLY THE EDGE THAT HAS MORE BEHIND IT.
+
+  Flux's script writes how far the track has scrolled into a custom property, and the track's mask reads
+  it. Here two registered percentages run from one end of the track's own scroll to the other, so the left
+  fade is absent at the start, the right one at the end, and both are 64px wide in between — Flux's
+  numbers. A track that does not overflow has no timeline, the properties keep their initial 100%, and
+  nothing fades.
+
+  Behind @supports, as the table's shadow is: without scroll timelines the animation would land on its last
+  frame and fade the left edge of a carousel that has not moved.
+*/
+@property --ui-carousel-fade-start {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@property --ui-carousel-fade-end {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+
+@layer rask {
+  @keyframes ui-carousel-fade {
+    from {
+      --ui-carousel-fade-start: 100%;
+      --ui-carousel-fade-end: 0%;
+    }
+
+    to {
+      --ui-carousel-fade-start: 0%;
+      --ui-carousel-fade-end: 100%;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    [data-ui-carousel-track][data-fade] {
+      mask-image:
+        linear-gradient(to left, #000 max(100% - 64px, var(--ui-carousel-fade-start)), transparent 100%),
+        linear-gradient(to right, #000 max(100% - 64px, var(--ui-carousel-fade-end)), transparent 100%);
+      mask-composite: intersect;
+      animation: ui-carousel-fade linear both;
+      animation-timeline: scroll(self inline);
     }
   }
 }

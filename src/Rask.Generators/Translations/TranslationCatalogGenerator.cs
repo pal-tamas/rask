@@ -182,6 +182,14 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ErrorReference", 1),
         ("HandlerFailed", 0),
         ("ErrorTitle", 0),
+        ("CarouselRole", 0),
+        ("CarouselLabel", 0),
+        ("CarouselSlideRole", 0),
+        ("CarouselSlideLabel", 2),
+        ("CarouselPrevious", 0),
+        ("CarouselNext", 0),
+        ("CarouselIndicators", 0),
+        ("CarouselShowSlide", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

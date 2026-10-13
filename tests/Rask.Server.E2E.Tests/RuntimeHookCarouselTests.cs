@@ -114,6 +114,44 @@ public sealed class RuntimeHookCarouselTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
+    public async Task Autoplay_holds_while_focus_is_inside_and_starts_afresh_when_it_leaves()
+    {
+        await using var session = await HookSession.OpenAsync<CarouselHookPage>(playwright);
+        var page = session.Page;
+
+        await Settle(page, "auto", 200, 3_000);
+        await page.FocusAsync("#auto-inside");
+        await page.WaitForTimeoutAsync(1_500);
+        var held = await page.EvaluateAsync<int>("() => Math.round(document.querySelector('#auto [data-rask-carousel-track]').scrollLeft)");
+        await page.EvaluateAsync("() => document.activeElement.blur()");
+
+        Assert.Equal(200, held);
+        await Settle(page, "auto", 400, 3_000);
+    }
+
+    [Fact]
+    public async Task A_padded_track_rests_on_its_end_when_a_slide_starts_within_a_padding_of_it_and_marks_the_slide_nearest()
+    {
+        // Flux's bleed: the track is padded and scroll-padded by the gutter. Four 90px slides in 160px of room:
+        // the third starts 20px short of the end, which is where "next" lands — on the end, third slide marked.
+        await using var session = await HookSession.OpenAsync<CarouselHookPage>(playwright);
+        var page = session.Page;
+
+        await page.ClickAsync("#bled [data-direction=next] button");
+        await Settle(page, "bled", 90);
+        var second = await page.EvaluateAsync<string>(State, "bled");
+        await page.ClickAsync("#bled [data-direction=next] button");
+        await Settle(page, "bled", 200);
+        var end = await page.EvaluateAsync<string>(State, "bled");
+        await page.ClickAsync("#bled [data-direction=previous] button");
+        await Settle(page, "bled", 90);
+
+        Assert.Equal("90 -- slide1 prev=on next=on", second);
+        Assert.Equal("200 -E slide2 prev=on next=off", end);
+        Assert.Equal("90 -- slide1 prev=on next=on", await page.EvaluateAsync<string>(State, "bled"));
+    }
+
+    [Fact]
     public async Task A_carousel_rendered_disabled_stays_disabled_and_does_not_move()
     {
         await using var session = await HookSession.OpenAsync<CarouselHookPage>(playwright);
@@ -137,7 +175,7 @@ public sealed class RuntimeHookCarouselTests(PlaywrightFixture playwright) : ICl
     }
 }
 
-/// <summary>Four carousels, written out by hand: plain, paged with outside controls, autoplaying, disabled.</summary>
+/// <summary>Five carousels, written out by hand: plain, paged with outside controls, autoplaying, disabled, padded.</summary>
 public sealed partial class CarouselHookPage : Component
 {
     private const string Html = """
@@ -147,6 +185,8 @@ public sealed partial class CarouselHookPage : Component
           [data-rask-carousel-track] { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; width: 200px }
           [data-rask-carousel-track] > div { flex: none; width: 200px; height: 40px; scroll-snap-align: start }
           #paged [data-rask-carousel-track] > div { width: 100px }
+          #bled [data-rask-carousel-track] { box-sizing: border-box; padding: 0 20px; scroll-padding: 0 20px }
+          #bled [data-rask-carousel-track] > div { width: 90px }
         </style>
         <div id="plain" data-rask-carousel data-at-start>
           <div data-rask-carousel-track><div data-selected>1</div><div>2</div><div>3</div></div>
@@ -162,11 +202,17 @@ public sealed partial class CarouselHookPage : Component
         <div data-rask-carousel-controls data-name="stays"><span id="paged-next" data-direction="next"><button type="button">›</button></span></div>
         <div id="auto" data-rask-carousel data-autoplay="700" data-scroll="instant">
           <div data-rask-carousel-track><div>1</div><div>2</div><div>3</div></div>
+          <button id="auto-inside" type="button">inside</button>
         </div>
         <div id="off" data-rask-carousel>
           <div data-rask-carousel-track><div>1</div><div>2</div><div>3</div></div>
           <span data-direction="previous"><button type="button" disabled>‹</button></span>
           <span data-direction="next"><button type="button" disabled>›</button></span>
+        </div>
+        <div id="bled" data-rask-carousel data-scroll="instant" data-at-start>
+          <div data-rask-carousel-track><div data-selected>1</div><div>2</div><div>3</div><div>4</div></div>
+          <span data-direction="previous"><button type="button" disabled>‹</button></span>
+          <span data-direction="next"><button type="button">›</button></span>
         </div>
         """;
 

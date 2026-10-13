@@ -89,7 +89,6 @@ public sealed class AnAppsClassWinsTests
         ["UiCardHeader"] = "display, padding",
         ["UiCardHeading"] = "text colour, text size",
         ["UiCardSubheading"] = "margin, text colour, text size",
-        ["UiCarousel"] = "display",
         ["UiChartLegend"] = "display, gap, padding",
         ["UiChartTooltip"] = "display, rounded",
         ["UiChartTooltipHeading"] = "display, padding, text colour, text size",

@@ -223,6 +223,28 @@ them until tagged releases begin.
 
 ### Added
 
+- **BREAKING: `Ui.Carousel` is Flux's `flux:carousel`**, with `Ui.CarouselSlide` and `Ui.CarouselControls`.
+  It was daisyUI's wrapper around `carousel-item` children; daisyUI's `carousel` rules leave the kit's sheet.
+  ```csharp
+  Ui.Carousel[Div.Class("carousel-item w-full")[photo], …]                 // was
+  Ui.Carousel[Ui.CarouselSlide.Class("w-full")[photo], …]                  // now
+  ```
+  Previous and next arrows over the slides (`Arrows(false)`, `ArrowsPosition`: `Inside` / `Overlap` /
+  `Outside`, `ArrowsClass`), `Indicators()`, `Autoplay()` + `AutoplayInterval`, `Fade()`, `Bleed()`, `Snap`,
+  `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
+  `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
+  runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
+  with nothing sent to the page. Its accessible names are eight new catalog entries (`CarouselRole`,
+  `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
+  `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
+  it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
+  live carousels and the kit's with the same pointer and keys — arrows, both ends, Enter and Space, the
+  indicators, external controls, page advance, autoplay under the pointer, under focus and with reduced
+  motion — and holds every step equal.
+- **A carousel's autoplay holds while focus is inside it** (`data-rask-carousel` with `data-autoplay`), as it
+  holds under the pointer, and starts afresh when both are gone. Measured on Flux: no move in 7 s with focus
+  on an arrow, the next one 3.5 s after it left.
+
 - **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
   `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
   outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for

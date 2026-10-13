@@ -201,6 +201,9 @@ public sealed class FluxConformanceTests
         ["flux:tab.panel"] = typeof(UiTabPanel),
         ["flux:flag"] = typeof(UiFlag),
         ["flux:toggle"] = typeof(UiToggle),
+        ["flux:carousel"] = typeof(UiCarousel),
+        ["flux:carousel.slide"] = typeof(UiCarouselSlide),
+        ["flux:carousel.controls"] = typeof(UiCarouselControls),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

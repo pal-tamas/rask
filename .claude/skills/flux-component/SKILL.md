@@ -207,9 +207,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -718,7 +718,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Toast | `data-rask-dismiss-hold="pointer"` beside `data-rask-dismiss-after` | focus no longer holds the countdown |
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
-| Carousel | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction`, `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` as today | position flags, arrows, indicators, autoplay |
+| Carousel (WIRED: `UiCarousel`, `UiCarouselControls`) | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction` on each arrow's wrapper; `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` | position flags, arrows, indicators, autoplay (held under the pointer and while focus is inside) |
 | Pagination `scroll-to` | root `data-rask-scroll-to="<selector>"` (`rask-scroll.ts`) | a press on a button or link inside brings the selector's element into view; the press still runs |
 
 Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
@@ -855,6 +855,23 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   as the switch does (`Checked` is Flux's own name for the same thing, as on `Ui.Checkbox`).
   Unmeasured: slot children as the label, a label beside a tooltip. `Ui.Swap` went with it; daisyUI's `swap`
   is excluded on the `@plugin` line.
+
+- Carousel (2026-10-13): `Ui.Carousel` / `Ui.CarouselSlide` / `Ui.CarouselControls`, wired to the hook as the
+  table says, with `data-rask-carousel-indicators` on the row of dots (Flux's `ui-carousel-indicators`, which
+  carries no marker). Rendered at its start — first slide and first dot selected, previous arrow disabled,
+  `data-at-start` on the root and both wrappers — and the hook owns every one of those from then on, so NO
+  carousel state is C#'s and there is nothing to bind. A slide learns its place from the carousel
+  (`UiCarouselSlide.Placed`, an internal step that marks it changed). `Fade()` is a scroll-driven mask in
+  `ui.css` where Flux's script writes `--flux-carousel-fade-left/right`; the harness neither pauses nor records
+  it. `node scripts/flux/parity-carousel.mjs` is the walk: Flux's eight live carousels and the parity page with
+  `rask-carousel.ts` (or `--live <url>` — the site's demo keeps Flux's order for its first eight), one line a
+  step, equal line for line; `--record` prints Flux's alone. Recorded there and built: Enter and Space press an
+  arrow, the arrow keys / Home / End on an arrow do nothing, a pointer drag does not scroll, Tab stops are the
+  track then each enabled arrow; page advance moves by the slides WHOLLY in view; autoplay rewinds with a
+  smooth scroll and holds under the pointer AND while focus is inside (the hook gained the second on this
+  merge). Flux's reflected props (`snap`, `scroll`, `advance`, `wrap`, `autoplay` as plain attributes) and its
+  `data-ready` are not written. Unmeasured, no example on Flux's page: `arrows:position="outside"`,
+  `wrap="rewind"`, `snap="mandatory"`, `scroll="instant"`, `disabled`, `arrows:class`.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
