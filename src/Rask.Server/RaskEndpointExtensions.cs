@@ -3374,7 +3374,8 @@ public static partial class RaskEndpointExtensions
         try
         {
             // A navigation mounts a page just as a handler does, so it asks first, and moves nowhere unanswered.
-            if (!await TryAskWhoAsync(session, "the navigation", ct).ConfigureAwait(false))
+            // The tenant resolver is asked as the route moves, below: it may read the address.
+            if (!await TryAskWhoAsync(session, "the navigation", ct, tenantToo: false).ConfigureAwait(false))
             {
                 return;
             }

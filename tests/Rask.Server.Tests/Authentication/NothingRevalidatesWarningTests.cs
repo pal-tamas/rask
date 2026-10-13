@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -46,9 +45,9 @@ public sealed class NothingRevalidatesWarningTests
     }
 
     // What the host's own log was told about revalidation as it started.
-    private static Said[] Starting(Action<IServiceCollection> configure)
+    private static CapturedLog.Entry[] Starting(Action<IServiceCollection> configure)
     {
-        var log = new Log();
+        var log = new CapturedLog();
 
         using var host = RaskTestHost.Create<SignInTestApp>(services =>
         {
@@ -57,31 +56,6 @@ public sealed class NothingRevalidatesWarningTests
         });
 
         return [.. log.Entries.Where(static e => e.Message.Contains("ISessionRevalidator", StringComparison.Ordinal))];
-    }
-
-    private sealed record Said(string Category, LogLevel Level, string Message);
-
-    private sealed class Log : ILoggerProvider
-    {
-        public ConcurrentQueue<Said> Entries { get; } = new();
-
-        public ILogger CreateLogger(string categoryName) => new Logger(categoryName, Entries);
-
-        public void Dispose()
-        {
-        }
-
-        private sealed class Logger(string category, ConcurrentQueue<Said> entries) : ILogger
-        {
-            public IDisposable? BeginScope<TState>(TState state)
-                where TState : notnull => null;
-
-            public bool IsEnabled(LogLevel logLevel) => true;
-
-            public void Log<TState>(
-                LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-                entries.Enqueue(new Said(category, logLevel, formatter(state, exception)));
-        }
     }
 
     private sealed class Anybody : ISessionRevalidator

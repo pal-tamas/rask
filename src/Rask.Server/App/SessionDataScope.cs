@@ -35,9 +35,12 @@ internal sealed class SessionDataScope : ISessionWorkScope
     ///     Asks the app's resolver again for a session an event has just reached, with the session's services
     ///     ambient so it can read <c>Current.Principal</c>. True when it named another tenant than before.
     /// </summary>
-    internal static bool AskAgain(ResolvedTenant tenant, IServiceProvider sessionServices)
+    /// <param name="tenant">The session's holder of the resolver's answer.</param>
+    /// <param name="sessionServices">The session's own service provider.</param>
+    /// <param name="sameReader">Whether the session's user and page are the ones the last answer was for.</param>
+    internal static bool AskAgain(ResolvedTenant tenant, IServiceProvider sessionServices, bool sameReader)
     {
         using var ambient = Db.UseScope(sessionServices);
-        return tenant.AskAgain();
+        return tenant.AskAgain(sameReader);
     }
 }

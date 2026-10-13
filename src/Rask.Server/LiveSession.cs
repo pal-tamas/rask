@@ -121,6 +121,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _metrics = metrics;
         _clock = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
         _batchWindowStart = _clock.GetTimestamp();
+
+        _tenant = Rask.Data.ResolvedTenant.For(scope.ServiceProvider);
+        if (_tenant is not null)
+        {
+            _tenantRoute = scope.ServiceProvider.GetRequiredService<RouteState>();
+            _tenantRoute.Changed += OnRouteMoved;
+        }
     }
 
     public bool SuppressEventsUntilReconnect { get; set; }
@@ -177,30 +184,58 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     // The app's tenant resolver's answer for this session (AddRaskTenant), or null when it registered none.
-    private Rask.Data.ResolvedTenant? _tenant;
-    private bool _tenantResolved;
+    private readonly Rask.Data.ResolvedTenant? _tenant;
+    private readonly RouteState? _tenantRoute;
+
+    // Who and where the resolver was last asked for. A resolver that named a tenant and names none for the same
+    // user on the same page read something this session's connection does not carry (ResolvedTenant.AskAgain).
+    private string? _tenantPath;
+    private bool _readerChanged;
 
     /// <summary>
-    ///     Asks the app's tenant resolver again, as an event starts: a tab opened before its user chose another
-    ///     tenant works in the one they chose from its next action. What the session read for the old one is dropped.
+    ///     Asks the app's tenant resolver again — as an event starts, and as the page's address moves — so a tab
+    ///     opened before its user chose another tenant works in the one they chose from its next action. What
+    ///     the session read for the old one is dropped.
     /// </summary>
     internal void AskTenantAgain()
     {
-        if (!_tenantResolved)
+        if (_tenant is not { } tenant)
         {
-            _tenant = Rask.Data.ResolvedTenant.For(Services);
-            _tenantResolved = true;
+            return;
         }
 
-        if (_tenant is { } tenant && Rask.SessionDataScope.AskAgain(tenant, Services))
+        var path = _tenantRoute!.Path;
+        var sameReader = !_readerChanged && (_tenantPath is null || string.Equals(_tenantPath, path, StringComparison.Ordinal));
+        _readerChanged = false;
+        _tenantPath = path;
+
+        if (Rask.SessionDataScope.AskAgain(tenant, Services, sameReader))
         {
-            ForgetReads();
+            ForgetReads(readerChanged: false);
+        }
+    }
+
+    // The address moved: a resolver that reads the tenant from it has another answer now. One that throws is
+    // asked again by whatever reads the tenant next, which is where its failure belongs.
+    private void OnRouteMoved(object? sender, EventArgs e)
+    {
+        try
+        {
+            AskTenantAgain();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live", "Rask Live: the tenant resolver threw as the page's address moved", ex);
         }
     }
 
     /// <summary>Drops what the session's query cache holds: it was read for a user or a tenant that has changed.</summary>
-    internal void ForgetReads() =>
+    internal void ForgetReads(bool readerChanged = true)
+    {
+        _readerChanged |= readerChanged;
         (Services.GetService<Rask.Querying.IQueryClient>() as Rask.Querying.SessionQueryClient)?.Forget();
+    }
 
     // Whether the next event asks who the user is: always, except for the later events of a frame that carried
     // several — one task of the browser, and one request's worth of asking.
