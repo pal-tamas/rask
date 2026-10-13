@@ -1527,8 +1527,20 @@ await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(c
 ```
 
 Before, when a one-value value object was a complex type, the last line translated and no index could name the
-column. Filter and sort on the read face, or compare whole values. This applies to a one-value value object the
-**entity** holds; one nested inside a larger value object (`Price.Currency`) is still part of that complex type.
+column. Filter and sort on the read face, or compare whole values.
+
+**The same holds inside another value object.** `Currency` in `record Money(decimal Amount, Currency Currency)`
+is a converted scalar column of `Money` — `Price_Currency`, the column it always was — which is what lets EF Core
+hand it to `Money`'s constructor. Its facets go on that property:
+
+```csharp
+builder.ComplexProperty(c => c.Price).Property(m => m.Currency).HasMaxLength(3);
+```
+
+One shape stays out of reach: a value object built through its **constructor** cannot hold another value object
+of **several** values (`record Order(Money Total, …)`) — EF Core binds a constructor parameter to a column, never
+to a complex type. Give the outer type a parameterless constructor and settable properties (both may be
+private) and it maps.
 
 What is **not** a value object: a type EF Core maps as a column on its own (`string`, `DateTime`, `Guid`, an
 enum, anything from `System` or `Microsoft`), a collection, an abstract or generic type, and an `Entity<TId>`.

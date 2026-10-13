@@ -13,7 +13,9 @@
 
   "DatePickerPlaceholder": "Válasszon dátumot",
   "DatePickerRangePlaceholder": "Válasszon időszakot",
-  "DatePickerConfirm": "Kiválasztás",
+  "DatePickerConfirm": "Dátum kiválasztása",
+  "DatePickerConfirmRange": "Időszak kiválasztása",
+  "DatePickerPresetsPlaceholder": "Válasszon előre megadott időszakot...",
   "DatePickerCancel": "Mégse",
   "DatePickerMonth": "Hónap",
   "DatePickerDay": "Nap",

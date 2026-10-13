@@ -156,8 +156,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     // When the session's principal was last checked against its sign-in (Environment.TickCount64), so the check
-    // runs at most every RevalidateUserEvery rather than before every dispatch. Only the dispatch path reads and
-    // writes it, one dispatch at a time.
+    // runs at most every RevalidateUserEvery rather than before every dispatch. The dispatch path reads and writes
+    // it, one dispatch at a time; an attach zeroes it, so a connection is checked before it acts. The two can
+    // overlap when a tab reconnects mid-dispatch, and the worst that costs is one check too many.
     internal long LastUserRevalidation { get; set; }
 
     // What the client's current resume record was built from. -1 means it has none, so the first payload
@@ -1159,7 +1160,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         // A link pressed since is waiting its turn, and its page is the one the reader asked for: what this
         // render would show is on its way out, and whatever it carries besides rides that page's frame.
-        if (auth is null && _arrivals.AnyQueued)
+        // But for a call into the browser: the handler that made it is awaiting its answer, and the navigation
+        // waits its turn BEHIND that handler — held back for the navigation's frame, the call was never sent,
+        // the handler never finished and the link went unanswered. A frame that carries one goes now.
+        if (auth is null && _arrivals.AnyQueued && !JsInvokes.HasPending)
         {
             ArrivalSuperseded = arriving;
             return true;

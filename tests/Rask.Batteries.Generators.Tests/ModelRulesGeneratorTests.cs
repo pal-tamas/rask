@@ -364,6 +364,29 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
+    public void Two_value_objects_side_by_side_that_each_hold_a_ruled_one_are_asked_under_names_that_do_not_collide()
+    {
+        var run = RunWithForms("""
+            public sealed record Box(Sku Code, int Units);
+            public sealed record Crate(Size Size, Sku Code);
+            public sealed class Pallet : Aggregate<Guid>
+            {
+                private Pallet() { }
+                public Size Size { get; private set; } = new(new(""), 0);
+                public Box Box { get; private set; } = new(new(""), 0);
+                public Crate Crate { get; private set; } = new(new(new(""), 0), new(""));
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.PalletModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("if (model.Size is { } __held", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Crate.Size.Code\",", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Box.Code\",", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_Validate_of_any_other_shape_is_not_a_rule_and_neither_is_one_on_a_value_object_of_several_values()
     {
         var run = RunWithForms(Product);
