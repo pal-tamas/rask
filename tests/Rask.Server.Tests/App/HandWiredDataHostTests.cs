@@ -261,6 +261,42 @@ public sealed class HandWiredDataHostTests : IDisposable
         Assert.False(queries.TryGetData<string>(QueryKey.Of("terminals"), out _));
     }
 
+    // A render nobody asked for has no request to ask about, and still must not draw one user's page in another's tenant.
+    [Fact]
+    public async Task A_render_the_server_starts_itself_works_in_the_tenant_of_the_principal_it_has_just_been_given()
+    {
+        using var host = await StartAsync(TenantFrom.ThePrincipal);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Kind = TenantFrom.ThePrincipal;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice, partner: 7);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: 7);
+        var session = host.Store.Peek(MarkupAssert.SessionId(opened))!;
+
+        chosen.Now = 8;
+        session.LastUserCheck = 0;
+        await RaskEndpointExtensions.MayPushAsync(session);
+
+        Assert.Equal(new Guid("00000000-0000-0000-0000-000000000008"), TenantOf(session));
+    }
+
+    // The address does not move, so nothing but the navigation itself can ask.
+    [Fact]
+    public async Task A_navigation_to_the_page_it_is_on_asks_the_resolver_again()
+    {
+        using var host = await StartAsync(TenantFrom.TheStore);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Stored = 7;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: null);
+        var session = host.Store.Peek(MarkupAssert.SessionId(opened))!;
+
+        chosen.Stored = 8;
+        await ws.SendJsonAsync(new { type = "navigate", path = "/start" }, ct: TestContext.Current.CancellationToken);
+        await WaitFor.True(() => TenantOf(session) == new Guid("00000000-0000-0000-0000-000000000008"), "the navigation asks");
+
+        Assert.Equal(new Guid("00000000-0000-0000-0000-000000000008"), TenantOf(session));
+    }
+
     [Fact]
     public async Task A_live_session_opened_with_no_tenant_reads_nothing()
     {
@@ -374,6 +410,9 @@ public sealed class HandWiredDataHostTests : IDisposable
                     case TenantFrom.ThePrincipal:
                         services.AddRaskTenant(static _ => PartnerOf(Current.Principal));
                         break;
+                    case TenantFrom.TheStore:
+                        services.AddRaskTenant(static sp => sp.GetRequiredService<ChosenPartner>().Stored);
+                        break;
                     case TenantFrom.ThePagesAddress:
                         services.AddRaskTenant(static sp => PartnerIn(sp.GetRequiredService<RouteState>().Path));
                         break;
@@ -471,6 +510,9 @@ public sealed class HandWiredDataHostTests : IDisposable
         /// <summary>The page's address: <c>/t/7/…</c>.</summary>
         ThePagesAddress,
 
+        /// <summary>A row of the app's own: the tenant its user is working in, which changes with no new token.</summary>
+        TheStore,
+
         /// <summary>The principal's own <c>rask:tenant</c> claim, with no resolver registered.</summary>
         TheRaskClaim,
     }
@@ -486,6 +528,13 @@ public sealed class HandWiredDataHostTests : IDisposable
         }
 
         return new ClaimsPrincipal(identity);
+    }
+
+    // The tenant the session's work runs in, read the way its own reads read it.
+    private static Guid? TenantOf(LiveSession session)
+    {
+        using var work = new SessionDataScope().Enter(session.Services);
+        return Current.Tenant;
     }
 
     private static int? PartnerOf(ClaimsPrincipal? principal) =>
@@ -527,6 +576,9 @@ public sealed class HandWiredDataHostTests : IDisposable
     private sealed class ChosenPartner
     {
         public int? Now { get; set; }
+
+        // The tenant the app's own table says the user is working in, for a resolver that reads it from there.
+        public int? Stored { get; set; }
 
         public TenantFrom Kind { get; set; }
     }
