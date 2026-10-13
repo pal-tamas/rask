@@ -73,6 +73,25 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
         await Expect(page.Locator("#store [data-ui-option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
     }
 
+    // The pointer coming over the row is a render of its own, and the press that follows it at once was read
+    // from the page before that render: the row is found again among the few the store answered with.
+    [Fact]
+    public async Task A_row_of_the_stores_answer_pressed_as_the_pointer_arrives_is_the_row_picked()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await OpenListAsync(page, "store");
+        await Field(page, "store").PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause);
+        await Expect(page.Locator("#store [data-ui-option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
+
+        await Option(page, "store", "Bersa").ClickAsync();
+
+        await Expect(page.Locator("#picked")).ToHaveTextAsync("Bersa");
+        await Expect(page.Locator("#store [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "false");
+        await Expect(page.Locator("#searches")).ToHaveTextAsync("[ber]");
+    }
+
     [Fact]
     public async Task A_row_pressed_during_the_pause_is_the_row_picked_and_the_text_is_never_searched_for()
     {

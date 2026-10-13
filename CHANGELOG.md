@@ -27,6 +27,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
+  beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
+  another. Generated code calls it; an app has no reason to.
 - **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
   a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
   `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
@@ -157,6 +160,37 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A one-value value object inside a constructor-built value object no longer stops the app at startup
+  ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
+  aggregate compiled, and then EF Core refused the model — *No suitable constructor was found … Cannot bind
+  'Early'* — because the inner `Sku` was mapped as a complex type, and a constructor parameter binds to a column
+  only. A one-value value object is now a converted scalar column wherever it is held, the rule the aggregate's own
+  properties already followed: `ValueObjectColumn.Map(b0.Property(x => x.Early), (Sku v) => v.Value)` under the
+  column name it always had (`Terms_Early`). **Nothing migrates**: EF Core's migration differ finds no operation
+  between the two mappings on SQLite, SQL Server and PostgreSQL, one and two levels deep, with a length and a
+  precision on the column, for a class and a struct, nullable and not; only the order of columns in a table
+  created from scratch differs. Two things an app may have written against the old mapping change with it, for
+  the value-object shape that already worked (one built through its members): `Configure` reaches the inner
+  value as a property, not a complex type — `ComplexProperty(c => c.Price).ComplexProperty(m => m.Currency)
+  .Property(v => v.Value)` becomes `ComplexProperty(c => c.Price).Property(m => m.Currency)` — and a query on
+  the write model that reached `c.Price.Currency.Value` no longer translates (compare the whole value, or use the
+  read face), exactly as on the aggregate itself. Still not mapped: a constructor-built value object holding
+  another of SEVERAL values — build the outer one through its members.
+- **The read face reads nothing as nothing for a nullable one-value value object inside another value
+  object.** `Sku? Early` (or a one-value struct held as `T?`) inside a value object was stored correctly, and the
+  read face then threw *The data is NULL at ordinal 0* on a row that held none: the column's nullability was read
+  off the inner value, not off the optional value object around it. It is the scalar's own now.
+- **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
+  The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
+  declared `__held0` (CS0128 inside generated code). They are numbered.
+- **A row pressed as the pointer arrives is picked, after a list lost rows.** The pointer coming over a row
+  of a kit list is a render of its own, so a press that follows it at once is read from the page before that
+  render and is matched to its row by what tells the rows of one page apart. A list that had just answered a
+  search with fewer rows left its last handler slots holding the long list's handlers; counted among that
+  page's handlers, they made what every render works out anew look like what tells rows apart, no row was the
+  same, and the press ran nothing — a city picked from the store's answer on rask.sh stayed unpicked. Slots a
+  walk does not reach are now said to hold nothing from that walk's page on. Both hosts.
+  `StaleClickAfterRowsLeftTests`, `SelectSearchDebounceTests`.
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from

@@ -152,6 +152,7 @@ public sealed partial class ModelInputGenerator
             .Append(FormModelType(entity)).Append(" model, string path, ").Append(FailureList).AppendLine(" failures)");
         s.AppendLine("    {");
 
+        var held = 0;
         foreach (var member in entity.Members.Where(static m => m.Role == ModelMemberRole.Value))
         {
             if (member.RequiredByType)
@@ -164,7 +165,7 @@ public sealed partial class ModelInputGenerator
             }
             else if (member.ValueObject is { } valueObject)
             {
-                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, kind, depth: 0);
+                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, kind, ref held);
             }
         }
 
@@ -191,8 +192,10 @@ public sealed partial class ModelInputGenerator
     }
 
     // One value object: its own rule when it holds one value, the rules of what it holds when it holds several.
+    // `local` numbers the pattern variables: one declared in an `if` is in scope for the rest of the block, so two
+    // value objects side by side must not share a name.
     private static void AppendAsk(
-        StringBuilder s, string indent, string access, string field, string modelKey, ValueObjectShape valueObject, ValueRule kind, int depth)
+        StringBuilder s, string indent, string access, string field, string modelKey, ValueObjectShape valueObject, ValueRule kind, ref int local)
     {
         if (valueObject.SingleValue)
         {
@@ -211,14 +214,14 @@ public sealed partial class ModelInputGenerator
             return;
         }
 
-        var held = "__held" + depth.ToString(CultureInfo.InvariantCulture);
+        var held = "__held" + (local++).ToString(CultureInfo.InvariantCulture);
         s.Append(indent).Append("if (").Append(access).Append(" is { } ").Append(held).AppendLine(")");
         s.Append(indent).AppendLine("{");
         foreach (var member in valueObject.Members.Where(static m => m.ValueObject is not null))
         {
             AppendAsk(
                 s, indent + "    ", held + "." + member.Name, field + "." + member.Name, valueObject.ModelName + "_",
-                member.ValueObject!, kind, depth + 1);
+                member.ValueObject!, kind, ref local);
         }
 
         s.Append(indent).AppendLine("}");
