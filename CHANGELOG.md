@@ -22,7 +22,9 @@ them until tagged releases begin.
   not seen on any for as long. After: every request and every event of a live page reads the row. What that read
   costs was cut to pay for it — 338 µs / 77.5 KB → 35 µs / 10.7 KB per resume against pooled SQLite (Release):
   the query is compiled once, the contexts it runs on are kept, and a live page whose user's row is unchanged is
-  handed its own principal back.
+  handed its own principal back. **`AddRaskAuth` no longer registers `IMemoryCache`** — it was there for that
+  cache alone; an app that injects `IMemoryCache` and relied on the registration coming with Rask.Auth adds
+  `services.AddMemoryCache()` itself.
 - **A tab finds out that the browser's cookie changed, and reconnects before it sends anything.** Before: a
   socket carried the principal of its upgrade for as long as it stayed open; a cookie replaced in another tab — by
   Rask's sign-in or by a plain endpoint of the app issuing the token again with another tenant — never reached
