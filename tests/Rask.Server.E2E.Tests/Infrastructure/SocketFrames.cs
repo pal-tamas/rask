@@ -47,5 +47,5 @@ internal sealed class SocketFrames
     /// <summary>Forgets what was carried so far: the load is not what a journey is about.</summary>
     public void Clear() => _frames.Clear();
 
-    private static string Cut(string text) => text.Length <= 400 ? text : text[..400] + "…";
+    private static string Cut(string text) => text.Length <= 160 ? text : text[..160] + "…";
 }

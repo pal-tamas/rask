@@ -16,22 +16,30 @@ internal static class HeldReplies
     public static Task Install(IPage page) => page.AddInitScriptAsync(
         """
         window.__holding = false;
+        window.__heldText = [];
         const held = [];
         window.__release = function () {
             window.__holding = false;
+            window.__heldText = [];
             for (const deliver of held.splice(0)) deliver();
         };
         const listen = WebSocket.prototype.addEventListener;
         WebSocket.prototype.addEventListener = function (type, listener, options) {
             if (type !== "message") return listen.call(this, type, listener, options);
             return listen.call(this, type, function (e) {
-                if (window.__holding) held.push(() => listener(e)); else listener(e);
+                if (!window.__holding) return listener(e);
+                window.__heldText.push(String(e.data));
+                held.push(() => listener(e));
             }, options);
         };
         """);
 
     /// <summary>From now on what the server says waits.</summary>
     public static Task HoldAsync(IPage page) => page.EvaluateAsync("() => { window.__holding = true; }");
+
+    /// <summary>Resolves once a reply that says <paramref name="text" /> is among the held: the server has sent it.</summary>
+    public static Task ArrivedAsync(IPage page, string text) =>
+        page.WaitForFunctionAsync("text => window.__heldText.some(reply => reply.includes(text))", text, new() { PollingInterval = 20 });
 
     /// <summary>Everything held lands, in the order it came, and nothing is held any more.</summary>
     public static Task ReleaseAsync(IPage page) => page.EvaluateAsync("() => window.__release()");

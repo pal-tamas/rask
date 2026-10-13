@@ -324,14 +324,23 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // comes when the handler has ended, and a handler that awaits `element.Focus()` ends when the browser has
     // answered — so the call cannot ride that render. It rides a repaint of the page as it stands: the one the
     // handler's budget buys (Component.InvokeWithRenderingAsync), then one before and after each continuation
-    // that comes back through the handler's context (HandlerSyncContext). A continuation that left that context
-    // — every `ConfigureAwait(false)`, so all of the kit — is repainted by nobody. Its call sat in the queue,
-    // the handler waited on it, and the dispatch waited on the handler: a pick that awaited two calls in a row
-    // wrote the first and then held its session until the handler's time ran out. Seen only when the browser's
-    // answer to the first call came back after the budget's repaint had returned, which over a real line is
-    // every time. So once that repaint has gone, a call queued inside the dispatch is sent as it is queued.
+    // that comes back through the handler's context (HandlerSyncContext).
+    //
+    // A continuation that left that context — every `ConfigureAwait(false)`, so all of the kit — is repainted by
+    // nobody. Its call sat in the queue, the handler waited on the call, and the dispatch waited on the handler:
+    // a pick that awaited two calls in a row wrote its text and then held its session until the handler's time
+    // ran out. It was only ever seen when the browser's answer to the first call came back after the budget's
+    // repaint had returned — over a real line, every time.
+    //
+    //   * before the budget's repaint: nothing is sent here. That repaint is still to come and carries the
+    //     call, and until it does no state the handler only passes through is shown.
+    //   * after it, from code on the handler's context: nothing either. The repaint that follows that
+    //     continuation carries the call, with everything the continuation went on to change.
+    //   * after it, from code that left the context: the page as it stands, now, with the call.
     private Task SendWhatTheHandlerWaitsOnAsync() =>
-        _repaintedMidFlight && JsInvokes.HasPending ? RenderInScopeCoreAsync() : Task.CompletedTask;
+        _repaintedMidFlight && JsInvokes.HasPending && SynchronizationContext.Current is not HandlerSyncContext
+            ? RenderInScopeCoreAsync()
+            : Task.CompletedTask;
 
     // The page of the dispatch in hand has gone out once while its handler was still working. Until then the
     // budget's repaint is still to come and carries whatever was queued before it.

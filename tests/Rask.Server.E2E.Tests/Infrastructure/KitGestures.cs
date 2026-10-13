@@ -22,9 +22,6 @@ internal static class KitGestures
 
     private const int DragSteps = 12;
 
-    // A page that is still moving under a resting pointer after this many answers is not going to stop.
-    private const int MostMovesUnderAPointer = 8;
-
     /// <summary>Where a component under test is drawn.</summary>
     public const string Stage = "#stage";
 
@@ -207,42 +204,20 @@ internal static class KitGestures
     {
         await page.Mouse.MoveAsync(from.X, from.Y);
         await page.Mouse.DownAsync();
-        for (var step = 1; step <= DragSteps; step++)
-        {
-            await page.Mouse.MoveAsync(from.X + ((to.X - from.X) * step / DragSteps), from.Y + ((to.Y - from.Y) * step / DragSteps));
-            await BeatAsync(page);
-        }
-
+        await GlideAsync(page, from, to, DragSteps);
         if (release)
         {
             await page.Mouse.UpAsync();
         }
     }
 
-    // The pointer from one place to another in even steps, resting at each: a move a frame, as a hand makes them.
+    // The pointer from one place to another in even steps, a beat after each: a move a frame, as a hand makes them.
     private static async Task GlideAsync(IPage page, (float X, float Y) from, (float X, float Y) to, int steps)
     {
         for (var step = 1; step <= steps; step++)
         {
-            await RestAsync(page, from.X + ((to.X - from.X) * step / steps), from.Y + ((to.Y - from.Y) * step / steps));
-        }
-    }
-
-    // The pointer put at a place and kept there until the page under it has stopped moving. An answer can move
-    // the page — a list scrolls the row it lit into view — and the browser tells the part that arrived under a
-    // still pointer on a timer of its own, some time later. Telling it here, by the same move made again, is the
-    // same event at a moment the count does not depend on.
-    private static async Task RestAsync(IPage page, float x, float y)
-    {
-        for (var moved = 0; moved < MostMovesUnderAPointer; moved++)
-        {
-            var before = await KitSocket.CountAsync(page);
-            await page.Mouse.MoveAsync(x, y);
+            await page.Mouse.MoveAsync(from.X + ((to.X - from.X) * step / steps), from.Y + ((to.Y - from.Y) * step / steps));
             await BeatAsync(page);
-            if ((await KitSocket.CountAsync(page)).Sent == before.Sent)
-            {
-                return;
-            }
         }
     }
 

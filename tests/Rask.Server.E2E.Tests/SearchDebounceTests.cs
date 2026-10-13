@@ -26,26 +26,11 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
     private static ILocator Row(IPage page, string control, string name) =>
         page.Locator($"#{control} [role=option]:not([data-hidden])").Filter(new() { HasText = name });
 
-    private SocketFrames? _trace;
-
-    private async Task Traced(Func<Task> act)
+    private async Task<HookSession> OpenAsync()
     {
-        try
-        {
-            await act();
-        }
-        catch (PlaywrightException e)
-        {
-            throw new InvalidOperationException(e.Message.Split('\n')[0] + Environment.NewLine + "TRACE" + Environment.NewLine + _trace!.Trace());
-        }
-    }
-
-    private async Task<HookSession> OpenAsync(Action<RaskServerOptions>? server = null)
-    {
-        var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, server: server, beforeLoad: async page =>
+        var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, beforeLoad: async page =>
         {
             await SentFrames.Count(page);
-            _trace = SocketFrames.Of(page);
             await HeldReplies.Install(page);
             await PageClock.Install(page);
         });
@@ -120,10 +105,16 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await using var session = await OpenAsync();
         var page = session.Page;
         await page.Locator("#combo input[role=combobox]").FocusAsync();
+        await PageClock.StopAsync(page);
 
         await page.Keyboard.TypeAsync("ber");
+        // The keys are heard a frame after they are typed, and open the list. The pause has not begun to end.
+        await page.Clock.RunForAsync(Settle);
         await Expect(page.Locator("#combo [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        var askedBeforeThePause = await page.Locator("#combo-searches").TextContentAsync();
+        await page.Clock.RunForAsync(Pause);
         await Expect(page.Locator("#combo-searches")).ToHaveTextAsync("[ber]");
+        Assert.Equal(string.Empty, askedBeforeThePause);
 
         await Expect(page.Locator("#combo [role=option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
         await Expect(page.Locator("#combo input[role=combobox]")).ToHaveValueAsync("ber");
@@ -137,7 +128,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         var field = await OpenComboboxAsync(page);
         await field.PressSequentiallyAsync("ber");
         await Row(page, "combo", "Walther").ClickAsync();
-        await Traced(() => Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther"));
+        await Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther");
         var searches = await SearchesAfterAsync(page, "combo");
 
         // The input says its answer, and the page's search follows the input, as Flux's does.
@@ -350,120 +341,18 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await page.Clock.RunForAsync(Pause / 4);
 
         await Row(page, "auto", "Bersa").ClickAsync();
-        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa"));
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
         var searches = await SearchesAfterAsync(page, "auto");
 
         await Expect(searches).ToHaveTextAsync("[Bersa]");
         await Expect(field).ToHaveValueAsync("Bersa");
     }
 
+    // The pick writes its text into the input and then asks for focus: two calls into the browser, each awaited.
+    // On a line slower than the page — here the first call is held until it has certainly left the server — the
+    // second call was never sent, the handler waited on it for good, and the page never drew the text it held.
     [Fact]
-    public async Task Explore_A_auto_all_typed_answered_then_press_held()
-    {
-        await using var session = await OpenAsync();
-        var page = session.Page;
-        var field = page.Locator("#auto input[role=combobox]");
-        await field.FocusAsync();
-        await PageClock.StopAsync(page);
-        await field.PressSequentiallyAsync("ber");
-        await page.Clock.RunForAsync(Pause / 4);
-        await Expect(page.Locator("#auto [role=option]:not([data-hidden])")).ToHaveTextAsync(["Beretta", "Bersa"]);
-
-        await HeldReplies.HoldAsync(page);
-        await Row(page, "auto", "Bersa").ClickAsync();
-        await HeldReplies.ReleaseAsync(page);
-
-        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
-    }
-
-    [Fact]
-    public async Task Explore_B_auto_first_key_answered_rest_and_press_held()
-    {
-        await using var session = await OpenAsync();
-        var page = session.Page;
-        var field = page.Locator("#auto input[role=combobox]");
-        await field.FocusAsync();
-        await PageClock.StopAsync(page);
-        await field.PressSequentiallyAsync("b");
-        await page.Clock.RunForAsync(Pause / 4);
-        await Expect(page.Locator("#auto [role=option]:not([data-hidden])")).ToHaveTextAsync(["Beretta", "Bersa"]);
-
-        await HeldReplies.HoldAsync(page);
-        await field.PressSequentiallyAsync("er");
-        await Row(page, "auto", "Bersa").ClickAsync();
-        await HeldReplies.ReleaseAsync(page);
-
-        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
-    }
-
-    [Fact]
-    public async Task Explore_D_auto_typed_answers_land_after_the_clock_ran()
-    {
-        await using var session = await OpenAsync();
-        var page = session.Page;
-        var field = page.Locator("#auto input[role=combobox]");
-        await field.FocusAsync();
-        await PageClock.StopAsync(page);
-        await HeldReplies.HoldAsync(page);
-        await field.PressSequentiallyAsync("ber");
-        await page.Clock.RunForAsync(Pause / 4);
-        await HeldReplies.ReleaseAsync(page);
-
-        await Row(page, "auto", "Bersa").ClickAsync();
-
-        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
-    }
-
-    [Fact]
-    public async Task Explore_E_auto_typed_answers_and_press_all_held()
-    {
-        await using var session = await OpenAsync();
-        var page = session.Page;
-        var field = page.Locator("#auto input[role=combobox]");
-        await field.FocusAsync();
-        await PageClock.StopAsync(page);
-        await HeldReplies.HoldAsync(page);
-        await field.PressSequentiallyAsync("ber");
-        await page.Clock.RunForAsync(Pause / 4);
-        await HeldReplies.ReleaseAsync(page);
-        await Expect(Row(page, "auto", "Bersa")).ToBeVisibleAsync();
-        await HeldReplies.HoldAsync(page);
-        await Row(page, "auto", "Bersa").ClickAsync();
-        await HeldReplies.ReleaseAsync(page);
-
-        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(4)]
-    [InlineData(5)]
-    [InlineData(6)]
-    [InlineData(7)]
-    public async Task Explore_F_auto_no_repaint_budget(int run)
-    {
-        Assert.True(run >= 0);
-        await using var session = await OpenAsync(options => options.HandlerQuiescenceTimeout = TimeSpan.Zero);
-        var page = session.Page;
-        var field = page.Locator("#auto input[role=combobox]");
-        await field.FocusAsync();
-        await PageClock.StopAsync(page);
-        await field.PressSequentiallyAsync("ber");
-        await page.Clock.RunForAsync(Pause / 4);
-
-        await Row(page, "auto", "Bersa").ClickAsync();
-
-        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa"));
-    }
-
-    public static TheoryData<int> Delays => [.. Enumerable.Range(0, 40).Select(i => 100 + (i * 3))];
-
-    [Theory]
-    [MemberData(nameof(Delays))]
-    public async Task Explore_G_auto_answer_lands_as_the_budget_ends(int delay)
+    public async Task An_item_pressed_over_a_slow_line_is_the_text_once_the_browser_has_answered_both_of_the_picks_calls()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
@@ -473,30 +362,15 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await field.PressSequentiallyAsync("ber");
         await page.Clock.RunForAsync(Pause / 4);
         await Expect(Row(page, "auto", "Bersa")).ToBeVisibleAsync();
-        await Row(page, "auto", "Bersa").HoverAsync();
-        await RoundTripAsync(page);
-
         await HeldReplies.HoldAsync(page);
+
         await Row(page, "auto", "Bersa").ClickAsync();
-        await Task.Delay(delay, TestContext.Current.CancellationToken);
+        await HeldReplies.ArrivedAsync(page, "jsInvokes");
         await HeldReplies.ReleaseAsync(page);
 
-        await Traced(() => Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa", new() { Timeout = 2000 }));
-    }
-
-    [Fact]
-    public async Task Explore_C_combo_press_held()
-    {
-        await using var session = await OpenAsync();
-        var page = session.Page;
-        var field = await OpenComboboxAsync(page);
-        await field.PressSequentiallyAsync("ber");
-
-        await HeldReplies.HoldAsync(page);
-        await Row(page, "combo", "Walther").ClickAsync();
-        await HeldReplies.ReleaseAsync(page);
-
-        await Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther");
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+        await Expect(field).ToHaveValueAsync("Bersa");
+        await Expect(field).ToBeFocusedAsync();
     }
 
     [Fact]
