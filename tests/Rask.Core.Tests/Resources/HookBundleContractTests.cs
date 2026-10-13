@@ -50,6 +50,7 @@ public partial class HookBundleContractTests
         ["data-rask-menu-cursor"] = "on a role=menu, which is what loads the hooks",
         ["data-rask-keep-open"] = "on or inside a role=menu, which is what loads the hooks",
         ["data-rask-tabs"] = "on a role=tablist, which is what loads the hooks",
+        ["data-rask-match"] = "inside a data-rask-command",
         ["data-rask-tab"] = "inside a role=tablist, which is what loads the hooks",
         ["data-rask-locked"] = "written by the lock hook",
         ["data-rask-gutter"] = "written by the lock hook",

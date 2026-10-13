@@ -2334,9 +2334,11 @@ Ui.Command.Label("Search commands").Shortcut("mod+k")[
 The commands are written as the `Ui.MenuItem`s a menu takes (and drawn the palette's own way until it is rebuilt
 on Flux's `command.item`). The dialog is the platform's modal `<dialog>`, opened by
 the invoker command as `Ui.Modal` is. Inside, the search box is a `combobox` over a `listbox` whose options are the
-commands: typing narrows them in C# (case- and accent-insensitive, and a command that does not match is not
-rendered, so the keyboard cannot land on it), ArrowUp and ArrowDown move the highlight while focus stays in the box,
+commands: typing narrows them in the browser (case- and accent-insensitive, and a command that does not match is
+`hidden`, so the keyboard cannot land on it), ArrowUp and ArrowDown move the highlight while focus stays in the box,
 and Enter presses the highlighted command — its handler runs or its link is followed — and closes the palette.
+Opening the palette, typing into it, walking it and closing it send the server nothing (`data-rask-command`), as
+Flux's palette asks its server nothing; the command that is pressed is the page's own action.
 
 Three generic runtime hooks do what C# cannot. `data-rask-shortcut="mod+k"` CLICKS its element when the combination
 is pressed (`mod` is ⌘ on a Mac and Ctrl elsewhere; `ctrl`, `alt`, `shift`, `meta`; a shortcut with no modifier

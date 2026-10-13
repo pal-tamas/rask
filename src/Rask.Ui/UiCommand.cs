@@ -1,5 +1,4 @@
 using System.Globalization;
-using Rask.Core.Live;
 
 namespace Rask;
 
@@ -22,10 +21,11 @@ namespace Rask;
 /// followed — and closes the palette.
 /// </para>
 /// <para>
-/// Typing narrows the list in C#, case- and accent-insensitively in the reader's culture, the way
-/// <c>Ui.Select.Searchable</c> does; a command that does not match is not rendered at all, so the keyboard never
-/// lands on one that is out of sight. Separators are dropped while there is a query, since what they separated has
-/// been filtered.
+/// Typing narrows the list in the browser, case- and accent-insensitively, and the arrows move the highlight
+/// there too (<c>data-rask-command</c>): opening the palette, typing into it, walking it and closing it send the
+/// page nothing, as Flux's does not. A command that does not match is <c>hidden</c>, so the keyboard never lands
+/// on one that is out of sight; separators are hidden while there is a query, since what they separated has been
+/// filtered. Pressing a command is the page's own action.
 /// </para>
 /// </remarks>
 public sealed partial class UiCommand : Component
@@ -33,9 +33,6 @@ public sealed partial class UiCommand : Component
     private static int _instances;
 
     private readonly int _instance = Interlocked.Increment(ref _instances);
-    private string _query = string.Empty;
-    private int _cursor;
-    private UiMenuScope? _scope;
 
     /// <summary>
     ///     What the palette is for — "Search commands". The words on the field, the dialog's name, and the search
@@ -58,7 +55,7 @@ public sealed partial class UiCommand : Component
 
     public string? Class { get; set; }
 
-    // The query, the cursor and the scope are FIELDS, which the render cache cannot see.
+    // The scope is filled by the commands as they render, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -69,21 +66,12 @@ public sealed partial class UiCommand : Component
     private string ListId => Prefix + "-list";
 
     /// <inheritdoc />
-    protected override Component? Render()
-    {
-        // The items register while THIS render walks its children, after this method returns — so where the cursor
-        // lands is worked out against the list the last render left, which is the list the reader has been looking
-        // at. After typing, the cursor is back at 0, which every narrowed list starts with.
-        var active = _scope is { } previous ? Active(previous.Entries) : 0;
-        var scope = new UiMenuScope(Prefix, active, query: _query, options: true);
-        _scope = scope;
-
-        return
-        [
-            Trigger(),
-            Palette(SearchBox(active), scope)
-        ];
-    }
+    protected override Component? Render() =>
+    [
+        Trigger(),
+        // The first command that can be picked is lit as it renders; from there the highlight is the runtime's.
+        Palette(SearchBox(), new UiMenuScope(Prefix, options: true))
+    ];
 
     private Component Trigger()
     {
@@ -102,26 +90,19 @@ public sealed partial class UiCommand : Component
         ];
     }
 
-    private HTMLInputElement<string> SearchBox(int active) =>
-        Input
-            .Value(_query)
+    // No value and no handler: what is typed, and the command it leaves lit, are the browser's (rask-command.ts).
+    private HTMLInputElement<string> SearchBox() =>
+        Input.Of<string>()
             .Type(InputType.Text)
             .Class("grow bg-transparent py-3 outline-none")
             .Placeholder(Placeholder ?? Label)
             .Autocomplete("off")
             .Autofocus()
             .Role("combobox")
-            .Aria(BoxAria(active))
+            .Aria(("label", Label), ("expanded", "true"), ("controls", ListId), ("autocomplete", "list"))
             // Enter presses the highlighted option in the runtime, because what an option DOES — a handler, a link —
             // is only reachable by clicking it; C# cannot follow an href.
-            .Attributes(("data-rask-press-active", null))
-            .OnInput(raw =>
-            {
-                _query = raw ?? string.Empty;
-                // Back to the top of the narrowed list.
-                _cursor = 0;
-            })
-            .OnKeyDown(OnKey);
+            .Attributes(("data-rask-press-active", null));
 
     private Component Palette(HTMLInputElement<string> box, UiMenuScope scope)
     {
@@ -133,17 +114,9 @@ public sealed partial class UiCommand : Component
             .Class("modal modal-top sm:modal-middle")
             .Popover(Popover.Auto)
             .Aria("label", Label)
-            // A pick closes the palette in the runtime, after the pick's own handler has run.
-            .Attributes(("data-rask-close-on-pick", null))
-            .OnToggle(e =>
-            {
-                if (!string.Equals(e.NewState, "open", StringComparison.Ordinal))
-                {
-                    // Reopened, it starts over: yesterday's query is a narrowed list nobody asked for.
-                    _query = string.Empty;
-                    _cursor = 0;
-                }
-            })[
+            // A pick closes the palette in the runtime, after the pick's own handler has run; closed, it starts
+            // over there too: yesterday's query is a narrowed list nobody asked for.
+            .Attributes(("data-rask-command", null), ("data-rask-close-on-pick", null))[
             Div.Class("modal-box max-w-lg p-0")[
                 Div.Class("flex items-center gap-2 border-b border-base-300 px-4")[
                     Ui.Icon.Name(Ui.IconName.MagnifyingGlass).Class("size-4 shrink-0 opacity-60"),
@@ -166,72 +139,6 @@ public sealed partial class UiCommand : Component
                 .TabIndex(-1)
                 .Attributes(closes)["close"]
         ];
-    }
-
-    private Dictionary<string, string?> BoxAria(int active)
-    {
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["label"] = Label,
-            // The list is always shown while the dialog is, so the box always says so — which is also what turns on
-            // the runtime's containment of the arrow keys and Enter.
-            ["expanded"] = "true",
-            ["controls"] = ListId,
-            ["autocomplete"] = "list",
-        };
-
-        if (active >= 0 && _scope is { } scope)
-        {
-            aria["activedescendant"] = scope.ItemId(active);
-        }
-
-        return aria;
-    }
-
-    // The cursor as the last render left the list: clamped to what is there, and off anything that cannot be picked.
-    private int Active(IReadOnlyList<UiMenuEntry> entries)
-    {
-        if (entries.Count == 0)
-        {
-            return -1;
-        }
-
-        var at = Math.Clamp(_cursor, 0, entries.Count - 1);
-        return entries[at].Disabled
-            ? UiSelectNav.Step(at, +1, entries.Count, i => entries[i].Disabled)
-            : at;
-    }
-
-    private void OnKey(KeyboardEvent e)
-    {
-        if (_scope is not { } scope || scope.Entries.Count == 0 || e.CtrlKey || e.AltKey || e.MetaKey)
-        {
-            return;
-        }
-
-        var entries = scope.Entries;
-        var at = Active(entries);
-        var dir = e.Key switch
-        {
-            Rask.Core.Keys.ArrowDown => +1,
-            Rask.Core.Keys.ArrowUp => -1,
-            _ => 0,
-        };
-        if (dir == 0)
-        {
-            return;
-        }
-
-        var next = at < 0 ? -1 : UiSelectNav.Step(at, dir, entries.Count, i => entries[i].Disabled);
-        // A palette wraps, as a menu does.
-        if (next < 0 || next == at)
-        {
-            next = dir > 0
-                ? UiSelectNav.FirstEnabled(entries.Count, i => entries[i].Disabled)
-                : UiSelectNav.LastEnabled(entries.Count, i => entries[i].Disabled);
-        }
-
-        _cursor = next < 0 ? at : next;
     }
 
     // The shortcut in both platforms' words; the runtime marks a Mac, and the stylesheet shows the one that applies.

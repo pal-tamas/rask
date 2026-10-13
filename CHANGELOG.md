@@ -1450,6 +1450,13 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A command palette is narrowed and walked in the browser.** `Ui.Command` kept its query and its cursor in C#:
+  opening it was a frame, every character typed another, every key in the box — the arrows, and each one that
+  moves nothing — one more, and Escape two (open 1 → 0, three characters 4 → 0, nine keys 9 → 0, Escape
+  2 → 0). The runtime now hides the commands that do not match, case- and accent-insensitively, and moves the
+  highlight (`aria-selected`, the box's `aria-activedescendant`) in the key's own event (`data-rask-command`,
+  `rask-command.ts`); closed, the palette starts over there too. Pressing a command is the page's action, and
+  all that is sent.
 - **Switching a tab sends the server nothing** — as in Flux UI, whose script selects the tab and shows its
   panel, and where Livewire hears only a model. Every tab of `Ui.Tabs` carried a click handler, so a press
   was a frame and a render and three arrow keys were three (1 → 0 and 3 → 0, plain and segmented, with a
