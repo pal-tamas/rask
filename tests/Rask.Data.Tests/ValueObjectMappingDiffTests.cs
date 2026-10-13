@@ -43,4 +43,34 @@ public sealed class ValueObjectMappingDiffTests
         Assert.Equal("Label", after[1]);
         Assert.Equal("TenantId", after[^1]);
     }
+
+    [Fact]
+    public void On_sqlite_a_one_value_value_object_inside_another_is_no_migration_either_way()
+    {
+        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+
+        var (forward, back) = ValueObjectMappingDiff.Between(complex, scalar);
+
+        Assert.Empty(forward);
+        Assert.Empty(back);
+        Assert.Equal(
+            ValueObjectMappingDiff.Columns(complex, ValueObjectMappingDiff.NestedTable),
+            ValueObjectMappingDiff.Columns(scalar, ValueObjectMappingDiff.NestedTable));
+    }
+
+    [Fact]
+    public void On_sqlite_only_the_order_of_the_nested_columns_in_a_fresh_table_differs()
+    {
+        using var complex = new ComplexNestedShapeContext(new DbContextOptionsBuilder<ComplexNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+        using var scalar = new ScalarNestedShapeContext(new DbContextOptionsBuilder<ScalarNestedShapeContext>().UseSqlite("Data Source=:memory:").Options);
+
+        var before = ValueObjectMappingDiff.CreateOrder(complex, ValueObjectMappingDiff.NestedTable);
+        var after = ValueObjectMappingDiff.CreateOrder(scalar, ValueObjectMappingDiff.NestedTable);
+
+        Assert.Equal(before.Order(StringComparer.Ordinal), after.Order(StringComparer.Ordinal));
+        // As on the aggregate itself: a database that exists keeps its order; only a fresh table lists them anew.
+        Assert.Equal("Crate_Units", before[1]);
+        Assert.Equal("Crate_Label", after[1]);
+    }
 }

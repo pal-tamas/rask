@@ -105,7 +105,7 @@ public class OptionalStructValueObjectTests
     }
 
     [Fact]
-    public void Inside_another_value_object_it_is_a_field_of_the_nested_model_and_the_struct_is_named_for_the_mapping()
+    public void Inside_another_value_object_it_is_a_field_of_the_nested_model_and_a_converted_scalar_column()
     {
         var run = Run("""
             public sealed record Size(Percent? Tolerance, int Units);
@@ -126,7 +126,7 @@ public class OptionalStructValueObjectTests
             model,
             StringComparison.Ordinal);
         Assert.Contains(
-            "b0.ComplexProperty<global::Shop.Percent>(x => x.Tolerance, b1 => b1.Property(v => v.Value).HasColumnName(\"Size_Tolerance\"));",
+            "global::Rask.Data.ValueObjectColumn.Map(b0.Property(x => x.Tolerance), (global::Shop.Percent v) => v.Value).HasColumnName(\"Size_Tolerance\");",
             registry,
             StringComparison.Ordinal);
     }
