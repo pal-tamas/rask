@@ -9,6 +9,50 @@ them until tagged releases begin.
 
 ### Security
 
+- **A live page asks who its user is at every event.** Before: `ISessionRevalidator` was asked "at most every 30
+  seconds" per session, so a sign-out elsewhere, an expired token or a removed right could be acted under for half
+  a minute, and a page that only listened was never asked at all. After: it is asked as a connection attaches,
+  before every handler and every navigation (once for the events of one frame), and before a render the server
+  starts itself unless something asked within the last second — the one time bound left, because such a render is
+  not a reader's action. The host's own cost is nothing when the revalidator hands back the principal it was
+  given (no allocation, pinned by a test). A revalidator that throws refuses the event rather than letting it
+  through.
+- **`Rask.Auth` reads the session's row at every resume; the 30-second per-process cache is gone.** Before: a
+  session ended on one replica was honoured by another for up to 30 seconds, and a role changed in the table was
+  not seen on any for as long. After: every request and every event of a live page reads the row. What that read
+  costs was cut to pay for it — 338 µs / 77.5 KB → 35 µs / 10.7 KB per resume against pooled SQLite (Release):
+  the query is compiled once, the contexts it runs on are kept, and a live page whose user's row is unchanged is
+  handed its own principal back. **`AddRaskAuth` no longer registers `IMemoryCache`** — it was there for that
+  cache alone; an app that injects `IMemoryCache` and relied on the registration coming with Rask.Auth adds
+  `services.AddMemoryCache()` itself.
+- **A tab finds out that the browser's cookie changed, and reconnects before it sends anything.** Before: a
+  socket carried the principal of its upgrade for as long as it stayed open; a cookie replaced in another tab — by
+  Rask's sign-in or by a plain endpoint of the app issuing the token again with another tenant — never reached
+  it. After: the tab asks `/_rask/auth/who/{session}` (answers only "the same" or not; no claim, refused
+  cross-site, rate-limited, `no-store`) when it becomes visible or focused, comes back from the back/forward
+  cache, is told by another tab, and before the first frame after 30 seconds (2 in an unfocused window); on any
+  answer but "the same" it opens its connection again first, so the attach adopts the principal (same user) or
+  refuses it. What the reader typed or pressed meanwhile is held and sent afterwards. No app code takes part.
+- **An HTTP-fallback post acts under the principal it carries.** Before: a post from the same user with other
+  claims ran under the principal the stream had opened with. After: the session adopts the post's principal, as an
+  attach does.
+- **A session that lost its user goes to the sign-in page, on every page.** Before: an unguarded page whose
+  revalidator answered "nobody" stayed where it was, anonymous; a tab whose connection was refused showed "Your
+  session timed out" and reloaded. After: either lands on `/login?returnUrl=…` with no message — navigated in
+  place when the page is open, redirected by the page's own request when its connection was refused. A visitor
+  who never signed in is not asked about and is left alone.
+- **An app that signs users in and registers no `ISessionRevalidator` is warned once at startup** (`Rask.Live`).
+- **What a live session guarantees about its user, in full.** A connection's principal is asked about before the
+  session is given it, so nothing follows a principal the revalidator has not answered for, and a connection that
+  cannot be asked about leaves the session as it was. A call a page's script makes into the server
+  (`DotNet.invokeMethodAsync`) asks like an event and is not made for an ended sign-in. A principal that changes
+  in a render the server started itself takes its tenant with it, and a navigation to the address the page is
+  already on asks the tenant resolver again. A revalidator's answer that arrives late, or names another user,
+  never replaces the session's user. A frame that runs for more than a second asks again between its events. A
+  token issued again with the same rights is kept, so its new expiry is the one read. A render nobody asked for
+  does not keep a sliding `Rask.Auth` session alive. The mark a tab leaves when it lost its user is believed only
+  from this host (`__Host-rask-ended` over https) and for this app, once. `PrincipalRights` counts an identity's
+  role and name claim types, and the log line for a refused attach is limited to twenty in ten seconds.
 - **A reconnect no longer hands a live page back the user its sign-in check had taken away.** The Server host
   re-checks an open page's user at most every 30 seconds (`ISessionRevalidator`), and a reconnect re-seeded the
   principal from its cookie or token without asking again — so a session ended or narrowed a moment earlier acted
@@ -88,6 +132,23 @@ them until tagged releases begin.
   runtime sends those as it sends what it does by itself (`unasked`). An app that read a model in a
   handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
   a list was merely opened now sees it speak with the next action.
+- **BREAKING — an `AddRaskTenant` resolver is asked again at every event of a live page.** Before: it was asked
+  once, as the session opened inside the page's `GET`, and the answer was kept for the session's life — so a tab
+  opened before its user chose another tenant went on working in the old one. After: it is asked as each
+  connection attaches, before each handler, and as the page's address moves, and what the session's queries read
+  for the tenant before is dropped. The request in flight at an event is the page's *connection* (the socket's
+  upgrade, a post), so **a resolver that read something only the page's `GET` carried — a route value, a header
+  — now gets nothing there**, and the first read of the tenant then throws a `MissingTenantException` that says
+  so instead of quietly reading an empty table. The fix: read the page's address from the session's `RouteState`
+  (`sp.GetRequiredService<RouteState>().Path`, which also follows an in-place navigation, as a value captured at
+  the `GET` never did) or the tenant from `Current.Principal`. A host name, a cookie and a principal's claim
+  resolve as before. `docs/multi-tenancy.md#from-the-request-a-resolver`.
+- **A principal with other claims re-renders the whole page, and never remounts it.** Before: only `Authorize`
+  gates and the route's guard followed a replaced principal; a component that read `IUserProvider.Current` in
+  `Render` kept what it had drawn. After: every component renders again, holding the state it had.
+- **A reconnect or a revalidation that changes nothing about the user's rights no longer counts as a change.**
+  Claims a token carries about itself (`exp`, `iat`, `nbf`, `jti`, `auth_time`, `nonce`, `at_hash`, `c_hash`) are
+  not compared.
 - **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
   backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
   `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words

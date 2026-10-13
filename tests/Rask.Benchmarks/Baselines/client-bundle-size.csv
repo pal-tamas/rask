@@ -228,7 +228,10 @@
 # Both of the above together, by sum (carousel + switch on main at 57,546; the open mark and the viewable input +533): 58,079.
 # 2026-10-13, a key heard only from an empty field (`Backspace:empty`, rask-events.ts): rask.js and rask.wasm.js +60 each, on main at 101,731 / 90,514: 101,791 / 90,574.
 # 2026-10-13, a kit control drawing itself is no action (data-rask-draws, rask-owned.ts `tell`) and a form that asks before it is left reads what the page heard and skips what is not its data (data-rask-edited, data-rask-unguarded, rask-leave.ts): rask.js 101,796 -> 102,200 (+404), rask.wasm.js 90,579 -> 90,985 (+406), rask-hooks.js 58,079 -> 58,415 (+336).
+# 2026-10-13, a tab asks whether the browser's credential changed and reopens its connection before it sends (rask-auth-watch.ts, the Server runtime only): rask.js +1,682, on main at 101,796: 103,478. rask.wasm.js and rask-hooks.js are unchanged.
+# 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
+# Both of the above together, by sum (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): 104,174.
 bundle,bytes
-rask.js,102200
+rask.js,104174
 rask.wasm.js,90985
 rask-hooks.js,58415

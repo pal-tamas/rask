@@ -236,10 +236,11 @@ await auth.SignOutEverywhere();     // this one too
 ```
 
 The scaffolded `/devices` page lists them and has the button. An ended session stops working on that device's
-**next request** — and on a live page, before its next handler runs: the Server host re-checks a page's session at
-most every 30 seconds (`ISessionRevalidator`), so a page left open for hours is signed out rather than staying
-signed in until its socket reconnects. A resumed session is cached for up to 30 seconds per process, which is the
-longest another replica can keep honouring one.
+**next request** — and on a live page, at its **next event**: the Server host asks about a page's session before
+every handler and every navigation (`ISessionRevalidator`), so a page left open for hours goes to the sign-in page
+at its next action rather than staying signed in until its socket reconnects. The row is read each time and
+nothing is cached between two reads, on any replica — see
+[what ties a live page to its user](#what-ties-a-live-page-to-its-user).
 
 **Remember me** makes the cookie outlive the browser; without it the cookie is a session cookie. The session lasts
 `ExpireTimeSpan` (14 days) from its last use either way, sliding while it is in use. Bearer tokens carry the session
@@ -247,52 +248,157 @@ too, so ending it ends the token.
 
 ## What ties a live page to its user
 
-A page on the Server host is a session that outlives the request that opened it. Three things decide who it acts
-for, and for how long.
+A page on the Server host is a session that outlives the request that opened it. An app that renders a page per
+request gets "who is this, now?" from the cookie on every request. A socket carries the cookie once. So Rask asks
+again where a request would have: **every event of a live page acts for the user as they are at that moment** —
+their rights, their tenant — or does not act at all.
 
 **Who it belongs to.** The session's user is `HttpContext.User` of the page's `GET`, and that is all Rask knows
 about them. Every later connection — the socket, the HTTP fallback's stream and each of its posts, an upload, a
 download — must carry the same user (the same `ClaimTypes.NameIdentifier`, or `ClaimTypes.Name` when there is
-none) or is answered as if the session did not exist, and the tab reloads. A signed-in user with neither claim
-owns nothing and is refused every time. A session opened by nobody is driven by whoever holds its id, signed in
-or not. One whose user was signed out is its former user's or nobody's: another signed-in user is refused.
+none) or is answered as if the session did not exist. A signed-in user with neither claim owns nothing and is
+refused every time. A session opened by nobody is driven by whoever holds its id, signed in or not. One whose
+user was signed out is its former user's or nobody's: another signed-in user is refused.
 
-**Which principal its handlers see.** `IUserProvider.Current` — and `Current.Principal`, `Current.UserId` and
-a tenant read from the claim — is the principal of the connection the session is attached to *now*. A socket
-carries the principal of its upgrade request for as long as it stays open. When it reconnects, the session takes
-the principal of the new connection: a token re-issued with other claims is what handlers see from then on.
+**What is asked, and when.** Register an `ISessionRevalidator` and Rask asks it who the session's user is now:
 
-**What is not refreshed.** A reconnect replaces the principal, re-checks the route's `[Authorize]` guard and
-re-renders every `Authorize` gate. It mounts nothing. A flag a page worked out from the claims as it mounted is
-as old as the page, so read `IUserProvider.Current` where the decision is made — in the handler that saves — and
-gate a page with `[Authorize]`, a policy or `Authorize`, which Rask re-evaluates, rather than with a check in
-`OnMount`. A tenant named by an `AddRaskTenant` resolver is asked once and held for the session's life.
+| When | What happens |
+|---|---|
+| a connection attaches (a socket's `hello`, a reconnect, an HTTP stream), and a post of the HTTP fallback brings another principal | asked about the principal the connection carries **before** the session is given it: the session only ever holds the answer, and nothing rendered or dispatched sees what the cookie merely claims |
+| before every handler (an event, a submit, a `files` event) and before every navigation | asked, with no interval in which an event is taken on trust. The events of one frame — what one task of the browser produced — ask once between them, and again when the frame has run for more than a second |
+| before a call a page's script makes into the server (`DotNet.invokeMethodAsync`, a `dotNetInvoke` frame) | asked unless something asked within the last second, and not made at all for a session whose sign-in ended |
+| before a render the server starts itself (a timer, a followed service, a data change) | asked unless something asked within the last **second**. This second is the one time bound there is, and it is here because such a render is not a reader's action: a page that repaints twenty times a second would otherwise read the user's row twenty times a second |
 
-**While the socket stays open** nothing is read from the browser again, so a cookie that expired, a sign-out in
-another tab or a right removed in the database reach an open page only through `ISessionRevalidator`. Rask asks
-it when a connection attaches, and then before a handler or a navigation at most every 30 seconds: `null` signs
-the page out, a principal with other claims replaces the one it holds. `Rask.Auth` registers one that reads the
-session row. A host with its own sign-in registers its own:
+The answer to a call the server made into the page (`jsResult`) is an answer, not an act, and is taken as it
+comes. An upload and a download are requests of their own, checked against the principal that request carries.
+
+It is handed the principal the session holds and answers one of three ways:
+
+| It returns | The session |
+|---|---|
+| the same principal — the instance it was handed, or one with the same claims | goes on. Handing the instance back costs the host nothing: no allocation, no comparison |
+| a principal with other claims — a role removed, another tenant | takes it. The event runs under it, and the **whole page renders again**, so an `Authorize` gate, a route's guard and anything that reads `IUserProvider.Current` as it renders show the truth |
+| `null` — or a principal for **somebody else** | has no user any more, and [goes to the sign-in page](#when-the-user-is-gone). A session never changes hands through a revalidator; an answer that names another user is logged once as a warning |
+
+One that throws refuses the event: nothing runs, the failure is logged on `Rask.Live`, and the reader's next
+action asks again. A connection that cannot be asked about is closed with nothing adopted from it, and the tab's
+reconnect asks again. An answer that arrives after the session has taken another principal — a connection
+attached meanwhile — is about somebody it no longer acts for, and changes nothing.
+
+**A sliding sign-in is kept alive by its user, not by its page.** `Rask.Auth` moves a session's expiry when a
+request or a reader's action resumes it. A question asked for a render the server started itself reads the row
+and moves nothing, so a page with a clock on it, left open in an empty room, expires when its sign-in does.
+
+**A token issued again is taken quietly.** When the browser's credential is replaced by one that says the same
+— a refreshed token with a later `exp` — the session holds the new one from the next connection, post or
+[question the tab asks](#when-the-browsers-cookie-changes), and tells nobody: nothing changed. So a revalidator
+that reads `exp`, like the one below, reads the new date, and a user whose token was refreshed in time is not
+signed out when the first one lapses.
+
+What counts as "other claims": every claim except the ones a token carries about itself — `exp`, `iat`, `nbf`,
+`jti`, `auth_time`, `nonce`, `at_hash`, `c_hash`. A token issued again for the same user with the same rights
+changes nothing; a flipped flag, another tenant or another sign-in's id does.
+
+`Rask.Auth` registers a revalidator that reads the session's row and its user's — every time, with nothing
+cached between two reads, so `SignOutEverywhere()`, a removed role or a deleted user is what the next event on
+every replica sees. A host with its own sign-in registers its own:
 
 ```csharp
-builder.Services.AddSingleton<ISessionRevalidator, AccountRevalidator>();
+builder.Services.AddSingleton<ISessionRevalidator, TokenRevalidator>();
 
-internal sealed class AccountRevalidator(IAccounts accounts) : ISessionRevalidator
+internal sealed class TokenRevalidator(IAccounts accounts, TimeProvider clock) : ISessionRevalidator
 {
-    public async ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default) =>
-        await accounts.Find(principal.FindFirstValue(ClaimTypes.NameIdentifier), cancellationToken) is { Active: true } account
-            ? account.ToPrincipal()
-            : null;
+    public async ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+    {
+        // The token the socket was opened with has lapsed: a request would have been refused by now.
+        if (!long.TryParse(principal.FindFirstValue("exp"), out var expires)
+            || DateTimeOffset.FromUnixTimeSeconds(expires) <= clock.GetUtcNow())
+        {
+            return null;
+        }
+
+        var account = await accounts.Find(principal.FindFirstValue(ClaimTypes.NameIdentifier), cancellationToken);
+        if (account is not { Active: true })
+        {
+            return null;
+        }
+
+        // Unchanged: hand back what was handed in. Changed: the principal as the store has it now.
+        return account.IsAdmin == principal.HasClaim("isAdmin", "true") ? principal : account.ToPrincipal(principal);
+    }
 }
 ```
 
-Without one, an open page keeps the principal it attached with until it reconnects or is closed.
+It runs on the event's own path, so it costs what you make it cost: one indexed read is the usual price, and the
+same one a request through the app's authentication would pay. An app that signs users in and registers none is
+told so once as it starts, as a warning on `Rask.Live`: its open pages cannot learn that a sign-in ended.
 
-**A hand-wired host** gets all of this from one thing: `HttpContext.User` must be the user on the page's `GET`
-*and* on the socket's upgrade, which is the same pipeline — `UseAuthentication()` with a default scheme, or a
-middleware that sets `HttpContext.User`, ahead of `MapRask`. A user the app works out some other way —
-its own scoped service filled from the request, a second scheme authenticated by hand inside a page — is one
-Rask never sees: the session then belongs to nobody, and its id is the only thing guarding it.
+**No remount.** Taking another principal renders the page; it mounts nothing. A component keeps what it holds
+— a field half typed, a list it loaded, a flag it worked out in `OnMount`. So read `IUserProvider.Current` where
+the decision is made — in the handler that saves, in `Render` — and gate a page with `[Authorize]`, a policy or
+`Authorize`, which Rask re-evaluates, rather than with a check in `OnMount`. What the session's
+[queries](query.md) had read for the user before is dropped and read again.
+
+**The tenant is the user's current one too.** A tenant read from the principal's `rask:tenant` claim follows the
+principal. One named by an `AddRaskTenant` resolver is asked again at each event, and as the page's address moves
+— see [the resolver](multi-tenancy.md#from-the-request-a-resolver). A tab opened before its user chose another
+tenant works in the chosen one from its next action.
+
+### When the browser's cookie changes
+
+A revalidator sees what your store knows. It cannot see what only the browser holds: that another tab signed
+out, or that some page of the site — yours, or an older application in the same host — issued the token again
+with another tenant in it. An open socket never sees that cookie.
+
+So the tab asks. A request under the app's path base, `/_rask/auth/who/{session}`, is authenticated like any
+other — your own cookie-reading event runs for it — and answers only whether the principal it carries is the one
+the tab's connection opened with. No claim is in the answer, a session that does not exist and one that is not
+the caller's answer alike, it is refused cross-site and `no-store`. When the answer is anything but "the same",
+the tab drops its connection and opens it again **before it sends anything**, so the upgrade carries the cookie
+as it is now:
+
+| The new cookie names | The tab |
+|---|---|
+| the same user, with other claims | goes on, under them: the session adopts the principal, the page renders again, and what the reader typed or pressed meanwhile is sent afterwards |
+| another user | loads the page again, as them |
+| nobody | [goes to the sign-in page](#when-the-user-is-gone) |
+
+It asks when the tab becomes the reader's again — it turns visible, its window takes the focus, it comes back
+from the back/forward cache — and when another tab of the browser says the credential changed, which a tab does
+after a sign-in or a sign-out through Rask and after finding a change itself (a tab that was told does not tell
+on, so tabs do not wake each other in a circle; one that asks too often is told to ask later, holds what it has
+to send, and asks again). A reader can only start something
+in a tab they are looking at, and "changed it over there, came back here" always passes through one of those.
+What they cannot see is bounded: an answer is trusted for **30 seconds** in the window that has the focus and
+**2 seconds** in one that does not, and the first thing sent after that waits for a new one. Those are the longest
+a reader's action can run under a cookie the browser has since replaced, and only when it was replaced without
+the window ever losing the focus — a script in another frame, say.
+
+Nothing in your app takes part in this. A cookie set by a plain endpoint of your own is found the same way as
+one set by `auth.SignIn(…)`; going through Rask's sign-in only makes the other tabs ask a moment sooner. The
+HTTP fallback needs none of it: each post carries the cookie, and the session adopts the principal it brings.
+
+### When the user is gone
+
+One behaviour on every page, guarded or not. A session that **had** a user and has none any more — the
+revalidator answered `null`, the cookie expired, they signed out elsewhere — goes to the sign-in page with the
+way back: `/login?returnUrl=…`, the address the route guard has always used. No message is shown; the page says
+what is needed. An open page is navigated there in place. A tab whose connection was refused loads its page again
+and is redirected there by that request: the tab marks the reload with a cookie that lasts thirty seconds and
+names the app it is for — `__Host-rask-ended` over https, which a browser takes from this host alone, so a
+neighbouring subdomain cannot plant it — and the server believes it once, for an anonymous request to that app,
+and removes it. An app with no page at `/login` has nowhere to send them, and serves the page it was asked for.
+
+A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
+serving them.
+
+### On a host you wire yourself
+
+All of it rests on one thing: `HttpContext.User` must be the user on the page's `GET`, on the socket's upgrade
+*and* on `/_rask/auth/who/…`, which is the same pipeline — `UseAuthentication()` with a default scheme, or a
+middleware that sets `HttpContext.User`, ahead of `MapRask`. A user the app works out some other way — its own
+scoped service filled from the request, a second scheme authenticated by hand inside a page — is one Rask never
+sees: the session then belongs to nobody, and its id is the only thing guarding it.
 
 A page's own connections are requests like any other, and they have to be signed in the same way as the page.
 `MapRask<App>(pathBase: "/app")` puts them under that prefix as ordinary route patterns — it does not move
@@ -303,7 +409,7 @@ anything into `Request.PathBase`, so `Request.Path` is the whole address:
 | The socket | `/app/rask/ws` |
 | The HTTP fallback | `/app/_rask/stream/{session}`, `/app/_rask/send/{session}`, `/app/_rask/leave/{session}` |
 | Files | `/app/_rask/upload/{session}`, `/app/_rask/download/{session}/{token}` |
-| The sign-in relay | `/app/_rask/auth/redeem` |
+| The sign-in relay, and the question a tab asks | `/app/_rask/auth/redeem`, `/app/_rask/auth/who/{session}` |
 
 So a token read from a cookie is read for the prefix, not for "a page":
 

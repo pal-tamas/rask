@@ -88,8 +88,8 @@ public abstract class Authenticatable : Aggregate<Guid>
     /// in a bearer token alike.
     /// </summary>
     /// <remarks>
-    /// Read when the user signs in and each time their session is loaded again, so a change to the row reaches a
-    /// signed-in user within the half minute a loaded session is kept. The claims Rask.Auth issues itself — the id,
+    /// Read when the user signs in and each time their session is loaded again — at every request, and before every
+    /// event of a live page — so a change to the row reaches a signed-in user at their next action. The claims Rask.Auth issues itself — the id,
     /// the name, the address, the roles, the session and the tenant — are not this method's to give, and naming one
     /// of them throws.
     /// </remarks>

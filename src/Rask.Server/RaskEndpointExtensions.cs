@@ -604,6 +604,11 @@ public static partial class RaskEndpointExtensions
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
+        if (SentToSignIn(httpContext, path, user, pathBaseNormalized, selector))
+        {
+            return;
+        }
+
         var appFactoryForPath = selector.FactoryFor(path);
         var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
         var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
@@ -798,6 +803,12 @@ public static partial class RaskEndpointExtensions
         // run straight after the runtime rather than a round trip later (HookBundleTag).
         var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
 
+        // Rendered for somebody: the tab remembers, so that losing them later sends it to the sign-in page.
+        if (session.Users.IsSignedIn)
+        {
+            html = LivePayload.InjectSignedInAttr(html);
+        }
+
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
         if (!dev && devTools is null)
@@ -942,6 +953,7 @@ public static partial class RaskEndpointExtensions
         }
 
         marker.RuntimeMapped = true;
+        WarnWhenNothingRevalidates(endpoints.ServiceProvider);
 
         // Registered as a RequestDelegate (services resolved from ctx.RequestServices) rather than a
         // minimal-API Delegate, so it does NOT go through RequestDelegateFactory — which is
@@ -1070,6 +1082,7 @@ public static partial class RaskEndpointExtensions
 
     private static void MapSessionEndpoints(IEndpointRouteBuilder endpoints, string pathBase)
     {
+        endpoints.MapGet(pathBase + WhoPath, (RequestDelegate)WhoAsync);
         endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
                 RedeemAuthTicketAsync(ctx, ctx.RequestServices.GetRequiredService<IAuthTicketStore>())))
             .DisableAntiforgery();
@@ -1419,6 +1432,9 @@ public static partial class RaskEndpointExtensions
                 ctx.Response.StatusCode = StatusCodes.Status409Conflict;
                 return;
             }
+
+            // A post carries the browser's credential as it is now; the stream it answers was opened earlier.
+            await AdoptPostedUserAsync(session, UserOf(ctx), ctx.RequestAborted).ConfigureAwait(false);
 
             await ReceiveFramesAsync(ctx, session, stream.Transport, store, limits, registry, metrics)
                 .ConfigureAwait(false);
@@ -2359,23 +2375,19 @@ public static partial class RaskEndpointExtensions
             (_, true) => "it belongs to another user",
             _ => "it has a user and the connection is anonymous",
         };
+        // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time;
+        // the line in the log is not.
+        if (!RefusedAttachLines.Admit())
+        {
+            return;
+        }
+
         var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
 
         RaskDiagnostics.Report(
             RaskLogLevel.Information, "Rask.Live",
             $"Rask Live: refused to attach a connection to session #{fingerprint}: {reason}."
             + (rebuilt ? " The connection's own page was rebuilt from its resume record." : " The tab reloads."));
-    }
-
-    // The session acts for whoever its connection carries, as the sign-in behind them stands now. The cookie or
-    // token of a reconnect can outlive that sign-in, so it is checked here, before anything is rendered or
-    // dispatched for it, and not when the interval next comes round: a session ended a moment ago would otherwise
-    // be handed its user back by reconnecting.
-    private static async Task AdoptUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
-    {
-        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
-        session.LastUserRevalidation = 0;
-        await RevalidateUserAsync(session, ct).ConfigureAwait(false);
     }
 
     // What a re-attached session owes its new connection: the deferred sign-in navigation, then a render.
@@ -2664,6 +2676,7 @@ public static partial class RaskEndpointExtensions
         }
 
         var submits = EventBatch.AnnounceSubmits(session.View, events);
+        session.WhoAnswered = WhoAnswer.OwedToBatch;
         try
         {
             var remaining = count;
@@ -2689,6 +2702,7 @@ public static partial class RaskEndpointExtensions
         finally
         {
             EventBatch.Withdraw(submits);
+            session.WhoAnswered = WhoAnswer.PerEvent;
             session.EndBatch();
             session.InHandlerScope = false;
             ReleaseDispatchLock(session);
@@ -2979,9 +2993,24 @@ public static partial class RaskEndpointExtensions
             // fire a server-side handler on a page they can no longer view. When the guard
             // no longer passes, skip the handler entirely and let EnforceAuthAndRenderAsync
             // re-evaluate and ship the challenge/forbid redirect.
-            await RevalidateUserAsync(session, ct).ConfigureAwait(false);
+            // Asked at every event, with no window in which one is taken on trust: as a request through the app's
+            // auth middleware would be.
+            // The events of one frame are one request, and ask once between them.
+            // A batch that has run on for longer than a pushed render trusts an answer asks again.
+            if (session.WhoAnswered != WhoAnswer.GivenToBatch || AskedLongAgo(session))
+            {
+                if (!await TryAskWhoAsync(session, "the event", ct).ConfigureAwait(false))
+                {
+                    return;
+                }
 
-            if (!await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
+                if (session.WhoAnswered == WhoAnswer.OwedToBatch)
+                {
+                    session.WhoAnswered = WhoAnswer.GivenToBatch;
+                }
+            }
+
+            if (session.SignInEnded || !await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
             {
                 await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
                 return;
@@ -3336,18 +3365,42 @@ public static partial class RaskEndpointExtensions
         }
 
         var invocationInfo = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
+
+        // A call into the server is an act, like a handler: it is made for the user as they are now, or not made.
+        var may = MayActInlineAsync(session);
+        if (!may.IsCompletedSuccessfully)
+        {
+            _ = InvokeDotNetOnceAskedAsync(may, runtime, invocationInfo, argsJson);
+        }
+        else if (may.Result)
+        {
+            InvokeDotNet(runtime, invocationInfo, argsJson);
+        }
+    }
+
+    private static async Task InvokeDotNetOnceAskedAsync(
+        ValueTask<bool> may, RaskJSRuntime runtime, DotNetInvocationInfo invocation, string argsJson)
+    {
+        if (await may.ConfigureAwait(false))
+        {
+            InvokeDotNet(runtime, invocation, argsJson);
+        }
+    }
+
+    private static void InvokeDotNet(RaskJSRuntime runtime, DotNetInvocationInfo invocation, string argsJson)
+    {
         try
         {
             // Names this session as the caller, so a framework callback registry answers only ids its own
             // session registered — a static [JSInvokable] is otherwise reachable from every socket.
             using var caller = JsCaller.Enter(runtime);
-            DotNetDispatcher.BeginInvokeDotNet(runtime, invocationInfo, argsJson);
+            DotNetDispatcher.BeginInvokeDotNet(runtime, invocation, argsJson);
         }
         catch (Exception ex)
         {
             RaskDiagnostics.Report(
                 RaskLogLevel.Error, "Rask.Live",
-                $"Rask dotNetInvoke '{assemblyName}.{methodIdentifier}' threw", ex);
+                $"Rask dotNetInvoke '{invocation.AssemblyName}.{invocation.MethodIdentifier}' threw", ex);
         }
     }
 
@@ -3364,14 +3417,25 @@ public static partial class RaskEndpointExtensions
         session.InHandlerScope = true;
         try
         {
+            // A navigation mounts a page just as a handler does, so it asks first, and moves nowhere unanswered.
+            // The tenant resolver is asked as the route moves, below: it may read the address.
+            if (!await TryAskWhoAsync(session, "the navigation", ct, tenantToo: false).ConfigureAwait(false))
+            {
+                return;
+            }
+
             var routeState = session.Services.GetRequiredService<RouteState>();
+            var from = (routeState.Path, routeState.Query);
             routeState.Path = navPath;
             routeState.Query = QueryString.Parse(navQueryString);
 
             try
             {
-                // A navigation mounts a page just as a handler does, so an ended sign-in must stop it too.
-                await RevalidateUserAsync(session, ct).ConfigureAwait(false);
+                // An address that did not move asked nobody.
+                if (string.Equals(from.Path, routeState.Path, StringComparison.Ordinal) && ReferenceEquals(from.Query, routeState.Query))
+                {
+                    session.AskTenantAgain();
+                }
 
                 // And the page it mounts may send the reader on, as it may from a handler or the first request.
                 using var navigating = session.Services.GetRequiredService<Navigator>().EnterHandler();
@@ -3417,7 +3481,11 @@ public static partial class RaskEndpointExtensions
             using var work = session.EnterWorkScope();
             var navigator = session.Services.GetRequiredService<Navigator>();
             using var navigating = navigator.EnterHandler();
-            await RevalidateUserAsync(session, CancellationToken.None).ConfigureAwait(false);
+            if (!await TryAskWhoAsync(session, "the navigation", CancellationToken.None).ConfigureAwait(false))
+            {
+                return;
+            }
+
             navigate();
             if (navigator.TryConsumeHistory(out var url, out _))
             {
@@ -3444,55 +3512,6 @@ public static partial class RaskEndpointExtensions
     // Evaluates the route guard for the session's current route + principal. Returns true when the
     // route resolves and the guard allows it, or when no route resolves (nothing to gate — e.g. a
     // NotFound page); false when the guard would challenge/forbid. Used to gate handler dispatch.
-    // How often a live session's principal is re-checked against its sign-in before a dispatch.
-    internal static readonly TimeSpan RevalidateUserEvery = TimeSpan.FromSeconds(30);
-
-    /// <summary>
-    ///     Re-checks the session's principal against its sign-in, at most every <see cref="RevalidateUserEvery" />.
-    /// </summary>
-    /// <remarks>
-    ///     A page open for hours holds the principal it attached with. When the sign-in behind it has ended (signed out
-    ///     on another device, a password reset) the principal is cleared, and the route re-check that follows sends the
-    ///     challenge. When the claims changed (a role granted or removed) the principal is replaced, so the page re-renders
-    ///     under the new ones. Nothing is checked when the app registered no <see cref="ISessionRevalidator" />.
-    /// </remarks>
-    private static async Task RevalidateUserAsync(LiveSession session, CancellationToken cancellationToken)
-    {
-        if (session.Services.GetService<ISessionRevalidator>() is not { } revalidator)
-        {
-            return;
-        }
-
-        var users = session.Services.GetRequiredService<SessionUserProvider>();
-        if (users.Current.Identity?.IsAuthenticated != true)
-        {
-            return;
-        }
-
-        var now = Environment.TickCount64;
-        if (session.LastUserRevalidation != 0
-            && now - session.LastUserRevalidation < (long)RevalidateUserEvery.TotalMilliseconds)
-        {
-            return;
-        }
-
-        session.LastUserRevalidation = now;
-
-        var fresh = await revalidator.Revalidate(users.Current, cancellationToken).ConfigureAwait(false);
-        if (fresh is null)
-        {
-            users.Clear();
-        }
-        else if (!SameClaims(users.Current, fresh))
-        {
-            users.Set(fresh);
-        }
-    }
-
-    private static bool SameClaims(ClaimsPrincipal left, ClaimsPrincipal right) =>
-        left.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal)
-            .SequenceEqual(right.Claims.Select(static c => c.Type + "\u0000" + c.Value).Order(StringComparer.Ordinal), StringComparer.Ordinal);
-
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
@@ -3614,11 +3633,17 @@ public static partial class RaskEndpointExtensions
     }
 
     // Where the guard sends the session's principal instead of a route; null when it may see the page (or the
-    // path resolves to nothing — a NotFound page has nothing to gate). Changes nothing: moving the route asks
-    // for a render, so a caller has to know the answer before it moves it.
+    // path resolves to nothing — a NotFound page has nothing to gate). Moves nothing: moving the route asks
+    // for a render, so a caller has to know the answer before it moves it. A session whose sign-in ended is sent
+    // to the sign-in page whatever the page, once (SignInAgain).
     private static async Task<GuardRedirect?> GuardRouteAsync(
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
+        if (session.SignInEnded)
+        {
+            return SignInAgain(session, path, query);
+        }
+
         var routeState = session.Services.GetRequiredService<RouteState>();
         if (!session.Routes.TryResolve(routeState.CurrentTable, path, out var chain))
         {

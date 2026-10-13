@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
@@ -5,10 +6,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Rask.Core;
+using Rask.Core.Authentication;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Querying;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.App;
@@ -137,15 +142,19 @@ public sealed class HandWiredDataHostTests : IDisposable
     }
 
     [Fact]
-    public async Task A_live_sessions_work_reads_its_tenants_rows_long_after_the_request_that_opened_it()
+    public async Task A_live_sessions_work_reads_the_rows_of_the_tenant_its_connection_names()
     {
         using var host = await StartAsync();
         var opened = await GetAsync(host, "/start", tenant: 7, user: Alice);
         var sessionId = MarkupAssert.SessionId(opened);
 
-        // The socket carries the same user, as a browser's cookie would, and no tenant header at all: what the
-        // session was told when it opened is what it keeps.
-        host.WebSockets.ConfigureRequest = request => request.Headers[UserHeader] = Alice.ToString();
+        // The socket carries the same user and the same tenant, as a browser's cookie and its host name would:
+        // each event asks the resolver again, and it reads the connection's request.
+        host.WebSockets.ConfigureRequest = request =>
+        {
+            request.Headers[UserHeader] = Alice.ToString();
+            request.Headers[CurrentCustomer.Header] = "7";
+        };
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);
@@ -160,6 +169,132 @@ public sealed class HandWiredDataHostTests : IDisposable
         Assert.Contains("names=Budapest,Szeged<", html, StringComparison.Ordinal);
         Assert.Contains("tenant=00000000-0000-0000-0000-000000000007", html, StringComparison.Ordinal);
         Assert.Contains($"user={Alice}", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(TenantFrom.ThePrincipal)]
+    [InlineData(TenantFrom.TheRaskClaim)]
+    public async Task A_tab_whose_user_chose_another_tenant_elsewhere_reads_that_tenant_s_rows_at_its_next_action(TenantFrom tenantFrom)
+    {
+        using var host = await StartAsync(tenantFrom);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Kind = tenantFrom;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice, partner: 7);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: 7);
+        var before = await LoadAsync(ws, opened, "Budapest,Szeged");
+
+        chosen.Now = 8;
+        var after = await LoadAsync(ws, opened, "Vienna");
+
+        Assert.Contains("tenant=00000000-0000-0000-0000-000000000007", before, StringComparison.Ordinal);
+        Assert.Contains("tenant=00000000-0000-0000-0000-000000000008", after, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_reconnect_that_carries_a_token_for_another_tenant_works_in_that_tenant()
+    {
+        using var host = await StartAsync(TenantFrom.ThePrincipal);
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice, partner: 7);
+        var sessionId = MarkupAssert.SessionId(opened);
+        using (var first = await AttachAsync(host, sessionId, partner: 7))
+        {
+            await LoadAsync(first, opened, "Budapest,Szeged");
+            await first.CloseAndAwaitServerCleanupAsync();
+        }
+
+        using var second = await AttachAsync(host, sessionId, partner: 8);
+        var after = await LoadAsync(second, opened, "Vienna");
+
+        Assert.Contains("tenant=00000000-0000-0000-0000-000000000008", after, StringComparison.Ordinal);
+    }
+
+    // The socket's request is "/rask/ws" whatever the page: the page's address is the session's RouteState.
+    [Fact]
+    public async Task A_tenant_read_from_the_page_s_address_is_the_session_s_and_follows_it_as_it_navigates()
+    {
+        using var host = await StartAsync(TenantFrom.ThePagesAddress);
+        var opened = await GetAsync(host, "/t/7/terminals", tenant: null, user: Alice);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: null);
+        var before = await LoadAsync(ws, opened, "Budapest,Szeged");
+
+        await ws.SendJsonAsync(new { type = "navigate", path = "/t/8/terminals" }, ct: TestContext.Current.CancellationToken);
+        var after = await LoadAsync(ws, opened, "Vienna");
+
+        Assert.Contains("tenant=00000000-0000-0000-0000-000000000007", before, StringComparison.Ordinal);
+        Assert.Contains("tenant=00000000-0000-0000-0000-000000000008", after, StringComparison.Ordinal);
+    }
+
+    // A header the page's request carried and its socket does not. Reading nothing would look like an empty table.
+    [Fact]
+    public async Task A_resolver_that_read_what_only_the_page_s_request_carried_is_told_so_at_the_first_read_of_an_event()
+    {
+        var log = new CapturedLog();
+        using var host = await StartAsync(TenantFrom.TheRequestsHeader, log);
+        var opened = await GetAsync(host, "/start", tenant: 7, user: Alice);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: null);
+
+        await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(opened) }, ct: TestContext.Current.CancellationToken);
+        await WaitFor.True(() => log.Entries.Any(static e => e.Exception is MissingTenantException), "the read is refused");
+
+        var refused = log.Entries.First(static e => e.Exception is MissingTenantException).Exception!;
+        Assert.Contains("AddRaskTenant", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("only the page's own request carried", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("RouteState", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("Current.Principal", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task What_the_session_s_queries_read_for_one_tenant_is_dropped_when_its_user_chooses_another()
+    {
+        using var host = await StartAsync(TenantFrom.ThePrincipal);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Kind = TenantFrom.ThePrincipal;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice, partner: 7);
+        var sessionId = MarkupAssert.SessionId(opened);
+        using var ws = await AttachAsync(host, sessionId, partner: 7);
+        var queries = (SessionQueryClient)host.Store.Peek(sessionId)!.Services.GetRequiredService<IQueryClient>();
+        queries.Set(QueryKey.Of("terminals"), "Budapest,Szeged");
+
+        chosen.Now = 8;
+        await LoadAsync(ws, opened, "Vienna");
+
+        Assert.False(queries.TryGetData<string>(QueryKey.Of("terminals"), out _));
+    }
+
+    // A render nobody asked for has no request to ask about, and still must not draw one user's page in another's tenant.
+    [Fact]
+    public async Task A_render_the_server_starts_itself_works_in_the_tenant_of_the_principal_it_has_just_been_given()
+    {
+        using var host = await StartAsync(TenantFrom.ThePrincipal);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Kind = TenantFrom.ThePrincipal;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice, partner: 7);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: 7);
+        var session = host.Store.Peek(MarkupAssert.SessionId(opened))!;
+
+        chosen.Now = 8;
+        session.LastUserCheck = 0;
+        await RaskEndpointExtensions.MayPushAsync(session);
+
+        Assert.Equal(new Guid("00000000-0000-0000-0000-000000000008"), TenantOf(session));
+    }
+
+    // The address does not move, so nothing but the navigation itself can ask.
+    [Fact]
+    public async Task A_navigation_to_the_page_it_is_on_asks_the_resolver_again()
+    {
+        using var host = await StartAsync(TenantFrom.TheStore);
+        var chosen = host.Services.GetRequiredService<ChosenPartner>();
+        chosen.Stored = 7;
+        var opened = await GetAsync(host, "/start", tenant: null, user: Alice);
+        using var ws = await AttachAsync(host, MarkupAssert.SessionId(opened), partner: null);
+        var session = host.Store.Peek(MarkupAssert.SessionId(opened))!;
+
+        chosen.Stored = 8;
+        await ws.SendJsonAsync(new { type = "navigate", path = "/start" }, ct: TestContext.Current.CancellationToken);
+        await WaitFor.True(() => TenantOf(session) == new Guid("00000000-0000-0000-0000-000000000008"), "the navigation asks");
+
+        Assert.Equal(new Guid("00000000-0000-0000-0000-000000000008"), TenantOf(session));
     }
 
     [Fact]
@@ -245,7 +380,7 @@ public sealed class HandWiredDataHostTests : IDisposable
     }
 
     // The whole of what a hand-wired host writes for data is the two marked calls.
-    private async Task<RaskTestHost> StartAsync()
+    private async Task<RaskTestHost> StartAsync(TenantFrom tenantFrom = TenantFrom.TheRequestsHeader, CapturedLog? log = null)
     {
         var connection = $"Data Source={_dbPath};Pooling=False";
 
@@ -259,17 +394,43 @@ public sealed class HandWiredDataHostTests : IDisposable
 
                 // What it adds.
                 services.AddRaskData<TerminalDomainContext>(o => o.UseSqlite(connection));
-                services.AddRaskTenant(sp => sp.GetRequiredService<CurrentCustomer>().TenantId);
+                services.AddSingleton<ChosenPartner>();
+                services.AddSingleton<ISessionRevalidator, PartnerRevalidator>();
+                services.AddScoped<IQueryClient>(static _ => new SessionQueryClient(new NothingToAsk()));
+                if (log is not null)
+                {
+                    services.AddLogging(logging => logging.AddProvider(log));
+                }
+
+                switch (tenantFrom)
+                {
+                    case TenantFrom.TheRequestsHeader:
+                        services.AddRaskTenant(sp => sp.GetRequiredService<CurrentCustomer>().TenantId);
+                        break;
+                    case TenantFrom.ThePrincipal:
+                        services.AddRaskTenant(static _ => PartnerOf(Current.Principal));
+                        break;
+                    case TenantFrom.TheStore:
+                        services.AddRaskTenant(static sp => sp.GetRequiredService<ChosenPartner>().Stored);
+                        break;
+                    case TenantFrom.ThePagesAddress:
+                        services.AddRaskTenant(static sp => PartnerIn(sp.GetRequiredService<RouteState>().Path));
+                        break;
+                    default:
+                        // No resolver: the principal's own rask:tenant claim says.
+                        break;
+                }
             },
             configureMiddleware: app =>
             {
-                // Stands in for UseAuthentication: the principal arrives on HttpContext.User.
-                app.Use(static (context, next) =>
+                // Stands in for UseAuthentication: the principal arrives on HttpContext.User, with the partner
+                // its token names.
+                app.Use((context, next) =>
                 {
                     if (Guid.TryParse(context.Request.Headers[UserHeader], out var user))
                     {
-                        context.User = new ClaimsPrincipal(new ClaimsIdentity(
-                            [new Claim(ClaimTypes.NameIdentifier, user.ToString())], "Test"));
+                        var partner = int.TryParse(context.Request.Headers[PartnerHeader], out var named) ? named : (int?)null;
+                        context.User = Principal(user, partner, tenantFrom);
                     }
 
                     return next(context);
@@ -310,9 +471,14 @@ public sealed class HandWiredDataHostTests : IDisposable
         return host;
     }
 
-    private static async Task<string> GetAsync(RaskTestHost host, string path, int? tenant, Guid? user = null)
+    private static async Task<string> GetAsync(RaskTestHost host, string path, int? tenant, Guid? user = null, int? partner = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        if (partner is { } chosen)
+        {
+            request.Headers.Add(PartnerHeader, chosen.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         if (tenant is { } number)
         {
             request.Headers.Add(CurrentCustomer.Header, number.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -325,5 +491,126 @@ public sealed class HandWiredDataHostTests : IDisposable
 
         using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
         return await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+    }
+
+    // ── a live page follows its user's tenant ────────────────────────────────────────────────────
+
+    private const string PartnerHeader = "X-Partner";
+    private const string PartnerClaim = "partner";
+
+    /// <summary>Where the app says a request's tenant comes from.</summary>
+    public enum TenantFrom
+    {
+        /// <summary>A header of the request: the host name's stand-in.</summary>
+        TheRequestsHeader,
+
+        /// <summary>A claim of the signed-in user, read by the app's resolver.</summary>
+        ThePrincipal,
+
+        /// <summary>The page's address: <c>/t/7/…</c>.</summary>
+        ThePagesAddress,
+
+        /// <summary>A row of the app's own: the tenant its user is working in, which changes with no new token.</summary>
+        TheStore,
+
+        /// <summary>The principal's own <c>rask:tenant</c> claim, with no resolver registered.</summary>
+        TheRaskClaim,
+    }
+
+    private static ClaimsPrincipal Principal(Guid user, int? partner, TenantFrom tenantFrom)
+    {
+        var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.ToString())], "Test");
+        if (partner is { } number)
+        {
+            identity.AddClaim(tenantFrom == TenantFrom.TheRaskClaim
+                ? new Claim(Tenant.ClaimType, new Guid(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte)number).ToString())
+                : new Claim(PartnerClaim, number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+        return new ClaimsPrincipal(identity);
+    }
+
+    // The tenant the session's work runs in, read the way its own reads read it.
+    private static Guid? TenantOf(LiveSession session)
+    {
+        using var work = new SessionDataScope().Enter(session.Services);
+        return Current.Tenant;
+    }
+
+    private static int? PartnerOf(ClaimsPrincipal? principal) =>
+        int.TryParse(principal?.FindFirst(PartnerClaim)?.Value, out var partner) ? partner : null;
+
+    // "/t/7/terminals" is tenant 7's page.
+    private static int? PartnerIn(string path) =>
+        path.Split('/', StringSplitOptions.RemoveEmptyEntries) is ["t", var number, ..] && int.TryParse(number, out var partner)
+            ? partner
+            : null;
+
+    private static async Task<WebSocket> AttachAsync(RaskTestHost host, string sessionId, int? partner)
+    {
+        host.WebSockets.ConfigureRequest = request =>
+        {
+            request.Headers[UserHeader] = Alice.ToString();
+            if (partner is { } chosen)
+            {
+                request.Headers[PartnerHeader] = chosen.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+        };
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws.AttachedAsync(host, sessionId);
+        return ws;
+    }
+
+    // Presses "load" and returns the page once it shows the names it read.
+    private static async Task<string> LoadAsync(WebSocket ws, string opened, string names)
+    {
+        await ws.SendJsonAsync(new { id = MarkupAssert.FirstHandlerId(opened) }, ct: TestContext.Current.CancellationToken);
+        var frame = await ws.ReceiveUntilAsync(
+            f => f.Contains($"names={names}<", StringComparison.Ordinal), $"the render that shows {names}");
+        using var json = JsonDocument.Parse(frame);
+        return json.RootElement.GetProperty("html").GetString()!;
+    }
+
+    // The partner a user chose somewhere else, as the app's own store has it.
+    private sealed class ChosenPartner
+    {
+        public int? Now { get; set; }
+
+        // The tenant the app's own table says the user is working in, for a resolver that reads it from there.
+        public int? Stored { get; set; }
+
+        public TenantFrom Kind { get; set; }
+    }
+
+    // Hands back the principal as the store has it now: the same instance until the user chooses another partner.
+    private sealed class PartnerRevalidator(ChosenPartner chosen) : ISessionRevalidator
+    {
+        public ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default) =>
+            new(chosen.Now is { } partner
+                ? Principal(Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!), partner, chosen.Kind)
+                : principal);
+    }
+
+    // A query cache needs a dispatcher. Nothing here dispatches.
+    private sealed class NothingToAsk : IDispatcher
+    {
+        public Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Send(ICommand command, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(
+            ISubscription<TEvent> subscription, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
     }
 }
