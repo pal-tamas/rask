@@ -905,6 +905,7 @@ from the row to fill a gap:
 | `null` | not nullable (`string Name`) | nothing: the write is refused, *This field is required.* under `Name` |
 | a nested value-object model | a value object | the value object **built from the nested model alone**, by the same rules |
 | `null` | a value object declared nullable (`Address? Billing`) | `null`: every column of it |
+| a nested model **left wholly empty** | a value object declared nullable (`Address? Billing`) | the same `null`: it was not given, and nothing in it is asked for |
 | `null` | a value object that is not nullable (`Money Price`) | nothing: the write is refused, under `Price` |
 | `Version` is `null` | | no concurrency check |
 
@@ -931,6 +932,49 @@ root property is; declare it `string?` where the table really holds empty text.
 
 The same holds for a create, which builds the value object from the model and nothing else: a member the model
 leaves empty is not filled from the default the aggregate's initializer gave it.
+
+**An optional value object left empty was not given.** A form over `Address? Billing` has to hold a nested model
+to bind its fields to (`model.Billing ??= new()`), so a reader who fills none of them posts a model that is there
+and empty. That is stored as no address — every column `NULL` — and none of its fields is asked for. Fill one
+and it is an address: the rest of the rules apply, and a missing street is refused under `Billing.Street`.
+
+```csharp
+model.Billing = new();                                   // nothing typed
+await Customer.Update(id, model);                        // Billing is null: every Billing_ column NULL
+
+model.Billing = new() { City = "Szeged" };               // one field typed
+await Customer.Update(id, model);                        // refused — "Billing.Street": This field is required.
+```
+
+*Empty* means exactly this, for every member of the nested model, at every level:
+
+| The member's value | Counts as |
+| --- | --- |
+| `null` | empty |
+| text that is `""` or only white space | empty |
+| `false` | empty: a box nobody ticked says nothing |
+| a nested model that is `null`, or itself wholly empty | empty |
+| any other value — **including `0`** | filled |
+
+Every member of a model is nullable (`bool?`, `int?`), so each has an empty state. A control the reader never
+touched writes nothing and leaves `null`; a number field that is cleared goes back to `null`; a box that is
+ticked and unticked again writes `false`, which is why `false` is empty too. `0` is a number somebody typed. A
+value object that is **not** nullable is never read this way — its empty model is refused for each field it
+lacks — and so is a row of a list, which is there because somebody added it.
+
+**A save that changes nothing still writes nothing.** When the model is empty and what the row holds there is
+empty by the same rule — every column `NULL`, blank text or `false` — the row is left exactly as it is: text
+stored as `''` stays `''`. The columns are cleared only when something stored was a value.
+
+**A form says "required" per place, not per type.** `Address Shipping` and `Address? Billing` are one nested
+model type, and a control bound to `Shipping.Street` announces `aria-required` and refuses an empty street
+before anything is saved, as ever. One bound to `Billing.Street` announces nothing and lets an empty street
+through: a field's rule sees its own value and not the fields beside it, so it cannot tell an address nobody
+gave from one that lacks a street. The write can, and says *This field is required.* under `Billing.Street`,
+[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip.Validate`)
+is still asked there about a value that was typed. Nothing is written for this: the generated model registers
+which of its properties may be left empty
+([`RaskValidation.RegisterOptionalFields`](forms-validation.md#how-a-control-knows-a-field-is-required)).
 
 A form save writes properties through the aggregate's private setters, with generated `[UnsafeAccessor]`s and no
 reflection. **It does not call the aggregate's methods**, so a rule that must hold for form input belongs in a
@@ -1017,7 +1061,9 @@ A control bound to a field that is required this way says `aria-required="true"`
 — the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled. A
 member of a value object of several values is such a field: `string Street` on `Address` is required under
 `Address.Street`, `string? Floor` is optional, and the validation attributes the value object's own properties
-carry are checked by the write under the same path.
+carry are checked by the write under the same path. The exception is a field under a value object that
+[may be left wholly empty](#how-a-form-save-writes) — `Address? Billing` — which a form announces nothing
+about, while the same type held as `Address Shipping` is announced as ever.
 
 The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
 built-in translations — so it follows the reader's language, and

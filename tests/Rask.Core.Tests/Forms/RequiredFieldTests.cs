@@ -16,6 +16,7 @@ public partial class RequiredFieldTests : global::Rask.Core.RaskMarkup
         RaskValidation.RegisterRequiredFields(typeof(Parcel), Parcel.IsRequired);
         RaskValidation.RegisterRequiredFields(typeof(Row), Row.IsRequired);
         RaskValidation.RegisterRequiredFields(typeof(Money), Money.IsRequired);
+        RegisterTheOrder();
     }
 
     [Fact]

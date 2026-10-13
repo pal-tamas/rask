@@ -230,7 +230,8 @@ public sealed partial class ModelInputGenerator
         }
 
         var held = "__held" + (local++).ToString(CultureInfo.InvariantCulture);
-        s.Append(indent).Append("if (").Append(access).Append(" is { } ").Append(held).AppendLine(")");
+        s.Append(indent).Append("if (").Append(access).Append(" is { } ").Append(held)
+            .Append(AndNotEmpty(held, valueObject, nullable)).AppendLine(")");
         s.Append(indent).AppendLine("{");
         foreach (var member in valueObject.Members)
         {

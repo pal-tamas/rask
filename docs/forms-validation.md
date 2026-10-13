@@ -130,6 +130,16 @@ item type, so `IsRequired(typeof(OrderModel), "Rows[2].Weight")` asks what the r
 `Weight`, and `Price.Amount` asks the type of `Price`. The answer is worked out once per field and kept until
 a type is registered again, so asking on every render costs a lookup.
 
+**A part of the model that may be left empty.** One nested type can be held where it must be there and where
+it may be absent — `Address Shipping`, `Address? Billing` — so "may be left wholly empty" is said of the
+property that holds it: `RaskValidation.RegisterOptionalFields(typeof(OrderModel), property => property is
+"Billing")`, made by the same layer. Nothing under such a property is required, however deep:
+`IsRequired(typeof(OrderModel), "Billing.Street")` is false while `"Shipping.Street"` is true, and a bound
+control asks with its own bind expression — `RaskValidation.IsRequired(() => order.Billing.Street)` — so it
+answers for the place it sits in. The rule a field's type carries is asked there only about a value that was
+filled in (not `null`, blank text or an unticked box). It relaxes what a form asks and enforces nothing: the
+save still says what a part that *was* given lacks.
+
 A field required only by a `Validate` step, a FluentValidation rule or a custom attribute is not visible to
 this question; say it on the control with `.AriaRequired()`.
 

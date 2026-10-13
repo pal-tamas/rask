@@ -27,6 +27,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`RaskValidation.RegisterOptionalFields` and `RaskValidation.IsRequired(bind)`: a form says "required" per
+  place, not per type.** One nested model type can be held where it must be there and where it may be absent —
+  `Address Shipping`, `Address? Billing` — and a form asked by the type alone, so it announced `Billing.Street`
+  as required and refused the empty address a save now accepts. `RegisterOptionalFields(typeof(OrderModel),
+  property => property is "Billing")` says which properties of a model hold a part that may be left wholly
+  empty; the generated models call it, as they call `RegisterRequiredFields`. Under such a property nothing is
+  announced (`IsRequired(typeof(OrderModel), "Billing.Street")` is false, `"Shipping.Street"` stays true), and
+  the rule a field's type carries is asked only about a value that was filled in; the save says what a part
+  that *was* given lacks, under the field. A control asks with the expression it is bound with —
+  `RaskValidation.IsRequired(() => order.Billing.Street)` — which is what every `Ui.*` control and a plain
+  `Input`, `Select` and `Textarea` now do; a control of your own that asked
+  `IsRequired(acc.Target.GetType(), acc.PropertyName)` still compiles and answers by the type alone, so
+  [ask with `Bind`](docs/building-form-controls.md) to answer for the place.
 - **`X.Create(id, model)` for an integer key the application assigns.** An `Aggregate<int>` (or any integer key)
   whose own `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()` was given the creates of a stored
   identity — `Create(model)`, `Create(x => …)`, documented *"The key is assigned by the database"* — so every row
@@ -154,6 +167,16 @@ them until tagged releases begin.
     `Create(model)` and `Update(id, model)`, under the nested path — they were copied to the nested model and
     checked by a form only;
   - an update that changes nothing still writes nothing: text stored as `''` stays `''`.
+
+  - **an optional value object whose nested model is left wholly empty was not given.** For `Address? Billing`,
+    a form has to hold a nested model to bind to, so nothing typed arrives as a model that is there and empty:
+    it is stored as `null` — every column `NULL` — and none of its fields is asked for, on `Create` and `Update`,
+    at every level. *Empty* is: every member `null`, text that is `""` or white space, `false` (a box nobody
+    ticked — one ticked and unticked again writes `false`), or a nested model that is itself empty; `0` and
+    every other value count as filled. One filled member makes it given, and the required rules apply
+    (`Billing.Street`). A value object that is not nullable is unchanged: empty is refused. And a save that
+    changes nothing writes nothing: when what the row holds there is empty by the same rule, the row is left
+    exactly as it is — `''` stays `''` — and the columns are cleared only when something stored was a value.
 
   **Migrating:** a model is not a patch. Code that sent a nested model with only some members set starts from
   the stored one (`(await Customer.Model(id))!`, then change what changes) or says the change directly

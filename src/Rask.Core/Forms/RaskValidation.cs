@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+
 namespace Rask.Core.Forms;
 
 // The built-in validation switchboard.
@@ -158,7 +160,10 @@ public static class RaskValidation
 
     // What a bound field validates with: the rule its property's type carries, then what the field wrote.
     // One lookup and nothing built for a model no one registered, which is every render of most forms.
-    internal static Delegate? RuleFor<T>(FieldIdentifier field, Delegate? written)
+    // Under an object that may be left wholly empty the type's rule is asked only about a value that was
+    // filled in: a field's rule sees its own value, not the fields beside it, so it cannot tell an object nobody
+    // gave from one that lacks this field — the write can, and says so under the field.
+    internal static Delegate? RuleFor<T>(FieldIdentifier field, Delegate? written, bool underOptional = false)
     {
         var rules = _fieldRules;
         if (rules.Count == 0 || !rules.TryGetValue(field.Model.GetType(), out var ruleOf)
@@ -173,6 +178,11 @@ public static class RaskValidation
                 $"The rule registered for {field} is a {own.GetType().Name}, and the field is bound as "
                 + $"{typeof(T).Name}: RaskValidation.RegisterFieldRules must hand back a Validate<{typeof(T).Name}> "
                 + $"or a Func<{typeof(T).Name}, ValueTask<IEnumerable<string>>> for it.");
+        }
+
+        if (underOptional)
+        {
+            own = WhenFilled.Of<T>(own);
         }
 
         return written is null ? own : RuleSequence<T>.Of(own, written);
@@ -211,6 +221,40 @@ public static class RaskValidation
     }
 
     /// <summary>
+    ///     Registers which properties of one model type hold an object that may be left wholly empty — an
+    ///     optional part of the model, which is not given at all when none of its fields is filled — so a
+    ///     control bound to a field under one does not announce it as required, and the rule its type carries
+    ///     is asked only about a value that was filled in. The seam a data layer's generator plugs into; call
+    ///     it once per model type, from a <c>[ModuleInitializer]</c>.
+    ///     <para>
+    ///         It is said of the property that holds the object, not of the object's type, because one type
+    ///         can be held both ways: <c>Shipping</c> must be there and <c>Billing</c> may be absent, and both
+    ///         are an address. It relaxes what a form asks and enforces nothing: whoever saves the model still
+    ///         says which fields a part that <i>was</i> given lacks. Registering a type again replaces what
+    ///         it had.
+    ///     </para>
+    /// </summary>
+    /// <param name="modelType">
+    ///     The type that declares the properties: the form's model, or the type of an object or a row nested
+    ///     in it. A type derived from it is covered too.
+    /// </param>
+    /// <param name="isOptional">
+    ///     Given a property's name, whether the object it holds may be left wholly empty. Asked on every
+    ///     render of a control bound under the type, so it answers the same every time, builds nothing and
+    ///     may be asked from any thread.
+    /// </param>
+    public static void RegisterOptionalFields(Type modelType, Func<string, bool> isOptional)
+    {
+        ArgumentNullException.ThrowIfNull(modelType);
+        ArgumentNullException.ThrowIfNull(isOptional);
+
+        lock (Gate)
+        {
+            _requiredFields = _requiredFields.WithOptional(modelType, isOptional);
+        }
+    }
+
+    /// <summary>
     ///     Whether a field must be filled: its type registered it through
     ///     <see cref="RegisterRequiredFields" />, or the member carries
     ///     <see cref="System.ComponentModel.DataAnnotations.RequiredAttribute" />. The one question a form
@@ -238,6 +282,40 @@ public static class RaskValidation
         ArgumentNullException.ThrowIfNull(fieldPath);
         return _requiredFields.IsRequired(modelType, fieldPath);
     }
+
+    /// <summary>
+    ///     Whether the field a bind expression ends in must be filled: what
+    ///     <see cref="IsRequired(Type, string)" /> answers for its last property, unless the expression walks
+    ///     through an object that may be left wholly empty (<see cref="RegisterOptionalFields" />). The
+    ///     question a control that draws itself asks with the expression it was bound with; nothing is
+    ///     evaluated and nothing is built, so it is cheap enough to ask on every render.
+    /// </summary>
+    /// <param name="bound">The control's bind expression: <c>() =&gt; model.Billing.Street</c>.</param>
+    /// <returns>
+    ///     <see langword="true" /> when the field must be filled; <see langword="false" /> when nothing says
+    ///     so, when it lies under an object that may be absent, or when the expression ends in no member.
+    /// </returns>
+    public static bool IsRequired(LambdaExpression bound)
+    {
+        ArgumentNullException.ThrowIfNull(bound);
+
+        var body = bound.Body;
+        while (body is UnaryExpression { NodeType: ExpressionType.Convert } lifted)
+        {
+            body = lifted.Operand;
+        }
+
+        var fields = _requiredFields;
+        return body is MemberExpression { Expression: { } holder } member
+               && fields.IsRequired(holder.Type, member.Member.Name)
+               && !fields.IsUnderOptional(holder);
+    }
+
+    // The same for a control Core draws, which has parsed its bind expression already.
+    internal static bool IsRequired(ExpressionAccessor.Accessor bound) =>
+        !bound.UnderOptional && _requiredFields.IsRequired(bound.Target.GetType(), bound.PropertyName);
+
+    internal static bool IsUnderOptional(Expression? holder) => _requiredFields.IsUnderOptional(holder);
 
     /// <summary>
     ///     Registers the rules a store keeps for one form model — a unique index, a range that must not

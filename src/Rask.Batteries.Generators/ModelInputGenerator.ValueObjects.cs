@@ -241,7 +241,13 @@ public sealed partial class ModelInputGenerator
     // the value object declares non-nullable never arrives empty, because the model was refused before this ran.
     // Its default stands in only to keep this an expression that cannot throw. The prefix names the pattern
     // variables, which stay in scope to the end of the block the expression is written in.
-    private static string FromModelExpression(string given, ValueObjectShape shape, ref int local, string prefix = "__v")
+    //
+    // `stored` is the value object the row holds at the same place, or null where nothing addresses one (an
+    // element of a collection). It is read for one thing only: a value object inside that may be absent and whose
+    // model is left wholly empty keeps what is stored when that holds nothing either, so an untouched save writes
+    // nothing.
+    private static string FromModelExpression(
+        string given, ValueObjectShape shape, ref int local, string prefix = "__v", string? stored = null, bool storedMayBeNull = true)
     {
         var counter = local;
 
@@ -256,17 +262,31 @@ public sealed partial class ModelInputGenerator
             }
 
             var inner = prefix + (counter++).ToString(CultureInfo.InvariantCulture);
-            var built = valueObject.SingleValue
-                ? BuildExpression(valueObject, _ => inner)
-                : FromModelExpression(inner, valueObject, ref counter, prefix);
+            if (valueObject.SingleValue)
+            {
+                return "(" + access + " is { } " + inner + " ? " + BuildExpression(valueObject, _ => inner) + " : " + empty + ")";
+            }
 
-            return "(" + access + " is { } " + inner + " ? " + built + " : " + empty + ")";
+            var storedMember = stored is null ? null : StoredAccess(stored, storedMayBeNull, member.Name);
+            var built = FromModelExpression(
+                inner, valueObject, ref counter, prefix, storedMember, storedMayBeNull || member.Nullable || !valueObject.IsValueType);
+
+            // One that may be absent and is left wholly empty was not given: nothing is built for it.
+            if (member.Nullable)
+            {
+                empty = storedMember is null ? empty : KeptMethod(valueObject) + "(" + storedMember + ")";
+            }
+
+            return "(" + access + " is { } " + inner + AndNotEmpty(inner, valueObject, member.Nullable) + " ? " + built + " : " + empty + ")";
         }
 
         var whole = BuildExpression(shape, Member);
         local = counter;
         return whole;
     }
+
+    private static string StoredAccess(string stored, bool mayBeNull, string member) =>
+        stored + (mayBeNull ? "?." : ".") + member;
 
     // What one element is carried as on the form model, declared INSIDE the model class.
     private static string ElementModelType(ValueCollectionShape collection) =>

@@ -149,6 +149,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             AnnouncesFieldRules = seams.FieldRules,
             RequiredFromCatalog = seams.RequiredSentence,
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
+            AnnouncesOptionalFields = seams.OptionalFields,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
             AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
@@ -201,6 +202,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
         bool AnnouncesRequiredFields = false,
+        bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default)
     {

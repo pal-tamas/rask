@@ -390,7 +390,7 @@ public class ModelInputGeneratorTests
             "(__v0.Code is { } __v1 ? new global::Shop.Zip(__v1) : default(global::Shop.Zip)!), " +
             "(__v0.OldCode is { } __v2 ? new global::Shop.Zip(__v2) : default(global::Shop.Zip?)), " +
             "(__v0.At is { } __v3 ? new global::Shop.Geo((__v3.Lat ?? default(decimal)!), __v3.Alt) : default(global::Shop.Geo)!), " +
-            "(__v0.Was is { } __v4 ? new global::Shop.Geo((__v4.Lat ?? default(decimal)!), __v4.Alt) : default(global::Shop.Geo?)), " +
+            "(__v0.Was is { } __v4 && !__Empty_GeoModel(__v4) ? new global::Shop.Geo((__v4.Lat ?? default(decimal)!), __v4.Alt) : __Kept_GeoModel(entity.Site?.Was)), " +
             "(__v0.Zone ?? default(int)!))",
             source,
             StringComparison.Ordinal);
@@ -411,8 +411,89 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("\"Annex\", global::Rask.Data.GeneratedModelRules.Required", source, StringComparison.Ordinal);
         Assert.DoesNotContain("\"Site.Was\", global::Rask.Data.GeneratedModelRules.Required", source, StringComparison.Ordinal);
 
-        // And a control bound to a nested field is told it is required, as one bound to a root field is.
+        // And a control bound to a nested field is told it is required, as one bound to a root field is — by the
+        // nested model's type; that Annex may be absent is said of the property that holds it.
         Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\" or \"Zone\";", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+        Assert.Contains("Root_IsOptional(string property) =>\n        property is \"Annex\";", source.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_value_object_that_may_be_absent_is_not_given_when_its_nested_model_is_left_wholly_empty()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed record Zip(string Value)
+            {
+                public static IEnumerable<string> Validate(string value) => value.Length < 4 ? ["Short."] : [];
+            }
+            public sealed record Geo(decimal Lat, decimal? Alt);
+            public sealed record Yard(string Name, int Bays);
+            public sealed class Address
+            {
+                private Address() { }
+                public string Street { get; private set; } = "";
+                public string? Floor { get; private set; }
+                public Zip Code { get; private set; } = new("");
+                public Geo At { get; private set; } = new(0, null);
+                public bool Main { get; private set; }
+                public Geo? Was { get; private set; }
+            }
+            public sealed class Depot : Aggregate<Guid>
+            {
+                private Depot() { }
+                public Yard Site { get; private set; } = new("", 0);
+                public Address? Annex { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.DepotModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Empty(GeneratedWarnings(run));
+
+        // Empty is no value, blank text or a box nobody ticked — at every level. `0` is a value.
+        Assert.Contains(
+            "private static bool __Empty_AddressModel(global::Shop.DepotModel.AddressModel model) =>\n" +
+            "        string.IsNullOrWhiteSpace(model.Street) && string.IsNullOrWhiteSpace(model.Floor) && string.IsNullOrWhiteSpace(model.Code) && " +
+            "(model.At is not { } __m3 || __Empty_GeoModel(__m3)) && model.Main is not true && (model.Was is not { } __m5 || __Empty_GeoModel(__m5));",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains("__Empty_GeoModel(global::Shop.DepotModel.GeoModel model) =>\n        model.Lat is null && model.Alt is null;", source, StringComparison.Ordinal);
+
+        // The write builds nothing for it and asks nothing of it; once something is filled, every rule applies.
+        Assert.Contains("if (model.Annex is { } __v1 && !__Empty_AddressModel(__v1))", source, StringComparison.Ordinal);
+        Assert.Contains("if (model.Annex is { } __held1 && !__Empty_AddressModel(__held1))", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Annex.Street\", __Rule_AddressModel_Street(__held1.Street));", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Annex.At\", global::Rask.Data.GeneratedModelRules.Required(__RequiredText()));", source, StringComparison.Ordinal);
+        Assert.Contains(".Was is { } __v4 && !__Empty_GeoModel(__v4) ? ", source, StringComparison.Ordinal);
+
+        // One that must be there is as it was: built from whatever its model holds, and refused for what is missing.
+        Assert.DoesNotContain("__Empty_YardModel", source, StringComparison.Ordinal);
+        Assert.Contains("if (model.Site is { } __v0)\n", source, StringComparison.Ordinal);
+        Assert.Contains("YardModel_IsRequired(string property) =>\n        property is \"Name\" or \"Bays\";", source, StringComparison.Ordinal);
+
+        // What the row held there is cleared — unless that was empty too, and then it is left exactly as it is.
+        Assert.Contains("__Setter1_Annex(entity, __Kept_AddressModel(entity.Annex));", source, StringComparison.Ordinal);
+        Assert.Contains(" : __Kept_GeoModel(entity.Annex?.Was))", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "private static global::Shop.Geo? __Kept_GeoModel(global::Shop.Geo? stored) =>\n" +
+            "        stored is { } __s && (__s is null ? null : new global::Shop.DepotModel.GeoModel { Lat = __s.Lat, Alt = __s.Alt }) is { } __m && __Empty_GeoModel(__m) ? stored : null;",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("__Kept_YardModel", source, StringComparison.Ordinal);
+
+        // A form is told per SLOT: the nested model's type says which of its fields must be filled, as ever,
+        // and the model that holds the property says the whole object under it may be left empty.
+        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\" or \"Main\";", source, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel), Root_IsOptional);", source, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsOptional(string property) =>\n        property is \"Annex\";", source, StringComparison.Ordinal);
+        Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel.AddressModel), AddressModel_IsOptional);", source, StringComparison.Ordinal);
+        Assert.Contains("private static bool AddressModel_IsOptional(string property) =>\n        property is \"Was\";", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("YardModel_IsOptional", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("__FormRule_", source, StringComparison.Ordinal);
     }
 
     [Fact]
