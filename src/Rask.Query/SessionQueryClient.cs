@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Security.Claims;
+using Rask.Core.Authentication;
 using Rask.Cqrs;
 
 namespace Rask.Querying;
@@ -20,15 +22,42 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
     private CancellationTokenSource? _listening;
     private DateTimeOffset _listeningSince;
 
-    public SessionQueryClient(IDispatcher dispatcher, TimeProvider? time = null)
+    // Whose reads these are. When the session's user becomes another, or the same one with other rights, what
+    // was read for the one before is not theirs to see (Forget).
+    private readonly IUserProvider? _users;
+    private ClaimsPrincipal? _readFor;
+
+    public SessionQueryClient(IDispatcher dispatcher, TimeProvider? time = null, IUserProvider? users = null)
     {
         _dispatcher = dispatcher;
         _time = time ?? Clock.TimeProvider;
+        _users = users;
+        if (users is not null)
+        {
+            _readFor = users.Current;
+            users.Changed += OnUserChanged;
+        }
+    }
+
+    // A principal replaced by one that says the same — a reconnect, a token issued again — changes nothing here.
+    private void OnUserChanged(object? sender, EventArgs e)
+    {
+        var now = _users!.Current;
+        var before = Interlocked.Exchange(ref _readFor, now);
+        if (before is null || !PrincipalRights.Same(before, now))
+        {
+            Forget();
+        }
     }
 
     /// <summary>Stops the live-refresh listener when the session's scope ends.</summary>
     public void Dispose()
     {
+        if (_users is not null)
+        {
+            _users.Changed -= OnUserChanged;
+        }
+
         CancellationTokenSource? listening;
         lock (_gate)
         {

@@ -148,9 +148,6 @@ public static partial class RaskEndpointExtensions
         Component.MarkSubtreeDirtyInternal(session.View);
         session.ForgetReads();
 
-        // Inside an event this joins the event's own render. Outside one — a connection that attached with other
-        // rights and sends nothing yet — it is the render that shows them.
-        _ = session.RequestRender();
     }
 
     /// <summary>
@@ -175,6 +172,10 @@ public static partial class RaskEndpointExtensions
         if (!PrincipalRights.Same(before, users.Current))
         {
             RenderForOtherRights(session);
+
+            // An event renders when it ends. A connection that attached with other rights and sends nothing yet
+            // is owed the render that shows them, behind whatever the attach itself has to send first.
+            session.OweAttachedRender();
         }
 
         session.AskTenantAgain();
@@ -242,7 +243,8 @@ public static partial class RaskEndpointExtensions
     // carried for as long as that connection lasts.
     private static void WarnWhenNothingRevalidates(IServiceProvider services)
     {
-        if (services.GetService<ISessionRevalidator>() is not null
+        // Asked of the container, not resolved: a revalidator may need a database that is not there to be had yet.
+        if (services.GetService<IServiceProviderIsService>()?.IsService(typeof(ISessionRevalidator)) != false
             || services.GetService<IAuthenticationSchemeProvider>() is not { } schemes
             || !HasSchemes(schemes))
         {

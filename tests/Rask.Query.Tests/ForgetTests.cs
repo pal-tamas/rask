@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Rask.Core.Authentication;
+
 namespace Rask.Querying.Tests;
 
 /// <summary>
@@ -56,6 +59,53 @@ public class ForgetTests
         await SettleAsync(query);
 
         Assert.Equal("second", query.Data);
+    }
+
+    // In the browser the app is one session, and its user can sign out and another sign in without a page load.
+    [Fact]
+    public async Task What_was_read_for_one_user_is_forgotten_when_the_session_s_user_becomes_another()
+    {
+        var users = new Users(Principal("alice"));
+        var client = new SessionQueryClient(new CountingDispatcher(), new TestClock(DateTimeOffset.UnixEpoch), users);
+        using var query = client.Query(new GetOrders(1));
+        await SettleAsync(query);
+
+        users.Become(Principal("bob"));
+        var held = client.TryGetData<string>(MessageKey.For(new GetOrders(1)), out _);
+
+        Assert.False(held);
+    }
+
+    // A reconnect hands the session a new principal that says what the old one said.
+    [Fact]
+    public async Task What_was_read_is_kept_when_the_user_s_principal_is_replaced_by_one_that_says_the_same()
+    {
+        var users = new Users(Principal("alice"));
+        var client = new SessionQueryClient(new CountingDispatcher(), new TestClock(DateTimeOffset.UnixEpoch), users);
+        using var query = client.Query(new GetOrders(1));
+        await SettleAsync(query);
+
+        users.Become(Principal("alice"));
+        var held = client.TryGetData<string>(MessageKey.For(new GetOrders(1)), out var data);
+
+        Assert.True(held);
+        Assert.Equal("first", data);
+    }
+
+    private static ClaimsPrincipal Principal(string name) =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, name)], "Test"));
+
+    private sealed class Users(ClaimsPrincipal current) : IUserProvider
+    {
+        public ClaimsPrincipal Current { get; private set; } = current;
+
+        public event EventHandler? Changed;
+
+        public void Become(ClaimsPrincipal user)
+        {
+            Current = user;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private static async Task SettleAsync<T>(Query<T> query)

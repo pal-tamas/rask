@@ -897,6 +897,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         return publishOnly ? RequestPublishRender() : RequestRender();
     }
 
+    /// <summary>The connection that has just attached is owed a render: its user's rights are not the ones the page shows.</summary>
+    internal void OweAttachedRender() => _renderRequestedWhileDetached = true;
+
     /// <summary>The render asked for while detached is being made by the caller, as a page reached in place.</summary>
     internal void DetachedRenderAnswered() => _renderRequestedWhileDetached = false;
 
