@@ -325,8 +325,13 @@ const hook = (globals.window as {__raskDevtoolsHook?: RaskDevtoolsHook}).__raskD
 const seenFrame = {} as RaskFrameReply;
 hook.send({}, 1);
 hook.recv(seenFrame, 357);
-hook.commit(seenFrame, performance.now() - 5);
-hook.commit({} as RaskFrameReply, performance.now());
+// The clock stands still while the two commits are measured: a runner that stalls between two readings of a live
+// clock turns the second one's zero into a duration.
+const liveNow = performance.now;
+performance.now = () => 1000;
+hook.commit(seenFrame, 995);
+hook.commit({} as RaskFrameReply, 1000);
+performance.now = liveNow;
 out.patchPosted = patchPosts.map(m => m.kind === "patch" ? `${m.ms >= 5 && m.ms < 1000 ? "timed" : m.ms >= 0 ? "zero" : "?"}@${m.bytes}` : m.kind)
     .join(",");
 

@@ -64,6 +64,30 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
+  waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
+  drawn by the page, so opening one, moving in it and picking in it are round trips. **Before:** each of
+  those round trips counted as the next action. Typing a name into `Ui.Input.Bind(…)` and then opening the
+  `Ui.Select` listbox under it sent the name ahead of the list's `toggle`, ran the name's rules and showed
+  "already taken" before Save was pressed; so did hovering a row, an arrow key, a letter in the search
+  field, the next month of a calendar, a tab. **After:** an event a kit control hears only to draw itself is
+  sent alone. The typed fields stay in the browser, values other controls chose stay held in the session,
+  no rule runs — and everything still travels, in order, ahead of the next real action: a button, a submit,
+  a `.Live()` control, a navigation, anything that reaches your code. What only draws: a list, a date, time
+  or command palette opening and closing (a dropdown, a menu and a popover nobody listens to send nothing at
+  all); the cursor of a select, a combobox,
+  a pillbox, an autocomplete, a time picker and a calendar (keys and pointer); a search field with no
+  `OnInput`; a calendar's month steps and month/year lists; an unheard `Ui.Tabs`; and the **pick** of a bound control that does not say `.Live()` — listbox, combobox,
+  pillbox, autocomplete, calendar, date picker, time picker (one time), rating, filter, checkbox and radio
+  group, slider, OTP — because that pick itself waits. What is still an action: a pick with `.Live()` or
+  with `Value`/`OnChange`; `Ui.SelectSearch.OnInput` / `Ui.PillboxInput.OnInput`; a "create" row (and, in
+  a list that has one, every key of the list); `Ui.Dropdown.OnToggle`, `Ui.Context.OnToggle`,
+  `Ui.Tabs.OnChange`, `Ui.Tab.OnClick`; the tree, the data grid, the menu's checkbox and radio rows, the
+  colour picker and the date picker's presets, which are not classified yet and behave as before. The kit
+  says which handlers only draw with `data-rask-draws` on the element (`docs/js-interop-runtime.md`); the
+  runtime sends those as it sends what it does by itself (`unasked`). An app that read a model in a
+  handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
+  a list was merely opened now sees it speak with the next action.
 - **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
   backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
   `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words
@@ -217,6 +241,28 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
+  `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
+  a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
+  is a press the page hears. The page now says so: the form the control is drawn in carries `data-rask-edited`
+  from the reader's first such change until a submit it accepts has carried it, and the guard reads that
+  beside what it counted itself. Every drawn control goes through the one commit that says it — listbox
+  (single, multiple), combobox, pillbox (an option picked, a pill removed), autocomplete, calendar, date,
+  time and colour picker, rating, filter, checkbox and radio group, the menu's checkbox and radio group, a
+  picker's clear button, the editor, and `Ui.FileItemRemove` — bound or held with `Value`/`OnChange`, written
+  yet or still waiting for the next action. A value the page writes by itself marks nothing; opening a list
+  marks nothing; a refused submit leaves the mark; a pick made while a save is still running stays unsaved.
+  `ReaderChangesMakeTheFormUnsavedTests` holds one row per control and fails for a control that is in no row.
+
+- **Typing in a list's search field no longer makes a `ConfirmLeave` form unsaved.** Opening a searchable
+  `Ui.Select`, typing two letters, pressing Escape and then Cancel asked "leave without saving?" though
+  nothing had been chosen: the guard counted every `input` inside the form. The fields of a kit control that
+  hold none of the form's data now say `data-rask-unguarded` and are not counted: `Ui.SelectSearch` and
+  `Ui.PillboxSearch`, the input of a combobox `Ui.Select` and of a `Ui.Pillbox` (what is typed narrows the
+  list; the answer is the option picked), `Ui.Command`'s input, the month and year lists of a calendar or a
+  date picker with `SelectableHeader`, and the box the colour picker is measured into. An `input` the
+  runtime raises by itself — a chart writing the size it was measured at — is not counted either. A field
+  whose text is its value (`Ui.Input`, `Ui.Autocomplete`) counts as before, and so do an app's own inputs.
 - **A row of `Ui.Select` pressed before the page answered the list opening is picked.** A press that outlives
   its page reaches the handler that is the same as the one it was sent to, among the two a slot remembers. The
   select's handlers closed over what each of its renders worked out, so no two renders made the same one, and

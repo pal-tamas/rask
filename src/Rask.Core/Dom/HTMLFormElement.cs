@@ -33,7 +33,7 @@ namespace Rask.Core;
 ///     no <c>action</c> or <c>method</c> to set: the page reacts rather than navigating away.
 /// </summary>
 public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] TModel>
-    : HTMLFormElement
+    : HTMLFormElement, IGuardedForm
 {
     // Its submitting state is its own and re-renders it (StateHasChanged), unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
@@ -48,6 +48,12 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     // guarded form is unsaved (rask-leave.ts) and cannot know a save went through; this number changing
     // on the <form> is how it learns that it did.
     private int _acceptedSubmits;
+
+    // What the reader chose in controls the page draws (ReaderEdits): how many such changes it has heard, and
+    // how many of them an accepted submit carried. The browser raised no event for them, so while the two
+    // differ the <form> says `data-rask-edited` and the guard counts it unsaved.
+    private int _readerEdits;
+    private int _savedReaderEdits;
 
     private TModel _model = default!;
 
@@ -218,13 +224,30 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
 
     protected override IDisposable? EnterChildrenScope()
     {
-        if (Model is null && Context is null)
+        var bound = Model is null && Context is null ? null : EditContextScope.Push(ResolveContext());
+
+        // A form that asks before it is left says so to the walk: what is drawn in it tells it of the
+        // reader's changes the browser raises no event for (ReaderEdits).
+        return ConfirmLeave is not null && LiveRenderContext.CurrentSync is { } live ? new GuardScope(live, this, bound) : bound;
+    }
+
+    private sealed class GuardScope : IDisposable
+    {
+        private readonly LiveRenderContext _live;
+        private readonly IDisposable? _bound;
+
+        internal GuardScope(LiveRenderContext live, IGuardedForm form, IDisposable? bound)
         {
-            return null;
+            _live = live;
+            _bound = bound;
+            live.GuardedForm = form;
         }
 
-        var ctx = ResolveContext();
-        return EditContextScope.Push(ctx);
+        public void Dispose()
+        {
+            _live.GuardedForm = null;
+            _bound?.Dispose();
+        }
     }
 
     internal EditContext ResolveContext()
@@ -338,7 +361,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             // StateHasChanged rather than a props change: the flag is the form's own state, and nothing
             // above it passed it down. A synchronous handler completes before a frame exists, so this
             // pair is only observable for the async ones — which is exactly when it is wanted.
-            _submitting = true;
+            var carried = BeginSubmit();
 
             // The submit a batch announced has arrived: from here every rule is asked afresh, the store's too.
             ctx.SubmitFollows = false;
@@ -357,7 +380,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 // Only here: a refused submit and a handler that threw both leave the form unsaved.
                 if (isValid)
                 {
-                    _acceptedSubmits++;
+                    Accept(carried);
                 }
             }
 #pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
@@ -457,6 +480,41 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 // reads it later. The value only has to differ from the one before.
                 AppendAttr(sb, "data-rask-saved", _acceptedSubmits);
             }
+
+            if (_readerEdits != _savedReaderEdits)
+            {
+                AppendAttr(sb, "data-rask-edited", null);
+            }
+        }
+    }
+
+    // In flight from here. Answers how many of the reader's picks the submit found as it began: those are
+    // saved with it (Accept), and one made while its handler was still awaiting is not.
+    private int BeginSubmit()
+    {
+        _submitting = true;
+        return _readerEdits;
+    }
+
+    private void Accept(int carried)
+    {
+        _acceptedSubmits++;
+        _savedReaderEdits = carried;
+    }
+
+    // Drawn again only for the first change since the form was last clean: the mark is there after it.
+    void IGuardedForm.NoteReaderEdit()
+    {
+        if (ConfirmLeave is null)
+        {
+            return;
+        }
+
+        var wasClean = _readerEdits == _savedReaderEdits;
+        _readerEdits++;
+        if (wasClean)
+        {
+            StateHasChanged();
         }
     }
 

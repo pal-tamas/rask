@@ -183,7 +183,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             .Aria(aria)
             // The browser opens and closes the list from the button; its toggle event below says which. Closed,
             // Enter does not press it and the arrows do not scroll the page: Flux's button, not a native one.
-            .Attributes(("popovertarget", ListId), ("data-rask-listbox-button", null), ("style", "anchor-name:--" + ListId))
+            .Attributes([("popovertarget", ListId), ("data-rask-listbox-button", null), ("style", "anchor-name:--" + ListId), .. UiDraws.Pairs(("keydown", PickDraws))])
             .OnKeyDown(e => OnKeyAsync(e, view))[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.ButtonIcon),
             Div.Class(UiTimePickerLook.Selected)[
@@ -210,9 +210,11 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             // on an open one, a press on the typed trigger.
             // …and while it is open the page behind it neither scrolls nor takes the pointer, as on Flux.
             .Data(_open ? UiTimePickerLook.ListOpen : UiTimePickerLook.ListClosed)
-            .Attributes(("style", "position-anchor:--" + ListId
-                                  + ";inset:auto;top:calc(anchor(bottom) + 5px);inset-inline-start:anchor(start)"
-                                  + ";width:anchor-size(width);position-try-fallbacks:flip-block"))
+            .Attributes(
+                (UiDraws.Mark, "toggle"),
+                ("style", "position-anchor:--" + ListId
+                          + ";inset:auto;top:calc(anchor(bottom) + 5px);inset-inline-start:anchor(start)"
+                          + ";width:anchor-size(width);position-try-fallbacks:flip-block"))
             .OnToggle(e =>
             {
                 _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
@@ -262,11 +264,12 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
                 .OnClick(() => PickAsync(view, time))
                 // One highlight for the pointer and the keyboard, as Flux has: the cursor goes where the pointer is.
                 .OnMouseEnter(() => _cursor = index);
-            if (!UiTimePickerValue.Several<T>())
-            {
-                // A picked time closes the list on the same click; several stay open for the next.
-                option = option.Attributes(("popovertarget", ListId), ("popovertargetaction", "hide"));
-            }
+            (string, string?)[] draws = UiDraws.Pairs(("click", PickDraws), ("mouseenter", true));
+
+            // A picked time closes the list on the same click; several stay open for the next.
+            option = option.Attributes(UiTimePickerValue.Several<T>()
+                ? draws
+                : [("popovertarget", ListId), ("popovertargetaction", "hide"), .. draws]);
         }
 
         return option[
@@ -353,6 +356,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         return view.Chosen.Contains(time) && UiTimePickerValue.Clears<T>() ? CommitAsync(view, []) : CommitAsync(view, [time]);
     }
 
+    // Whether a picked time is held for the next action. Several times are written as they are picked.
+    private bool PickDraws => !UiTimePickerValue.Several<T>() && UiDraws.Waits(this, Bind is not null);
+
     private async Task CommitAsync(View view, List<TimeOnly> picked)
     {
         if (!UiTimePickerValue.Several<T>())
@@ -363,6 +369,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         }
 
         var self = (IFormControl<T>)this;
+        ReaderEdits.Note(this);
         if (view.Accessor is not { } accessor)
         {
             await self.InvokeOnChange((T)UiTimePickerValue.Shaped(typeof(T), picked)).ConfigureAwait(false);

@@ -21,6 +21,9 @@ internal sealed class UiTabScope(
 {
     internal bool? Live => live;
 
+    /// <summary>Whether choosing a tab reaches nothing of the page's now: it is drawn, and a bound member waits (<see cref="UiDraws" />).</summary>
+    internal bool SelectDraws { get; init; }
+
     private int _count;
     private string? _shown;
 

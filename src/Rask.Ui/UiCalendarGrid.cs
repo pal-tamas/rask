@@ -82,7 +82,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var grids = Div.Class(UiCalendarLook.Months).Data(options.Static ? StaticMonths : Months);
         if (!options.Static)
         {
-            grids = grids.OnKeyDown(e => KeyAsync(e.Key, options, state, picks, months, shown, stop));
+            grids = grids.Attributes(UiDraws.Marks(("keydown", options.PickDraws))).OnKeyDown(e => KeyAsync(e.Key, options, state, picks, months, shown, stop));
         }
 
         return calendar[
@@ -146,6 +146,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             .Class(UiCalendarLook.Step)
             .Disabled(off)
             .Aria(off ? [("label", label), ("disabled", "true")] : [("label", label)])
+            .Attributes((UiDraws.Mark, "click"))
             .OnClick(() => Page(state, view.AddMonths(by)))[
             Ui.Icon.Name(by < 0 ? Ui.IconName.ChevronLeft : Ui.IconName.ChevronRight).Mini.Class(UiCalendarLook.StepIcon),
             Ui.Icon.Name(by < 0 ? Ui.IconName.ChevronRight : Ui.IconName.ChevronLeft).Mini.Class(UiCalendarLook.StepIconRtl)
@@ -169,6 +170,8 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             .Type(ButtonType.Button)
             .Class(UiCalendarLook.Step)
             .Aria("label", RaskStrings.Get(RaskString.CalendarToday, "Today"))
+            // Away from this month it pages back; in it, it picks today.
+            .Attributes(UiDraws.Marks(("click", !here || options.PickDraws)))
             .OnClick(async () =>
             {
                 if (here)
@@ -192,6 +195,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Select
                 .Value(Invariant(view.Month))
                 .OnChange(month => Page(state, new DateOnly(view.Year, int.Parse(month, CultureInfo.InvariantCulture), 1)))
+                .Attributes(UiRuntimeMarks.NotFormData, (UiDraws.Mark, "change"))
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(1, 12).Select(month =>
                     Option.Key(month).Value(Invariant(month))[options.Culture.DateTimeFormat.GetAbbreviatedMonthName(month)])
@@ -204,6 +208,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Select
                 .Value(Invariant(view.Year))
                 .OnChange(year => Page(state, new DateOnly(int.Parse(year, CultureInfo.InvariantCulture), view.Month, 1)))
+                .Attributes(UiRuntimeMarks.NotFormData, (UiDraws.Mark, "change"))
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(options.Today.Year - 100, 111).Select(year => Option.Key(year).Value(Invariant(year))[Invariant(year)])
             ]
@@ -377,6 +382,11 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         }
 
         var button = Button.Type(ButtonType.Button).Disabled(blocked).TabIndex(stop ? 0 : -1);
+        if (!blocked)
+        {
+            extra.AddRange(UiDraws.Pairs(("click", options.PickDraws), ("mouseenter", true)));
+        }
+
         if (extra.Count > 0)
         {
             button = button.Attributes([.. extra]);

@@ -91,6 +91,8 @@ internal static class UiSelectLook
     internal static readonly Dictionary<string, string?> SearchMarks = new(StringComparer.Ordinal)
     {
         ["data-rask-keys"] = UiListKeys.Search,
+        // What is typed here finds an option; the option picked is the value (rask-leave.ts).
+        [UiRuntimeMarks.Unguarded] = null,
     };
 
     /// <summary>The button that empties the search field.</summary>

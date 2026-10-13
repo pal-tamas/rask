@@ -544,4 +544,24 @@ public abstract partial class UiSelectControl<T>
     }
 
     private static bool Same(T a, T b) => EqualityComparer<T>.Default.Equals(a, b);
+
+    // ----- What only draws (UiDraws) -------------------------------------------------------------------
+
+    /// <summary>Whether a new answer is held for the next action: nothing of the page's hears it now.</summary>
+    private bool CommitDraws => UiDraws.Waits(this, Bound is not null);
+
+    /// <summary>
+    ///     Whether picking a row only draws. Not where several are picked over a search the page hears: that
+    ///     pick empties the search, and the page is told.
+    /// </summary>
+    private bool PickDraws => CommitDraws && !(IsMultiple && _hears.HasValue);
+
+    /// <summary>
+    ///     Whether a letter typed only narrows the list: nobody of the page's listens, or the page hears the pause
+    ///     the browser counts and not the key.
+    /// </summary>
+    private bool TypingDraws => _pause > 0 || !_hears.HasValue;
+
+    /// <summary>Whether no key can reach the page: Enter picks, and on a "create" row it runs the page's code.</summary>
+    private bool KeysDraw(View view) => PickDraws && view.Parts.Create is null;
 }
