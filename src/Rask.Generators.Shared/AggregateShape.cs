@@ -149,6 +149,33 @@ internal static class AggregateShape
     }
 
     /// <summary>
+    ///     The value object a property of <paramref name="type" /> holds, or null when it holds none: the type
+    ///     itself, or the one-value struct inside <c>T?</c> — optional, exactly as a nullable reference is.
+    /// </summary>
+    /// <remarks>
+    ///     Only a struct that holds ONE value is unwrapped: it is a nullable column. A nullable struct of several
+    ///     values is left as the plain value it has always been.
+    /// </remarks>
+    public static INamedTypeSymbol? ValueObjectTypeOf(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, TypeArguments.Length: 1 } optional)
+        {
+            return optional.TypeArguments[0] is INamedTypeSymbol held && IsValueObjectType(held) && HoldsOneValue(held) ? held : null;
+        }
+
+        return type.WithNullableAnnotation(NullableAnnotation.NotAnnotated) is INamedTypeSymbol named && IsValueObjectType(named)
+            ? named
+            : null;
+    }
+
+    /// <summary>Whether a value object stores exactly one value that is not a value object itself.</summary>
+    public static bool HoldsOneValue(INamedTypeSymbol valueObject)
+    {
+        var stored = StoredProperties(valueObject).Take(2).ToList();
+        return stored.Count == 1 && ValueObjectTypeOf(stored[0].Type) is null;
+    }
+
+    /// <summary>
     ///     The properties of a value object that hold stored state: public getter, instance, and either a setter or a
     ///     backing field — a computed property (<c>Display =&gt; …</c>) is not one.
     /// </summary>

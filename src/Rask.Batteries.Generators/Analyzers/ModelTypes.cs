@@ -76,8 +76,7 @@ internal sealed class ModelTypes
             foreach (var member in owner.GetMembers())
             {
                 if (member is not IPropertySymbol { IsStatic: false } property ||
-                    property.Type is not INamedTypeSymbol type ||
-                    !AggregateShape.IsValueObjectType(type) ||
+                    AggregateShape.ValueObjectTypeOf(property.Type) is not { } type ||
                     type.DeclaringSyntaxReferences.Length == 0 ||
                     !seen.Add(type))
                 {

@@ -9,6 +9,9 @@ them until tagged releases begin.
 
 ### Added
 
+- **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
+  beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
+  another. Generated code calls it; an app has no reason to.
 - **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
   a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
   `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
@@ -23,6 +26,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
+  property like `public NormPercent? Discount { get; private set; }` over
+  `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
+  carried the struct itself (`NormPercent? Discount`), its `Validate` was never run — not by a form, not by
+  `Create`/`Update`, and with no RASK102 for a misshapen one — the read face showed the struct, and the
+  generated mapping left the property out, so EF Core refused the model unless `Configure` mapped it by hand.
+  It is now exactly what a nullable reference-type value object (`Sku?`) has always been: the form model and
+  the wire carry the held value (`decimal? Discount`), an empty field is stored as `NULL` and is neither
+  required nor put to the rule, a filled one is asked `NormPercent.Validate` by the form and by the writes, the
+  column is a nullable converted scalar that takes `HasMaxLength` and a unique index (rows holding nothing never
+  collide), the read face shows `decimal? Discount`, and RASK102 reports a `Validate` of the wrong shape. **What
+  to change:** code that set or read the model's property as the struct — `model.Discount = new NormPercent(5)`
+  becomes `model.Discount = 5`, `model.Discount?.Value` becomes `model.Discount` — and a read-face query that
+  reached `.Value`. A hand-written `HasConversion` for the property in `Configure` still wins and can be deleted.
+  Unchanged: a non-nullable struct value object, and a nullable struct of several values (`Money?`), which stays
+  the plain value it was.
 - **RASK102 names the two `Validate` shapes that invite the miss.** A value object over a number, a date or
   an id whose rule takes the value as nullable — `Validate(decimal? value)` on `NormPercent(decimal Value)` —
   was already reported, with a reason that only stated the mismatch; it now says what to write: "declare it
@@ -123,6 +142,41 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A one-value value object inside a constructor-built value object no longer stops the app at startup
+  ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
+  aggregate compiled, and then EF Core refused the model — *No suitable constructor was found … Cannot bind
+  'Early'* — because the inner `Sku` was mapped as a complex type, and a constructor parameter binds to a column
+  only. A one-value value object is now a converted scalar column wherever it is held, the rule the aggregate's own
+  properties already followed: `ValueObjectColumn.Map(b0.Property(x => x.Early), (Sku v) => v.Value)` under the
+  column name it always had (`Terms_Early`). **Nothing migrates**: EF Core's migration differ finds no operation
+  between the two mappings on SQLite, SQL Server and PostgreSQL, one and two levels deep, with a length and a
+  precision on the column, for a class and a struct, nullable and not; only the order of columns in a table
+  created from scratch differs. Two things an app may have written against the old mapping change with it, for
+  the value-object shape that already worked (one built through its members): `Configure` reaches the inner
+  value as a property, not a complex type — `ComplexProperty(c => c.Price).ComplexProperty(m => m.Currency)
+  .Property(v => v.Value)` becomes `ComplexProperty(c => c.Price).Property(m => m.Currency)` — and a query on
+  the write model that reached `c.Price.Currency.Value` no longer translates (compare the whole value, or use the
+  read face), exactly as on the aggregate itself. Still not mapped: a constructor-built value object holding
+  another of SEVERAL values — build the outer one through its members.
+- **The read face reads nothing as nothing for a nullable one-value value object inside another value
+  object.** `Sku? Early` (or a one-value struct held as `T?`) inside a value object was stored correctly, and the
+  read face then threw *The data is NULL at ordinal 0* on a row that held none: the column's nullability was read
+  off the inner value, not off the optional value object around it. It is the scalar's own now.
+- **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
+  The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
+  declared `__held0` (CS0128 inside generated code). They are numbered.
+- **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
+  trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
+  that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from
+  the first time) was read as a name of the button's own, so it was ALSO given `aria-describedby` with the same
+  id. Whether that happened depended on how often the button had been walked: a first response renders in
+  waves, as many as its awaited reads take, so a list read in `OnUpdated` was served with the doubled link on
+  most requests and without it on about one in 150 — the same `GET`, two documents — and a live page flipped
+  between the two as it re-rendered. The tooltip's own id no longer counts as another name: an icon button
+  carries `aria-labelledby` alone (as Flux writes it), a button with words `aria-describedby` alone, however
+  many times it is rendered. Markup that tested for `aria-describedby="ui-tooltip-…"` on an icon button was
+  testing for the fault. Every other id the kit makes up — a field's `f-field-<n>`, a select's list, a menu, a
+  modal, tabs, an accordion — was checked through the same path and was already the same on every response.
 - **A select goes on saying its answer when a search brings rows that no longer include it.** With
   `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
   placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count

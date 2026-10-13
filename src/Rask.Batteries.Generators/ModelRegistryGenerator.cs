@@ -209,25 +209,20 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
             foreach (var property in properties)
             {
-                if (property.Type is not INamedTypeSymbol type ||
-                    !AggregateShape.IsValueObjectType(type) ||
+                if (AggregateShape.ValueObjectTypeOf(property.Type) is not { } type ||
                     property.GetAttributes().Any(static a =>
                         a.AttributeClass?.ToDisplayString() is "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute"))
                 {
                     continue;
                 }
 
-                var typeName = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-                    .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 if (seen.Contains(typeName))
                 {
                     continue;
                 }
 
-                var stored = AggregateShape.StoredProperties(type).ToList();
-                var singleValue = stored.Count == 1 && !AggregateShape.IsValueObjectType(stored[0].Type)
-                    ? stored[0].Name
-                    : null;
+                var singleValue = AggregateShape.HoldsOneValue(type) ? AggregateShape.StoredProperties(type).First().Name : null;
 
                 var path = prefix.Add(property.Name);
                 var pathTypes = types.Add(typeName);
@@ -685,36 +680,35 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             var self = group.First(p => p.Segments.Count == 1);
             var nested = group
                 .Where(p => p.Segments.Count > 1)
-                .Select(p => new ValueObjectPath(
-                    new EquatableArray<string>(p.Segments.Skip(1)),
-                    new EquatableArray<string>(p.Types.Skip(1)),
-                    p.SingleValue,
-                    p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key))
+                .Select(p => p with
+                {
+                    Segments = new EquatableArray<string>(p.Segments.Skip(1)),
+                    Types = new EquatableArray<string>(p.Types.Skip(1)),
+                    ColumnPrefix = p.ColumnPrefix is null ? group.Key : p.ColumnPrefix + "_" + group.Key,
+                })
                 .ToList();
 
-            // A one-value type held by the entity itself IS its value's column: a converted scalar named after the
-            // property, which an index can name — `HasIndex(c => c.Email).IsUnique("…")` — where a complex
-            // property's column cannot. The column is the one the complex mapping produced, so nothing migrates.
-            if (depth == 0 && nested.Count == 0 && self.SingleValue is { } held)
+            // A one-value type IS its value's column wherever it is held: a converted scalar. On the entity itself
+            // it is named after the property, so an index can name it — `HasIndex(c => c.Email).IsUnique("…")`.
+            // Inside another value object it keeps the column the complex mapping gave it — `Price_Currency` — so
+            // nothing migrates; and a scalar binds to the constructor of the value object that holds it, which a
+            // complex property cannot.
+            if (nested.Count == 0 && self.SingleValue is { } held)
             {
                 source.Append(indent).Append("global::Rask.Data.ValueObjectColumn.Map(").Append(receiver)
                     .Append(".Property(x => x.").Append(group.Key).Append("), (").Append(self.Types[0])
-                    .Append(" v) => v.").Append(held).AppendLine(");");
+                    .Append(" v) => v.").Append(held).Append(')');
+
+                if (self.ColumnPrefix is { } prefix)
+                {
+                    source.Append(".HasColumnName(\"").Append(prefix).Append('_').Append(group.Key).Append("\")");
+                }
+
+                source.AppendLine(";");
                 continue;
             }
 
             source.Append(indent).Append(receiver).Append(".ComplexProperty(x => x.").Append(group.Key);
-
-            // Inside another value object a one-value type is still a complex type, but its one column takes the
-            // property's name — `Price_Currency`, not `Price_Currency_Value`.
-            if (nested.Count == 0 && self.SingleValue is { } value)
-            {
-                var column = self.ColumnPrefix is null ? group.Key : self.ColumnPrefix + "_" + group.Key;
-                var single = "b" + depth;
-                source.Append(", ").Append(single).Append(" => ").Append(single).Append(".Property(v => v.").Append(value)
-                    .Append(").HasColumnName(\"").Append(column).AppendLine("\"));");
-                continue;
-            }
 
             if (nested.Count == 0)
             {

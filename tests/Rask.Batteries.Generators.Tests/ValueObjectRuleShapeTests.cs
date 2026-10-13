@@ -183,6 +183,28 @@ public class ValueObjectRuleShapeTests
     }
 
     [Fact]
+    public void A_misshapen_Validate_on_a_struct_held_only_as_nullable_is_reported_too()
+    {
+        const string source = """
+            public readonly record struct NormPercent(decimal Value)
+            {
+                public static IEnumerable<string> Validate(decimal? value) => [];
+            }
+            """;
+
+        var diagnostics = Rask102(source, """
+
+            public sealed class Norm : Aggregate<Guid>
+            {
+                private Norm() { }
+                public NormPercent? Discount { get; private set; }
+            }
+            """);
+
+        Assert.Contains("declare it 'decimal'", Assert.Single(diagnostics).GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_text_rule_declared_with_a_nullable_annotation_is_still_the_rule()
     {
         const string source = """
