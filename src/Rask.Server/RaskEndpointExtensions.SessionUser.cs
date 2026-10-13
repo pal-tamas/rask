@@ -603,11 +603,15 @@ public static partial class RaskEndpointExtensions
         return true;
     }
 
-    // The one address a reader with no sign-in is sent to, by the route guard and here alike.
     private static bool HasSignInPage(RaskRootSelector selector) =>
-        RouteResolver.TryResolve(
-            selector.RoutesFor(RouteAuthorizationGuard.ChallengePath), RouteAuthorizationGuard.ChallengePath, out _, out var notFound)
-        && !notFound;
+        HasSignInPage(selector.RoutesFor(RouteAuthorizationGuard.ChallengePath));
+
+    /// <summary>
+    ///     Whether <paramref name="routes" /> has a page at the one address a reader with no sign-in is sent to, by
+    ///     the route guard and here alike. A catch-all that answers "nothing here" is not one.
+    /// </summary>
+    internal static bool HasSignInPage(IReadOnlyList<Route> routes) =>
+        RouteResolver.TryResolve(routes, RouteAuthorizationGuard.ChallengePath, out _, out var notFound) && !notFound;
 
     // The tab wrote it from script; the answer that removes it has no reason to stay readable by one.
     private static void ForgetEnded(HttpContext ctx, string name)
