@@ -65,6 +65,8 @@
     <RaskTestReads Include="..\..\src\Rask.Ui\build\Rask.Ui.targets" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Resources\ui-editor.js" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Resources\ui-editor.LICENSES.txt" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Flags\LICENSE.txt" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Flags\US.svg" />
   </ItemGroup>
 
 </Project>

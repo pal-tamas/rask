@@ -5,15 +5,14 @@ namespace Rask.Site.Features.UiKit;
 /// </summary>
 /// <remarks>
 ///     Every interactive part here holds its state in a plain field and re-renders through Rask's diff.
-///     That is the point of the category: the dropdown's open state, the dialog's, and the swap's face
-///     are all values C# can read, set and persist, which is exactly what the CSS-only versions of these
+///     That is the point of the category: the dropdown's open state and the dialog's
+///     are values C# can read, set and persist, which is exactly what the CSS-only versions of these
 ///     components could not offer.
 /// </remarks>
 public sealed partial class UiKitActionsDemo : Component
 {
     private bool _menuOpen;
     private bool _confirming;
-    private bool _muted;
     private string _lastAction = "nothing yet";
     private string _sort = "name";
     private string _activity = "latest";
@@ -39,7 +38,6 @@ public sealed partial class UiKitActionsDemo : Component
         ModalOptionsSection(),
         StateDrivenModalSection(),
 
-        SwapSection(),
         FloatingActionButtonSection(),
 
         P.Class("mt-6 text-sm text-ui-muted")
@@ -412,22 +410,6 @@ public sealed partial class UiKitActionsDemo : Component
             Ui.Heading.Level(2).Lg["Update profile"],
             Ui.Text.Class("mt-2")["Make changes to your personal details."]
         ];
-
-    private Component SwapSection() =>
-        Section(
-            "Swap",
-            "Two faces, one shown at a time. The state is a bool on this component, not a checkbox in "
-            + "the DOM, so something else changing the value corrects the face.",
-            Div.Data(Testid("ui-swap")).Class("flex items-center gap-3")[
-                Ui.Swap
-                    .AccessibleLabel(_muted ? "Unmute" : "Mute")
-                    .On(Ui.Icon.Name(Ui.IconName.XMark).Class("size-5"))
-                    .Off(Ui.Icon.Name(Ui.IconName.Check).Class("size-5"))
-                    .Animation(Ui.SwapAnimation.Rotate)
-                    .Active(_muted)
-                    .OnChange(muted => { _muted = muted; }),
-                Span.Class("text-sm text-ui-muted")[_muted ? "Muted" : "Playing"]
-            ]);
 
     private static Component FloatingActionButtonSection() =>
         Section(

@@ -188,6 +188,20 @@ them until tagged releases begin.
   value only, so they are the same handler from render to render; a press on a row that holds another value
   by then still picks nothing. Both hosts. `SelectPressFromAnOlderPageTests`, `DeferredBindTests` (which also
   waited on `aria-expanded`, the browser's own word, for the page to have heard — the flake this was).
+- **A page that follows a background source is never left one render behind.** In production: a date filter
+  "did not work" until something else happened on the page, with `Coalesce-loop budget exhausted … a third
+  in-dispatch render was queued and dropped` in the log. A dispatch renders at most three times, and a render
+  asked for after that was dropped on purpose, to stop a component that asks from every render. It could not tell
+  that from three honest causes arriving together — a route change, a read coming back, a singleton's event raised
+  from pool threads (`board.Changed += StateHasChanged`) — and the state written last stayed undrawn until the
+  next event. Nothing is dropped now, on either host or in the DevTools panel: the request is one more render
+  straight after the dispatch. A true runaway is bounded instead by what it is: after ten renders in a row each
+  asked for during the one before, every further one waits 250 ms, and one warning on `Rask.Live` names the
+  component types that asked (the old warning named nothing). Two smaller losses on the same path are closed: a
+  `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
+  attached. `StateHasChanged()` from any thread is documented as supported
+  (`docs/lifecycle.md#following-a-singletons-event`).
+
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
   frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on
@@ -395,6 +409,61 @@ them until tagged releases begin.
 
 ### Added
 
+- **BREAKING: `Ui.Carousel` is Flux's `flux:carousel`**, with `Ui.CarouselSlide` and `Ui.CarouselControls`.
+  It was daisyUI's wrapper around `carousel-item` children; daisyUI's `carousel` rules leave the kit's sheet.
+  ```csharp
+  Ui.Carousel[Div.Class("carousel-item w-full")[photo], …]                 // was
+  Ui.Carousel[Ui.CarouselSlide.Class("w-full")[photo], …]                  // now
+  ```
+  Previous and next arrows over the slides (`Arrows(false)`, `ArrowsPosition`: `Inside` / `Overlap` /
+  `Outside`, `ArrowsClass`), `Indicators()`, `Autoplay()` + `AutoplayInterval`, `Fade()`, `Bleed()`, `Snap`,
+  `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
+  `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
+  runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
+  with nothing sent to the page — zero frames either way on a Server page (`UiDrawnInTheBrowserTests`). A
+  carousel that rewinds says no `data-at-end`, as Flux's does not, so its next arrow stays at the end. Its
+  accessible names are eight new catalog entries (`CarouselRole`,
+  `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
+  `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
+  it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
+  live carousels and the kit's with the same pointer and keys — arrows, both ends, Enter and Space, the
+  indicators, external controls, page advance, autoplay under the pointer, under focus and with reduced
+  motion — and holds every step equal.
+- **A carousel's autoplay holds while focus is inside it** (`data-rask-carousel` with `data-autoplay`), as it
+  holds under the pointer, and starts afresh when both are gone. Measured on Flux: no move in 7 s with focus
+  on an arrow, the next one 3.5 s after it left.
+
+- **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+  `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
+  outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for
+  your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
+  `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
+  written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound with `OnChange` it reports each
+  turn. With neither, a press only changes what it draws, so the browser turns it and nothing is sent to the
+  server (`data-rask-switch`, a new runtime hook: `aria-checked` and `data-checked` flip on a press of a
+  `<button role="switch">` that carries it, held against the morph). While its handler runs it shows a spinner and takes no press. Measured from
+  Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
+- **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
+  toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:
+  ```csharp
+  Ui.Swap.AccessibleLabel("Mute").On(muteIcon).Off(soundIcon).Active(muted).OnChange(on => muted = on)   // was
+  Ui.Toggle.Tooltip("Mute").OnIcon(Ui.IconName.SpeakerXMark).OffIcon(Ui.IconName.SpeakerWave)
+      .Checked(muted).OnChange(on => muted = on)                                                         // now
+  ```
+  It says `role="switch"` and `aria-checked` where the swap said `aria-pressed`. There is no rotate or flip.
+
+- **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
+  region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
+  `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing
+  beside it names the country (empty by default: decoration). Measured from Flux's page and held to it by
+  `node scripts/flux/parity.mjs flag`. **The 254 drawings are files, not part of the assembly**: an app that
+  shows flags sets `<RaskUiWriteFlags>true</RaskUiWriteFlags>` and the build copies them into
+  `wwwroot/flags` with their notice; an app that does not carries none of their 172 KB, and the package grows
+  by 82 KB. In a one-project WebAssembly app the browser half writes them. They are
+  [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
+  vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
+  the empty frame, as an unknown code does.
 - **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
   `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
   `Search` at every keystroke (unchanged when the step is absent). After:

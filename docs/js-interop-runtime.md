@@ -525,13 +525,14 @@ A dialog's `OnClose` hears every close, the page's own included.
 | --- | --- | --- |
 | `data-rask-carousel` | the root | On a scroll of its `[data-rask-carousel-track]` and on a resize: `data-at-start` / `data-at-end` on the root and on every `[data-direction]` wrapper, `disabled` on each wrapper's button, `data-selected` on the slide nearest the start and on its button in `[data-rask-carousel-indicators]` (with `aria-current="true"`). A press on a `[data-direction="next" \| "previous"]` button scrolls a slide; on an indicator, to that slide. |
 | `data-advance="page"`, `data-wrap="rewind"`, `data-scroll="instant"` | the root | Move by the slides in view; go back to the first from the end; do not animate. |
-| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
+| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and while focus is inside the root, starts afresh when both are gone, and never starts under `prefers-reduced-motion`. |
 | `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
 
 ### Scrolling
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
+| `data-rask-switch` | a `<button role="switch">` with no handler | A press flips `aria-checked` and `data-checked` in the browser, both held against the morph; nothing is sent. Enter and Space are the button's own; a `disabled` one takes no press. |
 | `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
 
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's

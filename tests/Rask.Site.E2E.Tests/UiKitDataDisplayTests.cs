@@ -27,7 +27,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
                      "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
                      "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
                      "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
-                     "ui-timeline-align", "ui-timeline-baseline", "ui-timeline-spacing",
+                     "ui-timeline-align", "ui-timeline-baseline", "ui-timeline-spacing", "ui-carousel", "ui-flag",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
