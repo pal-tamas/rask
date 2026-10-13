@@ -29,6 +29,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Query.Tests"/>
+    <!-- The server host drops a session's cached reads when its user or tenant changes (SessionQueryClient.Forget). -->
+    <InternalsVisibleTo Include="Rask.Server"/>
+    <InternalsVisibleTo Include="Rask.Server.Tests"/>
   </ItemGroup>
 
 </Project>

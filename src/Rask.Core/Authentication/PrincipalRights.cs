@@ -11,7 +11,8 @@ namespace Rask.Core.Authentication;
 ///         is issued again and say nothing about its bearer. A refreshed token is the same user; a flipped flag is not.
 ///     </para>
 ///     <para>
-///         Allocates two enumerators and no strings, and nothing at all for one instance compared with itself.
+///         Nothing is allocated for one instance compared with itself, and two enumerators for two principals
+///         that list the same claims in the same order — which two built from one account do.
 ///     </para>
 /// </remarks>
 internal static class PrincipalRights
@@ -56,18 +57,10 @@ internal static class PrincipalRights
         }
     }
 
-    private static bool SameInAnyOrder(ClaimsPrincipal left, ClaimsPrincipal right)
-    {
-        foreach (var claim in left.Claims)
-        {
-            if (Counts(claim) && Occurrences(left, claim) != Occurrences(right, claim))
-            {
-                return false;
-            }
-        }
-
-        return Counted(left) == Counted(right);
-    }
+    // The rare one, so written to be read: the same claims the same number of times.
+    private static bool SameInAnyOrder(ClaimsPrincipal left, ClaimsPrincipal right) =>
+        left.Claims.Count(Counts) == right.Claims.Count(Counts)
+        && left.Claims.Where(Counts).All(claim => Occurrences(left, claim) == Occurrences(right, claim));
 
     private static bool NextThatCounts(IEnumerator<Claim> claims)
     {
@@ -82,33 +75,8 @@ internal static class PrincipalRights
         return false;
     }
 
-    private static int Occurrences(ClaimsPrincipal principal, Claim wanted)
-    {
-        var found = 0;
-        foreach (var claim in principal.Claims)
-        {
-            if (SameClaim(claim, wanted))
-            {
-                found++;
-            }
-        }
-
-        return found;
-    }
-
-    private static int Counted(ClaimsPrincipal principal)
-    {
-        var counted = 0;
-        foreach (var claim in principal.Claims)
-        {
-            if (Counts(claim))
-            {
-                counted++;
-            }
-        }
-
-        return counted;
-    }
+    private static int Occurrences(ClaimsPrincipal principal, Claim wanted) =>
+        principal.Claims.Count(claim => SameClaim(claim, wanted));
 
     private static bool SameClaim(Claim left, Claim right) =>
         string.Equals(left.Type, right.Type, StringComparison.Ordinal)

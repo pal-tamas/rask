@@ -137,15 +137,19 @@ public sealed class HandWiredDataHostTests : IDisposable
     }
 
     [Fact]
-    public async Task A_live_sessions_work_reads_its_tenants_rows_long_after_the_request_that_opened_it()
+    public async Task A_live_sessions_work_reads_the_rows_of_the_tenant_its_connection_names()
     {
         using var host = await StartAsync();
         var opened = await GetAsync(host, "/start", tenant: 7, user: Alice);
         var sessionId = MarkupAssert.SessionId(opened);
 
-        // The socket carries the same user, as a browser's cookie would, and no tenant header at all: what the
-        // session was told when it opened is what it keeps.
-        host.WebSockets.ConfigureRequest = request => request.Headers[UserHeader] = Alice.ToString();
+        // The socket carries the same user and the same tenant, as a browser's cookie and its host name would:
+        // each event asks the resolver again, and it reads the connection's request.
+        host.WebSockets.ConfigureRequest = request =>
+        {
+            request.Headers[UserHeader] = Alice.ToString();
+            request.Headers[CurrentCustomer.Header] = "7";
+        };
         using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);

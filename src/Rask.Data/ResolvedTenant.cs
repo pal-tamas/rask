@@ -1,13 +1,14 @@
 namespace Rask.Data;
 
 /// <summary>
-///     The tenant the application's resolver named for one request or one live session, asked once and kept.
+///     The tenant the application's resolver named for one request, or for a live session as of its last event.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Scoped, which is the whole of "held for the session": a live session has a DI scope of its own that
-///         outlives every request, so the answer given when it opened is the answer for as long as it lives —
-///         it does not move because a later message arrived on another socket or with no request at all.
+///         Scoped: a request asks once. A live session has a DI scope of its own that outlives every request, and
+///         asks again at each event it takes (<see cref="AskAgain" />) — a handler, a navigation, a connection
+///         attaching — so a user who chose another tenant in another tab works in it from this tab's next action.
+///         Between events the answer is held: a render the server starts itself has no request to ask about.
 ///     </para>
 ///     <para>
 ///         Asked on first use, and <see cref="Capture" /> is that first use made early: the host calls it as a
@@ -43,6 +44,25 @@ internal sealed class ResolvedTenant(TenantResolver resolver, IServiceProvider s
 
                 return _tenant;
             }
+        }
+    }
+
+    /// <summary>
+    ///     Asks the resolver again and keeps the new answer: a live session does at each event it takes, so the
+    ///     tenant it works in is the one its user has now. True when the answer is another than the one held.
+    /// </summary>
+    /// <remarks>A resolver that throws leaves nothing held, and is asked again by whatever reads the tenant next.</remarks>
+    internal bool AskAgain()
+    {
+        lock (_gate)
+        {
+            var had = _asked;
+            var before = _tenant;
+            _asked = false;
+            _tenant = Ask();
+            _asked = true;
+
+            return had && before != _tenant;
         }
     }
 

@@ -456,8 +456,11 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         Set(MessageKey.For(message), data);
     }
 
-    public void Set<TResult>(QueryKey key, TResult data) =>
-        GetOrAdd(key).Succeeded(data, _time.GetUtcNow());
+    public void Set<TResult>(QueryKey key, TResult data)
+    {
+        var entry = GetOrAdd(key);
+        entry.Succeeded(data, _time.GetUtcNow(), entry.Generation);
+    }
 
     /// <summary>Dispatches a void command, for a Command that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
@@ -621,6 +624,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         int attempt,
         CancellationToken cancellationToken)
     {
+        var generation = entry.Generation;
         try
         {
             object? data;
@@ -630,7 +634,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
                 data = await fetch(cancellationToken).ConfigureAwait(false);
             }
 
-            entry.Succeeded(data, _time.GetUtcNow());
+            entry.Succeeded(data, _time.GetUtcNow(), generation);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -638,7 +642,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
             // Cancelled because nothing is rendering this any more, or because the caller
             // asked. Neither is a failure to show: recording it would leave an error on an
             // entry whose next observer would then render it, having done nothing wrong.
-            entry.Abandoned();
+            entry.Abandoned(generation);
             return true;
         }
         catch (Exception ex)
@@ -646,7 +650,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
             var worthRetrying = options.ShouldRetry ?? QueryOptions.IsWorthRetrying;
             if (attempt >= options.Retry || !worthRetrying(ex))
             {
-                entry.Failed(ex);
+                entry.Failed(ex, generation);
                 return true;
             }
 
@@ -658,7 +662,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
             }
             catch (OperationCanceledException)
             {
-                entry.Abandoned();
+                entry.Abandoned(generation);
                 return true;
             }
         }
@@ -695,6 +699,29 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         // stale, and starts the refetch. An entry nothing renders simply stays stale until something
         // does, which is the point of invalidating rather than evicting.
         foreach (var entry in affected)
+        {
+            entry.NotifyChanged();
+        }
+    }
+
+    /// <summary>
+    ///     Drops every cached result and tells what renders them to read again: the session now acts for another
+    ///     user, the same user with other rights, or another tenant, and a list read for the one before is not
+    ///     this one's to see — not even while its replacement loads.
+    /// </summary>
+    internal void Forget()
+    {
+        QueryEntry[] entries;
+        lock (_gate)
+        {
+            entries = [.. _entries.Values];
+            foreach (var entry in entries)
+            {
+                entry.Forget();
+            }
+        }
+
+        foreach (var entry in entries)
         {
             entry.NotifyChanged();
         }
