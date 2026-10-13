@@ -34,6 +34,9 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
         ["checkbox checked"] = on => Ui.Checkbox.Value(on).Label("Agree"),
         ["checkbox invalid"] = on => Ui.Checkbox.Value(false).Invalid(on),
         ["switch on"] = on => Ui.Switch.Value(on).Label("Alerts"),
+        ["toggle checked"] = on => Ui.Toggle.Icon(Ui.IconName.Bolt).Checked(on),
+        ["toggle checked with labels"] = on => Ui.Toggle.OnLabel("Sound on").OffLabel("Sound off").Checked(on),
+        ["toggle disabled"] = on => Ui.Toggle.Icon(Ui.IconName.Bolt).Disabled(on),
         ["field error before a description"] = on => Ui.Field[
             Ui.Label["Email"], Ui.Input.Value("a"), Ui.Error.Message(on ? "Enter an email address." : null), Ui.Description["Never shared."]
         ],

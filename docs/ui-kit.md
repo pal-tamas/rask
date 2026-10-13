@@ -360,7 +360,7 @@ Not every component honours every member — daisyUI defines no `input-outline` 
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`.
+`Ui.LoadingShape`, `Ui.AuraStyle`.
 
 ### One vocabulary for placing things
 
@@ -1107,6 +1107,42 @@ the default: `Ui.TimelineItem.Baseline.Class("[&_[data-ui-timeline-baseline]]:te
 Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[ … ]
 ```
 
+## Toggle
+
+`Ui.Toggle` is Flux UI's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+Reach for it when the setting is icon-sized; one that needs its words beside it is a `Ui.Switch`.
+
+```csharp
+Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")                          // keeps its own state
+Ui.Toggle.Icon(Ui.IconName.Heart).Color(Ui.Color.Red).Checked()                // starts on
+Ui.Toggle.Bind(() => settings.Sound).OnLabel("Sound on").OffLabel("Sound off") // two-way bound
+Ui.Toggle.Bind(() => project.Active).OnChange(Save).Icon(Ui.IconName.LightBulb) // written, then saved
+Ui.Toggle.Checked(muted).OnChange(on => muted = on)                            // the page keeps it
+```
+
+| | |
+| --- | --- |
+| `Icon` | A Heroicon — its outline when off, its solid drawing when on — or icons of your own (Flux's `icon` slot), each shown for its state with `group-data-checked:`. |
+| `OnIcon` / `OffIcon` | A different Heroicon for each state. |
+| `Label`, `OnLabel` / `OffLabel` | Short text beside the icon, or one per state. Children take their place. |
+| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
+| `Variant` | `Outline`, `Filled`, `Ghost`, `Subtle`. |
+| `Color` | The icon's colour when on; the accent when unset. Off, it stays neutral. |
+| `Tooltip` | A tooltip, and the accessible name of a toggle that shows only an icon. |
+| `Checked` | Whether it is on, for a toggle that is not bound. |
+| `Disabled()` | Dimmed, and out of the tab order. |
+
+It is a `<button role="switch">`: a press, Space and Enter turn it, and a screen reader says "on" or "off".
+
+**Whose state it is.** `Bind` two-way binds a `bool`: the member is written with the next action, as every
+kit control's is, and at once with `.Live()`. A bound toggle the page listens to with `OnChange` is written at
+once too, and `OnChange` runs after the write — Flux's `wire:model` beside `wire:change`, one round trip that
+saves. Unbound, it keeps its own state, starting from `Checked`, and reports each turn to `OnChange`; a page
+that hands it a different `Checked` has the last word. While its handler runs the runtime marks the button
+`data-loading`: what it shows gives way to a spinner and it takes no further press.
+
+`Ui.Swap`, the daisyUI control with two faces, is gone: `Ui.Toggle.OnIcon(…).OffIcon(…)` is that control.
+
 ## Flag
 
 `Ui.Flag` is Flux UI's `flux:flag`: a country's flag from its two-letter Unicode region code.
@@ -1436,11 +1472,11 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Swap` `Ui.Fab` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Fab` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Flag` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
@@ -1642,7 +1678,7 @@ which is what lets a dropdown close itself when the action inside it completes.
 Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[ trigger, Ui.Menu[ … ] ]
 ```
 
-**The page owns it, in C#.** `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold their state in a field and
+**The page owns it, in C#.** `Ui.Tabs`, a `Ui.Toggle` given `Checked` and `Ui.Modal`'s `Open` path hold their state in a field and
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at

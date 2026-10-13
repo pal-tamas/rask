@@ -158,7 +158,8 @@ const NATIVE = {
 const HOLDS_INPUT = new Set(['ui-checkbox', 'ui-radio', 'ui-switch']);
 // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
 // opens the file input inside it when clicked, where Flux's <div> calls input.click().
-const NATIVE_PART = { 'input-file': 'label' };
+// A toggle is a <ui-switch> too, by another marker: a real <button role="switch">, which Space and Enter press.
+const NATIVE_PART = { 'input-file': 'label', toggle: 'button' };
 // …and a part whose native control IS the component on the Rask side: Flux hides an <input type="range"> in
 // each slider thumb for the keyboard and moves the thumb by script; Rask.Ui lays that input, invisible,
 // over the track the thumb travels, and the browser drags it. Tag and place in the tree are compared; its
@@ -168,7 +169,7 @@ const NATIVE_CONTROL = { 'slider-thumb': 'input' };
 // A <ui-radio> that is a choice among buttons, not a form's radio (a date picker's preset), is a real
 // <button role="radio">, which the runtime's roving group walks.
 const RADIO_BUTTON = (a, b) => a.tag === 'ui-radio' && b.tag === 'button' && b.attrs.role === 'radio';
-const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b)
+const sameTag = (a, b) => (NATIVE_PART[mark(a, 'data-flux-')] ?? NATIVE[a.tag] ?? a.tag) === b.tag || (a.tag === 'button' && b.tag === 'summary') || RADIO_BUTTON(a, b)
   || (layout && (LAYOUT_NATIVE[a.tag] ?? []).includes(b.tag));
 // Flux marks an accordion's root `data-flux-accordion-heading`, the marker its headings carry too.
 // …and leaves a chart's root with no marker at all: its <ui-chart> is the chart.

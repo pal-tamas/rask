@@ -29,7 +29,7 @@ public sealed partial class UiKitDataInputPage : Component
             "size, and ", Code["ghost"], " on the three controls daisyUI defines it for."
         ],
         CodeSample
-            .Files(["UiKitDataInputDemo.cs", "UiKitDataInputDemo.Choices.cs"])
+            .Files(["UiKitDataInputDemo.cs", "UiKitDataInputDemo.Choices.cs", "UiKitToggleDemo.cs"])
             .Notes("The one-time code is a single input drawn as several — per-digit boxes need script "
                 + "to move focus, defeat SMS autofill and drop a pasted code into the first box. The "
                 + "calendar is a C# month grid, because the element daisyUI styles for it is a "

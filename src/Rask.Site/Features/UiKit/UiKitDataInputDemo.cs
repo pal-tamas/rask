@@ -39,6 +39,7 @@ public sealed partial class UiKitDataInputDemo : Component
         CheckboxSection(),
         RadioSection(),
         SwitchSection(),
+        ToggleSection(),
         SliderSection(),
         SliderTicksSection(),
         RangeSliderSection(),
@@ -351,6 +352,13 @@ public sealed partial class UiKitDataInputDemo : Component
                 Masked("star", Ui.MaskShape.Star2),
                 Masked("heart", Ui.MaskShape.Heart)
             ]);
+
+    private static Component ToggleSection() =>
+        Section(
+            "Toggle",
+            "Flux's toggle: a setting turned on or off from a compact button — an icon that fills in when it is on. "
+            + "Space and Enter turn it, a tooltip names it, and a bound one that saves shows a spinner while it waits.",
+            UiKitToggleDemo.Key("toggles"));
 
     private static AttrBag Testid(string value) => new("testid", value);
 

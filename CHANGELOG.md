@@ -223,6 +223,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+  `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
+  outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for
+  your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
+  `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
+  written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound it keeps its own state from
+  `Checked` and reports each turn. While its handler runs it shows a spinner and takes no press. Measured from
+  Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
+- **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
+  toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:
+  ```csharp
+  Ui.Swap.AccessibleLabel("Mute").On(muteIcon).Off(soundIcon).Active(muted).OnChange(on => muted = on)   // was
+  Ui.Toggle.Tooltip("Mute").OnIcon(Ui.IconName.SpeakerXMark).OffIcon(Ui.IconName.SpeakerWave)
+      .Checked(muted).OnChange(on => muted = on)                                                         // now
+  ```
+  It says `role="switch"` and `aria-checked` where the swap said `aria-pressed`. There is no rotate or flip.
+
 - **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
   region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
   `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing

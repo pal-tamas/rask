@@ -207,7 +207,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -840,6 +840,21 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   `UiKitFlagTests` on the site. Found through its page: Flux's `flux:select.option` given BOTH `label` and
   content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
   draws the `Label` in place of its children, so the flag page's two selects are written without it.
+
+- Toggle (2026-10-13): `Ui.Toggle` is a real `<button role="switch">` where Flux writes a `<ui-switch>` — the
+  element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
+  press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides
+  what the toggle holds and takes the pointer; `disabled` is 50%, no pointer, no shadow, out of the tab order.
+  All of that is the button's own and the runtime's `data-loading` — no hook. With a `Tooltip` it renders
+  `Ui.Tooltip` around the button, which names it (`aria-labelledby`), as Flux does. `Icon` is the input's
+  union (`UiInputIcon`): Flux's `icon` prop and its `icon` slot under one name. NOT an `IFormControl<bool>`:
+  one of those must be opened with `Bind` or `Value`, and Flux's toggle is used with neither. So it commits
+  through `PendingBinds` itself, and its unbound state is a field seeded from `Checked` and re-seeded when the
+  page hands it a different one. With `Bind` AND `OnChange` it is live (`IDeferredBind.Live`): Flux's
+  `wire:model` + `wire:change` is one request. OPEN, the owner's call: whether it should also take `Value`
+  as the switch does (`Checked` is Flux's own name for the same thing, as on `Ui.Checkbox`).
+  Unmeasured: slot children as the label, a label beside a tooltip. `Ui.Swap` went with it; daisyUI's `swap`
+  is excluded on the `@plugin` line.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
