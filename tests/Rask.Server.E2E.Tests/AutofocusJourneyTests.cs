@@ -169,6 +169,8 @@ public sealed class AutofocusJourneyTests(PlaywrightFixture playwright) : IClass
                 : "<!doctype html><title>away</title><p id=away-page>away</p>",
         }));
         await page.GotoAsync("http://probe.test/form");
+        // The browser gives the focus after the load, in a task of its own: waited for, then read.
+        await Expect(page.Locator("#name")).ToBeFocusedAsync();
         var loaded = await page.EvaluateAsync<string>("() => document.activeElement.id");
         await page.ClickAsync("#away");
         await Expect(page.Locator("#away-page")).ToBeVisibleAsync();
