@@ -1703,8 +1703,10 @@ on the closed trigger opens the menu onto its first row. The row under the curso
 focus, not `aria-activedescendant`), `tabindex="0"` and `data-active` — all three written by the runtime and
 held against the next render, never rendered. The runtime also presses the focused row on Enter and Space,
 closes the popover after a pick or when Tab leaves, and hands focus back to the trigger after a click outside.
-What the page hears is a row being pressed — its `OnClick`, a checkbox's or a radio's value — and the menu
-opening and closing (`OnToggle`); a `Ui.MenuItem` with no `OnClick` sends nothing at all.
+What the page hears is a row being pressed — its `OnClick`, a checkbox's or a radio's value — and, only when
+it gave `OnToggle`, the menu opening and closing. Without `OnToggle` opening and closing a dropdown, a popover or
+a context menu sends nothing, and neither does a `Ui.MenuItem` with no `OnClick`: `data-open` and
+`aria-expanded` are written in the browser.
 
 A pick closes the menu — a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a radio
 group or a single row keeps it up, for the menu someone ticks several of.

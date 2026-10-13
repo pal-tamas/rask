@@ -11,6 +11,8 @@
 //     itself — and data-rask-mask-money=".,2" groups a number (decimal mark, thousands mark, decimals). Both
 //     run before the page's own input handler, so the page receives the shaped value, and both put the caret
 //     back where the reader was typing.
+//   * data-rask-view="<id>" on a button: a click shows that password field as text and the next hides it
+//     again, with data-viewable-open on the button meanwhile — Flux UI's viewable input. Nothing is sent.
 //   * data-rask-clear-keys="Escape" on a field empties it when that key is pressed in it.
 //   * Enter toggles a checkbox that is a role="switch"; Shift+Arrow and PageUp/PageDown move a range input by
 //     its data-rask-big-step. (A closed data-rask-listbox-button's keys are rask-keys.ts's.)
@@ -173,6 +175,22 @@ function copy(button: HTMLElement): void {
     });
 }
 
+// A password shown as text and hidden again. Both marks are held against the render while the field shows:
+// the page goes on drawing type="password" and a button that says nothing.
+function view(button: HTMLElement, field: HTMLInputElement, show: boolean): void {
+    if (show) {
+        own(field, "type");
+        own(button, "data-viewable-open");
+        field.type = "text";
+        button.setAttribute("data-viewable-open", "");
+    } else {
+        field.type = "password";
+        button.removeAttribute("data-viewable-open");
+        disown(field, "type");
+        disown(button, "data-viewable-open");
+    }
+}
+
 if (page) {
     listen("click", function (e) {
         const copier = near(e.target, "[data-rask-copy]");
@@ -185,6 +203,11 @@ if (page) {
             cleared.value = "";
             fire(cleared, "input");
             fire(cleared, "change");
+        }
+        const viewer = near(e.target, "[data-rask-view]");
+        const viewed = viewer ? named(viewer, "data-rask-view") : null;
+        if (viewer && viewed instanceof HTMLInputElement) {
+            view(viewer, viewed, viewed.type === "password");
         }
         const focuser = near(e.target, "[data-rask-focus]");
         const target = cleared || (focuser ? named(focuser, "data-rask-focus") : null);
