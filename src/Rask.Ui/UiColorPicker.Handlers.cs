@@ -94,8 +94,29 @@ public sealed partial class UiColorPicker
     private Task ChannelDraggedAsync(Ui.ColorPickerChannel channel, string at) =>
         !Off && TryFraction(at, out var along) ? SetChannelAsync(channel, (int)Math.Floor((along * Max(channel)) + 0.5)) : Task.CompletedTask;
 
-    // The range input's own change: the arrows, Home and End are the browser's, Shift+Arrow and the page keys
-    // the runtime's big step of 10.
+    // An arrow steps by one, and by ten with Shift — Flux's big step, which a range input does not have, so the
+    // runtime keeps the arrows from the input and they are taken here.
+    private Task ChannelKeyAsync(Ui.ColorPickerChannel channel, KeyboardEvent e)
+    {
+        var direction = e.Key switch
+        {
+            Keys.ArrowRight or Keys.ArrowUp => 1,
+            Keys.ArrowLeft or Keys.ArrowDown => -1,
+            _ => 0,
+        };
+
+        if (direction == 0 || Off)
+        {
+            return Task.CompletedTask;
+        }
+
+        var step = e.ShiftKey ? 10 : 1;
+
+        return SetChannelAsync(channel, Math.Clamp(ChannelValue(channel) + (direction * step), 0, Max(channel)));
+    }
+
+    // The range input's own change: Home, End and the page keys are the browser's — a page key is a tenth of
+    // the track, as on Flux.
     private Task ChannelTypedAsync(Ui.ColorPickerChannel channel, string text) =>
         !Off && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? SetChannelAsync(channel, Math.Clamp(value, 0, Max(channel)))

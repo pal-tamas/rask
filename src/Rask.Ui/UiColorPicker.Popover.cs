@@ -219,8 +219,9 @@ public sealed partial class UiColorPicker
                             .Disabled(Off)
                             .Class("sr-only")
                             .Aria(aria)
-                            .Data("rask-big-step", "10")
+                            .Data("rask-contain-keys", "Arrows")
                             .OnChange(text => ChannelTypedAsync(channel, text))
+                            .OnKeyDown(e => ChannelKeyAsync(channel, e))
                     ]
                 ]
             ],

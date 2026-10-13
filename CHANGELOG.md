@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
+  a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
+  `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
+  `.Xs`, `Swatches([...])`, `Dropper()`, `Clearable()`, `Copyable()`, and a popover composed from
+  `Ui.ColorPickerArea`, `Ui.ColorPickerSlider`, `Ui.ColorPickerInput`, `Ui.ColorPickerSwatches`,
+  `Ui.ColorPickerSwatch` and `Ui.ColorPickerDropper`. A bound colour is written with the reader's next action,
+  `.Live()` as it is chosen. On a phone the popover is a sheet that keeps what is chosen until Select. A typed
+  `oklch()`, `lab()`, `lch()`, `oklab()` or `color()` becomes what Flux's picker makes of it, also where that is
+  wrong (`oklch(0.7 0.1 200)` → `#0100c8`); text that is no colour in a picker bound in a form is refused with
+  "Enter a valid color." and holds the save. 41 new catalog keys (`ColorPicker…`, `ColorSwatch…`,
+  `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
+
 ### Changed
 
 - **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`

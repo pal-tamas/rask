@@ -49,6 +49,7 @@ public sealed partial class UiKitDataInputDemo : Component
         CalendarSection(),
         DatePickerSection(),
         TimePickerSection(),
+        UiKitColorPickerDemo,
         FileUploadSection(),
         BoundModelSection(),
         MaskSection()

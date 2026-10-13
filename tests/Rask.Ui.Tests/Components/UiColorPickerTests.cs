@@ -107,7 +107,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("x", hue.Attribute("data-rask-drag"));
         Assert.Equal("8", hue.Attribute("data-rask-drag-inset"));
         Assert.Equal(page.Find(Hue).Attribute("id"), hue.Attribute("data-rask-focus"));
-        Assert.Equal("10", page.Find(Hue).Attribute("data-rask-big-step"));
+        Assert.Equal("Arrows", page.Find(Hue).Attribute("data-rask-contain-keys"));
         Assert.Equal("0.2056", page.Find(HueField).Attribute("value"));
         Assert.Equal("Arrows Home End PageUp PageDown Space Enter", page.Find("[data-ui-color-picker-swatches]").Attribute("data-rask-contain-keys"));
     }
@@ -230,6 +230,20 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("180", page.Find(Hue).Attribute("value"));
         Assert.Equal("0.5", page.Find(HueField).Attribute("value"));
         Assert.Contains("background-color:rgb(0 255 255)", page.Find("[data-ui-color-picker-area-hue]").Attribute("style"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_arrow_steps_a_slider_by_one_and_by_ten_with_shift()
+    {
+        var page = Page.Render(Picker);
+
+        await Key(page, Hue, "ArrowRight");
+        var one = page.Find(Hue).Attribute("value");
+        await Key(page, Hue, "ArrowLeft", shift: true);
+
+        Assert.Equal("75", one);
+        Assert.Equal("65", page.Find(Hue).Attribute("value"));
+        Assert.Equal("#cfda55", _color);
     }
 
     [Fact]

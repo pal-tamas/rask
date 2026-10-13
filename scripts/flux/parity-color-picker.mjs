@@ -16,7 +16,7 @@
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages        # writes the Rask page
 //         node scripts/flux/parity-color-picker.mjs [--refresh] [--all]    # --refresh re-measures Flux
 //         node scripts/flux/parity-color-picker.mjs --section dropper
-//         node scripts/flux/parity-color-picker.mjs --live http://localhost:5000/docs/ui/color-picker [--phone] [--wait 2200]
+//         node scripts/flux/parity-color-picker.mjs --live <url of the showcase page> [--phone] [--wait 2200] [--walk <name>] [--all]
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -138,7 +138,7 @@ function walks(phone) {
 async function walkBoth(browser, liveUrl, phone, wait) {
   const view = phone ? { viewport: { width: 390, height: 844 }, hasTouch: true } : { viewport: { width: 1280, height: 900 } };
   let differs = 0;
-  for (const walk of walks(phone)) {
+  for (const walk of walks(phone).filter(w => !option('walk') || w.name === option('walk'))) {
     const sides = [];
     for (const side of ['flux', 'rask']) {
       const context = await browser.newContext({ ...view, permissions: ['clipboard-read', 'clipboard-write'] });
@@ -149,28 +149,34 @@ async function walkBoth(browser, liveUrl, phone, wait) {
       const picker = side === 'flux'
         ? page.locator('ui-color-picker').nth(walk.flux)
         : page.locator(`[data-color-picker-example="${walk.rask}"] [data-ui-color-picker]`).first();
-      await picker.scrollIntoViewIfNeeded();
+      // A WASM site boots after its document has loaded, and draws its page of demos a moment after that.
+      await picker.waitFor({ state: 'attached', timeout: 90000 });
+      if (side === 'rask') await page.waitForTimeout(wait * 2);
+      await picker.scrollIntoViewIfNeeded({ timeout: 20000 });
       const lines = [];
       for (const step of walk.steps) {
         await act(page, picker, prefix, step, phone).catch(e => lines.push(`${step}: could not (${String(e.message).split('\n')[0].slice(0, 80)})`));
         await page.waitForTimeout(side === 'flux' ? 250 : wait);
-        lines.push(`${step} -> ${step === 'clipboard' ? await page.evaluate(() => navigator.clipboard.readText()) : await observe(picker, prefix)}`);
+        lines.push(`${step} -> ${step === 'clipboard' ? await page.evaluate(() => navigator.clipboard.readText()) : await observe(picker, prefix).catch(e => `nothing to observe (${String(e.message).split('\n')[0].slice(0, 60)})`)}`);
       }
       sides.push(lines);
       await context.close();
     }
 
     const [flux, rask] = sides;
-    const bad = flux.map((line, i) => (line === rask[i] ? null : `       ${walk.steps[i]}\n         flux ${line}\n         rask ${rask[i]}`)).filter(Boolean);
-    differs += bad.length ? 1 : 0;
-    console.log(`${bad.length ? 'FAIL' : 'ok  '} ${walk.name} (${walk.steps.length} steps)${bad.length ? ` — ${bad.length} differ` : ''}`);
+    const bad = flux.map((line, i) => (line === rask[i] && !args.includes('--all') ? null : `         flux ${line}\n         rask ${rask[i]}`)).filter(Boolean);
+    const wrong = flux.filter((line, i) => line !== rask[i]).length;
+    differs += wrong ? 1 : 0;
+    console.log(`${wrong ? 'FAIL' : 'ok  '} ${walk.name} (${walk.steps.length} steps)${wrong ? ` — ${wrong} differ` : ''}`);
     for (const line of bad) console.log(line);
   }
 
   return differs;
 }
 
-const PARTS = {
+// A function, not a constant: the walk runs from the top of the file.
+function parts() {
+  return {
   opener: p => `[${p}color-picker-swatch-button], [${p}color-picker-button]`,
   input: p => `[${p}color-picker-input]`,
   'popover-input': p => `[${p}color-picker-popover-input]`,
@@ -183,11 +189,12 @@ const PARTS = {
   // The box Flux hears its Select through, and the one around its Cancel: the kit's are the same two, in that order.
   cancel: p => (p === 'data-flux-' ? 'ui-close button' : 'dialog [data-ui-button]:not([data-ui-group-target])'),
   select: p => (p === 'data-flux-' ? 'ui-color-picker-select' : 'dialog [role=button]'),
-};
+  };
+}
 
 async function act(page, picker, prefix, step, phone) {
   const [verb, ...rest] = step.split(':');
-  const part = name => picker.locator(PARTS[name](prefix)).first();
+  const part = name => picker.locator(parts()[name](prefix)).first();
   const press = locator => (phone ? locator.tap() : locator.click());
   const point = async (name, x, y) => {
     const box = await part(name).boundingBox();
