@@ -46,6 +46,8 @@ public sealed partial class UiKitDataDisplayDemo : Component
         StableColumnsSection(),
         PagingThatWaitsSection(),
         TimelineSection(),
+        CarouselSection(),
+        FlagSection(),
         RestOfCategorySection()
     ];
 
@@ -242,6 +244,21 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Flux's timeline: events or steps in order, down the page or across it, with the line drawn "
             + "between their indicators. A list, so there is nothing to hold in C#.",
             UiKitTimelineDemo);
+
+    private static Component CarouselSection() =>
+        Section(
+            "Carousel",
+            "Flux's carousel: slides that scroll sideways and come to rest on one. The browser scrolls and snaps — a "
+            + "wheel, a swipe and the keyboard all move it — and the arrows, the indicators and autoplay follow in "
+            + "the browser, with nothing sent to the page.",
+            UiKitCarouselDemo.Key("carousels"));
+
+    private static Component FlagSection() =>
+        Section(
+            "Flag",
+            "Flux's flag: a country's flag from its two-letter region code, 3:2 or cropped to a circle, in five "
+            + "widths. Each is one small file the page fetches when it shows it.",
+            UiKitFlagDemo);
 
     private static Component RestOfCategorySection() =>
         Section(

@@ -235,4 +235,19 @@
     <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="buildTransitive\rask-ui-editor.LICENSES.txt" Visible="false"/>
   </ItemGroup>
 
+  <!--
+    UI.FLAG'S DRAWINGS: Flags/*.svg, country-flag-icons' 3:2 set (MIT), vendored by scripts/flux/flags.mjs.
+    Packed beside the targets and NOT embedded, for the editor engine's reason: a browser-WASM app downloads
+    this assembly whole, and 172 KB of flags is too much for an app that shows three. An app that sets
+    RaskUiWriteFlags gets them copied into wwwroot/flags; one that does not carries none of them.
+    ONCE, in a folder of their own at the package's root, which the targets under build/ and their twin under
+    buildTransitive/ both read: they are data, not a build hook, and packed beside each copy of the targets
+    they would be in the package twice (82 KB each). Their notice travels with them — in the folder, and
+    at the package's root beside the editor's.
+  -->
+  <ItemGroup>
+    <None Include="Flags\*.svg;Flags\LICENSE.txt" Pack="true" PackagePath="flags" Visible="false"/>
+    <None Include="Flags\LICENSE.txt" Pack="true" PackagePath="rask-ui-flags.LICENSE.txt" Visible="false"/>
+  </ItemGroup>
+
 </Project>
