@@ -27,6 +27,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
+  `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
+  `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
+  once with the final text when typing has paused, the browser counts the pause and sends nothing meanwhile,
+  a row pressed or Enter during it picks from the list as drawn and the unsent text is dropped, and a pause
+  ending on the text last heard asks nothing. The first key in a closed combobox or pillbox opens the list and
+  asks the page nothing. On `Ui.Autocomplete`, which has no search callback apart from its value, the pause
+  is when what was typed reaches `OnChange` or the bound member (`Debounce` implies `Live()`, as on
+  `Ui.Input`); its list still narrows at every key. Without the step nothing changes. One reading for the
+  five (`UiSearchPause`). `UiSearchDebounceTests`, `SearchDebounceTests`.
+
 - **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
   beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
   another. Generated code calls it; an app has no reason to.
@@ -43,6 +54,24 @@ them until tagged releases begin.
   `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
 
 ### Changed
+
+- **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
+  backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
+  `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words
+  when a combobox goes on to say its answer. `OnInput` of `Ui.SelectSearch` / `Ui.SelectInput` /
+  `Ui.PillboxSearch` / `Ui.PillboxInput` now hears those too — once, and only when the page had heard
+  otherwise — so a page that answers a search no longer holds the last search's rows behind an empty field.
+  A list opened and shut with nothing typed tells the page nothing. Taking a pill off empties the input among
+  the pills, as Flux does.
+- **A create row is handed what the field holds when it is pressed.** Under `Debounce` the page may not have
+  heard the last letters; Flux sends the text with the press, and `OnClick` now gets it from the field.
+- **A search field over a list sends only the list's own keys** (`data-rask-keys`, always — it was written
+  only beside `Debounce`): a letter typed into `Ui.SelectSearch` or `Ui.PillboxSearch` is its `input` and no
+  longer a `keydown` round trip as well. A pillbox's input hears Backspace only while it is empty
+  (`Backspace:empty`, a new form of a `data-rask-keys` entry).
+- **`Ui.Autocomplete` takes its input's `change` only once its list is shut.** A press on an item leaves the
+  input first; a page that answered what was typed with other items drew them under that press and the press
+  ran nothing. The pick, or the list shutting, hands the text over instead; an emptied input still tells at once.
 
 - **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
   pressed.** **A behaviour change under 640 px**, with nothing to change in an app — the same component, the same
@@ -192,6 +221,15 @@ them until tagged releases begin.
   `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
   attached. `StateHasChanged()` from any thread is documented as supported
   (`docs/lifecycle.md#following-a-singletons-event`).
+- **A pillbox keeps its pills when a search brings rows without them.** The pills were drawn from the rows
+  rendered, so under `Filter(false)` a pill whose option the page's answer left out vanished while the model
+  went on holding the value — and could no longer be taken off. Measured on Flux's "With backend search":
+  three picked, a search that leaves one option and then none, and the three pills stand in the order picked;
+  the cross on one whose option is not rendered takes it out of the value. The pillbox now keeps what each
+  answer showed when it was last drawn, keyed by its value, for as long as the value holds it (as `Ui.Select`
+  does for its one answer); a named select of several posts them too. A value that leaves takes its face with
+  it, and one no render ever drew an option for has no pill. No new API. `UiPillboxKeptAnswersTests`,
+  `PillboxKeptAnswersTests`.
 
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next

@@ -52,7 +52,6 @@ public partial class UiSelectSearchDebounceTests : global::Rask.Core.RaskMarkup
 
         var field = page.Find(Field);
         Assert.Null(field.Attribute("data-rask-debounce"));
-        Assert.Null(field.Attribute("data-rask-keys"));
         Assert.Null(field.Attribute("data-rask-on-pause"));
         Assert.Equal(["a", "ac"], _heard);
     }
@@ -99,7 +98,6 @@ public partial class UiSelectSearchDebounceTests : global::Rask.Core.RaskMarkup
         await page.On(Field).Input("a");
 
         Assert.Null(page.Find(Field).Attribute("data-rask-debounce"));
-        Assert.Null(page.Find(Field).Attribute("data-rask-keys"));
         Assert.Equal(["a"], _heard);
     }
 
