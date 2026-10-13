@@ -221,7 +221,7 @@
 # 2026-10-13, a handler that hears a field's pause and that nothing else sends (data-rask-on-pause,
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
+# 2026-10-13, a key heard only from an empty field (`Backspace:empty`, rask-events.ts): rask.js 101,724 -> 101,784 (+60), rask.wasm.js 90,507 -> 90,567 (+60).
 bundle,bytes
-rask.js,101724
-rask.wasm.js,90507
-rask-hooks.js,56371
+rask.js,101784
+rask.wasm.js,90567

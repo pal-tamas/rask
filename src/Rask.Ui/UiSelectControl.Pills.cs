@@ -136,9 +136,9 @@ public abstract partial class UiSelectControl<T>
             .Disabled(off)
             .Class(UiClass.Compose(UiPillboxLook.Input, slot?.Class))
             .Aria(aria)
-            .Attributes(UiPillboxLook.InputMarks(placeholder))
+            .Attributes(UiSearchPause.Over(UiPillboxLook.InputMarks(placeholder), _pause, PausedAsync))
             .Ref(_input)
-            .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
+            .OnInput(AtEveryKey(opens: true))
             .OnKeyDown(e => OnPillInputKeyAsync(e, view));
     }
 
@@ -188,9 +188,6 @@ public abstract partial class UiSelectControl<T>
 
     private string? PillListLook() => Pills is null ? null : UiPillboxLook.SearchedList;
 
-    private Dictionary<string, string?> SearchInputMarks() =>
-        Pills is null ? [] : UiPillboxLook.InputMarks(null);
-
     private Component?[] RowContent(UiSelectOption option) =>
         Pills is null ? [UiListboxRow.Content(option)] : UiPillboxRow.Content(option);
 
@@ -226,22 +223,22 @@ public abstract partial class UiSelectControl<T>
     private async Task OnPopupToggleAsync(ToggleEvent e)
     {
         OnToggle(e);
-        if (PillsCombobox && !_open)
+        if (_open)
         {
-            // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
-            await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+            return;
         }
-        else if (!_open)
-        {
-            await ForgetUnheardAsync().ConfigureAwait(false);
-        }
+
+        // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
+        await SettleAsync(held: PillsCombobox).ConfigureAwait(false);
     }
 
     private async Task OnPillInputKeyAsync(KeyboardEvent e, View view)
     {
         switch (e.Key)
         {
-            case Keys.Backspace when view.Search.Length == 0 && view.Picked.Count > 0:
+            // Heard only from an empty input (UiListKeys.Pills). The page's own reading of the text is asked
+            // where it is known: an input that waits holds what no render has drawn.
+            case Keys.Backspace when (Waits || view.Search.Length == 0) && view.Picked.Count > 0:
                 await CommitAsync([.. view.Picked.Take(view.Picked.Count - 1)]).ConfigureAwait(false);
                 break;
             case Keys.Escape or Keys.Tab:
@@ -267,21 +264,29 @@ public abstract partial class UiSelectControl<T>
     // Empties the pillbox's own input — unless the browser already has — and tells the page that holds the search.
     private async Task ForgetTypedAsync(View view, bool emptied = false)
     {
-        if (view.Search.Length == 0)
+        if (view.Search.Length == 0 && !Waits)
         {
             return;
         }
 
         var cursor = _cursor;
-        await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
+        await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
         _typing = false;
         _cursor = cursor;
         if (!emptied)
         {
-            await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+            UiInputReach.Tell(_input, string.Empty);
         }
     }
 
-    private Task RemoveAsync(T value, View view) =>
-        CommitAsync([.. view.Picked.Where(held => !Same(held, value))]);
+    // Flux empties what was typed when a pill is taken off, as at a pick (measured: "re" typed, a pill's cross
+    // pressed, the input is empty and the list still open).
+    private async Task RemoveAsync(T value, View view)
+    {
+        await CommitAsync([.. view.Picked.Where(held => !Same(held, value))]).ConfigureAwait(false);
+        if (PillsCombobox)
+        {
+            await ForgetAtChoiceAsync(view).ConfigureAwait(false);
+        }
+    }
 }

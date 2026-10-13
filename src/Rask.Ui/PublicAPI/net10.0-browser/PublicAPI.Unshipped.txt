@@ -539,6 +539,8 @@ Rask.UiAutocomplete.ContainerClass.get -> string?
 Rask.UiAutocomplete.ContainerClass.set -> void
 Rask.UiAutocomplete.Copyable.get -> bool?
 Rask.UiAutocomplete.Copyable.set -> void
+Rask.UiAutocomplete.Debounce.get -> System.TimeSpan?
+Rask.UiAutocomplete.Debounce.set -> void
 Rask.UiAutocomplete.Description.get -> string?
 Rask.UiAutocomplete.Description.set -> void
 Rask.UiAutocomplete.Disabled.get -> bool?
@@ -2270,6 +2272,10 @@ Rask.UiPaginator.Total.init -> void
 Rask.UiPaginator.UiPaginator() -> void
 Rask.UiPillbox<T>.Live.get -> bool?
 Rask.UiPillbox<T>.Live.set -> void
+Rask.UiPillboxInput.Debounce.get -> System.TimeSpan?
+Rask.UiPillboxInput.Debounce.set -> void
+Rask.UiPillboxSearch.Debounce.get -> System.TimeSpan?
+Rask.UiPillboxSearch.Debounce.set -> void
 Rask.UiProfile.Avatar.get -> Rask.Core.Component?
 Rask.UiProfile.AvatarColor.get -> Rask.Ui.Color?
 Rask.UiProfile.AvatarColor.set -> void
@@ -2540,6 +2546,8 @@ Rask.UiSelectGroup.UiSelectGroup() -> void
 Rask.UiSelectInput
 Rask.UiSelectInput.Class.get -> string?
 Rask.UiSelectInput.Class.set -> void
+Rask.UiSelectInput.Debounce.get -> System.TimeSpan?
+Rask.UiSelectInput.Debounce.set -> void
 Rask.UiSelectInput.Invalid.get -> bool?
 Rask.UiSelectInput.Invalid.set -> void
 Rask.UiSelectInput.OnInput.get -> Rask.Core.Callback<string!>
@@ -4328,6 +4336,10 @@ static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b) -> Rask.U
 static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b, bool? value) -> Rask.UiSidebarItem!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartArea! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartArea!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartLine! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartLine!
+static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiAutocomplete! __b, System.TimeSpan? value) -> Rask.UiAutocomplete!
+static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiPillboxInput! __b, System.TimeSpan? value) -> Rask.UiPillboxInput!
+static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiPillboxSearch! __b, System.TimeSpan? value) -> Rask.UiPillboxSearch!
+static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiSelectInput! __b, System.TimeSpan? value) -> Rask.UiSelectInput!
 static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiSelectSearch! __b, System.TimeSpan? value) -> Rask.UiSelectSearch!
 static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiInput<T>! __b, System.TimeSpan? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiTextarea<T>! __b, System.TimeSpan? value) -> Rask.UiTextarea<T>!

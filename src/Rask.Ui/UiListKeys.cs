@@ -19,8 +19,11 @@ internal static class UiListKeys
     /// <summary>A listbox's search field: the arrows walk the list, Enter picks, Tab closes it. Escape is the popover's own.</summary>
     internal const string Search = $"{Keys.ArrowDown} {Keys.ArrowUp} {Keys.Enter} {Keys.Tab}";
 
-    /// <summary>The same, and Backspace: in an empty pillbox input it takes the last pill off.</summary>
-    internal const string Pills = $"{Text} {Keys.Backspace}";
+    /// <summary>
+    ///     The same, and Backspace, heard only from an input that holds nothing (<c>:empty</c>): there it takes
+    ///     the last pill off, and anywhere else it is the text's own.
+    /// </summary>
+    internal const string Pills = $"{Text} {Keys.Backspace}:empty";
 
     /// <summary>
     ///     The keys that close a pillbox and empty its input — Flux's <c>clear="close"</c> — as the runtime's

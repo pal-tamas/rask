@@ -140,8 +140,8 @@ public abstract partial class UiSelectControl<T>
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true))
                 .Ref(_input)
                 .OnClick(() => OnInputClickAsync(view))
-                .OnBlur(OnInputBlur)
-                .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
+                .OnBlur(OnInputBlurAsync)
+                .OnInput(AtEveryKey(opens: true))
                 .OnKeyDown(e => OnInputKeyAsync(e, view)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
@@ -220,7 +220,7 @@ public abstract partial class UiSelectControl<T>
         var marks = TriggerMarks(view, "data-ui-control", invalid, anchors: false);
         marks["data-rask-keys"] = UiListKeys.Text;
 
-        return marks;
+        return UiSearchPause.Over(marks, _pause, PausedAsync);
     }
 
     private Dictionary<string, string?> TriggerMarks(View view, string marker, bool invalid, bool anchors)

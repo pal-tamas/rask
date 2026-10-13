@@ -20,6 +20,15 @@ internal static class UiInputReach
         await ReachAsync(() => input.SetRangeText(text, 0, int.MaxValue)).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     The same, not waited for: the text is there with the frame the handler's render sends. Awaited, a
+    ///     handler waits for a frame of its own first, and one that already asked the browser something waits twice.
+    /// </summary>
+    /// <param name="input">The input.</param>
+    /// <param name="text">What it says from now on.</param>
+    internal static void Tell(ElementRef<HTMLInputElement> input, string text) =>
+        UiReach.Send(() => input.SetRangeText(text, 0, int.MaxValue));
+
     /// <summary>The same, leaving the caret after the new text: where typing goes on from.</summary>
     /// <param name="input">The input.</param>
     /// <param name="text">What it says from now on.</param>

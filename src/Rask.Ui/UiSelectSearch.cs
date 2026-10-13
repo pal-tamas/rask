@@ -1,5 +1,3 @@
-using Rask.Core.Forms;
-
 namespace Rask;
 
 /// <summary>
@@ -36,9 +34,6 @@ public sealed partial class UiSelectSearch : Component
     ///     <see cref="TimeSpan.Zero" /> is every keystroke.
     /// </summary>
     public TimeSpan? Debounce { get; set; }
-
-    /// <summary>The pause in milliseconds, or 0 when every keystroke is heard.</summary>
-    internal int Pause => OnInput.HasValue ? new BindTiming { Debounce = Debounce }.Pause : 0;
 
     /// <summary>Classes for the call site, added to the field's own.</summary>
     public string? Class { get; set; }

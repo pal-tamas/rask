@@ -9,6 +9,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
+  `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
+  `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
+  once with the final text when typing has paused, the browser counts the pause and sends nothing meanwhile,
+  a row pressed or Enter during it picks from the list as drawn and the unsent text is dropped, and a pause
+  ending on the text last heard asks nothing. The first key in a closed combobox or pillbox opens the list and
+  asks the page nothing. On `Ui.Autocomplete`, which has no search callback apart from its value, the pause
+  is when what was typed reaches `OnChange` or the bound member (`Debounce` implies `Live()`, as on
+  `Ui.Input`); its list still narrows at every key. Without the step nothing changes. One reading for the
+  five (`UiSearchPause`). `UiSearchDebounceTests`, `SearchDebounceTests`.
+
 - **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
   a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
   `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
@@ -22,6 +33,24 @@ them until tagged releases begin.
   `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
 
 ### Changed
+
+- **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
+  backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
+  `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words
+  when a combobox goes on to say its answer. `OnInput` of `Ui.SelectSearch` / `Ui.SelectInput` /
+  `Ui.PillboxSearch` / `Ui.PillboxInput` now hears those too — once, and only when the page had heard
+  otherwise — so a page that answers a search no longer holds the last search's rows behind an empty field.
+  A list opened and shut with nothing typed tells the page nothing. Taking a pill off empties the input among
+  the pills, as Flux does.
+- **A create row is handed what the field holds when it is pressed.** Under `Debounce` the page may not have
+  heard the last letters; Flux sends the text with the press, and `OnClick` now gets it from the field.
+- **A search field over a list sends only the list's own keys** (`data-rask-keys`, always — it was written
+  only beside `Debounce`): a letter typed into `Ui.SelectSearch` or `Ui.PillboxSearch` is its `input` and no
+  longer a `keydown` round trip as well. A pillbox's input hears Backspace only while it is empty
+  (`Backspace:empty`, a new form of a `data-rask-keys` entry).
+- **`Ui.Autocomplete` takes its input's `change` only once its list is shut.** A press on an item leaves the
+  input first; a page that answered what was typed with other items drew them under that press and the press
+  ran nothing. The pick, or the list shutting, hands the text over instead; an emptied input still tells at once.
 
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over

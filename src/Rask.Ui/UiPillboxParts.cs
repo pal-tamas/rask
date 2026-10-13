@@ -30,6 +30,7 @@ internal static class UiPillboxParts
             .Invalid(input.Invalid)
             .Value(input.Value)
             .OnInput(input.OnInput)
+            .Debounce(input.Debounce)
             .Class(input.Class),
         _ => child,
     };
@@ -44,5 +45,6 @@ internal static class UiPillboxParts
             .Clearable(search?.Clearable)
             .Value(search?.Value)
             .OnInput(search?.OnInput ?? default)
+            .Debounce(search?.Debounce)
             .Class(search?.Class);
 }

@@ -68,7 +68,7 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
 
         var input = page.Find("[data-ui-pillbox-input]");
 
-        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab Backspace", input.Attribute("data-rask-keys"));
+        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab Backspace:empty", input.Attribute("data-rask-keys"));
         Assert.Equal("Escape Tab", input.Attribute("data-rask-clear-keys"));
     }
 

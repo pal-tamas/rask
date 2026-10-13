@@ -59,6 +59,7 @@ public abstract partial class UiSelectControl<T>
 
     private View Read(UiWithField field, Parts parts)
     {
+        ReadSearch(parts);
         var search = SearchText(parts);
         var filters = Filter != false && search.Length > 0;
         var view = new View(field, parts, Current(), search)
@@ -68,6 +69,7 @@ public abstract partial class UiSelectControl<T>
         };
         view.Cursor = Place(view);
         Remember(view);
+        _answer = PickedWords(view);
 
         return view;
     }
