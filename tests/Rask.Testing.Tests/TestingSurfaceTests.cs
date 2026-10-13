@@ -175,6 +175,40 @@ public class TestingSurfaceTests
         protected override Component? Render() => Div["x"];
     }
 
+    // Its hook is let go by its own Render: the fault lands after the walk met the page and before the walk
+    // is over, the one moment a page rendered once has nobody coming back for it.
+    private sealed class FaultsWhileItIsDrawn(CapturingDiagnostics diagnostics) : Component
+    {
+        private readonly TaskCompletionSource _drawing = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        protected override async Task OnMount()
+        {
+            await _drawing.Task.ConfigureAwait(false);
+            throw new InvalidOperationException("mid-walk");
+        }
+
+        protected override Component? Render()
+        {
+            _drawing.TrySetResult();
+            SpinWait.SpinUntil(() => diagnostics.Captured.Any(IsTheFaultMidWalk), TimeSpan.FromSeconds(10));
+            return Div["x"];
+        }
+    }
+
+    private static bool IsTheFaultMidWalk(CapturedDiagnostic e) =>
+        e.Level == DiagnosticLevel.Error && e.Exception?.Message == "mid-walk";
+
+    [Fact]
+    public void A_hook_that_faults_while_its_page_is_being_drawn_is_reported_all_the_same()
+    {
+        using var diagnostics = CapturingDiagnostics.Install();
+        var page = new FaultsWhileItIsDrawn(diagnostics);
+
+        _ = Page.Render(page, new ServiceCollection().BuildServiceProvider());
+
+        Assert.Contains(diagnostics.Captured, IsTheFaultMidWalk);
+    }
+
     private static bool IsTheSwallowedFault(CapturedDiagnostic e) =>
         e.Level == DiagnosticLevel.Error && e.Exception?.Message == "boom";
 

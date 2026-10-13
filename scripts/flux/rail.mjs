@@ -6,7 +6,8 @@
 //    (artifacts/flux-parity/rask/sidebar/collapsible-sidebar.html, given the runtime's hooks), light and dark:
 //    every step must land the same box in the same colours — an item's tooltip while the sidebar is wide (opened,
 //    not drawn) and in the rail, the collapse control's tooltip in both, the menu a group opens under the
-//    pointer, its heading and rows, a row under the pointer, and the menu gone when the pointer leaves.
+//    pointer, its heading and rows, a row under the pointer, and the menu gone when the pointer leaves; then
+//    the same menu in a viewport that ends just under its button, where it has to be slid up and held to a height.
 // 2. An application's menu (long-menu.html: twelve groups, eighty items, three folded, one current): the
 //    sidebar scrolls inside itself and the page does not; what the rail does to it. Printed, and failed only
 //    where the kit would be wrong whatever Flux does (a menu or a tooltip outside the viewport).
@@ -109,6 +110,18 @@ async function walk(side, scheme) {
   say('rail, pointer on the header', await showing(page));
   await page.locator(`[data-${m}-sidebar-profile]`).first().hover(); await settle(page);
   say('rail, pointer on the profile', await showing(page));
+
+  // A viewport that ends just under the group's button: no room for its menu beside it. Flux slides the menu
+  // up to stay 5 px inside the bottom edge, and holds it to the height that is left (the kit: rask-place.ts).
+  for (const under of [60, 8]) {
+    await away(page);
+    await page.setViewportSize({ width: 1280, height: Math.round(button.y + button.height + under) });
+    await settle(page);
+    await page.mouse.move(400, button.y + button.height / 2); await settle(page);
+    await page.mouse.move(button.x + button.width / 2, button.y + button.height / 2, { steps: 4 }); await settle(page);
+    say(`rail, the viewport ending ${under} px under the group, pointer on it`, await showing(page));
+  }
+
   await page.context().close();
   return lines;
 }

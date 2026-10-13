@@ -17,6 +17,13 @@ import {provides} from "../../../src/Rask.Core/Resources/rask-requires.js";
 import {daysIn, pastedDate, pivotYear, segmentDigit, yearDigit} from "../../../src/Rask.Core/Resources/rask-segments.js";
 import {beside, lineOf, nearestRow, sameBox, sizeText} from "../../../src/Rask.Core/Resources/rask-plot.js";
 import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
+import {landing} from "../../../src/Rask.Core/Resources/rask-place.js";
+
+// A 192 by 290 panel under a 126 by 40 trigger at (x, y) in a 1920 by 1080 viewport: Flux's first popover.
+function lands(x: number, y: number, place = "bottom start 5 0", w = 192, h = 290, vw = 1920, vh = 1080, rtl = false): (number | null)[] {
+    const to = landing(place, {x, y, w: 126, h: 40}, w, h, vw, vh, rtl);
+    return [to.x, to.y, to.cap];
+}
 
 const phone = "(999) 999-9999";
 const a = {} as Element;
@@ -97,6 +104,37 @@ console.log(JSON.stringify({
         days: [daysIn(2), daysIn(2, 2025), daysIn(2, 2024), daysIn(2, 1900), daysIn(4), daysIn(12)],
         pasted: [pastedDate("2026-03-14", ["month", "day", "year"]), pastedDate("3/14/2026", ["month", "day", "year"]), pastedDate("14.03.2026", ["day", "month", "year"]), pastedDate("13/40/2026", ["month", "day", "year"]), pastedDate("tomorrow", ["month", "day", "year"])]
             .map((d) => d ? d["year"] + "-" + d["month"] + "-" + d["day"] : null),
+    },
+    // Every number is where Flux UI's own popover landed with its trigger held there (2026-10-13).
+    place: {
+        fits: lands(800, 400),
+        // No room under it: over it. And the last place it still fits under: its bottom edge on the viewport's.
+        over: [lands(800, 840), lands(800, 745), lands(800, 746)],
+        // Past the right edge: its end on the trigger's end. Within 5 px of the edge: slid back, not turned.
+        end: lands(1774, 400),
+        slid: lands(1727, 400),
+        corner: lands(1694, 940),
+        // An end-aligned one at the left edge turns to the start; a centred one is only slid.
+        start: lands(40, 400, "bottom end 5 0"),
+        centred: lands(10, 400, "bottom center 5 0"),
+        // The offset is counted from the edge the panel is aligned to, so it turns with the alignment.
+        offset: [lands(800, 400, "bottom start 5 32"), lands(1789, 400, "bottom start 5 32")],
+        // Beside the trigger: to the other side when there is no room, and slid up from the bottom edge.
+        beside: [lands(800, 400, "right center 5 0"), lands(1789, 400, "right center 5 0"), lands(800, 1035, "right center 5 0")],
+        // Taller than the room: the roomier side, and that room less 5 px as its height.
+        tall: [lands(800, 400, "bottom start 5 0", 192, 1292), lands(800, 540, "bottom start 5 0", 192, 1292), lands(800, 400, "right start 5 0", 192, 1292)],
+        // As tall as the room, 5 px from the edge, or taller: held to it. A pixel shorter: not.
+        brim: [lands(800, 300, "top start 5 0", 192, 291), lands(800, 300, "top start 5 0", 192, 290), lands(800, 300, "top start 5 0", 192, 289)],
+        // Wider than the viewport: its start edge 5 px in, the rest past the other edge.
+        wide: lands(800, 400, "bottom start 5 0", 2534, 307),
+        phone: [lands(259, 300, "bottom start 5 0", 192, 290, 390, 844), lands(100, 300, "bottom start 5 0", 480, 307, 390, 844)],
+        // Right to left the start edge is the right one.
+        rtl: lands(800, 400, "bottom start 5 0", 192, 290, 1920, 1080, true),
+        // A menu at the pointer: a point for an anchor.
+        pointer: [landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 100, 1920, 1080, false),
+            landing("bottom end 5 0", {x: 100, y: 1060, w: 0, h: 0}, 200, 100, 1920, 1080, false),
+            // Taller than the viewport and not to be held: it runs past the edge, as Flux's context menu does.
+            landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 1500, 1920, 1080, false, true)].map((to) => [to.x, to.y, to.cap]),
     },
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},
 }));

@@ -392,25 +392,55 @@ public abstract partial class Component
     private static bool HoldUntilWalked(Component comp, Exception fault, bool beforeItsFirstAwait)
     {
         var walkIsComing = beforeItsFirstAwait && LiveRenderContext.CurrentSync is not null;
-        if (!walkIsComing && (comp.Boundary is not null || comp.GetLifecycleFlag(FlagHasRenderedOnce)))
+        if (!walkIsComing && comp.HasBeenWalked)
         {
             return false;
         }
 
         HeldHookFault.Hold(comp, fault);
-        if (!walkIsComing)
+        if (walkIsComing)
         {
-            comp.StateHasChanged();
+            return true;
         }
 
+        // The walk may have passed the component while its fault was being put down, and a page rendered once
+        // has no second walk to come for it: taken back, it is reported as any fault after the walk is.
+        if (comp.GetLifecycleFlag(FlagMetByTheWalk) && HeldHookFault.Take(comp) is not null)
+        {
+            return false;
+        }
+
+        comp.StateHasChanged();
         return true;
     }
 
+    private bool HasBeenWalked =>
+        Boundary is not null || GetLifecycleFlag(FlagMetByTheWalk) || GetLifecycleFlag(FlagHasRenderedOnce);
+
     /// <summary>
-    ///     Called by the walk where it meets this component, its boundary just stamped: throws the fault a
-    ///     hook of it left waiting, so the boundary around it takes it as it takes a fault of its render.
+    ///     Called by the walk where it meets this component, its boundary just stamped: from here a hook's fault
+    ///     is reported where it lands, and one that was waiting for the walk is thrown to the boundary.
     /// </summary>
-    internal void ThrowHeldHookFault()
+    internal void MetByTheWalk()
+    {
+        if (!GetLifecycleFlag(FlagMetByTheWalk))
+        {
+            SetLifecycleFlag(FlagMetByTheWalk, true);
+
+            // A hook faulting on another thread holds its fault and then reads this flag, while the walk
+            // sets the flag and then asks for a held fault. The fence makes one of the two see the other.
+            Interlocked.MemoryBarrier();
+        }
+
+        if (HeldHookFault.Any)
+        {
+            ThrowHeldHookFault();
+        }
+    }
+
+    // Throws the fault a hook of this component left waiting, so the boundary around it takes it as it takes a
+    // fault of its render.
+    private void ThrowHeldHookFault()
     {
         if (HeldHookFault.Take(this) is not { } fault)
         {

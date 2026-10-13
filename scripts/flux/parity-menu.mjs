@@ -20,7 +20,11 @@
 //   * THE PAGE BEHIND, in a browser that shows its scrollbars, at 1920 x 1080 and 390 x 844: `scrollY` and the
 //     example's `x` and `width` before, while and after the menu is open, and the three declarations on
 //     `<html>`. (The browser the rest runs in hides its scrollbars, as every headless one does, and there
-//     the kit keeps no gutter: `scrollbar-gutter` is compared here, where there is a scrollbar to keep one for.)
+//     the kit keeps no gutter: `scrollbar-gutter` is compared here, where there is a scrollbar to keep one for —
+//     one that TAKES ROOM: macOS draws its scrollbars over the page even when asked to show them, and there
+//     Flux's `stable` reserves nothing and the kit asks for nothing.)
+//   * WHERE IT LANDS with no room: every menu opened with its trigger — or the pointer — held at the edges of
+//     a phone and of a desktop, and with more rows than fit (placement.mjs).
 //
 // A Rask parity page is static HTML: the kit's sheet, and the runtime's behaviour hooks added as one script
 // (runtime.mjs) — the cursor, the pointer's lit row, the open flyout, the safe area and the page lock are
@@ -39,6 +43,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, STYLES } from './lib.mjs';
+import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -92,6 +97,12 @@ if (!flux.behind) {
 
 const rask = await measureOpen(pathToFileURL(raskPage).href, 'data-ui-', flux);
 rask.behind = await measureBehind(pathToFileURL(raskPage).href, 'data-ui-');
+const astray = await landings(browser, {
+  name: slug, refresh: flag('refresh'), all: flag('all'),
+  flux: { url: `https://fluxui.dev/components/${slug}`, host: `[data-preview-wrapper] [data-flux-${slug}]`, panel: '[popover]' },
+  rask: { url: pathToFileURL(raskPage).href, host: `[data-preview-wrapper] [data-ui-${slug}]`, panel: '[popover]', open: slug === 'context' ? atPointer : undefined },
+  hosts: (await hostsOf(`https://fluxui.dev/components/${slug}`)).map(index => (slug === 'context' ? { index, open: 'context' } : index)),
+});
 await browser.close();
 if (flag('dump')) {
   await writeFile(join(out, 'rask', `${slug}.open.json`), JSON.stringify(rask));
@@ -113,7 +124,11 @@ for (const scheme of ['light', 'dark']) {
 
 for (const [size, theirs] of Object.entries(flux.behind)) {
   const mine = rask.behind[size];
-  const diffs = Object.keys(theirs).filter(key => JSON.stringify(theirs[key]) !== JSON.stringify(mine[key]))
+  // A gutter is kept where a scrollbar took room. Where none does, Flux's `scrollbar-gutter: stable` holds
+  // nothing either, and the kit does not write it (rask-lock.ts: on a page that shows no scrollbar anywhere
+  // else it would narrow the page by one). The other two declarations are compared everywhere.
+  const kept = side => (theirs.scrollbar || mine.scrollbar ? side : { ...side, lock: side.lock.split(' | ').slice(0, 2).join(' | ') });
+  const diffs = Object.keys(theirs).filter(key => JSON.stringify(kept(theirs)[key]) !== JSON.stringify(kept(mine)[key]))
     .map(key => `${key}: ${JSON.stringify(theirs[key])} vs ${JSON.stringify(mine[key])}`);
   failures += diffs.length ? 1 : 0;
   console.log(`${diffs.length ? 'FAIL' : 'ok  '} the page behind, ${size}, scrollbars showing${diffs.length ? '' : ` — ${theirs.lock}; moved ${theirs.moved}`}`);
@@ -121,7 +136,32 @@ for (const [size, theirs] of Object.entries(flux.behind)) {
 }
 
 console.log(failures ? `\nflux parity (open): ${slug} differs in ${failures} example(s).` : `\nflux parity (open): ${slug} matches Flux.`);
-process.exit(failures ? 1 : 0);
+console.log(astray ? `flux parity (open): ${slug} lands elsewhere for ${astray} menu(s).` : `flux parity (open): ${slug} lands where Flux's does.`);
+process.exit(failures || astray ? 1 : 0);
+
+// The hosts of Flux's page that hold a menu, by their place among all of them.
+async function hostsOf(url) {
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+  const held = await page.evaluate(marker => [...document.querySelectorAll(`[data-preview-wrapper] [${marker}]`)]
+    .map((el, index) => (el.querySelector('[popover]') ? index : -1)).filter(index => index >= 0), `data-flux-${slug}`);
+  await page.close();
+  return held;
+}
+
+// What the runtime's right-click hook does (rask-dom.ts, "Context menus"), which a static parity page does not
+// load: the pointer's position on <html>, then the popover the area names.
+async function atPointer(page, point) {
+  await page.mouse.click(point[0], point[1], { button: 'right' });
+  await page.evaluate(([x, y]) => {
+    // A place the held area was moved out of view from: no pointer gets there, on either page.
+    const area = document.elementFromPoint(x, y)?.closest('[data-rask-contextmenu]');
+    if (!area) return;
+    document.documentElement.style.setProperty('--rask-context-x', `${x}px`);
+    document.documentElement.style.setProperty('--rask-context-y', `${y}px`);
+    document.getElementById(area.getAttribute('data-rask-contextmenu')).showPopover();
+  }, point);
+}
 
 // ---- measuring ------------------------------------------------------------------------------------
 

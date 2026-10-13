@@ -52,10 +52,12 @@ public abstract partial class Component : RaskMarkup
     // hold one bool was most of what a mounted row of plain tags retained. Sits in padding beside _flags.
     //   bit 0 — a folding chain setter changed a value since the last commit (CommitEntry reads and clears)
     //   bit 1 — the after-render hooks have fired once (RaiseOnRendered)
+    //   bit 2 — a render walk has met it (MetByTheWalk): a hook's fault no longer waits for one
     private byte _lifecycleFlags;
 
     private const byte FlagEntryPropsChanged = 1 << 0;
     private const byte FlagHasRenderedOnce = 1 << 1;
+    private const byte FlagMetByTheWalk = 1 << 2;
 
     private bool GetLifecycleFlag(byte mask) => (_lifecycleFlags & mask) != 0;
 

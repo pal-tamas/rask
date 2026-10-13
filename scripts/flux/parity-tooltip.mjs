@@ -25,6 +25,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, STYLES } from './lib.mjs';
+import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const FLUX = 'https://fluxui.dev/components/tooltip';
@@ -117,9 +118,18 @@ for (const scheme of ['light', 'dark']) {
   await rask.context().close();
 }
 
+// Where it lands with no room: the tooltips of Flux's own page — over, beside, under and before their trigger
+// — shown with the trigger held at the edges of a phone and of a desktop (placement.mjs).
+const astray = await landings(browser, {
+  name: 'tooltip', refresh: flag('refresh'), all: flag('all'),
+  flux: { url: FLUX, host: '[data-preview-wrapper] ui-tooltip[data-flux-tooltip]', panel: '[data-flux-tooltip-content]' },
+  rask: { url: pathToFileURL(join(out, 'rask', 'tooltip.html')).href, host: '[data-preview-wrapper] [data-ui-tooltip]:not([data-toggleable])', panel: '[data-ui-tooltip-content]' },
+  hosts: [0, 1, 2, 3, 4].map(index => ({ index, open: 'hover' })),
+});
 await browser.close();
 console.log(failures ? `\nflux parity: the shown tooltip differs in ${failures} case(s).` : '\nflux parity: the shown tooltip matches Flux.');
-process.exit(failures ? 1 : 0);
+console.log(astray ? `flux parity: the tooltip lands elsewhere for ${astray} tooltip(s).` : 'flux parity: the tooltip lands where Flux\'s does.');
+process.exit(failures || astray ? 1 : 0);
 
 async function open(scheme, url) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });

@@ -22,7 +22,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
             $"<div data-ui-tooltip data-rask-tooltip=\"{id}\">"
             + $"<button aria-describedby=\"{id}\">Open</button>"
             + $"<div id=\"{id}\" class=\"{Look} inset-[5px] [position-area:top] [position-try-fallbacks:flip-block]\""
-            + " popover=\"manual\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Settings</div>"
+            + " popover=\"manual\" data-ui-tooltip-content data-rask-place=\"top center 5 0\" role=\"tooltip\" aria-hidden=\"true\">Settings</div>"
             + "</div>",
             html);
     }
@@ -203,7 +203,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var id = ContentId(html);
         Assert.StartsWith("<div data-ui-tooltip data-toggleable>", html, StringComparison.Ordinal);
         Assert.Contains($"<button aria-controls=\"{id}\" aria-haspopup=\"true\" popovertarget=\"{id}\">Why</button>", html);
-        Assert.Contains("popover=\"auto\" data-ui-tooltip-content>Nine digits</div>", html);
+        Assert.Contains("popover=\"auto\" data-ui-tooltip-content data-rask-place=\"top center 5 0\">Nine digits</div>", html);
         Assert.DoesNotContain("data-rask-tooltip", html);
         Assert.DoesNotContain("role=\"tooltip\"", html);
     }
@@ -214,7 +214,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         var html = Ui.Tooltip.Content("Nine digits").Toggleable()[Ui.Icon.Name(Ui.IconName.InformationCircle)].ToHtml();
 
         Assert.StartsWith("<div data-ui-tooltip data-toggleable tabindex=\"0\">", html, StringComparison.Ordinal);
-        Assert.Contains("popover=\"manual\" data-ui-tooltip-content>", html);
+        Assert.Contains("popover=\"manual\" data-ui-tooltip-content data-rask-place=\"top center 5 0\">", html);
     }
 
     [Fact]
@@ -254,7 +254,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
         // Flux writes the state closed; the runtime keeps it true while the tooltip shows.
         var id = ContentId(html);
         Assert.Contains($"<button aria-controls=\"{id}\" aria-expanded=\"false\">Open</button>", html);
-        Assert.Contains("data-ui-tooltip-content role=\"tooltip\">Settings</div>", html);
+        Assert.Contains("data-ui-tooltip-content data-rask-place=\"top center 5 0\" role=\"tooltip\">Settings</div>", html);
         Assert.DoesNotContain("aria-hidden", html);
         Assert.DoesNotContain("aria-describedby", html);
     }

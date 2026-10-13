@@ -49,20 +49,28 @@ internal static class UiMenuRow
     /// <summary>The words at the end of a row: a shortcut, a count.</summary>
     internal const string Trailing = "ms-auto text-xs text-zinc-400";
 
-    private const string Row =
-        "group/row flex w-full items-center rounded-md px-2 py-1.5 text-start text-sm font-medium "
+    private const string RowBox = "group/row flex w-full items-center rounded-md px-2 ";
+
+    private const string RowInk =
+        " text-start text-sm font-medium "
         + "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 "
         + "text-zinc-800 dark:text-white";
+
+    private const string Row = RowBox + "py-1.5" + RowInk;
+
+    // Measured on Flux at 390, 640, 768, 1023 and 1024 wide: a navmenu's row is 36px tall under 1024 and 32px
+    // from there on. A menu's row is 32px at every width.
+    private const string LinkRow = RowBox + "py-2 lg:py-1.5" + RowInk;
 
     private const string Lit = " data-active:bg-zinc-50 dark:data-active:bg-zinc-600";
 
     private const string LitDanger =
         " data-active:bg-red-50 data-active:text-red-600 dark:data-active:bg-red-400/20 dark:data-active:text-red-400";
 
-    private const string Plain = Row + " hover:bg-zinc-50 dark:hover:bg-zinc-600" + Lit;
+    private const string Plain = LinkRow + " hover:bg-zinc-50 dark:hover:bg-zinc-600" + Lit;
 
     private const string Danger =
-        Row + " hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-400/20 dark:hover:text-red-400" + LitDanger;
+        LinkRow + " hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-400/20 dark:hover:text-red-400" + LitDanger;
 
     // A menu's row is focused by the cursor, and the highlight is how it shows: no ring on top of it.
     private const string PlainItem = Row + Lit + " focus:outline-hidden";

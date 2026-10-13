@@ -2220,9 +2220,28 @@ public sealed record DestinationName(string Value)
 > returns 'string', not the messages — a rule is 'public static IEnumerable<string> Validate(string value)', or
 > the same returning ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>
 
-What it names: not `public`, not `static`, generic, more or fewer than one parameter, a parameter that is not
+What it names: not `public`, not `static`, generic, more or fewer than one parameter, a parameter taken by
+`ref`, `out` or `ref readonly` (a rule is handed the value itself; `in` is fine), a parameter that is not
 exactly the held value's type (`Validate(DestinationName value)` included), or a return type that is not the
 messages.
+
+The nullable form of a held number, date or id is the one that reads as a rule, so it is named with its fix:
+
+```csharp
+public readonly record struct NormPercent(decimal Value)
+{
+    public static IEnumerable<string> Validate(decimal? value) => …;   // ⚠ RASK102: declare it 'decimal'
+}
+```
+
+> 'NormPercent.Validate(decimal?)' on value object 'NormPercent' is not run by any form because its parameter
+> is 'decimal?', not the 'decimal' it holds; declare it 'decimal', because an unfilled field is never put to the
+> rule and a property that is not nullable is required by its type — a rule is …
+
+A rule has nothing to say about an unfilled number: a property that is not nullable is
+[required by its type](data.md#what-a-form-over-the-model-asks-by-itself), and a nullable one may be left
+empty. `Validate(string? value)` over a `string` IS the rule — an annotation is not another type — and it is
+asked with the empty string, never `null`.
 
 **Not reported:** a value object that already has a rule of the right shape, whatever overloads sit beside it;
 a `Validate` that implements an interface (`IValidatableObject`) or overrides a base member; a value object of
