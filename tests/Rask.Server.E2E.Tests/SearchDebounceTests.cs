@@ -31,6 +31,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, beforeLoad: async page =>
         {
             await SentFrames.Count(page);
+            await HeldReplies.Install(page);
             await PageClock.Install(page);
         });
         await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
@@ -339,6 +340,60 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
 
         await Expect(searches).ToHaveTextAsync("[Bersa]");
         await Expect(field).ToHaveValueAsync("Bersa");
+    }
+
+    [Fact]
+    public async Task Explore_A_auto_all_typed_answered_then_press_held()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+        await Expect(page.Locator("#auto [role=option]:not([data-hidden])")).ToHaveTextAsync(["Beretta", "Bersa"]);
+
+        await HeldReplies.HoldAsync(page);
+        await Row(page, "auto", "Bersa").ClickAsync();
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+    }
+
+    [Fact]
+    public async Task Explore_B_auto_first_key_answered_rest_and_press_held()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await field.PressSequentiallyAsync("b");
+        await page.Clock.RunForAsync(Pause / 4);
+        await Expect(page.Locator("#auto [role=option]:not([data-hidden])")).ToHaveTextAsync(["Beretta", "Bersa"]);
+
+        await HeldReplies.HoldAsync(page);
+        await field.PressSequentiallyAsync("er");
+        await Row(page, "auto", "Bersa").ClickAsync();
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+    }
+
+    [Fact]
+    public async Task Explore_C_combo_press_held()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = await OpenComboboxAsync(page);
+        await field.PressSequentiallyAsync("ber");
+
+        await HeldReplies.HoldAsync(page);
+        await Row(page, "combo", "Walther").ClickAsync();
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#combo-picked")).ToHaveTextAsync("Walther");
     }
 
     [Fact]

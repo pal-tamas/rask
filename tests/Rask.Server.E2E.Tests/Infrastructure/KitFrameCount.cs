@@ -31,6 +31,7 @@ internal static class KitFrameCount
         await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = 1280, Height = 800 } });
         var page = await context.NewPageAsync();
         await PageClock.Install(page);
+        await SlowMachine.ApplyAsync(page);
         await page.AddInitScriptAsync(
             """
             window.WebSocket = class extends WebSocket {
