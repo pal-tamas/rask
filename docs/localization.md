@@ -535,6 +535,14 @@ they say when you set nothing.
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |
 | `ErrorTitle` | Error page | `Application error` |
+| `CarouselRole` | Carousel | `carousel` |
+| `CarouselLabel` | Carousel | `Items` |
+| `CarouselSlideRole` | Carousel | `slide` |
+| `CarouselSlideLabel` | Carousel | `{0} of {1}` |
+| `CarouselPrevious` | Carousel | `Previous slide` |
+| `CarouselNext` | Carousel | `Next slide` |
+| `CarouselIndicators` | Carousel | `Choose slide to display` |
+| `CarouselShowSlide` | Carousel | `Show slide {0}` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

@@ -10,12 +10,15 @@
 //     and so does its button inside [data-rask-carousel-indicators], with aria-current="true";
 //   * a press on a [data-direction="next" | "previous"] button scrolls to the next or previous slide — by the
 //     number of slides fully in view when the root says data-advance="page" — smoothly unless data-scroll=
-//     "instant"; at the end, data-wrap="rewind" goes back to the first slide and keeps "next" enabled;
+//     "instant"; at the end, data-wrap="rewind" goes back to the first slide, keeps "next" enabled and says no
+//     data-at-end anywhere, so an arrow that hides at its end stays;
 //   * a press on the Nth indicator scrolls to the Nth slide;
 //   * data-autoplay="<ms>" advances on that interval and rewinds at the end. The pointer over the carousel
-//     stops it and the interval starts afresh when it leaves; under prefers-reduced-motion it never starts.
+//     stops it, and so does focus inside it; the interval starts afresh when both are gone. Under
+//     prefers-reduced-motion it never starts.
 //     (Flux UI's carousel, measured: 3500 ms between moves, nothing for 7 s under the pointer, the next move
-//     3.5 s after it left, and no move at all in 16 s with reduced motion.)
+//     3.5 s after it left; the same with focus on one of its arrows — put there by a key or by a press — and
+//     3.5 s after that focus left; no move at all in 16 s with reduced motion.)
 //
 // Wrappers and indicators may sit outside the root, in a [data-rask-carousel-controls] whose data-name is the
 // root's. A root whose buttons were all rendered disabled is left exactly as rendered.
@@ -50,15 +53,33 @@ function slidesOf(track: Element): HTMLElement[] {
     });
 }
 
-/** Where the track has to be scrolled for each slide to sit at its start, never past the end. */
-function stops(track: HTMLElement, slides: HTMLElement[]): number[] {
+function padOf(track: HTMLElement): number {
+    return parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
+}
+
+/**
+ * Where the track would have to be scrolled for each slide to sit at its (scroll-padded) start — past the
+ * end too, for the last slides of a row that cannot be scrolled that far. The slide in view is the one whose
+ * start is nearest: at the end of ten slides shown three at a time that is the eighth, as Flux marks it.
+ */
+function starts(track: HTMLElement, slides: HTMLElement[]): number[] {
     const box = track.getBoundingClientRect();
-    const pad = parseFloat(getComputedStyle(track).scrollPaddingLeft) || 0;
-    const max = track.scrollWidth - track.clientWidth;
+    const pad = padOf(track);
     return slides.map(function (slide) {
-        const at = slide.getBoundingClientRect().left - box.left - track.clientLeft + track.scrollLeft - pad;
-        return Math.max(0, Math.min(max, Math.round(at)));
+        return Math.round(slide.getBoundingClientRect().left - box.left - track.clientLeft + track.scrollLeft - pad);
     });
+}
+
+/**
+ * Where the track comes to rest when it is sent to the slide that starts at `start`. Flux sends it to the
+ * slide's own offset — the scroll padding not taken off — and lets scroll snap finish: mid-row that is the
+ * slide's stop, and within a padding of the end it is the end (measured: four slides, three in view behind a
+ * 24px bleed, and one press of "next" lands on the end). The same rest, worked out here and scrolled to once.
+ */
+function restFor(track: HTMLElement, positions: number[], start: number): number {
+    const max = track.scrollWidth - track.clientWidth;
+    const rests = positions.map(function (at) { return Math.max(0, Math.min(max, at)); });
+    return rests.length ? rests[nearest(rests, start + padOf(track))] : 0;
 }
 
 /** The index of the stop nearest `left`. Exported for the fixture. */
@@ -97,7 +118,10 @@ function sync(doc: Document, root: Element): void {
     const slides = slidesOf(track);
     const max = track.scrollWidth - track.clientWidth;
     const atStart = track.scrollLeft <= 1;
-    const atEnd = track.scrollLeft >= max - 1;
+    // A carousel that rewinds has no end to say: "next" goes on from there. Flux's writes no data-at-end at all
+    // with wrap="rewind" — measured on its live element, on the root and on both arrows.
+    const rewinds = root.getAttribute("data-wrap") === "rewind";
+    const atEnd = !rewinds && track.scrollLeft >= max - 1;
     const wrappers = partsOf(doc, root, "[data-direction]");
 
     if (!seen.has(root)) {
@@ -110,18 +134,17 @@ function sync(doc: Document, root: Element): void {
 
     flag(root, "data-at-start", atStart);
     flag(root, "data-at-end", atEnd);
-    const rewinds = root.getAttribute("data-wrap") === "rewind";
     for (const wrapper of wrappers) {
         flag(wrapper, "data-at-start", atStart);
         flag(wrapper, "data-at-end", atEnd);
         const button = wrapper.querySelector("button");
         if (button && !frozen.has(root)) {
             const next = wrapper.getAttribute("data-direction") === "next";
-            flag(button, "disabled", next ? atEnd && !rewinds : atStart);
+            flag(button, "disabled", next ? atEnd : atStart);
         }
     }
 
-    const selected = nearest(stops(track, slides), track.scrollLeft);
+    const selected = nearest(starts(track, slides), track.scrollLeft);
     for (let i = 0; i < slides.length; i++) {
         flag(slides[i], "data-selected", i === selected);
     }
@@ -144,7 +167,7 @@ function move(root: Element, forward: boolean): void {
         return;
     }
     const slides = slidesOf(track);
-    const positions = stops(track, slides);
+    const positions = starts(track, slides);
     const max = track.scrollWidth - track.clientWidth;
     if (forward && track.scrollLeft >= max - 1) {
         if (root.getAttribute("data-wrap") === "rewind") {
@@ -163,7 +186,7 @@ function move(root: Element, forward: boolean): void {
     }
     const from = nearest(positions, track.scrollLeft);
     const to = Math.max(0, Math.min(slides.length - 1, from + (forward ? step : -step)));
-    scrollTo(root, track, positions[to]);
+    scrollTo(root, track, restFor(track, positions, positions[to]));
 }
 
 function rootOf(doc: Document, part: Element): Element | null {
@@ -213,9 +236,13 @@ function play(root: Element): void {
 
 if (page) {
     const doc = page;
+    // Under the pointer, or with focus inside: the reader is looking at this slide.
+    const held = function (root: Element): boolean {
+        return root.matches(":hover") || root.contains(doc.activeElement);
+    };
     const adopt = function (root: Element): void {
         sync(doc, root);
-        if (!timers.has(root) && !root.matches(":hover")) {
+        if (!timers.has(root) && !held(root)) {
             play(root);
         }
     };
@@ -262,8 +289,8 @@ if (page) {
         const track = root.querySelector<HTMLElement>(TRACK);
         const index = Array.prototype.indexOf.call(dots!.querySelectorAll("button"), button);
         if (track && index >= 0) {
-            const positions = stops(track, slidesOf(track));
-            if (index < positions.length) scrollTo(root, track, positions[index]);
+            const positions = starts(track, slidesOf(track));
+            if (index < positions.length) scrollTo(root, track, restFor(track, positions, positions[index]));
         }
     });
 
@@ -276,7 +303,20 @@ if (page) {
     listen("pointerout", function (e) {
         const root = near(e.target, ROOT + "[data-autoplay]");
         const to = (e as PointerEvent).relatedTarget;
-        if (root && !(to instanceof Node && root.contains(to))) {
+        if (root && !(to instanceof Node && root.contains(to)) && !root.contains(doc.activeElement)) {
+            play(root);
+        }
+    }, {capture: true, passive: true});
+    listen("focusin", function (e) {
+        const root = near(e.target, ROOT + "[data-autoplay]");
+        if (root) {
+            stop(root);
+        }
+    }, {capture: true, passive: true});
+    listen("focusout", function (e) {
+        const root = near(e.target, ROOT + "[data-autoplay]");
+        const to = (e as FocusEvent).relatedTarget;
+        if (root && !(to instanceof Node && root.contains(to)) && !root.matches(":hover")) {
             play(root);
         }
     }, {capture: true, passive: true});

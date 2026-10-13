@@ -3841,6 +3841,14 @@ Rask.Core.Globalization.RaskCultureResolver
 Rask.Core.Globalization.RaskCultureServiceCollectionExtensions
 Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CalendarToday = 15 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselIndicators = 187 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselLabel = 182 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselNext = 186 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselPrevious = 185 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselRole = 181 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselShowSlide = 188 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideLabel = 184 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideRole = 183 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerArea = 142 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerAreaRole = 143 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerAreaValue = 144 -> Rask.Core.Globalization.RaskString

@@ -477,4 +477,63 @@
           Condition="Exists('$(_RaskUiEditorNoticesSource)')"/>
   </Target>
 
+  <!--
+    UI.FLAG'S DRAWINGS, for an app that says it shows flags.
+
+    254 SVGs, 172 KB: not in the kit's assembly, for the editor engine's reason — a browser-WASM app downloads
+    every assembly up front, and an app that shows three flags should fetch three. They are static files in
+    wwwroot/flags, and Ui.Flag's <img> asks for the one it draws.
+
+    OPT IN, unlike the engine: 255 files in every app's wwwroot is not a cost to hand an app that draws none.
+        <RaskUiWriteFlags>true</RaskUiWriteFlags>
+    The path is fixed (UiFlag asks for /flags/<CC>.svg). The notice travels with the drawings: MIT asks for
+    it in every copy.
+
+    NOT THE SERVER HALF OF A ONE-PROJECT WEBASSEMBLY APP ($(RaskClient)), as with the engine above and for
+    the same reason: both halves writing wwwroot/flags is every relative path twice in the publish
+    (NETSDK1152). The browser half owns them — Rask.Server.Client.targets hands it the switch. Read in an
+    item's condition, never a property's, so it holds whichever package's targets are imported first.
+  -->
+  <PropertyGroup>
+    <RaskUiWriteFlags Condition="'$(RaskUiWriteFlags)' == ''">false</RaskUiWriteFlags>
+    <_RaskUiFlagsOutput>wwwroot/flags</_RaskUiFlagsOutput>
+    <!-- From the package: flags/ at its root, one folder up from these targets and from their twin in
+         buildTransitive/. In this repository: the kit's own Flags folder, one folder up as well. -->
+    <_RaskUiFlagsSource>$(MSBuildThisFileDirectory)../flags</_RaskUiFlagsSource>
+    <_RaskUiFlagsSource Condition="!Exists('$(_RaskUiFlagsSource)/LICENSE.txt')">$(MSBuildThisFileDirectory)../Flags</_RaskUiFlagsSource>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RaskUiWriteFlags)' == 'true'">
+    <_RaskUiFlagSource Include="$(_RaskUiFlagsSource)/*.svg;$(_RaskUiFlagsSource)/LICENSE.txt"/>
+    <_RaskUiFlagFile Include="@(_RaskUiFlagSource)" Condition="'$(RaskClient)' != 'true'"/>
+  </ItemGroup>
+
+  <!-- Declared before they exist, so a FIRST build serves them: see the stylesheet's own note above (#1105). -->
+  <ItemGroup Condition=" '@(_RaskUiFlagFile)' != '' AND !Exists('$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)') ">
+    <Content Include="@(_RaskUiFlagFile->'$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')" Pack="false"/>
+  </ItemGroup>
+
+  <!-- Copies an earlier build left in the server half, before it had a browser half: the collision again. -->
+  <ItemGroup Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' == 'true'">
+    <Content Remove="@(_RaskUiFlagSource->'$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
+  </ItemGroup>
+
+  <Target Name="RaskUiLeaveFlagsToClient"
+          Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' == 'true'"
+          BeforeTargets="BeforeBuild">
+    <Delete Files="@(_RaskUiFlagSource->'$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
+  </Target>
+
+  <Target Name="RaskUiWriteFlags"
+          Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' != 'true'"
+          BeforeTargets="BeforeBuild">
+    <!-- Fails rather than warns: the project asked for the flags by name, and without them every Ui.Flag is an empty frame. -->
+    <Error Condition="'@(_RaskUiFlagFile)' == ''"
+           Text="Rask.Ui: this project set RaskUiWriteFlags=true but the flag drawings could not be found ($(_RaskUiFlagsSource)), so $(_RaskUiFlagsOutput) cannot be written and every Ui.Flag would draw an empty frame. From the package they ship as flags/ at its root; in this repository they are src/Rask.Ui/Flags, written by scripts/flux/flags.mjs."/>
+
+    <Copy SourceFiles="@(_RaskUiFlagFile)"
+          DestinationFolder="$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
 </Project>
