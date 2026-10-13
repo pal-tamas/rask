@@ -44,11 +44,38 @@ public static class ValueObjectColumn
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
 
+        var (converter, comparer) = Conversion(value);
+        return property.HasConversion(converter, comparer);
+    }
+
+    /// <summary>
+    ///     Stores <paramref name="property" /> — held inside another value object — as the one value
+    ///     <paramref name="value" /> reads from it.
+    /// </summary>
+    /// <typeparam name="TValueObject">The value object's type.</typeparam>
+    /// <typeparam name="TValue">The type of the value it holds, which is the column's.</typeparam>
+    /// <param name="property">The outer value object's property that holds the value object.</param>
+    /// <param name="value">Reads the one value — <c>v =&gt; v.Value</c>.</param>
+    /// <returns>The same builder.</returns>
+    /// <exception cref="InvalidOperationException">The value object cannot be built from its value.</exception>
+    public static ComplexTypePropertyBuilder Map<[DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(
+        ComplexTypePropertyBuilder property, Expression<Func<TValueObject, TValue>> value)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        ArgumentNullException.ThrowIfNull(value);
+
+        var (converter, comparer) = Conversion(value);
+        return property.HasConversion(converter, comparer);
+    }
+
+    private static (ValueConverter<TValueObject, TValue> Converter, ValueComparer<TValueObject> Comparer) Conversion<
+        [DynamicallyAccessedMembers(Kept)] TValueObject, TValue>(Expression<Func<TValueObject, TValue>> value)
+    {
         var build = Build<TValueObject, TValue>(value);
         var read = value.Compile();
         var rebuild = build.Compile();
 
-        return property.HasConversion(
+        return (
             new ValueConverter<TValueObject, TValue>(value, build),
             new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
