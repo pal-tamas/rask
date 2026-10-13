@@ -79,7 +79,7 @@ internal static partial class UiColorComputed
 
         var percent = part.EndsWith('%');
         var read = TryNumber(percent ? part[..^1] : part, out channel);
-        channel = Math.Clamp(percent ? channel * 2.55 : channel, 0, 255);
+        channel = Math.Clamp(percent ? channel / 100 * 255 : channel, 0, 255);
 
         return read;
     }

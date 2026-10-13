@@ -20,7 +20,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     {
         // Key caps and key lists.
         "Ctrl", "Win", "Alt", "Shift", "Enter ArrowUp ArrowDown Home End PageUp PageDown", "Enter Space ArrowUp ArrowDown",
-        "Space ArrowUp ArrowDown",
+        "Space ArrowUp ArrowDown", "Arrows Home End PageUp PageDown", "Arrows Home End PageUp PageDown Space Enter",
         // A mode's name in a developer's exception message, and the shape of a link rather than a word.
         "Single", "https://...",
     };
@@ -59,6 +59,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     [InlineData("date-picker", "Mégse", "Cancel")]
     [InlineData("calendar", "Következő hónap", "Next month")]
     [InlineData("time-picker", "Válasszon időpontot", "Select a time")]
+    [InlineData("color-picker", "Színminták", "Color swatches")]
+    [InlineData("color-picker", "Szín felvétele a képernyőről", "Pick a color from the screen")]
     [InlineData("editor", "Félkövér", "Bold")]
     [InlineData("editor", "Formázott szövegszerkesztő", "Rich text editor")]
     [InlineData("input", "Mező törlése", "Clear input")]

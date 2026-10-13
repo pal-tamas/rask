@@ -89,16 +89,20 @@ internal readonly record struct UiColorValue(double Hue, double Saturation, doub
         }
     }
 
+    // Hue, saturation and lightness of the WHOLE channels, as Flux writes them: rgb(1 1 7) is hsl(240 75% 2%),
+    // though the colour it was rounded from has another hue.
     private (string H, string S, string L) Hsl
     {
         get
         {
-            var value = Brightness / 100;
-            var lightness = value * (1 - (Saturation / 200));
-            var edge = Math.Min(lightness, 1 - lightness);
-            var saturation = edge <= 0 ? 0 : (value - lightness) / edge;
+            var (red, green, blue) = Rgb;
+            var (r, g, b) = (Math.Floor(red + 0.5) / 255, Math.Floor(green + 0.5) / 255, Math.Floor(blue + 0.5) / 255);
+            var max = Math.Max(r, Math.Max(g, b));
+            var delta = max - Math.Min(r, Math.Min(g, b));
+            var lightness = (max + (max - delta)) / 2;
+            var saturation = delta == 0 ? 0 : delta / (1 - Math.Abs((2 * lightness) - 1));
 
-            return (Whole(Hue), Whole(saturation * 100), Whole(lightness * 100));
+            return (Whole(HueOf(r, g, b, max, delta)), Whole(saturation * 100), Whole(lightness * 100));
         }
     }
 

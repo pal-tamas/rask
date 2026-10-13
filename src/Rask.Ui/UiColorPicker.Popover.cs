@@ -160,15 +160,18 @@ public sealed partial class UiColorPicker
     private static Dictionary<string, string?> AreaAria(UiColorValue color)
     {
         var saturation = Whole(color.Saturation);
+        var name = RaskStrings.Get(RaskString.ColorPickerArea, "Saturation and brightness");
+        var kind = RaskStrings.Get(RaskString.ColorPickerAreaRole, "2D color picker");
+        var said = RaskStrings.Get(RaskString.ColorPickerAreaValue, "Saturation {0}%, brightness {1}%", saturation, Whole(color.Brightness));
 
         return new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["label"] = RaskStrings.Get(RaskString.ColorPickerArea, "Saturation and brightness"),
-            ["roledescription"] = RaskStrings.Get(RaskString.ColorPickerAreaRole, "2D color picker"),
+            ["label"] = name,
+            ["roledescription"] = kind,
             ["valuemin"] = "0",
             ["valuemax"] = "100",
             ["valuenow"] = saturation,
-            ["valuetext"] = RaskStrings.Get(RaskString.ColorPickerAreaValue, "Saturation {0}%, brightness {1}%", saturation, Whole(color.Brightness)),
+            ["valuetext"] = said,
         };
     }
 
@@ -182,10 +185,8 @@ public sealed partial class UiColorPicker
         var along = Fraction((double)value / max);
         // The thumb's centre travels between the track's rounded ends, half a thumb in from each edge.
         var at = "calc(var(--ui-slider-thumb) / 2 + (100% - var(--ui-slider-thumb)) * var(--rask-drag-x, " + along + "))";
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["label"] = alpha ? RaskStrings.Get(RaskString.ColorPickerOpacity, "Opacity") : RaskStrings.Get(RaskString.ColorPickerHue, "Hue"),
-        };
+        var name = alpha ? RaskStrings.Get(RaskString.ColorPickerOpacity, "Opacity") : RaskStrings.Get(RaskString.ColorPickerHue, "Hue");
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { { "label", name } };
         if (_labelled is not null)
         {
             aria["labelledby"] = _labelled;

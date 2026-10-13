@@ -5,8 +5,8 @@ namespace Rask;
 /// </summary>
 internal static class UiColorPickerLook
 {
-    /// <summary>The root: never narrower than 240px.</summary>
-    internal const string Root = "block min-w-[240px]";
+    /// <summary>The root: never narrower than 240px, unless the call site says so.</summary>
+    internal const string Root = "block [:where(&)]:min-w-[240px]";
 
     /// <summary>The trigger's box, an input's: the row holding the swatch button and the text.</summary>
     internal const string Trigger =
