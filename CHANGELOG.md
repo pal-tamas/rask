@@ -39,6 +39,10 @@ them until tagged releases begin.
   as the connection attaches, as before. Nothing is rendered or sent for the new principal before the session has
   adopted it, the connection is attached without waiting for the handler, the later of two that arrive meanwhile
   wins, and one let in against a user the session no longer holds is dropped.
+- **A row is written only in the tenant it was loaded in.** A save refuses a row of a tenant-scoped table —
+  modified, deleted, added with its `TenantId` already set, or a child added to a loaded aggregate — whose tenant
+  is not the one in flight, with an `InvalidOperationException` and nothing written. `Tenant.Across()` remains the
+  one deliberate way across. See the breaking note under Changed.
 - **An HTTP-fallback post acts under the principal it carries.** Before: a post from the same user with other
   claims ran under the principal the stream had opened with. After: the session adopts the post's principal, as an
   attach does.
@@ -138,6 +142,16 @@ them until tagged releases begin.
   runtime sends those as it sends what it does by itself (`unasked`). An app that read a model in a
   handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
   a list was merely opened now sees it speak with the next action.
+- **BREAKING — a row loaded under one tenant can no longer be saved under another outside `Tenant.Across()`.**
+  Before: a save was refused only when the row's `TenantId` itself had been reassigned, so a row a context still
+  tracked — or a page still held — was written to the tenant it came from while another was in flight. After:
+  saving or deleting a tenant-scoped row whose `TenantId` is not the tenant in flight throws an
+  `InvalidOperationException` that names both; so does saving it with no tenant in flight, adding a row that
+  already names another tenant, and saving a row of no tenant (`TenantId` null) anywhere but inside
+  `Tenant.Across()`. Rows are compared in the column's own type (`Guid?`, `int?`, `long?`); a table that is not
+  `Tenancy.PerTenant` is untouched, whatever `TenantId` it keeps. The fix where it bites: load the row again in
+  the tenant in flight, open `Tenant.Use(id)` around the save, or wrap a cross-tenant tool in `Tenant.Across()`.
+  `docs/multi-tenancy.md#writes-stamp-it-and-it-never-moves`.
 - **BREAKING — an `AddRaskTenant` resolver is asked again at every event of a live page.** Before: it was asked
   once, as the session opened inside the page's `GET`, and the answer was kept for the session's life — so a tab
   opened before its user chose another tenant went on working in the old one. After: it is asked as each

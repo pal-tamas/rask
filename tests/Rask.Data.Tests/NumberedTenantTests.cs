@@ -54,6 +54,8 @@ public sealed class Waybill : Aggregate<long>
         waybill._lines.AddRange(goods.Select(WaybillLine.Of));
         return waybill;
     }
+
+    public void Add(string goods) => _lines.Add(WaybillLine.Of(goods));
 }
 
 public sealed class WaybillLine : Entity<long>
@@ -326,6 +328,175 @@ public sealed class NumberedTenantTests : IDisposable
     }
 
     [Fact]
+    public async Task A_row_loaded_in_one_tenant_and_saved_in_another_is_refused_and_nothing_is_written()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        var loaded = await LoadTrackedAsync(database, Acme, id);
+
+        loaded.Rename("taken");
+        InvalidOperationException refused;
+        using (Tenant.Use(Globex))
+        {
+            refused = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        Assert.Contains("belongs to tenant 7 and is being saved in tenant 8", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("Tenant.Across()", refused.Message, StringComparison.Ordinal);
+        Assert.Equal("Budapest", await StoredNameAsync(database, id));
+        Assert.Equal(Acme, await StoredTenantAsync(database, id));
+    }
+
+    [Fact]
+    public async Task A_row_loaded_in_one_tenant_is_not_deleted_from_another()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        var loaded = await LoadTrackedAsync(database, Acme, id);
+
+        database.Context.Remove(loaded);
+        using (Tenant.Use(Globex))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        Assert.Equal("Budapest", await StoredNameAsync(database, id));
+    }
+
+    [Fact]
+    public async Task A_row_loaded_in_a_tenant_is_not_saved_once_no_tenant_is_in_flight()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        var loaded = await LoadTrackedAsync(database, Acme, id);
+
+        loaded.Rename("taken");
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        Assert.Contains("with no tenant in flight", refused.Message, StringComparison.Ordinal);
+        Assert.Equal("Budapest", await StoredNameAsync(database, id));
+    }
+
+    [Fact]
+    public async Task A_row_loaded_in_one_tenant_is_saved_from_another_inside_Across()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        var loaded = await LoadTrackedAsync(database, Acme, id);
+
+        loaded.Rename("Pest");
+        using (Tenant.Use(Globex))
+        using (Tenant.Across())
+        {
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("Pest", await StoredNameAsync(database, id));
+        Assert.Equal(Acme, await StoredTenantAsync(database, id));
+    }
+
+    [Fact]
+    public async Task A_row_loaded_and_saved_in_the_same_tenant_is_saved_as_ever()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        var loaded = await LoadTrackedAsync(database, Acme, id);
+
+        loaded.Rename("Pest");
+        using (Tenant.Use(Acme))
+        {
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("Pest", await StoredNameAsync(database, id));
+    }
+
+    // Save() adds a copy whose row is gone. One that still says another tenant must not be added back into it.
+    [Fact]
+    public async Task A_copy_whose_row_was_deleted_is_not_inserted_into_the_tenant_it_was_found_in_from_another()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(Acme, "Budapest");
+        Destination found;
+        using (Tenant.Use(Acme))
+        {
+            found = (await Destination.Find(id, cancellationToken: TestContext.Current.CancellationToken))!;
+            await Destination.Delete(id, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        using (Tenant.Use(Globex))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => found.Save(cancellationToken: TestContext.Current.CancellationToken));
+        }
+
+        using (Tenant.Across())
+        {
+            Assert.Equal(0, await Destination.Count(cancellationToken: TestContext.Current.CancellationToken));
+        }
+    }
+
+    [Fact]
+    public async Task A_row_of_no_tenant_loaded_inside_Across_is_saved_only_inside_Across()
+    {
+        await using var database = await StartDatabaseAsync();
+        var orphan = await InsertOrphanAsync(database, "Nowhere");
+        Destination loaded;
+        using (Tenant.Across())
+        {
+            loaded = await database.Context.Set<Destination>().SingleAsync(d => d.Id == orphan, TestContext.Current.CancellationToken);
+        }
+
+        loaded.Rename("claimed");
+        using (Tenant.Use(Acme))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        using (Tenant.Across())
+        {
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("claimed", await StoredNameAsync(database, orphan));
+        Assert.Null(await StoredTenantAsync(database, orphan));
+    }
+
+    // The child has no tenant until it is stamped, and would be stamped with the wrong one.
+    [Fact]
+    public async Task A_child_is_not_added_to_an_aggregate_loaded_in_another_tenant()
+    {
+        await using var database = await StartDatabaseAsync();
+        using (Tenant.Use(Acme))
+        {
+            await Waybill.For("W-ACME", "glass").Save(cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        Waybill loaded;
+        using (Tenant.Use(Acme))
+        {
+            loaded = await database.Context.Set<Waybill>().Include(w => w.Lines).SingleAsync(TestContext.Current.CancellationToken);
+        }
+
+        loaded.Add("sand");
+        using (Tenant.Use(Globex))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        database.Context.ChangeTracker.Clear();
+        using (Tenant.Across())
+        {
+            Assert.Equal(["glass"], await WaybillLine.Select(l => l.Goods));
+        }
+    }
+
+    [Fact]
     public async Task A_row_that_belongs_to_no_tenant_is_invisible_to_every_tenant()
     {
         await using var database = await StartDatabaseAsync();
@@ -526,6 +697,15 @@ public sealed class NumberedTenantTests : IDisposable
             var destination = Destination.Named(name);
             await destination.Save(cancellationToken: TestContext.Current.CancellationToken);
             return destination.Id;
+        }
+    }
+
+    // Tracked by the test's own context, as a page that keeps a row between two events keeps it.
+    private static async Task<Destination> LoadTrackedAsync(TestDatabase database, int tenant, int id)
+    {
+        using (Tenant.Use(tenant))
+        {
+            return await database.Context.Set<Destination>().SingleAsync(d => d.Id == id, TestContext.Current.CancellationToken);
         }
     }
 

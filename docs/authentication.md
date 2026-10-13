@@ -351,7 +351,9 @@ the decision is made — in the handler that saves, in `Render` — and gate a p
 **The tenant is the user's current one too.** A tenant read from the principal's `rask:tenant` claim follows the
 principal. One named by an `AddRaskTenant` resolver is asked again at each event, and as the page's address moves
 — see [the resolver](multi-tenancy.md#from-the-request-a-resolver). A tab opened before its user chose another
-tenant works in the chosen one from its next action.
+tenant works in the chosen one from its next action. A row the page still holds from before does not come along:
+it [belongs to the tenant it was loaded in](multi-tenancy.md#writes-stamp-it-and-it-never-moves), and saving it
+in the new one is refused — load it again.
 
 ### When the browser's cookie changes
 

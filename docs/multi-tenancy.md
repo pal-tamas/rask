@@ -287,7 +287,10 @@ line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", 
 ## Writes stamp it, and it never moves
 
 A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed. An update that
-would move a row to another tenant is refused: copy the row into the other tenant instead. The column is never
+would move a row to another tenant is refused: copy the row into the other tenant instead. **A row belongs to
+the tenant it was loaded in**: saving or deleting one while another tenant is in flight — or none — is refused
+with an `InvalidOperationException`, and so is adding a row that already names another tenant, or a child to an
+aggregate loaded in another; `Tenant.Across()` is how to do any of them on purpose. The column is never
 on the generated form model, declared or not, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
 is refused too, unless the row's `TenantId` is already set, because "across" names no tenant to stamp.
 
@@ -350,7 +353,7 @@ Worth knowing exactly, because each is a place a review should look:
 | `IgnoreQueryFilters()` on EF Core's own `IQueryable` | lifts every filter, the tenant's included | EF Core's meaning of the call. `Invoice.IgnoreQueryFilters()` — Rask's — lifts soft delete only |
 | raw SQL — `FromSql`, `ExecuteSql`, `SqlQuery` | whatever the SQL says | Rask does not rewrite SQL; a `FromSql` composed over an entity set still gets the filter |
 | `BulkInsert` with `SkipChangeTracking` | writes rows with **no tenant stamp** | it replaces the change tracker, and the interceptors with it. Set `TenantId` on each row, or use the default path |
-| a row whose `TenantId` the entity set itself | is saved into that tenant | the stamp fills an unset tenant and leaves a set one alone; only the entity can set it, through its private setter |
+| a row whose `TenantId` the entity set itself | is saved into that tenant — inside `Tenant.Across()`, or when it is the tenant in flight; refused otherwise | the stamp fills an unset tenant and leaves a set one alone; only the entity can set it, through its private setter |
 | a context of your own that does not call `ApplyRaskConventions(this)` | no filter, no stamp | the conventions are what add them |
 | a second mapping of the same table — a legacy `DbContext` beside Rask's | that context's own rules | Rask filters what goes through its contexts and nothing else |
 
