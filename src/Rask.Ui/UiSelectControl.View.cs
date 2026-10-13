@@ -63,6 +63,13 @@ public abstract partial class UiSelectControl<T>
         internal IEnumerable<Row> PickedRows => Parts.Rows.Where(IsPicked);
     }
 
+    // The reading the page shows now. A handler asks for it when it runs and closes over nothing a render
+    // makes again, so it is the same handler render after render: a press read from a page several renders old
+    // — the list opening, a row lit, a row picked, all still on their way — finds it (Component.StaleEvents).
+    private View? _latest;
+
+    private View Latest => _latest ?? throw new InvalidOperationException("The select has not been drawn.");
+
     private View Read(UiWithField field, Parts parts)
     {
         ReadSearch(parts);
@@ -76,6 +83,7 @@ public abstract partial class UiSelectControl<T>
         view.Cursor = Place(view);
         Remember(view);
         _answer = PickedWords(view);
+        _latest = view;
 
         return view;
     }

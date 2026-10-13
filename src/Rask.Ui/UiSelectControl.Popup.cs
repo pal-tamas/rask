@@ -111,10 +111,15 @@ public abstract partial class UiSelectControl<T>
             .Aria(UiOptionAria.For(off, picked))
             .Attributes(RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]));
 
-        return (off ? item : item.OnClick(e => ClickedAsync(e, row.Index, view)).OnMouseEnter(e => Hovered(e, row.Index)))[
+        return (off ? item : Wired(item, row.Index, row.Value))[
             RowContent(row.Option)
         ];
     }
+
+    // A row's handlers close over its place and its value and nothing else: not the row, whose option the page
+    // writes again in every render of its own, and not the view (Latest).
+    private HTMLDivElement Wired(HTMLDivElement item, int index, T value) =>
+        item.OnClick(e => ClickedAsync(e, index, value)).OnMouseEnter(e => Hovered(e, index));
 
     private string RowLook(UiSelectOption option)
     {
@@ -172,7 +177,7 @@ public abstract partial class UiSelectControl<T>
             .Id(UiSelectNav.OptId(Prefixed, index))
             .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
             .Attributes(marks)
-            .OnClick(e => ClickedAsync(e, index, view))
+            .OnClick(e => PressedAsync(e, index, Latest))
             .OnMouseEnter(e => Hovered(e, index))[
             Div.Class(UiListboxLook.CreateLead)[Ui.Icon.Name(Ui.IconName.Plus).Mini],
             Span.Class(Pills is null ? UiListboxLook.CreateWords : null)[create.Children ?? []],
@@ -216,7 +221,7 @@ public abstract partial class UiSelectControl<T>
                 .Class(UiSelectLook.SearchInput)
                 .Aria(aria)
                 .OnInput(AtEveryKey(opens: false))
-                .OnKeyDown(e => OnListKeyAsync(e, view)),
+                .OnKeyDown(e => OnListKeyAsync(e, Latest)),
             slot?.Clearable == false
                 ? null
                 : Div.Class(UiSelectLook.SearchClear)[
