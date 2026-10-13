@@ -1161,7 +1161,7 @@ daisyUI's `carousel` wrapper, which `Ui.Carousel` used to draw around `carousel-
 Reach for it when the setting is icon-sized; one that needs its words beside it is a `Ui.Switch`.
 
 ```csharp
-Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")                          // keeps its own state
+Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")                          // turned in the browser
 Ui.Toggle.Icon(Ui.IconName.Heart).Color(Ui.Color.Red).Checked()                // starts on
 Ui.Toggle.Bind(() => settings.Sound).OnLabel("Sound on").OffLabel("Sound off") // two-way bound
 Ui.Toggle.Bind(() => project.Active).OnChange(Save).Icon(Ui.IconName.LightBulb) // written, then saved
@@ -1185,9 +1185,13 @@ It is a `<button role="switch">`: a press, Space and Enter turn it, and a screen
 **Whose state it is.** `Bind` two-way binds a `bool`: the member is written with the next action, as every
 kit control's is, and at once with `.Live()`. A bound toggle the page listens to with `OnChange` is written at
 once too, and `OnChange` runs after the write — Flux's `wire:model` beside `wire:change`, one round trip that
-saves. Unbound, it keeps its own state, starting from `Checked`, and reports each turn to `OnChange`; a page
-that hands it a different `Checked` has the last word. While its handler runs the runtime marks the button
-`data-loading`: what it shows gives way to a spinner and it takes no further press.
+saves. Unbound and listened to with `OnChange`, it reports each turn, and a page that hands it a different
+`Checked` has the last word. While its handler runs the runtime marks the button `data-loading`: what it shows
+gives way to a spinner and it takes no further press.
+
+**A toggle nobody listens to sends nothing.** With no `Bind` and no `OnChange` a press only changes what the
+toggle draws, so the browser does it (`data-rask-switch`): `aria-checked` and `data-checked` flip there, and
+not one frame goes to the server. `Checked` is then where it starts.
 
 `Ui.Swap`, the daisyUI control with two faces, is gone: `Ui.Toggle.OnIcon(…).OffIcon(…)` is that control.
 
@@ -2520,7 +2524,7 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
   draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
   takes the red-500 border Flux's input has.
-- **Gone with daisyUI's controls:** `Ui.Toggle` (now `Ui.Switch`), `Tone` and `Size` on all three, children as
+- **Gone with daisyUI's controls:** the daisy `Ui.Toggle` (that control is `Ui.Switch`; today's `Ui.Toggle` is Flux's toggle, above), `Tone` and `Size` on all three, children as
   the label (now `Label`), `Ui.Radio.Text` / `.Group` and a radio bound to its own `bool`, and the groups'
   `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
   `Hint`, `Error`, `Badge` and `AccessibleLabel`.

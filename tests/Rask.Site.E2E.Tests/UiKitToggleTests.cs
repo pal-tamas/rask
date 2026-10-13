@@ -15,6 +15,15 @@ namespace Rask.Site.E2E.Tests;
 public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
+    private const string Waiting =
+        "toggle => new Promise(resolve => { const started = performance.now(); const look = () => { "
+        + "const waits = toggle.hasAttribute('data-loading'); "
+        + "const shown = getComputedStyle(toggle.querySelector('[data-ui-loading-indicator]')).opacity === '1'; "
+        + "const inert = getComputedStyle(toggle).pointerEvents === 'none'; "
+        + "if (waits && shown && inert) return resolve('spinner shown, no pointer'); "
+        + "if (performance.now() - started > 5000) return resolve(`never: waits=${waits} shown=${shown} inert=${inert}`); "
+        + "requestAnimationFrame(look); }; look(); })";
+
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
@@ -31,8 +40,11 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await toggle.ClickAsync();
 
+        // Nobody listens to this one, so the browser turns it: the button carries no handler at all.
         await Expect(toggle).ToHaveAttributeAsync("aria-checked", "true");
         await Expect(toggle).ToHaveAttributeAsync("data-checked", "");
+        await Expect(toggle).ToHaveAttributeAsync("data-rask-switch", "");
+        await Expect(toggle).Not.ToHaveAttributeAsync("data-rask-on-click", new System.Text.RegularExpressions.Regex(".*"));
         await Expect(solid).ToBeVisibleAsync();
         await Expect(outline).ToBeHiddenAsync();
         await toggle.FocusAsync();
@@ -73,10 +85,9 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await toggle.ClickAsync();
 
-        // The save takes 600 ms: after 200 the runtime marks the button, and the spinner takes the icon's place.
-        await Expect(toggle).ToHaveAttributeAsync("data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
-        await Expect(toggle.Locator("[data-ui-loading-indicator]")).ToHaveCSSAsync("opacity", "1");
-        await Expect(toggle).ToHaveCSSAsync("pointer-events", "none");
+        // The save takes 600 ms: after 200 the runtime marks the button, the spinner takes the icon's place and
+        // the button takes no pointer. Watched by the page itself, in one look: the wait is over in 400 ms.
+        Assert.Equal("spinner shown, no pointer", await toggle.EvaluateAsync<string>(Waiting));
         await Expect(says).ToContainTextAsync("Saved as active · 1 saves", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(toggle).Not.ToHaveAttributeAsync("data-loading", "");
         await Expect(toggle).ToHaveAttributeAsync("aria-checked", "true");
@@ -89,7 +100,7 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
         var sound = scope.Locator("[data-testid='ui-toggle-stateful-icon'] [data-ui-toggle]");
         var labelled = scope.Locator("[data-testid='ui-toggle-stateful-label'] [data-ui-toggle]");
         await Expect(scope.Locator("[data-testid='ui-toggle-sound']")).ToHaveTextAsync("Playing");
-        await Expect(labelled).ToHaveTextAsync("Sound off");
+        await Expect(labelled.Locator("span:visible")).ToHaveTextAsync("Sound off");
 
         await sound.ClickAsync();
         await labelled.ClickAsync();

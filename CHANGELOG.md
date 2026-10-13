@@ -289,7 +289,9 @@ them until tagged releases begin.
   `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
   `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
   runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
-  with nothing sent to the page. Its accessible names are eight new catalog entries (`CarouselRole`,
+  with nothing sent to the page — zero frames either way on a Server page (`UiDrawnInTheBrowserTests`). A
+  carousel that rewinds says no `data-at-end`, as Flux's does not, so its next arrow stays at the end. Its
+  accessible names are eight new catalog entries (`CarouselRole`,
   `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
   `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
   it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
@@ -306,8 +308,10 @@ them until tagged releases begin.
   your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
   `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
   written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
-  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound it keeps its own state from
-  `Checked` and reports each turn. While its handler runs it shows a spinner and takes no press. Measured from
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound with `OnChange` it reports each
+  turn. With neither, a press only changes what it draws, so the browser turns it and nothing is sent to the
+  server (`data-rask-switch`, a new runtime hook: `aria-checked` and `data-checked` flip on a press of a
+  `<button role="switch">` that carries it, held against the morph). While its handler runs it shows a spinner and takes no press. Measured from
   Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
 - **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
   toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:

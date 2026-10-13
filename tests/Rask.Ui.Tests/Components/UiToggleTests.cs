@@ -15,7 +15,7 @@ public partial class UiToggleTests : global::Rask.Core.RaskMarkup
         var html = toggle.ToHtml();
 
         Assert.StartsWith("<button class=\"group relative [:where(&amp;)]:inline-flex ", html, StringComparison.Ordinal);
-        Assert.Contains(" data-ui-control data-ui-toggle role=\"switch\" aria-checked=\"false\"", html, StringComparison.Ordinal);
+        Assert.Contains(" data-ui-control data-ui-toggle data-rask-switch role=\"switch\" aria-checked=\"false\"", html, StringComparison.Ordinal);
         Assert.Contains("type=\"button\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-ui-toggle data-checked", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
@@ -31,6 +31,22 @@ public partial class UiToggleTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-ui-toggle data-checked", html, StringComparison.Ordinal);
         Assert.Contains("aria-checked=\"true\"", html, StringComparison.Ordinal);
         Assert.Matches("hidden group-data-checked:block[^>]*fill=\"currentColor\".*group-data-checked:hidden[^>]*stroke=\"currentColor\"", html);
+    }
+
+    [Fact]
+    public void A_toggle_nobody_listens_to_carries_no_handler_and_is_the_runtimes_to_turn()
+    {
+        var settings = new Settings();
+        var own = Ui.Toggle.Icon(Ui.IconName.Bolt).Checked();
+        var heard = Ui.Toggle.Icon(Ui.IconName.Bolt).OnChange(_ => { });
+        var bound = Ui.Toggle.Bind(() => settings.FastMode);
+
+        var html = Page.Render(() => Div[own, heard, bound]).Html;
+
+        // A press that only changes what it draws is the browser's: no handler, so not one frame is sent.
+        Assert.Equal(2, html.Split("data-rask-on-click=").Length - 1);
+        Assert.Equal(1, html.Split(" data-rask-switch").Length - 1);
+        Assert.Matches("<button (?![^>]*data-rask-on-click)[^>]*data-checked data-rask-switch", html);
     }
 
     [Fact]

@@ -15,6 +15,15 @@ namespace Rask.Site.E2E.Tests;
 public sealed class UiKitCarouselTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
+    // Resolves once the track has stood, for six frames, where the given slide starts.
+    private const string RestsOn =
+        "(carousel, place) => new Promise(resolve => { const track = carousel.querySelector('[data-ui-carousel-track]'); "
+        + "const slide = carousel.querySelectorAll('[data-ui-carousel-slide]')[place - 1]; const started = performance.now(); let still = 0; "
+        + "const look = () => { const off = Math.abs(slide.getBoundingClientRect().left - track.getBoundingClientRect().left); "
+        + "still = off < 1 ? still + 1 : 0; if (still >= 6) return resolve('at rest on slide ' + place); "
+        + "if (performance.now() - started > 8000) return resolve('never: ' + Math.round(off) + 'px from slide ' + place); "
+        + "requestAnimationFrame(look); }; look(); })";
+
     protected override string BaseUrl => app.BaseUrl;
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
@@ -43,10 +52,8 @@ public sealed class UiKitCarouselTests(WasmExampleAppFixture app, PlaywrightFixt
         await previous.Locator("button").FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
         await Expect(Slide(carousel, 2)).ToHaveAttributeAsync("data-selected", "");
-        // The slide really is in view: the track stands where its second slide starts.
-        var track = (await carousel.Locator("[data-ui-carousel-track]").BoundingBoxAsync())!;
-        var shown = (await Slide(carousel, 2).BoundingBoxAsync())!;
-        Assert.Equal(track.X, shown.X, 1.0);
+        // The slide really is in view: the track comes to rest where its second slide starts.
+        Assert.Equal("at rest on slide 2", await carousel.EvaluateAsync<string>(RestsOn, 2));
     });
 
     [Fact]
@@ -120,7 +127,11 @@ public sealed class UiKitCarouselTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(Slide(rewinding, 2)).ToHaveAttributeAsync("data-selected", "");
         await onward.ClickAsync();
         await Expect(Slide(rewinding, 3)).ToHaveAttributeAsync("data-selected", "");
-        // At the end the next arrow stays, and takes it back to the first slide.
+        // At the end — once the track has come to rest there — the next arrow is still shown, and takes it back to
+        // the first slide: a carousel that rewinds says no data-at-end.
+        Assert.Equal("at rest on slide 3", await rewinding.EvaluateAsync<string>(RestsOn, 3));
+        await Expect(rewinding).Not.ToHaveAttributeAsync("data-at-end", "");
+        await Expect(rewinding.Locator("[data-direction='next']")).ToHaveCSSAsync("opacity", "1");
         await Expect(onward).ToBeEnabledAsync();
         await onward.ClickAsync();
         await Expect(Slide(rewinding, 1)).ToHaveAttributeAsync("data-selected", "");

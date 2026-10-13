@@ -81,7 +81,8 @@ public sealed class RuntimeHookCarouselTests(PlaywrightFixture playwright) : ICl
 
         // Two 100px slides fit the 200px track; the controls live outside the root, paired by name.
         Assert.Equal("200 -- slide2 prev=on next=on", afterOnePage);
-        Assert.Equal("400 -E slide4 prev=on next=on", atEnd);
+        // It rewinds, so its end is not one: nothing says data-at-end, and "next" stays.
+        Assert.Equal("400 -- slide4 prev=on next=on", atEnd);
         Assert.Equal("0 S- slide0 prev=off next=on", await page.EvaluateAsync<string>(State, "paged"));
     }
 

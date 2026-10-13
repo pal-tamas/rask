@@ -16,9 +16,10 @@ namespace Rask;
 ///     <para>
 ///     <c>.Bind(() =&gt; settings.FastMode)</c> two-way binds: the member is written with the next action, at once
 ///     with <see cref="Live" />, and at once when the page listens with <see cref="OnChange" /> — Flux's
-///     <c>wire:model</c> beside <c>wire:change</c>, one request that saves. Unbound it keeps its own state,
-///     starting from <see cref="Checked" />, and reports each turn to <see cref="OnChange" />; a page that
-///     hands it a different <see cref="Checked" /> has the last word.
+///     <c>wire:model</c> beside <c>wire:change</c>, one request that saves. Unbound and listened to with
+///     <see cref="OnChange" /> it reports each turn, and a page that hands it a different
+///     <see cref="Checked" /> has the last word. With neither it is turned in the browser, starting from
+///     <see cref="Checked" />, and nothing is sent to the page (<c>data-rask-switch</c>).
 ///     While a change is being answered the runtime marks it <c>data-loading</c>: what it shows gives way to
 ///     a spinner and it takes no further press.
 ///     </para>
@@ -53,6 +54,11 @@ public sealed partial class UiToggle : Component, IDeferredBind
     };
 
     private static readonly Dictionary<string, string?> On = new(Off, StringComparer.Ordinal) { ["checked"] = null };
+
+    // Its own to keep: the runtime turns it in the browser (rask-switch.ts), and the page hears nothing.
+    private static readonly Dictionary<string, string?> OwnOff = new(Off, StringComparer.Ordinal) { ["rask-switch"] = null };
+
+    private static readonly Dictionary<string, string?> OwnOn = new(On, StringComparer.Ordinal) { ["rask-switch"] = null };
 
     private static readonly Dictionary<string, string?> LoadingMark = new(StringComparer.Ordinal) { ["ui-loading-indicator"] = null };
 
@@ -93,7 +99,7 @@ public sealed partial class UiToggle : Component, IDeferredBind
     /// <summary>A tooltip, which is also the accessible name of a toggle that shows only an icon.</summary>
     public string? Tooltip { get; set; }
 
-    /// <summary>Whether it is on, for a toggle that is not bound: where it starts, and what a page that keeps the state says.</summary>
+    /// <summary>Whether it is on, for a toggle that is not bound: where it starts, and — with <see cref="OnChange" /> — what a page that keeps the state says.</summary>
     public bool? Checked { get; set; }
 
     /// <summary>Takes it out of use: dimmed, and out of the tab order.</summary>
@@ -136,15 +142,19 @@ public sealed partial class UiToggle : Component, IDeferredBind
     {
         var on = Read().On;
 
-        var toggle = Button
+        // A press only changes what it draws unless someone is told: bound, or listened to. Otherwise it is
+        // the browser's, as Flux's is, and not one frame is sent.
+        var heard = Bind is not null || OnChange.HasValue;
+        var button = Button
             .Id(Id)
             .Type(ButtonType.Button)
             .Role("switch")
             .Aria("checked", on ? "true" : "false")
             .Disabled(Disabled == true)
             .Class(UiClass.Compose(Frame, Shape(), Surface(), Class))
-            .Data(on ? On : Off)
-            .OnClick(TurnAsync)[
+            .Data((on, heard) switch { (true, true) => On, (false, true) => Off, (true, false) => OwnOn, _ => OwnOff });
+
+        var toggle = (heard ? button.OnClick(TurnAsync) : button)[
             Div.Class(Spinner).Data(LoadingMark).Aria("hidden", "true")[
                 Ui.Icon.Name(Ui.IconName.Loading).Class(Small ? "size-4" : "size-5")
             ],

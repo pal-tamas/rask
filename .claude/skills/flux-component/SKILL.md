@@ -783,6 +783,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | ToastGroup | `data-rask-dismiss-scope` on the group (wired). `data-rask-stack` on the parent of the stacked toasts, newest LAST; no rendered `--ui-toast-index` / anchor names in `style`; CSS from `--rask-stack-index` / `-height` / `-offset` / `-front`, the rule that cuts the card written under `[data-rask-stack]:not([data-rask-measuring])` (hook ready since round two, NOT wired — see below) | one pointer holds them all; the 350 ms glide |
 | Sidebar | collapse checkbox `data-rask-persist="flux-sidebar-collapsed-desktop"` (plus a head script for a WASM cold load); mobile checkbox `data-rask-uncheck-on-navigate` | state kept across visits; drawer closed on navigation |
 | Carousel (WIRED: `UiCarousel`, `UiCarouselControls`) | `data-rask-carousel`, `data-rask-carousel-track`, `data-rask-carousel-indicators`, `data-rask-carousel-controls` beside the `data-ui-*` markers; `data-direction` on each arrow's wrapper; `data-name`, `data-advance`, `data-wrap`, `data-scroll`, `data-autoplay` | position flags, arrows, indicators, autoplay (held under the pointer and while focus is inside) |
+| Toggle, unbound and unheard (WIRED: `UiToggle`) | `data-rask-switch` (bare) on the `<button role="switch">`, NO `OnClick`; `aria-checked` and `data-checked` rendered for where it starts (`rask-switch.ts`) | a press, Space and Enter flip both in the browser, held against the render; nothing is sent |
 | Pagination `scroll-to` | root `data-rask-scroll-to="<selector>"` (`rask-scroll.ts`) | a press on a button or link inside brings the selector's element into view; the press still runs |
 
 Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
@@ -909,12 +910,15 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
   press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides
   what the toggle holds and takes the pointer; `disabled` is 50%, no pointer, no shadow, out of the tab order.
-  All of that is the button's own and the runtime's `data-loading` — no hook. With a `Tooltip` it renders
+  All of that is the button's own and the runtime's `data-loading`. A toggle with no `Bind` and no `OnChange`
+  carries NO handler and `data-rask-switch`: the hook flips `aria-checked` / `data-checked` in the browser and
+  zero frames are sent (the owner, 2026-10-13: a gesture that only changes what a component DRAWS sends the
+  server nothing, as Flux — `UiDrawnInTheBrowserTests` counts the socket for it and for the carousel). With a `Tooltip` it renders
   `Ui.Tooltip` around the button, which names it (`aria-labelledby`), as Flux does. `Icon` is the input's
   union (`UiInputIcon`): Flux's `icon` prop and its `icon` slot under one name. NOT an `IFormControl<bool>`:
   one of those must be opened with `Bind` or `Value`, and Flux's toggle is used with neither. So it commits
-  through `PendingBinds` itself, and its unbound state is a field seeded from `Checked` and re-seeded when the
-  page hands it a different one. With `Bind` AND `OnChange` it is live (`IDeferredBind.Live`): Flux's
+  through `PendingBinds` itself; listened to but unbound, its state is a field seeded from `Checked` and
+  re-seeded when the page hands it a different one. With `Bind` AND `OnChange` it is live (`IDeferredBind.Live`): Flux's
   `wire:model` + `wire:change` is one request. OPEN, the owner's call: whether it should also take `Value`
   as the switch does (`Checked` is Flux's own name for the same thing, as on `Ui.Checkbox`).
   Unmeasured: slot children as the label, a label beside a tooltip. `Ui.Swap` went with it; daisyUI's `swap`
@@ -933,9 +937,10 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   arrow, the arrow keys / Home / End on an arrow do nothing, a pointer drag does not scroll, Tab stops are the
   track then each enabled arrow; page advance moves by the slides WHOLLY in view; autoplay rewinds with a
   smooth scroll and holds under the pointer AND while focus is inside (the hook gained the second on this
-  merge). Flux's reflected props (`snap`, `scroll`, `advance`, `wrap`, `autoplay` as plain attributes) and its
+  merge); with `wrap="rewind"` (set on Flux's live element) NO `data-at-end` is written anywhere, so the next
+  arrow stays shown at the end. Flux's reflected props (`snap`, `scroll`, `advance`, `wrap`, `autoplay` as plain attributes) and its
   `data-ready` are not written. Unmeasured, no example on Flux's page: `arrows:position="outside"`,
-  `wrap="rewind"`, `snap="mandatory"`, `scroll="instant"`, `disabled`, `arrows:class`.
+  `snap="mandatory"`, `scroll="instant"`, `disabled`, `arrows:class`.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

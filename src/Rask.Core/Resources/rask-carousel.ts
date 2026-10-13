@@ -10,7 +10,8 @@
 //     and so does its button inside [data-rask-carousel-indicators], with aria-current="true";
 //   * a press on a [data-direction="next" | "previous"] button scrolls to the next or previous slide — by the
 //     number of slides fully in view when the root says data-advance="page" — smoothly unless data-scroll=
-//     "instant"; at the end, data-wrap="rewind" goes back to the first slide and keeps "next" enabled;
+//     "instant"; at the end, data-wrap="rewind" goes back to the first slide, keeps "next" enabled and says no
+//     data-at-end anywhere, so an arrow that hides at its end stays;
 //   * a press on the Nth indicator scrolls to the Nth slide;
 //   * data-autoplay="<ms>" advances on that interval and rewinds at the end. The pointer over the carousel
 //     stops it, and so does focus inside it; the interval starts afresh when both are gone. Under
@@ -117,7 +118,10 @@ function sync(doc: Document, root: Element): void {
     const slides = slidesOf(track);
     const max = track.scrollWidth - track.clientWidth;
     const atStart = track.scrollLeft <= 1;
-    const atEnd = track.scrollLeft >= max - 1;
+    // A carousel that rewinds has no end to say: "next" goes on from there. Flux's writes no data-at-end at all
+    // with wrap="rewind" — measured on its live element, on the root and on both arrows.
+    const rewinds = root.getAttribute("data-wrap") === "rewind";
+    const atEnd = !rewinds && track.scrollLeft >= max - 1;
     const wrappers = partsOf(doc, root, "[data-direction]");
 
     if (!seen.has(root)) {
@@ -130,14 +134,13 @@ function sync(doc: Document, root: Element): void {
 
     flag(root, "data-at-start", atStart);
     flag(root, "data-at-end", atEnd);
-    const rewinds = root.getAttribute("data-wrap") === "rewind";
     for (const wrapper of wrappers) {
         flag(wrapper, "data-at-start", atStart);
         flag(wrapper, "data-at-end", atEnd);
         const button = wrapper.querySelector("button");
         if (button && !frozen.has(root)) {
             const next = wrapper.getAttribute("data-direction") === "next";
-            flag(button, "disabled", next ? atEnd && !rewinds : atStart);
+            flag(button, "disabled", next ? atEnd : atStart);
         }
     }
 
