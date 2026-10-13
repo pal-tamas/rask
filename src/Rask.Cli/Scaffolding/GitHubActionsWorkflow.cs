@@ -15,7 +15,9 @@ internal static class GitHubActionsWorkflow
     public const string RelativePath = ".github/workflows/deploy.yml";
 
     /// <summary>The private key the runner authenticates to the host with.</summary>
+#pragma warning disable S6418 // the NAME of the repository secret the workflow reads, not a secret
     public const string KeySecret = "RASK_SSH_PRIVATE_KEY";
+#pragma warning restore S6418
 
     /// <summary>The host's public key, so the runner isn't trusting an unverified box.</summary>
     public const string KnownHostsSecret = "RASK_SSH_KNOWN_HOSTS";

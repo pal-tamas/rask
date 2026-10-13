@@ -217,8 +217,12 @@
 # rask-hooks.js 51,137 -> 51,200 (+63). The two runtimes are unchanged.
 # 2026-10-13, data-open on a popover that asks for it, in the task that opens it (data-rask-open-mark,
 # rask-toggle.ts): rask-hooks.js 51,200 -> 51,687 (+487). The two runtimes are unchanged.
+# 2026-10-13, an anchored panel is kept inside the viewport as Flux's (data-rask-place, rask-place.ts): rask-hooks.js 51,687 -> 56,371 (+4,684). The two runtimes are unchanged.
+# 2026-10-13, a handler that hears a field's pause and that nothing else sends (data-rask-on-pause,
+# rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
+# (+344). rask-hooks.js is unchanged.
 # 2026-10-13, a carousel's autoplay holds while focus is inside it, and a padded track rests where scroll snap would leave it, the slide nearest marked (rask-carousel.ts): rask-hooks.js 51,687 -> 52,170 (+483). The two runtimes are unchanged.
 bundle,bytes
-rask.js,101379
-rask.wasm.js,90163
-rask-hooks.js,52170
+rask.js,101724
+rask.wasm.js,90507
+rask-hooks.js,56371

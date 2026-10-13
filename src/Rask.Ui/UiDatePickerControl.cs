@@ -37,6 +37,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     {
         ["rask-popover-open"] = "false",
         ["rask-lock"] = "",
+        // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this.
+        ["rask-place"] = "bottom start 5 0",
     };
 
     private static readonly Dictionary<string, string?> PopupOpen = new(PopupClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };

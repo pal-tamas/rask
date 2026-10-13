@@ -2228,3 +2228,38 @@
     background-color: var(--color-zinc-100);
   }
 }
+
+/*
+  Where the color picker's popover opens ([data-ui-color-picker], UiColorPicker).
+
+  It is a modal <dialog>, which the browser centres. From `sm` up Flux hangs it under the trigger, five pixels
+  away and flush with its start: CSS anchor positioning against the trigger, whose name each picker hands down
+  in --ui-color-picker-anchor (a name must be one picker's own, and a rule cannot make one up) — the same
+  anchor rules the date picker's popup states inline. The runtime's placement (data-rask-place) is not asked:
+  it places popovers, and this is a modal dialog that below `sm` is not placed at all. There the browser's
+  centring stands: the popover
+  is Flux's sheet over the page, and the page behind it does not scroll, which only a stylesheet can make
+  depend on the width.
+*/
+@layer rask {
+  [data-ui-color-picker-trigger],
+  [data-ui-color-picker-button] {
+    anchor-name: var(--ui-color-picker-anchor);
+  }
+
+  @media (width >= 40rem) {
+    [data-ui-color-picker] > dialog {
+      position-anchor: var(--ui-color-picker-anchor);
+      inset: auto;
+      top: calc(anchor(bottom) + 5px);
+      left: anchor(left);
+      position-try-fallbacks: flip-block, flip-inline;
+    }
+  }
+
+  @media (width < 40rem) {
+    :root:has([data-ui-color-picker] > dialog[open]) {
+      overflow: hidden;
+    }
+  }
+}

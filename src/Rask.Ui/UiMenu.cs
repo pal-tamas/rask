@@ -75,6 +75,8 @@ public sealed partial class UiMenu : Component
             ["ui-menu"] = "",
             ["rask-menu-cursor"] = "",
             ["rask-menu-pointer"] = "",
+            // Where it opens, for the runtime to keep it inside the viewport: its host's place, or the pointer.
+            ["rask-place"] = _host?.Place ?? global::Rask.UiContext.PointerPlace(Ui.ContextPosition.BottomEnd, distance: null, (0, 0)),
         };
         if (_host?.Hover != true)
         {

@@ -204,7 +204,7 @@ public sealed class AnAppsClassWinsTests
     {
         "UiAutocompleteItem", "UiChartArea", "UiChartAxisGrid", "UiChartAxisLine", "UiChartAxisMark", "UiChartAxisTick",
         "UiChartBar", "UiChartCursor", "UiChartGroup", "UiChartLine", "UiChartPie", "UiChartPoint", "UiChartStack", "UiChartSvg",
-        "UiChartZeroLine", "UiColumn", "UiDatePickerButton", "UiDatePickerInput", "UiFilter", "UiMockupCode", "UiPagination",
+        "UiChartZeroLine", "UiColorPickerArea", "UiColorPickerDropper", "UiColorPickerSwatches", "UiColumn", "UiDatePickerButton", "UiDatePickerInput", "UiFilter", "UiMockupCode", "UiPagination",
         "UiPillboxInput", "UiPillboxOption", "UiPillboxOptionCreate", "UiPillboxOptionEmpty", "UiPillboxSearch",
         "UiPillboxTrigger", "UiSelectButton", "UiSelectInput", "UiSelectMultiple", "UiSelectOptionCreate", "UiSelectOptionEmpty",
         "UiSelectSearch", "UiTextRotate", "UiToast", "UiToastGroup",

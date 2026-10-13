@@ -442,6 +442,128 @@ public enum RaskString
 
     /// <summary>The title of the tab while the error page stands in for the whole app.</summary>
     ErrorTitle,
+    /// <summary>The accessible name of the button that opens a color picker while no color is chosen.</summary>
+    ColorPickerOpen,
+
+    /// <summary>The accessible name of the button that opens a color picker, with the chosen color written into its <c>{0}</c>.</summary>
+    ColorPickerOpenWith,
+
+    /// <summary>The accessible name of the field a color is typed into.</summary>
+    ColorPickerInput,
+
+    /// <summary>What a color picker's field shows while empty, in every format but hex.</summary>
+    ColorPickerPlaceholder,
+
+    /// <summary>The accessible name of the area a color is dragged out of.</summary>
+    ColorPickerArea,
+
+    /// <summary>What kind of control the area of a color picker says it is.</summary>
+    ColorPickerAreaRole,
+
+    /// <summary>Where the area's thumb stands, the saturation in its <c>{0}</c> and the brightness in its <c>{1}</c>.</summary>
+    ColorPickerAreaValue,
+
+    /// <summary>The accessible name of a color picker's hue slider.</summary>
+    ColorPickerHue,
+
+    /// <summary>The accessible name of a color picker's alpha slider.</summary>
+    ColorPickerOpacity,
+
+    /// <summary>The accessible name of the field inside a color picker's popover.</summary>
+    ColorPickerValue,
+
+    /// <summary>The accessible name of a color picker's palette.</summary>
+    ColorPickerSwatches,
+
+    /// <summary>What is announced when a swatch is picked, its name in the <c>{0}</c>.</summary>
+    ColorPickerSelected,
+
+    /// <summary>The accessible name of the button that picks a color from anywhere on the screen.</summary>
+    ColorPickerDropper,
+
+    /// <summary>The accessible name of the button that empties a color picker.</summary>
+    ColorPickerClear,
+
+    /// <summary>The button that closes a color picker's sheet and keeps the color it opened with.</summary>
+    ColorPickerCancel,
+
+    /// <summary>The button that takes the color a color picker's sheet shows.</summary>
+    ColorPickerSelect,
+
+    /// <summary>What a color field says of text that is no color.</summary>
+    ValidationColor,
+
+    /// <summary>The name of the red swatch of a color picker's default palette.</summary>
+    ColorSwatchRed,
+
+    /// <summary>The name of the orange swatch of a color picker's default palette.</summary>
+    ColorSwatchOrange,
+
+    /// <summary>The name of the amber swatch of a color picker's default palette.</summary>
+    ColorSwatchAmber,
+
+    /// <summary>The name of the yellow swatch of a color picker's default palette.</summary>
+    ColorSwatchYellow,
+
+    /// <summary>The name of the green swatch of a color picker's default palette.</summary>
+    ColorSwatchGreen,
+
+    /// <summary>The name of the teal swatch of a color picker's default palette.</summary>
+    ColorSwatchTeal,
+
+    /// <summary>The name of the sky swatch of a color picker's default palette.</summary>
+    ColorSwatchSky,
+
+    /// <summary>The name of the indigo swatch of a color picker's default palette.</summary>
+    ColorSwatchIndigo,
+
+    /// <summary>The name of the purple swatch of a color picker's default palette.</summary>
+    ColorSwatchPurple,
+
+    /// <summary>The name of the pink swatch of a color picker's default palette.</summary>
+    ColorSwatchPink,
+
+    /// <summary>The name of the rose swatch of a color picker's default palette.</summary>
+    ColorSwatchRose,
+
+    /// <summary>The name of the orange light swatch of a color picker's default palette.</summary>
+    ColorSwatchOrangeLight,
+
+    /// <summary>The name of the amber light swatch of a color picker's default palette.</summary>
+    ColorSwatchAmberLight,
+
+    /// <summary>The name of the lime swatch of a color picker's default palette.</summary>
+    ColorSwatchLime,
+
+    /// <summary>The name of the emerald swatch of a color picker's default palette.</summary>
+    ColorSwatchEmerald,
+
+    /// <summary>The name of the cyan swatch of a color picker's default palette.</summary>
+    ColorSwatchCyan,
+
+    /// <summary>The name of the indigo light swatch of a color picker's default palette.</summary>
+    ColorSwatchIndigoLight,
+
+    /// <summary>The name of the violet light swatch of a color picker's default palette.</summary>
+    ColorSwatchVioletLight,
+
+    /// <summary>The name of the pink light swatch of a color picker's default palette.</summary>
+    ColorSwatchPinkLight,
+
+    /// <summary>The name of the rose light swatch of a color picker's default palette.</summary>
+    ColorSwatchRoseLight,
+
+    /// <summary>The name of the stone swatch of a color picker's default palette.</summary>
+    ColorSwatchStone,
+
+    /// <summary>The name of the slate swatch of a color picker's default palette.</summary>
+    ColorSwatchSlate,
+
+    /// <summary>The name of the black swatch of a color picker's default palette.</summary>
+    ColorSwatchBlack,
+
+    /// <summary>The name of the white swatch of a color picker's default palette.</summary>
+    ColorSwatchWhite,
 
     /// <summary>What a screen reader calls a carousel: its <c>aria-roledescription</c>.</summary>
     CarouselRole,

@@ -13,6 +13,7 @@ import {replayMissed} from "./rask-owned.js";
 import "./rask-hover.js";    // data-rask-tooltip, data-rask-hover
 import "./rask-overlay.js";  // popover focus, data-rask-modal, data-rask-modal-open, invoker-command fallback
 import "./rask-lock.js";     // data-rask-lock
+import "./rask-place.js";    // data-rask-place
 import "./rask-menu.js";     // data-rask-menu-pointer, data-rask-safe-area
 import "./rask-field.js";    // data-rask-copy / -focus / -clear / -mask / -mask-money / -big-step
 import "./rask-keys.js";     // data-rask-contain-keys, data-rask-listbox-button, data-rask-roving

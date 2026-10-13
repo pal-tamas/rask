@@ -7,8 +7,49 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
+  a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
+  `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
+  `.Xs`, `Swatches([...])`, `Dropper()`, `Clearable()`, `Copyable()`, and a popover composed from
+  `Ui.ColorPickerArea`, `Ui.ColorPickerSlider`, `Ui.ColorPickerInput`, `Ui.ColorPickerSwatches`,
+  `Ui.ColorPickerSwatch` and `Ui.ColorPickerDropper`. A bound colour is written with the reader's next action,
+  `.Live()` as it is chosen. On a phone the popover is a sheet that keeps what is chosen until Select. A typed
+  `oklch()`, `lab()`, `lch()`, `oklab()` or `color()` becomes what Flux's picker makes of it, also where that is
+  wrong (`oklch(0.7 0.1 200)` → `#0100c8`); text that is no colour in a picker bound in a form is refused with
+  "Enter a valid color." and holds the save. 41 new catalog keys (`ColorPicker…`, `ColorSwatch…`,
+  `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
+
 ### Changed
 
+- **RASK102 names the two `Validate` shapes that invite the miss.** A value object over a number, a date or
+  an id whose rule takes the value as nullable — `Validate(decimal? value)` on `NormPercent(decimal Value)` —
+  was already reported, with a reason that only stated the mismatch; it now says what to write: "declare it
+  'decimal', because an unfilled field is never put to the rule and a property that is not nullable is required
+  by its type". A `Validate` taking its value by `ref`, `out` or `ref readonly` was taken for the rule and the
+  generated call then failed to compile inside generated code (CS1620); it is now reported — "it takes its
+  value by 'ref', and a rule is handed the value itself" — and the field is required by its type like any
+  other without a rule. `in` stays a rule, and so does `Validate(string? value)` over a `string`, which is
+  asked with the empty string and never `null`. Nothing changes in what runs for an empty field.
+- **A panel of the kit stays inside the viewport, exactly as Flux UI's does.** **A behaviour change.** A menu,
+  a popover, a context menu, a tooltip, the list of a select, an autocomplete or a pillbox, a calendar and a
+  list of times used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a
+  filter flyout by the right edge hung off it (225 px for a 480 px panel on a phone), a user menu at the foot
+  of a sidebar opened past the bottom, a centred panel never turned at all. Each now says where it wants to be
+  (`data-rask-place="bottom start 5 0"`) and the runtime's new `rask-place.ts` hook does what Flux's script
+  does, measured on its live pages with every trigger held at each edge of a 390 × 844 and a 1920 × 1080
+  viewport: the side asked for, then the other alignment (the offset mirrored), then the opposite side — the
+  first that fits, else the roomier — the panel slid back to stay 5 px inside the edge, and one taller than
+  what is left held to that height and scrolling inside. The anchor rules stay as the placement with no
+  script; with it a panel is placed in the task that opens it and is never drawn where the rules alone would
+  leave it. Nothing to change in an app: no new prop, and the hook sends the page nothing. It is in the
+  on-demand hooks bundle (`rask-hooks.js`), so `rask.js` and `rask.wasm.js` are byte for byte what they were.
+  `scripts/flux/placement.mjs` holds every family's landing to Flux's at those edges, from each family's
+  open-state parity script. Two looks came out of holding panels at a phone's width and are Flux's now: a
+  `Ui.NavmenuItem` is 36px tall under 1024 px (was 32px at every width), and a select with a search field
+  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all). Not built: under
+  640 px Flux's date picker is a centred modal with its own footer; the kit's is the same popup at every width.
 - **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`
   page of its own got an untitled tab and, in a Hungarian app, English. Its heading, sentence and link are
   the catalog's `NotFoundTitle`, `NotFoundBody` and `NotFoundBackHome`, with Hungarian in the kit ("Az oldal
@@ -81,6 +122,20 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+
+- **A select goes on saying its answer when a search brings rows that no longer include it.** With
+  `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
+  placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count
+  of the rows still drawn — while the model kept the value. Measured on Flux (fluxui.dev/components/select):
+  the picked option stays stamped in the button when its option leaves the list or every option is replaced,
+  the backend-search combobox shows "Infrastructure" over a list that holds only "Branding", and "3 selected"
+  stands with none of the three rows left. The select now keeps the face of the answer it last drew — words,
+  icon, avatar, posted value — for as long as the value is that one, under the same key and shape, so a render
+  that brings other options changes nothing in the button; several answers are counted from the value. No
+  row is marked picked while the answer is not among them, and the cursor opens on the first row, as Flux's.
+  Content that is more than words is kept as its words. A value set from code that no render ever drew an
+  option for still shows the placeholder (Flux's page as loaded does too; after a pick Flux would go on
+  showing the option picked before, which the kit does not). No new API.
 
 - **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
   on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
@@ -274,6 +329,20 @@ them until tagged releases begin.
   [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
   vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
   the empty frame, as an unknown code does.
+- **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
+  `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
+  `Search` at every keystroke (unchanged when the step is absent). After:
+  `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)` calls it once, with the text the field holds when
+  typing has paused that long. The browser counts the pause and sends nothing while the reader types: with
+  `Filter(false)` not one frame, and of the keys only the list's own (the arrows, Enter, Tab). A row pressed,
+  or Enter, during the pause picks from the list as it is drawn, and the text typed since is dropped with the
+  list, never searched for — sent ahead of the press it would have redrawn the rows under it. The arrows walk
+  the list as drawn and the search arrives at its pause; a pause that ends on the text the page last heard
+  asks nothing again; the field's clear button tells the page at once. Without `Filter(false)` the select
+  goes on hiding rows at every keystroke and only `OnInput` waits. `Debounce(TimeSpan.Zero)` is every
+  keystroke, as on `Ui.Input`. The runtime's part is `data-rask-on-pause` beside `data-rask-debounce`
+  (`docs/js-interop-runtime.md`): a handler that hears the pause, where a bound field's value is also sent
+  ahead of the next action. `rask.js` and `rask.wasm.js` are 345 and 344 bytes larger.
 
 - **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
   `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or

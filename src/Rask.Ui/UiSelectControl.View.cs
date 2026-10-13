@@ -34,6 +34,12 @@ public abstract partial class UiSelectControl<T>
 
         internal int Cursor { get; set; } = Unset;
 
+        /// <summary>The row of the one answer held, when it is among the rows.</summary>
+        internal Row? AnswerRow { get; set; }
+
+        /// <summary>What the one answer held shows: from its row, or as the select last drew it.</summary>
+        internal UiOptionFace? Answer { get; set; }
+
         /// <summary>Every row the cursor could be on: the options, then the create row.</summary>
         internal int Count => Parts.Rows.Count + (Parts.Create is null ? 0 : 1);
 
@@ -61,8 +67,52 @@ public abstract partial class UiSelectControl<T>
             CreateShown = parts.Create is { } create && OffersCreate(create, parts, search),
         };
         view.Cursor = Place(view);
+        Remember(view);
 
         return view;
+    }
+
+    // The one answer held, as the select last drew it — the value it stands for and its face.
+    private (T Value, UiOptionFace Face)? _kept;
+
+    // Flux stamps the picked option into its button and leaves it while the value stands (measured on
+    // fluxui.dev/components/select: an option taken out of a listbox, every option replaced, a search the page
+    // answers with other rows — the button, and a combobox's input, go on saying it). So the face of the answer
+    // is kept from the last render that drew its row, and is the answer's for as long as the value is that one.
+    // A value no render ever drew a row for has no face: the placeholder shows, as on Flux's page as loaded.
+    private void Remember(View view)
+    {
+        if (view.Picked.Count != 1)
+        {
+            _kept = null;
+            return;
+        }
+
+        var value = view.Picked[0];
+        foreach (var row in view.Parts.Rows)
+        {
+            if (!Same(row.Value, value))
+            {
+                continue;
+            }
+
+            if (_kept is not { } drawn || !Same(drawn.Value, value) || !drawn.Face.Is(row.Option))
+            {
+                _kept = (value, UiOptionFace.Of(row.Option));
+            }
+
+            view.AnswerRow = row;
+            view.Answer = _kept.Value.Face;
+            return;
+        }
+
+        if (_kept is { } kept && Same(kept.Value, value))
+        {
+            view.Answer = kept.Face;
+            return;
+        }
+
+        _kept = null;
     }
 
     private string SearchText(Parts parts) => parts.Search?.Value ?? parts.Input?.Value ?? _search;

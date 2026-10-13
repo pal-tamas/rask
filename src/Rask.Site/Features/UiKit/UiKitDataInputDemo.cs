@@ -32,6 +32,7 @@ public sealed partial class UiKitDataInputDemo : Component
         SelectSection(),
         ListboxSection(),
         SearchableSection(),
+        SearchFromAStoreSection(),
         ComboboxSection(),
         AutocompleteSection(),
         PillboxSection(),
@@ -50,6 +51,7 @@ public sealed partial class UiKitDataInputDemo : Component
         CalendarSection(),
         DatePickerSection(),
         TimePickerSection(),
+        UiKitColorPickerDemo,
         FileUploadSection(),
         BoundModelSection(),
         MaskSection()

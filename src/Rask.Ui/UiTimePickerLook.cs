@@ -107,6 +107,8 @@ internal static class UiTimePickerLook
     {
         ["rask-popover-open"] = "false",
         ["rask-lock"] = "",
+        // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this.
+        ["rask-place"] = "bottom start 5 0",
     };
 
     internal static readonly Dictionary<string, string?> ListOpen = new(ListClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };

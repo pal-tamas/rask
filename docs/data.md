@@ -933,7 +933,8 @@ exactly that value and returning the messages — `IEnumerable<string>`, or a `V
 the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
 accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
 says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
-object of several values is left alone.
+object of several values is left alone. Over a number, a date or an id, declare the parameter `decimal`, not
+`decimal?` — RASK102 says so: an unfilled field is never put to the rule.
 
 **A non-nullable value-object property is required: its rule is asked with the empty value.** So "required" is
 said by the type, in its own words, and no attribute is needed:

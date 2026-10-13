@@ -27,14 +27,28 @@
 //   says       runs in the page: (root, trigger) => what the control shows as its answer
 //   walks      the --live walks: { name, flux: example index, rask: selector, keys: [...], accepted? }
 //   liveRoot   runs in the page: the element a walk's `rask` selector found => the example around its control
+//   edges      which controls are opened again with the control HELD at the viewport's edges, by their place
+//              among the page's controls that have a popup: where the list lands with no room (placement.mjs)
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, STYLES } from './lib.mjs';
+import { landings } from './placement.mjs';
 
 const IGNORED = new Set(['width', 'height']);
+
+// A static page has no runtime to open a list from an input: after the press, the popover is shown as the
+// runtime shows it.
+async function shown(page, point) {
+  await page.mouse.click(...point);
+  await page.evaluate(([x, y]) => {
+    const { panel, trigger } = window.__placed;
+    // Only where the press landed: a control held out of view opens on neither page.
+    if (!panel.matches(':popover-open') && trigger.contains(document.elementFromPoint(x, y))) panel.showPopover();
+  }, point);
+}
 
 export async function openParity(kind) {
   const args = process.argv.slice(2);
@@ -69,6 +83,15 @@ export async function openParity(kind) {
 
   const rask = await measureOpen(browser, kind, pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
   await writeFile(join(out, 'rask', folder, 'measurements.json'), JSON.stringify(rask));
+  // The same width on both pages: Flux's control fills its column, and a held one has no column.
+  const held = marker => kind.root.split(', ').filter(root => root.includes(marker)).map(root => `[data-preview-wrapper] ${root}:has(${kind.popup})`).join(', ');
+  const astray = kind.edges ? await landings(browser, {
+    name: folder, refresh: flag('refresh'), all: flag('all'), width: 260, hosts: kind.edges,
+    // The popover itself: with a search field over the list, Flux's marker is on the list inside it.
+    flux: { url: fluxUrl, host: held('data-flux-'), panel: '[popover]', trigger: kind.trigger },
+    // The page as Flux's loads, not one written with rows already picked: its trigger is another height.
+    rask: { url: pathToFileURL(join(out, 'rask', `${kind.slug}.html`)).href, host: held('data-ui-'), panel: '[popover]', trigger: kind.trigger, open: shown },
+  }) : 0;
   await browser.close();
 
   const limit = flag('all') ? Infinity : 12;
@@ -106,7 +129,8 @@ export async function openParity(kind) {
   }
 
   console.log(failures ? `\nflux parity: the open ${kind.name} differs in ${failures} example(s).` : `\nflux parity: the open ${kind.name} matches Flux.`);
-  process.exit(failures ? 1 : 0);
+  if (kind.edges) console.log(astray ? `flux parity: the ${kind.name}'s list lands elsewhere for ${astray} control(s).` : `flux parity: the ${kind.name}'s list lands where Flux's does.`);
+  process.exit(failures || astray ? 1 : 0);
 }
 
 // ----- The keyboard, on a running app ------------------------------------------------------------------

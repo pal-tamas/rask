@@ -62,6 +62,9 @@ departure in behaviour carries none.
   date) and marks nothing. The kit refuses: half filled says "Enter a valid date." / "Enter a valid time." and
   blocks the save, every part emptied is nothing chosen. Reason: a form must not save a value the reader can
   no longer see. Look and keys unchanged. `rask-segments.ts`, `UiPickerUnreadTests`, `PickerUnreadTests`.
+- **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
+  nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
+  and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
@@ -207,9 +210,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -617,6 +620,65 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
+- Color picker (2026-10-13): seven parts, loaded and open parity 22/22 each (`parity.mjs color-picker`,
+  `parity-color-picker.mjs` — the `data-parity-open` route; `--live <url>` walks a running site beside Flux's page,
+  `--phone` the sheet at 390). EVERY hook in the table below is wired and none is new: the area and the tracks are
+  `data-rask-drag` surfaces (the thumb's CSS reads `--rask-drag-x/-y` with the rendered place as its fallback, so a
+  static page draws it too), a track says `data-rask-focus="<its range input>"`, the range input is bound on
+  CHANGE (a field bound on input is not moved by a render while it has focus, and a press on the track leaves
+  focus there) and keeps its arrows by `data-rask-contain-keys="Arrows"` — they are C#'s, 1 and 10 with Shift,
+  because `data-rask-big-step` would take the page keys too and Flux's are the browser's own tenth of the track
+  (hue 360 → 324, measured), the dialog is `data-rask-modal="any"` +
+  `data-rask-modal-open` behind a `command="show-modal"` button, the copy button `data-rask-copy`, the dropper
+  `hidden` + `data-rask-requires` (its parity example removes `hidden` in a line of script, as the runtime would).
+  **The sheet** (below `sm`) holds what is chosen until Select — measured on Flux at 390: area, sliders and the
+  popover's input change nothing outside the sheet; Select takes it; Cancel, Escape and a press outside drop it; a
+  swatch is taken at once and closes the sheet. A render cannot ask a media query, so the dialog holds a box only
+  the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`) under `data-rask-measure`, and the
+  page reads the width it is told — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
+  media-queried `:root:has()` rule in `ui.css`, not `data-rask-lock`: the lock depends on the width, and Flux
+  locks nothing at pointer widths. Placement is the date picker's anchor rules said in `ui.css` (the name comes down in
+  `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
+  **NOT on `data-rask-place`**: `rask-place.ts` places what is `:popover-open`, reads the anchor from the panel's
+  inline style, and would hang the sheet under its trigger. So near an edge this panel only turns to the other
+  side (`position-try-fallbacks`), where Flux also slides it and holds its height. To wire it the hook has to
+  take an open modal `<dialog>`, find an anchor named by a rule, and stand down below `sm`.
+  **The maths is Flux's to the last bit** (`UiColorValue`, found by typing 126 colours with channels on a half
+  into the live picker: channels /255, HSV held as percentages, back through chroma; one formula pair of sixteen
+  had no miss), and so is the reading of a typed colour (`UiColorComputed` writes what the browser's computed
+  style would, `UiColorText` reads its first numbers as Flux does — the owner's decision of 2026-10-07; table in
+  `docs/ui-kit.md#color-picker`, pinned by `UiColorValueTests`). Flux's `format` attribute is live on its element:
+  writing it there is how hexa, rgb, hsl and hsla were measured. Not read: `color-mix()`, relative colours,
+  `calc()`, `currentColor`, system colours. Unmeasured, no example on Flux's page: an INVALID trigger (the input's
+  red border), `clearable` with `copyable` together (clear first), a disabled button trigger. A Flux quirk kept: on the sheet
+  its popover input says the page's colour again after a colour was typed into it, while the sheet holds the typed
+  one (`_typedOnSheet`). Not Flux's: Flux draws a thumb outside the area for a channel above 255, the kit holds it
+  at the edge. A focused range input is not moved by a render (`syncFormProperty`), so a step it did not take
+  itself — an arrow, a press on its track — is put on the element too (`SetValueAsNumber`).
+- Where a panel LANDS (2026-10-13, the owner: exactly as Flux's). Flux places every panel by script, and the
+  kit's anchor rules could only turn one to the other side. Measured on Flux's live pages by holding a host
+  `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`scripts/flux/placement.mjs`, which every
+  open-state script now ends with — `EDGES` is the list of places, `landings()` the comparison, Flux's side
+  cached as `edges.json`): the side asked for, then the other alignment, then the opposite side, then that with
+  the other alignment — the first that fits the viewport EDGE TO EDGE (no padding: a panel 3 px from the edge
+  is not turned); when none fits, the one that overflows least. Then it is slid along the trigger's edge to
+  stay 5 px inside (one wider than the viewport keeps its start at 5), and one taller than the room 5 px
+  from the edge gets that as `max-height`. Not held to a height: a context menu (it runs past the edge on
+  Flux), and a panel that scrolls itself and would overflow by under 2 px once held — a `flex flex-col gap-4`
+  popover absorbs up to 15 px that way and hangs that far past the edge on Flux, so it does here. Flux's
+  inline `max-height` is STICKY between two opens of one panel (it measures the held height the second time);
+  the kit starts every open fresh — not reproduced. The tooltip is on the hook too (`Ui.TooltipContent` writes
+  the attribute; its anchor is the first element of the `data-rask-tooltip` / `data-rask-toggle` that names
+  it, or its `popovertarget` button): its `position-area` rules agreed with Flux at nine ordinary places and
+  differed where a tooltip came within 5 px of an edge (Flux keeps the side and holds the height; the rules
+  turned it). A submenu's flyout still only turns to the other side (`flip-inline`): unmeasured.
+  NOT BUILT, found here: under 640 px Flux's DATE PICKER is another control — a modal centred in the viewport
+  over a page dimmed 10%, days 44 px, the trigger `min-w-[12rem]`, and Cancel / "Select date" under the
+  calendar (a pick does not close it). The kit shows its one popup at every width, kept in view by the hook;
+  `parity-date.mjs` therefore holds the date picker's landing at 640 and 1920, the time picker's at 390 too.
+  Found by holding panels at a phone's width, and fixed: a navmenu row is `py-2` under 1024 px (36px) and
+  `py-1.5` from there; the twenty-rem limit of a select with a search field is its LIST's, not its popup's.
+
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
 - **Two checkboxes, no script.** `Ui.Sidebar` holds `#sidebar-open` (slid over the page; `data-rask-uncheck-on-navigate`)
   and `#sidebar-rail` (narrowed; `data-rask-persist="flux-sidebar-collapsed-desktop"`), and every control is a
@@ -688,6 +750,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
+| every panel anchored to a trigger (WIRED: `Ui.Menu`, `Ui.Navmenu`, `Ui.Popover` through `UiPopupHost.Place`; the select, autocomplete and pillbox lists through `UiAnchor.Place`; the date and time popups; `Ui.TooltipContent`; a context menu, which names no anchor and sits at the pointer) | `data-rask-place="<side> <align> <gap> <offset>"` on the `[popover]`, beside the CSS anchor rules in its `style` (`position-anchor:--x` against an element whose `style` says `anchor-name:--x`), which stay what places it with no script | Flux's placement (`rask-place.ts`): flip the side → flip the alignment (the offset mirrored) → slide back 5 px inside the edge → hold to the height that is left; placed in the task that opens it, never drawn where the anchor rules alone leave it; one rule per open panel in the runtime's own stylesheet, keyed on `data-rask-placed`; nothing sent |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
 | Menu submenu (WIRED: `UiMenuSubmenu`) | its row `data-rask-safe-area` (no value: the flyout is the next element, as Flux has it, with no id), no `OnClick`; the flyout rendered always and shown by the stylesheet from `[data-open]` on the wrapper, which the RUNTIME writes — never `:hover`, never a render | Flux's safe area; a flyout that opens under the pointer, stays when the pointer leaves the menu and closes when another row is entered; ArrowRight / Enter / Space / ArrowLeft; its submenu's row lit while the arrows are inside it; a tap toggles |
@@ -699,6 +762,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
 | Tabs | `role="tablist"` over `button[role=tab]`, roving `tabindex`, `aria-selected`; each tab's `OnClick` selects it — NO key handler in C# | the arrows move focus and select, past disabled tabs and around the ends; Home / End are the page's, as Flux's (`rask-tabs.ts`; the role alone loads the bundle, like the switch's) |
 | Slider | `data-rask-big-step="<BigStep>"` on each thumb's `<input type="range">`, only when `BigStep` is set (Flux without `big-step`: Shift changes nothing, the Page keys are the browser's) | Shift+Arrow, PageUp / PageDown |
+| Select search that asks a store | `data-rask-on-pause="<handler>"` + `data-rask-debounce="<ms>"` on the search `<input>` (`Ui.SelectSearch.Debounce`), with `data-rask-keys` for the list's own keys; a `data-rask-on-input` beside it only where the select hides rows itself | the handler hears the field's text once typing has paused, and NOTHING else sends it (not the next action, not leaving the field): a pick during the pause is of the list as drawn (`rask-input.ts`, not a hook) |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
 | Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |
 | Color picker | area and tracks `data-rask-contain-keys="Arrows Home End PageUp PageDown"` on the `[role=slider]`; swatch `[role=listbox]` the same list plus `Space Enter`; the area `data-rask-press-keeps-focus` | keys kept; a press on the area leaves focus where it was |

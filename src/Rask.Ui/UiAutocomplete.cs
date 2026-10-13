@@ -212,6 +212,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
             ["data-rask-lock"] = null,
             ["style"] = UiAnchor.Under(Prefixed, null, null),
+            ["data-rask-place"] = UiAnchor.Place(null, null),
         };
         if (_open)
         {

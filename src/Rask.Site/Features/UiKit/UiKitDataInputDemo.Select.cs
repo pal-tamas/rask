@@ -11,6 +11,16 @@ public sealed partial class UiKitDataInputDemo
     private readonly List<(int Id, string Name)> _projects =
         [(1, "Branding"), (2, "Analytics"), (3, "Infrastructure"), (4, "Documentation"), (5, "Security"), (6, "Performance")];
 
+    // What a store would hold: more rows than a list shows, so the page answers a search with the first few.
+    private static readonly string[] Cities =
+    [
+        "Amsterdam", "Athens", "Berlin", "Bern", "Brussels", "Budapest", "Copenhagen", "Dublin", "Helsinki", "Lisbon",
+        "Ljubljana", "Madrid", "Oslo", "Paris", "Prague", "Riga", "Rome", "Stockholm", "Vienna", "Warsaw",
+    ];
+
+    private string[] _cities = [.. Cities.Take(6)];
+    private string? _city;
+    private int _cityQueries;
     private string? _industry;
     private string? _grouped;
     private string? _listed;
@@ -134,6 +144,30 @@ public sealed partial class UiKitDataInputDemo
                     _industries.Count == 0 ? "Nothing chosen." : $"Chosen: {string.Join(", ", _industries)}."
                 ]
             ]);
+
+    private Component SearchFromAStoreSection() =>
+        Section(
+            "Search from a store",
+            "Filter(false) leaves the rows to the page, and Debounce on Ui.SelectSearch calls OnInput once typing has "
+            + "paused: one query for a word, not one for a letter. The rows drawn stay until the answer is here, and "
+            + "a row picked while the pause runs is the row you pressed.",
+            Div.Data(Testid("ui-select-store")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-3")[
+                Ui.Select.Key("store").Value(_city).OnChange(picked => _city = picked).Listbox.Searchable().Filter(false).Placeholder("Choose a city...")
+                    .Id("ui-select-store")[
+                    Ui.SelectSearch.Placeholder("Search cities...").OnInput(SearchCities).Debounce(250.Milliseconds),
+                    _cities.Select(name => Ui.SelectOption.Key("store-" + name)[name])
+                ],
+                P.Class("text-sm text-ui-muted sm:col-span-2").Data(Testid("ui-select-store-state"))[
+                    $"City: {_city ?? "none"}. Queries: {_cityQueries}."
+                ]
+            ]);
+
+    // The page's answer to the search: a query, here over a list.
+    private void SearchCities(string text)
+    {
+        _cityQueries++;
+        _cities = [.. Cities.Where(name => name.Contains(text, StringComparison.CurrentCultureIgnoreCase)).Take(6)];
+    }
 
     private Component ComboboxSection() =>
         Section(
