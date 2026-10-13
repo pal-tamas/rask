@@ -801,7 +801,10 @@ if (page) {
 
     listen("input", function (e) {
         const input = e.target;
-        const root = saying || !(input instanceof HTMLInputElement) ? null : input.closest(ROOT);
+        if (saying || !(input instanceof HTMLInputElement)) {
+            return;
+        }
+        const root = input.closest(ROOT);
         const popup = root ? popupOf(root) : null;
         if (!root || !popup || inputOf(root) !== input) {
             return;
