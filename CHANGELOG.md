@@ -22,7 +22,9 @@ them until tagged releases begin.
   not seen on any for as long. After: every request and every event of a live page reads the row. What that read
   costs was cut to pay for it — 338 µs / 77.5 KB → 35 µs / 10.7 KB per resume against pooled SQLite (Release):
   the query is compiled once, the contexts it runs on are kept, and a live page whose user's row is unchanged is
-  handed its own principal back.
+  handed its own principal back. **`AddRaskAuth` no longer registers `IMemoryCache`** — it was there for that
+  cache alone; an app that injects `IMemoryCache` and relied on the registration coming with Rask.Auth adds
+  `services.AddMemoryCache()` itself.
 - **A tab finds out that the browser's cookie changed, and reconnects before it sends anything.** Before: a
   socket carried the principal of its upgrade for as long as it stayed open; a cookie replaced in another tab — by
   Rask's sign-in or by a plain endpoint of the app issuing the token again with another tenant — never reached
@@ -58,6 +60,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
+  `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
+  at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
+  (*No suitable constructor was found … Cannot bind 'Label'*). The build now says so at the parameter, with the
+  way out — "Give 'Route' a private parameterless constructor and private setters." Reported for a record, a
+  record struct and a class whose constructors all take one, on the aggregate, inside another value object or on
+  a row inside the aggregate. Not reported for what EF Core builds: a value object built through its members,
+  one with a constructor that does not take it, a record with an added private parameterless constructor, and a
+  holder of one-value value objects only. An app that had this shape did not start, so nothing that ran breaks.
 - **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
   `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
   `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
@@ -256,6 +267,15 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A row of `Ui.Select` pressed before the page answered the list opening is picked.** A press that outlives
+  its page reaches the handler that is the same as the one it was sent to, among the two a slot remembers. The
+  select's handlers closed over what each of its renders worked out, so no two renders made the same one, and
+  three renders in flight — the list opening, a first pick, the next row lighting up — forgot the page the
+  second press was read from: it ran nothing, and a reader on a slow line who pressed two rows of a multiple
+  listbox kept one. Its handlers now read the latest render when they run and close over a row's place and
+  value only, so they are the same handler from render to render; a press on a row that holds another value
+  by then still picks nothing. Both hosts. `SelectPressFromAnOlderPageTests`, `DeferredBindTests` (which also
+  waited on `aria-expanded`, the browser's own word, for the page to have heard — the flake this was).
 - **A page that follows a background source is never left one render behind.** In production: a date filter
   "did not work" until something else happened on the page, with `Coalesce-loop budget exhausted … a third
   in-dispatch render was queued and dropped` in the log. A dispatch renders at most three times, and a render

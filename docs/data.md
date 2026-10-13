@@ -1540,8 +1540,8 @@ builder.ComplexProperty(c => c.Price).Property(m => m.Currency).HasMaxLength(3);
 
 One shape stays out of reach: a value object built through its **constructor** cannot hold another value object
 of **several** values (`record Order(Money Total, …)`) — EF Core binds a constructor parameter to a column, never
-to a complex type. Give the outer type a parameterless constructor and settable properties (both may be
-private) and it maps.
+to a complex type. The build refuses it ([RASK103](diagnostics.md#rask103)) rather than let the app fail when it
+starts: give the outer type a private parameterless constructor and private setters, and it maps.
 
 What is **not** a value object: a type EF Core maps as a column on its own (`string`, `DateTime`, `Guid`, an
 enum, anything from `System` or `Microsoft`), a collection, an abstract or generic type, and an `Entity<TId>`.

@@ -77,7 +77,7 @@ public abstract partial class UiSelectControl<T>
             .Class(UiClass.Compose(UiSelectLook.Button, UiSelectLook.ButtonSize(slot?.Size ?? Height), slot?.Class))
             .Aria(TriggerAria(view))
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))
-            .OnKeyDown(e => OnButtonKeyAsync(e, view))[
+            .OnKeyDown(e => OnButtonKeyAsync(e, Latest))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
             Div.Class(UiSelectLook.Selected)[PickedContent(view, slot?.Placeholder ?? Placeholder)],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiSelectLook.Chevron)
@@ -139,10 +139,10 @@ public abstract partial class UiSelectControl<T>
                 .Aria(TriggerAria(view, autocompletes: true))
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true))
                 .Ref(_input)
-                .OnClick(() => OnInputClickAsync(view))
+                .OnClick(() => OnInputClickAsync(Latest))
                 .OnBlur(OnInputBlurAsync)
                 .OnInput(AtEveryKey(opens: true))
-                .OnKeyDown(e => OnInputKeyAsync(e, view)),
+                .OnKeyDown(e => OnInputKeyAsync(e, Latest)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
                 Clears(view) ? ClearButton() : null,
@@ -155,7 +155,7 @@ public abstract partial class UiSelectControl<T>
                     .Class(UiSelectLook.InputChevron)
                     .Aria(ChevronAria())
                     .Attributes(ChevronMarks())
-                    .OnClick(() => OnInputClickAsync(view, focuses: true))[
+                    .OnClick(() => OnInputClickAsync(Latest, focuses: true))[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiSelectLook.InputChevronIcon)
                 ]
             ]

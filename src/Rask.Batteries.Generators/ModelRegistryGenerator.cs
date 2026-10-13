@@ -29,7 +29,7 @@ namespace Rask.Batteries.Generators;
 /// </para>
 /// </remarks>
 [Generator]
-public sealed class ModelRegistryGenerator : IIncrementalGenerator
+public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 {
     private const string BuilderType = "EntityTypeBuilder";
     private const string BuilderNamespace = "Microsoft.EntityFrameworkCore.Metadata.Builders";
@@ -127,6 +127,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
 
         var name = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var (configures, configureProblem) = FindConfigure(symbol, name);
+        var valueObjects = ValueObjectPaths(symbol, out var unbuildable);
 
         return new Candidate(
             name,
@@ -138,7 +139,7 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             configures,
             configureProblem,
             SymbolLocation.From(symbol),
-            ValueObjectPaths(symbol),
+            valueObjects,
             StronglyTypedId.For(idType),
             AggregateShape.ConstOf(symbol, "Stamps", "Timestamps"),
             AggregateShape.ConstOf(symbol, "Deletes", "Deletion"),
@@ -146,7 +147,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
             AggregateShape.ConstOf(symbol, "Broadcast", "Broadcasts"),
             ValueCollections(symbol),
             AggregateShape.ConstOf(symbol, "Scope", "Tenancy"),
-            ChildTypeNamesOf(symbol));
+            ChildTypeNamesOf(symbol),
+            unbuildable);
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
@@ -189,10 +191,16 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
     // Each path remembers the type at every step, so the registry can drop a path whose type turns out to be a
     // strongly-typed id another entity is keyed by (that one is a converted column, not a complex type), and the
     // single stored property of a one-value type, whose column takes the property's own name.
-    private static EquatableArray<ValueObjectPath> ValueObjectPaths(INamedTypeSymbol entity)
+    //
+    // A value object of several values EF Core cannot build is noted on the way (RASK103): it is found exactly
+    // where it would be mapped as a complex type, so nothing the mapping skips is ever reported.
+    private static EquatableArray<ValueObjectPath> ValueObjectPaths(
+        INamedTypeSymbol entity, out EquatableArray<UnbuildableHolder> unbuildable)
     {
         var paths = new List<ValueObjectPath>();
+        var holders = new List<UnbuildableHolder>();
         Walk(entity, [], [], ImmutableHashSet.Create<string>(StringComparer.Ordinal));
+        unbuildable = new EquatableArray<UnbuildableHolder>([.. holders]);
         return new EquatableArray<ValueObjectPath>([.. paths]);
 
         void Walk(ITypeSymbol owner, ImmutableArray<string> prefix, ImmutableArray<string> types, ImmutableHashSet<string> seen)
@@ -228,6 +236,12 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                 var pathTypes = types.Add(typeName);
                 paths.Add(new ValueObjectPath(
                     new EquatableArray<string>([.. path]), new EquatableArray<string>([.. pathTypes]), singleValue));
+
+                if (singleValue is null && UnbuildableHolderOf(type) is { } holder)
+                {
+                    holders.Add(holder);
+                }
+
                 Walk(type, path, pathTypes, seen.Add(typeName));
             }
         }
@@ -330,6 +344,8 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
                     Rask073, entity.Location?.ToLocation(), idTypeName, idProblem));
             }
         }
+
+        ReportUnbuildableHolders(context, entities);
 
         var source = new StringBuilder();
         AppendFileHeader(source);
@@ -884,5 +900,6 @@ public sealed class ModelRegistryGenerator : IIncrementalGenerator
         int? Broadcast,
         EquatableArray<ValueCollectionSpec> Collections,
         int? Scope,
-        EquatableArray<string> ChildTypeNames);
+        EquatableArray<string> ChildTypeNames,
+        EquatableArray<UnbuildableHolder> UnbuildableHolders);
 }
