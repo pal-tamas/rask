@@ -223,6 +223,8 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ColorSwatchSlate", 0),
         ("ColorSwatchBlack", 0),
         ("ColorSwatchWhite", 0),
+        ("DatePickerConfirmRange", 0),
+        ("DatePickerPresetsPlaceholder", 0),
         ("CarouselRole", 0),
         ("CarouselLabel", 0),
         ("CarouselSlideRole", 0),

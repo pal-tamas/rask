@@ -221,8 +221,9 @@
 # 2026-10-13, a handler that hears a field's pause and that nothing else sends (data-rask-on-pause,
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
+# 2026-10-13, a panel whose --rask-place computes to none is left to the stylesheet (the date picker's phone sheet, rask-place.ts): rask-hooks.js 56,675 -> 56,747 (+72), measured on main, whose hooks bundle builds to 56,675 where this file said 56,371. The two runtimes are unchanged.
 # 2026-10-13, a carousel's autoplay holds while focus is inside it, a padded track rests where scroll snap would leave it, one that rewinds says no end (rask-carousel.ts), and a switch nobody listens to is turned in the browser (data-rask-switch, rask-switch.ts): rask-hooks.js 56,371 -> 57,474 (+1,103); its attribute in the loader: rask.js 101,724 -> 101,731 and rask.wasm.js 90,507 -> 90,514 (+7 each).
 bundle,bytes
-rask.js,101731
-rask.wasm.js,90514
-rask-hooks.js,57474
+rask.js,101724
+rask.wasm.js,90507
+rask-hooks.js,56747

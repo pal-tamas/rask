@@ -36,11 +36,12 @@ export const STYLES = [
 ];
 
 // Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
-// the loaded page before anything is measured.
-export async function measurePage(browser, url, shots, prepare) {
+// the loaded page before anything is measured. `view` is the viewport, for a page that is another thing on a
+// phone (`[390, 844]`); a desktop's unless given.
+export async function measurePage(browser, url, shots, prepare, view = [1280, 900]) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    const context = await browser.newContext({ viewport: { width: view[0], height: view[1] }, colorScheme: scheme });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
@@ -190,7 +191,10 @@ function collect(wrapper, { STYLES, index, layout }) {
   // of a calendar), and what a script stamps from it is in the tree beside it. An <input type="hidden">: the
   // one bound field the runtime reads a group of typed segments through (data-rask-segments), where Flux's
   // script keeps the value in the element itself.
-  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden');
+  // A month of a calendar that is ITSELF not displayed: under 640 px Flux's script draws one month whatever
+  // `months` says, and the kit's stylesheet hides the others until the page has heard how wide it is.
+  const folded = el => { const month = el.closest('[data-month]'); return month && getComputedStyle(month).display === 'none'; };
+  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden') || folded(el);
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;
@@ -218,7 +222,8 @@ function collect(wrapper, { STYLES, index, layout }) {
     nodes.push(node);
   });
 
-  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], nodes };
+  // `origin`: where the example was in the viewport as it was measured — a node's box is counted from there.
+  return { index, section, ordinal, size: [Math.round(origin.width), Math.round(origin.height)], origin: [origin.x, origin.y], nodes };
 }
 
 // The nodes of one example whose hover, active and focus-visible states are measured: every component

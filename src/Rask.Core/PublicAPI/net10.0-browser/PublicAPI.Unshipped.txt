@@ -3841,14 +3841,14 @@ Rask.Core.Globalization.RaskCultureResolver
 Rask.Core.Globalization.RaskCultureServiceCollectionExtensions
 Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CalendarToday = 15 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselIndicators = 185 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselLabel = 180 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselNext = 184 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselPrevious = 183 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselRole = 179 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselShowSlide = 186 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselSlideLabel = 182 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.CarouselSlideRole = 181 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselIndicators = 187 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselLabel = 182 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselNext = 186 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselPrevious = 185 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselRole = 181 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselShowSlide = 188 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideLabel = 184 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.CarouselSlideRole = 183 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerArea = 142 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerAreaRole = 143 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ColorPickerAreaValue = 144 -> Rask.Core.Globalization.RaskString
@@ -3911,11 +3911,13 @@ Rask.Core.Globalization.RaskString.DataGridSelectRow = 121 -> Rask.Core.Globaliz
 Rask.Core.Globalization.RaskString.DataGridUngroup = 114 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerCancel = 19 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerConfirm = 18 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerConfirmRange = 179 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerDay = 21 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerDayPlaceholder = 24 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerMonth = 20 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerMonthPlaceholder = 23 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerPlaceholder = 16 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.DatePickerPresetsPlaceholder = 180 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerRangePlaceholder = 17 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerYear = 22 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerYearPlaceholder = 25 -> Rask.Core.Globalization.RaskString

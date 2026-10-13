@@ -15,6 +15,12 @@ internal sealed class UiCalendarState
     /// <summary>The day a waiting range would end on: the one under the pointer or the keyboard.</summary>
     internal DateOnly? Hover { get; set; }
 
+    /// <summary>
+    ///     Whether the calendar is drawn for a phone — under 640 px, where Flux draws one month and a date picker
+    ///     holds a pick until its button is pressed. The browser says so, through the box the grid draws for it.
+    /// </summary>
+    internal bool Narrow { get; set; }
+
     /// <summary>Set when a paging key moved the view: the next render names no day for the focus to follow.</summary>
     internal bool Dropped { get; set; }
 

@@ -565,6 +565,12 @@ public enum RaskString
     /// <summary>The name of the white swatch of a color picker's default palette.</summary>
     ColorSwatchWhite,
 
+    /// <summary>The button that writes the range a range date picker holds: on a phone, and where it confirms.</summary>
+    DatePickerConfirmRange,
+
+    /// <summary>The option a phone's list of preset ranges shows while it names none.</summary>
+    DatePickerPresetsPlaceholder,
+
     /// <summary>What a screen reader calls a carousel: its <c>aria-roledescription</c>.</summary>
     CarouselRole,
 

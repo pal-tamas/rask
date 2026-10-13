@@ -593,6 +593,38 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
   run and fill it from the hidden field.
 
+- The date picker and the calendar ON A PHONE (2026-10-13, the owner: what Flux's is there). Measured at 390 × 844,
+  and the switch at 639 / 640: Flux's dialog is `showModal()`ed at EVERY width and its look is CSS alone — under
+  640 px `position: fixed` in the middle of the viewport (324 × 416 for one month of five weeks), no border,
+  `shadow-xl`, `max-height: 100%`, `::backdrop` black at 10%; ONE month in the DOM whatever `months` says (its
+  script draws no other); days 44 px (Xs 40, Sm and Base 44, Xl 48; 40 beside week numbers), steps and the
+  month heading 40 px, the header's selects 40 px with `ps-3`; the presets list hidden and a second
+  `ui-calendar-presets` holding a native select (14px, `shadow-2xs`, `px-4` around it, first option "Choose
+  predefined range..." disabled); the footer `flex`, `p-4`, its two wrappers `block`; trigger `min-w-[12rem]`,
+  16px. What a pick DOES is decided when it is made, by the width then: open at 900 and narrowed, the next pick
+  is held; open at 390 and widened, it writes and closes. Cancel, Escape and a press on the backdrop close and
+  write nothing — and leave the calendar's own mark, so the sheet opens again with that day lit and "Select
+  date" still writes it (a quirk, kept). The range's button reads "Select range". The standalone calendar
+  changes the same way (it has no footer). The TIME picker does not: same popover and rows under 640 px, only
+  its trigger is 12rem and 16px there (the kit's is 240px and 14px at every width — measured, not built).
+  How the kit does it: ONE markup, `sm:` / `max-sm:` utilities, the popup still a `popover` (the kit's
+  translation of Flux's dialog at every width, so no focus trap — Tab leaves and closes it, as on a desktop).
+  The anchor rules moved from the dialog's `style` into `sm:` classes (only `position-anchor` stays inline,
+  which `rask-place.ts` reads the anchor from) and `max-sm:[--rask-place:none]` stands the placement hook down:
+  a panel whose `--rask-place` computes to `none` is the stylesheet's. C# has to know the width for two things
+  only — a pick is held, and the months past the first are not drawn (the arrows must not walk into a hidden
+  month) — and hears it through `UiCalendarGrid`'s probe, a 1px box that is 2px under `sm`, measured by the
+  existing `data-rask-measure` hook into `UiCalendarState.Narrow` (drawn only where it changes something: several
+  months, or a picker's popup; `EXTRA` in `parity.mjs` knows it as `data-ui-calendar-narrow`). Until the page
+  has heard — a static parity page never does — the stylesheet folds the other months (`max-sm:hidden`), and
+  `lib.mjs` does not collect a `[data-month]` that is itself `display: none`. The colour picker's sheet asks the
+  same question the same way; if a third control needs it, the probe becomes one shared helper.
+  Harness: `parity.mjs <page> --view 390x844` measures both pages in that viewport (Flux's cache is
+  `measurements@390x844.json`); a `<dialog>` that is `position: fixed` on both sides is held to its place in
+  the VIEWPORT and what is inside it to the dialog; `parity-date.mjs date-picker` runs loaded + open at both
+  sizes and the landings at 390, 640 and 1920, and `--live <url>` walks Flux's first example against a running
+  site's picker at 390 (open, pick, pick, Cancel, open, pick, Select date, Escape, backdrop, Select date).
+
 - Popover (2026-10-12): `Ui.Popover` is the PANEL, the second child of `Ui.Dropdown`, which places it with the
   menu's own anchor code (`UiPopupHost`). `parity-popover.mjs` measures Flux's page once per dropdown (eleven)
   with that one open — the `data-parity-open` route, not an `open.mjs` config — gives the Rask page the runtime
@@ -672,10 +704,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   it, or its `popovertarget` button): its `position-area` rules agreed with Flux at nine ordinary places and
   differed where a tooltip came within 5 px of an edge (Flux keeps the side and holds the height; the rules
   turned it). A submenu's flyout still only turns to the other side (`flip-inline`): unmeasured.
-  NOT BUILT, found here: under 640 px Flux's DATE PICKER is another control — a modal centred in the viewport
-  over a page dimmed 10%, days 44 px, the trigger `min-w-[12rem]`, and Cancel / "Select date" under the
-  calendar (a pick does not close it). The kit shows its one popup at every width, kept in view by the hook;
-  `parity-date.mjs` therefore holds the date picker's landing at 640 and 1920, the time picker's at 390 too.
+  Under 640 px Flux's DATE PICKER is another thing, and the kit's is too since 2026-10-13 — below.
   Found by holding panels at a phone's width, and fixed: a navmenu row is `py-2` under 1024 px (36px) and
   `py-1.5` from there; the twenty-rem limit of a select with a search field is its LIST's, not its popup's.
 
@@ -750,6 +779,8 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Dropdown / Popover `hover` | root `data-rask-hover="<panel id>"` (trigger keeps `popovertarget`); NO `data-rask-lock` on its panel (WIRED: `UiPopupHost.Hover`) | opens at once over trigger or panel; closes from a pointer move looked at once in 100 ms that is over neither (Flux's own check: after a rest the first move into the gap closes it, a moving pointer crosses a 10px gap unseen, nothing looks again by itself); a press keeps it, Enter opens, no lock, and NO focus — a panel that carries `autofocus` does not take it when the pointer opens it (Flux's rail menu: `document.activeElement` stays where it was) |
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
+| a panel that is something else under a breakpoint (WIRED: `Ui.DatePicker`'s popup) | `max-sm:[--rask-place:none]` beside `data-rask-place`; the anchor rules as `sm:` utilities, `position-anchor` alone in `style` | not placed while `--rask-place` computes to `none`: the stylesheet's, and placed again above the breakpoint, asked on every pass |
+| a calendar of several months, a date picker's popup (WIRED: `UiCalendarGrid`) | a box only the stylesheet sizes (`w-px max-sm:w-0.5`) with `data-rask-measure` and its one bound hidden field, rendered `"1 1"` / `"2 1"` | the page hears which side of `sm` it is on, with no frame where it already says so; `unasked` |
 | every panel anchored to a trigger (WIRED: `Ui.Menu`, `Ui.Navmenu`, `Ui.Popover` through `UiPopupHost.Place`; the select, autocomplete and pillbox lists through `UiAnchor.Place`; the date and time popups; `Ui.TooltipContent`; a context menu, which names no anchor and sits at the pointer) | `data-rask-place="<side> <align> <gap> <offset>"` on the `[popover]`, beside the CSS anchor rules in its `style` (`position-anchor:--x` against an element whose `style` says `anchor-name:--x`), which stay what places it with no script | Flux's placement (`rask-place.ts`): flip the side → flip the alignment (the offset mirrored) → slide back 5 px inside the edge → hold to the height that is left; placed in the task that opens it, never drawn where the anchor rules alone leave it; one rule per open panel in the runtime's own stylesheet, keyed on `data-rask-placed`; nothing sent |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |

@@ -584,6 +584,8 @@ they say when you set nothing.
 | `ColorSwatchSlate` | Color picker | `Slate` |
 | `ColorSwatchBlack` | Color picker | `Black` |
 | `ColorSwatchWhite` | Color picker | `White` |
+| `DatePickerConfirmRange` | Date picker | `Select range` |
+| `DatePickerPresetsPlaceholder` | Date picker | `Choose predefined range...` |
 
 ## Docker
 

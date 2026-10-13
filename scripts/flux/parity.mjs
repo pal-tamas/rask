@@ -30,9 +30,11 @@ import { chromium, layoutDemos, measureLayouts, measurePage, root, stateTargets,
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
 const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
-const page = args.find(a => !a.startsWith('--') && a !== option('section'));
+const page = args.find(a => !a.startsWith('--') && a !== option('section') && a !== option('view'));
+// `--view 390x844`: both pages are measured in that viewport — a component that is another thing on a phone.
+const view = option('view')?.split('x').map(Number);
 if (!page) {
-  console.error('usage: node scripts/flux/parity.mjs <page> [--refresh] [--section <id>] [--all]');
+  console.error('usage: node scripts/flux/parity.mjs <page> [--refresh] [--section <id>] [--view <w>x<h>] [--all]');
   process.exit(1);
 }
 
@@ -50,14 +52,16 @@ if (!existsSync(raskPage)) {
 }
 
 const browser = await chromium().launch();
-const fluxFile = join(out, 'flux', slug, 'measurements.json');
+// A viewport of its own is a measurement of its own, kept beside the desktop's.
+const sized = view ? `@${view.join('x')}` : '';
+const fluxFile = join(out, 'flux', slug, `measurements${sized}.json`);
 let flux;
 if (existsSync(fluxFile) && !flag('refresh')) {
   flux = JSON.parse(await readFile(fluxFile, 'utf8'));
 } else {
   flux = layout
     ? await measureLayouts(browser, await layoutDemos(browser, `https://fluxui.dev/${path}`), demo => `https://fluxui.dev/demo/${demo.name}`, join(out, 'flux', slug))
-    : await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug));
+    : await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug + sized), undefined, view);
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
@@ -85,7 +89,7 @@ const demos = () => [...new Map(flux.light.map(example => example.section.split(
 const rask = layout
   ? await measureLayouts(browser, demos(), demo => pathToFileURL(join(raskPage, `${demo.name}.html`)).href, join(out, 'rask', slug),
     { prepare: inherit, only: new Set(flux.light.map(example => example.section)) })
-  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug), inherit);
+  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug + sized), inherit, view);
 await browser.close();
 
 // ----- Layouts ---------------------------------------------------------------------------------------
@@ -181,8 +185,9 @@ const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
 // cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
 // …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
-// whether the dialog is Flux's sheet: Flux asks the window.
-const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet'];
+// whether the dialog is Flux's sheet: Flux asks the window. And the one in a calendar, which is how the page
+// learns that it is drawn for a phone.
+const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet', 'data-ui-calendar-narrow'];
 // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
 // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
 // how each says where the popup goes is not compared; where it ends up is — its offset from the root it
@@ -190,6 +195,10 @@ const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet'];
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
 // The same holds for a modal <dialog> the kit anchors to its trigger (the color picker's).
 const placed = (a, b) => ('popover' in b.attrs || b.tag === 'dialog') && a.style.position === 'absolute' && b.style.position === 'fixed';
+// A dialog the VIEWPORT places (`position: fixed` on both sides: Flux's date picker under 640 px, centred over
+// the page) is nowhere against the trigger that opened it — that distance is how far each page happened to be
+// scrolled. It is held to its place in the viewport, and what is inside it to the dialog.
+const centred = (a, b) => a.tag === 'dialog' && a.style.position === 'fixed' && b.style.position === 'fixed';
 // A group whose parts are the browser's while they are typed into (docs/js-interop-runtime.md, rask-bound.ts)
 // holds ONE <input type="hidden"> that the page binds. Flux's custom element carries its value itself and
 // has no such node, so that field is no child here.
@@ -306,7 +315,15 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   const boxed = (shown(theirs, a) || shown(mine, b)) && [a, b].some(n => n.box[2] > 0 || n.box[3] > 0);
   // Nor has a `display: contents` root (a modal's trigger): nothing under it can be placed against it.
   const anchored = rootA.style.display !== 'contents' || rootB.style.display !== 'contents';
-  if (a !== rootA && boxed && anchored) {
+  const floats = a !== rootA && boxed && centred(a, b);
+  if (floats) {
+    const at = (example, n, i) => n.box[i] + example.origin[i];
+    if ([0, 1].some(i => differs(at(theirs, a, i), at(mine, b, i)))) {
+      diffs.push(`${where}: in the viewport at ${fix(at(theirs, a, 0))},${fix(at(theirs, a, 1))} vs ${fix(at(mine, b, 0))},${fix(at(mine, b, 1))}`);
+    }
+
+    [rootA, rootB] = [a, b];
+  } else if (a !== rootA && boxed && anchored) {
     const off = (n, r, i) => n.box[i] - r.box[i];
     if ([0, 1].some(i => held[i] && differs(off(a, rootA, i), off(b, rootB, i)))) {
       diffs.push(`${where}: offset ${fix(off(a, rootA, 0))},${fix(off(a, rootA, 1))} vs ${fix(off(b, rootB, 0))},${fix(off(b, rootB, 1))}`);

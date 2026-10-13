@@ -26,6 +26,26 @@ them until tagged releases begin.
 
 ### Changed
 
+- **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
+  pressed.** **A behaviour change under 640 px**, with nothing to change in an app — the same component, the same
+  steps, one markup. Measured on Flux's live page at 390 × 844 and held to it example by example
+  (`scripts/flux/parity-date.mjs`, as loaded, open, landing and a walk): the popup is centred in the viewport over
+  a page dimmed 10%, with no border and a deeper shadow; it draws ONE month whatever `Months` says, days 44px
+  (40px beside week numbers), month steps 40px; a range's presets are a native select under the days; and
+  **Cancel** and **Select date** — **Select range** on a range — stand at its foot. A pick marks the day and
+  writes nothing: the button writes it, through the binding the picker already has (a plain `Bind` with the
+  reader's next action, `.Live()` at once), and Cancel, Escape and a press on the dimmed page leave the value as
+  it was. As on Flux, a day marked on a sheet that was closed is still marked when it opens again. The trigger
+  is 16px text and at least 12rem wide there (14px and 240px from 640 px up). The stylesheet decides which of
+  the two it is, so the breakpoint is stated once: the page hears it from the browser through a box only the
+  stylesheet sizes (`data-rask-measure`, an existing hook), and `rask-place.ts` leaves a panel whose
+  `--rask-place` computes to `none` to the stylesheet — a window dragged across 640 px with the popup open
+  changes hands as it goes. From 640 px up nothing changed: the popup hangs under its trigger and a pick
+  writes and closes. `Ui.Calendar` is Flux's on a phone too: one month, the larger days and steps. Two looks
+  came with it at every width, both Flux's: a range picker that confirms says **Select range** (was "Select
+  date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
+  `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
+  640 px — only its trigger is 16px text and 12rem there — and is not changed here.
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
@@ -67,8 +87,7 @@ them until tagged releases begin.
   `scripts/flux/placement.mjs` holds every family's landing to Flux's at those edges, from each family's
   open-state parity script. Two looks came out of holding panels at a phone's width and are Flux's now: a
   `Ui.NavmenuItem` is 36px tall under 1024 px (was 32px at every width), and a select with a search field
-  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all). Not built: under
-  640 px Flux's date picker is a centred modal with its own footer; the kit's is the same popup at every width.
+  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all).
 - **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`
   page of its own got an untitled tab and, in a Hungarian app, English. Its heading, sentence and link are
   the catalog's `NotFoundTitle`, `NotFoundBody` and `NotFoundBackHome`, with Hungarian in the kit ("Az oldal
@@ -165,6 +184,14 @@ them until tagged releases begin.
 - **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
   The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
   declared `__held0` (CS0128 inside generated code). They are numbered.
+- **A row pressed as the pointer arrives is picked, after a list lost rows.** The pointer coming over a row
+  of a kit list is a render of its own, so a press that follows it at once is read from the page before that
+  render and is matched to its row by what tells the rows of one page apart. A list that had just answered a
+  search with fewer rows left its last handler slots holding the long list's handlers; counted among that
+  page's handlers, they made what every render works out anew look like what tells rows apart, no row was the
+  same, and the press ran nothing — a city picked from the store's answer on rask.sh stayed unpicked. Slots a
+  walk does not reach are now said to hold nothing from that walk's page on. Both hosts.
+  `StaleClickAfterRowsLeftTests`, `SelectSearchDebounceTests`.
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from

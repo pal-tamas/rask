@@ -24,7 +24,7 @@ public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
 
     private protected override string DefaultPlaceholder => RaskStrings.Get(RaskString.DatePickerRangePlaceholder, "Select a date range");
 
-    private protected override string ConfirmLabel => RaskStrings.Get(RaskString.DatePickerConfirm, "Select date");
+    private protected override string ConfirmLabel => RaskStrings.Get(RaskString.DatePickerConfirmRange, "Select range");
 
     private protected override UiCalendarPicks Picks(UiDateRange current, Func<UiDateRange, Task> choose) =>
         new UiCalendarRangePick(current, State, MinRange, MaxRange, choose);
@@ -63,7 +63,12 @@ public sealed partial class UiDatePickerRange : UiDatePickerControl<UiDateRange>
         }
 
         // A choice waiting to be confirmed keeps the popup open; otherwise a preset closes it as a pick does.
-        var closes = WithConfirmation == true ? null : PopoverId;
+        var closes = WithConfirmation == true || State.Narrow ? null : PopoverId;
         return UiDatePickerPresets.Render(Presets ?? UiDateRangePresets.Default, current, options, closes, choose);
     }
+
+    private protected override Component? Below(UiDateRange current, UiCalendarOptions options, Func<UiDateRange, Task> choose) =>
+        WithPresets != true && Presets is null
+            ? null
+            : UiDatePickerPresets.Narrow(Presets ?? UiDateRangePresets.Default, current, options, choose);
 }

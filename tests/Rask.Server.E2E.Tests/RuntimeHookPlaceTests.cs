@@ -43,6 +43,9 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
         }
         """;
 
+    // Three frames on: a resize is answered in the next frame, and drawn in the one after.
+    private const string Frames = "() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(done))))";
+
     private static async Task<string> OpenedAsync(HookSession session, string id)
     {
         await session.Page.ClickAsync("#" + id + "-open");
@@ -164,6 +167,26 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
+    public async Task A_panel_the_stylesheet_takes_under_a_breakpoint_is_left_to_it_and_placed_again_above_it()
+    {
+        await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright);
+        await session.HooksLoadedAsync();
+        var page = session.Page;
+
+        var wide = await OpenedAsync(session, "sheet");
+        await page.SetViewportSizeAsync(500, 700);
+        await page.EvaluateAsync(Frames);
+        var narrow = await page.EvaluateAsync<string>(Box, "sheet");
+        await page.SetViewportSizeAsync(1000, 700);
+        await page.EvaluateAsync(Frames);
+        var back = await page.EvaluateAsync<string>(Box, "sheet");
+
+        Assert.Equal("250,145,200,100", wide);
+        Assert.Equal("150,300,200,100", narrow);
+        Assert.Equal(wide, back);
+    }
+
+    [Fact]
     public async Task Opening_and_placing_a_panel_sends_the_server_nothing()
     {
         var sent = 0;
@@ -192,7 +215,11 @@ public sealed partial class PlaceHookPage : Component
           .trigger, #area { position: fixed; width: 120px; height: 40px; padding: 0 }
           [popover] { box-sizing: border-box; width: 200px; height: 100px; margin: 0; padding: 0; border: 1px solid #888 }
           #tall { height: auto }
+          @media (width >= 640px) { #sheet { inset: auto; top: calc(anchor(bottom) + 5px); left: anchor(left) } }
+          @media (width < 640px) { #sheet { --rask-place: none; inset: 0; margin: auto } }
         </style>
+        <button id="sheet-open" class="trigger" style="left:250px;top:100px;anchor-name:--sheet" popovertarget="sheet">sheet</button>
+        <div id="sheet" popover data-rask-place="bottom start 5 0" style="position-anchor:--sheet">sheet</div>
         <button id="mid-open" class="trigger" style="left:400px;top:300px;anchor-name:--mid" popovertarget="mid">mid</button>
         <div id="mid" popover data-rask-place="bottom start 5 0" style="position-anchor:--mid;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)">mid</div>
         <button id="right-open" class="trigger" style="left:870px;top:300px;anchor-name:--right" popovertarget="right">right</button>

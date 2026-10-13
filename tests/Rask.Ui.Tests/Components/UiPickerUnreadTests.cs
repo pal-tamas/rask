@@ -16,7 +16,7 @@ namespace Rask.UiTests.Components;
 /// </remarks>
 public partial class UiPickerUnreadTests : global::Rask.Core.RaskMarkup
 {
-    private const string Whole = "input[type=\"hidden\"]";
+    private const string Whole = "[data-rask-segments] input[type=\"hidden\"]";
     private const string HalfDate = """{"type":"change","value":"","bad":"date"}""";
     private const string HalfTime = """{"type":"change","value":"","bad":"time"}""";
 
