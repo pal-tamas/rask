@@ -123,6 +123,20 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A select goes on saying its answer when a search brings rows that no longer include it.** With
+  `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
+  placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count
+  of the rows still drawn — while the model kept the value. Measured on Flux (fluxui.dev/components/select):
+  the picked option stays stamped in the button when its option leaves the list or every option is replaced,
+  the backend-search combobox shows "Infrastructure" over a list that holds only "Branding", and "3 selected"
+  stands with none of the three rows left. The select now keeps the face of the answer it last drew — words,
+  icon, avatar, posted value — for as long as the value is that one, under the same key and shape, so a render
+  that brings other options changes nothing in the button; several answers are counted from the value. No
+  row is marked picked while the answer is not among them, and the cursor opens on the first row, as Flux's.
+  Content that is more than words is kept as its words. A value set from code that no render ever drew an
+  option for still shows the placeholder (Flux's page as loaded does too; after a pick Flux would go on
+  showing the option picked before, which the kit does not). No new API.
+
 - **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
   on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
   idiom laid the panel out late. The runtime writes it now: a `[popover]` carrying `data-rask-open-mark` gets
@@ -263,6 +277,21 @@ them until tagged releases begin.
   as it was: Flux's own input drifts the same 40px on fluxui.dev, and the kit's is Flux's.
 
 ### Added
+
+- **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
+  `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
+  `Search` at every keystroke (unchanged when the step is absent). After:
+  `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)` calls it once, with the text the field holds when
+  typing has paused that long. The browser counts the pause and sends nothing while the reader types: with
+  `Filter(false)` not one frame, and of the keys only the list's own (the arrows, Enter, Tab). A row pressed,
+  or Enter, during the pause picks from the list as it is drawn, and the text typed since is dropped with the
+  list, never searched for — sent ahead of the press it would have redrawn the rows under it. The arrows walk
+  the list as drawn and the search arrives at its pause; a pause that ends on the text the page last heard
+  asks nothing again; the field's clear button tells the page at once. Without `Filter(false)` the select
+  goes on hiding rows at every keystroke and only `OnInput` waits. `Debounce(TimeSpan.Zero)` is every
+  keystroke, as on `Ui.Input`. The runtime's part is `data-rask-on-pause` beside `data-rask-debounce`
+  (`docs/js-interop-runtime.md`): a handler that hears the pause, where a bound field's value is also sent
+  ahead of the next action. `rask.js` and `rask.wasm.js` are 345 and 344 bytes larger.
 
 - **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
   `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or

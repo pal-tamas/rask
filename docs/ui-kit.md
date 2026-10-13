@@ -1796,7 +1796,45 @@ Ui.Select.Bind(() => m.Category).Listbox.Searchable().Placeholder("Choose catego
 
 `Ui.SelectSearch` is Flux's search slot: `Placeholder` ("Search..." when unset), `Icon` (a magnifying glass
 when unset), `Clearable(false)` to leave out the button that empties the field, and `Value` with `OnInput`
-for a page that holds the search itself.
+for a page that holds the search itself. `Debounce(250.Milliseconds)` calls `OnInput` once typing has paused
+that long, with the text the field then holds, instead of at every keystroke — Flux's
+`wire:model.live.debounce.250ms`.
+
+**Search from the database.** `Filter(false)` leaves the rows to the page, `OnInput` is the query, and
+`Debounce` keeps it to one query for a word instead of one for a letter:
+
+```csharp
+private IReadOnlyList<Customer> _found = [];
+
+Ui.Select.Bind(() => m.CustomerId).Listbox.Searchable().Filter(false).Placeholder("Choose a customer...")[
+    Ui.SelectSearch.Placeholder("Search customers...").OnInput(Search).Debounce(250.Milliseconds),
+    _found.Select(c => Ui.SelectOption.Key(c.Id).Value(c.Id)[c.Name])
+]
+
+// The rows drawn stay the ones before until the new ones are here: nothing empties while the store answers.
+private async Task Search(string text) =>
+    _found = await Customer.Where(c => c.Name.Contains(text)).OrderBy(c => c.Name).Take(20).ToList();
+```
+
+The browser counts the pause, so nothing is sent while the reader types. A row pressed, or Enter, during
+the pause picks from the list as it is drawn, and the text typed since is dropped with the list — it is
+never searched for. The arrows walk the list as drawn and the search arrives at its pause. A pause that
+ends on the text the page last heard asks nothing again; the field's clear button tells the page at once.
+Without `Filter(false)` the select goes on hiding rows at every keystroke and only `OnInput` waits.
+`Debounce(TimeSpan.Zero)` is every keystroke, as on `Ui.Input`.
+
+**The answer stays in the button when the rows change.** A search the page answers may bring rows that no
+longer include the option picked. The select goes on saying it, as Flux's does: the button (and a combobox's
+input, and the hidden input of a named select) keep the picked option's words, icon and avatar for as long
+as the value is that one, and several answers are counted from the value — "3 selected" — whatever rows are
+drawn. No row is marked picked while the answer is not among them. Content that is more than words (a
+swatch beside a name) is kept as its words. A value the page sets itself to something no render ever drew
+an option for has nothing to say and shows the placeholder — keep that row among the options when you load
+a form with a stored answer:
+
+```csharp
+_found = await Customer.Where(c => c.Id == m.CustomerId || c.Name.Contains(text)).Take(20).ToList();
+```
 
 **Multiple.** Open the select on a collection — `Bind` over a `List<T>`, a `T[]` or a `HashSet<T>`, or
 `Values(tags)` with `OnChange` — and `.Listbox.Multiple()` picks several. Picking a row switches it and

@@ -123,6 +123,51 @@ public sealed class BindTimingClientTests
     }
 
     [Fact]
+    public void A_handler_that_hears_the_pause_is_sent_nothing_by_typing_leaving_or_the_next_action_and_one_text_at_the_pause()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var whileTyping = Sent(root, "askedWhileTyping");
+        var atPause = Sent(root, "askedAtPause");
+
+        Assert.Empty(whileTyping);
+        Assert.Equal(["h7:At"], atPause);
+    }
+
+    [Fact]
+    public void An_input_handler_beside_the_pauses_handler_hears_every_key_and_the_other_the_pause_alone()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var whileTyping = Sent(root, "besideWhileTyping");
+        var atPause = Sent(root, "besideAtPause");
+
+        Assert.Equal(["h1:A", "h1:At"], whileTyping);
+        Assert.Equal(["h1:A", "h1:At", "h7:At"], atPause);
+    }
+
+    [Fact]
+    public void The_pauses_handler_counts_no_pause_while_a_character_is_being_composed()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var composing = Sent(root, "askedComposing");
+        var composed = Sent(root, "askedComposed");
+
+        Assert.Empty(composing);
+        Assert.Equal(["h7:あ"], composed);
+    }
+
+    [Fact]
     public void A_field_bound_on_blur_says_nothing_while_typed_into_and_is_sent_once_ahead_of_what_follows()
     {
         if (Run() is not { } root)

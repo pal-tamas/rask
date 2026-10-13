@@ -32,6 +32,7 @@ public sealed partial class UiKitDataInputDemo : Component
         SelectSection(),
         ListboxSection(),
         SearchableSection(),
+        SearchFromAStoreSection(),
         ComboboxSection(),
         AutocompleteSection(),
         PillboxSection(),

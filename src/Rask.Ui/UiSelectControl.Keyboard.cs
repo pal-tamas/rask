@@ -15,6 +15,14 @@ public abstract partial class UiSelectControl<T>
     // A handler of the page's is running: a search it answers, or the option it is creating.
     private bool _busy;
 
+    // The search field waits for a pause before the page hears it (UiSelectSearch.Debounce), as the last render
+    // drew it. What the reader has typed since the page last heard is then the browser's alone: nothing here
+    // knows it, so whatever empties the field says so to the field itself.
+    private bool _waits;
+
+    // What the page last heard of the search. A pause that ends on the same text asks nothing again.
+    private string _heard = string.Empty;
+
 #pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
 #pragma warning restore S3459
@@ -114,7 +122,7 @@ public abstract partial class UiSelectControl<T>
     private async Task ShutAsync()
     {
         Close();
-        if (HasSearchField && _search.Length > 0)
+        if (HasSearchField && (_search.Length > 0 || _waits))
         {
             _search = string.Empty;
             await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
@@ -216,7 +224,15 @@ public abstract partial class UiSelectControl<T>
 
     // ----- The listbox's search field ------------------------------------------------------------------
 
-    private async Task SearchedAsync(string text, Callback<string> heard, bool opens)
+    private Task SearchedAsync(string text, Callback<string> heard, bool opens)
+    {
+        Typed(text, opens);
+
+        return HearAsync(text, heard);
+    }
+
+    // What the list itself makes of the text: the rows it leaves, and the cursor back at the top.
+    private void Typed(string text, bool opens)
     {
         _search = text;
         _typing = true;
@@ -225,12 +241,17 @@ public abstract partial class UiSelectControl<T>
         {
             _open = true;
         }
+    }
 
-        if (!heard.HasValue)
+    // The page's own search: every keystroke, or the text a pause ended on.
+    private async Task HearAsync(string text, Callback<string> heard)
+    {
+        if (!heard.HasValue || (_waits && string.Equals(text, _heard, StringComparison.Ordinal)))
         {
             return;
         }
 
+        _heard = text;
         _busy = true;
         try
         {
@@ -239,6 +260,34 @@ public abstract partial class UiSelectControl<T>
         finally
         {
             _busy = false;
+        }
+    }
+
+    // The pause the browser counted has ended (`data-rask-on-pause`). A list that has shut meanwhile asks
+    // nothing: the reader picked, or left, and the text went with the list.
+    private Task PausedAsync(string text, Callback<string> heard)
+    {
+        if (!_open)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Filter == false ? SearchedAsync(text, heard, opens: false) : HearAsync(text, heard);
+    }
+
+    // The search field's own clear button.
+    private async Task ClearSearchAsync(Callback<string> heard)
+    {
+        await SearchedAsync(string.Empty, heard, opens: false).ConfigureAwait(false);
+        await ForgetUnheardAsync().ConfigureAwait(false);
+    }
+
+    // Empties a field that may hold text no render has drawn: a render changes nothing in it then.
+    private async Task ForgetUnheardAsync()
+    {
+        if (_waits)
+        {
+            await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
         }
     }
 
@@ -317,7 +366,7 @@ public abstract partial class UiSelectControl<T>
         _cursor = index;
         await CommitAsync(view.Picked.Contains(value) ? [.. view.Picked.Where(held => !Same(held, value))] : [.. view.Picked, value])
             .ConfigureAwait(false);
-        if ((Clear ?? Ui.SelectClear.Select) == Ui.SelectClear.Select && view.Search.Length > 0)
+        if ((Clear ?? Ui.SelectClear.Select) == Ui.SelectClear.Select && (view.Search.Length > 0 || _waits))
         {
             await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
             await UiInputReach.SayAsync(PillsCombobox ? _input : _searchInput, string.Empty).ConfigureAwait(false);
@@ -330,7 +379,10 @@ public abstract partial class UiSelectControl<T>
     private Callback<string> SearchHeard(View view) =>
         (PillsCombobox ? view.Parts.Input?.OnInput : view.Parts.Search?.OnInput) ?? default;
 
-    private static string PickedWords(View view) => view.PickedRows.FirstOrDefault()?.Option.SelectedText ?? string.Empty;
+    // The combobox's words for its answer: the first picked row's, or the answer's as last drawn once a search
+    // the page answers has taken its row away.
+    private static string PickedWords(View view) =>
+        view.PickedRows.FirstOrDefault()?.Option.SelectedText ?? view.Answer?.SelectedText ?? string.Empty;
 
     private async Task CreateAsync(View view)
     {

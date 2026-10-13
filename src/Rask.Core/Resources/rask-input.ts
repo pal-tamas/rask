@@ -109,10 +109,19 @@ function sendInput(el: ValueElement): void {
 // sent by the `change` the browser fires on leaving it, whichever comes first. `.Live()` and `.Debounce(…)`
 // render data-rask-debounce="<ms>" beside data-rask-on-input: what is typed is sent once typing has paused
 // that long, or ahead of whatever follows.
+//
+// `data-rask-on-pause` beside data-rask-debounce is a HANDLER that hears the pause, where the two above are a
+// bound value sent at one: a search field that asks a store. It hears what the field says once typing has
+// paused that long, and nothing else sends it — no handler reads a search before it runs, and sent ahead of
+// the press on a result it would redraw the list under that press. A data-rask-on-input beside it hears every
+// key, as if no pause were counted: a list the page hides rows of while the store is not asked.
 const PAUSE = "data-rask-debounce";
+const ON_PAUSE = "data-rask-on-pause";
 const BIND_ON = "data-rask-bind-on";
 // A paused field and its timer — 0 while a character is being composed, when no pause is counted.
 const paused = new Map<ValueElement, number>();
+// A field whose pause a handler hears, and its timer — 0 while a character is being composed.
+const asking = new Map<ValueElement, number>();
 // Controls that wait (for an action, or to be left) and have been changed since they last spoke.
 const unsent = new Set<ValueElement>();
 // What a field bound on blur was sent as, ahead of the `change` the browser has still to fire for it.
@@ -198,6 +207,15 @@ function pause(el: ValueElement): void {
     }, Number(el.getAttribute(PAUSE))));
 }
 
+function ask(el: ValueElement, composing: boolean): void {
+    clearTimeout(asking.get(el));
+    asking.set(el, composing ? 0 : window.setTimeout(function () {
+        asking.delete(el);
+        const id = el.getAttribute(ON_PAUSE);
+        if (id && el.isConnected) sendOwn(function () { send({ id, type: "input", value: el.value }); });
+    }, Number(el.getAttribute(PAUSE))));
+}
+
 function flushInputs(): void {
     inputRaf = 0;
     sendOwn(function () {
@@ -272,6 +290,9 @@ document.addEventListener("input", (e) => {
         }
     }
 
+    const asks = target.closest<ValueElement>("[" + ON_PAUSE + "]");
+    if (asks && inRoot(asks)) ask(asks, (e as InputEvent).isComposing);
+
     const waiting = target.closest<ValueElement>("[" + BIND_ON + "]");
     if (waiting && inRoot(waiting)) {
         committed.delete(waiting);
@@ -295,7 +316,7 @@ document.addEventListener("input", (e) => {
     // input handlers (no change wired) get the rAF coalescing win.
     // Tested first: a field that waits for a pause is not sent at the keystroke, change handler or not. Nor
     // is a pause counted while a character is being composed — `compositionend` starts it.
-    if (t.hasAttribute(PAUSE)) {
+    if (t.hasAttribute(PAUSE) && t !== asks) {
         if ((e as InputEvent).isComposing) {
             clearTimeout(paused.get(t));
             paused.set(t, 0);
@@ -316,6 +337,7 @@ document.addEventListener("input", (e) => {
 document.addEventListener("compositionend", (e) => {
     const t = e.target as ValueElement;
     if (paused.get(t) === 0) pause(t);
+    if (asking.get(t) === 0) ask(t, false);
 });
 
 // Ahead of the hosts' own `change` listeners. A control that waits for an action is remembered and not sent —
