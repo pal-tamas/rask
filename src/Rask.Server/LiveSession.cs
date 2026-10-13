@@ -156,8 +156,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     // When the session's principal was last checked against its sign-in (Environment.TickCount64), so the check
-    // runs at most every RevalidateUserEvery rather than before every dispatch. Only the dispatch path reads and
-    // writes it, one dispatch at a time.
+    // runs at most every RevalidateUserEvery rather than before every dispatch. The dispatch path reads and writes
+    // it, one dispatch at a time; an attach zeroes it, so a connection is checked before it acts. The two can
+    // overlap when a tab reconnects mid-dispatch, and the worst that costs is one check too many.
     internal long LastUserRevalidation { get; set; }
 
     // What the client's current resume record was built from. -1 means it has none, so the first payload

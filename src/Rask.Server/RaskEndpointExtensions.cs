@@ -6,6 +6,7 @@ using System.Net.WebSockets;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
@@ -1392,7 +1393,7 @@ public static partial class RaskEndpointExtensions
         // Peek: a POST must not be what keeps a detached session alive (see LiveSessionStore.Peek).
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
-            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+            || !MayDrive(UserOf(ctx), session))
         {
             // The same answer for "no such session" and "not yours", so neither can be probed for.
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
@@ -1603,7 +1604,7 @@ public static partial class RaskEndpointExtensions
         var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
-            || !SameSessionUser(UserOf(ctx), session.Services.GetRequiredService<SessionUserProvider>().Current))
+            || !MayDrive(UserOf(ctx), session))
         {
             ctx.Response.StatusCode = StatusCodes.Status404NotFound;
             return Task.CompletedTask;
@@ -2303,12 +2304,15 @@ public static partial class RaskEndpointExtensions
         // and all — so a leaked id tells a stranger nothing, not even that it is live (#1075). Peek, not Get:
         // Get cancels the session's pending removal, which a refused hello must not be able to do. It is
         // cancelled below, once this connection has actually attached.
-        var session = store.Peek(sessionId) is { } existing && MayAttach(user, existing) ? existing : null;
+        var existing = store.Peek(sessionId);
+        var session = existing is not null && MayAttach(user, existing) ? existing : null;
         if (session is null)
         {
-            return await ResumeAttachAsync(
+            var rebuilt = await ResumeAttachAsync(
                 resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
+            ReportRefusedAttach(sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
+            return rebuilt;
         }
 
         // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
@@ -2323,10 +2327,10 @@ public static partial class RaskEndpointExtensions
         // removal nothing cancels. (The removal also skips a session with an open connection when it fires.)
         store.CancelPendingRemoval(session.Id);
         session.Leaving = false;
-        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
 
         try
         {
+            await AdoptUserAsync(session, user, ct).ConfigureAwait(false);
             await RenderAttachedAsync(session, ct).ConfigureAwait(false);
         }
         catch
@@ -2336,6 +2340,42 @@ public static partial class RaskEndpointExtensions
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // The wire gives every refusal the same answer, so this line is where an operator learns which it was. It names
+    // a fingerprint of the id, never the id — that is the secret a holder drives a session with — and nobody: no
+    // claim and no token. An id this host never had whose page was rebuilt from a resume record is every tab after
+    // a deploy, and is not reported.
+    private static void ReportRefusedAttach(string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
+    {
+        if (existing is null && rebuilt)
+        {
+            return;
+        }
+
+        var reason = (existing, user.Identity?.IsAuthenticated) switch
+        {
+            (null, _) => "no session has that id",
+            (_, true) => "it belongs to another user",
+            _ => "it has a user and the connection is anonymous",
+        };
+        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
+
+        RaskDiagnostics.Report(
+            RaskLogLevel.Information, "Rask.Live",
+            $"Rask Live: refused to attach a connection to session #{fingerprint}: {reason}."
+            + (rebuilt ? " The connection's own page was rebuilt from its resume record." : " The tab reloads."));
+    }
+
+    // The session acts for whoever its connection carries, as the sign-in behind them stands now. The cookie or
+    // token of a reconnect can outlive that sign-in, so it is checked here, before anything is rendered or
+    // dispatched for it, and not when the interval next comes round: a session ended a moment ago would otherwise
+    // be handed its user back by reconnecting.
+    private static async Task AdoptUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
+    {
+        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
+        session.LastUserRevalidation = 0;
+        await RevalidateUserAsync(session, ct).ConfigureAwait(false);
     }
 
     // What a re-attached session owes its new connection: the deferred sign-in navigation, then a render.
@@ -2465,8 +2505,6 @@ public static partial class RaskEndpointExtensions
             store.SocketAttached();
         }
 
-        session.Services.GetRequiredService<SessionUserProvider>().Set(user);
-
         // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
         // visitor's language would silently reset the first time the host restarted under them — the one
         // moment resume exists to hide.
@@ -2482,6 +2520,7 @@ public static partial class RaskEndpointExtensions
             // the route here asks nobody for a render.
             // The page is then rendered as one reached in place, behind that same guard: it waits for its first
             // reads, so the frame that replaces what the reader was looking at carries them.
+            await AdoptUserAsync(session, user, ct).ConfigureAwait(false);
             await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
         }
         catch
@@ -3750,6 +3789,27 @@ public static partial class RaskEndpointExtensions
     /// <summary>Lets a test see the one-time keyless-principal warning again.</summary>
     internal static void ResetKeylessPrincipalReportForTests() => Interlocked.Exchange(ref _keylessPrincipalReported, 0);
 
+    /// <summary>Whether <paramref name="request" /> comes from the user <paramref name="session" /> belongs to.</summary>
+    /// <remarks>
+    ///     <see cref="SameSessionUser" /> against the session's principal — and, once that principal has been cleared,
+    ///     against the last user it held. A session whose user was signed out has nobody to compare with, and still
+    ///     holds everything it mounted for them: it is its former user's or nobody's, never the next signed-in
+    ///     holder of its id.
+    /// </remarks>
+    internal static bool MayDrive(ClaimsPrincipal request, LiveSession session)
+    {
+        var users = session.Services.GetRequiredService<SessionUserProvider>();
+        if (!SameSessionUser(request, users.Current))
+        {
+            return false;
+        }
+
+        return users.Current.Identity?.IsAuthenticated == true
+               || request.Identity?.IsAuthenticated != true
+               || users.LastSignedIn is not { } former
+               || SameSessionUser(request, former);
+    }
+
     // Whether a hello's principal may attach to a session that already exists (#1075). The owner may,
     // under the same rule the upload and download endpoints apply. So may the one principal an auth
     // handoff in flight is waiting for: that reconnect is the whole point of the handoff, and it arrives
@@ -3757,7 +3817,7 @@ public static partial class RaskEndpointExtensions
     // one. Strict in both directions: a sign-out admits an anonymous reconnect, never some other user.
     internal static bool MayAttach(ClaimsPrincipal request, LiveSession session)
     {
-        if (SameSessionUser(request, session.Services.GetRequiredService<SessionUserProvider>().Current))
+        if (MayDrive(request, session))
         {
             return true;
         }
@@ -4045,7 +4105,7 @@ public static partial class RaskEndpointExtensions
         // guard it like the WS handshake: reject cross-origin posts and require the request's
         // authenticated user to match the session owner.
         if (!IsSameOrigin(ctx.Request)
-            || !SameSessionUser(ctx.User, session.Services.GetRequiredService<SessionUserProvider>().Current))
+            || !MayDrive(UserOf(ctx), session))
         {
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -4170,7 +4230,7 @@ public static partial class RaskEndpointExtensions
         }
 
         if (!IsSameOrigin(ctx.Request)
-            || !SameSessionUser(ctx.User, session.Services.GetRequiredService<SessionUserProvider>().Current))
+            || !MayDrive(UserOf(ctx), session))
         {
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
