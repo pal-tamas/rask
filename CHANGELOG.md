@@ -10,8 +10,8 @@ them until tagged releases begin.
 ### Changed
 
 - **A panel of the kit stays inside the viewport, exactly as Flux UI's does.** **A behaviour change.** A menu,
-  a popover, a context menu, the list of a select, an autocomplete or a pillbox, a calendar and a list of times
-  used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a
+  a popover, a context menu, a tooltip, the list of a select, an autocomplete or a pillbox, a calendar and a
+  list of times used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a
   filter flyout by the right edge hung off it (225 px for a 480 px panel on a phone), a user menu at the foot
   of a sidebar opened past the bottom, a centred panel never turned at all. Each now says where it wants to be
   (`data-rask-place="bottom start 5 0"`) and the runtime's new `rask-place.ts` hook does what Flux's script
@@ -23,7 +23,10 @@ them until tagged releases begin.
   leave it. Nothing to change in an app: no new prop, and the hook sends the page nothing. It is in the
   on-demand hooks bundle (`rask-hooks.js`), so `rask.js` and `rask.wasm.js` are byte for byte what they were.
   `scripts/flux/placement.mjs` holds every family's landing to Flux's at those edges, from each family's
-  open-state parity script.
+  open-state parity script. Two looks came out of holding panels at a phone's width and are Flux's now: a
+  `Ui.NavmenuItem` is 36px tall under 1024 px (was 32px at every width), and a select with a search field
+  limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all). Not built: under
+  640 px Flux's date picker is a centred modal with its own footer; the kit's is the same popup at every width.
 - **`Ui.Button.IconTrailing` takes content as well as an icon — Flux's `iconTrailing` slot.**
   `Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]` beside `Ui.Button.IconTrailing(Ui.IconName.ChevronDown)`.
   The content is placed as it is, last in the button with nothing around it, and the button pads itself as it

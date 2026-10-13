@@ -19,9 +19,11 @@
 //      past the 5 px, and past the edge, by that much). One whose list scrolls inside it keeps the height.
 //
 // THE ANCHOR is the one the panel already names: the last element whose style says `anchor-name` with the
-// panel's `position-anchor`. A panel that names none sits at the pointer (--rask-context-x / -y, which the
-// context-menu opener sets) — and is flipped and slid but never held to a height: Flux's context menu is not,
-// and one taller than the viewport runs past it there too.
+// panel's `position-anchor`. A panel whose style names none is placed against what shows it: the first
+// element of the data-rask-tooltip or data-rask-toggle that names its id, or its `popovertarget` button. And
+// one nothing names sits at the pointer (--rask-context-x / -y, which the context-menu opener sets) — flipped
+// and slid but never held to a height: Flux's context menu is not, and one taller than the viewport runs past
+// it there too.
 //
 // WHAT IT WRITES is one rule per open panel in a stylesheet of its own, keyed on data-rask-placed, which it
 // holds against the morph: the panel's style attribute stays the render's, a strict Content-Security-Policy
@@ -33,7 +35,7 @@
 // panel or its anchor changes size, once per frame: every open panel is measured in one pass and written in
 // one. Nothing is sent to the page.
 
-import {disown, isShown, listen, own, page} from "./rask-owned.js";
+import {disown, isShown, listen, near, own, page} from "./rask-owned.js";
 
 const PLACE = "data-rask-place";
 const PLACED = "data-rask-placed";
@@ -164,7 +166,7 @@ if (page) {
     /** The open panels: the number each one's rule is keyed on, and what it is placed against. */
     const open = new Map<HTMLElement, {n: number; anchor: Element | null}>();
     const HELD = "position:absolute!important;margin:0!important;translate:none!important;justify-self:auto!important;"
-        + "align-self:auto!important;position-try-fallbacks:none!important;inset:";
+        + "align-self:auto!important;position-area:none!important;position-try-fallbacks:none!important;inset:";
     let sheet: CSSStyleSheet | null = null;
     let written = "";
     let count = 0;
@@ -192,7 +194,9 @@ if (page) {
     function anchorOf(panel: Element): Element | null {
         const named = /position-anchor:\s*(--[\w-]+)/.exec(panel.getAttribute("style") || "");
         if (!named) {
-            return null;
+            const id = panel.id && '="' + panel.id + '"]';
+            const shows = id ? doc.querySelector("[data-rask-tooltip" + id + ",[data-rask-toggle" + id) : null;
+            return shows ? shows.firstElementChild || shows : id ? doc.querySelector("[popovertarget" + id) : null;
         }
         const says = new RegExp("anchor-name:[^;]*" + named[1] + "(?![\\w-])");
         const anchors = doc.querySelectorAll('[style*="anchor-name"]');
@@ -204,7 +208,17 @@ if (page) {
         return panel; // it names one that is not there: left where the stylesheet has it
     }
 
-    function pointer(): Box | null {
+    // Where the right-click that opens `panel` was. Heard here as well as read from the opener's two
+    // properties: the opener (rask-dom.ts, in the runtime every page loads) pulls a menu it finds past an edge
+    // back by moving the point it wrote, and Flux turns such a menu over the pointer instead — which takes the
+    // point the reader pressed.
+    let pressed: Box | null = null;
+    let pressedFor = "";
+
+    function pointer(panel: Element): Box | null {
+        if (pressed && pressedFor === panel.id) {
+            return pressed;
+        }
         const root = getComputedStyle(doc.documentElement);
         const x = parseFloat(root.getPropertyValue("--rask-context-x"));
         const y = parseFloat(root.getPropertyValue("--rask-context-y"));
@@ -242,7 +256,7 @@ if (page) {
             // A render may have drawn the trigger again as another element.
             const anchor = held.anchor && !held.anchor.isConnected ? held.anchor = anchorOf(panel) : held.anchor;
             const at = anchor ? anchor.getBoundingClientRect() : null;
-            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer();
+            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
             const box = panel.getBoundingClientRect();
             if (!a || anchor === panel || (at && !at.width && !at.height)) {
                 return "";
@@ -326,6 +340,17 @@ if (page) {
         queue();
         if (!open.size) {
             write("");
+        }
+    }, true);
+
+    // The ContextMenu key and Shift+F10 come with no position: the menu opens under what has focus.
+    listen("contextmenu", function (e) {
+        const area = near(e.target, "[data-rask-contextmenu]");
+        if (area) {
+            const box = (e.target as Element).getBoundingClientRect();
+            const keyed = !e.clientX && !e.clientY;
+            pressed = {x: keyed ? box.left : e.clientX, y: keyed ? box.bottom : e.clientY, w: 0, h: 0};
+            pressedFor = area.getAttribute("data-rask-contextmenu") || "";
         }
     }, true);
 

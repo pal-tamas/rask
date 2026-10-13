@@ -43,10 +43,11 @@ const IGNORED = new Set(['width', 'height']);
 // runtime shows it.
 async function shown(page, point) {
   await page.mouse.click(...point);
-  await page.evaluate(() => {
-    const { panel } = window.__placed;
-    if (!panel.matches(':popover-open')) panel.showPopover();
-  });
+  await page.evaluate(([x, y]) => {
+    const { panel, trigger } = window.__placed;
+    // Only where the press landed: a control held out of view opens on neither page.
+    if (!panel.matches(':popover-open') && trigger.contains(document.elementFromPoint(x, y))) panel.showPopover();
+  }, point);
 }
 
 export async function openParity(kind) {
@@ -88,7 +89,8 @@ export async function openParity(kind) {
     name: folder, refresh: flag('refresh'), all: flag('all'), width: 260, hosts: kind.edges,
     // The popover itself: with a search field over the list, Flux's marker is on the list inside it.
     flux: { url: fluxUrl, host: held('data-flux-'), panel: '[popover]', trigger: kind.trigger },
-    rask: { url: pathToFileURL(raskPage).href, host: held('data-ui-'), panel: '[popover]', trigger: kind.trigger, open: shown },
+    // The page as Flux's loads, not one written with rows already picked: its trigger is another height.
+    rask: { url: pathToFileURL(join(out, 'rask', `${kind.slug}.html`)).href, host: held('data-ui-'), panel: '[popover]', trigger: kind.trigger, open: shown },
   }) : 0;
   await browser.close();
 

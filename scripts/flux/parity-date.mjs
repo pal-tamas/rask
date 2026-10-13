@@ -10,7 +10,10 @@
 // sits against the trigger it belongs to.
 //
 // Then WHERE IT LANDS with no room: the first pickers of the page opened with their trigger held at the edges
-// of a phone and of a desktop, and with more in the popup than fits (placement.mjs).
+// of the viewport, and with more in the popup than fits (placement.mjs). The time picker at a phone's width and
+// a desktop's. The date picker at 640 and a desktop's: UNDER 640 px Flux's is another control — a modal
+// centred in the viewport over a dimmed page, its days 44 px, with Cancel and "Select date" under them — which
+// the kit has not built (measured 2026-10-13; the kit shows the same popup at every width, kept in view).
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages          # writes the Rask pages
 //         node scripts/flux/parity-date.mjs date-picker [--refresh] [--all]  # --refresh re-measures Flux
@@ -47,6 +50,7 @@ const popup = slug === 'date-picker' ? 'dialog' : '[popover]';
 const edges = await chromium().launch();
 const astray = await landings(edges, {
   name: `${slug}-open`, refresh: args.includes('--refresh'), all: args.includes('--all'), width: 260, hosts: [0, 1, 2],
+  views: slug === 'date-picker' ? [[640, 844], [1920, 1080]] : undefined,
   flux: { url: `https://fluxui.dev/components/${slug}`, host: `[data-preview-wrapper] [data-flux-${slug}]`, panel: popup, trigger: '[data-parity-open]', prepare: page => page.evaluate(mark, slug) },
   rask: { url: pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', `${slug}-open.html`)).href, host: `[data-preview-wrapper] [data-ui-${slug}]`, panel: popup, trigger: '[data-parity-open]' },
 });

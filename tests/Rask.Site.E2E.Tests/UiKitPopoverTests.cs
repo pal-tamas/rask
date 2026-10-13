@@ -199,6 +199,26 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
         Assert.Equal(button.X + (button.Width / 2), box.X + (box.Width / 2), 1.0);
     });
 
+    [Fact]
+    public Task On_a_phone_a_panel_wider_than_the_page_keeps_its_start_in_view_and_one_at_the_foot_opens_over_its_trigger() => RunAsync(async () =>
+    {
+        var scope = await OpenAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        var options = Trigger(scope, "Options");
+
+        var wide = await OpenedAsync(scope, "Feedback");
+        await options.EvaluateAsync("el => window.scrollBy(0, el.getBoundingClientRect().bottom - innerHeight + 8)");
+        var low = await OpenedAsync(scope, "Options");
+
+        // Flux's own 480px panel at 390 wide: x = 5, the rest past the right edge. The anchor rules alone left
+        // it wherever its trigger was.
+        Assert.True(wide.Panel.Width > 380, $"the panel is {wide.Panel.Width}px wide: not wider than the page");
+        Assert.Equal(5, wide.Panel.X, 1.0);
+        // No room under a trigger 8px from the foot of the viewport: over it, 5px apart.
+        Assert.Equal(low.Trigger.Y - 5, low.Panel.Y + low.Panel.Height, 1.0);
+        Assert.True(low.Panel.Y >= 0, "the panel opened past the top of the viewport");
+    });
+
     private static ILocator Trigger(ILocator scope, string name) =>
         scope.Locator("[data-ui-dropdown] > button").Filter(new LocatorFilterOptions { HasText = name });
 

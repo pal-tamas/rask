@@ -280,7 +280,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var id = TooltipId(html);
         Assert.StartsWith($"<div class=\"inline-flex\" data-ui-tooltip data-rask-tooltip=\"{id}\"><button id=\"save\" class=\"", html, StringComparison.Ordinal);
         Assert.Matches($" w-28\" data-ui-button data-ui-group-target aria-describedby=\"{id}\" type=\"button\">Save</button><div id=\"{id}\" ", html);
-        Assert.EndsWith(" popover=\"manual\" data-ui-tooltip-content role=\"tooltip\" aria-hidden=\"true\">Saves the draft</div></div>", html, StringComparison.Ordinal);
+        Assert.EndsWith(" popover=\"manual\" data-ui-tooltip-content data-rask-place=\"top center 5 0\" role=\"tooltip\" aria-hidden=\"true\">Saves the draft</div></div>", html, StringComparison.Ordinal);
     }
 
     [Fact]

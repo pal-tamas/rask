@@ -114,4 +114,16 @@ public partial class UiPanelPlaceTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(["bottom start 5 0", "bottom start 5 0"], places);
     }
+
+    [Fact]
+    public void A_tooltip_asks_for_the_place_over_the_middle_of_its_trigger_and_carries_its_gap_and_offset()
+    {
+        var plain = Ui.Tooltip.Content("Settings")[Button["Open"]].ToHtml().AsText();
+        var moved = Ui.Tooltip.Content("Settings").Position(Ui.TooltipPosition.Right).Align(Ui.TooltipAlign.End).Gap(12).Offset(8)[Button["Open"]]
+            .ToHtml().AsText();
+
+        var places = new[] { Place(plain, "data-ui-tooltip-content"), Place(moved, "data-ui-tooltip-content") };
+
+        Assert.Equal(["top center 5 0", "right end 12 8"], places);
+    }
 }
