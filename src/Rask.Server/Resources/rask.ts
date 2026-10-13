@@ -49,7 +49,7 @@ import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
-import { answered, unasked } from "../../Rask.Core/Resources/rask-owned.js";
+import { answered, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import {
@@ -1661,7 +1661,7 @@ import {
         const payload = raskDomPayload(e, "click");
         payload.id = t.getAttribute("data-rask-on-click");
         payload.type = "click";
-        send(payload);
+        tell(t, "click", () => send(payload));
         trackLoading(t, payload);
     });
 
@@ -1686,7 +1686,9 @@ import {
         // A control that waits for the next action is not sent by its own change (rask-input.ts). The
         // frame, and what a lagging render must not write back over it, come from there for both hosts.
         if (t.hasAttribute("data-rask-on-change") && !waitsForAction(t) && !changeSent(t)) {
-            send(changeFrame(t));
+            tell(t, "change", () => {
+                send(changeFrame(t));
+            });
         }
     });
 

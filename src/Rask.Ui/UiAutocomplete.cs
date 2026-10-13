@@ -120,6 +120,9 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
 
     private string PanelId => Prefixed + "-items";
 
+    /// <summary>Whether a new text is held for the next action: nothing of the page's hears it now.</summary>
+    private bool CommitDraws => UiDraws.Waits(this, Bind is not null);
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -160,6 +163,9 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
                 Keys = UiListKeys.Text,
                 ClearKeys = Keys.Escape,
                 OnClick = Opened,
+                // The text is the value: typed, it narrows the list here and reaches the page with the
+                // input's `change` — which, like a pick, is held for the next action when the control waits.
+                Draws = UiDraws.Pairs(("click", true), ("input", true), ("keydown", CommitDraws), ("change", CommitDraws)),
             });
 
         return Div.Class(UiAutocompleteLook.Root).Attributes(UiAutocompleteLook.RootMarks)[input, Popup(view)];
@@ -192,7 +198,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .TabIndex(-1)
             .Class(UiClass.Compose(UiListboxLook.Box, UiListboxLook.Scrolls, UiAutocompleteLook.Items, ContainerClass))
             .Aria("multiselectable", "true")
-            .Attributes(PopupMarks())
+            .Attributes(UiDraws.With(PopupMarks(), ("toggle", true)))
             .OnToggle(OnToggle)[
             view.Items.Select(item => Row(view, item)),
             // Flux's `ui-empty`: a place for a message it documents no way to fill. Kept, so the list is its list.
@@ -242,7 +248,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .Role("option")
             .Class(UiClass.Compose(UiAutocompleteLook.Item, item.Part.Class))
             .Aria(UiOptionAria.For(off, string.Equals(_picked, item.Text, StringComparison.Ordinal)))
-            .Attributes(marks);
+            .Attributes(UiDraws.With(marks, ("click", !off && CommitDraws), ("mouseenter", !off)));
 
         return (off ? row : row.OnClick(e => ClickedAsync(e, item.Index, view)).OnMouseEnter(e => Hovered(e, item.Index)))[
             item.Part.Children ?? []

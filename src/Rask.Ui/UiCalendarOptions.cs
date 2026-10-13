@@ -36,6 +36,9 @@ internal sealed record UiCalendarOptions(
 
     internal bool FixedWeeks { get; init; }
 
+    /// <summary>Whether a day picked is held for the next action, so the pick only draws (<see cref="UiDraws" />).</summary>
+    internal bool PickDraws { get; init; }
+
     internal string? Class { get; init; }
 
     internal string? Id { get; init; }

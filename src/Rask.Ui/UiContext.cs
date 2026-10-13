@@ -83,7 +83,8 @@ public sealed partial class UiContext : Component
         var parts = (Children ?? []).Where(child => child is not null).ToList();
         var host = new UiPopupHost(
             PanelId, PanelStyle(), Open, Detail, ToggledAsync,
-            Place: PointerPlace(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0)));
+            Place: PointerPlace(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0)))
+        { ToggleDraws = !OnToggle.HasValue };
 
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-context"] = "" };
         if (Disabled != true)

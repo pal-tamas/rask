@@ -72,6 +72,12 @@ public sealed partial class UiPopover : Component
             data["rask-popover-open"] = controlled ? "true" : "false";
         }
 
+        if (_host?.ToggleDraws != false)
+        {
+            // Open or shut, nobody of the page's is told: the toggle is heard only to draw (UiDraws).
+            data["rask-draws"] = "toggle";
+        }
+
         // No `autofocus`: Flux leaves focus on the trigger, and Tab goes from there into the panel after it.
         var panel = Div
             .Id(_host?.PanelId)

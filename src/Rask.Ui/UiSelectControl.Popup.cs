@@ -17,7 +17,7 @@ public abstract partial class UiSelectControl<T>
                 HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls,
                 PillPopupLook(),
                 OptionsClass))
-            .Attributes(PopupMarks())
+            .Attributes(UiDraws.With(PopupMarks(), ("toggle", true), ("mouseleave", !HasSearchField)))
             .OnToggle(OnPopupToggleAsync);
 
         return HasSearchField
@@ -32,6 +32,11 @@ public abstract partial class UiSelectControl<T>
         {
             // Flux's pillbox lights no row once the pointer has left its list.
             list = list.OnMouseLeave(() => _cursor = None);
+            if (HasSearchField)
+            {
+                // Under a search field the list is a box of its own, and says so itself; without one it is the popup.
+                list = list.Attributes(UiDraws.Marks(("mouseleave", true)));
+            }
         }
 
         // On every list, one answer or several: Flux's listbox says so whatever it holds.
@@ -110,7 +115,10 @@ public abstract partial class UiSelectControl<T>
             .Role("option")
             .Class(UiClass.Compose(RowLook(row.Option), row.Option.Class))
             .Aria(UiOptionAria.For(off, picked))
-            .Attributes(RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]));
+            .Attributes(UiDraws.With(
+                RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]),
+                ("click", !off && PickDraws(view)),
+                ("mouseenter", !off)));
 
         return (off ? item : item.OnClick(e => ClickedAsync(e, row.Index, view)).OnMouseEnter(e => Hovered(e, row.Index)))[
             RowContent(row.Option)
@@ -172,7 +180,8 @@ public abstract partial class UiSelectControl<T>
             .Key("ui:create")
             .Id(UiSelectNav.OptId(Prefixed, index))
             .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
-            .Attributes(marks)
+            // The press runs the page's own code; the pointer over it only moves the cursor.
+            .Attributes(UiDraws.With(marks, ("mouseenter", true)))
             .OnClick(e => ClickedAsync(e, index, view))
             .OnMouseEnter(e => Hovered(e, index))[
             Div.Class(UiListboxLook.CreateLead)[Ui.Icon.Name(Ui.IconName.Plus).Mini],
@@ -216,7 +225,11 @@ public abstract partial class UiSelectControl<T>
                 .Autocomplete("off")
                 .Autofocus()
                 .Ref(_searchInput)
-                .Attributes(SearchMarks(pause, atPause))
+                .Attributes(UiDraws.With(
+                    SearchMarks(pause, atPause),
+                    // Every key is the list's alone unless the page listens at every key too.
+                    ("input", pause > 0 || slot?.OnInput.HasValue != true),
+                    ("keydown", KeysDraw(view))))
                 // The list's keys are the field's while it is typed into: Enter picks instead of submitting a
                 // form around the select, and the arrows walk the rows instead of the caret.
                 .Data("rask-contain-keys", UiListboxLook.ListKeys)
@@ -233,6 +246,7 @@ public abstract partial class UiSelectControl<T>
                         .Class(UiSelectLook.SearchClearButton)
                         .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
                         .Data("ui-button", "")
+                        .Attributes(UiDraws.Marks(("click", slot?.OnInput.HasValue != true)))
                         .OnClick(() => ClearSearchAsync(slot?.OnInput ?? default))[
                         Ui.Icon.Name(Ui.IconName.XMark).Micro
                     ]

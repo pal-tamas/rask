@@ -221,7 +221,8 @@
 # 2026-10-13, a handler that hears a field's pause and that nothing else sends (data-rask-on-pause,
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
+# 2026-10-13, a kit control drawing itself is no action (data-rask-draws, rask-owned.ts `tell`) and a form that asks before it is left reads what the page heard and skips what is not its data (data-rask-edited, data-rask-unguarded, rask-leave.ts): rask.js 101,724 -> 102,135 (+411), rask.wasm.js 90,507 -> 90,920 (+413), rask-hooks.js 56,371 -> 57,011 (+640).
 bundle,bytes
-rask.js,101724
-rask.wasm.js,90507
-rask-hooks.js,56371
+rask.js,102135
+rask.wasm.js,90920
+rask-hooks.js,57011

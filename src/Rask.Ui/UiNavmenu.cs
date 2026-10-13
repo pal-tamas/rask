@@ -57,6 +57,12 @@ public sealed partial class UiNavmenu : Component
             data["rask-popover-open"] = controlled ? "true" : "false";
         }
 
+        if (_host?.ToggleDraws != false)
+        {
+            // Open or shut, nobody of the page's is told: the toggle is heard only to draw (UiDraws).
+            data["rask-draws"] = "toggle";
+        }
+
         var nav = Nav
             .Id(_host?.PanelId ?? "uinavmenu-" + _instance.ToString(CultureInfo.InvariantCulture))
             .Popover(Popover.Auto)

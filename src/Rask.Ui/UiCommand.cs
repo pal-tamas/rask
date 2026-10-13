@@ -114,7 +114,7 @@ public sealed partial class UiCommand : Component
             .Aria(BoxAria(active))
             // Enter presses the highlighted option in the runtime, because what an option DOES — a handler, a link —
             // is only reachable by clicking it; C# cannot follow an href.
-            .Attributes(("data-rask-press-active", null), UiRuntimeMarks.NotFormData)
+            .Attributes(("data-rask-press-active", null), UiRuntimeMarks.NotFormData, (UiDraws.Mark, "input keydown"))
             .OnInput(raw =>
             {
                 _query = raw ?? string.Empty;
@@ -134,7 +134,7 @@ public sealed partial class UiCommand : Component
             .Popover(Popover.Auto)
             .Aria("label", Label)
             // A pick closes the palette in the runtime, after the pick's own handler has run.
-            .Attributes(("data-rask-close-on-pick", null))
+            .Attributes(("data-rask-close-on-pick", null), (UiDraws.Mark, "toggle"))
             .OnToggle(e =>
             {
                 if (!string.Equals(e.NewState, "open", StringComparison.Ordinal))

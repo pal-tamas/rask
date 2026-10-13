@@ -79,7 +79,10 @@ public sealed partial class UiTabs : Component, IDeferredBind
             chosen,
             chosen is null && AnyTabSaysSelected(),
             name => SelectAsync(name, accessor),
-            Live);
+            Live)
+        {
+            SelectDraws = !OnChange.HasValue && (accessor is null || PendingBinds.Waits(this)),
+        };
 
         if (Context.Get<UiTabGroupScope>() is { } group)
         {

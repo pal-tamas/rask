@@ -115,7 +115,7 @@ public sealed partial class UiMenu : Component
             .TabIndex(-1)
             .Class(UiClass.Compose(UiMenuRow.Panel, Class))
             .Data(data)
-            .Attributes(("autofocus", null), ("style", style))
+            .Attributes([("autofocus", null), ("style", style), .. UiDraws.Pairs(("toggle", _host?.ToggleDraws != false))])
             // The SOLE writer of the open state: the browser opens the popover and closes it on Escape, a click
             // outside, a pick and Tab, and this is where C# hears which.
             .OnToggle(OnToggleAsync)[

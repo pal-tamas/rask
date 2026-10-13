@@ -43,6 +43,7 @@ public sealed partial class UiInput<T>
     private Component ViewButton() =>
         ActionButton(RaskStrings.Get(RaskString.InputTogglePassword, "Toggle password visibility"), _viewing ? ("viewable-open", string.Empty) : null)
             .Class(UiInputLook.Action)
+            .Attributes((UiDraws.Mark, "click"))
             .OnClick(() => _viewing = !_viewing)[
             Ui.Icon.Name(Ui.IconName.EyeSlash).Mini.Class(_viewing ? null : "hidden"),
             Ui.Icon.Name(Ui.IconName.Eye).Mini.Class(_viewing ? "hidden" : null)

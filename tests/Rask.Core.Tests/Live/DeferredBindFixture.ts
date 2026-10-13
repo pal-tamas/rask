@@ -10,7 +10,7 @@ import {autofocused, elapse, frame, listeners, StubField} from "./stub-events.js
 import {focusArrived} from "../../../src/Rask.Core/Resources/rask-autofocus.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {changeSent, remember, sendTypedFirst, waitsForAction} from "../../../src/Rask.Core/Resources/rask-input.js";
-import {listen, replayMissed, seam, unasked} from "../../../src/Rask.Core/Resources/rask-owned.js";
+import {listen, replayMissed, seam, tell, unasked} from "../../../src/Rask.Core/Resources/rask-owned.js";
 import "../../../src/Rask.Core/Resources/rask-events.js";
 
 let sent: string[] = [];
@@ -167,6 +167,39 @@ const aFieldARenderFocused = taken();
 hostSend({id: "save", type: "click"});
 const stillSentWithTheAction = taken();
 
+// A control the page draws hears the reader only to draw itself again: a list opened, the row the pointer is
+// over, an arrow key, what is typed into its search, the pick of a list that waits. The element names those
+// handlers (data-rask-draws), and each is sent alone and marked, as what the runtime does by itself is.
+fresh();
+name = waiting("name");
+type(name, "Liv");
+const row = new StubField({"data-rask-on-mouseenter": "row", "data-rask-on-click": "pick", "data-rask-draws": "mouseenter click"});
+const list = new StubField({"data-rask-on-toggle": "list", "data-rask-on-keydown": "keys", "data-rask-draws": "toggle keydown"});
+const searched = new StubField({"data-rask-on-input": "search", "data-rask-draws": "input"});
+const month = new StubField({"data-rask-on-input": "paged", "data-rask-on-change": "month", "data-rask-draws": "input change"});
+listeners.toggle({target: list});
+listeners.mouseover({target: row, relatedTarget: null});
+listeners.keydown({target: list, key: "ArrowDown"});
+type(searched, "Ad");
+frame();
+type(month, "3");
+tell(row as unknown as Element, "click", function () { return hostSend({id: "pick", type: "click"}); });
+tell(month as unknown as Element, "change", function () { return hostSend({id: "month", type: "change"}); });
+const whatOnlyDraws = taken();
+
+// A handler the element does not name is an action like any other, on the same element.
+const mixed = new StubField({"data-rask-on-toggle": "opened", "data-rask-on-keydown": "keys", "data-rask-draws": "keydown"});
+listeners.toggle({target: mixed});
+const aHandlerNotNamed = taken();
+
+// What waited through all of that is not lost: it goes with the next action, ahead of it — and so does what
+// was typed into the list's search and has not left yet.
+type(name, "Liv!");
+listeners.toggle({target: list});
+type(searched, "AdB");
+hostSend({id: "save", type: "click"});
+const afterTheDrawing = taken();
+
 // A press the hooks missed while their bundle was on its way is handed to them when it arrives, and what a
 // hook then sends for it is the reader's as much as it was: the value goes ahead.
 fresh();
@@ -295,6 +328,9 @@ process.stdout.write(JSON.stringify({
     beforeAPointerEntering,
     beforeADrag,
     beforeAToggle,
+    whatOnlyDraws,
+    aHandlerNotNamed,
+    afterTheDrawing,
     aToastsOwnPress,
     aMeasuredBox,
     scrollBeforeItsFrame,

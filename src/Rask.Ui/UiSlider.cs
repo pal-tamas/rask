@@ -205,6 +205,8 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
             .Disabled(Disabled == true)
             .Aria(Names(field, live, thumb))
             .Class(UiSliderLook.Control)
+            // A thumb moved in a slider that waits is held for the next action: its `input` only draws it.
+            .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
             .Style(reach);
 
         return BigStep is { } big and > 0 ? control.Data("rask-big-step", UiSliderScale.Text((decimal)big)) : control;

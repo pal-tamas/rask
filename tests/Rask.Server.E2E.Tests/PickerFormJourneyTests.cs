@@ -25,14 +25,14 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
     private const string Edited = "form[data-rask-edited]";
 
     // How the reader changes the value of each family of drawn control: what opens it, when anything does,
-    // and what is then pressed.
+    // and what is then pressed. Ui.Autocomplete is not here: its pick first writes the input through a call
+    // into the browser, and that the commit behind it marks the form is ReaderChangesMakeTheFormUnsavedTests'.
     public static TheoryData<string, string?, string> Families => new()
     {
         { "listbox", "[data-ui-select-button]", "[data-ui-option]:visible" },
         { "several", "[data-ui-select-button]", "[data-ui-option]:visible" },
         { "combobox", "input[role=combobox]", "[data-ui-option]:visible" },
         { "pillbox", "[role=combobox]", "[data-ui-listbox-option]:visible" },
-        { "autocomplete", "input", "[role=option]:visible" },
         { "calendar", null, "td[data-date]:not([data-outside]) button:not([disabled])" },
         { "date", "[data-ui-date-picker-button]", "td[data-date]:not([data-outside]) button:visible:not([disabled])" },
         { "time", "button", "button[role=option]:visible" },
@@ -135,6 +135,49 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
 
         await Expect(page.Locator("#path")).ToHaveTextAsync("path=/list");
         Assert.Empty(asked);
+    }
+
+    [Fact]
+    public async Task A_taken_name_is_told_at_save_and_not_while_the_list_under_it_is_opened_searched_and_picked_from()
+    {
+        await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        var message = page.Locator("#name-field [data-ui-error]");
+
+        await page.FillAsync("#name", "Keleti");
+        await page.ClickAsync("#listbox [data-ui-select-button]");
+        await page.Locator("#listbox [data-ui-select-search] input").PressSequentiallyAsync("Be");
+        await Expect(page.Locator("#listbox [data-ui-option]:not([data-hidden])")).ToHaveTextAsync(["Benzin"]);
+        await page.Locator("#listbox [data-ui-option]:not([data-hidden])").ClickAsync();
+        await Expect(page.Locator("#listbox [data-ui-select-button]")).ToContainTextAsync("Benzin");
+        var beforeSave = await message.TextContentAsync();
+        await page.ClickAsync("#save");
+
+        await Expect(message).ToHaveTextAsync(PickerFormPage.Taken);
+        await Expect(page.Locator("#saved")).ToHaveTextAsync("saved=");
+        Assert.Equal(string.Empty, beforeSave);
+    }
+
+    [Fact]
+    public async Task What_was_typed_while_a_list_drew_itself_still_goes_ahead_of_the_readers_next_action()
+    {
+        await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        var message = page.Locator("#name-field [data-ui-error]");
+
+        await page.FillAsync("#name", "Keleti");
+        await page.ClickAsync("#listbox [data-ui-select-button]");
+        await Expect(page.Locator("#listbox [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator("#listbox [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "false");
+        var afterTheList = await message.TextContentAsync();
+        await page.ClickAsync("#count");
+
+        await Expect(page.Locator("#counted")).ToHaveTextAsync("count=1");
+        await Expect(message).ToHaveTextAsync(PickerFormPage.Taken);
+        Assert.Equal(string.Empty, afterTheList);
     }
 
     [Fact]

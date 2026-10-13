@@ -117,7 +117,8 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
             open.Count != 0 && ticked == open.Count,
             ticked != 0 && ticked != open.Count,
             on => Commit(Selected(picked, choices, open, on), accessor, context),
-            Live);
+            Live,
+            Draws: UiDraws.Waits(this, Bind is not null));
 
         // A plain `group`: ARIA has no "checkboxgroup", and `group` is what carries the heading's name.
         var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal);

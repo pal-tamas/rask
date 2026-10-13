@@ -356,6 +356,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
             .Attributes(
                 ("autofocus", ""),
+                (UiDraws.Mark, "toggle"),
                 ("style", "position-anchor:--" + PopoverId
                           + ";inset:auto;top:anchor(bottom);left:anchor(left)"
                           + ";position-try-fallbacks:flip-block,flip-inline;margin:5px 0"))
@@ -380,7 +381,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Div.Class("inline")[
                 Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")[RaskStrings.Get(RaskString.DatePickerCancel, "Cancel")]
             ],
-            Div.Class("inline").Role("button").TabIndex(0).OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
+            Div.Class("inline").Role("button").TabIndex(0)
+                .Attributes(UiDraws.Marks(("click", UiDraws.Waits(this, Bind is not null))))
+                .OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
             ]
         ];
@@ -407,6 +410,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             SelectableHeader = SelectableHeader == true,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
+            PickDraws = UiDraws.Waits(this, Bind is not null),
         };
     }
 }

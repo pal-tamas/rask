@@ -21,4 +21,8 @@ internal sealed record UiPopupHost(
     string? Detail,
     Func<bool, Task> Toggled,
     bool Hover = false,
-    string? Place = null);
+    string? Place = null)
+{
+    /// <summary>Whether <see cref="Toggled" /> reaches nothing of the page's: the panel's toggle then only draws (<see cref="UiDraws" />).</summary>
+    internal bool ToggleDraws { get; init; }
+}

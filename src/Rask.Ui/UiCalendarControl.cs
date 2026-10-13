@@ -178,6 +178,7 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
             SelectableHeader = SelectableHeader == true,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
+            PickDraws = UiDraws.Waits(this, Bind is not null),
             Class = Class,
             Id = Id,
         };

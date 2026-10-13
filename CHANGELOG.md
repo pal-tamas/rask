@@ -23,6 +23,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
+  waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
+  drawn by the page, so opening one, moving in it and picking in it are round trips. **Before:** each of
+  those round trips counted as the next action. Typing a name into `Ui.Input.Bind(…)` and then opening the
+  `Ui.Select` listbox under it sent the name ahead of the list's `toggle`, ran the name's rules and showed
+  "already taken" before Save was pressed; so did hovering a row, an arrow key, a letter in the search
+  field, the next month of a calendar, a tab. **After:** an event a kit control hears only to draw itself is
+  sent alone. The typed fields stay in the browser, values other controls chose stay held in the session,
+  no rule runs — and everything still travels, in order, ahead of the next real action: a button, a submit,
+  a `.Live()` control, a navigation, anything that reaches your code. What only draws: a list, a dropdown, a
+  menu, a popover, a date, time or command palette opening and closing; the cursor of a select, a combobox,
+  a pillbox, an autocomplete, a time picker and a calendar (keys and pointer); a search field with no
+  `OnInput`; a calendar's month steps and month/year lists; an unheard `Ui.Tabs`; the reveal button of a
+  password field; and the **pick** of a bound control that does not say `.Live()` — listbox, combobox,
+  pillbox, autocomplete, calendar, date picker, time picker (one time), rating, filter, checkbox and radio
+  group, slider, OTP — because that pick itself waits. What is still an action: a pick with `.Live()` or
+  with `Value`/`OnChange`; `Ui.SelectSearch.OnInput` / `Ui.PillboxInput.OnInput`; a "create" row (and, in
+  a list that has one, every key of the list); `Ui.Dropdown.OnToggle`, `Ui.Context.OnToggle`,
+  `Ui.Tabs.OnChange`, `Ui.Tab.OnClick`; the tree, the data grid, the menu's checkbox and radio rows, the
+  colour picker and the date picker's presets, which are not classified yet and behave as before. The kit
+  says which handlers only draw with `data-rask-draws` on the element (`docs/js-interop-runtime.md`); the
+  runtime sends those as it sends what it does by itself (`unasked`). An app that read a model in a
+  handler of its own is unaffected — that handler is an action. An app that relied on a rule speaking when
+  a list was merely opened now sees it speak with the next action.
+
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model

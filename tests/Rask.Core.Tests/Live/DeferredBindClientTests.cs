@@ -142,6 +142,47 @@ public sealed class DeferredBindClientTests
     }
 
     [Fact]
+    public void An_event_a_control_hears_only_to_draw_itself_is_sent_alone_and_marked_and_carries_nothing()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var whatOnlyDraws = Sent(root, "whatOnlyDraws");
+
+        Assert.Equal(
+            ["toggle:list~", "mouseenter:row~", "keydown:keys~", "input:Ad~", "input:3~", "click:pick~", "change:month~"],
+            whatOnlyDraws);
+    }
+
+    [Fact]
+    public void A_handler_the_element_does_not_name_as_drawing_is_an_action_and_what_waited_goes_ahead_of_it()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var aHandlerNotNamed = Sent(root, "aHandlerNotNamed");
+
+        Assert.Equal(["change:Liv", "toggle:opened"], aHandlerNotNamed);
+    }
+
+    [Fact]
+    public void What_waited_while_a_control_drew_itself_goes_with_the_next_action_ahead_of_it()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var afterTheDrawing = Sent(root, "afterTheDrawing");
+
+        Assert.Equal(["toggle:list~", "change:Liv!", "input:AdB", "click:save"], afterTheDrawing);
+    }
+
+    [Fact]
     public void A_field_sent_at_every_key_goes_at_once_behind_what_was_typed_before_it()
     {
         if (Run() is not { } root)

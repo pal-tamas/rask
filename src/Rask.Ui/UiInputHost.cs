@@ -39,11 +39,19 @@ internal sealed class UiInputHost
     /// <summary>What a click in the input does to the list.</summary>
     internal required Action OnClick { get; init; }
 
+    /// <summary>The events of the input whose handlers only draw the list (<see cref="UiDraws" />), or none.</summary>
+    internal (string, string?)[] Draws { get; init; } = [];
+
     /// <summary>The input's marks with what the runtime is asked for over them: which keys to send, which empty it.</summary>
     /// <param name="input">What marks the input as Flux's.</param>
     internal Dictionary<string, string?> MarksOver(IReadOnlyDictionary<string, string?> input)
     {
         var marks = new Dictionary<string, string?>(input, StringComparer.Ordinal) { ["data-rask-keys"] = Keys };
+        foreach (var (name, value) in Draws)
+        {
+            marks[name] = value;
+        }
+
         if (ClearKeys is not null)
         {
             marks["data-rask-clear-keys"] = ClearKeys;

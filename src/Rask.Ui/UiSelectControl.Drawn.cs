@@ -76,7 +76,9 @@ public abstract partial class UiSelectControl<T>
             .Disabled(IsOff(view.Parts))
             .Class(UiClass.Compose(UiSelectLook.Button, UiSelectLook.ButtonSize(slot?.Size ?? Height), slot?.Class))
             .Aria(TriggerAria(view))
-            .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))
+            .Attributes(UiDraws.With(
+                TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true),
+                ("keydown", KeysDraw(view))))
             .OnKeyDown(e => OnButtonKeyAsync(e, view))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
             Div.Class(UiSelectLook.Selected)[PickedContent(view, slot?.Placeholder ?? Placeholder)],
@@ -137,7 +139,12 @@ public abstract partial class UiSelectControl<T>
                     UiInputLook.Variant(Ui.InputVariant.Outline),
                     slot?.Class))
                 .Aria(TriggerAria(view, autocompletes: true))
-                .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true))
+                .Attributes(UiDraws.With(
+                    InputMarks(view, view.Field.Invalid || slot?.Invalid == true),
+                    ("click", true),
+                    ("blur", true),
+                    ("input", slot?.OnInput.HasValue != true),
+                    ("keydown", KeysDraw(view))))
                 .Ref(_input)
                 .OnClick(() => OnInputClickAsync(view))
                 .OnBlur(OnInputBlur)
@@ -154,7 +161,7 @@ public abstract partial class UiSelectControl<T>
                     .Disabled(Disabled == true)
                     .Class(UiSelectLook.InputChevron)
                     .Aria(ChevronAria())
-                    .Attributes(ChevronMarks())
+                    .Attributes(UiDraws.With(ChevronMarks(), ("click", true)))
                     .OnClick(() => OnInputClickAsync(view, focuses: true))[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiSelectLook.InputChevronIcon)
                 ]
@@ -267,6 +274,7 @@ public abstract partial class UiSelectControl<T>
             .Class(UiInputLook.Action)
             .Aria("label", RaskStrings.Get(RaskString.SelectClear, "Clear selected"))
             .Data("ui-button", "")
+            .Attributes(UiDraws.Marks(("click", CommitDraws)))
             .OnClick(ClearAsync)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini
         ];

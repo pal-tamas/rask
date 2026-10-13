@@ -86,8 +86,17 @@ filter. A control you only read in the submit handler needs nothing.
 
 - **An action** is anything that reaches your code: a press on a button or a link with a handler, a
   submit, Enter in a field, a key an `OnKeyDown` hears, another control's `.Live()` or `.Blur()` change, a
-  navigation, an event a kit component raises (a tab, a menu item, a dragged row). Each is preceded by the
+  navigation, an event a kit component raises into your code (a tab with `OnChange`, a menu item, a
+  dragged row). Each is preceded by the
   values that waited, so a handler never reads a model that has not heard what was typed.
+- **A kit control drawing itself is not an action.** Opening a `Ui.Select`, a `Ui.Dropdown`, a date or a
+  time picker, moving its cursor with the arrows or the pointer, typing in its search field, paging a
+  calendar, switching a `Ui.Tabs` nobody listens to: the page hears those only because it is what draws the
+  control, and in Flux they are no request at all. Nothing that waits is written for them, so a rule of a
+  field above the list does not speak when the list is opened. A **pick** in a bound control that waits is
+  the same — the pick itself waits. What does count: a pick in a control that says `.Live()` or is held
+  with `Value`/`OnChange`, a search field with an `OnInput` of yours, a `Ui.Dropdown.OnToggle`, a
+  `Ui.Tabs.OnChange`, a "create" row — anything that reaches your code.
 - **What the page does by itself is not an action.** A toast whose time is up closing itself, a chart
   reporting the size it was measured at, a list scrolling, a video playing on, an animation ending, an
   image arriving, the reply to a JavaScript call, a call your script makes into .NET: none of them writes

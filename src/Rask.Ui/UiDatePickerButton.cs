@@ -70,7 +70,7 @@ public sealed partial class UiDatePickerButton : Component
             .Aria(aria)
             // Enter and Space press the button, which is the browser's; the arrows open it too, as on Flux, and
             // the runtime keeps them from scrolling the page on their way.
-            .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"))
+            .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"), (UiDraws.Mark, "keydown"))
             .OnKeyDown(e =>
             {
                 if (e.Key is Keys.ArrowDown or Keys.ArrowUp)
