@@ -497,6 +497,82 @@ public class ModelInputGeneratorTests
         Assert.Contains("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Create(int id, ", source, StringComparison.Ordinal);
         Assert.Contains("Update(int id, global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
+        Assert.Equal(2, source.Split("/// <remarks>The key is assigned by the database when the row is inserted.</remarks>").Length - 1);
+    }
+
+    [Theory]
+    [InlineData("int", "builder.Property(x => x.Id).ValueGeneratedNever();")]
+    [InlineData("long", "builder.ToTable(\"Coupons\").Property(c => c.Id).HasColumnName(\"CouponId\").ValueGeneratedNever();")]
+    [InlineData("short", "builder.Property<short>(\"Id\").ValueGeneratedNever();")]
+    [InlineData("int", "builder.Property(nameof(Coupon.Id)).ValueGeneratedNever();")]
+    [InlineData("int", "builder.Property(nameof(Id)).ValueGeneratedNever();")]
+    public void An_integer_key_the_aggregates_Configure_marks_never_generated_gets_only_the_creates_that_take_it(string id, string configure)
+    {
+        var run = Run($$"""
+            using Microsoft.EntityFrameworkCore;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Coupon : Aggregate<{{id}}>
+            {
+                private Coupon() { }
+                public string Code { get; private set; } = "";
+                public static void Configure(EntityTypeBuilder<Coupon> builder)
+                {
+                    {{configure}}
+                }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.CouponModel");
+
+        // The same two creates a string key gets, in the same order: the key, then the model or the lambda.
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains($"Create({id} id, global::Shop.CouponModel model, global::System.Action<global::Shop.Coupon>? apply = null, ", source, StringComparison.Ordinal);
+        Assert.Contains($"Create({id} id, global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
+        Assert.Contains("/// <param name=\"id\">The key of the new row.</param>", source, StringComparison.Ordinal);
+        Assert.Contains($"__SetterKey_Id<{id}>.Invoke(entity, id);", source, StringComparison.Ordinal);
+
+        // And no create without one: it would insert the row under 0.
+        Assert.DoesNotContain("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<c>Coupon.Create(model)</c>", source, StringComparison.Ordinal);
+        Assert.Contains("<c>Coupon.Create(id, model)</c>", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("assigned by the database", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("builder.Property(x => x.Code).ValueGeneratedNever();")]
+    [InlineData("builder.Property(x => x.Id).ValueGeneratedOnAdd();")]
+    [InlineData("builder.HasKey(x => x.Id);")]
+    [InlineData("Keyed(builder);")]
+    public void An_integer_key_nothing_in_Configure_marks_never_generated_is_still_the_stores(string configure)
+    {
+        var run = Run($$"""
+            using Microsoft.EntityFrameworkCore;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Coupon : Aggregate<int>
+            {
+                private Coupon() { }
+                public string Code { get; private set; } = "";
+                public static void Configure(EntityTypeBuilder<Coupon> builder)
+                {
+                    {{configure}}
+                }
+                // Out of the generator's sight: only the chain written in Configure itself is read.
+                private static void Keyed(EntityTypeBuilder<Coupon> builder) => builder.Property(x => x.Id).ValueGeneratedNever();
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.CouponModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
+        Assert.Contains("Create(global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(int id, ", source, StringComparison.Ordinal);
+        Assert.Contains("assigned by the database", source, StringComparison.Ordinal);
     }
 
     [Fact]

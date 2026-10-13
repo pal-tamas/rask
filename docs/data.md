@@ -464,6 +464,30 @@ update just names the row first:
   are the only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not
   generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
   PostgreSQL's sequence behind.
+- **An integer key your application assigns** is a key you give, too. Say so in the aggregate's own `Configure`
+  — `b.Property(x => x.Id).ValueGeneratedNever();` — and the aggregate gets `Create(id, model)` and
+  `Create(id, x => …)` **instead of** the creates that take no key, which would insert the row under `0`:
+
+  ```csharp
+  public sealed class Destination : Aggregate<int>
+  {
+      public string Name { get; private set; } = "";
+
+      public static void Configure(EntityTypeBuilder<Destination> b) =>
+          b.Property(d => d.Id).ValueGeneratedNever();          // the table is numbered by the application
+  }
+
+  await Destination.Create(1000, model);                        // inserted under 1000
+  await Destination.Create(1001, d => d.Rename("Baja"));
+  await Destination.Create(model);                              // does not compile: there is no such create
+  ```
+
+  A key given as `0` is refused at the save, by name, like any key left at its default; a key that is taken is
+  the database's own duplicate-key error (`DbUpdateException`). The line is read from the source, so it has to
+  be written in the static `Configure` on the aggregate, as one chain from `Property(x => x.Id)` — or
+  `Property("Id")`, `Property(nameof(Id))`. Written in a helper method, an `IEntityTypeConfiguration` or
+  `OnModelCreating`, the key is still inserted as given, but the aggregate keeps the creates of a stored
+  identity.
 - **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
   `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
@@ -1244,7 +1268,9 @@ marks every other key never generated, so a `Guid` or a strongly-typed id is ass
 built: `Id = Guid.CreateVersion7()` in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
 the save, by name, rather than inserted with an empty key. A key you configured yourself
-(`ValueGeneratedOnAdd()`, a database default) is left as you set it.
+(`ValueGeneratedOnAdd()`, a database default) is left as you set it, and an integer key you marked
+`ValueGeneratedNever()` is yours to assign like the rest: `0` is refused, and the aggregate takes its key
+[in `Create(id, …)`](#writing-create-update-delete).
 
 **One aggregate refers to another by id.** `Order` holds a `Guid ProductId`, not a `Product`: each aggregate is
 loaded and saved on its own, and a change that spans two is [one context, saved once](#changing-two-aggregates-together-db).
@@ -1753,6 +1779,7 @@ public sealed class Destination : Aggregate<int>             // an int key is th
 | a `Version` concurrency token | none | `Checks = Concurrency.None` — a write then takes no version, and the last writer wins |
 | a hard delete | the same | nothing: `Deletes` defaults to `Deletion.Hard`, and there is no `DeletedAt` unless you ask |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
+| an integer key the database numbers | a key the application numbers | `b.Property(d => d.Id).ValueGeneratedNever()` in `Configure` — the aggregate then takes its key in [`Create(id, model)`](#writing-create-update-delete) |
 | a `Guid?` tenant column | an `int` one | declare `public int? TenantId { get; private set; }` — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
 | `TenantId` in front of every index | indexes in the order they were created | name `TenantId` in the index and it is [left exactly as written](multi-tenancy.md#indexes-are-prefixed-for-you) |
 

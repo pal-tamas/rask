@@ -538,6 +538,7 @@ public sealed partial class ModelInputGenerator
 
     // Not for a key the store generates: an explicit value in an identity column is refused on SQL Server
     // (IDENTITY_INSERT is off) and, on PostgreSQL, accepted without moving the sequence — which then collides.
+    // An integer key the aggregate's Configure marks never generated is the caller's, and gets these alone.
     private static bool CreateWithId(Entity entity) =>
         entity.Constructible && entity.IdTypeName is not null && entity.KeyWrite is not null &&
         entity.KeySource != KeySource.Store;

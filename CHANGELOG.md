@@ -27,6 +27,26 @@ them until tagged releases begin.
 
 ### Added
 
+- **`X.Create(id, model)` for an integer key the application assigns.** An `Aggregate<int>` (or any integer key)
+  whose own `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()` was given the creates of a stored
+  identity — `Create(model)`, `Create(x => …)`, documented *"The key is assigned by the database"* — so every row
+  was inserted under `0` and the second one collided. It now gets what a `string` key gets: `Create(id, model)`
+  and `Create(id, x => …)`, the key first.
+
+  ```csharp
+  public static void Configure(EntityTypeBuilder<Destination> b) => b.Property(d => d.Id).ValueGeneratedNever();
+
+  await Destination.Create(model);          // before: compiles, inserts under 0   after: does not compile
+  await Destination.Create(1000, model);    // before: does not compile            after: inserted under 1000
+  ```
+
+  **BREAKING** for such an aggregate only: the key-less `Create(model)` / `Create(x => …)` are no longer
+  generated for it. An integer key nothing marks never generated is unchanged. A key given as `0` — to
+  `Create(id, …)`, or on an aggregate added through a context — is now refused at the save with the same named
+  error a `Guid` key left empty gets; it used to be inserted. The line is read from the source of the
+  aggregate's static `Configure`, as one chain from `Property(x => x.Id)`, `Property("Id")` or
+  `Property(nameof(Id))`; configured anywhere else, the key is still inserted as given and the creates stay those
+  of a stored identity. See [writing](docs/data.md#writing-create-update-delete).
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
