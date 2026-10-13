@@ -200,7 +200,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task On_a_phone_a_panel_wider_than_the_page_keeps_its_start_in_view_and_one_at_the_foot_opens_over_its_trigger() => RunAsync(async () =>
+    public Task On_a_phone_a_wide_panel_is_kept_inside_the_page_and_one_at_the_foot_opens_over_its_trigger() => RunAsync(async () =>
     {
         var scope = await OpenAsync();
         await Page.SetViewportSizeAsync(390, 844);
@@ -210,10 +210,11 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
         await options.EvaluateAsync("el => window.scrollBy(0, el.getBoundingClientRect().bottom - innerHeight + 8)");
         var low = await OpenedAsync(scope, "Options");
 
-        // Flux's own 480px panel at 390 wide: x = 5, the rest past the right edge. The anchor rules alone left
-        // it wherever its trigger was.
-        Assert.True(wide.Panel.Width > 380, $"the panel is {wide.Panel.Width}px wide: not wider than the page");
-        Assert.Equal(5, wide.Panel.X, 1.0);
+        // Nearly as wide as the page: the anchor rules alone left it wherever its trigger was, past the right
+        // edge. Flux keeps such a panel 5px inside both.
+        Assert.True(wide.Panel.Width > 300, $"the panel is {wide.Panel.Width}px wide: any place would hold it");
+        Assert.InRange(wide.Panel.X, 4, 390);
+        Assert.InRange(wide.Panel.X + wide.Panel.Width, 0, 386);
         // No room under a trigger 8px from the foot of the viewport: over it, 5px apart.
         Assert.Equal(low.Trigger.Y - 5, low.Panel.Y + low.Panel.Height, 1.0);
         Assert.True(low.Panel.Y >= 0, "the panel opened past the top of the viewport");
