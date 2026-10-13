@@ -23,6 +23,23 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
 {
     private const string Rows = "[role=option]:not([data-hidden])";
 
+    // "open or shut | lit rows | the row named to assistive technology | rows showing", for the list under #id.
+    private const string State = """
+        id => {
+            const root = document.getElementById(id);
+            const popup = root.querySelector('[popover]');
+            const words = el => el.textContent.trim();
+            const rows = [...popup.querySelectorAll('[role=option]')].filter(row => !row.hasAttribute('data-hidden'));
+            const named = [...root.querySelectorAll('[aria-activedescendant]')].map(el => document.getElementById(el.getAttribute('aria-activedescendant')));
+            return [
+                popup.matches(':popover-open') ? 'open' : 'shut',
+                rows.filter(row => row.hasAttribute('data-active')).map(words).join('+'),
+                named.map(words).join('+'),
+                rows.length,
+            ].join(' | ');
+        }
+        """;
+
     private async Task<HookSession> OpenAsync()
     {
         var session = await HookSession.OpenAsync<ListHookPage>(playwright, beforeLoad: async page =>
@@ -79,6 +96,208 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         Assert.Equal(0, await SentFrames.SoFarAsync(page) - before);
     }
 
+    [Fact]
+    public async Task The_arrows_stop_at_either_end_step_over_a_disabled_row_and_start_from_an_end_when_no_row_is_lit()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var walked = new List<string>();
+
+        await page.ClickAsync("#room [role=combobox]");
+        walked.Add(await SeeAsync(page, "room"));
+        foreach (var key in (string[])["ArrowUp", "ArrowDown", "ArrowDown", "ArrowDown", "Home", "End", "PageDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown"])
+        {
+            await page.Keyboard.PressAsync(key);
+            walked.Add(Lit(await SeeAsync(page, "room")));
+        }
+
+        await OverAsync(page, "room", "Design services");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        var left = await SeeAsync(page, "room");
+        await page.Keyboard.PressAsync("ArrowUp");
+
+        // Flux, key for key: "Accounting" is disabled and stepped over; Home, End and the page keys are nobody's.
+        Assert.Equal(
+            ["open | Photography | Photography | 7", "Photography", "Design services", "Web development", "Legal services", "Legal services",
+                "Legal services", "Legal services", "Consulting", "Other", "Other", "Other"],
+            walked);
+        Assert.Equal("open |  |  | 7", left);
+        Assert.Equal("open | Other | Other | 7", await SeeAsync(page, "room"));
+    }
+
+    [Fact]
+    public async Task A_row_the_pointer_lit_goes_dark_when_the_pointer_leaves_and_one_the_keys_lit_stays()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await page.ClickAsync("#room [role=combobox]");
+
+        await OverAsync(page, "room", "Web development");
+        var pointed = await SeeAsync(page, "room");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        var keyed = await SeeAsync(page, "room");
+        await OverAsync(page, "room", "Other");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 3 });
+        var dark = await SeeAsync(page, "room");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.Equal("open | Web development | Web development | 7", pointed);
+        // The arrow went on from the pointer's row, over the disabled one, and the keys' row outlives the pointer.
+        Assert.Equal("open | Legal services | Legal services | 7", keyed);
+        Assert.Equal("open |  |  | 7", dark);
+        // Enter with no row lit picks nothing and leaves the list open.
+        Assert.Equal("open |  |  | 7", await SeeAsync(page, "room"));
+        Assert.Equal("button", await page.EvaluateAsync<string>("() => document.activeElement.localName"));
+    }
+
+    [Fact]
+    public async Task Letters_move_the_cursor_of_an_open_listbox_and_pick_on_a_shut_one_and_a_reopened_list_starts_on_the_pick()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await page.ClickAsync("#room [role=combobox]");
+
+        await page.Keyboard.TypeAsync("le");
+        var jumped = await SeeAsync(page, "room");
+        await page.Keyboard.PressAsync("Escape");
+        var shut = await SeeAsync(page, "room");
+        // Letters typed within half a second are one prefix: "leo" is nobody's.
+        await page.Clock.RunForAsync(600);
+        await page.Keyboard.TypeAsync("o");
+        await Expect(page.Locator("#room [role=combobox]")).ToHaveTextAsync("Other");
+        var picked = await SeeAsync(page, "room");
+        await page.Keyboard.PressAsync("ArrowDown");
+
+        Assert.Equal("open | Legal services | Legal services | 7", jumped);
+        Assert.Equal("shut |  |  | 7", shut);
+        Assert.Equal("shut |  |  | 7", picked);
+        Assert.Equal("open | Other | Other | 7", await SeeAsync(page, "room"));
+    }
+
+    [Fact]
+    public async Task Typing_hides_the_rows_that_do_not_hold_it_lights_the_first_left_and_shows_the_empty_row_when_none_is()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var typed = new List<string>();
+        await page.ClickAsync("#typed [role=combobox]");
+
+        foreach (var text in (string[])["c", "o", "z"])
+        {
+            await page.Keyboard.TypeAsync(text);
+            typed.Add(await SeeAsync(page, "typed"));
+        }
+
+        var empty = await page.Locator("#typed [data-rask-list-empty]").IsVisibleAsync();
+        await page.Keyboard.PressAsync("Backspace");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.Equal(["open | Design services | Design services | 4", "open | Accounting | Accounting | 2", "open |  |  | 0"], typed);
+        Assert.True(empty);
+        await Expect(page.Locator("#typed [role=combobox]")).ToHaveValueAsync("Consulting");
+        Assert.Equal("shut |  |  | 7", await SeeAsync(page, "typed"));
+    }
+
+    [Fact]
+    public async Task A_combobox_left_with_words_that_name_nothing_says_its_answer_again()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var input = page.Locator("#typed [role=combobox]");
+        await input.ClickAsync();
+        await page.Keyboard.TypeAsync("de");
+        await page.Keyboard.PressAsync("Enter");
+        await Expect(input).ToHaveValueAsync("Design services");
+
+        await page.Keyboard.TypeAsync("xyz");
+        var typing = await input.InputValueAsync();
+        await page.Keyboard.PressAsync("Escape");
+        var escaped = await input.InputValueAsync();
+        await page.Keyboard.PressAsync("Escape");
+        var emptied = await input.InputValueAsync();
+        await page.Keyboard.PressAsync("Tab");
+
+        Assert.Equal("Design servicesxyz", typing);
+        // Flux's `strict`: Escape shuts the list and the answer is back; a second Escape takes the words, not the answer.
+        Assert.Equal("Design services", escaped);
+        Assert.Equal(string.Empty, emptied);
+        await Expect(input).ToHaveValueAsync("Design services");
+    }
+
+    [Fact]
+    public async Task What_the_pointer_and_the_keys_wrote_survives_a_render_the_server_sends_meanwhile()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await page.ClickAsync("#typed [role=combobox]");
+        await page.Keyboard.TypeAsync("e");
+        await page.Keyboard.PressAsync("ArrowDown");
+        var before = await SeeAsync(page, "typed");
+
+        // A press the page hears, from script so the list stays open: it renders the whole page again.
+        await page.EvaluateAsync("() => document.getElementById('ready').click()");
+        await Expect(page.Locator("#renders")).ToHaveTextAsync("renders=2");
+
+        Assert.Equal("open | Web development | Web development | 4", before);
+        Assert.Equal(before, await SeeAsync(page, "typed"));
+        await Expect(page.Locator("#typed [role=combobox]")).ToHaveAttributeAsync("aria-expanded", "true");
+    }
+
+    [Theory]
+    [InlineData("room", "Legal services")]
+    [InlineData("found", "Legal services")]
+    [InlineData("tags", "Ruby")]
+    public async Task A_pick_is_the_one_press_the_page_hears_and_the_row_pressed_is_the_row_picked(string list, string row)
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await page.Locator($"#{list} [role=combobox]").First.ClickAsync();
+        await OverAsync(page, list, row);
+        var before = await SentFrames.SoFarAsync(page);
+
+        await page.Locator($"#{list} [role=option]").Filter(new() { HasText = row }).ClickAsync();
+        await Expect(page.Locator($"#{list} [role=option][aria-selected=true]")).ToHaveTextAsync(row);
+        await page.Clock.RunForAsync(1_000);
+
+        Assert.Equal(1, await SentFrames.SoFarAsync(page) - before);
+    }
+
+    [Fact]
+    public async Task An_autocomplete_bound_to_a_member_that_waits_sends_nothing_at_a_pick_and_its_text_with_the_next_action()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var input = page.Locator("#state [role=combobox]");
+        var before = await SentFrames.SoFarAsync(page);
+
+        await input.ClickAsync();
+        await page.Keyboard.TypeAsync("ne");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("Enter");
+        await Expect(input).ToHaveValueAsync("Nevada");
+        await Expect(input).ToBeFocusedAsync();
+        await page.Clock.RunForAsync(1_000);
+        var atPick = await SentFrames.SoFarAsync(page) - before;
+        await page.ClickAsync("#save");
+
+        Assert.Equal(0, atPick);
+        await Expect(page.Locator("#model")).ToContainTextAsync("|Nevada");
+    }
+
+    private static string Lit(string state) => state.Split(" | ")[1];
+
+    // What the list shows now. The runtime answers in the key's own task, so there is nothing to wait for.
+    private static Task<string> SeeAsync(IPage page, string list) => page.EvaluateAsync<string>(State, list);
+
+    // A real pointer onto the row's middle, in steps: a jump would enter nothing on the way.
+    private static async Task OverAsync(IPage page, string list, string words)
+    {
+        var box = (await page.Locator($"#{list} [role=option]").Filter(new() { HasText = words }).BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2), new MouseMoveOptions { Steps = 3 });
+    }
+
     // A real pointer onto the middle of every row that shows, in steps: a jump would enter nothing on the way.
     private static async Task SweepAsync(IPage page, string list)
     {
@@ -106,6 +325,7 @@ public sealed partial class ListHookPage : Component
     private readonly Answers _answers = new();
     private bool _ready;
     private int _saves;
+    private int _renders;
 
     // The kit's own sheet: it is what hides a row a search left out.
     protected override Component? HeadAssets => [Markup.Title["list hooks"], Markup.Style[Raw.Value(UiStylesheet.Css)]];
@@ -114,7 +334,8 @@ public sealed partial class ListHookPage : Component
 
     protected override Component? Render() =>
     [
-        Button.Id("ready").OnClick(() => _ready = true)[_ready ? "ready" : "loading"],
+        Button.Id("ready").OnClick(() => { _ready = true; _renders++; })[_ready ? "ready" : "loading"],
+        P.Id("renders")[$"renders={_renders}"],
         P.Id("model")[
             $"{_answers.Room}|{_answers.Found}|{_answers.Typed}|{string.Join(',', _answers.Tags)}|{string.Join(',', _answers.Skills)}|{_answers.State}"
         ],

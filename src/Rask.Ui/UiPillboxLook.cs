@@ -57,17 +57,15 @@ internal static class UiPillboxLook
     internal const string InputChevronIcon = "text-zinc-400/75 dark:text-white/60";
 
     /// <summary>
-    ///     A row of the list. Its fill is the keyboard's cursor (<c>data-active</c>) or the pointer; while the
-    ///     pointer is on a row, the cursor's row gives its fill up, so one row at a time is lit.
+    ///     A row of the list. Its fill is the cursor (<c>data-active</c>), which the runtime writes for the
+    ///     pointer and the keys alike: one row at a time is lit, and none by <c>:hover</c>.
     /// </summary>
     internal const string Option =
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
         + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
-        + "[[popover]:popover-open_&]:data-active:bg-zinc-100 [[popover]:popover-open_&]:hover:bg-zinc-100 "
-        + "dark:[[popover]:popover-open_&]:data-active:bg-zinc-600 dark:[[popover]:popover-open_&]:hover:bg-zinc-600 "
-        + "[[popover]:has([data-ui-listbox-option]:hover,[data-ui-option-create]:hover)_&:not(:hover)]:data-active:bg-transparent "
-        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400 aria-disabled:hover:bg-transparent!";
+        + "[[popover]:popover-open_&]:data-active:bg-zinc-100 dark:[[popover]:popover-open_&]:data-active:bg-zinc-600 "
+        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
 
     /// <summary>The tick's place at the end of a row.</summary>
     internal const string CheckSlot = "w-6 shrink-0";

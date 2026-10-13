@@ -4,18 +4,16 @@ using Page = Rask.Testing.Page;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     Flux's <c>variant="listbox"</c>: the button, the list it opens, and the keyboard and pointer as they were
-///     recorded on fluxui.dev — one row at a time, by the keys that walk it there.
+///     Flux's <c>variant="listbox"</c>: the button, the list it opens, and what the page hears of it — a pick.
 /// </summary>
 /// <remarks>
-///     The browser owns whether the popover is open (a click on the button, Escape, a click elsewhere) and says
-///     so through the <c>toggle</c> event, which is how these open it. Everything after that is C#, which is
-///     why it can be driven in process.
+///     Where the reader is in the list is the browser's: the lit row, the keys, type-ahead and whether the list
+///     is open are kept by the runtime (<c>data-rask-list</c>) and send the page nothing, so they are held to
+///     Flux in a browser (<c>UiListHookTests</c>, <c>scripts/flux/parity-select.mjs</c>). What is in process is
+///     what a render writes, and the press that picks.
 /// </remarks>
 public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static readonly string[] Industries =
         ["Photography", "Design services", "Web development", "Accounting", "Legal services", "Consulting", "Other"];
 
@@ -25,19 +23,6 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
         Ui.Select.Value(_picked).OnChange(value => _picked = value).Listbox.Placeholder("Choose industry...")[
             Industries.Select(name => Ui.SelectOption.Key(name)[name])
         ];
-
-    private async Task<Page> OpenAsync()
-    {
-        var page = Page.Render(Listbox);
-        await page.On("[popover]").Raise("toggle", Opened);
-
-        return page;
-    }
-
-    private static Task Key(Page page, string key) =>
-        page.On("[data-ui-select-button]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
-    private static string Active(Page page) => page.TextOf("[data-active]");
 
     [Fact]
     public void The_button_is_a_combobox_that_names_the_list_it_opens()
@@ -100,160 +85,6 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Opening_puts_the_cursor_on_the_first_option_and_says_so_to_assistive_tech()
-    {
-        var page = await OpenAsync();
-
-        var button = page.Find("[data-ui-select-button]");
-
-        Assert.Equal("Photography", Active(page));
-        Assert.Equal("true", button.Attribute("aria-expanded"));
-        Assert.Equal(page.Find("[data-active]").Attribute("id"), button.Attribute("aria-activedescendant"));
-    }
-
-    [Fact]
-    public async Task The_arrows_walk_the_options_and_stop_at_either_end()
-    {
-        var page = await OpenAsync();
-        var walked = new List<string>();
-
-        foreach (var key in new[] { "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp" })
-        {
-            await Key(page, key);
-            walked.Add(Active(page));
-        }
-
-        for (var i = 0; i < 9; i++)
-        {
-            await Key(page, "ArrowDown");
-        }
-
-        Assert.Equal(["Photography", "Design services", "Web development", "Design services"], walked);
-        Assert.Equal("Other", Active(page));
-    }
-
-    [Theory]
-    [InlineData("Home")]
-    [InlineData("End")]
-    [InlineData("PageDown")]
-    [InlineData("PageUp")]
-    public async Task The_keys_Flux_leaves_alone_move_nothing(string key)
-    {
-        var page = await OpenAsync();
-        await Key(page, "ArrowDown");
-
-        await Key(page, key);
-
-        Assert.Equal("Design services", Active(page));
-    }
-
-    [Fact]
-    public async Task Enter_picks_the_active_option_and_closes_the_list()
-    {
-        var page = await OpenAsync();
-        await Key(page, "ArrowDown");
-
-        await Key(page, "Enter");
-
-        Assert.Equal("Design services", _picked);
-        Assert.Equal("false", page.Find("[data-ui-select-button]").Attribute("aria-expanded"));
-        Assert.Equal("false", page.Find("[popover]").Attribute("data-rask-popover-open"));
-        Assert.Equal("true", page.Find("[data-selected][data-ui-option]").Attribute("aria-selected"));
-    }
-
-    [Fact]
-    public async Task A_click_on_an_option_picks_it_and_the_button_repeats_it()
-    {
-        var page = await OpenAsync();
-
-        await page.On("[data-ui-option]:has-text(\"Legal services\")").Click();
-
-        Assert.Equal("Legal services", _picked);
-        Assert.Equal("Legal services", page.TextOf("[data-ui-select-button] [data-value]"));
-        Assert.False(page.Exists("[data-ui-select-placeholder]"));
-    }
-
-    [Fact]
-    public async Task The_pointer_moves_the_cursor_to_the_row_it_is_over()
-    {
-        var page = await OpenAsync();
-
-        await page.On("[data-ui-option]:has-text(\"Accounting\")").Raise("mouseenter");
-        await Key(page, "ArrowDown");
-
-        Assert.Equal("Legal services", Active(page));
-    }
-
-    [Fact]
-    public async Task Reopening_starts_from_the_picked_option()
-    {
-        _picked = "Consulting";
-
-        var page = await OpenAsync();
-
-        Assert.Equal("Consulting", Active(page));
-    }
-
-    [Fact]
-    public async Task Tab_closes_the_list_and_picks_nothing()
-    {
-        var page = await OpenAsync();
-
-        await Key(page, "Tab");
-
-        Assert.Null(_picked);
-        Assert.Equal("false", page.Find("[popover]").Attribute("data-rask-popover-open"));
-    }
-
-    [Theory]
-    [InlineData("ArrowDown")]
-    [InlineData("ArrowUp")]
-    public async Task An_arrow_on_the_closed_button_opens_the_list(string key)
-    {
-        var page = Page.Render(Listbox);
-
-        await Key(page, key);
-
-        Assert.Equal("true", page.Find("[popover]").Attribute("data-rask-popover-open"));
-        Assert.Equal("Photography", Active(page));
-    }
-
-    [Fact]
-    public async Task Letters_typed_on_the_closed_button_pick_without_opening()
-    {
-        var page = Page.Render(Listbox);
-
-        await Key(page, "l");
-        await Key(page, "e");
-
-        Assert.Equal("Legal services", _picked);
-        Assert.Equal("false", page.Find("[data-ui-select-button]").Attribute("aria-expanded"));
-    }
-
-    [Fact]
-    public async Task Letters_typed_on_the_open_list_move_the_cursor_and_pick_nothing()
-    {
-        var page = await OpenAsync();
-
-        await Key(page, "a");
-        await Key(page, "c");
-
-        Assert.Equal("Accounting", Active(page));
-        Assert.Null(_picked);
-    }
-
-    [Fact]
-    public async Task The_browser_closing_the_list_is_heard()
-    {
-        var page = await OpenAsync();
-
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
-
-        Assert.Equal("false", page.Find("[data-ui-select-button]").Attribute("aria-expanded"));
-        Assert.Null(page.Find("[data-ui-select-button]").Attribute("aria-activedescendant"));
-    }
-
-    [Fact]
     public void A_prefix_stays_in_the_button_before_the_picked_option()
     {
         var select = Ui.Select.Value("last-month").Listbox.Prefix("Compare to")[
@@ -291,24 +122,6 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("UK", page.TextOf("[data-ui-select-button] [data-value]"));
         Assert.Equal("United Kingdom", page.TextOf("[data-ui-option]"));
-    }
-
-    [Fact]
-    public async Task A_disabled_option_is_skipped_by_the_keyboard_and_deaf_to_the_pointer()
-    {
-        string? picked = null;
-        var page = Page.Render(() => Ui.Select.Value(picked).OnChange(value => picked = value).Listbox[
-            Ui.SelectOption["One"],
-            Ui.SelectOption.Disabled()["Two"],
-            Ui.SelectOption["Three"]
-        ]);
-        await page.On("[popover]").Raise("toggle", Opened);
-
-        await Key(page, "ArrowDown");
-
-        Assert.Equal("Three", Active(page));
-        Assert.Equal("true", page.Find("[data-ui-option]:has-text(\"Two\")").Attribute("aria-disabled"));
-        Assert.Null(page.Find("[data-ui-option]:has-text(\"Two\")").Attribute("data-rask-on-click"));
     }
 
     [Fact]
@@ -350,6 +163,8 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(2, page.FindAll("[data-ui-options] [role=\"presentation\"]").Count);
         Assert.Equal(2, page.FindAll("[data-ui-option]").Count);
+        // How many rows each heading is over: the browser hides it with the last of them a search leaves out.
+        Assert.Equal(["1", "1"], page.FindAll("[role=\"presentation\"]").Select(heading => heading.Attribute("data-rask-list-group")));
     }
 
     [Fact]
@@ -387,5 +202,89 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
         var classes = Page.Render(select).Find("[popover]").Attribute("class");
 
         Assert.Contains("min-w-72", classes, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_list_is_the_browsers_to_keep_and_is_rendered_shut_with_no_row_lit()
+    {
+        var page = Page.Render(Listbox);
+
+        var button = page.Find("[data-ui-select-button]");
+
+        Assert.Equal(string.Empty, page.Find("[data-ui-select]").Attribute("data-rask-list"));
+        Assert.Equal("false", button.Attribute("aria-expanded"));
+        Assert.Null(button.Attribute("aria-activedescendant"));
+        Assert.False(page.Exists("[data-active]"));
+        Assert.False(page.Exists("[data-open]"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-popover-open"));
+    }
+
+    // A round trip per row the pointer crossed, per arrow and per toggle is what these handlers were.
+    [Theory]
+    [InlineData("data-rask-on-mouseenter")]
+    [InlineData("data-rask-on-mouseleave")]
+    [InlineData("data-rask-on-keydown")]
+    [InlineData("data-rask-on-toggle")]
+    public void Moving_about_the_list_has_no_handler_for_the_page_to_hear(string handler)
+    {
+        var page = Page.Render(Listbox);
+
+        var hearing = page.FindAll($"[{handler}]");
+
+        Assert.Empty(hearing);
+    }
+
+    [Fact]
+    public async Task A_press_on_an_option_picks_that_option_and_the_button_repeats_it()
+    {
+        var page = Page.Render(Listbox);
+
+        await page.On("[data-ui-option]:has-text(\"Legal services\")").Click();
+
+        Assert.Equal("Legal services", _picked);
+        Assert.Equal("Legal services", page.TextOf("[data-ui-select-button] [data-value]"));
+        Assert.Equal("true", page.Find("[data-selected][data-ui-option]").Attribute("aria-selected"));
+        Assert.False(page.Exists("[data-ui-select-placeholder]"));
+    }
+
+    [Fact]
+    public async Task A_press_names_its_own_row_whichever_row_was_pressed_before_it()
+    {
+        var page = Page.Render(Listbox);
+        await page.On("[data-ui-option]:has-text(\"Other\")").Click();
+
+        await page.On("[data-ui-option]:has-text(\"Photography\")").Click();
+
+        Assert.Equal("Photography", _picked);
+    }
+
+    [Fact]
+    public void A_disabled_option_says_so_and_has_no_press_to_hear()
+    {
+        var page = Page.Render(() => Ui.Select.Of<string>().Listbox[
+            Ui.SelectOption["One"],
+            Ui.SelectOption.Disabled()["Two"],
+            Ui.SelectOption["Three"]
+        ]);
+
+        var two = page.Find("[data-ui-option]:has-text(\"Two\")");
+
+        Assert.Equal("true", two.Attribute("aria-disabled"));
+        Assert.Null(two.Attribute("data-rask-on-click"));
+        Assert.NotNull(page.Find("[data-ui-option]:has-text(\"Three\")").Attribute("data-rask-on-click"));
+    }
+
+    [Fact]
+    public void A_row_that_draws_more_than_its_words_says_the_words_it_is_found_by()
+    {
+        var page = Page.Render(() => Ui.Select.Of<string>().Listbox[
+            Ui.SelectOption.Value("card").Label("Credit card").Description("Charged monthly"),
+            Ui.SelectOption["Cash"]
+        ]);
+
+        var rows = page.FindAll("[data-ui-option]");
+
+        Assert.Equal("Credit card", rows[0].Attribute("data-rask-list-text"));
+        Assert.Null(rows[1].Attribute("data-rask-list-text"));
     }
 }

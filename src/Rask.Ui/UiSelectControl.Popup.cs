@@ -233,19 +233,23 @@ public abstract partial class UiSelectControl<T>
                 .Data("rask-contain-keys", UiListboxLook.ListKeys)
                 .Class(UiSelectLook.SearchInput)
                 .Aria(aria),
-            slot?.Clearable == false
-                ? null
-                : Div.Class(UiSelectLook.SearchClear)[
-                    Button
-                        .Type(ButtonType.Button)
-                        .TabIndex(-1)
-                        .Class(UiSelectLook.SearchClearButton)
-                        .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
-                        // Emptied in the browser, which tells the list — and the page, where it asked to hear.
-                        .Attributes(("data-ui-button", null), ("data-rask-clear", SearchId))[
-                        Ui.Icon.Name(Ui.IconName.XMark).Micro
-                    ]
-                ]
+            slot?.Clearable == false ? null : Div.Class(UiSelectLook.SearchClear)[SearchClear(slot)]
+        ];
+    }
+
+    // Emptied in the browser (`data-rask-clear`), which tells the list — and the page, where it asked to hear
+    // every key. A page that waits for a pause is told by the press itself: clearing is no typing to wait out.
+    private Component SearchClear(UiSelectSearch? slot)
+    {
+        var button = Button
+            .Type(ButtonType.Button)
+            .TabIndex(-1)
+            .Class(UiSelectLook.SearchClearButton)
+            .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
+            .Attributes(("data-ui-button", null), ("data-rask-clear", SearchId));
+
+        return (_waits ? button.OnClick(() => HearAsync(string.Empty, slot?.OnInput ?? default)) : button)[
+            Ui.Icon.Name(Ui.IconName.XMark).Micro
         ];
     }
 }

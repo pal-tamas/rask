@@ -255,8 +255,8 @@ function place(root: Element): void {
     light(root, picked || first);
 }
 
-// Hides what the search leaves out (a list the page filters is left as rendered) and puts the cursor back.
-function refilter(root: Element): void {
+// Hides what the search leaves out. A list the page filters is left as rendered.
+function filter(root: Element): void {
     const popup = popupOf(root);
     if (popup && has(root, "filter")) {
         const rows = rowsOf(root);
@@ -288,6 +288,11 @@ function refilter(root: Element): void {
             hide(groups[i], !shown);
         }
     }
+}
+
+// …and puts the cursor back among the rows that are left.
+function refilter(root: Element): void {
+    filter(root);
     place(root);
 }
 
@@ -392,16 +397,22 @@ function settle(root: Element): void {
     state.typing = false;
     state.top = false;
     state.acts = false;
-    if (!input || !popup) {
+    if (!popup) {
         return;
     }
-    if (popup.contains(input) || has(root, "clears")) {
+    if (input && (popup.contains(input) || has(root, "clears"))) {
         if (input.value !== "") {
             say(input, "", "input");
         }
-    } else if (has(root, "strict")) {
+    } else if (input && has(root, "strict")) {
         say(input, answer(state, input), "");
+        if (page!.activeElement === input) {
+            // The caret after the answer, and nothing selected: what is typed next is added to it.
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
     }
+    // A shut list hides no row: the next search starts from all of them.
+    filter(root);
 }
 
 function closed(root: Element, popup: Element): void {
@@ -466,8 +477,9 @@ function press(row: HTMLElement | null): void {
     }
 }
 
-// A row was pressed, by the pointer or by Enter. The page hears the press itself; what the list does next is here.
-function picked(root: Element, row: HTMLElement): void {
+// A row was pressed, by the pointer (`pointed`) or by Enter. The page hears the press itself; what the list
+// does next is here.
+function picked(root: Element, row: HTMLElement, pointed: boolean): void {
     const state = stateOf(root);
     const popup = popupOf(root);
     const input = inputOf(root);
@@ -489,7 +501,8 @@ function picked(root: Element, row: HTMLElement): void {
     const create = row.hasAttribute(CREATE);
     const stays = has(root, "multiple") && !create;
     if (stays) {
-        light(root, row);
+        // Still the pointer's row when the pointer pressed it: it goes dark when the pointer leaves.
+        light(root, row, pointed);
     } else if (!create && input && has(root, "strict")) {
         const says = row.getAttribute("data-rask-list-says");
         state.said = says === null ? labelOf(row) : says;
@@ -615,8 +628,9 @@ if (page) {
         if (popup.contains(target)) {
             const row = near(target, OPTION);
             if (row && !isOff(row)) {
-                state.acts = (e as MouseEvent).detail !== 0 && has(root, "multiple");
-                picked(root, row);
+                const pointed = (e as MouseEvent).detail !== 0;
+                state.acts = pointed && has(root, "multiple");
+                picked(root, row, pointed);
             }
             return;
         }

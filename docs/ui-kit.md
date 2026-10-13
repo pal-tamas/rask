@@ -1619,10 +1619,11 @@ all, and `Expanded` is only the state it starts in — see [Accordion](#accordio
 **And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
 owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.
 `.Listbox` and `.Combobox` draw the list instead — a native `popover` under a `role="combobox"` trigger. The
-browser still opens and dismisses it (a click, Escape, a click elsewhere, focus back on the button, with no
-handler at all), while the cursor, type-ahead, the search and the picking are C#, so the drawn list **needs
-the runtime**. Reach for it when an option must carry more than words, or the list must be searched. The
-whole of it is under [Select](#select).
+browser owns where the reader is in it, as it does in Flux: the runtime keeps the lit row, the keys,
+type-ahead, the search and whether the list is open (`data-rask-list`), and **none of that sends the page
+anything** — a pointer swept over every row, the arrows, a search typed, Escape. The page renders the rows
+and hears a pick, so the drawn list **needs the runtime**. Reach for it when an option must carry more than
+words, or the list must be searched. The whole of it is under [Select](#select).
 
 **And one that lets you choose several — under the same name.** Open `Ui.Select` on a collection and the
 same chain builds the select that holds several answers; the model's type decides which, so a model that
@@ -1651,8 +1652,9 @@ A row of a drawn select that needs more than words says so on the option — `Ic
 or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
 nothing else.
 
-The browser still owns dismissal there — Escape and click-outside — and C# hears the popover's toggle,
-which is what keeps `aria-expanded` truthful rather than drifting the moment the list is dismissed.
+The browser owns opening and dismissal there — a press, Escape, a click elsewhere — and the runtime writes
+`aria-expanded` and `data-open` in the task the list opens or shuts, so they never trail the list by a round
+trip and the page hears no toggle.
 
 ## Fields: label, description, error
 
@@ -1784,7 +1786,10 @@ Ui.Select.Bind(() => m.Visibility).Listbox.Class("max-w-32").OptionsClass("min-w
 **Searchable, and keywords.** `Searchable()` puts a search field at the top of the listbox's options.
 Opening focuses it; typing filters case- and accent-insensitively over each option's text and its
 `Keywords` — more words to find it by, never shown — and puts the cursor on the first match. "No results
-found" shows when nothing matches; `Empty("…")` says it in your own words.
+found" shows when nothing matches; `Empty("…")` says it in your own words. The filtering is done in the
+browser, as Flux's is: a key typed sends the page nothing. `Filter(false)` hands the search to the page
+instead — its `Ui.SelectSearch.OnInput` hears what is typed, at every key or at the pause `Debounce` names,
+and renders the rows that match.
 
 ```csharp
 Ui.Select.Bind(() => m.Category).Listbox.Searchable().Placeholder("Choose category...")[
@@ -1884,19 +1889,28 @@ case where the page opens a form of its own.
 **No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
 trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
 kept inside the viewport as every panel is. The browser opens it on a
-click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard below is C#,
-recorded on fluxui.dev and matched.
+click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard and the pointer
+below are the runtime's (`data-rask-list`, [the runtime reference](js-interop-runtime.md#behaviour-hooks-data-rask-)),
+recorded on fluxui.dev and matched — and, as there, **an open list sends the page nothing** until a row is
+picked. Measured on a live Server page over one journey — open, the pointer over every row, eight keys,
+type-ahead or a search, Escape, open again, Tab — a listbox sent 33 frames, a pillbox 34 and an autocomplete
+28; each now sends 0.
 
 | Key | Listbox |
 | --- | --- |
 | Click, Space, ArrowDown, ArrowUp | Open, with the cursor on the picked option — the first when there is none. |
-| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. |
+| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. With no row lit, ArrowDown lands on the first and ArrowUp on the last. |
 | Home, End, PageUp, PageDown | Nothing, as on Flux. |
-| Enter | Picks the active row and closes. With `Multiple()` it switches the row and the list stays open. |
+| Enter | Picks the lit row and closes; with no row lit, nothing. With `Multiple()` it switches the row and the list stays open. |
+| Space | On the open listbox's button, closes it. |
 | Escape, a click elsewhere | Close; focus returns to the button. |
 | Tab | Closes, picks nothing, and moves on. |
-| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. |
-| The pointer | Moves the cursor to the row under it. |
+| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. Letters within half a second are one prefix. |
+| The pointer | Lights the row it **enters** — not one that slid under a pointer at rest — and the arrows go on from there. A row the pointer lit goes dark when the pointer leaves the list; one the keys lit stays. |
+
+**What a pick sends.** The press on the row — the pointer's, or Enter's — is the one thing the page hears, and
+it names its own row: no cursor of the page's picks for it. A bound select then writes its member with the
+next action (`.Live()`: at once), as every control does.
 
 In a combobox, Escape closes the list and a second Escape empties the text but keeps the answer; leaving
 the input with words that name nothing puts the answer's text back.
@@ -1909,7 +1923,9 @@ A drawn select posts nothing by itself, so one with a `Name` carries its answer 
 
 Markers follow Flux's: `data-ui-select` on a drawn select's root, `data-ui-select-button`,
 `data-ui-select-native`, `data-ui-options`, `data-ui-option`, and on a row `data-selected` and `data-active`
-(the cursor); `data-open` while the list is.
+(the cursor); `data-open` while the list is. `data-active`, `data-open`, an open `aria-expanded`,
+`aria-activedescendant` and — on a list the browser filters — `data-hidden` are written by the runtime and are
+in no render: a test that reads them drives a browser.
 
 Two things Flux does in script are the runtime's here, by attribute: the closed listbox button ignores Enter
 and its arrows do not scroll the page (`data-rask-listbox-button`), and while a list is open the page behind
@@ -1944,10 +1960,12 @@ It takes what Flux documents for it, which is the input's own list: `Type`, `Lab
 `Disabled()`, `ReadOnly()`, `Invalid()`, `Multiple()`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`,
 `Copyable()`, `Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
 as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
-`OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
+`OnChange` — as an input's text does: a bound member with the next action (`.Live()`: as it is typed), and
+`OnChange` when an item is picked, when Escape empties the input, and when what was typed is left.
 
-No script: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the filter and the
-picking are C#. As recorded on Flux's page:
+No script of its own: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the
+filter, the open state and the pick that writes an item into the input are the runtime's (`data-rask-list`) —
+in the browser, with nothing sent to the page until the input's text is. As recorded on Flux's page:
 
 | | |
 | --- | --- |
@@ -1957,7 +1975,7 @@ picking are C#. As recorded on Flux's page:
 | Enter | Writes the active item into the input and closes. With no active item it does nothing. |
 | Escape | Closes the list **and empties the input**, open or not. |
 | Tab, a click elsewhere | Close, and keep whatever was typed. |
-| The pointer | Moves the cursor to the row under it; a click picks it and focus stays in the input. |
+| The pointer | Lights the row it enters, and that row goes dark when the pointer leaves the list; a click picks it and focus stays in the input. |
 
 The input is `role="combobox"` with `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded`,
 `aria-controls` and, while open, `aria-activedescendant`. The list is `role="listbox"` and — as Flux writes it,
@@ -1999,8 +2017,9 @@ Ui.Pillbox.Bind(() => model.TagIds).Combobox[
 ]
 ```
 
-It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
-page, where it differs from the select's listbox:
+It is the list `Ui.Select` draws, under another trigger, so it ships no script either and its keys, pointer
+and search are the runtime's too: an open pillbox sends the page nothing until a row or a cross is pressed. As
+recorded on Flux's page, where it differs from the select's listbox:
 
 | | |
 | --- | --- |
@@ -2008,7 +2027,8 @@ page, where it differs from the select's listbox:
 | Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
 | A letter on the closed trigger | Switches the next option that starts with it, without opening. |
 | The cross on a pill | Takes that option off; the list stays as it was. |
-| The pointer leaving the list | No row is lit any more. |
+| The pointer leaving the list | The row it lit goes dark; a row the keys lit stays, as in every list. |
+| A row pressed, then a key | Nothing: the press took focus to the list, as on Flux, and the keys are the trigger's. |
 | Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
 | Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
 
@@ -2021,7 +2041,7 @@ type into, and `role="button"` over a search field or an input, which is then th
 The page behind an open list is locked (`data-rask-lock`), as on Flux, and the trigger keeps the keys Flux's
 keeps (`data-rask-contain-keys`): Enter, Space and the vertical arrows as a combobox, Space and the arrows as the
 button over a search field, so opening it from the keyboard does not scroll the page. The input among the pills
-keeps the list's keys the same way while the list is open.
+keeps the list's keys while the list is open (the runtime's, with the rest of the list).
 `Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
 
 ## Form controls

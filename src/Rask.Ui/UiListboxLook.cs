@@ -35,18 +35,16 @@ internal static class UiListboxLook
     internal const string Column = "overflow-auto [&:popover-open]:flex [&:popover-open]:flex-col [&:popover-open]:overflow-y-hidden";
 
     /// <summary>
-    ///     A row. Its fill is the keyboard's cursor (<c>data-active</c>) or the pointer; while the pointer is on
-    ///     a row, the cursor's row gives its fill up, so one row at a time is lit — as on Flux, whose script
-    ///     moves the cursor under the pointer.
+    ///     A row. Its fill is the cursor (<c>data-active</c>), which the runtime writes for the pointer and the
+    ///     keys alike (<c>data-rask-list</c>) — as on Flux, whose script moves the cursor under the pointer. One
+    ///     row at a time is lit, and none by <c>:hover</c>.
     /// </summary>
     internal const string Option =
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-start px-2 py-1.5 w-full rounded-md "
         + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
-        + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 [[data-ui-options]:popover-open_&]:hover:bg-zinc-100 "
-        + "dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 dark:[[data-ui-options]:popover-open_&]:hover:bg-zinc-600 "
-        + "[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&:not(:hover)]:data-active:bg-transparent "
-        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400 aria-disabled:hover:bg-transparent!";
+        + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 "
+        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
 
     /// <summary>The row's content beside its indicator.</summary>
     internal const string OptionBody = "flex items-center min-w-0";
@@ -103,9 +101,7 @@ internal static class UiListboxLook
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
         + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
-        + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 [[data-ui-options]:popover-open_&]:hover:bg-zinc-100 "
-        + "dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 dark:[[data-ui-options]:popover-open_&]:hover:bg-zinc-600 "
-        + "[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&:not(:hover)]:data-active:bg-transparent";
+        + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600";
 
     /// <summary>The plus before the create row's words.</summary>
     internal const string CreateLead = "w-6 shrink-0";
