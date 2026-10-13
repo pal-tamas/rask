@@ -62,6 +62,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // reads see the other side's write, which is what volatile guarantees.
     protected volatile bool _pendingRenderInScope;
 
+    /// <summary>How long a session that keeps asking for renders waits before each further one.</summary>
+    internal static readonly TimeSpan RunawayPause = TimeSpan.FromMilliseconds(250);
+
     // The wire-payload shape for THIS session, snapshotted from the host's RaskLiveOptions at
     // construction and read on the render hot path (RenderTreeToHtml / WritePayload) instead of the
     // former process-global LiveOptions.DiffMode static. Per-session so two hosts in one process — and
