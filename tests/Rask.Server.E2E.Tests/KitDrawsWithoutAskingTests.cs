@@ -40,12 +40,11 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     internal static IReadOnlyList<string> Strays()
     {
         var counted = Families.SelectMany(family => family.Value.Gestures.Select(gesture => family.Key + ": " + gesture)).ToHashSet(StringComparer.Ordinal);
-        return [.. Sends.Keys.Concat(Known.Keys).Concat(Elsewhere.Keys).Where(key => !counted.Contains(key))];
+        return [.. Sends.Keys.Concat(Known.Keys).Where(key => !counted.Contains(key))];
     }
 
-    /// <summary>The gestures that are in more than one of the three lists.</summary>
-    internal static IReadOnlyList<string> Doubles() =>
-        [.. Sends.Keys.Intersect(Known.Keys).Concat(Elsewhere.Keys.Intersect(Known.Keys.Concat(Sends.Keys)))];
+    /// <summary>The gestures that are in both lists.</summary>
+    internal static IReadOnlyList<string> Doubles() => [.. Sends.Keys.Intersect(Known.Keys)];
 
     /// <summary>The pages a family is drawn on, for the check that each has a class that walks it.</summary>
     internal static IReadOnlySet<Type> Pages() => Families.Values.Select(family => family.Page).ToHashSet();
@@ -53,11 +52,6 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     // Null when the gesture kept to its budget.
     private static string? Judge(string key, KitFrames frames)
     {
-        if (Elsewhere.TryGetValue(key, out var ceiling))
-        {
-            return frames.Sent > Allowed(ceiling) ? $"{key} — sent {frames.Sent}, over the {ceiling} it cost when it was counted." : null;
-        }
-
         var (budget, list) = Sends.TryGetValue(key, out var sends) ? (sends.Frames, nameof(Sends))
             : Known.TryGetValue(key, out var known) ? (known, nameof(Known))
             : (0, string.Empty);

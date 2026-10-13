@@ -13,12 +13,13 @@ namespace Rask.UiTests.Components;
 ///     <c>SearchDebounceTests</c>). Held here: the markup that asks for it, only when the step is taken, and
 ///     which handler hears what. Measured on fluxui.dev's backend-search examples, 2026-10-13: the search model
 ///     is written "" when the list shuts, the picked option's words when a combobox picks, and "" when a pill
-///     is taken off.
+///     is taken off. The list is the browser's (<c>data-rask-list</c>, rask-list.ts), so it is the browser that
+///     rewrites the field and says so through the field's own <c>input</c> — only when the page had heard a
+///     search, which <c>SearchDebounceTests</c> and <c>UiListHookTests</c> hold. Here the browser's part is
+///     played by the test: a row's click is the pick, and the field's handler hears what the field says.
 /// </remarks>
 public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-    private const string Shut = "{\"oldState\":\"open\",\"newState\":\"closed\"}";
     private const string Input = "input[role=\"combobox\"]";
 
     private static readonly string[] Pistols = ["Glock", "Beretta", "Walther", "Bersa"];
@@ -61,11 +62,7 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     private static Task Pause(Page page, string field, string text) =>
         page.On(field).Raise("pause", "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(text) + "}");
 
-    private static Task Key(Page page, string field, string key) =>
-        page.On(field).Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
-    private static bool IsOpen(Page page) =>
-        string.Equals(page.Find("[popover]").Attribute("data-rask-popover-open"), "true", StringComparison.Ordinal);
+    private static string? ListKind(Page page, string root) => page.Find(root).Attribute("data-rask-list");
 
     // ----- Ui.SelectInput ---------------------------------------------------------------------------------
 
@@ -83,10 +80,9 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_debounced_combobox_input_the_page_filters_hears_nothing_while_open_but_the_pause()
+    public async Task A_debounced_combobox_input_the_page_filters_hears_nothing_but_the_pause()
     {
         var page = Acting.Render(() => Combobox(250.Milliseconds));
-        await page.On(Input).Click();
 
         var field = page.Find(Input);
         await Pause(page, Input, "ber");
@@ -94,129 +90,130 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
         Assert.Equal("250", field.Attribute("data-rask-debounce"));
         Assert.NotNull(field.Attribute("data-rask-on-pause"));
         Assert.Null(field.Attribute("data-rask-on-input"));
-        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab", field.Attribute("data-rask-keys"));
+        Assert.Null(field.Attribute("data-rask-on-keydown"));
         Assert.Equal(["ber"], _heard);
     }
 
+    // Opening on the first key is the browser's: a debounced combobox has no handler for a key, shut or open.
     [Fact]
-    public async Task The_first_key_in_a_closed_debounced_combobox_opens_its_list_and_tells_the_page_nothing()
+    public void A_debounced_combobox_hears_no_key_and_nothing_of_its_list_opening()
     {
-        var page = Acting.Render(() => Combobox(250.Milliseconds));
-        var closedHearsKeys = page.Find(Input).Attribute("data-rask-on-input") is not null;
+        var page = Page.Render(() => Combobox(250.Milliseconds));
 
-        await page.On(Input).Input("b");
+        var field = page.Find(Input);
 
-        Assert.True(closedHearsKeys);
-        Assert.True(IsOpen(page));
-        Assert.Null(page.Find(Input).Attribute("data-rask-on-input"));
-        Assert.Empty(_heard);
+        Assert.Null(field.Attribute("data-rask-on-input"));
+        Assert.Null(field.Attribute("data-rask-on-click"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-on-toggle"));
+        Assert.Equal("strict", ListKind(page, "[data-ui-select]"));
     }
 
+    // Enter is the browser pressing the lit row, and the pause being counted is called off there. What the
+    // input then says, the answer's words, arrives as its pause does.
     [Fact]
-    public async Task Enter_during_a_comboboxs_pause_picks_from_the_list_as_drawn_and_the_late_pause_searches_for_nothing()
+    public async Task A_row_pressed_during_a_comboboxs_pause_is_picked_from_the_list_as_drawn_and_the_page_hears_its_words_once()
     {
         var page = Acting.Render(() => Combobox(250.Milliseconds));
-        await page.On(Input).Click();
 
-        await Key(page, Input, "Enter");
-        await Pause(page, Input, "ber");
+        await page.On("[data-ui-option][id$='-0']").Click();
+        await Pause(page, Input, "Glock");
+        await Pause(page, Input, "Glock");
 
         Assert.Equal("Glock", _picked);
-        Assert.False(IsOpen(page));
         Assert.Equal(["Glock"], _heard);
     }
 
     [Fact]
-    public async Task A_debounced_combobox_the_select_filters_hides_rows_at_every_key_and_tells_the_page_at_the_pause()
+    public async Task A_debounced_combobox_the_browser_filters_tells_the_page_at_the_pause_and_at_no_key()
     {
         var page = Acting.Render(() => Combobox(250.Milliseconds, filter: null));
 
-        await page.On(Input).Input("ber");
-        var heardWhileTyping = _heard.ToList();
-        var shown = page.FindAll("[data-ui-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim()).ToList();
+        var field = page.Find(Input);
         await Pause(page, Input, "ber");
 
-        Assert.Empty(heardWhileTyping);
-        Assert.Equal(["Beretta", "Bersa"], shown);
+        Assert.Null(field.Attribute("data-rask-on-input"));
+        Assert.Equal("filter strict", ListKind(page, "[data-ui-select]"));
         Assert.Equal(["ber"], _heard);
     }
 
     // ----- What the page hears when the control rewrites its own field ------------------------------------
 
     [Fact]
-    public async Task A_combobox_that_picks_tells_the_page_the_words_its_input_now_says()
+    public async Task A_combobox_that_picks_hears_the_words_its_input_goes_on_to_say()
     {
         var page = Acting.Render(() => Combobox(pause: null));
         await page.On(Input).Input("ber");
 
-        await Key(page, Input, "Enter");
+        await page.On("[data-ui-option][id$='-0']").Click();
+        await page.On(Input).Input("Glock");
 
         Assert.Equal("Glock", _picked);
         Assert.Equal(["ber", "Glock"], _heard);
     }
 
     [Fact]
-    public async Task Escape_in_an_open_combobox_tells_the_page_the_search_is_over()
+    public async Task A_combobox_hears_its_input_emptied_as_it_hears_it_typed()
     {
         var page = Acting.Render(() => Combobox(pause: null));
         await page.On(Input).Input("ber");
 
-        await Key(page, Input, "Escape");
+        await page.On(Input).Input(string.Empty);
 
         Assert.Equal(["ber", ""], _heard);
     }
 
     [Fact]
-    public async Task A_combobox_loaded_with_an_answer_and_opened_and_shut_tells_the_page_nothing()
+    public void A_combobox_loaded_with_an_answer_has_nothing_that_tells_the_page_it_was_opened_or_shut_or_left()
     {
         _picked = "Walther";
-        var page = Acting.Render(() => Combobox(pause: null));
-        await page.On(Input).Click();
 
-        await page.On("[popover]").Raise("toggle", Shut);
-        await page.On(Input).Raise("blur");
+        var page = Page.Render(() => Combobox(pause: null));
 
-        Assert.Empty(_heard);
+        Assert.Null(page.Find(Input).Attribute("data-rask-on-click"));
+        Assert.Null(page.Find(Input).Attribute("data-rask-on-blur"));
+        Assert.Null(page.Find(Input).Attribute("data-rask-on-keydown"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-on-toggle"));
+        Assert.Equal("Walther", page.Find(Input).Attribute("value"));
     }
 
     [Fact]
-    public async Task A_listbox_shut_after_a_search_tells_the_page_its_search_is_empty_once()
+    public async Task A_listbox_hears_its_search_emptied_as_it_hears_it_typed_and_nothing_of_the_list_shutting()
     {
         var page = Acting.Render(Listbox);
-        await page.On("[popover]").Raise("toggle", Opened);
         await page.On("[data-ui-select-search] input").Input("ber");
 
-        await page.On("[popover]").Raise("toggle", Shut);
-        await page.On("[popover]").Raise("toggle", Opened);
-        await page.On("[popover]").Raise("toggle", Shut);
+        await page.On("[data-ui-select-search] input").Input(string.Empty);
 
         Assert.Equal(["ber", ""], _heard);
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-on-toggle"));
     }
 
     [Fact]
-    public async Task A_listbox_that_picks_after_a_search_tells_the_page_its_search_is_empty()
+    public async Task A_listbox_that_picks_after_a_search_hears_its_search_emptied()
     {
         var page = Acting.Render(Listbox);
-        await page.On("[popover]").Raise("toggle", Opened);
         await page.On("[data-ui-select-search] input").Input("ber");
 
-        await Key(page, "[data-ui-select-search] input", "Enter");
+        await page.On("[data-ui-option][id$='-0']").Click();
+        await page.On("[data-ui-select-search] input").Input(string.Empty);
 
         Assert.Equal("Glock", _picked);
         Assert.Equal(["ber", ""], _heard);
     }
 
     [Fact]
-    public void The_search_field_of_a_list_sends_only_the_lists_own_keys_whether_it_waits_or_not()
+    public void The_search_field_of_a_list_hears_no_key_whether_it_waits_or_not()
     {
         var select = Page.Render(Listbox);
-        var pills = Page.Render(() => SearchedPills(pause: null));
+        var pills = Page.Render(() => SearchedPills(250.Milliseconds));
 
-        var keys = select.Find("[data-ui-select-search] input").Attribute("data-rask-keys");
-        var pillKeys = pills.Find("[data-ui-pillbox-search] input").Attribute("data-rask-keys");
+        var field = select.Find("[data-ui-select-search] input");
+        var pillField = pills.Find("[data-ui-pillbox-search] input");
 
-        Assert.Equal("ArrowDown ArrowUp Enter Tab", keys);
-        Assert.Equal("ArrowDown ArrowUp Enter Tab", pillKeys);
+        Assert.Null(field.Attribute("data-rask-on-keydown"));
+        Assert.Null(field.Attribute("data-rask-keys"));
+        Assert.Null(pillField.Attribute("data-rask-on-keydown"));
+        Assert.Null(pillField.Attribute("data-rask-keys"));
     }
 
     // ----- Ui.PillboxSearch ---------------------------------------------------------------------------------
@@ -226,7 +223,6 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     {
         var plain = Acting.Render(() => SearchedPills(pause: null));
         var page = Acting.Render(() => SearchedPills(250.Milliseconds));
-        await page.On("[popover]").Raise("toggle", Opened);
 
         var field = page.Find("[data-ui-pillbox-search] input");
         await Pause(page, "[data-ui-pillbox-search] input", "ber");
@@ -245,7 +241,6 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     {
         var plain = Acting.Render(() => TypedPills(pause: null));
         var page = Acting.Render(() => TypedPills(250.Milliseconds));
-        await page.On("[data-ui-pillbox-trigger]").Click();
 
         var field = page.Find("[data-ui-pillbox-input]");
         await Pause(page, "[data-ui-pillbox-input]", "ber");
@@ -261,37 +256,36 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     public async Task A_pick_during_a_pillbox_inputs_pause_is_of_the_list_as_drawn_and_asks_the_store_nothing()
     {
         var page = Acting.Render(() => TypedPills(250.Milliseconds));
-        await page.On("[data-ui-pillbox-trigger]").Click();
 
-        await Key(page, "[data-ui-pillbox-input]", "Enter");
+        await page.On("[data-ui-listbox-option][id$='-0']").Click();
 
         Assert.Equal(["Glock"], _several);
         Assert.Empty(_heard);
     }
 
-    // The browser sends Backspace only from an empty input (`Backspace:empty`), and an input that waits holds
-    // text the page has not heard: the page's own reading of the search says nothing about it.
+    // Backspace in an empty input is the browser pressing the last cross (`data-rask-list-remove`), and an input
+    // that waits holds text the page has not heard: the page's own reading of the search says nothing about it.
     [Fact]
-    public async Task Backspace_from_a_pillbox_input_that_waits_takes_the_last_pill_off_whatever_the_page_last_heard()
+    public async Task The_last_cross_of_a_pillbox_whose_input_waits_takes_its_pill_off_whatever_the_page_last_heard()
     {
         _several = ["Glock", "Bersa"];
         var page = Acting.Render(() => TypedPills(250.Milliseconds));
-        await page.On("[data-ui-pillbox-trigger]").Click();
         await Pause(page, "[data-ui-pillbox-input]", "ber");
 
-        await Key(page, "[data-ui-pillbox-input]", "Backspace");
+        await page.On("[data-ui-pillbox-trigger] [data-value=\"Bersa\"] [data-rask-list-remove]").Click();
 
         Assert.Equal(["Glock"], _several);
     }
 
     [Fact]
-    public async Task A_pill_taken_off_empties_what_was_typed_and_tells_the_page()
+    public async Task A_pill_taken_off_is_out_of_the_value_and_the_page_hears_the_input_emptied()
     {
         _several = ["Glock"];
         var page = Acting.Render(() => TypedPills(pause: null));
         await page.On("[data-ui-pillbox-input]").Input("ber");
 
-        await page.On("[data-ui-pillbox-trigger] [data-value] [data-rask-on-click]").Click();
+        await page.On("[data-ui-pillbox-trigger] [data-value] [data-rask-list-remove]").Click();
+        await page.On("[data-ui-pillbox-input]").Input(string.Empty);
 
         Assert.Empty(_several);
         Assert.Equal(["ber", ""], _heard);
@@ -300,59 +294,74 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
     // ----- Ui.Autocomplete ----------------------------------------------------------------------------------
 
     [Fact]
-    public async Task An_autocomplete_with_no_debounce_step_asks_for_no_pause_and_holds_the_text_until_it_is_left()
+    public async Task An_autocomplete_with_no_debounce_step_asks_for_no_pause_and_hears_the_text_when_it_is_left()
     {
         var page = Acting.Render(() => Suggesting(pause: null));
 
-        await page.On(Input).Input("ber");
+        var field = page.Find(Input);
+        await page.On(Input).Change("ber");
 
-        Assert.Null(page.Find(Input).Attribute("data-rask-debounce"));
-        Assert.Null(page.Find(Input).Attribute("data-rask-on-pause"));
-        Assert.Empty(_heard);
-    }
-
-    [Fact]
-    public async Task A_debounced_autocomplete_filters_at_every_key_and_hands_the_page_the_text_at_the_pause()
-    {
-        var page = Acting.Render(() => Suggesting(250.Milliseconds));
-
-        await page.On(Input).Input("ber");
-        var heardWhileTyping = _heard.ToList();
-        var shown = page.FindAll("[data-ui-autocomplete-item]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim()).ToList();
-        await Pause(page, Input, "ber");
-        await Pause(page, Input, "ber");
-
-        Assert.Equal("250", page.Find(Input).Attribute("data-rask-debounce"));
-        Assert.Empty(heardWhileTyping);
-        Assert.Equal(["Beretta", "Bersa"], shown);
+        Assert.Null(field.Attribute("data-rask-debounce"));
+        Assert.Null(field.Attribute("data-rask-on-pause"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
         Assert.Equal(["ber"], _heard);
     }
 
     [Fact]
+    public async Task A_debounced_autocomplete_is_filtered_by_the_browser_and_hands_the_page_the_text_at_the_pause()
+    {
+        var page = Acting.Render(() => Suggesting(250.Milliseconds));
+
+        var field = page.Find(Input);
+        await Pause(page, Input, "ber");
+        await Pause(page, Input, "ber");
+
+        Assert.Equal("250", field.Attribute("data-rask-debounce"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
+        Assert.Equal("text filter", ListKind(page, "[data-ui-autocomplete]"));
+        Assert.Equal(["ber"], _heard);
+    }
+
+    [Fact]
+    public async Task A_pause_of_none_on_an_autocomplete_is_every_keystroke()
+    {
+        var page = Acting.Render(() => Suggesting(TimeSpan.Zero));
+
+        await page.On(Input).Input("b");
+        await page.On(Input).Input("be");
+
+        Assert.Null(page.Find(Input).Attribute("data-rask-debounce"));
+        Assert.Equal(["b", "be"], _heard);
+    }
+
+    // A pick is the browser writing the item into the input and raising its `change`; the pause it restarted
+    // ends on the same text.
+    [Fact]
     public async Task An_item_picked_during_an_autocompletes_pause_is_the_text_and_the_late_pause_changes_nothing()
     {
         var page = Acting.Render(() => Suggesting(250.Milliseconds));
-        await page.On(Input).Input("ber");
 
-        await Key(page, Input, "Enter");
-        await Pause(page, Input, "ber");
+        await page.On(Input).Change("Beretta");
+        await Pause(page, Input, "Beretta");
 
         Assert.Equal("Beretta", _text);
         Assert.Equal(["Beretta"], _heard);
     }
 
     [Fact]
-    public async Task A_bound_autocomplete_with_a_pause_writes_its_member_at_the_pause()
+    public async Task A_bound_autocomplete_with_a_pause_counts_it_as_the_input_does_and_writes_its_member_then()
     {
         var model = new Holder();
         var page = Acting.Render(() => Ui.Autocomplete.Bind(() => model.City).Debounce(250.Milliseconds)[
             Pistols.Select(name => Ui.AutocompleteItem.Key(name)[name])
         ]);
-        await page.On(Input).Input("ber");
         var whileTyping = model.City;
 
-        await Pause(page, Input, "ber");
+        var field = page.Find(Input);
+        await page.On(Input).Input("ber");
 
+        Assert.Equal("250", field.Attribute("data-rask-debounce"));
+        Assert.Null(field.Attribute("data-rask-on-pause"));
         Assert.Equal(string.Empty, whileTyping);
         Assert.Equal("ber", model.City);
     }

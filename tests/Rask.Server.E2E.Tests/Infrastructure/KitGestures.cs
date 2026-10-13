@@ -159,6 +159,20 @@ internal static class KitGestures
     public static KitGesture Outside(Func<IPage, Task> arrange, string name = "close by a press outside") =>
         new(name, page => page.Mouse.ClickAsync(AwayX - 5, AwayY - 5), arrange);
 
+    /// <summary>Text typed into <paramref name="selector" />, as an arrangement.</summary>
+    public static Func<IPage, Task> TypingInto(string selector, string text) => async page =>
+    {
+        await page.Locator(selector).First.FocusAsync();
+        await page.Keyboard.TypeAsync(text);
+    };
+
+    /// <summary>A list opened by <paramref name="trigger" /> and searched for <paramref name="text" />, as an arrangement.</summary>
+    public static Func<IPage, Task> SearchingFor(string trigger, string field, string text) => async page =>
+    {
+        await page.Locator(trigger).First.ClickAsync();
+        await TypingInto(field, text)(page);
+    };
+
     /// <summary>A press on <paramref name="selector" />, as an arrangement.</summary>
     public static Func<IPage, Task> Pressing(string selector) => page => page.Locator(selector).First.ClickAsync();
 
