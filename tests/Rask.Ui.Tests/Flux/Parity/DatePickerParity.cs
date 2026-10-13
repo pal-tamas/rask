@@ -29,9 +29,10 @@ public partial class DatePickerParity : FluxParity
 
         yield return ("range-limits", Range().MaxRange(10));
 
-        // The row the two fields stand in is the example's own: Flux hands the slot a flex row with a 16px gap.
+        // The row the two fields stand in is the example's own: Flux hands the slot a flex row with a 16px gap,
+        // and under 640 px a column with 24px between the two.
         yield return ("range-with-inputs", Range().Trigger(
-            Div.Style("display:flex;gap:16px")[
+            Div.Class("parity-inputs")[
                 Ui.DatePickerInput.Label("Start"),
                 Ui.DatePickerInput.Label("End")
             ]));
@@ -70,7 +71,9 @@ public partial class DatePickerParity : FluxParity
     /// </summary>
     protected const string AppFont =
         "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Menlo Regular'),local('Menlo-Regular'),local('DejaVu Sans Mono'),local('DejaVuSansMono');size-adjust:106.3%}"
-        + ":root{--font-mono:MonoLisa,monospace}.parity-narrow{min-width:0}</style>";
+        + ":root{--font-mono:MonoLisa,monospace}.parity-narrow{min-width:0}"
+        + ".parity-inputs{display:flex;flex-direction:column;gap:24px}"
+        + "@media (width >= 40rem){.parity-inputs{flex-direction:row;gap:16px}}</style>";
 
     // The docs page centres every picker in a 384px column, shrunk to the picker's own width.
     private static Component Column(Component picker) =>

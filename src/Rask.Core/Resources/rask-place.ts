@@ -30,6 +30,12 @@
 // has nothing to object to, and a closed panel is the stylesheet's and the anchor rules' again. The panel is
 // `position: absolute` at page coordinates while placed, so it scrolls with the page untouched, as Flux's does.
 //
+// STANDING DOWN. A panel whose `--rask-place` computes to `none` is the stylesheet's alone: nothing is written
+// for it, for as long as that holds. It is how a panel that hangs from its trigger on a desktop is something
+// else on a phone — Flux UI's date picker is a sheet centred over the page under 640 px — with the breakpoint
+// stated once, in the stylesheet: `max-sm:[--rask-place:none]`. Asked again on every pass, so a window dragged
+// across the breakpoint with the panel open changes hands as it goes.
+//
 // WHEN: in the task that opens it and again before the next frame is drawn — a panel is never painted where
 // the anchor rules alone would have left it — then whenever something scrolls, the window is resized or the
 // panel or its anchor changes size, once per frame: every open panel is measured in one pass and written in
@@ -242,7 +248,11 @@ if (page) {
         queued = false;
         const panels: HTMLElement[] = [];
         open.forEach(function (_, panel) {
-            if (panel.isConnected && isShown(panel)) panels.push(panel); else forget(panel);
+            if (!panel.isConnected || !isShown(panel)) {
+                forget(panel);
+            } else if (getComputedStyle(panel).getPropertyValue("--rask-place").trim() !== "none") {
+                panels.push(panel);
+            }
         });
         // Measured where nothing squeezes it: at the page's corner, as tall as it wants to be.
         const scrolled = panels.map(function (panel) { return panel.scrollTop; });
