@@ -84,21 +84,38 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal(HttpStatusCode.Forbidden, answer.StatusCode);
     }
 
+    // Not a refusal a stranger could tell a live session by: the answer everybody else gets, which makes the tab
+    // open its connection again.
     [Fact]
-    public async Task A_tab_that_asks_in_a_loop_is_refused_after_a_handful_a_second()
+    public async Task A_tab_that_asks_in_a_loop_is_told_it_is_not_the_same_after_a_handful_a_second()
     {
         using var host = CreateHost<FollowApp>();
         var page = await OpenAsync(host, "/open", "alice");
-        var statuses = new List<HttpStatusCode>();
+        var answers = new List<string>();
 
         for (var i = 0; i < 12; i++)
         {
             using var answer = await WhoAsync(host, page.SessionId, "alice");
-            statuses.Add(answer.StatusCode);
+            answers.Add($"{(int)answer.StatusCode}:{await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)}");
         }
 
-        Assert.Equal(HttpStatusCode.OK, statuses[0]);
-        Assert.Contains(HttpStatusCode.TooManyRequests, statuses);
+        Assert.Equal("200:" + Same, answers[0]);
+        Assert.Contains("200:" + NotTheSame, answers);
+    }
+
+    [Fact]
+    public async Task A_stranger_asking_in_a_loop_does_not_use_up_the_questions_of_the_session_s_user()
+    {
+        using var host = CreateHost<FollowApp>();
+        var page = await OpenAsync(host, "/open", "alice");
+        for (var i = 0; i < 12; i++)
+        {
+            using var strangers = await WhoAsync(host, page.SessionId, "mallory");
+        }
+
+        using var answer = await WhoAsync(host, page.SessionId, "alice");
+
+        Assert.Equal(Same, await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     // A post carries the browser's cookie as it is now; the stream it answers was opened earlier.

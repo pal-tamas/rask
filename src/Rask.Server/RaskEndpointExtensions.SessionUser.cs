@@ -303,11 +303,6 @@ public static partial class RaskEndpointExtensions
 
         var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
         var session = sessionId is null ? null : ctx.RequestServices.GetRequiredService<LiveSessionStore>().Peek(sessionId);
-        if (session is not null && !session.AdmitWhoQuestion(WhoQuestionsPerSecond))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-            return Task.CompletedTask;
-        }
 
         ctx.Response.ContentType = "application/json";
         return ctx.Response.Body.WriteAsync(WhoAnswerFor(session, UserOf(ctx)), ctx.RequestAborted).AsTask();
@@ -315,7 +310,10 @@ public static partial class RaskEndpointExtensions
 
     private static byte[] WhoAnswerFor(LiveSession? session, ClaimsPrincipal request)
     {
-        if (session is null || !MayDrive(request, session))
+        // Counted only for a caller the session answers to, and answered as everything else is: a stranger with
+        // the id can neither use up its user's questions nor learn from a refusal that the session is there. A tab
+        // told "not the same" opens its connection again, which is the safe thing for it to do.
+        if (session is null || !MayDrive(request, session) || !session.AdmitWhoQuestion(WhoQuestionsPerSecond))
         {
             return WhoOther;
         }

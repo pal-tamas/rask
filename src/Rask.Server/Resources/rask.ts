@@ -207,15 +207,19 @@ import {
     let attempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let suppressEvents = false;
+    const WHO_TIMEOUT_MS = 5000;
     // Set while the connection is dropped on purpose because the browser's credential changed (rask-auth-watch.ts):
     // the next one opens at once, with no backoff and nothing on screen.
     let authReopen = false;
     // Other tabs of this browser, for the one thing they tell each other: the credential changed, ask again.
     const authChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("rask-auth") : null;
     const authWatch = createAuthWatch({
+        // Bounded: what the page sends waits for this answer, and a request that never comes back must not hold
+        // it for ever. No answer is "not the same", and the connection is opened again.
         ask: () => fetch(prependBase("/_rask/auth/who/" + encodeURIComponent(sessionId ?? "")), {
             credentials: "same-origin",
             cache: "no-store",
+            signal: AbortSignal.timeout(WHO_TIMEOUT_MS),
         }).then((response) => response.ok ? response.json() : {same: false}),
         reopen: reopenForAuth,
         release: flushQueue,

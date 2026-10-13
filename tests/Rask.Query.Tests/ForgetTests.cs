@@ -66,14 +66,17 @@ public class ForgetTests
     public async Task What_was_read_for_one_user_is_forgotten_when_the_session_s_user_becomes_another()
     {
         var users = new Users(Principal("alice"));
-        var client = new SessionQueryClient(new CountingDispatcher(), new TestClock(DateTimeOffset.UnixEpoch), users);
+        var dispatcher = new CountingDispatcher();
+        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), users);
         using var query = client.Query(new GetOrders(1));
         await SettleAsync(query);
+        dispatcher.Result = "bob's";
 
         users.Become(Principal("bob"));
-        var held = client.TryGetData<string>(MessageKey.For(new GetOrders(1)), out _);
+        await SettleAsync(query);
 
-        Assert.False(held);
+        Assert.Equal("bob's", query.Data);
+        Assert.Equal(2, dispatcher.QueryCount);
     }
 
     // A reconnect hands the session a new principal that says what the old one said.
@@ -81,15 +84,17 @@ public class ForgetTests
     public async Task What_was_read_is_kept_when_the_user_s_principal_is_replaced_by_one_that_says_the_same()
     {
         var users = new Users(Principal("alice"));
-        var client = new SessionQueryClient(new CountingDispatcher(), new TestClock(DateTimeOffset.UnixEpoch), users);
+        var dispatcher = new CountingDispatcher();
+        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), users);
         using var query = client.Query(new GetOrders(1));
         await SettleAsync(query);
+        dispatcher.Block();
 
         users.Become(Principal("alice"));
-        var held = client.TryGetData<string>(MessageKey.For(new GetOrders(1)), out var data);
+        var held = query.Data;
 
-        Assert.True(held);
-        Assert.Equal("first", data);
+        Assert.Equal("first", held);
+        Assert.Equal(1, dispatcher.QueryCount);
     }
 
     private static ClaimsPrincipal Principal(string name) =>

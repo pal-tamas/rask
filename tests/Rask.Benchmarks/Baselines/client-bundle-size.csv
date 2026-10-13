@@ -222,7 +222,8 @@
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
 # 2026-10-13, a panel whose --rask-place computes to none is left to the stylesheet (the date picker's phone sheet, rask-place.ts): rask-hooks.js 56,675 -> 56,747 (+72), measured on main, whose hooks bundle builds to 56,675 where this file said 56,371. The two runtimes are unchanged.
+# 2026-10-13, a tab asks whether the browser's credential changed and reopens its connection before it sends (rask-auth-watch.ts, the Server runtime only): rask.js 101,724 -> 103,406 (+1,682). rask.wasm.js and rask-hooks.js are unchanged.
 bundle,bytes
-rask.js,101724
+rask.js,103406
 rask.wasm.js,90507
 rask-hooks.js,56747
