@@ -13,16 +13,21 @@
 // is open, the value, what the inputs say, the preview, where the thumbs stand, which swatch is picked and
 // which holds the tab stop, what was announced and where focus is. `--phone` walks the sheet at 390 px.
 //
+// `--sheet` opens the same examples on a phone (390 and 360 wide, light and dark), where the popover is Flux's
+// sheet, and holds every node's box inside the dialog and its layout styles to Flux's: parity.mjs measures at
+// one width, and the sheet is not at that one.
+//
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages        # writes the Rask page
 //         node scripts/flux/parity-color-picker.mjs [--refresh] [--all]    # --refresh re-measures Flux
 //         node scripts/flux/parity-color-picker.mjs --section dropper
+//         node scripts/flux/parity-color-picker.mjs --sheet
 //         node scripts/flux/parity-color-picker.mjs --live <url of the showcase page> [--phone] [--wait 2200] [--walk <name>] [--all]
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, measurePage, root } from './lib.mjs';
 
 const FLUX = 'https://fluxui.dev/components/color-picker';
@@ -34,6 +39,14 @@ if (option('live')) {
   const differs = await walkBoth(browser, option('live'), args.includes('--phone'), Number(option('wait') ?? 400));
   await browser.close();
   console.log(differs ? `\nflux parity: the color picker behaves differently in ${differs} walk(s).` : '\nflux parity: the color picker walks as Flux does.');
+  process.exit(differs ? 1 : 0);
+}
+
+if (args.includes('--sheet')) {
+  const browser = await chromium().launch();
+  const differs = await sheets(browser);
+  await browser.close();
+  console.log(differs ? `\nflux parity: the color picker's sheet differs in ${differs} case(s).` : '\nflux parity: the color picker\'s sheet matches Flux.');
   process.exit(differs ? 1 : 0);
 }
 
@@ -58,6 +71,63 @@ function mark() {
   for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
     wrapper.querySelector('[data-flux-color-picker-swatch-button], [data-flux-color-picker-button]')?.setAttribute('data-parity-open', '');
   }
+}
+
+// ----- The sheet ---------------------------------------------------------------------------------------
+
+// Each example's place among Flux's pickers and on the parity page, which writes the same eleven in order
+// (the "sizes" example holds three).
+async function sheets(browser) {
+  const cases = [[0, 'light', 390], [0, 'dark', 390], [0, 'light', 360], [1, 'light', 390], [1, 'dark', 390], [5, 'light', 390], [6, 'light', 390],
+    [7, 'light', 390], [8, 'light', 390], [9, 'light', 390], [10, 'light', 390], [11, 'dark', 390]];
+  let differs = 0;
+  for (const [index, scheme, width] of cases) {
+    const flux = await sheet(browser, true, index, scheme, width);
+    const rask = await sheet(browser, false, index, scheme, width);
+    const bad = [];
+    for (let i = 0; i < Math.max(flux.length, rask.length); i++) if (flux[i] !== rask[i]) bad.push(`       flux ${flux[i]}\n       rask ${rask[i]}`);
+    differs += bad.length ? 1 : 0;
+    console.log(`${bad.length ? 'FAIL' : 'ok  '} sheet #${index} ${scheme} ${width} (${flux.length} nodes)`);
+    for (const line of bad.slice(0, 8)) console.log(line);
+  }
+
+  return differs;
+}
+
+async function sheet(browser, flux, index, scheme, width) {
+  const context = await browser.newContext({ viewport: { width, height: 844 }, hasTouch: true, colorScheme: scheme });
+  const page = await context.newPage();
+  await page.goto(flux ? FLUX : pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', 'color-picker-open.html')).href, { waitUntil: 'networkidle' });
+  if (scheme === 'dark') await page.evaluate(() => document.documentElement.classList.add('dark'));
+  const prefix = flux ? 'data-flux-' : 'data-ui-';
+  const picker = page.locator(`[${prefix}color-picker]`).nth(index);
+  await picker.scrollIntoViewIfNeeded();
+  await picker.locator(`[${prefix}color-picker-swatch-button], [${prefix}color-picker-button]`).first().tap();
+  await picker.locator('dialog[open]').waitFor();
+  const rows = await picker.evaluate((root, p) => {
+    const dialog = root.querySelector('dialog');
+    const origin = dialog.getBoundingClientRect();
+    const style = getComputedStyle(dialog);
+    const half = n => Math.round(n * 2) / 2;
+    // Where the sheet is on the screen, then every node inside it, measured from the sheet's own corner.
+    const out = [`dialog at ${[origin.x, origin.y, origin.width, origin.height].map(Math.round).join(',')} ${style.position} max-height ${style.maxHeight} overflow ${style.overflowY} border ${style.borderWidth}`
+      + ` shadow ${style.boxShadow.replace(/rgba\(0, 0, 0, 0\) 0px 0px 0px 0px, /g, '')} backdrop ${getComputedStyle(dialog, '::backdrop').backgroundColor.replace('oklab(0 0 0 / 0.1)', 'rgba(0, 0, 0, 0.1)')}`
+      + ` page ${getComputedStyle(document.documentElement).overflowY}`];
+    const walk = (el, depth) => {
+      // Not Flux's nodes: the bound fields of the surfaces, and the box that tells the page it is the sheet.
+      if ((el.tagName === 'INPUT' && el.type === 'hidden') || el.hasAttribute('data-ui-color-picker-sheet')) return;
+      const box = el.getBoundingClientRect();
+      const s = getComputedStyle(el);
+      const marks = [...el.attributes].map(a => a.name).filter(n => n.startsWith(p) && n !== 'data-flux-allow-scroll').map(n => n.slice(p.length)).join(',');
+      out.push(`${'  '.repeat(depth)}${el.tagName.toLowerCase().replace(/^ui-.*/, 'div')}[${marks}] ${[box.x - origin.x, box.y - origin.y, box.width, box.height].map(half).join(',')}`
+        + ` ${s.display} padding ${s.padding} font ${s.fontSize} radius ${s.borderRadius} opacity ${s.opacity} border ${s.borderWidth} gap ${s.gap}`);
+      if (el.tagName !== 'svg') for (const child of el.children) walk(child, depth + 1);
+    };
+    walk(dialog, 0);
+    return out;
+  }, prefix);
+  await context.close();
+  return rows;
 }
 
 // ----- The keyboard and the pointer, on a running app --------------------------------------------------
@@ -90,13 +160,13 @@ function walks(phone) {
     },
     {
       name: 'the trigger input', flux: 0, rask: 'intro',
-      steps: ['focus:input', 'key:ArrowDown', 'key:Escape', 'fill:input:#f00', 'key:Enter', 'fill:input:rgb(1 2 3)', 'key:Tab',
+      steps: ['focus:input', 'key:ArrowDown', 'key:Escape', 'fill:input:#f00', 'key:Enter', 'fill:input:rgb(1 2 3)', 'blur:input',
         'fill:input:hsl(120 50% 50% / 0.5)', 'key:Enter', 'fill:input:blue', 'key:Enter', 'fill:input:oklch(0.7 0.1 200)', 'key:Enter', 'fill:input:lab(50 40 30)', 'key:Enter',
         'fill:input:', 'key:Enter', 'press:opener', 'key:ArrowRight', 'key:Escape'],
     },
     {
       name: 'the popover input', flux: 0, rask: 'intro',
-      steps: ['press:opener', 'fill:popover-input:#00f', 'key:Enter', 'fill:popover-input:lime', 'key:Tab', 'fill:popover-input:', 'key:Enter', 'key:Escape'],
+      steps: ['press:opener', 'fill:popover-input:#00f', 'key:Enter', 'fill:popover-input:lime', 'blur:popover-input', 'fill:popover-input:', 'key:Enter', 'key:Escape'],
     },
     {
       name: 'swatches', flux: 0, rask: 'intro',
@@ -143,7 +213,7 @@ async function walkBoth(browser, liveUrl, phone, wait) {
     for (const side of ['flux', 'rask']) {
       const context = await browser.newContext({ ...view, permissions: ['clipboard-read', 'clipboard-write'] });
       const page = await context.newPage();
-      page.setDefaultTimeout(5000);
+      page.setDefaultTimeout(15000);
       await page.goto(side === 'flux' ? FLUX : liveUrl, { waitUntil: 'networkidle' });
       const prefix = side === 'flux' ? 'data-flux-' : 'data-ui-';
       const picker = side === 'flux'
@@ -204,6 +274,8 @@ async function act(page, picker, prefix, step, phone) {
     case 'press': return press(part(rest[0]));
     case 'force': return part(rest[0]).click({ force: true, timeout: 1000 }).catch(() => {});
     case 'focus': return part(rest[0]).focus();
+    // Left for nothing, which is the same nothing on both pages: Tab would land on whatever the page has next.
+    case 'blur': return part(rest[0]).blur();
     case 'fill': return part(rest[0]).fill(rest.slice(1).join(':'));
     case 'key': return page.keyboard.press(rest[0]);
     case 'swatch': return press(picker.locator(`[${prefix}color-picker-swatch]`).nth(Number(rest[0])));

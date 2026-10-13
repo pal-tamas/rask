@@ -56,7 +56,7 @@ internal static class UiColorPickerLook
     /// <summary>The popover: a panel under the trigger on a pointer, a centred sheet on a phone.</summary>
     internal const string Dialog =
         "m-auto p-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-700 shadow-2xs "
-        + "backdrop:bg-transparent max-sm:backdrop:bg-black/10 max-sm:w-[calc(100vw-4rem)]";
+        + "backdrop:bg-transparent max-sm:backdrop:bg-black/10 max-sm:max-h-full max-sm:border-0 max-sm:shadow-xl";
 
     /// <summary>Flux parks the dialog's initial focus on a node that is not there once it is open.</summary>
     internal const string FocusPlaceholder = "[[open]>&]:hidden";
@@ -125,11 +125,11 @@ internal static class UiColorPickerLook
         + "disabled:opacity-50 disabled:pointer-events-none";
 
     /// <summary>The palette: eight to a row.</summary>
-    internal const string Swatches = "grid grid-cols-8 gap-1.5";
+    internal const string Swatches = "grid grid-cols-8 gap-1.5 max-sm:gap-2";
 
     /// <summary>One colour of the palette.</summary>
     internal const string Swatch =
-        "size-6 max-sm:size-auto max-sm:w-full max-sm:aspect-square rounded border border-black/10 dark:border-white/10 cursor-default "
+        "size-6 max-sm:size-8 rounded border border-black/10 dark:border-white/10 cursor-default "
         + "data-selected:ring-2 data-selected:ring-offset-1 data-selected:ring-zinc-800 dark:data-selected:ring-white data-selected:ring-offset-white";
 
     /// <summary>Cancel and Select, which only the phone's sheet shows.</summary>
