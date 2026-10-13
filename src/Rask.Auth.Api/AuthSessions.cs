@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,20 +11,17 @@ namespace Rask.Auth;
 
 /// <inheritdoc cref="IAuthSessions" />
 /// <remarks>
-/// A resumed session is cached for up to 30 seconds per process, so a busy page costs one read every half minute rather
-/// than one per request. Ending a session removes it from this process's cache at once; another replica stops honouring it
-/// within that window.
+/// Every resume reads the session's row and its user's: nothing is remembered between two of them. A live page resumes
+/// before each event it takes, so a session ended, a user removed or a role changed on any replica is what the very next
+/// event on every other one sees — which a per-process cache, however short, would stand in the way of.
 /// </remarks>
 internal sealed class AuthSessions<TContext, TUser>(
     IDbContextFactory<TContext> contexts,
-    IMemoryCache cache,
     TimeProvider clock,
     AuthOptions options) : IAuthSessions
     where TContext : DbContext
     where TUser : Authenticatable
 {
-    private static TimeSpan CacheFor => TimeSpan.FromSeconds(30);
-
     public async Task<Guid> StartAsync(
         Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default)
     {
@@ -45,16 +41,6 @@ internal sealed class AuthSessions<TContext, TUser>(
     public async Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-
-        if (cache.TryGetValue(CacheKey(sessionId), out Snapshot? cached) && cached is not null)
-        {
-            if (cached.ExpiresAt > now)
-            {
-                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId, cached.TenantId, cached.OwnClaims);
-            }
-
-            cache.Remove(CacheKey(sessionId));
-        }
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -87,19 +73,15 @@ internal sealed class AuthSessions<TContext, TUser>(
                     .ConfigureAwait(false);
             }
 
-            var snapshot = new Snapshot(
-                found.UserId, found.User.Email, [.. found.User.Roles], expiresAt, found.User.TenantId, found.User.OwnClaims());
-            cache.Set(CacheKey(sessionId), snapshot, CacheFor);
-
+            // TenantId rides along so a restored session filters for the same tenant the sign-in did, and the
+            // account's own claims so it is the principal the sign-in issued.
             return AuthPrincipal.For(
-                snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId, snapshot.TenantId, snapshot.OwnClaims);
+                found.UserId, found.User.Email, [.. found.User.Roles], sessionId, found.User.TenantId, found.User.OwnClaims());
         }
     }
 
     public async Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
-        cache.Remove(CacheKey(sessionId));
-
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
@@ -128,7 +110,6 @@ internal sealed class AuthSessions<TContext, TUser>(
             var now = clock.GetUtcNow().UtcDateTime;
             foreach (var session in sessions)
             {
-                cache.Remove(CacheKey(session.Id));
                 session.End(now);
                 db.Remove(session);
             }
@@ -137,13 +118,4 @@ internal sealed class AuthSessions<TContext, TUser>(
             return sessions.Count;
         }
     }
-
-    private static string CacheKey(Guid sessionId) => "Rask.Auth.Session:" + sessionId.ToString("N");
-
-    // TenantId rides along so a restored session filters for the same tenant the sign-in did. Without it a
-    // reconnect would come back with no tenant claim and every tenant-scoped read would throw.
-    // The account's own claims ride along for the same reason: a session loaded again must be the principal the
-    // sign-in issued, or a claim would be there until the first reconnect and gone after it.
-    private sealed record Snapshot(
-        Guid UserId, string Email, string[] Roles, DateTime ExpiresAt, Guid? TenantId, OwnClaim[] OwnClaims);
 }

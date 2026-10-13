@@ -36,6 +36,24 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal(0, allocated);
     }
 
+    // What one task of the browser produced arrives as one frame, and is one request's worth of asking.
+    [Fact]
+    public async Task The_events_of_one_frame_ask_once_between_them()
+    {
+        using var host = CreateHost<FollowApp>(revalidate: true);
+        var directory = host.Services.GetRequiredService<Directory>();
+        var page = await OpenAsync(host, "/open", "alice");
+        using var ws = await AttachAsync(host, page.SessionId, "alice");
+        var asked = Volatile.Read(ref directory.Asked);
+
+        await ws.SendJsonAsync(
+            new { type = "batch", events = new[] { new { id = page.Save }, new { id = page.Save }, new { id = page.Save } } },
+            TestContext.Current.CancellationToken);
+        await WaitFor.True(() => Saves(host).Length == 3, "the three handlers run");
+
+        Assert.Equal(1, Volatile.Read(ref directory.Asked) - asked);
+    }
+
     [Fact]
     public async Task An_event_is_refused_when_the_revalidator_cannot_answer_and_the_next_one_asks_again()
     {

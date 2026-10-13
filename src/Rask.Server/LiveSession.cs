@@ -202,6 +202,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     internal void ForgetReads() =>
         (Services.GetService<Rask.Querying.IQueryClient>() as Rask.Querying.SessionQueryClient)?.Forget();
 
+    // Whether the next event asks who the user is: always, except for the later events of a frame that carried
+    // several — one task of the browser, and one request's worth of asking.
+    internal WhoAnswer WhoAnswered { get; set; }
+
     // When the user was last asked about (Environment.TickCount64). Every event asks; a render nobody asked for
     // asks only when this is older than RaskEndpointExtensions.PushedRenderTrusts.
     internal long LastUserCheck { get; set; }

@@ -93,7 +93,7 @@ public sealed class SessionTests
         for (var i = 0; i < 4; i++)
         {
             clock.Advance(TimeSpan.FromMinutes(50));
-            Assert.NotNull(await ResumeUncachedAsync(harness, sessionId));
+            Assert.NotNull(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
         }
     }
 
@@ -110,7 +110,7 @@ public sealed class SessionTests
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        Assert.Null(await ResumeUncachedAsync(harness, sessionId));
+        Assert.Null(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -139,12 +139,51 @@ public sealed class SessionTests
         return await db.Set<Session>().IgnoreQueryFilters().AnyAsync(s => s.Id == sessionId);
     }
 
-    // The resume cache would otherwise answer from the first read for 30 seconds of wall-clock time.
-    private static Task<ClaimsPrincipal?> ResumeUncachedAsync(AuthHarness harness, Guid sessionId)
+    // Nothing is remembered between two resumes: a live page asks before every event, and what it is told is the row.
+    [Fact]
+    public async Task A_role_taken_away_is_gone_from_the_very_next_resume()
     {
-        harness.Services.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()
-            .Remove("Rask.Auth.Session:" + sessionId.ToString("N"));
-        return Sessions(harness).ResumeAsync(sessionId);
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var before = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        await using (var db = harness.NewContext())
+        {
+            var user = await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id, TestContext.Current.CancellationToken);
+            foreach (var role in user.Roles.ToArray())
+            {
+                user.RevokeRole(role);
+            }
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var after = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(before!.FindAll(ClaimTypes.Role));
+        Assert.Empty(after!.FindAll(ClaimTypes.Role));
+    }
+
+    [Fact]
+    public async Task A_session_ended_through_another_replica_s_store_is_not_resumed_by_the_next_call()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var before = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        // Another replica ended it: the row is gone from the table, and this process was told nothing.
+        await using (var db = harness.NewContext())
+        {
+            db.Remove(await db.Set<Session>().SingleAsync(s => s.Id == sessionId, TestContext.Current.CancellationToken));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var after = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(before);
+        Assert.Null(after);
     }
 
     [Fact]
@@ -169,10 +208,10 @@ public sealed class SessionTests
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
 
         var loaded = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
-        var fromTheCache = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+        var again = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
 
         Assert.Equal("42", loaded!.FindFirstValue("legacy_id"));
-        Assert.Equal("42", fromTheCache!.FindFirstValue("legacy_id"));
+        Assert.Equal("42", again!.FindFirstValue("legacy_id"));
     }
 
     [Fact]

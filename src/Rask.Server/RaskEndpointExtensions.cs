@@ -2657,6 +2657,7 @@ public static partial class RaskEndpointExtensions
         }
 
         var submits = EventBatch.AnnounceSubmits(session.View, events);
+        session.WhoAnswered = WhoAnswer.OwedToBatch;
         try
         {
             var remaining = count;
@@ -2682,6 +2683,7 @@ public static partial class RaskEndpointExtensions
         finally
         {
             EventBatch.Withdraw(submits);
+            session.WhoAnswered = WhoAnswer.PerEvent;
             session.EndBatch();
             session.InHandlerScope = false;
             ReleaseDispatchLock(session);
@@ -2974,9 +2976,18 @@ public static partial class RaskEndpointExtensions
             // re-evaluate and ship the challenge/forbid redirect.
             // Asked at every event, with no window in which one is taken on trust: as a request through the app's
             // auth middleware would be.
-            if (!await TryAskWhoAsync(session, "the event", ct).ConfigureAwait(false))
+            // The events of one frame are one request, and ask once between them.
+            if (session.WhoAnswered != WhoAnswer.GivenToBatch)
             {
-                return;
+                if (!await TryAskWhoAsync(session, "the event", ct).ConfigureAwait(false))
+                {
+                    return;
+                }
+
+                if (session.WhoAnswered == WhoAnswer.OwedToBatch)
+                {
+                    session.WhoAnswered = WhoAnswer.GivenToBatch;
+                }
             }
 
             if (session.SignInEnded || !await IsCurrentRouteAuthorizedAsync(session).ConfigureAwait(false))
