@@ -117,7 +117,7 @@ public sealed partial class KitOwnFramePage : KitFramePage
             ]]),
             Part("rating", Ui.Rating.Value(_stars).Group("score").Label("Rate this").Max(5).OnChange(v => _stars = v)),
             Part("filter", Ui.Filter.Value(_tag).Group("tags").Options([("bug", "bug"), ("docs", "docs")]).ResetLabel("All").OnChange(v => _tag = v)),
-            Part("swap", Ui.Swap.AccessibleLabel("Mute").On(Span["on"]).Off(Span["off"]).Active(_muted).OnChange(v => _muted = v)),
+            Part("toggle-heard", Ui.Toggle.Icon(Ui.IconName.SpeakerWave).Label("Mute").Checked(_muted).OnChange(v => _muted = v)),
             Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]]),
             Part("hover-gallery", Ui.HoverGallery[Div["One"], Div["Two"]]),
             Part("fab", Ui.Fab.AccessibleLabel("Compose").Icon(Ui.IconName.Plus)[Ui.Button.Sm.Key("photo")["Photo"]])

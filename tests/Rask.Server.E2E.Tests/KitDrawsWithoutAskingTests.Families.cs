@@ -179,7 +179,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["data-grid"] = On<KitOwnFramePage>("data-grid", Press("sort a column", "[data-c='data-grid'] th button")),
         ["rating"] = On<KitOwnFramePage>("rating", Press("rate", "[data-c='rating'] input >> nth=4")),
         ["filter"] = On<KitOwnFramePage>("filter", Press("filter", "[data-c='filter'] input >> nth=1")),
-        ["swap"] = On<KitOwnFramePage>("swap", Press("swap", "[data-c='swap'] button, [data-c='swap'] label")),
+        ["toggle-heard"] = On<KitOwnFramePage>("toggle-heard", Press("press", "[data-c='toggle-heard'] button")),
         ["carousel"] = On<KitOwnFramePage>("carousel"),
         ["hover-gallery"] = On<KitOwnFramePage>("hover-gallery"),
         ["fab"] = On<KitOwnFramePage>("fab"),

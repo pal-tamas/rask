@@ -28,7 +28,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["radio: choose by the arrows"] = (2, "the value, once per radio chosen"),
         ["rating: rate"] = (1, "the value"),
         ["slider: arrow keys"] = (5, "the value, as it moves: a frame a key at most"),
-        ["swap: swap"] = (1, "the value"),
+        ["toggle-heard: press"] = (1, "the value"),
         ["switch: flip"] = (1, "the value"),
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
         ["toast: raise one from the page's handler"] = (1, "the page's OnClick"),
