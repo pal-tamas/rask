@@ -223,6 +223,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
+  region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
+  `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing
+  beside it names the country (empty by default: decoration). Measured from Flux's page and held to it by
+  `node scripts/flux/parity.mjs flag`. **The 254 drawings are files, not part of the assembly**: an app that
+  shows flags sets `<RaskUiWriteFlags>true</RaskUiWriteFlags>` and the build copies them into
+  `wwwroot/flags` with their notice; an app that does not carries none of their 172 KB, and the package grows
+  by 82 KB. In a one-project WebAssembly app the browser half writes them. They are
+  [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
+  vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
+  the empty frame, as an unknown code does.
+
 - **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
   `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or
   `UiDateRange?` becomes `null`; a `DateOnly` / `UiDateRange` goes back to its unset value, which is also what

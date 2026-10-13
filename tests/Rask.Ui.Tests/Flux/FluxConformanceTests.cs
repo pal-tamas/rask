@@ -199,6 +199,7 @@ public sealed class FluxConformanceTests
         ["flux:tabs"] = typeof(UiTabs),
         ["flux:tab"] = typeof(UiTab),
         ["flux:tab.panel"] = typeof(UiTabPanel),
+        ["flux:flag"] = typeof(UiFlag),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>

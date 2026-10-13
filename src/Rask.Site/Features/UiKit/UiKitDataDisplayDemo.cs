@@ -46,6 +46,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
         StableColumnsSection(),
         PagingThatWaitsSection(),
         TimelineSection(),
+        FlagSection(),
         RestOfCategorySection()
     ];
 
@@ -242,6 +243,13 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Flux's timeline: events or steps in order, down the page or across it, with the line drawn "
             + "between their indicators. A list, so there is nothing to hold in C#.",
             UiKitTimelineDemo);
+
+    private static Component FlagSection() =>
+        Section(
+            "Flag",
+            "Flux's flag: a country's flag from its two-letter region code, 3:2 or cropped to a circle, in five "
+            + "widths. Each is one small file the page fetches when it shows it.",
+            UiKitFlagDemo);
 
     private static Component RestOfCategorySection() =>
         Section(

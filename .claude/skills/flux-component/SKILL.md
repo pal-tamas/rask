@@ -207,7 +207,7 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
@@ -829,6 +829,17 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   on Flux's page: an `invalid` file item (it takes the invalid input's border), sizes beyond KB (`UiFileSize`
   follows the reference's B / KB / MB / GB), the icon of a two-line item with no image. The site's demo reads a
   chosen picture for its preview, which Flux's page does on the server.
+
+- Flag (2026-10-13): `Ui.Flag` is a `<span>` frame around a lazy `<img>`. The drawings are FILES
+  (`src/Rask.Ui/Flags/`, country-flag-icons 1.6.20, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
+  from the pinned tarball and writes `UiFlagRegistry.g.cs`), packed as `build/flags` and copied to
+  `wwwroot/flags` only for a project that says `RaskUiWriteFlags` (`Rask.Ui.targets`; the browser half of a
+  one-project WASM app owns them, as it owns the editor's engine — `ClientCompanionGenerationTests`). `UN` and
+  `CQ`: Flux serves them from artwork whose licence could not be established, so they are not shipped. The
+  parity page compares the FRAME (a file:// page has no `/flags`); that the files are served and drawn is
+  `UiKitFlagTests` on the site. Found through its page: Flux's `flux:select.option` given BOTH `label` and
+  content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
+  draws the `Label` in place of its children, so the flag page's two selects are written without it.
 
 ## Merging a component branch
 `git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped

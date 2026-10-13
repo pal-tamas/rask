@@ -243,6 +243,12 @@
       -->
       <_RaskClientLine Condition=" '$(RaskUiEditorEngine)' == 'false' AND '$(UsingMicrosoftNETSdkWeb)' == 'true' "
                        Include="    &lt;RaskUiEditorEngine&gt;false&lt;/RaskUiEditorEngine&gt;"/>
+      <!--
+        Ui.Flag's drawings (wwwroot/flags) are opt-in, and written by THIS half alone for the engine's reason.
+        The app says so once, in its one project, so the switch crosses.
+      -->
+      <_RaskClientLine Condition=" '$(RaskUiWriteFlags)' == 'true' "
+                       Include="    &lt;RaskUiWriteFlags&gt;true&lt;/RaskUiWriteFlags&gt;"/>
       <_RaskClientLine Include="  &lt;/PropertyGroup&gt;"/>
       <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
       <_RaskClientLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>

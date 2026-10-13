@@ -68,6 +68,9 @@
 */
 @source not "./daisyui.mjs";
 
+/* Nor the flag drawings Ui.Flag serves as files: path data, not markup, and 254 files to read for nothing. */
+@source not "../Flags";
+
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
