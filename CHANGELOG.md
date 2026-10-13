@@ -1496,6 +1496,37 @@ them until tagged releases begin.
 
 ### Performance
 
+- **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
+  keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
+  was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was
+  every arrow, every letter typed ahead or into a search, every open and every close. Flux's list is a custom
+  element whose script keeps all of that, and Livewire hears a value: measured on fluxui.dev, opening a select,
+  sweeping the pointer over every row, walking it with the arrows, typing ahead and pressing Escape send no
+  request at all. The runtime now does the same for the kit, on both hosts, in a hook module of its own
+  (`rask-list.ts`, in the on-demand `rask-hooks.js`), asked for by `data-rask-list` on the control's root. It
+  writes `data-active` and `aria-activedescendant` as the cursor moves, `data-open` and `aria-expanded` in the
+  task the list opens, and — where the browser filters — `data-hidden` on the rows a search leaves out, the
+  "no results" row, the create row and a group's heading, and holds every one of them against the next render.
+  The page renders the rows and hears a **pick**: the press on the row itself (Enter clicks the lit row), so the
+  picked row is named by the press and by no cursor of the page's. An autocomplete's pick is the browser writing
+  the item into the input, and the input tells the page as it tells it of anything typed.
+  **Measured on a live Server page over one journey** — open, the pointer over every row, eight keys, type-ahead
+  or a search, Escape, open again from the keyboard, the pointer over every row, Tab — frames sent before → now:
+  **listbox 33 → 0, pillbox 34 → 0, autocomplete 28 → 0**; the searchable listbox, the combobox and the pillbox's
+  combobox could not finish the journey at keyboard speed before (a late toggle shut the list a key had opened)
+  and send 0 now. A pick is the one frame of its press; an autocomplete bound to a member that waits sends 0 at
+  a pick and its text with the next action. `UiListHookTests` asserts each.
+  The rules are Flux's, re-measured for this (`scripts/flux/probe-list.mjs`, and the `--live` walks of
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`, which now also hold the row named to
+  assistive technology): a row the pointer lit goes dark when the pointer leaves the list and one the keys lit
+  stays (the kit used to keep the pointer's row lit everywhere but in a pillbox); with no row lit ArrowDown
+  lands on the first row and ArrowUp on the last; Enter with no row lit picks nothing; a row is lit by
+  `data-active` alone, never by `:hover`, so the keys' row is the one lit while the pointer rests on another.
+  **What changes for an app**: nothing in the chain. `aria-expanded="true"`, `data-open`, `data-active`,
+  `aria-activedescendant` and a browser-filtered `data-hidden` are no longer in any RENDER — a test that read
+  them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
+  search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
+  create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click

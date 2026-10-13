@@ -18,7 +18,7 @@ import {
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
 import { isHandlerEvent } from "./rask-batch.js";
-import { draws, isUnasked, unasked } from "./rask-owned.js";
+import { draws, isUnasked, seam, unasked } from "./rask-owned.js";
 
 /** Any element this module reads a `value` off. */
 type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -218,7 +218,11 @@ function ask(el: ValueElement, composing: boolean): void {
     asking.set(el, composing ? 0 : window.setTimeout(function () {
         asking.delete(el);
         const id = el.getAttribute(ON_PAUSE);
-        if (id && el.isConnected) sendOwn(function () { send({ id, type: "input", value: el.value }); });
+        if (id && el.isConnected) {
+            // Kept for whoever rewrites the field later (rask-list.ts): it tells the page only what the page does not know.
+            seam.told!.set(el, el.value);
+            sendOwn(function () { send({ id, type: "input", value: el.value }); });
+        }
     }, Number(el.getAttribute(PAUSE))));
 }
 
