@@ -37,8 +37,6 @@ public sealed partial class UiContext : Component
 
     private readonly int _instance = Interlocked.Increment(ref _instances);
 
-    private bool _open;
-
     /// <summary>Where the menu opens against the pointer. Below it, the menu's end edge on it, unless this says otherwise.</summary>
     public Ui.ContextPosition? Position { get; set; }
 
@@ -71,10 +69,6 @@ public sealed partial class UiContext : Component
 
     public string? Class { get; set; }
 
-    // _open is a FIELD, which the render cache cannot see.
-    /// <inheritdoc />
-    protected override bool BypassRenderCache => true;
-
     private string PanelId => "uictx-" + _instance.ToString(CultureInfo.InvariantCulture) + "-panel";
 
     /// <inheritdoc />
@@ -82,7 +76,7 @@ public sealed partial class UiContext : Component
     {
         var parts = (Children ?? []).Where(child => child is not null).ToList();
         var host = new UiPopupHost(
-            PanelId, PanelStyle(), Open, Detail, ToggledAsync,
+            PanelId, PanelStyle(), Open, Detail, OnToggle.HasValue ? ToggledAsync : null,
             Place: PointerPlace(Position ?? Ui.ContextPosition.BottomEnd, Gap, Offset ?? (0, 0)));
 
         var data = new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-context"] = "" };
@@ -92,11 +86,9 @@ public sealed partial class UiContext : Component
             data["rask-contextmenu"] = Target ?? PanelId;
         }
 
-        if (Open ?? _open)
-        {
-            // Flux's `data-open`: an area that looks selected while its menu is up.
-            data["open"] = "";
-        }
+        // Flux's `data-open`, an area that looks selected while its menu is up: the runtime writes it, in the
+        // task the menu opens in (rask-toggle.ts).
+        data[UiInvoker.OpenMark] = Target ?? PanelId;
 
         return Div.Class(UiClass.Compose("inline", Class)).Data(data)[
             parts.Count > 0 ? parts[0] : null,
@@ -106,8 +98,6 @@ public sealed partial class UiContext : Component
 
     private async Task ToggledAsync(bool open)
     {
-        _open = open;
-
         // Controlled: tell the page only about a change it did not make itself.
         if (open != Open)
         {
