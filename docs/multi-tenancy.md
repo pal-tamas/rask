@@ -130,8 +130,9 @@ builder.Services.AddRaskTenant(sp => sp.GetRequiredService<ICurrentRequest>().Te
 
 The function is handed the services of the work in flight and returns its tenant, or `null` when it belongs to
 none. A request asks it **once**, as it starts. A live session asks it **at every event** — as a connection
-attaches, before each handler, and as the page's address moves — so the tenant a page works in is the one its
-user has *now*, as it would be if each update were a request. `Current.Tenant`, every filter and every stamp
+attaches (one that attaches while a handler runs, when that handler has finished: a handler works in one tenant
+from start to end), before each handler, and as the page's address moves — so the tenant a page works in is the
+one its user has *now*, as it would be if each update were a request. `Current.Tenant`, every filter and every stamp
 then use the answer.
 
 | | With a resolver registered |

@@ -2346,8 +2346,11 @@ public static partial class RaskEndpointExtensions
 
         try
         {
-            await AdoptUserAsync(session, user, ct).ConfigureAwait(false);
-            await RenderAttachedAsync(session, ct).ConfigureAwait(false);
+            // Held for later when a handler runs: its link on the chain renders for the new principal instead.
+            if (await AdoptUserAsync(session, user, attached: true, ct).ConfigureAwait(false))
+            {
+                await RenderAttachedAsync(session, ct).ConfigureAwait(false);
+            }
         }
         catch
         {
@@ -2532,7 +2535,8 @@ public static partial class RaskEndpointExtensions
             // the route here asks nobody for a render.
             // The page is then rendered as one reached in place, behind that same guard: it waits for its first
             // reads, so the frame that replaces what the reader was looking at carries them.
-            await AdoptUserAsync(session, user, ct).ConfigureAwait(false);
+            // Nothing of a session built a moment ago runs, so there is nothing to wait behind.
+            Adopt(session, user, await AnswerForAsync(session, user, ct).ConfigureAwait(false));
             await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
         }
         catch

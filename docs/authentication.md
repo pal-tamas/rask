@@ -264,13 +264,22 @@ user was signed out is its former user's or nobody's: another signed-in user is 
 
 | When | What happens |
 |---|---|
-| a connection attaches (a socket's `hello`, a reconnect, an HTTP stream), and a post of the HTTP fallback brings another principal | asked about the principal the connection carries **before** the session is given it: the session only ever holds the answer, and nothing rendered or dispatched sees what the cookie merely claims |
+| a connection attaches (a socket's `hello`, a reconnect, an HTTP stream), and a post of the HTTP fallback brings another principal | asked about the principal the connection carries **before** the session is given it: the session only ever holds the answer, and nothing rendered or dispatched sees what the cookie merely claims. Given to it at once, or [behind the handler that is running](#what-ties-a-live-page-to-its-user) |
 | before every handler (an event, a submit, a `files` event) and before every navigation | asked, with no interval in which an event is taken on trust. The events of one frame — what one task of the browser produced — ask once between them, and again when the frame has run for more than a second |
 | before a call a page's script makes into the server (`DotNet.invokeMethodAsync`, a `dotNetInvoke` frame) | asked unless something asked within the last second, and not made at all for a session whose sign-in ended |
 | before a render the server starts itself (a timer, a followed service, a data change) | asked unless something asked within the last **second**. This second is the one time bound there is, and it is here because such a render is not a reader's action: a page that repaints twenty times a second would otherwise read the user's row twenty times a second |
 
 The answer to a call the server made into the page (`jsResult`) is an answer, not an act, and is taken as it
 comes. An upload and a download are requests of their own, checked against the principal that request carries.
+
+**A handler finishes as the user it started as.** A credential that arrives while a handler of that page runs —
+a reconnect, a post of the HTTP fallback — is asked about at once and adopted when what runs has finished, ahead
+of every event read after it. So a handler reads and writes as one user in one tenant from its first line to its
+last, and nothing is rendered for the new principal before the session has adopted it; the handler's own render
+is still the old one's. The connection itself is attached without waiting — the handler may be waiting for that
+very connection, for the answer to a call into the page's script. When two arrive during one handler the later
+is the one adopted, and one that was let in against a user the session no longer holds by then is dropped. With
+nothing running the session adopts it as the connection attaches.
 
 It is handed the principal the session holds and answers one of three ways:
 
@@ -359,7 +368,7 @@ as it is now:
 
 | The new cookie names | The tab |
 |---|---|
-| the same user, with other claims | goes on, under them: the session adopts the principal, the page renders again, and what the reader typed or pressed meanwhile is sent afterwards |
+| the same user, with other claims | goes on, under them: the session adopts the principal — once a handler still running has finished — the page renders again, and what the reader typed or pressed meanwhile is sent afterwards |
 | another user | loads the page again, as them |
 | nobody | [goes to the sign-in page](#when-the-user-is-gone) |
 

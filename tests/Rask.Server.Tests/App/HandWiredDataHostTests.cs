@@ -81,8 +81,20 @@ public sealed class CurrentCustomer(IHttpContextAccessor http)
         int.TryParse(http.HttpContext?.Request.Headers[Header], out var tenant) ? tenant : null;
 }
 
+/// <summary>Where a test holds a handler between its read and its write, and what the handler saw on each side.</summary>
+public sealed class HandlerGate
+{
+    public TaskCompletionSource Reached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource Open { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Guid? ReadIn { get; set; }
+
+    public Guid? WroteIn { get; set; }
+}
+
 /// <summary>A live page: who and which tenant on its first render, and its tenant's rows when asked.</summary>
-public sealed partial class TerminalsApp : Component
+public sealed partial class TerminalsApp(HandlerGate gate, Microsoft.JSInterop.IJSRuntime js) : Component
 {
     private List<string>? _names;
 
@@ -91,10 +103,34 @@ public sealed partial class TerminalsApp : Component
         Markup.P[$"tenant={Current.Tenant?.ToString() ?? "none"}"],
         Markup.P[$"user={Current.UserId?.ToString() ?? "nobody"}"],
         Markup.P[$"names={(_names is null ? "unread" : string.Join(',', _names))}"],
-        Button.OnClick(Load)["load"]
+        Button.OnClick(Load)["load"],
+        Button.OnClick(AddWhenLetThrough)["add"],
+        Button.OnClick(AddWhenThePageAnswers)["ask"]
     ];
 
     private async Task Load() => _names = await Terminal.OrderBy(t => t.Name).Select(t => t.Name);
+
+    // Reads, waits for the test, writes: what arrives in between must not move the write to another tenant.
+    private async Task AddWhenLetThrough()
+    {
+        await Load();
+        gate.ReadIn = Current.Tenant;
+        gate.Reached.TrySetResult();
+        await gate.Open.Task;
+
+        gate.WroteIn = Current.Tenant;
+        await Terminal.Named("Added").Save();
+    }
+
+    // The same, held by a call into the page's script: only a frame from the connection lets it through.
+    private async Task AddWhenThePageAnswers()
+    {
+        gate.ReadIn = Current.Tenant;
+        await js.InvokeAsync<string>("prompt", ["name?"]);
+
+        gate.WroteIn = Current.Tenant;
+        await Terminal.Named("Asked").Save();
+    }
 }
 
 /// <summary>
@@ -106,7 +142,7 @@ public sealed partial class TerminalsApp : Component
 ///     two tenants and one for nobody are there in every test, so a read that filtered by nothing would show.
 /// </remarks>
 [Collection(RaskAppCollection.Name)]
-public sealed class HandWiredDataHostTests : IDisposable
+public sealed partial class HandWiredDataHostTests : IDisposable
 {
     private const string UserHeader = "X-User";
     private static readonly Guid Alice = Guid.NewGuid();
@@ -395,6 +431,7 @@ public sealed class HandWiredDataHostTests : IDisposable
                 // What it adds.
                 services.AddRaskData<TerminalDomainContext>(o => o.UseSqlite(connection));
                 services.AddSingleton<ChosenPartner>();
+                services.AddSingleton<HandlerGate>();
                 services.AddSingleton<ISessionRevalidator, PartnerRevalidator>();
                 services.AddScoped<IQueryClient>(static _ => new SessionQueryClient(new NothingToAsk()));
                 if (log is not null)

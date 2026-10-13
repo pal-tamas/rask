@@ -197,20 +197,113 @@ public static partial class RaskEndpointExtensions
     ///         caller ends the connection, and the client's reconnect asks again.
     ///     </para>
     ///     <para>
-    ///         Not under the session's lock. A handler that holds it may be waiting for this very connection — for
-    ///         the answer to a call into the page's script — and would wait for ever. So the answer is worked out
-    ///         first and put in place in one step.
+    ///         Never in the middle of a dispatch: a handler that read as one user and tenant writes as the same.
+    ///         With nothing of the session running the answer is put in place here. Otherwise it is held and adopted
+    ///         on the handler chain, when what runs has finished — and never waited for: the handler may itself be
+    ///         waiting for this very connection, for the answer to a call into the page's script.
     ///     </para>
     /// </remarks>
-    private static async Task AdoptUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
+    /// <returns>False when the answer was held for later, and nothing may be rendered for it yet.</returns>
+    private static async Task<bool> AdoptUserAsync(LiveSession session, ClaimsPrincipal user, bool attached, CancellationToken ct)
     {
-        var answer = PrincipalRights.IsSignedIn(user) && session.Revalidator is { } revalidator
+        var answer = await AnswerForAsync(session, user, ct).ConfigureAwait(false);
+
+        if (await session.Lock.WaitAsync(0, CancellationToken.None).ConfigureAwait(false))
+        {
+            try
+            {
+                // One that arrived earlier and still waits is older than this: the latest wins.
+                session.TakeArrived();
+                Adopt(session, user, answer);
+            }
+            finally
+            {
+                session.Lock.Release();
+            }
+
+            return true;
+        }
+
+        session.HoldArrived(new ArrivedUser(user, answer, session.Users.Current));
+        session.EnqueueOnHandlerChain(previous => AdoptBehindAsync(previous, session, attached, ct));
+        return false;
+    }
+
+    // What the revalidator makes of the principal a connection carries: the one to act under, or null when its
+    // sign-in has ended. Asked about nobody, and by an app with no revalidator, it is the principal itself.
+    private static async ValueTask<ClaimsPrincipal?> AnswerForAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct) =>
+        PrincipalRights.IsSignedIn(user) && session.Revalidator is { } revalidator
             ? AnswerAbout(user, await revalidator.Revalidate(user, ct).ConfigureAwait(false))
             : user;
 
+    // The held credential's link on the handler chain: behind the dispatch that was running as it arrived, and
+    // ahead of every event read after it.
+    private static async Task AdoptBehindAsync(Task previous, LiveSession session, bool attached, CancellationToken ct)
+    {
+        // Never inline: whoever queued this holds the chain's gate, and must not be made to wait for a render.
+        await Task.Yield();
+        await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        try
+        {
+            if (!await AdoptArrivedAsync(session).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            // Only now is there anything to show the new principal: what the attach would have rendered at once.
+            await (attached ? RenderAttachedAsync(session, ct) : session.FlushPendingRenderAsync()).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            // The connection closed, or the session went, while this waited its turn.
+        }
+        catch (Exception ex)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Error, "Rask.Live",
+                "Rask Live: could not render for the user a connection brought while a handler ran", ex);
+        }
+    }
+
+    private static async Task<bool> AdoptArrivedAsync(LiveSession session)
+    {
+        await session.Lock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            // Taken by a later arrival that found the session idle, or dropped: it was let in against the user the
+            // session held then, and the session holds somebody else now.
+            if (session.TakeArrived() is not { } arrived || !StillAdmitted(session, arrived))
+            {
+                return false;
+            }
+
+            Adopt(session, arrived.Carried, arrived.Answer);
+            return true;
+        }
+        finally
+        {
+            session.Lock.Release();
+        }
+    }
+
+    // While the session holds whom it held as the credential arrived, the check made then stands — a sign-out's
+    // handoff, which no user check admits, among them. Otherwise it is made again, against whom it holds now.
+    private static bool StillAdmitted(LiveSession session, ArrivedUser arrived)
+    {
+        var holds = session.Users.Current;
+        return ReferenceEquals(holds, arrived.Held)
+               || PrincipalRights.Same(holds, arrived.Held)
+               || MayDrive(arrived.Carried, session);
+    }
+
+    // Puts a revalidated answer in place, in one step with nothing awaited: the principal, what the connection
+    // carried, and the tenant that follows from them.
+    private static void Adopt(LiveSession session, ClaimsPrincipal carried, ClaimsPrincipal? answer)
+    {
         var users = session.Users;
         var before = users.Current;
-        session.ConnectionUser = user;
+        session.ConnectionUser = carried;
         session.LastUserCheck = Environment.TickCount64;
 
         var changed = answer is null ? users.IsSignedIn : !PrincipalRights.Same(before, answer);
@@ -240,18 +333,26 @@ public static partial class RaskEndpointExtensions
         session.AskTenantAgain();
     }
 
+    // The principal the session's connection last brought: one still waiting to be adopted, or the adopted one.
+    private static ClaimsPrincipal? CarriedBy(LiveSession session) => session.ArrivedUser?.Carried ?? session.ConnectionUser;
+
     /// <summary>
     ///     Adopts the principal an HTTP post carries when it is not the one the session's stream opened with: a post
     ///     brings the browser's credential as it is now, which a stream opened earlier never sees.
     /// </summary>
     private static Task AdoptPostedUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
     {
-        if (session.ConnectionUser is not { } attached || !PrincipalRights.Same(attached, user))
+        if (CarriedBy(session) is not { } carried || !PrincipalRights.Same(carried, user))
         {
-            return AdoptUserAsync(session, user, ct);
+            return AdoptUserAsync(session, user, attached: false, ct);
         }
 
-        KeepToken(session, attached, user);
+        // One that still waits to be adopted is not the session's to keep a token for yet.
+        if (session.ConnectionUser is { } attached && session.ArrivedUser is null)
+        {
+            KeepToken(session, attached, user);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -441,13 +542,13 @@ public static partial class RaskEndpointExtensions
 
         // What the connection carried, not what a revalidator has made of it since: the question is whether the
         // browser would bring another credential if the connection were opened again.
-        var attached = session.ConnectionUser ?? session.Users.Current;
+        var attached = CarriedBy(session) ?? session.Users.Current;
         if (!PrincipalRights.Same(attached, request))
         {
             return WhoOther;
         }
 
-        if (session.ConnectionUser is { } carried)
+        if (session.ConnectionUser is { } carried && session.ArrivedUser is null)
         {
             KeepToken(session, carried, request);
         }

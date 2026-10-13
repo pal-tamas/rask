@@ -253,6 +253,16 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // credential said when the transport opened, before any revalidator replaced it.
     internal ClaimsPrincipal? ConnectionUser { get; set; }
 
+    // A credential that arrived while a dispatch ran, with the revalidator's answer about it: adopted when that
+    // dispatch has finished (RaskEndpointExtensions.AdoptUserAsync). One slot, so the latest to arrive wins.
+    private ArrivedUser? _arrivedUser;
+
+    internal ArrivedUser? ArrivedUser => Volatile.Read(ref _arrivedUser);
+
+    internal void HoldArrived(ArrivedUser arrived) => Volatile.Write(ref _arrivedUser, arrived);
+
+    internal ArrivedUser? TakeArrived() => Interlocked.Exchange(ref _arrivedUser, null);
+
     // How many times the browser asked whether its credential still names this session's user in the current
     // second: the question is cheap and is still not free to ask in a loop.
     private long _whoWindowStart;

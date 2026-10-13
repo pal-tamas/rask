@@ -33,6 +33,12 @@ them until tagged releases begin.
   cache, is told by another tab, and before the first frame after 30 seconds (2 in an unfocused window); on any
   answer but "the same" it opens its connection again first, so the attach adopts the principal (same user) or
   refuses it. What the reader typed or pressed meanwhile is held and sent afterwards. No app code takes part.
+- **A handler of a live page finishes as the user and in the tenant it started with.** A credential that arrives
+  while a handler of that page runs — a reconnect, a post of the HTTP fallback — is revalidated at once and
+  adopted when the handler has finished, ahead of every event read after it; with nothing running it is adopted
+  as the connection attaches, as before. Nothing is rendered or sent for the new principal before the session has
+  adopted it, the connection is attached without waiting for the handler, the later of two that arrive meanwhile
+  wins, and one let in against a user the session no longer holds is dropped.
 - **An HTTP-fallback post acts under the principal it carries.** Before: a post from the same user with other
   claims ran under the principal the stream had opened with. After: the session adopts the post's principal, as an
   attach does.
