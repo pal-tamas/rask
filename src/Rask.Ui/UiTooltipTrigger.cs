@@ -27,9 +27,10 @@ internal static class UiTooltipTrigger
             : new Dictionary<string, string?>(StringComparer.Ordinal);
 
         // Measured on Flux: a trigger with text of its own is described by the tooltip, and one without —
-        // an icon button — is named by it.
-        var named = aria.ContainsKey("labelledby") || HasText(trigger);
-        var name = Name(relation, named);
+        // an icon button — is named by it. A kit trigger outlives a render and is wired again on the next, so
+        // the name this tooltip gave it then is not a name of its own: counted as one, a second render would
+        // also describe an icon button by the tooltip that names it.
+        var name = Name(relation, named: NamedByAnother(aria, contentId) || HasText(trigger));
         aria[name] = Joined(aria.GetValueOrDefault(name), contentId);
         if (relation == UiTooltipRelation.Toggles)
         {
@@ -54,6 +55,9 @@ internal static class UiTooltipTrigger
         attributes["popovertarget"] = contentId;
         wired.Attributes = attributes;
     }
+
+    private static bool NamedByAnother(Dictionary<string, string?> aria, string contentId) =>
+        aria.TryGetValue("labelledby", out var ids) && !string.Equals(ids, contentId, StringComparison.Ordinal);
 
     private static string Name(UiTooltipRelation relation, bool named)
     {
