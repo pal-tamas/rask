@@ -604,7 +604,7 @@ public static partial class RaskEndpointExtensions
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-        if (SentToSignIn(httpContext, path, user, pathBaseNormalized))
+        if (SentToSignIn(httpContext, path, user, pathBaseNormalized, selector))
         {
             return;
         }
@@ -2375,6 +2375,13 @@ public static partial class RaskEndpointExtensions
             (_, true) => "it belongs to another user",
             _ => "it has a user and the connection is anonymous",
         };
+        // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time;
+        // the line in the log is not.
+        if (!RefusedAttachLines.Admit())
+        {
+            return;
+        }
+
         var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
 
         RaskDiagnostics.Report(
@@ -2989,7 +2996,8 @@ public static partial class RaskEndpointExtensions
             // Asked at every event, with no window in which one is taken on trust: as a request through the app's
             // auth middleware would be.
             // The events of one frame are one request, and ask once between them.
-            if (session.WhoAnswered != WhoAnswer.GivenToBatch)
+            // A batch that has run on for longer than a pushed render trusts an answer asks again.
+            if (session.WhoAnswered != WhoAnswer.GivenToBatch || AskedLongAgo(session))
             {
                 if (!await TryAskWhoAsync(session, "the event", ct).ConfigureAwait(false))
                 {
@@ -3357,18 +3365,42 @@ public static partial class RaskEndpointExtensions
         }
 
         var invocationInfo = new DotNetInvocationInfo(assemblyName, methodIdentifier, dotNetObjectId, callId);
+
+        // A call into the server is an act, like a handler: it is made for the user as they are now, or not made.
+        var may = MayActInlineAsync(session);
+        if (!may.IsCompletedSuccessfully)
+        {
+            _ = InvokeDotNetOnceAskedAsync(may, runtime, invocationInfo, argsJson);
+        }
+        else if (may.Result)
+        {
+            InvokeDotNet(runtime, invocationInfo, argsJson);
+        }
+    }
+
+    private static async Task InvokeDotNetOnceAskedAsync(
+        ValueTask<bool> may, RaskJSRuntime runtime, DotNetInvocationInfo invocation, string argsJson)
+    {
+        if (await may.ConfigureAwait(false))
+        {
+            InvokeDotNet(runtime, invocation, argsJson);
+        }
+    }
+
+    private static void InvokeDotNet(RaskJSRuntime runtime, DotNetInvocationInfo invocation, string argsJson)
+    {
         try
         {
             // Names this session as the caller, so a framework callback registry answers only ids its own
             // session registered — a static [JSInvokable] is otherwise reachable from every socket.
             using var caller = JsCaller.Enter(runtime);
-            DotNetDispatcher.BeginInvokeDotNet(runtime, invocationInfo, argsJson);
+            DotNetDispatcher.BeginInvokeDotNet(runtime, invocation, argsJson);
         }
         catch (Exception ex)
         {
             RaskDiagnostics.Report(
                 RaskLogLevel.Error, "Rask.Live",
-                $"Rask dotNetInvoke '{assemblyName}.{methodIdentifier}' threw", ex);
+                $"Rask dotNetInvoke '{invocation.AssemblyName}.{invocation.MethodIdentifier}' threw", ex);
         }
     }
 
@@ -3393,11 +3425,17 @@ public static partial class RaskEndpointExtensions
             }
 
             var routeState = session.Services.GetRequiredService<RouteState>();
+            var from = (routeState.Path, routeState.Query);
             routeState.Path = navPath;
             routeState.Query = QueryString.Parse(navQueryString);
 
             try
             {
+                // An address that did not move asked nobody.
+                if (string.Equals(from.Path, routeState.Path, StringComparison.Ordinal) && ReferenceEquals(from.Query, routeState.Query))
+                {
+                    session.AskTenantAgain();
+                }
 
                 // And the page it mounts may send the reader on, as it may from a handler or the first request.
                 using var navigating = session.Services.GetRequiredService<Navigator>().EnterHandler();

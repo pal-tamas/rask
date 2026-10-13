@@ -55,12 +55,12 @@ internal sealed class AuthSessions<TContext, TUser>(
     private readonly ConditionalWeakTable<ClaimsPrincipal, Issued> _issued = [];
 
     public async Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
-        await ReadAsync(sessionId, cancellationToken).ConfigureAwait(false) is { } row ? Issue(row, sessionId) : null;
+        await ReadAsync(sessionId, used: true, cancellationToken).ConfigureAwait(false) is { } row ? Issue(row, sessionId) : null;
 
     public async ValueTask<ClaimsPrincipal?> RevalidateAsync(
-        Guid sessionId, ClaimsPrincipal held, CancellationToken cancellationToken = default)
+        Guid sessionId, ClaimsPrincipal held, bool used, CancellationToken cancellationToken = default)
     {
-        if (await ReadAsync(sessionId, cancellationToken).ConfigureAwait(false) is not { } row)
+        if (await ReadAsync(sessionId, used, cancellationToken).ConfigureAwait(false) is not { } row)
         {
             return null;
         }
@@ -69,7 +69,8 @@ internal sealed class AuthSessions<TContext, TUser>(
     }
 
     // The session's row and its user's, or null when the session has ended, expired, or its user is gone.
-    private async Task<Row?> ReadAsync(Guid sessionId, CancellationToken cancellationToken)
+    // used: a request or a reader's action is behind the read, so the session is seen and its expiry slides.
+    private async Task<Row?> ReadAsync(Guid sessionId, bool used, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         var db = _readers.TryTake(out var kept) ? kept : await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
@@ -77,7 +78,7 @@ internal sealed class AuthSessions<TContext, TUser>(
         try
         {
             var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
-            if (found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
+            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
             {
                 await TouchAsync(db, sessionId, now, found.ExpiresAt, cancellationToken).ConfigureAwait(false);
             }

@@ -59,6 +59,18 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
         }
     }
 
+    // Takes a principal that says what Current says — the same user, the same rights, issued again — and tells
+    // nobody: nothing a listener would act on has changed.
+    internal void Keep(ClaimsPrincipal same)
+    {
+        Current = same;
+        IsSignedIn = same.Identity?.IsAuthenticated == true;
+        if (IsSignedIn)
+        {
+            LastSignedIn = same;
+        }
+    }
+
     /// <summary>
     ///     Reset to an unauthenticated principal — explicit session invalidation on sign-out. Raises
     ///     <see cref="Changed" /> (via <see cref="Set" />) only when the session was actually

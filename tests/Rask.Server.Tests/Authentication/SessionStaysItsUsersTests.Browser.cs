@@ -84,10 +84,9 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal(HttpStatusCode.Forbidden, answer.StatusCode);
     }
 
-    // Not a refusal a stranger could tell a live session by: the answer everybody else gets, which makes the tab
-    // open its connection again.
+    // Told to ask again, not that anything changed: a tab that reopened its connection for this would do it in a loop.
     [Fact]
-    public async Task A_tab_that_asks_in_a_loop_is_told_it_is_not_the_same_after_a_handful_a_second()
+    public async Task A_tab_that_asks_in_a_loop_is_told_to_ask_later_after_a_handful_a_second()
     {
         using var host = CreateHost<FollowApp>();
         var page = await OpenAsync(host, "/open", "alice");
@@ -100,7 +99,25 @@ public sealed partial class SessionStaysItsUsersTests
         }
 
         Assert.Equal("200:" + Same, answers[0]);
-        Assert.Contains("200:" + NotTheSame, answers);
+        Assert.Contains("200:{\"later\":true}", answers);
+        Assert.DoesNotContain("200:" + NotTheSame, answers);
+    }
+
+    // A stranger is answered before anything is counted, so "later" is never theirs to hear.
+    [Fact]
+    public async Task A_stranger_asking_in_a_loop_is_only_ever_told_it_is_not_the_same()
+    {
+        using var host = CreateHost<FollowApp>();
+        var page = await OpenAsync(host, "/open", "alice");
+        var answers = new HashSet<string>(StringComparer.Ordinal);
+
+        for (var i = 0; i < 12; i++)
+        {
+            using var answer = await WhoAsync(host, page.SessionId, "mallory");
+            answers.Add(await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        }
+
+        Assert.Equal([NotTheSame], answers);
     }
 
     [Fact]

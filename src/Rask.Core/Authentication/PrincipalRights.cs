@@ -25,8 +25,21 @@ internal static class PrincipalRights
             return true;
         }
 
-        return IsSignedIn(left) == IsSignedIn(right) && (SameInOrder(left, right) || SameInAnyOrder(left, right));
+        return IsSignedIn(left) == IsSignedIn(right)
+               && ReadsClaimsAlike(left, right)
+               && (SameInOrder(left, right) || SameInAnyOrder(left, right));
     }
+
+    // Which claim is a role and which the name is the identity's to say: the same claims read through another
+    // RoleClaimType answer IsInRole differently.
+    private static bool ReadsClaimsAlike(ClaimsPrincipal left, ClaimsPrincipal right) =>
+        (left.Identity as ClaimsIdentity, right.Identity as ClaimsIdentity) switch
+        {
+            ({ } ours, { } theirs) => string.Equals(ours.RoleClaimType, theirs.RoleClaimType, StringComparison.Ordinal)
+                                      && string.Equals(ours.NameClaimType, theirs.NameClaimType, StringComparison.Ordinal),
+            (null, null) => true,
+            _ => false,
+        };
 
     /// <summary>Whether <paramref name="principal" /> is somebody.</summary>
     internal static bool IsSignedIn(ClaimsPrincipal principal) => principal.Identity?.IsAuthenticated == true;

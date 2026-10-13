@@ -142,7 +142,7 @@ public sealed class SessionTests
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
         var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
 
-        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
 
         Assert.Same(held, asked);
     }
@@ -166,7 +166,7 @@ public sealed class SessionTests
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
 
         Assert.NotSame(held, asked);
         Assert.Empty(asked!.FindAll(ClaimTypes.Role));
@@ -181,9 +181,36 @@ public sealed class SessionTests
         var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
 
         await Sessions(harness).EndAllAsync(owner.Id, cancellationToken: TestContext.Current.CancellationToken);
-        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, TestContext.Current.CancellationToken);
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
 
         Assert.Null(asked);
+    }
+
+    // A page with a clock on it repaints for ever. That is not its user using it.
+    [Fact]
+    public async Task A_question_nobody_s_action_is_behind_does_not_slide_the_session_and_a_reader_s_does()
+    {
+        var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+        var started = await ExpiresAsync(harness, sessionId);
+
+        clock.Advance(TimeSpan.FromMinutes(30));
+        await Sessions(harness).RevalidateAsync(sessionId, held, used: false, TestContext.Current.CancellationToken);
+        var afterAPush = await ExpiresAsync(harness, sessionId);
+        await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
+        var afterAnAction = await ExpiresAsync(harness, sessionId);
+
+        Assert.Equal(started, afterAPush);
+        Assert.Equal(started + TimeSpan.FromMinutes(30), afterAnAction);
+    }
+
+    private static async Task<DateTime> ExpiresAsync(AuthHarness harness, Guid sessionId)
+    {
+        await using var db = harness.NewContext();
+        return await db.Set<Session>().Where(s => s.Id == sessionId).Select(s => s.ExpiresAt).SingleAsync(TestContext.Current.CancellationToken);
     }
 
     private static async Task<bool> RowExistsAsync(AuthHarness harness, Guid sessionId)

@@ -20,8 +20,15 @@ internal interface IAuthSessions
     /// row still says what that principal was built from, a principal built anew when the row says otherwise, and
     /// <see langword="null" /> when the session has ended, expired, or its user is gone. The row is read every time.
     /// </summary>
+    /// <param name="sessionId">The session.</param>
+    /// <param name="held">The principal the page holds.</param>
+    /// <param name="used">
+    /// Whether a reader's action is behind the question. Only then is the session marked as seen and its sliding expiry
+    /// moved: a page that repaints by itself must not keep a session nobody uses alive.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the read.</param>
     ValueTask<ClaimsPrincipal?> RevalidateAsync(
-        Guid sessionId, ClaimsPrincipal held, CancellationToken cancellationToken = default);
+        Guid sessionId, ClaimsPrincipal held, bool used, CancellationToken cancellationToken = default);
 
     /// <summary>Ends one session.</summary>
     Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default);

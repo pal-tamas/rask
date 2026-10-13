@@ -44,7 +44,7 @@ public static partial class RaskEndpointExtensions
                 return AnsweredLaterAsync(asked, session, what, tenantToo);
             }
 
-            AskTenant(session, tenantToo);
+            Asked(session, tenantToo);
             return new ValueTask<bool>(true);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -58,7 +58,7 @@ public static partial class RaskEndpointExtensions
         try
         {
             await asked.ConfigureAwait(false);
-            AskTenant(session, tenantToo);
+            Asked(session, tenantToo);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -67,8 +67,11 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    private static void AskTenant(LiveSession session, bool tenantToo)
+    // Noted whether or not there was a revalidator to ask: it is when the session last made sure, which is what a
+    // render nobody asked for and the later events of a long batch go by.
+    private static void Asked(LiveSession session, bool tenantToo)
     {
+        session.LastUserCheck = Environment.TickCount64;
         if (tenantToo)
         {
             session.AskTenantAgain();
@@ -90,7 +93,7 @@ public static partial class RaskEndpointExtensions
     ///     A principal with other rights replaces the one held and the whole page renders again, mounting nothing.
     ///     Nothing is asked for a session nobody is signed in to, or when the app registered no revalidator.
     /// </remarks>
-    private static ValueTask RevalidateUserAsync(LiveSession session, CancellationToken ct, bool announce = true)
+    private static ValueTask RevalidateUserAsync(LiveSession session, CancellationToken ct)
     {
         var users = session.Users;
         if (!users.IsSignedIn || session.Revalidator is not { } revalidator)
@@ -102,44 +105,77 @@ public static partial class RaskEndpointExtensions
         var asked = revalidator.Revalidate(held, ct);
         if (!asked.IsCompletedSuccessfully)
         {
-            return TakeLaterAsync(asked, session, held, announce);
+            return TakeLaterAsync(asked, session, held);
         }
 
-        TakeAnswer(session, held, asked.Result, announce);
+        TakeAnswer(session, held, asked.Result);
         return default;
     }
 
-    private static async ValueTask TakeLaterAsync(
-        ValueTask<ClaimsPrincipal?> asked, LiveSession session, ClaimsPrincipal held, bool announce) =>
-        TakeAnswer(session, held, await asked.ConfigureAwait(false), announce);
+    private static async ValueTask TakeLaterAsync(ValueTask<ClaimsPrincipal?> asked, LiveSession session, ClaimsPrincipal held) =>
+        TakeAnswer(session, held, await asked.ConfigureAwait(false));
 
-    private static void TakeAnswer(LiveSession session, ClaimsPrincipal held, ClaimsPrincipal? fresh, bool announce)
+    private static void TakeAnswer(LiveSession session, ClaimsPrincipal held, ClaimsPrincipal? fresh)
     {
-        session.LastUserCheck = Environment.TickCount64;
-        if (ReferenceEquals(fresh, held))
+        // An answer about a principal the session no longer holds is about somebody it no longer acts for: a
+        // connection attached meanwhile, or another answer came first. It changes nothing.
+        var users = session.Users;
+        if (!ReferenceEquals(users.Current, held) || ReferenceEquals(fresh, held))
         {
             return;
         }
 
-        if (fresh is null || !PrincipalRights.IsSignedIn(fresh))
+        var answer = AnswerAbout(held, fresh);
+        if (answer is null)
         {
-            session.Users.Clear();
+            users.Clear();
             session.SignInEnded = true;
         }
-        else if (PrincipalRights.Same(held, fresh))
+        else if (PrincipalRights.Same(held, answer))
         {
+            // The same user with the same rights, issued again: kept, so what reads the token's own claims — when
+            // it lapses — reads the new one's. Nothing is told, because nothing changed.
+            users.Keep(answer);
             return;
         }
         else
         {
-            session.Users.Set(fresh);
+            users.Set(answer);
         }
 
-        if (announce)
-        {
-            RenderForOtherRights(session);
-        }
+        RenderForOtherRights(session);
+
+        // Their tenant may be another too, and what follows — a render nobody asked for among it — works in it.
+        session.AskTenantAgain();
     }
+
+    // What a revalidator's answer about `asked` comes to: the principal to act under, or null when their sign-in has
+    // ended. An answer that names somebody else is not an answer about them, and ends it too.
+    private static ClaimsPrincipal? AnswerAbout(ClaimsPrincipal asked, ClaimsPrincipal? fresh)
+    {
+        if (fresh is null || !PrincipalRights.IsSignedIn(fresh))
+        {
+            return null;
+        }
+
+        if (UserKey(asked) is not { } subject || string.Equals(subject, UserKey(fresh), StringComparison.Ordinal))
+        {
+            return fresh;
+        }
+
+        if (Interlocked.Exchange(ref _otherSubjectReported, 1) == 0)
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Warning, "Rask.Live",
+                "Rask Live: the ISessionRevalidator answered a question about one user with a principal for another "
+                + "(a different NameIdentifier, or Name). A live session never changes hands that way: the session was "
+                + "signed out. Return the principal of the user it was asked about, or null.");
+        }
+
+        return null;
+    }
+
+    private static int _otherSubjectReported;
 
     // Everything on the page may have read the principal as it rendered, so everything renders again. Nothing is
     // mounted: what a component holds — a field half typed, a list it loaded — stays as it is.
@@ -147,7 +183,6 @@ public static partial class RaskEndpointExtensions
     {
         Component.MarkSubtreeDirtyInternal(session.View);
         session.ForgetReads();
-
     }
 
     /// <summary>
@@ -155,21 +190,45 @@ public static partial class RaskEndpointExtensions
     ///     or of the request that just posted — as the sign-in behind it stands now.
     /// </summary>
     /// <remarks>
-    ///     A cookie or a token can outlive its sign-in, so the revalidator is asked here, before anything is rendered
-    ///     or dispatched for it. Throws when it cannot be asked: the caller ends the connection, and the client's
-    ///     reconnect asks again.
+    ///     <para>
+    ///         A cookie or a token can outlive its sign-in, so the revalidator is asked FIRST, about the principal
+    ///         the connection carries, and the session is given only its answer: nothing that follows the session's
+    ///         user ever sees what the cookie claims. Throws when it cannot be asked, having adopted nothing: the
+    ///         caller ends the connection, and the client's reconnect asks again.
+    ///     </para>
+    ///     <para>
+    ///         Not under the session's lock. A handler that holds it may be waiting for this very connection — for
+    ///         the answer to a call into the page's script — and would wait for ever. So the answer is worked out
+    ///         first and put in place in one step.
+    ///     </para>
     /// </remarks>
     private static async Task AdoptUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
     {
+        var answer = PrincipalRights.IsSignedIn(user) && session.Revalidator is { } revalidator
+            ? AnswerAbout(user, await revalidator.Revalidate(user, ct).ConfigureAwait(false))
+            : user;
+
         var users = session.Users;
         var before = users.Current;
         session.ConnectionUser = user;
-        users.Set(user);
-        await RevalidateUserAsync(session, ct, announce: false).ConfigureAwait(false);
+        session.LastUserCheck = Environment.TickCount64;
 
-        // Compared once, with what the session held before this connection: a revalidator that answers a
-        // reconnect with the principal it answered the last one with has changed nothing.
-        if (!PrincipalRights.Same(before, users.Current))
+        var changed = answer is null ? users.IsSignedIn : !PrincipalRights.Same(before, answer);
+        if (answer is null)
+        {
+            users.Clear();
+            session.SignInEnded = true;
+        }
+        else if (changed)
+        {
+            users.Set(answer);
+        }
+        else
+        {
+            users.Keep(answer);
+        }
+
+        if (changed)
         {
             RenderForOtherRights(session);
 
@@ -185,18 +244,42 @@ public static partial class RaskEndpointExtensions
     ///     Adopts the principal an HTTP post carries when it is not the one the session's stream opened with: a post
     ///     brings the browser's credential as it is now, which a stream opened earlier never sees.
     /// </summary>
-    private static Task AdoptPostedUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct) =>
-        session.ConnectionUser is { } attached && PrincipalRights.Same(attached, user)
-            ? Task.CompletedTask
-            : AdoptUserAsync(session, user, ct);
+    private static Task AdoptPostedUserAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (session.ConnectionUser is not { } attached || !PrincipalRights.Same(attached, user))
+        {
+            return AdoptUserAsync(session, user, ct);
+        }
+
+        KeepToken(session, attached, user);
+        return Task.CompletedTask;
+    }
+
+    // The browser's credential was issued again and says what it said: the session holds the new one from here on,
+    // so a revalidator that reads when the token lapses reads the new date. Only when the session still holds the
+    // connection's own principal — one a revalidator put in its place is the revalidator's to replace.
+    private static void KeepToken(LiveSession session, ClaimsPrincipal attached, ClaimsPrincipal issuedAgain)
+    {
+        if (ReferenceEquals(attached, issuedAgain))
+        {
+            return;
+        }
+
+        session.ConnectionUser = issuedAgain;
+        if (ReferenceEquals(session.Users.Current, attached))
+        {
+            session.Users.Keep(issuedAgain);
+        }
+    }
 
     /// <summary>
     ///     Whether a render the server started itself may go out: asks about the user when nothing has within
     ///     <see cref="PushedRenderTrusts" />, and sends the page to the sign-in page instead when their sign-in ended.
     /// </summary>
     /// <remarks>
-    ///     The tenant resolver is not asked: it reads a request, and here there is none. Such a render works in the
-    ///     tenant the session's last event named.
+    ///     Asked as nobody's action (<see cref="RevalidationCause" />), so a page that repaints by itself does not
+    ///     keep a sliding sign-in alive. The tenant resolver is asked only when the answer changed the principal:
+    ///     it reads a request, and here there is none.
     /// </remarks>
     internal static async ValueTask<bool> MayPushAsync(LiveSession session)
     {
@@ -205,9 +288,7 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        if (session.Revalidator is not null
-            && Environment.TickCount64 - session.LastUserCheck >= (long)PushedRenderTrusts.TotalMilliseconds
-            && !await TryAskWhoAsync(session, "a render", CancellationToken.None, tenantToo: false).ConfigureAwait(false))
+        if (session.Revalidator is not null && AskedLongAgo(session) && !await AskUnattendedAsync(session, "a render").ConfigureAwait(false))
         {
             return false;
         }
@@ -221,6 +302,39 @@ public static partial class RaskEndpointExtensions
         await EnforceAuthAndRenderAsync(session, null, false).ConfigureAwait(false);
         return false;
     }
+
+    private static bool AskedLongAgo(LiveSession session) =>
+        Environment.TickCount64 - session.LastUserCheck >= (long)PushedRenderTrusts.TotalMilliseconds;
+
+    private static async ValueTask<bool> AskUnattendedAsync(LiveSession session, string what)
+    {
+        using var nobodys = RevalidationCause.EnterUnattended();
+        return await TryAskWhoAsync(session, what, CancellationToken.None, tenantToo: false).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Whether a frame that acts without an event — a script's call into the server — may act: not for a session
+    ///     whose sign-in ended, and only after asking when nothing has within <see cref="PushedRenderTrusts" />.
+    /// </summary>
+    /// <remarks>
+    ///     Such a frame is answered on the reader, beside the handler it may be serving, so it cannot wait its turn
+    ///     behind one. It asks where it is, bounded as a pushed render is, and is dropped when no answer can be had.
+    /// </remarks>
+    private static ValueTask<bool> MayActInlineAsync(LiveSession session)
+    {
+        if (session.SignInEnded)
+        {
+            return new ValueTask<bool>(false);
+        }
+
+        return !session.Users.IsSignedIn || session.Revalidator is null || !AskedLongAgo(session)
+            ? new ValueTask<bool>(true)
+            : AskedInlineAsync(session);
+    }
+
+    private static async ValueTask<bool> AskedInlineAsync(LiveSession session) =>
+        await TryAskWhoAsync(session, "a script's call", CancellationToken.None, tenantToo: false).ConfigureAwait(false)
+        && !session.SignInEnded;
 
     // Where a session whose sign-in ended goes instead of the page it is on, guarded or not: the sign-in page,
     // with the way back. Null once it is there.
@@ -274,6 +388,7 @@ public static partial class RaskEndpointExtensions
 
     private static readonly byte[] WhoSameSomebody = "{\"same\":true,\"user\":true}"u8.ToArray();
     private static readonly byte[] WhoSameNobody = "{\"same\":true,\"user\":false}"u8.ToArray();
+    private static readonly byte[] WhoLater = "{\"later\":true}"u8.ToArray();
     private static readonly byte[] WhoOther = "{\"same\":false}"u8.ToArray();
 
     /// <summary>
@@ -310,12 +425,18 @@ public static partial class RaskEndpointExtensions
 
     private static byte[] WhoAnswerFor(LiveSession? session, ClaimsPrincipal request)
     {
-        // Counted only for a caller the session answers to, and answered as everything else is: a stranger with
-        // the id can neither use up its user's questions nor learn from a refusal that the session is there. A tab
-        // told "not the same" opens its connection again, which is the safe thing for it to do.
-        if (session is null || !MayDrive(request, session) || !session.AdmitWhoQuestion(WhoQuestionsPerSecond))
+        // Counted only for a caller the session answers to: a stranger with the id cannot use up its user's
+        // questions, and gets one answer whatever the id.
+        if (session is null || !MayDrive(request, session))
         {
             return WhoOther;
+        }
+
+        // Only a caller the session answers to is ever told to ask later, so the answer tells a stranger nothing:
+        // they were answered above. The tab holds what it has to send and asks again.
+        if (!session.AdmitWhoQuestion(WhoQuestionsPerSecond))
+        {
+            return WhoLater;
         }
 
         // What the connection carried, not what a revalidator has made of it since: the question is whether the
@@ -324,6 +445,11 @@ public static partial class RaskEndpointExtensions
         if (!PrincipalRights.Same(attached, request))
         {
             return WhoOther;
+        }
+
+        if (session.ConnectionUser is { } carried)
+        {
+            KeepToken(session, carried, request);
         }
 
         return PrincipalRights.IsSignedIn(request) ? WhoSameSomebody : WhoSameNobody;
@@ -341,20 +467,25 @@ public static partial class RaskEndpointExtensions
     ///     visitor who never signed in never sets it, and a public page goes on serving them. All the cookie can do
     ///     is redirect its own bearer, once.
     /// </remarks>
-    private static bool SentToSignIn(HttpContext ctx, string path, ClaimsPrincipal user, string pathBase)
+    private static bool SentToSignIn(
+        HttpContext ctx, string path, ClaimsPrincipal user, string pathBase, RaskRootSelector selector)
     {
         if (!ctx.Request.Cookies.ContainsKey(EndedCookie))
         {
             return false;
         }
 
-        // The tab wrote it from script; the answer that removes it has no reason to stay readable by one.
-#pragma warning disable S2092 // a removal, of a cookie that carries nothing: marked Secure it would not be taken over http, where the tab set it
-        ctx.Response.Cookies.Delete(
-            EndedCookie, new CookieOptions { Path = "/", HttpOnly = true, Secure = ctx.Request.IsHttps });
-#pragma warning restore S2092
+        ForgetEnded(ctx, pathBase.Length == 0 ? "/" : pathBase);
+        if (pathBase.Length != 0)
+        {
+            // A tab of an older runtime wrote it for the whole host.
+            ForgetEnded(ctx, "/");
+        }
+
+        // Nowhere to send them when the app has no sign-in page: the page is served, as to any anonymous visitor.
         if (PrincipalRights.IsSignedIn(user)
-            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
+            || !HasSignInPage(selector))
         {
             return false;
         }
@@ -364,5 +495,20 @@ public static partial class RaskEndpointExtensions
             + "?returnUrl=" + Uri.EscapeDataString(path + ctx.Request.QueryString.Value);
         ctx.Response.Headers.CacheControl = "no-store";
         return true;
+    }
+
+    // The one address a reader with no sign-in is sent to, by the route guard and here alike.
+    private static bool HasSignInPage(RaskRootSelector selector) =>
+        RouteResolver.TryResolve(
+            selector.RoutesFor(RouteAuthorizationGuard.ChallengePath), RouteAuthorizationGuard.ChallengePath, out _, out var notFound)
+        && !notFound;
+
+    // The tab wrote it from script; the answer that removes it has no reason to stay readable by one.
+    private static void ForgetEnded(HttpContext ctx, string cookiePath)
+    {
+#pragma warning disable S2092 // a removal, of a cookie that carries nothing: marked Secure it would not be taken over http, where the tab set it
+        ctx.Response.Cookies.Delete(
+            EndedCookie, new CookieOptions { Path = cookiePath, HttpOnly = true, Secure = ctx.Request.IsHttps });
+#pragma warning restore S2092
     }
 }
