@@ -62,6 +62,9 @@ departure in behaviour carries none.
   date) and marks nothing. The kit refuses: half filled says "Enter a valid date." / "Enter a valid time." and
   blocks the save, every part emptied is nothing chosen. Reason: a form must not save a value the reader can
   no longer see. Look and keys unchanged. `rask-segments.ts`, `UiPickerUnreadTests`, `PickerUnreadTests`.
+- **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
+  nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
+  and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
@@ -207,9 +210,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -617,6 +620,41 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
+- Color picker (2026-10-13): seven parts, loaded and open parity 22/22 each (`parity.mjs color-picker`,
+  `parity-color-picker.mjs` — the `data-parity-open` route; `--live <url>` walks a running site beside Flux's page,
+  `--phone` the sheet at 390). EVERY hook in the table below is wired and none is new: the area and the tracks are
+  `data-rask-drag` surfaces (the thumb's CSS reads `--rask-drag-x/-y` with the rendered place as its fallback, so a
+  static page draws it too), a track says `data-rask-focus="<its range input>"`, the range input is bound on
+  CHANGE (a field bound on input is not moved by a render while it has focus, and a press on the track leaves
+  focus there) and keeps its arrows by `data-rask-contain-keys="Arrows"` — they are C#'s, 1 and 10 with Shift,
+  because `data-rask-big-step` would take the page keys too and Flux's are the browser's own tenth of the track
+  (hue 360 → 324, measured), the dialog is `data-rask-modal="any"` +
+  `data-rask-modal-open` behind a `command="show-modal"` button, the copy button `data-rask-copy`, the dropper
+  `hidden` + `data-rask-requires` (its parity example removes `hidden` in a line of script, as the runtime would).
+  **The sheet** (below `sm`) holds what is chosen until Select — measured on Flux at 390: area, sliders and the
+  popover's input change nothing outside the sheet; Select takes it; Cancel, Escape and a press outside drop it; a
+  swatch is taken at once and closes the sheet. A render cannot ask a media query, so the dialog holds a box only
+  the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`) under `data-rask-measure`, and the
+  page reads the width it is told — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
+  media-queried `:root:has()` rule in `ui.css`, not `data-rask-lock`: the lock depends on the width, and Flux
+  locks nothing at pointer widths. Placement is the date picker's anchor rules said in `ui.css` (the name comes down in
+  `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
+  **NOT on `data-rask-place`**: `rask-place.ts` places what is `:popover-open`, reads the anchor from the panel's
+  inline style, and would hang the sheet under its trigger. So near an edge this panel only turns to the other
+  side (`position-try-fallbacks`), where Flux also slides it and holds its height. To wire it the hook has to
+  take an open modal `<dialog>`, find an anchor named by a rule, and stand down below `sm`.
+  **The maths is Flux's to the last bit** (`UiColorValue`, found by typing 126 colours with channels on a half
+  into the live picker: channels /255, HSV held as percentages, back through chroma; one formula pair of sixteen
+  had no miss), and so is the reading of a typed colour (`UiColorComputed` writes what the browser's computed
+  style would, `UiColorText` reads its first numbers as Flux does — the owner's decision of 2026-10-07; table in
+  `docs/ui-kit.md#color-picker`, pinned by `UiColorValueTests`). Flux's `format` attribute is live on its element:
+  writing it there is how hexa, rgb, hsl and hsla were measured. Not read: `color-mix()`, relative colours,
+  `calc()`, `currentColor`, system colours. Unmeasured, no example on Flux's page: an INVALID trigger (the input's
+  red border), `clearable` with `copyable` together (clear first), a disabled button trigger. A Flux quirk kept: on the sheet
+  its popover input says the page's colour again after a colour was typed into it, while the sheet holds the typed
+  one (`_typedOnSheet`). Not Flux's: Flux draws a thumb outside the area for a channel above 255, the kit holds it
+  at the edge. A focused range input is not moved by a render (`syncFormProperty`), so a step it did not take
+  itself — an arrow, a press on its track — is put on the element too (`SetValueAsNumber`).
 - Where a panel LANDS (2026-10-13, the owner: exactly as Flux's). Flux places every panel by script, and the
   kit's anchor rules could only turn one to the other side. Measured on Flux's live pages by holding a host
   `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`scripts/flux/placement.mjs`, which every

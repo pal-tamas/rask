@@ -1401,7 +1401,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
@@ -2677,6 +2677,103 @@ binding through one hidden field as `HH:mm`.
 The same departure from Flux as the date picker's, by the same decision (2026-10-12): an hour with no minute is
 no time — "Enter a valid time." under the field, the save refused, the time the picker held not saved in its
 place — and every part emptied is no time chosen. A `TimeOnly` that cannot be unset says the sentence then too.
+
+### Color picker
+
+`Ui.ColorPicker` is [Flux UI's color picker](https://fluxui.dev/components/color-picker): a colour picked from a
+palette, dragged out of a saturation and brightness area, or typed in any CSS form.
+
+```csharp
+Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")            // two-way, a string member; written with the save
+Ui.ColorPicker.Bind(() => settings.Theme).Live()                    // written as it is chosen
+Ui.ColorPicker.Value(_theme).OnChange(color => _theme = color)      // controlled
+Ui.ColorPicker.Value("#bada55")                                     // keeps the colour itself
+
+Ui.ColorPicker.Value(_tint).OnChange(Tint).Format(Ui.ColorPickerFormat.Rgba)   // rgb(99 102 241 / 0.5), with an alpha slider
+Ui.ColorPicker.Value(_brand).OnChange(Brand).Type(Ui.ColorPickerType.Button).Sm
+Ui.ColorPicker.Value(_brand).OnChange(Brand).Swatches([("#ef4444", "Red"), ("#22c55e", "Green"), "#3b82f6"])
+Ui.ColorPicker.Value(_brand).OnChange(Brand).Swatches([]).Dropper().Clearable().Copyable()
+```
+
+| Prop | What it does |
+|---|---|
+| `Bind` / `Value` + `OnChange` | Flux's `wire:model` / `value`. The value is CSS text in `Format`, whatever CSS it was given in; no colour is the empty string. A bound colour is written with the reader's next action, `.Live()` writes it as it is chosen. |
+| `Format` | `Hex` (default), `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`. An alpha format adds the opacity slider. |
+| `Type` | `Input` (default: a text input with a swatch button) or `Button` (one button showing the colour). |
+| `Size` | `.Sm`, `.Xs`; 40px unless one says smaller. |
+| `Swatches` | Your palette in place of the 24 Tailwind colours: strings or `(value, label)` pairs. An empty list hides it — Flux's `:swatches="false"`. |
+| `Dropper` | A button in the popover that picks a colour from the screen. It is there only in a browser that has an EyeDropper. |
+| `Clearable` | A clear button on the input trigger, while there is a colour. |
+| `Copyable` | A button on the input trigger that copies the colour, as it is written, to the clipboard. |
+| `Placeholder`, `Name`, `Label`, `Description`, `Disabled`, `Invalid` | As on every Flux form control; `Name` adds a hidden input for a plain form post. |
+
+**Children compose the popover**, in any order, from `Ui.ColorPickerArea`, `Ui.ColorPickerSlider`
+(`.Channel(Ui.ColorPickerChannel.Hue)` or `Alpha`), `Ui.ColorPickerInput`, `Ui.ColorPickerSwatches`
+(the picker's palette, or its own `Ui.ColorPickerSwatch.Value("#ef4444").Label("Red")` children) and
+`Ui.ColorPickerDropper`:
+
+```csharp
+Ui.ColorPicker.Bind(() => settings.Theme)[
+    Div.Class("flex flex-col gap-3")[
+        Ui.ColorPickerInput.Placeholder("#000000"),
+        Ui.Separator,
+        Ui.ColorPickerArea,
+        Ui.ColorPickerSlider.Channel(Ui.ColorPickerChannel.Hue)
+    ]
+]
+```
+
+**What it does, as Flux's does.** The swatch button (or the button trigger, or ArrowDown in the input) opens the
+popover and focuses the area; Escape and a press outside close it and focus returns. Under a pointer every change
+is the page's at once. The area's thumb moves by 2 with the arrows and by 10 with Shift, PageUp/PageDown go to
+full and no brightness, Home and End to no and full saturation; a slider steps by 1, by 10 with Shift, and by a
+tenth of its track with a page key. A typed colour is taken on Enter or on leaving the input. The palette is a listbox with one tab stop: the
+arrows walk it eight to a row, Enter or Space picks.
+
+**On a phone it is a sheet.** Below `sm` the popover is centred over the page, which does not scroll behind it,
+and it keeps what is chosen until **Select**: Cancel, Escape and a press outside leave the colour as it was. A
+swatch does not wait — it is taken, and the sheet closes.
+
+**What a typed colour becomes is what Flux makes of it — also where that is wrong.** Hex (with its `#` in every
+length, bare in three, six and eight digits), a CSS colour name, `rgb()`, `hsl()` and `hwb()` are read as CSS
+reads them. Flux hands every other form to the browser and reads the NUMBERS of the colour the browser writes
+back as red, green and blue, so the wide-gamut functions come out as something else, and the kit reproduces it
+digit for digit (the owner's decision, 2026-10-07; measured on fluxui.dev):
+
+| Typed | Flux and the kit write |
+|---|---|
+| `oklch(0.7 0.1 200)` | `#0100c8` — lightness, chroma and hue read as red, green, blue |
+| `oklch(0.7 0.1 -30)` | `#010014a` — the hue, brought to 330, is no two hex digits |
+| `oklch(0.7 none 200)` | `#NaNNaNNaN` |
+| `lab(50 -40 30)` | `#32281e` — the sign is not read |
+| `lch(50 150% 30)` | `#32e11e` |
+| `color(srgb 1 0 0)` | `#010000` |
+| `color(display-p3 1 0 0)` | `#030100` — the 3 of `p3` is the red |
+| `color(xyz 0.3 0.4 0.5)` | `#410000` — written back as `xyz-d65` |
+
+`color-mix()`, relative colours, `calc()`, `currentColor` and the system colours are not read: each needs the
+browser's own answer.
+
+**Text that is no colour is refused, not put back** — the one departure from Flux, and only in a form. Flux puts
+the last colour back and says nothing. A picker bound in a `Form` keeps `#12` in the field, says "Enter a valid
+color." under it with the next action and holds the save, as a half-typed date does; a colour typed after it
+takes the sentence away. A picker bound to nothing a form could show a message in puts the last colour back.
+
+**How.** The popover is a native modal `<dialog>` the button opens by `command="show-modal"`; the runtime shows
+and closes it when the page says so (`data-rask-modal-open`), dismisses it (`data-rask-modal="any"`) and is hung
+under the trigger by the CSS anchor rules the date picker's popup uses (near an edge it turns to the other side;
+the runtime's `data-rask-place`, which also slides a panel and holds its height, places popovers and is not
+asked here). The pointer is the runtime's:
+the area and each track are `data-rask-drag` surfaces, so a thumb is under the pointer every frame and the page
+hears one event a frame through one bound field a surface. The sliders hold native range inputs for the
+keyboard, and those, the area and the palette keep their keys from the page
+(`data-rask-contain-keys`), a press on the area leaves focus where it was (`data-rask-press-keeps-focus`), the
+dropper shows where the browser has one (`data-rask-requires`), the copy button writes the clipboard in the
+click (`data-rask-copy`), and a box only the stylesheet sizes tells the page whether the popover is the sheet
+(`data-rask-measure`). The colour maths and every key are C#; the kit ships no script.
+
+Markers: `data-ui-color-picker`, `-trigger`, `-button`, `-swatch-button`, `-preview`, `-input`, `-copy`, `-area`,
+`-area-thumb`, `-slider`, `-popover-input`, `-swatches`, `-swatch`, `-dropper`, `-announce`.
 
 ## The rule the whole kit rests on
 
