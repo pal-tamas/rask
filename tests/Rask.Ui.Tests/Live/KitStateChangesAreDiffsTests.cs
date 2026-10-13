@@ -53,6 +53,7 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
         ["select options with and without an icon"] = on => Ui.Select.Value(on ? "a" : "b").Listbox[Options()],
         ["select options arriving"] = on => Ui.Select.Value((string?)null).Listbox.Searchable()[on ? Options() : []],
         ["select options leaving from under the answer"] = on => Ui.Select.Value("b").Listbox.Searchable().Filter(false)[on ? Options().Take(1) : Options()],
+        ["pillbox options leaving from under the pills"] = on => Ui.Pillbox.Values(Picked(true)).Combobox.Filter(false)[on ? [] : Pills()],
         ["pillbox values"] = on => Ui.Pillbox.Values(Picked(on)).Placeholder("Choose…")[Pills()],
         ["pillbox values with a clear button"] = on => Ui.Pillbox.Values(Picked(on))[Ui.PillboxTrigger.Placeholder("Choose…").Clearable(), Pills()],
         ["pillbox values in a combobox"] = on => Ui.Pillbox.Values(Picked(on)).Combobox.Placeholder("Choose…")[Pills()],

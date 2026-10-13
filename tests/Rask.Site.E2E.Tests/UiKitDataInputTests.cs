@@ -743,7 +743,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task A_pillbox_input_that_waits_for_a_pause_asks_the_store_once_for_each_word() => RunAsync(async () =>
+    public Task A_pillbox_input_that_waits_for_a_pause_asks_the_store_once_and_keeps_its_pills_under_the_next_search() => RunAsync(async () =>
     {
         await OpenAsync();
         var scope = Page.Locator("[data-testid='ui-pillbox-combobox']");
@@ -755,9 +755,16 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveTextAsync(["Design"]);
         await scope.Locator("[data-ui-listbox-option]:visible").ClickAsync();
         await Expect(state).ToContainTextAsync("Found: Design. Searches: 2.");
+        // Back in the input, as a reader who goes on to type is: the press on the row left focus in the list.
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend)")).ToHaveAttributeAsync("aria-expanded", "false");
+        await input.ClickAsync();
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend)")).ToHaveAttributeAsync("aria-expanded", "true");
         await input.FillAsync("sal");
         await Expect(scope.Locator("[data-ui-listbox-option]:visible")).ToHaveTextAsync(["Sales"]);
 
+        // The answer no longer holds Design's option, and its pill stands all the same.
+        await Expect(Page.Locator("[data-ui-pillbox-trigger]:has(#ui-pillbox-backend) [data-value]")).ToHaveTextAsync(["Design"]);
         await Expect(state).ToContainTextAsync("Found: Design. Searches: 3.");
     });
 

@@ -2070,6 +2070,13 @@ shutting each empty what was typed, and `OnInput` then hears `""` when the page 
 Flux's `search` model does. Backspace is heard only from an input that holds nothing, where it takes the last
 pill off.
 
+**The pills stay when the rows change.** A search the page answers may bring rows that no longer hold a
+picked option. The pillbox keeps what each answer showed when it was last drawn, for as long as the value
+holds it: the pills stand, in the order picked, the cross on one still takes it out of the value, and
+Backspace still takes the last. A select of several goes on counting and posting them the same way. A value
+that leaves takes what it showed with it, and a value no render ever drew an option for has no pill — render
+its option once, or keep it among the rows the search answers with. Measured on Flux's "With backend search".
+
 It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
 page, where it differs from the select's listbox:
 

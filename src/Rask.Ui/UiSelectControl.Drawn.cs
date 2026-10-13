@@ -276,7 +276,8 @@ public abstract partial class UiSelectControl<T>
                 .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name))
             : [];
 
-    // The answer whose row a render took away is still the answer, and still posted.
+    // An answer whose row a render took away is still an answer, and still posted: after the ones among the rows.
     private static IEnumerable<string> Posted(View view) =>
-        view.AnswerRow is null && view.Answer is { } kept ? [kept.FormValue] : view.PickedRows.Select(row => row.Option.FormValue);
+        view.PickedRows.Select(row => row.Option.FormValue)
+            .Concat(view.Answers.Where(answer => answer.Row is null).Select(answer => answer.Face.FormValue));
 }

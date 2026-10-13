@@ -168,6 +168,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A pillbox keeps its pills when a search brings rows without them.** The pills were drawn from the rows
+  rendered, so under `Filter(false)` a pill whose option the page's answer left out vanished while the model
+  went on holding the value — and could no longer be taken off. Measured on Flux's "With backend search":
+  three picked, a search that leaves one option and then none, and the three pills stand in the order picked;
+  the cross on one whose option is not rendered takes it out of the value. The pillbox now keeps what each
+  answer showed when it was last drawn, keyed by its value, for as long as the value holds it (as `Ui.Select`
+  does for its one answer); a named select of several posts them too. A value that leaves takes its face with
+  it, and one no render ever drew an option for has no pill. No new API. `UiPillboxKeptAnswersTests`,
+  `PillboxKeptAnswersTests`.
+
 - **A row pressed as the pointer arrives is picked, after a list lost rows.** The pointer coming over a row
   of a kit list is a render of its own, so a press that follows it at once is read from the page before that
   render and is matched to its row by what tells the rows of one page apart. A list that had just answered a

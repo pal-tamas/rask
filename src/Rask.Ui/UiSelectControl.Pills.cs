@@ -32,7 +32,7 @@ public abstract partial class UiSelectControl<T>
         var off = IsOff(view.Parts);
         // With nothing to type into, the trigger is the combobox; otherwise it is the button over one.
         var plain = !Searches;
-        var pills = PillRows(view);
+        var pills = view.Answers;
         var trigger = Div
             .Key(TriggerKey)
             .TabIndex(PillsCombobox || off ? -1 : 0)
@@ -53,12 +53,12 @@ public abstract partial class UiSelectControl<T>
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
         return trigger[
             Div.Key("picked").Class(UiPillboxLook.Selected)[
-                PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Count, slot?.Placeholder ?? Placeholder)],
+                PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholder)],
                 Div.Class(UiPillboxLook.Pills)[
                     Div.Class(UiPillboxLook.Contents)[
-                        pills.Count > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(row => Pill(view, row, off))] : null
+                        pills.Length > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(answer => Pill(view, answer, off))] : null
                     ],
-                    PillsCombobox ? PillInput(view, pills.Count, off) : null
+                    PillsCombobox ? PillInput(view, pills.Length, off) : null
                 ]
             ],
             Clears(view) ? ClearButton() : null,
@@ -73,35 +73,22 @@ public abstract partial class UiSelectControl<T>
     private bool IsSmall(UiPillboxTrigger? slot) =>
         slot?.Size is { } size ? size == Ui.PillboxSize.Sm : Height == Ui.SelectSize.Sm;
 
-    // In the order they were picked, as Flux shows them — not the order the options are written in.
-    private static List<Row> PillRows(View view)
-    {
-        List<Row> rows = [];
-        foreach (var value in view.Picked)
-        {
-            if (view.Parts.Rows.Find(row => Same(row.Value, value)) is { } row)
-            {
-                rows.Add(row);
-            }
-        }
-
-        return rows;
-    }
-
     private static Component? PillPlaceholder(int pills, string? placeholder) =>
         pills == 0 && placeholder is not null
             ? Span.Class(UiPillboxLook.Placeholder).Data("ui-pillbox-placeholder", "")[placeholder]
             : null;
 
-    private Component Pill(View view, Row row, bool off)
+    // One pill for each answer that has a face (Remember), in the order they were picked, as Flux shows them —
+    // not the order the options are written in, and whether or not the option is among the rows now.
+    private Component Pill(View view, Answer answer, bool off)
     {
         var small = IsSmall(Pills!.Trigger);
         var remove = Div.Class(UiClass.Compose(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small)));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
-        return Div.Key(row.Option.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", row.Option.FormValue)[
-            Div.Class(UiPillboxLook.PillWords)[row.Option.SelectedText],
-            (off ? remove : remove.OnClick(() => RemoveAsync(row.Value, view)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
+        return Div.Key(answer.Face.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", answer.Face.FormValue)[
+            Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
+            (off ? remove : remove.OnClick(() => RemoveAsync(answer.Value, view)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
 
