@@ -442,7 +442,6 @@ public enum RaskString
 
     /// <summary>The title of the tab while the error page stands in for the whole app.</summary>
     ErrorTitle,
-
     /// <summary>The accessible name of the button that opens a color picker while no color is chosen.</summary>
     ColorPickerOpen,
 
@@ -571,4 +570,28 @@ public enum RaskString
 
     /// <summary>The option a phone's list of preset ranges shows while it names none.</summary>
     DatePickerPresetsPlaceholder,
+
+    /// <summary>What a screen reader calls a carousel: its <c>aria-roledescription</c>.</summary>
+    CarouselRole,
+
+    /// <summary>The accessible name of a carousel.</summary>
+    CarouselLabel,
+
+    /// <summary>What a screen reader calls one slide of a carousel: its <c>aria-roledescription</c>.</summary>
+    CarouselSlideRole,
+
+    /// <summary>The accessible name of a slide: its place, and how many slides there are.</summary>
+    CarouselSlideLabel,
+
+    /// <summary>The accessible name of a carousel's previous button.</summary>
+    CarouselPrevious,
+
+    /// <summary>The accessible name of a carousel's next button.</summary>
+    CarouselNext,
+
+    /// <summary>The accessible name of a carousel's row of indicators.</summary>
+    CarouselIndicators,
+
+    /// <summary>The accessible name of one indicator of a carousel: the slide it shows.</summary>
+    CarouselShowSlide,
 }

@@ -270,7 +270,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
-            .Type(Viewable == true && _viewing ? InputType.Text : Type)
+            .Type(Type)
             .Placeholder(Placeholder ?? (ShowsClear ? " " : null))
             .Min(Min)
             .Max(Max)

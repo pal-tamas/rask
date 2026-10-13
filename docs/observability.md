@@ -29,7 +29,7 @@ original exception attached:
 | `Rask.Errors` | Every exception an `ErrorBoundary` took — a render, a handler, a lifecycle hook — once, at Error, with the exception and the reference the visitor's [error page](lifecycle.md#what-a-visitor-sees-when-something-throws) shows |
 | `Rask.Lifecycle` | Faulting lifecycle hooks / disposes with no ancestor `ErrorBoundary` |
 | `Rask.Diff` | Duplicate sibling `Key` (keyed reconciliation silently disabled) |
-| `Rask.Live` | Handler / navigate / JS-invoke faults, malformed frames, coalesce-budget drops |
+| `Rask.Live` | Handler / navigate / JS-invoke faults, malformed frames, a session asked for renders without end (which components asked) |
 | `Rask.JsInvoke` | Failures surfacing a JS-invoke fault back to the caller |
 | `Rask.HotReload` | Dev-time hot-reload failures: a registry refresh that threw, a repaint that faulted, or an undeliverable applied-notification |
 

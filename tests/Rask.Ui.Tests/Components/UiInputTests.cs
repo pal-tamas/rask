@@ -343,19 +343,19 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_reveal_button_shows_a_password_and_hides_it_again()
+    public void The_reveal_button_asks_the_runtime_to_show_the_password_and_sends_the_page_nothing()
     {
-        var page = Page.Render(Ui.Input.Value("hunter2").Type(InputType.Password).Viewable());
-        Assert.Contains("type=\"password\"", page.Html, StringComparison.Ordinal);
+        var html = Page.Render(Ui.Input.Value("hunter2").Type(InputType.Password).Viewable().Id("secret")).Html;
 
-        await page.On("button[aria-label=\"Toggle password visibility\"]").Click();
-        var shown = page.Html;
-        await page.On("button[aria-label=\"Toggle password visibility\"]").Click();
+        var button = System.Text.RegularExpressions.Regex.Match(html, "<button[^>]*aria-label=\"Toggle password visibility\"[^>]*>").Value;
 
-        Assert.Contains("type=\"text\"", shown, StringComparison.Ordinal);
-        Assert.Contains("data-viewable-open", shown, StringComparison.Ordinal);
-        Assert.Contains("type=\"password\"", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-viewable-open", page.Html, StringComparison.Ordinal);
+        // Showing and hiding is done in the browser (rask-field.ts), which also says it on the button.
+        Assert.Contains("type=\"password\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-view=\"secret\"", button, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-click", button, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-viewable-open", button, StringComparison.Ordinal);
+        Assert.Contains("hidden in-data-viewable-open:block", html, StringComparison.Ordinal);
+        Assert.Contains("in-data-viewable-open:hidden", html, StringComparison.Ordinal);
     }
 
     [Fact]

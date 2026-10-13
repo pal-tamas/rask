@@ -47,18 +47,20 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
     [Fact]
-    public async Task Opening_writes_no_cursor_and_the_trigger_says_it_is_open()
+    public void A_render_writes_no_cursor_and_leaves_what_says_it_is_open_to_the_runtime()
     {
         var page = Page.Render(Menu());
 
-        await OpenAsync(page);
+        var panel = Regex.Match(page.Html, "popovertarget=\"([^\"]+)\"").Groups[1].Value;
 
         // No row is lit and none is a tab stop in anything a render writes: both are the runtime's.
         Assert.DoesNotContain("data-active=", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("tabindex=\"0\"", page.Html, StringComparison.Ordinal);
-        Assert.Contains("aria-expanded=\"true\"", page.Html, StringComparison.Ordinal);
-        Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-open=\"\"", page.Html);
-        Assert.Matches("<button[^>]*data-open=\"\"[^>]*popovertarget", page.Html);
+        // So is the open state: the dropdown and its trigger ask for `data-open`, and the menu hears no toggle.
+        Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"", page.Html);
+        Assert.Matches("<button[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"[^>]*popovertarget", page.Html);
+        Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -66,7 +68,6 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
     {
         var view = new View();
         var page = Acting.Render(Menu(view));
-        await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").Click();
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline).Groups[1].Value;
@@ -94,7 +95,6 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
                 ]
             ]
         ]);
-        await OpenAsync(page);
 
         await page.On("[role=\"menuitemcheckbox\"]").Click();
         var date = Regex.Match(page.Html, "<button id=\"([^\"]+)\"[^>]*role=\"menuitemradio\"[^>]*>(?:(?!</button>).)*Date", RegexOptions.Singleline).Groups[1].Value;

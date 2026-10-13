@@ -322,16 +322,20 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     public Task RequestPublishRender() => RequestRenderInternalAsync(true);
 
-    // A StateHasChanged can land after the coalescing loop has settled but while the scope is still held — during the
-    // noop guard, the frame emit, or the commit. The in-scope branch parks it in _pendingRenderInScope, and nothing
-    // acted on it: the NEXT dispatch's coalescing loop opens by clearing the flag, so the request was discarded, not
-    // deferred (#986). This is the dispatch side of that handoff, run after the scope is cleared.
+    // A StateHasChanged that lands while the scope is held and is not drawn inside it: after the coalescing loop has
+    // settled — during the noop guard, the frame emit, the commit — or past the loop's budget. The in-scope branch
+    // parks it in _pendingRenderInScope, and the NEXT dispatch's loop opens by clearing the flag, so left there it was
+    // discarded, not deferred (#986). This is the dispatch side of that handoff, run after the scope is cleared: the
+    // request becomes a render of its own, so the state last written is never left undrawn.
     //
     // A PUBLISH render, not a plain one: a plain render bypasses the noop guard and pushes the frame even when the
     // HTML is byte-identical, forcing the client to morph identical markup and stripping DOM state JS applied since
-    // the last frame. Budget exhaustion inside the loop clears the flag itself, so a component that requests a
-    // render from every Render() cannot spin through here.
-    internal Task DrainRenderRequestedAfterScope()
+    // the last frame. It also fires no OnRendered on a component that has rendered before, which is what ends a
+    // component that asks for a render from every OnRendered; one that asks from every Render is slowed by RenderPace.
+    //
+    // afterRequestedRender: the scope that ended was itself a render made for a request, not an event's dispatch —
+    // what RenderPace counts a row of.
+    internal Task DrainRenderRequestedAfterScope(bool afterRequestedRender = false)
     {
         if (!_pendingRenderInScope)
         {
@@ -339,8 +343,28 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         _pendingRenderInScope = false;
-        return RequestPublishRender();
+        return _pace.Next(DevToolsSessionId, afterRequestedRender) switch
+        {
+            RenderPace.Turn.Now => RequestPublishRender(),
+            RenderPace.Turn.AfterAPause => RenderAfterAPauseAsync(),
+            _ => Task.CompletedTask,
+        };
     }
+
+    // How the renders made after a scope, for requests it left undrawn, are spaced once they come without end.
+    private readonly RenderPace _pace = new();
+
+    private async Task RenderAfterAPauseAsync()
+    {
+        // Ended early by the page's teardown, after which the request below finds nobody to render for.
+        await Task.Delay(RenderPace.Pause, View.LifetimeTokenInternal).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+
+        // Before the render: whatever asks from here on is drawn by a render of its own.
+        _pace.PauseOver();
+        await RequestPublishRender().ConfigureAwait(false);
+    }
+
+    void IRenderHandle.Asked(Component by) => _pace.Asked(by);
 
     /// <summary>
     ///     Set while a batch of events is being handled and one of them has changed the page without rendering it:

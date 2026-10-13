@@ -51,8 +51,17 @@ public abstract partial class Component
         {
             if (!completed)
             {
-                Live.PropsDirty |= wasPropsDirty;
-                Live.StateDirty |= wasStateDirty;
+                // Each a plain store, never `|=`: a read-then-write would lose a StateHasChanged another thread
+                // made between the two, and that request has nothing else to carry it.
+                if (wasPropsDirty)
+                {
+                    Live.PropsDirty = true;
+                }
+
+                if (wasStateDirty)
+                {
+                    Live.StateDirty = true;
+                }
             }
         }
 
@@ -402,6 +411,7 @@ public abstract partial class Component
             return;
         }
 
+        handle.Asked(this);
         _ = handle.RequestRender();
     }
 

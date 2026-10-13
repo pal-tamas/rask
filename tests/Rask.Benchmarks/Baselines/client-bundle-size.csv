@@ -222,8 +222,12 @@
 # rask-input.ts — Ui.SelectSearch.Debounce): rask.js 101,379 -> 101,724 (+345) and rask.wasm.js 90,163 -> 90,507
 # (+344). rask-hooks.js is unchanged.
 # 2026-10-13, a panel whose --rask-place computes to none is left to the stylesheet (the date picker's phone sheet, rask-place.ts): rask-hooks.js 56,675 -> 56,747 (+72), measured on main, whose hooks bundle builds to 56,675 where this file said 56,371. The two runtimes are unchanged.
-# 2026-10-13, a list of options is kept in the browser (data-rask-list, rask-list.ts: the cursor, the keys, type-ahead, the filter and the open state of Ui.Select's listbox and combobox, Ui.Pillbox and Ui.Autocomplete, which send the server nothing while the reader moves about them): rask-hooks.js 56,747 -> 66,569 (+9,822). The two runtimes carry the attribute's name in the loader's list: rask.js 101,724 -> 101,729 and rask.wasm.js 90,507 -> 90,512 (+5 each).
+# 2026-10-13, a carousel's autoplay holds while focus is inside it, a padded track rests where scroll snap would leave it, one that rewinds says no end (rask-carousel.ts), and a switch nobody listens to is turned in the browser (data-rask-switch, rask-switch.ts): rask-hooks.js 56,747 -> 57,546 (+799); its attribute in the loader: rask.js 101,724 -> 101,731 and rask.wasm.js 90,507 -> 90,514 (+7 each).
+# 2026-10-13, data-open on what NAMES a popover — a dropdown, its trigger, a context area — so opening one asks the server nothing (data-rask-open-mark="<id>", rask-toggle.ts): rask-hooks.js 56,747 -> 56,937 (+190). The two runtimes are unchanged.
+# 2026-10-13, a password shown and hidden in the click (data-rask-view, rask-field.ts — Ui.Input.Viewable): rask-hooks.js 56,937 -> 57,280 (+343); its name in the loader's list is +5 in rask.js (101,729) and rask.wasm.js (90,512).
+# Both of the above together, by sum (carousel + switch on main at 57,546; the open mark and the viewable input +533): 58,079.
+# 2026-10-13, a list of options is kept in the browser (data-rask-list, rask-list.ts: the cursor, the keys, type-ahead, the filter and the open state of Ui.Select's listbox and combobox, Ui.Pillbox and Ui.Autocomplete, which send the server nothing while the reader moves about them): rask-hooks.js 58,079 -> 67,901 (+9,822). The two runtimes carry the attribute's name in the loader's list: rask.js 101,736 -> 101,741 and rask.wasm.js 90,519 -> 90,524 (+5 each).
 bundle,bytes
-rask.js,101729
-rask.wasm.js,90512
-rask-hooks.js,66569
+rask.js,101741
+rask.wasm.js,90524
+rask-hooks.js,67901

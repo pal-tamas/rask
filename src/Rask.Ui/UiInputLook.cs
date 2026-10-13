@@ -60,6 +60,12 @@ internal static class UiInputLook
     /// <summary>The copy button's own icon, which the tick stands in for meanwhile.</summary>
     internal const string NotCopied = "in-data-copied:hidden";
 
+    /// <summary>The icon of a reveal button while its field shows what was typed (<c>data-viewable-open</c>).</summary>
+    internal const string Viewing = "hidden in-data-viewable-open:block";
+
+    /// <summary>The icon of a reveal button while its field hides what was typed.</summary>
+    internal const string NotViewing = "in-data-viewable-open:hidden";
+
     /// <summary>The input drawn as a button: the same box, laid out as a row.</summary>
     internal const string AsButton =
         "relative flex w-full h-10 py-2 text-base sm:text-sm leading-[1.375rem] rounded-lg " + Outline + " " + InputShadow;

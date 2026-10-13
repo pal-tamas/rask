@@ -182,13 +182,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string SwapAnimation(Ui.SwapAnimation value) => value switch
-    {
-        Ui.SwapAnimation.Rotate => "swap-rotate",
-        Ui.SwapAnimation.Flip => "swap-flip",
-        _ => "",
-    };
-
     internal static string AuraStyle(Ui.AuraStyle value) => value switch
     {
         Ui.AuraStyle.Glow => "aura-glow",

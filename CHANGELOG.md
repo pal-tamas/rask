@@ -7,6 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+
+- **A reconnect no longer hands a live page back the user its sign-in check had taken away.** The Server host
+  re-checks an open page's user at most every 30 seconds (`ISessionRevalidator`), and a reconnect re-seeded the
+  principal from its cookie or token without asking again — so a session ended or narrowed a moment earlier acted
+  under the old principal until the interval next came round, each time it reconnected. A connection is now
+  checked as it attaches, before anything is rendered or dispatched for it.
+- **A live session whose user was signed out is not adopted by another signed-in user.** Once its principal was
+  cleared the session had no owner to compare with, so the socket, the HTTP fallback, an upload and a download
+  accepted any signed-in holder of its id — on a page still holding what it had mounted for the previous user.
+  Such a session now answers its former user or nobody.
+- **A refused attach is logged.** A connection that names a session it may not drive is answered exactly like one
+  naming an id that never existed, so nothing told an operator it had happened. `Rask.Live` now logs it at
+  Information with the reason — another user, an anonymous connection on a session that has a user, an unknown
+  id — and a fingerprint of the id; never the id, a claim or a token.
+- [What ties a live page to its user](docs/authentication.md#what-ties-a-live-page-to-its-user) states the rule
+  in full, for a `RaskApp` and for a hand-wired host.
+
 ### Added
 
 - **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
@@ -160,6 +178,20 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+
+- **A page that follows a background source is never left one render behind.** In production: a date filter
+  "did not work" until something else happened on the page, with `Coalesce-loop budget exhausted … a third
+  in-dispatch render was queued and dropped` in the log. A dispatch renders at most three times, and a render
+  asked for after that was dropped on purpose, to stop a component that asks from every render. It could not tell
+  that from three honest causes arriving together — a route change, a read coming back, a singleton's event raised
+  from pool threads (`board.Changed += StateHasChanged`) — and the state written last stayed undrawn until the
+  next event. Nothing is dropped now, on either host or in the DevTools panel: the request is one more render
+  straight after the dispatch. A true runaway is bounded instead by what it is: after ten renders in a row each
+  asked for during the one before, every further one waits 250 ms, and one warning on `Rask.Live` names the
+  component types that asked (the old warning named nothing). Two smaller losses on the same path are closed: a
+  `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
+  attached. `StateHasChanged()` from any thread is documented as supported
+  (`docs/lifecycle.md#following-a-singletons-event`).
 
 - **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
   awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
@@ -368,6 +400,61 @@ them until tagged releases begin.
 
 ### Added
 
+- **BREAKING: `Ui.Carousel` is Flux's `flux:carousel`**, with `Ui.CarouselSlide` and `Ui.CarouselControls`.
+  It was daisyUI's wrapper around `carousel-item` children; daisyUI's `carousel` rules leave the kit's sheet.
+  ```csharp
+  Ui.Carousel[Div.Class("carousel-item w-full")[photo], …]                 // was
+  Ui.Carousel[Ui.CarouselSlide.Class("w-full")[photo], …]                  // now
+  ```
+  Previous and next arrows over the slides (`Arrows(false)`, `ArrowsPosition`: `Inside` / `Overlap` /
+  `Outside`, `ArrowsClass`), `Indicators()`, `Autoplay()` + `AutoplayInterval`, `Fade()`, `Bleed()`, `Snap`,
+  `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
+  `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
+  runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
+  with nothing sent to the page — zero frames either way on a Server page (`UiDrawnInTheBrowserTests`). A
+  carousel that rewinds says no `data-at-end`, as Flux's does not, so its next arrow stays at the end. Its
+  accessible names are eight new catalog entries (`CarouselRole`,
+  `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
+  `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
+  it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
+  live carousels and the kit's with the same pointer and keys — arrows, both ends, Enter and Space, the
+  indicators, external controls, page advance, autoplay under the pointer, under focus and with reduced
+  motion — and holds every step equal.
+- **A carousel's autoplay holds while focus is inside it** (`data-rask-carousel` with `data-autoplay`), as it
+  holds under the pointer, and starts afresh when both are gone. Measured on Flux: no move in 7 s with focus
+  on an arrow, the next one 3.5 s after it left.
+
+- **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+  `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
+  outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for
+  your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
+  `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
+  written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound with `OnChange` it reports each
+  turn. With neither, a press only changes what it draws, so the browser turns it and nothing is sent to the
+  server (`data-rask-switch`, a new runtime hook: `aria-checked` and `data-checked` flip on a press of a
+  `<button role="switch">` that carries it, held against the morph). While its handler runs it shows a spinner and takes no press. Measured from
+  Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
+- **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
+  toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:
+  ```csharp
+  Ui.Swap.AccessibleLabel("Mute").On(muteIcon).Off(soundIcon).Active(muted).OnChange(on => muted = on)   // was
+  Ui.Toggle.Tooltip("Mute").OnIcon(Ui.IconName.SpeakerXMark).OffIcon(Ui.IconName.SpeakerWave)
+      .Checked(muted).OnChange(on => muted = on)                                                         // now
+  ```
+  It says `role="switch"` and `aria-checked` where the swap said `aria-pressed`. There is no rotate or flip.
+
+- **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
+  region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
+  `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing
+  beside it names the country (empty by default: decoration). Measured from Flux's page and held to it by
+  `node scripts/flux/parity.mjs flag`. **The 254 drawings are files, not part of the assembly**: an app that
+  shows flags sets `<RaskUiWriteFlags>true</RaskUiWriteFlags>` and the build copies them into
+  `wwwroot/flags` with their notice; an app that does not carries none of their 172 KB, and the package grows
+  by 82 KB. In a one-project WebAssembly app the browser half writes them. They are
+  [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
+  vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
+  the empty frame, as an unknown code does.
 - **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
   `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
   `Search` at every keystroke (unchanged when the step is absent). After:
@@ -1338,6 +1425,21 @@ them until tagged releases begin.
   them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
   search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
   create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+- **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
+  shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
+  field the reader had typed into since. The runtime turns the field to text and back in the click
+  (`data-rask-view`) and says so on the button with Flux's `data-viewable-open`.
+- **Opening and closing a dropdown, a popover or a context menu sends the server nothing** — as in Flux UI,
+  where that is its own script's and Livewire hears only a bound value or an action the page wrote. The
+  panel's `toggle` was sent on every open, Escape and press outside, and answered with a render, whether or not
+  the page had asked to hear it: one frame each way per open and per close, two for a pointer crossing a
+  `Hover()` dropdown or a collapsed sidebar's rail. Now it is sent only to a page that gave `OnToggle`; `data-open`
+  on the dropdown, its trigger and a context menu's area is written by the runtime in the task the browser
+  opens the panel in (`data-rask-open-mark="<panel id>"`), a round trip sooner than a render brought it. Frames
+  per gesture, before → after: open 1 → 0, Escape 1 → 0, press outside 1 → 0, hover in and out 2 → 0. A new
+  gate, `KitDrawsWithoutAskingTests`, puts every kit component through a pointer, the keyboard, opening,
+  paging and dragging on a live Server page and holds each gesture to a frame budget: nothing for what is only
+  drawn, the frames owed for a value or a callback, and a list of what still round-trips that can only shrink.
 
 - **A child that changes element is answered with its parent, not the whole page — and so is a navigation
   inside a layout.** `cond ? A : B`, words that become an element, a loading line that becomes a table, a

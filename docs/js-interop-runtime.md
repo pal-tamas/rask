@@ -420,7 +420,7 @@ that arrives some other way stands down: its listeners answer nothing and send n
 | --- | --- | --- |
 | `data-rask-tooltip="<popover id>"` | the element wrapping a trigger and its `popover="manual"` bubble | Shows the bubble in the pointer's own task when it enters the wrapper and hides it when it leaves; shows it on keyboard focus (`:focus-visible`) and keeps it while that focus lasts; Escape hides it; a press on the trigger hides it until the pointer has left and come back. The element inside carrying `aria-expanded` has it kept true or false. Any element can be the trigger — the bubble reaches the top layer. A touch never hovers. |
 | `data-rask-hover="<popover id>"` | the element wrapping a trigger and its panel | Opens the panel at once when the pointer comes over the wrapper (trigger or panel). It closes the way Flux UI's does: a pointer move is looked at no more than once in 100 ms, and the panel closes when the move looked at is over neither. A pointer that rested and then moves into the gap closes it with that move; one that is moving crosses a narrow gap unseen and arrives. Nothing looks again by itself, so a pointer that stops outside after a move that was passed over leaves the panel open until it moves again. A press on the trigger's own `popovertarget` button leaves it open; Enter opens it the platform's way; focus alone does not. A panel the pointer opened takes no focus, even one that carries `autofocus`: focus stays where it was — and when the pointer leaves and it closes, focus is handed to nobody. |
-| `data-rask-open-mark` | a `[popover]` | `data-open` on the popover while it shows: written in the task that opens it and removed in the one that closes it, however it was opened, and held against the render. What a stylesheet lays an open panel out by (`data-open:flex`) without waiting for the page to hear the toggle. `Ui.Popover` writes it. A dialog run by `data-rask-modal` gets the same mark with nothing to ask. |
+| `data-rask-open-mark` | a `[popover]`; or, as `data-rask-open-mark="<popover id>"`, any other element | `data-open` on the popover — or on the element that names it — while the popover shows: written in the task that opens it and removed in the one that closes it, however it was opened, and held against the render. `Ui.Dropdown` names its panel on itself and on its trigger, and `Ui.Context` on its area, so an open menu or popover is drawn without the page being told it opened. What a stylesheet lays an open panel out by (`data-open:flex`) without waiting for the page to hear the toggle. `Ui.Popover` writes it. A dialog run by `data-rask-modal` gets the same mark with nothing to ask. |
 | `data-rask-hover-if="<selector>"` | the same element | The hover opens only while the element matches the selector — a rail item that opens its menu only while the sidebar is collapsed: `"input:checked ~ *"`. |
 | `aria-expanded` on the trigger inside a `data-rask-tooltip` | an interactive tooltip (one whose bubble holds links or buttons) | Mirrored while the bubble shows. It also marks the tooltip as interactive: when focus drops to nothing (`blur()`, the window losing focus) the bubble stays, until a press outside it. A tooltip without it closes. |
 
@@ -462,6 +462,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | `data-rask-copy="<id>"` | a button | Copies that element's value (or text) in the click itself, then carries `data-copied` for 2 s. |
+| `data-rask-view="<id>"` | a button | A click shows that password field as text and the next hides it again; the button carries `data-viewable-open` while it shows. Both are held against the render and nothing is sent. `Ui.Input.Viewable()` writes it. |
 | `data-rask-clear="<id>"` | a button | Empties that field, fires `input` and `change` on it, and focuses it. |
 | `data-rask-clear-keys="Escape"` | an `<input>` or `<textarea>` | A listed key (`KeyboardEvent.key`, a space between) pressed in the field empties it, in the browser and at the key. Your `OnKeyDown` hears the key; no `input` is fired. Empty it from the handler instead and it loses what was typed during the round trip. |
 | `data-rask-focus="<id>"` | any element | Focuses that element after a click. |
@@ -526,13 +527,14 @@ A dialog's `OnClose` hears every close, the page's own included.
 | --- | --- | --- |
 | `data-rask-carousel` | the root | On a scroll of its `[data-rask-carousel-track]` and on a resize: `data-at-start` / `data-at-end` on the root and on every `[data-direction]` wrapper, `disabled` on each wrapper's button, `data-selected` on the slide nearest the start and on its button in `[data-rask-carousel-indicators]` (with `aria-current="true"`). A press on a `[data-direction="next" \| "previous"]` button scrolls a slide; on an indicator, to that slide. |
 | `data-advance="page"`, `data-wrap="rewind"`, `data-scroll="instant"` | the root | Move by the slides in view; go back to the first from the end; do not animate. |
-| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and never starts under `prefers-reduced-motion`. |
+| `data-autoplay="<ms>"` | the root | Advances on that interval and rewinds at the end; stops under the pointer and while focus is inside the root, starts afresh when both are gone, and never starts under `prefers-reduced-motion`. |
 | `data-rask-carousel-controls` + `data-name` | an element outside the root | Its wrappers and indicators drive the root with the same `data-name`. |
 
 ### Scrolling
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
+| `data-rask-switch` | a `<button role="switch">` with no handler | A press flips `aria-checked` and `data-checked` in the browser, both held against the morph; nothing is sent. Enter and Space are the button's own; a `disabled` one takes no press. |
 | `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
 
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's
