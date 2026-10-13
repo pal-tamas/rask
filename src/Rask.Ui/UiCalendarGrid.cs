@@ -169,6 +169,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Select
                 .Value(Invariant(view.Month))
                 .OnChange(month => Page(state, new DateOnly(view.Year, int.Parse(month, CultureInfo.InvariantCulture), 1)))
+                .Attributes(UiRuntimeMarks.NotFormData)
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(1, 12).Select(month =>
                     Option.Key(month).Value(Invariant(month))[options.Culture.DateTimeFormat.GetAbbreviatedMonthName(month)])
@@ -181,6 +182,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Select
                 .Value(Invariant(view.Year))
                 .OnChange(year => Page(state, new DateOnly(int.Parse(year, CultureInfo.InvariantCulture), view.Month, 1)))
+                .Attributes(UiRuntimeMarks.NotFormData)
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(options.Today.Year - 100, 111).Select(year => Option.Key(year).Value(Invariant(year))[Invariant(year)])
             ]

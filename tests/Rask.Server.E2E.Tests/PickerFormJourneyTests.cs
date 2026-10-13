@@ -77,6 +77,67 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
     }
 
     [Fact]
+    public async Task Text_typed_into_a_lists_search_field_is_no_edit_and_cancel_goes_without_asking()
+    {
+        await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
+        var page = session.Page;
+        var asked = Answer(page, stay: true);
+        await session.HooksLoadedAsync();
+
+        await page.ClickAsync("#listbox [data-ui-select-button]");
+        await page.Locator("#listbox [data-ui-select-search] input").PressSequentiallyAsync("Ad");
+        await Expect(page.Locator("#listbox [data-ui-option]:not([data-hidden])")).ToHaveTextAsync(["AdBlue"]);
+        await page.Keyboard.PressAsync("Escape");
+        await page.ClickAsync("#cancel");
+
+        await Expect(page.Locator("#path")).ToHaveTextAsync("path=/list");
+        Assert.Empty(asked);
+    }
+
+    [Theory]
+    [InlineData("#combobox", "input[role=combobox]", "[data-ui-option]", "input[role=combobox]")]
+    [InlineData("#pillbox-typed", "input", "[data-ui-listbox-option]", "[data-ui-pillbox-trigger]")]
+    public async Task Text_typed_to_narrow_a_combobox_or_a_pillbox_is_no_edit_either(string box, string input, string option, string trigger)
+    {
+        await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
+        var page = session.Page;
+        var asked = Answer(page, stay: true);
+        await session.HooksLoadedAsync();
+
+        var field = page.Locator(box).Locator(input);
+        await field.ClickAsync();
+        await field.PressSequentiallyAsync("Ad");
+        await Expect(page.Locator(box).Locator(option + ":not([data-hidden])")).ToHaveTextAsync(["AdBlue"]);
+        await Expect(page.Locator(box).Locator(trigger)).ToHaveAttributeAsync("aria-expanded", "true");
+        await page.Keyboard.PressAsync("Escape");
+
+        // The page has answered Escape once its trigger says shut: the reader's next press comes after that.
+        await Expect(page.Locator(box).Locator(trigger)).ToHaveAttributeAsync("aria-expanded", "false");
+
+        // Asked of the guard itself, as a link asks it: true is "go", with no question put to the reader.
+        var mayLeave = await page.EvaluateAsync<bool>("() => window.__raskHookSeam.leave(() => {})");
+
+        Assert.True(mayLeave);
+        Assert.Empty(asked);
+    }
+
+    [Fact]
+    public async Task Paging_a_calendar_by_its_month_list_is_no_edit()
+    {
+        await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
+        var page = session.Page;
+        var asked = Answer(page, stay: true);
+        await session.HooksLoadedAsync();
+
+        await page.Locator("#calendar-lists select").First.SelectOptionAsync("3");
+        await Expect(page.Locator("#calendar-lists td[data-date$=\"-03-15\"]")).ToHaveCountAsync(1);
+        await page.ClickAsync("#cancel");
+
+        await Expect(page.Locator("#path")).ToHaveTextAsync("path=/list");
+        Assert.Empty(asked);
+    }
+
+    [Fact]
     public async Task A_pick_that_was_saved_is_not_asked_about_and_one_made_after_the_save_is()
     {
         await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
@@ -113,6 +174,7 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
         }
 
         await control.Locator(picks).First.ClickAsync();
+        await Expect(control.Locator("[aria-selected=true], [data-selected], [aria-checked=true], [aria-pressed=true]").First).ToBeAttachedAsync();
         await Expect(page.Locator(Edited)).ToHaveCountAsync(1);
     }
 
@@ -143,6 +205,10 @@ internal sealed class TankDraft
     public string City { get; set; } = "";
 
     public DateOnly Day { get; set; }
+
+    public List<string> Labels { get; set; } = [];
+
+    public DateOnly Checked { get; set; }
 
     public DateOnly? From { get; set; }
 
@@ -190,6 +256,8 @@ public sealed partial class PickerFormPage(RouteState route) : Component
             Div.Id("several")[Ui.Select.Bind(() => _tank.Fuels).Listbox.Multiple().Placeholder("Válasszon…")[Options()]],
             Div.Id("combobox")[Ui.Select.Bind(() => _tank.Kind).Combobox.Placeholder("Válasszon…")[Options()]],
             Div.Id("pillbox")[Ui.Pillbox.Bind(() => _tank.Tags).Placeholder("Válasszon…")[Fuels.Select(fuel => Ui.PillboxOption.Key(fuel)[fuel])]],
+            Div.Id("pillbox-typed")[Ui.Pillbox.Bind(() => _tank.Labels).Combobox.Placeholder("Válasszon…")[Fuels.Select(fuel => Ui.PillboxOption.Key(fuel)[fuel])]],
+            Div.Id("calendar-lists")[Ui.Calendar.Bind(() => _tank.Checked).SelectableHeader()],
             Div.Id("autocomplete")[Ui.Autocomplete.Bind(() => _tank.City)[Fuels.Select(fuel => Ui.AutocompleteItem.Key(fuel)[fuel])]],
             Div.Id("calendar")[Ui.Calendar.Bind(() => _tank.Day)],
             Div.Id("date")[Ui.DatePicker.Bind(() => _tank.From)],

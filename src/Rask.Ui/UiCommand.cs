@@ -114,7 +114,7 @@ public sealed partial class UiCommand : Component
             .Aria(BoxAria(active))
             // Enter presses the highlighted option in the runtime, because what an option DOES — a handler, a link —
             // is only reachable by clicking it; C# cannot follow an href.
-            .Attributes(("data-rask-press-active", null))
+            .Attributes(("data-rask-press-active", null), UiRuntimeMarks.NotFormData)
             .OnInput(raw =>
             {
                 _query = raw ?? string.Empty;

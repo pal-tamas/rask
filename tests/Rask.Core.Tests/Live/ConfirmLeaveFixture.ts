@@ -109,6 +109,21 @@ render(form, "data-rask-edited", "");
 raise("submit", form);
 const afterARefusedSubmit = unsavedMessage(doc);
 
+// A list's search field and a calendar's month are in the form and are none of its data: they say so, on the
+// field or around it, and what is typed or chosen there loses nothing. The field beside them still counts.
+forms.length = 0;
+form = guarded("Leave the tank?");
+const search = new Stub("input", {"data-rask-unguarded": ""}, new Stub("div", {}, form));
+const month = new Stub("select", {}, new Stub("div", {"data-rask-unguarded": ""}, form));
+raise("input", search);
+raise("change", month);
+const afterSearching = unsavedMessage(doc);
+const {unasked} = await import("../../../src/Rask.Core/Resources/rask-owned.js");
+unasked(function () { raise("input", new Stub("input", {}, form)); });
+const afterTheRuntimeWroteAField = unsavedMessage(doc);
+raise("input", new Stub("input", {}, form));
+const afterTypingBesideTheSearch = unsavedMessage(doc);
+
 // A form that does not ask is not asked about, whatever the page says of it.
 forms.length = 0;
 forms.push(new Stub("form", {"data-rask-edited": ""}));
@@ -124,4 +139,7 @@ process.stdout.write(JSON.stringify({
     pickedAgain,
     afterARefusedSubmit,
     aFormThatDoesNotAsk,
+    afterSearching,
+    afterTheRuntimeWroteAField,
+    afterTypingBesideTheSearch,
 }) + "\n");

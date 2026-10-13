@@ -189,7 +189,7 @@ public abstract partial class UiSelectControl<T>
     private string? PillListLook() => Pills is null ? null : UiPillboxLook.SearchedList;
 
     private Dictionary<string, string?> SearchInputMarks() =>
-        Pills is null ? [] : UiPillboxLook.InputMarks(null);
+        Pills is null ? new(StringComparer.Ordinal) { [UiRuntimeMarks.Unguarded] = null } : UiPillboxLook.InputMarks(null);
 
     private Component?[] RowContent(UiSelectOption option) =>
         Pills is null ? [UiListboxRow.Content(option)] : UiPillboxRow.Content(option);

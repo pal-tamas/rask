@@ -80,6 +80,8 @@ internal static class UiPillboxLook
         ["data-ui-pillbox-input"] = null,
         ["data-rask-keys"] = UiListKeys.Pills,
         ["data-rask-clear-keys"] = UiListKeys.PillsClear,
+        // What is typed here finds or names an option; the pills are the value.
+        [UiRuntimeMarks.Unguarded] = null,
     };
 
     /// <summary>The padding and corners of the trigger at each size.</summary>

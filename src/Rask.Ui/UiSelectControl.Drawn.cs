@@ -219,6 +219,8 @@ public abstract partial class UiSelectControl<T>
     {
         var marks = TriggerMarks(view, "data-ui-control", invalid, anchors: false);
         marks["data-rask-keys"] = UiListKeys.Text;
+        // The words typed narrow the list; the answer is the option picked.
+        marks[UiRuntimeMarks.Unguarded] = null;
 
         return marks;
     }

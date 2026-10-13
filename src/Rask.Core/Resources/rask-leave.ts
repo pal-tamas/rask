@@ -16,6 +16,11 @@
 // writes it and a render takes it away, so there is nothing to count here, and a value the page wrote by
 // itself never puts it there.
 //
+// WHAT IS NOT THE FORM'S. A list's search field, a calendar's month, a box the kit measures into: typed or
+// chosen in, and no data of the form. Such a field, or anything around it, says `data-rask-unguarded`, and
+// what happens in it is not counted. Nor is an `input` the runtime raises by itself (`unasked`,
+// rask-owned.ts): a chart writing the box it was measured at is nobody's edit.
+//
 // HOW IT ASKS. With `confirm`, unless the layout placed Ui.ConfirmLeave: then in that dialog, which is a
 // Ui.Modal, and the exit waits for the answer.
 //
@@ -25,12 +30,13 @@
 // A navigation the server makes from a handler takes none of those paths, so a save that ends in
 // `Go.To(…)` is never asked about. A form that has left the document is not found, and guards nothing.
 
-import {listen, near, page, seam} from "./rask-owned.js";
+import {isUnasked, listen, near, page, seam} from "./rask-owned.js";
 
 const MESSAGE = "data-rask-confirm-leave";
 const GUARDED = "form[" + MESSAGE + "]";
 const SAVED = "data-rask-saved";
 const EDITED = "data-rask-edited";
+const UNGUARDED = "[data-rask-unguarded]";
 
 interface Edits {
     /** Edits made since the form arrived. */
@@ -171,7 +177,7 @@ if (page) {
 
     const edited = function (e: Event): void {
         const form = near(e.target, GUARDED);
-        if (form) {
+        if (form && !isUnasked() && !near(e.target, UNGUARDED)) {
             edits(form).made++;
             guard();
         }

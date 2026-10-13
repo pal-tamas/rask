@@ -152,6 +152,16 @@ them until tagged releases begin.
   marks nothing; a refused submit leaves the mark; a pick made while a save is still running stays unsaved.
   `ReaderChangesMakeTheFormUnsavedTests` holds one row per control and fails for a control that is in no row.
 
+- **Typing in a list's search field no longer makes a `ConfirmLeave` form unsaved.** Opening a searchable
+  `Ui.Select`, typing two letters, pressing Escape and then Cancel asked "leave without saving?" though
+  nothing had been chosen: the guard counted every `input` inside the form. The fields of a kit control that
+  hold none of the form's data now say `data-rask-unguarded` and are not counted: `Ui.SelectSearch` and
+  `Ui.PillboxSearch`, the input of a combobox `Ui.Select` and of a `Ui.Pillbox` (what is typed narrows the
+  list; the answer is the option picked), `Ui.Command`'s input, the month and year lists of a calendar or a
+  date picker with `SelectableHeader`, and the box the colour picker is measured into. An `input` the
+  runtime raises by itself — a chart writing the size it was measured at — is not counted either. A field
+  whose text is its value (`Ui.Input`, `Ui.Autocomplete`) counts as before, and so do an app's own inputs.
+
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from

@@ -80,6 +80,23 @@ public sealed class ConfirmLeaveClientTests
     }
 
     [Fact]
+    public void What_is_typed_or_chosen_in_a_field_that_holds_none_of_the_forms_data_loses_nothing()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var afterSearching = Said(root, "afterSearching");
+        var afterTheRuntimeWroteAField = Said(root, "afterTheRuntimeWroteAField");
+        var afterTypingBesideTheSearch = Said(root, "afterTypingBesideTheSearch");
+
+        Assert.Null(afterSearching);
+        Assert.Null(afterTheRuntimeWroteAField);
+        Assert.Equal(Asks, afterTypingBesideTheSearch);
+    }
+
+    [Fact]
     public void A_form_that_does_not_ask_is_never_unsaved()
     {
         if (Run() is not { } root)
