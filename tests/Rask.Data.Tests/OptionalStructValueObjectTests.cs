@@ -48,6 +48,33 @@ public sealed class Offer : Aggregate<int>
     }
 }
 
+/// <summary>A value object of several values, built through its members, that holds an optional one-value struct.</summary>
+public sealed class OfferTerms
+{
+    private OfferTerms() { }
+
+    public OfferDiscount? Early { get; private set; }
+
+    public int Days { get; private set; }
+
+    public static OfferTerms Of(int? early, int days) =>
+        new() { Early = early is { } percent ? new OfferDiscount(percent) : null, Days = days };
+}
+
+/// <summary>An aggregate that holds the optional struct one level down.</summary>
+public sealed class OfferPlan : Aggregate<int>
+{
+    private OfferPlan() { }
+
+    public const Timestamps Stamps = Timestamps.None;
+
+    public const Concurrency Checks = Concurrency.None;
+
+    public OfferTerms Terms { get; private set; } = OfferTerms.Of(null, 0);
+
+    public static OfferPlan With(int? early) => new() { Terms = OfferTerms.Of(early, 30) };
+}
+
 /// <summary>
 /// A one-value struct value object held as <c>T?</c> is a value object like any other, and optional: a nullable
 /// column of the value it holds, a nullable field of that value on the form model, and a rule asked only when
@@ -182,6 +209,25 @@ public sealed class OptionalStructValueObjectTests : IDisposable
         // and the database's own refusal comes through as it is.
         var failure = Assert.IsType<DbUpdateException>(refused);
         Assert.Contains("NOT NULL constraint failed: Offers.Discount", failure.InnerException!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Inside_a_value_object_built_through_its_members_it_is_stored_or_left_empty_and_asked_when_filled()
+    {
+        await using var database = await StartDatabaseAsync();
+        var bare = OfferPlan.With(null);
+        await bare.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        var full = await OfferPlan.Create(
+            new OfferPlanModel { Terms = new() { Early = 4, Days = 10 } }, cancellationToken: TestContext.Current.CancellationToken);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(() => OfferPlan.Create(
+            new OfferPlanModel { Terms = new() { Early = -1, Days = 10 } }, cancellationToken: TestContext.Current.CancellationToken));
+
+        var storedBare = (await database.Load<OfferPlan>(bare.Id, TestContext.Current.CancellationToken))!;
+        var storedFull = (await database.Load<OfferPlan>(full.Id, TestContext.Current.CancellationToken))!;
+        Assert.Null(storedBare.Terms.Early);
+        Assert.Equal(new OfferDiscount(4), storedFull.Terms.Early);
+        Assert.Equal([("Terms.Early", OfferDiscount.OutOfRange)], refused.Failures.Select(f => (f.Fields.Single(), f.Message)));
     }
 
     private static async Task<int> SaveAsync(Offer offer)
