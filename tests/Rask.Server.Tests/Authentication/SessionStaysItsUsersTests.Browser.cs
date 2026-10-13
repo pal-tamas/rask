@@ -224,7 +224,7 @@ public sealed partial class SessionStaysItsUsersTests
 
         if (ended)
         {
-            request.Headers.Add("Cookie", "rask-ended=1");
+            request.Headers.Add("Cookie", "rask-ended=%2F");
         }
 
         return await host.Http.SendAsync(request, TestContext.Current.CancellationToken);

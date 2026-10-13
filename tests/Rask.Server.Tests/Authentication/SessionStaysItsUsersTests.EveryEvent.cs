@@ -299,6 +299,7 @@ internal sealed partial class FollowPanel(
 
     private void Save()
     {
+        ledger.WhileSaving?.Invoke();
         _clicks++;
         ledger.Saves.Enqueue(new SessionStaysItsUsersTests.Save(FollowUser.Describe(users), "", null));
     }

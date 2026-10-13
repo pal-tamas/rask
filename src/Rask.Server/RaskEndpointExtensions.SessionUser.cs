@@ -459,28 +459,33 @@ public static partial class RaskEndpointExtensions
     internal const string EndedCookie = "rask-ended";
 
     /// <summary>
+    ///     Its name over https: the <c>__Host-</c> prefix makes the browser refuse it from anything but this very
+    ///     host — a sibling subdomain can neither set it nor shadow it — and only with <c>Secure</c> and
+    ///     <c>Path=/</c>.
+    /// </summary>
+    internal const string EndedCookieOverHttps = "__Host-" + EndedCookie;
+
+    /// <summary>
     ///     Sends a tab that had a user and has none now to the sign-in page, with the way back — the page's own
     ///     request being the first place the server sees that the browser no longer carries anybody.
     /// </summary>
     /// <remarks>
-    ///     The tab says it had one, by a cookie that lasts seconds: Rask cannot tell from an anonymous request. A
-    ///     visitor who never signed in never sets it, and a public page goes on serving them. All the cookie can do
-    ///     is redirect its own bearer, once.
+    ///     The tab says it had one, by a cookie that lasts seconds and names the app it was written for: Rask
+    ///     cannot tell from an anonymous request. A visitor who never signed in never sets it, another app on the
+    ///     host ignores it, and a public page goes on serving them. All it can do is redirect its own bearer, once.
     /// </remarks>
     private static bool SentToSignIn(
         HttpContext ctx, string path, ClaimsPrincipal user, string pathBase, RaskRootSelector selector)
     {
-        if (!ctx.Request.Cookies.ContainsKey(EndedCookie))
+        // Over https only the prefixed name is believed: the plain one can be planted from next door.
+        var name = ctx.Request.IsHttps ? EndedCookieOverHttps : EndedCookie;
+        if (!ctx.Request.Cookies.TryGetValue(name, out var writtenFor)
+            || !string.Equals(Uri.UnescapeDataString(writtenFor ?? string.Empty), pathBase.Length == 0 ? "/" : pathBase, StringComparison.Ordinal))
         {
             return false;
         }
 
-        ForgetEnded(ctx, pathBase.Length == 0 ? "/" : pathBase);
-        if (pathBase.Length != 0)
-        {
-            // A tab of an older runtime wrote it for the whole host.
-            ForgetEnded(ctx, "/");
-        }
+        ForgetEnded(ctx, name);
 
         // Nowhere to send them when the app has no sign-in page: the page is served, as to any anonymous visitor.
         if (PrincipalRights.IsSignedIn(user)
@@ -504,11 +509,10 @@ public static partial class RaskEndpointExtensions
         && !notFound;
 
     // The tab wrote it from script; the answer that removes it has no reason to stay readable by one.
-    private static void ForgetEnded(HttpContext ctx, string cookiePath)
+    private static void ForgetEnded(HttpContext ctx, string name)
     {
 #pragma warning disable S2092 // a removal, of a cookie that carries nothing: marked Secure it would not be taken over http, where the tab set it
-        ctx.Response.Cookies.Delete(
-            EndedCookie, new CookieOptions { Path = cookiePath, HttpOnly = true, Secure = ctx.Request.IsHttps });
+        ctx.Response.Cookies.Delete(name, new CookieOptions { Path = "/", HttpOnly = true, Secure = ctx.Request.IsHttps });
 #pragma warning restore S2092
     }
 }

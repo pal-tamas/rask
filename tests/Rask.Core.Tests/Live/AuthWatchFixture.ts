@@ -22,6 +22,10 @@ interface Tab {
     asks: number;
     reopens: number;
     told: number;
+    /** The browser's other tabs: what this one tells, they hear. */
+    others: Tab[];
+    /** What is waiting for time to pass. */
+    waiting: Array<() => void>;
 }
 
 function tab(bootedWithUser = true): Tab {
@@ -39,7 +43,7 @@ function tab(bootedWithUser = true): Tab {
     }
 
     const me: Tab = {
-        state, wire, asks: 0, reopens: 0, told: 0,
+        state, wire, asks: 0, reopens: 0, told: 0, others: [], waiting: [],
         watch: createAuthWatch({
             ask() {
                 me.asks++;
@@ -52,6 +56,10 @@ function tab(bootedWithUser = true): Tab {
             release: flush,
             tellOthers() {
                 me.told++;
+                for (const other of me.others) other.watch.noticed(true);
+            },
+            wait(again) {
+                me.waiting.push(again);
             },
             now: () => state.now,
             focused: () => state.focused,
@@ -197,6 +205,38 @@ const results: Record<string, unknown> = {};
     anonymous.watch.noticed();
     await anonymous.answer({same: true, user: true});
     results.hadUser = {booted: signedIn.watch.hadUser, bootedAnonymous, afterAnswer: anonymous.watch.hadUser};
+}
+
+// Three tabs side by side. One finds the credential changed and tells the others; they ask, find the same, and
+// open their connections again — and say nothing, or the three would wake each other for ever.
+{
+    const tabs = [tab(), tab(), tab()];
+    for (const t of tabs) t.others = tabs.filter((other) => other !== t);
+    tabs[0].watch.left();
+    tabs[0].watch.noticed();
+    await tabs[0].answer({same: false});
+    await tabs[1].answer({same: false});
+    await tabs[2].answer({same: false});
+    for (const t of tabs) t.reconnected();
+    results.threeTabs = {
+        told: tabs.map((t) => t.told),
+        asks: tabs.map((t) => t.asks),
+        reopens: tabs.map((t) => t.reopens),
+    };
+}
+
+// Asked too often, the server says "later": that is not "changed". The frame goes on waiting, the question is put
+// again, and nothing is opened again.
+{
+    const t = tab();
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    await t.answer({later: true});
+    const afterLater = {reopens: t.reopens, wire: t.wire.slice(), waiting: t.waiting.length};
+    t.waiting.shift()!();
+    await t.answer({same: true, user: true});
+    results.later = {afterLater, asks: t.asks, reopens: t.reopens, wire: t.wire};
 }
 
 console.log(JSON.stringify(results));

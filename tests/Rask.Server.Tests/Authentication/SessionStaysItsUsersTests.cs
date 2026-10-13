@@ -327,7 +327,7 @@ public sealed partial class SessionStaysItsUsersTests
         if (ctx.Request.Path.StartsWithSegments(pathBase) && ctx.Request.Headers.TryGetValue(UserHeader, out var name) && !string.IsNullOrEmpty(name))
         {
             var directory = ctx.RequestServices.GetRequiredService<Directory>();
-            ctx.User = Directory.Principal(name!, directory.Admins.Contains(name!));
+            ctx.User = directory.PrincipalNow(name!);
         }
 
         return next(ctx);
@@ -340,6 +340,9 @@ public sealed partial class SessionStaysItsUsersTests
         public ConcurrentQueue<Save> Saves { get; } = new();
 
         public int Mounts;
+
+        // Run by the page's save handler, for a test that has to do something while a handler runs.
+        public Action? WhileSaving { get; set; }
     }
 
     // The app's user store: who is an administrator, whose sign-in has ended, and whose right was taken away after
@@ -357,6 +360,23 @@ public sealed partial class SessionStaysItsUsersTests
 
         // The store cannot be reached: asking throws.
         public bool Unreachable { get; set; }
+
+        // When the token a request carries lapses, as its `exp` claim, and what time it is — for a host whose
+        // revalidator reads the one against the other.
+        public long? TokenExpires { get; set; }
+
+        public long Now { get; set; }
+
+        public ClaimsPrincipal PrincipalNow(string name)
+        {
+            var principal = Principal(name, Admins.Contains(name));
+            if (TokenExpires is { } expires)
+            {
+                ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("exp", expires.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            return principal;
+        }
 
         public static ClaimsPrincipal Principal(string name, bool admin) =>
             new(new ClaimsIdentity(

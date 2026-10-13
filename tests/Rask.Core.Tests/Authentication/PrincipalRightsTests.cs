@@ -78,6 +78,21 @@ public class PrincipalRightsTests
         Assert.False(same);
     }
 
+    // IsInRole reads the claim the identity calls a role: the same claims, read differently, are other rights.
+    [Fact]
+    public void The_same_claims_read_through_another_role_claim_type_are_a_change()
+    {
+        var claims = new[] { new Claim("sub", "alice"), new Claim("role", "admin") };
+        var one = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test", "sub", "role"));
+        var other = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test", "sub", ClaimTypes.Role));
+
+        var same = PrincipalRights.Same(one, other);
+
+        Assert.True(one.IsInRole("admin"));
+        Assert.False(other.IsInRole("admin"));
+        Assert.False(same);
+    }
+
     [Fact]
     public void One_principal_compared_with_itself_allocates_nothing()
     {

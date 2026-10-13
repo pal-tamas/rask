@@ -155,5 +155,40 @@ public sealed class AuthWatchFixtureTests
         Assert.True(had.GetProperty("afterAnswer").GetBoolean());
     }
 
+    // What a tab learns because it was told, it does not tell on.
+    [Fact]
+    public void Three_tabs_open_their_connections_again_once_each_and_only_the_one_that_found_out_tells()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var tabs = result.GetProperty("threeTabs");
+
+        Assert.Equal([1, 0, 0], tabs.GetProperty("told").EnumerateArray().Select(static e => e.GetInt32()));
+        Assert.Equal([1, 1, 1], tabs.GetProperty("asks").EnumerateArray().Select(static e => e.GetInt32()));
+        Assert.Equal([1, 1, 1], tabs.GetProperty("reopens").EnumerateArray().Select(static e => e.GetInt32()));
+    }
+
+    [Fact]
+    public void A_tab_told_to_ask_later_holds_what_it_has_and_asks_again_without_opening_its_connection_again()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var later = result.GetProperty("later");
+        var afterLater = later.GetProperty("afterLater");
+
+        Assert.Equal(0, afterLater.GetProperty("reopens").GetInt32());
+        Assert.Empty(Strings(afterLater.GetProperty("wire")));
+        Assert.Equal(1, afterLater.GetProperty("waiting").GetInt32());
+        Assert.Equal(2, later.GetProperty("asks").GetInt32());
+        Assert.Equal(0, later.GetProperty("reopens").GetInt32());
+        Assert.Equal(["1:click"], Strings(later.GetProperty("wire")));
+    }
+
     private static string[] Strings(JsonElement array) => [.. array.EnumerateArray().Select(static e => e.GetString()!)];
 }

@@ -224,13 +224,14 @@ import {
         reopen: reopenForAuth,
         release: flushQueue,
         tellOthers: () => authChannel?.postMessage(1),
+        wait: (again, ms) => { setTimeout(again, ms); },
         now: () => Date.now(),
         focused: () => document.hasFocus(),
         visible: () => document.visibilityState === "visible",
         cookieOnEveryFrame: () => httpConn !== null,
         bootedWithUser: root.hasAttribute("data-rask-user"),
     });
-    if (authChannel) authChannel.onmessage = () => authWatch.noticed();
+    if (authChannel) authChannel.onmessage = () => authWatch.noticed(true);
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") authWatch.noticed();
         else authWatch.left();
@@ -1031,7 +1032,13 @@ import {
         // reader did nothing wrong, and the next page says what is needed.
         if (authWatch.hadUser) {
             sessionExpired = true;
-            document.cookie = "rask-ended=1; Max-Age=30; Path=/; SameSite=Lax";
+            // Named for this app, so another one on the host ignores it. Over https under the __Host- prefix,
+            // which the browser takes from this host alone: a neighbouring subdomain cannot plant it.
+            const base = getBasePath();
+            const app = encodeURIComponent(base === "/" ? "/" : base.slice(0, -1));
+            document.cookie = location.protocol === "https:"
+                ? "__Host-rask-ended=" + app + "; Max-Age=30; Path=/; SameSite=Lax; Secure"
+                : "rask-ended=" + app + "; Max-Age=30; Path=/; SameSite=Lax";
             location.reload();
             return;
         }
