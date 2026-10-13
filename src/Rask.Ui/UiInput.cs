@@ -255,9 +255,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce)
             : Input.Value(Masked(Value)).OnChange(Changed);
 
-        if (Host is { } host)
+        if (Host is not null)
         {
-            input = input.Role("combobox").Autocomplete("off").OnKeyDown(e => host.OnKeyDown(e)).OnClick(() => host.OnClick());
+            input = input.Role("combobox").Autocomplete("off");
         }
 
         if (Mask is { } mask)
@@ -289,12 +289,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
                 InputClass));
     }
 
-    private IReadOnlyDictionary<string, string?> Marks(bool invalid)
-    {
-        var marks = UiInputLook.Marks(invalid, Attributes);
-
-        return Host?.MarksOver(marks) ?? marks;
-    }
+    private IReadOnlyDictionary<string, string?> Marks(bool invalid) => UiInputLook.Marks(invalid, Attributes);
 
     private static Component Glyph(UiInputIcon icon) =>
         icon.Content ?? Ui.Icon.Name(icon.Name!.Value).Mini;

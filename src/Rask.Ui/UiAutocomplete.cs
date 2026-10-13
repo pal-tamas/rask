@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Linq.Expressions;
-using Rask.Core;
 using Rask.Core.Forms;
 
 namespace Rask;
@@ -17,8 +16,11 @@ namespace Rask;
 ///     </para>
 ///     <para>
 ///     It is Flux's input — every prop of <see cref="UiInput{T}" /> that Flux documents here is handed to one —
-///     over a native <c>popover</c> placed by CSS anchor positioning. No script: the cursor, the filter and
-///     the picking are C#.
+///     over a native <c>popover</c> placed by CSS anchor positioning. No script of its own: the lit row, the
+///     filter, whether the list is open and the pick that writes an item into the input are the browser's,
+///     kept by the runtime (<c>data-rask-list</c>), and send the page nothing. The page hears the text the way
+///     any input's is heard: with the next action when bound, at once with <c>.Live()</c>, and on a pick, a
+///     clear or leaving the input when it holds the value itself.
 ///     </para>
 /// </remarks>
 public sealed partial class UiAutocomplete : Component, IFormControl<string>, IDeferredBind
@@ -123,13 +125,12 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var view = Read();
-        var input = Ui.Input
-            .Value(_typing ? _search : view.Text)
-            .OnInput(Typed)
-            .OnChange(CommitAsync)
+        // Bind and Value are the two openings of the kit's input, and both hand back the same control.
+        var opened = Bind is { } bind
+            ? Ui.Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live)
+            : Ui.Input.Value(Value ?? string.Empty).OnChange(OnChange);
+        var input = opened
             .Id(UiFieldId.Derive(Id, Bind, Label))
-            .Ref(_input)
             .Type(Type)
             .Label(Label)
             .Description(Description)
@@ -151,101 +152,76 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .InputClass(InputClass)
             .ShowValidation(ShowValidation)
             .Class(Class)
-            .HostedBy(new UiInputHost
-            {
-                Bound = Bind,
-                AnchorName = Prefixed,
-                Aria = InputAria(view),
-                OnKeyDown = e => OnKeyAsync(e, view),
-                Keys = UiListKeys.Text,
-                ClearKeys = Keys.Escape,
-                OnClick = Opened,
-            });
+            .HostedBy(new UiInputHost { Bound = Bind, AnchorName = Prefixed, Aria = InputAria });
 
-        return Div.Class(UiAutocompleteLook.Root).Attributes(UiAutocompleteLook.RootMarks)[input, Popup(view)];
+        return Div.Class(UiAutocompleteLook.Root).Attributes(UiAutocompleteLook.RootMarks)[input, Popup()];
     }
 
-    private Dictionary<string, string?> InputAria(View view)
+    // Rendered shut, always: `aria-expanded` and the row `aria-activedescendant` names are written by the
+    // browser as the list opens and its cursor moves.
+    private Dictionary<string, string?> InputAria => new(StringComparer.Ordinal)
     {
-        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["controls"] = PanelId,
-            ["autocomplete"] = "list",
-            ["haspopup"] = "listbox",
-            ["expanded"] = _open ? "true" : "false",
-        };
-        if (_open && view.Cursor >= 0)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
-        }
-
-        return aria;
-    }
+        ["controls"] = PanelId,
+        ["autocomplete"] = "list",
+        ["haspopup"] = "listbox",
+        ["expanded"] = "false",
+    };
 
     // `aria-multiselectable` on a list that holds one answer is Flux's: its autocomplete is its select's
     // element, and that is what it writes.
-    private Component Popup(View view) =>
-        Div
+    private Component Popup()
+    {
+        var items = (Children ?? []).OfType<UiAutocompleteItem>().ToList();
+
+        return Div
             .Id(PanelId)
             .Popover(Popover.Auto)
             .Role("listbox")
             .TabIndex(-1)
             .Class(UiClass.Compose(UiListboxLook.Box, UiListboxLook.Scrolls, UiAutocompleteLook.Items, ContainerClass))
             .Aria("multiselectable", "true")
-            .Attributes(PopupMarks())
-            .OnToggle(OnToggle)[
-            view.Items.Select(item => Row(view, item)),
+            .Attributes(PopupMarks())[
+            items.Select(Row),
             // Flux's `ui-empty`: a place for a message it documents no way to fill. Kept, so the list is its list.
-            Div.Class(UiAutocompleteLook.Empty).Attributes(view.Shown.Contains(true) ? Hidden : [])
+            Div.Class(UiAutocompleteLook.Empty).Attributes(items.Count > 0 ? EmptyHidden : EmptyShown)
         ];
-
-    private static readonly Dictionary<string, string?> Hidden = new(StringComparer.Ordinal) { ["data-hidden"] = null };
-
-    // `data-rask-popover-open` is how C# opens and closes a popover: the runtime shows or hides it when the
-    // value changes. Escape and a click elsewhere are the browser's, and reach here as the toggle event.
-    private Dictionary<string, string?> PopupMarks()
-    {
-        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["data-ui-autocomplete-items"] = null,
-            ["data-rask-popover-open"] = _open ? "true" : "false",
-            // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
-            ["data-rask-lock"] = null,
-            ["style"] = UiAnchor.Under(Prefixed, null, null),
-            ["data-rask-place"] = UiAnchor.Place(null, null),
-        };
-        if (_open)
-        {
-            marks["data-open"] = null;
-        }
-
-        return marks;
     }
 
-    private Component Row(View view, Item item)
+    private static readonly Dictionary<string, string?> EmptyShown = new(StringComparer.Ordinal) { ["data-rask-list-empty"] = null };
+
+    private static readonly Dictionary<string, string?> EmptyHidden = new(EmptyShown, StringComparer.Ordinal) { ["data-hidden"] = null };
+
+    // Opened and shut in the browser, by the input and the keys (rask-list.ts): the page says nothing of it.
+    private Dictionary<string, string?> PopupMarks() => new(StringComparer.Ordinal)
     {
-        var off = item.Part.Disabled == true;
+        ["data-ui-autocomplete-items"] = null,
+        // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+        ["data-rask-lock"] = null,
+        ["style"] = UiAnchor.Under(Prefixed, null, null),
+        ["data-rask-place"] = UiAnchor.Place(null, null),
+    };
+
+    // A row has no handler: a press, or Enter on the lit row, writes its words into the input in the browser,
+    // and the input tells the page as it tells it of anything typed. Which row was picked last is marked there
+    // too (`aria-selected`), as Flux keeps it marked whatever is typed afterwards.
+    private Component Row(UiAutocompleteItem item, int index)
+    {
+        var off = item.Disabled == true;
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { ["data-ui-autocomplete-item"] = null };
-        if (view.Cursor == item.Index)
+        if (item.Children is { } content && !UiSelectText.IsTextOnly(content))
         {
-            marks["data-active"] = null;
+            // The words the row is found by and writes, where it draws more than them.
+            marks["data-rask-list-text"] = UiSelectText.Of(content);
         }
 
-        if (!view.Shown[item.Index])
-        {
-            marks["data-hidden"] = null;
-        }
-
-        var row = Div
-            .Key(item.Part.Key)
-            .Id(UiSelectNav.OptId(Prefixed, item.Index))
+        return Div
+            .Key(item.Key)
+            .Id(UiSelectNav.OptId(Prefixed, index))
             .Role("option")
-            .Class(UiClass.Compose(UiAutocompleteLook.Item, item.Part.Class))
-            .Aria(UiOptionAria.For(off, string.Equals(_picked, item.Text, StringComparison.Ordinal)))
-            .Attributes(marks);
-
-        return (off ? row : row.OnClick(e => ClickedAsync(e, item.Index, view)).OnMouseEnter(e => Hovered(e, item.Index)))[
-            item.Part.Children ?? []
+            .Class(UiClass.Compose(UiAutocompleteLook.Item, item.Class))
+            .Aria(UiOptionAria.For(off, selected: false))
+            .Attributes(marks)[
+            item.Children ?? []
         ];
     }
 }

@@ -82,7 +82,7 @@ internal static class UiListboxLook
     internal const string Description = "[[data-ui-select-button]_&]:hidden text-xs font-normal text-zinc-500 dark:text-white/70";
 
     /// <summary>The heading over a group of rows.</summary>
-    internal const string GroupHeading = "px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-300 select-none";
+    internal const string GroupHeading = "data-hidden:hidden px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-300 select-none";
 
     /// <summary>The line between two groups.</summary>
     internal const string GroupSeparator = "-mx-[.3125rem] my-[.3125rem] h-px border-0 bg-zinc-800/5 dark:bg-white/10";

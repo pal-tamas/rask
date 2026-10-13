@@ -35,19 +35,48 @@ public abstract partial class UiSelectControl<T>
         return IsCombobox ? InputTrigger(view) : ButtonTrigger(view);
     }
 
-    private Dictionary<string, string?> RootMarks()
+    private Dictionary<string, string?> RootMarks() => new(StringComparer.Ordinal)
     {
-        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
+        ["data-ui-control"] = null,
+        [Pills is null ? "data-ui-select" : "data-ui-pillbox"] = null,
+        ["data-rask-list"] = ListKind(),
+    };
+
+    // What kind of list the browser is keeping (rask-list.ts): its cursor, its keys, whether it is open and
+    // which rows a search leaves are all there, and none of it is a render's to say.
+    private string ListKind()
+    {
+        List<string> words = [];
+        if (IsMultiple)
         {
-            ["data-ui-control"] = null,
-            [Pills is null ? "data-ui-select" : "data-ui-pillbox"] = null,
-        };
-        if (_open)
-        {
-            marks["data-open"] = null;
+            words.Add("multiple");
+            if ((Clear ?? Ui.SelectClear.Select) != Ui.SelectClear.Select)
+            {
+                words.Add("stay");
+            }
         }
 
-        return marks;
+        if (HidesRows)
+        {
+            words.Add("filter");
+        }
+
+        if (IsCombobox)
+        {
+            words.Add("strict");
+        }
+
+        if (Pills is not null)
+        {
+            words.Add("top");
+        }
+
+        if (PillsCombobox)
+        {
+            words.Add("clears");
+        }
+
+        return string.Join(' ', words);
     }
 
     private const string TriggerKey = "trigger";
@@ -76,8 +105,7 @@ public abstract partial class UiSelectControl<T>
             .Disabled(IsOff(view.Parts))
             .Class(UiClass.Compose(UiSelectLook.Button, UiSelectLook.ButtonSize(slot?.Size ?? Height), slot?.Class))
             .Aria(TriggerAria(view))
-            .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))
-            .OnKeyDown(e => OnButtonKeyAsync(e, view))[
+            .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
             Div.Class(UiSelectLook.Selected)[PickedContent(view, slot?.Placeholder ?? Placeholder)],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiSelectLook.Chevron)
@@ -123,7 +151,9 @@ public abstract partial class UiSelectControl<T>
 
         return Div.Key(TriggerKey).Class(UiInputLook.Root).Attributes(InputBoxMarks())[
             Input
-                .Value(_typing ? view.Search : PickedWords(view))
+                // The answer's words. What is typed over them is the reader's, and the browser puts the answer
+                // back when the list shuts (`strict`, rask-list.ts).
+                .Value(PickedWords(view))
                 .Id(view.Field.ControlId)
                 .Type(InputType.Text)
                 .Placeholder(slot?.Placeholder ?? Placeholder)
@@ -137,12 +167,7 @@ public abstract partial class UiSelectControl<T>
                     UiInputLook.Variant(Ui.InputVariant.Outline),
                     slot?.Class))
                 .Aria(TriggerAria(view, autocompletes: true))
-                .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true))
-                .Ref(_input)
-                .OnClick(() => OnInputClickAsync(view))
-                .OnBlur(OnInputBlur)
-                .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: true))
-                .OnKeyDown(e => OnInputKeyAsync(e, view)),
+                .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
                 Clears(view) ? ClearButton() : null,
@@ -154,8 +179,7 @@ public abstract partial class UiSelectControl<T>
                     .Disabled(Disabled == true)
                     .Class(UiSelectLook.InputChevron)
                     .Aria(ChevronAria())
-                    .Attributes(ChevronMarks())
-                    .OnClick(() => OnInputClickAsync(view, focuses: true))[
+                    .Attributes(ChevronMarks())[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiSelectLook.InputChevronIcon)
                 ]
             ]
@@ -169,56 +193,47 @@ public abstract partial class UiSelectControl<T>
         ["style"] = "anchor-name:--" + Prefixed,
     };
 
-    private Dictionary<string, string?> ChevronMarks()
+    private Dictionary<string, string?> ChevronMarks() => new(StringComparer.Ordinal)
     {
-        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["data-ui-button"] = null,
-            ["popovertarget"] = PanelId,
-        };
-        if (_open)
-        {
-            marks["data-open"] = null;
-        }
-
-        return marks;
-    }
+        ["data-ui-button"] = null,
+        ["popovertarget"] = PanelId,
+    };
 
     private Dictionary<string, string?> ChevronAria() => new(StringComparer.Ordinal)
     {
         ["controls"] = ListId,
         ["haspopup"] = "listbox",
-        ["expanded"] = _open ? "true" : "false",
+        ["expanded"] = "false",
     };
 
     // ----- Shared by both triggers ---------------------------------------------------------------------
 
+    // Rendered shut, always: `aria-expanded`, `data-open` and the row `aria-activedescendant` names are written
+    // by the browser as the list opens and its cursor moves.
     private Dictionary<string, string?> TriggerAria(View view, bool autocompletes = false)
     {
         var aria = new Dictionary<string, string?>(view.Field.Aria, StringComparer.Ordinal)
         {
             ["controls"] = ListId,
             ["haspopup"] = "listbox",
-            ["expanded"] = _open ? "true" : "false",
+            ["expanded"] = "false",
         };
         if (autocompletes)
         {
             aria["autocomplete"] = "list";
         }
 
-        if (_open && view.Cursor >= 0 && !HasSearchField)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
-        }
-
         return aria;
     }
 
-    // The combobox's input: the trigger's marks, and the keys OnInputKeyAsync acts on.
+    // The combobox's input: the trigger's marks, and what it tells the page of the text typed into it.
     private Dictionary<string, string?> InputMarks(View view, bool invalid)
     {
         var marks = TriggerMarks(view, "data-ui-control", invalid, anchors: false);
-        marks["data-rask-keys"] = UiListKeys.Text;
+        foreach (var (name, value) in HearingMarks(view.Parts.Input?.OnInput ?? default, 0, view.Parts.Create is not null))
+        {
+            marks[name] = value;
+        }
 
         return marks;
     }
@@ -241,11 +256,6 @@ public abstract partial class UiSelectControl<T>
         if (invalid)
         {
             marks["data-invalid"] = null;
-        }
-
-        if (_open)
-        {
-            marks["data-open"] = null;
         }
 
         if (view.Picked.Count > 0)

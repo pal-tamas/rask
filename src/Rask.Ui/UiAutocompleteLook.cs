@@ -10,7 +10,12 @@ internal static class UiAutocompleteLook
     internal const string Root = "block";
 
     /// <summary>The root's marker, where Flux writes <c>data-flux-autocomplete</c>.</summary>
-    internal static readonly Dictionary<string, string?> RootMarks = new(StringComparer.Ordinal) { ["data-ui-autocomplete"] = null };
+    internal static readonly Dictionary<string, string?> RootMarks = new(StringComparer.Ordinal)
+    {
+        ["data-ui-autocomplete"] = null,
+        // The list is the browser's (rask-list.ts): the answer is the input's text, and typing hides rows.
+        ["data-rask-list"] = "text filter",
+    };
 
     /// <summary>The list, over <see cref="UiListboxLook.Box" />: nothing to show, nothing drawn.</summary>
     internal const string Items = "[&:not(:has([data-ui-autocomplete-item]:not([data-hidden])))]:hidden!";
