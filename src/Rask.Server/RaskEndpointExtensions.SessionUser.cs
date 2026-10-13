@@ -147,6 +147,10 @@ public static partial class RaskEndpointExtensions
     {
         Component.MarkSubtreeDirtyInternal(session.View);
         session.ForgetReads();
+
+        // Inside an event this joins the event's own render. Outside one — a connection that attached with other
+        // rights and sends nothing yet — it is the render that shows them.
+        _ = session.RequestRender();
     }
 
     /// <summary>
