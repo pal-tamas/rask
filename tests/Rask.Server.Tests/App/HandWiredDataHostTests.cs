@@ -1,7 +1,3 @@
-using Microsoft.Extensions.Logging;
-using Rask.Querying;
-using Rask.Core.Routing;
-using Rask.Core.Authentication;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text.Json;
@@ -10,10 +6,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Rask.Core;
+using Rask.Core.Authentication;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 using Rask.Cqrs;
 using Rask.Data;
+using Rask.Querying;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.App;
