@@ -38,6 +38,21 @@ esac
 
 pattern='^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{1,}'
 
+# commitlint.config.ts's header-max-length. CI lints commits on pull requests only, and own work is pushed
+# straight to main, so this hook is the one place that rule is ever applied to it.
+max_header=100
+header_length=$(printf '%s' "$header" | wc -m | tr -d ' ')
+if [ "$header_length" -gt "$max_header" ]; then
+  cat >&2 <<EOF
+✖ Commit header is $header_length characters; the limit is $max_header (commitlint.config.ts):
+
+    $header
+
+  Say it shorter and put the rest in the body.
+EOF
+  exit 1
+fi
+
 if printf '%s' "$header" | grep -Eq "$pattern"; then
   exit 0
 fi
