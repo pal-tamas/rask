@@ -363,6 +363,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         }
 
         var self = (IFormControl<T>)this;
+        ReaderEdits.Note(this);
         if (view.Accessor is not { } accessor)
         {
             await self.InvokeOnChange((T)UiTimePickerValue.Shaped(typeof(T), picked)).ConfigureAwait(false);

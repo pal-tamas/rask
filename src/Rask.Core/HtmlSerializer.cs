@@ -679,6 +679,11 @@ internal static class HtmlSerializer
         // lifecycle and event-handler catch sites can find it later.
         component.Boundary ??= liveCtx.CurrentBoundary;
 
+        if (liveCtx.GuardedForm is { } form)
+        {
+            Forms.ReaderEdits.Hold(component, form);
+        }
+
         // A component no chain entry registered — one the app built itself, a plugin or a type chosen at
         // runtime — reaches the walk with its lifecycle never started. Adopt it here, so it gets Mount,
         // Unmount and a handle to re-render through like any other — and adopt it again on every later

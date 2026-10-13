@@ -54,12 +54,18 @@ internal static class UiFormCommit
     /// <c>EditContext</c> when bound. When a bound value is written is <c>Rask.Core</c>'s to say
     /// (<see cref="PendingBinds" />): with the next action, or at once for a control that says <c>.Live()</c>.
     /// </summary>
+    /// <remarks>
+    /// Every commit in this class is the reader's doing, and says so (<see cref="ReaderEdits" />): a form that
+    /// asks before it is left counts it, written yet or not. A value the page gives a control goes through
+    /// none of them.
+    /// </remarks>
     internal static Task CommitAsync<T>(
         IFormControl<T> control,
         ExpressionAccessor.Accessor? accessor,
         EditContext? context,
         T value)
     {
+        ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
             return control.InvokeOnChange(value);
@@ -86,6 +92,7 @@ internal static class UiFormCommit
     /// </summary>
     internal static Task ClearAsync<T>(IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context)
     {
+        ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
             return control.InvokeOnChange(default!);
@@ -115,6 +122,7 @@ internal static class UiFormCommit
     internal static Task UnreadAsync<T>(
         IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, RaskString sentence)
     {
+        ReaderEdits.Note((Component)control);
         if (accessor is null || context is null)
         {
             return Task.CompletedTask;
@@ -179,6 +187,7 @@ internal static class UiFormCommit
         EditContext? context,
         IReadOnlyList<T> picked)
     {
+        ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
             // Controlled: a fresh list, never the collection the parent handed down. Mutating that one

@@ -139,6 +139,19 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
+  `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
+  a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
+  is a press the page hears. The page now says so: the form the control is drawn in carries `data-rask-edited`
+  from the reader's first such change until a submit it accepts has carried it, and the guard reads that
+  beside what it counted itself. Every drawn control goes through the one commit that says it — listbox
+  (single, multiple), combobox, pillbox (an option picked, a pill removed), autocomplete, calendar, date,
+  time and colour picker, rating, filter, checkbox and radio group, the menu's checkbox and radio group, a
+  picker's clear button, the editor, and `Ui.FileItemRemove` — bound or held with `Value`/`OnChange`, written
+  yet or still waiting for the next action. A value the page writes by itself marks nothing; opening a list
+  marks nothing; a refused submit leaves the mark; a pick made while a save is still running stays unsaved.
+  `ReaderChangesMakeTheFormUnsavedTests` holds one row per control and fails for a control that is in no row.
+
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from

@@ -185,6 +185,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
     private async Task Changed(string html)
     {
         _shown = html;
+        ReaderEdits.Note(this);
         if (Bind is { } bind)
         {
             var bound = ExpressionAccessor.Parse(bind);

@@ -518,9 +518,16 @@ unsaved one asks, with its own message.
 
 Three things to know:
 
-- **What counts as an edit is the browser's `input` and `change` events** inside the form. A control that
-  changes a value only in C# — a button whose `OnClick` sets a property — fires neither, so it does not
-  make the form unsaved by itself.
+- **What counts as an edit** is the browser's `input` and `change` events inside the form, and every value
+  the reader chooses in a kit control that draws itself — a listbox, a combobox or a pillbox option, a pill
+  taken away, a day in a `Ui.Calendar` or a `Ui.DatePicker`, a time, a colour, a rating, a picker's clear
+  button, a `Ui.FileItemRemove`. The browser raises no event for those, so the page that hears the press
+  says so on the form, bound with `Bind` or held with `Value`/`OnChange` alike, written to the model yet or
+  not. Opening a list, moving through a calendar and typing in a list's search field change nothing and
+  count for nothing. A value the page writes by itself is no edit, and neither is a button of your own
+  whose `OnClick` sets a property.
+- **A pick is counted once the page has heard it**, which is a round trip after the press. A reader who
+  picks and follows a link within that instant is not asked.
 - **Which way Back went** is read from the Navigation API. On a browser without it (Safari before 26.2,
   Firefox before 147) a refused Back or Forward still leaves the reader on the page with the right
   address, but as a new history entry — and Back and Forward ask with `confirm` there even when the

@@ -10,6 +10,12 @@
 // `submit` event are saved; one typed after that submit left is not. Read when somebody asks, so there is no
 // observer, and a refused submit — which changes nothing — leaves the form unsaved.
 //
+// WHAT ONLY THE PAGE HEARD. A control drawn in C# — a listbox, a calendar, a colour sheet — changes its value
+// on a press the browser raises no `input` for. The page hears that press, and says so on the form: it carries
+// `data-rask-edited` while a value the reader chose in it has not been carried by an accepted submit. A render
+// writes it and a render takes it away, so there is nothing to count here, and a value the page wrote by
+// itself never puts it there.
+//
 // HOW IT ASKS. With `confirm`, unless the layout placed Ui.ConfirmLeave: then in that dialog, which is a
 // Ui.Modal, and the exit waits for the answer.
 //
@@ -24,6 +30,7 @@ import {listen, near, page, seam} from "./rask-owned.js";
 const MESSAGE = "data-rask-confirm-leave";
 const GUARDED = "form[" + MESSAGE + "]";
 const SAVED = "data-rask-saved";
+const EDITED = "data-rask-edited";
 
 interface Edits {
     /** Edits made since the form arrived. */
@@ -55,7 +62,7 @@ export function unsavedMessage(doc: Document): string | null {
     const guarded = doc.querySelectorAll(GUARDED);
     for (let i = 0; i < guarded.length; i++) {
         const known = edits(guarded[i]);
-        if (known.made > known.saved) {
+        if (known.made > known.saved || guarded[i].hasAttribute(EDITED)) {
             return guarded[i].getAttribute(MESSAGE);
         }
     }
@@ -156,14 +163,28 @@ if (page) {
         });
     }
 
+    // There is something to lose from here on: where the reader is, and the tab asks before it closes.
+    const guard = function (): void {
+        if (!navigation) here = location.href;
+        window.addEventListener("beforeunload", unloading);
+    };
+
     const edited = function (e: Event): void {
         const form = near(e.target, GUARDED);
         if (form) {
             edits(form).made++;
-            if (!navigation) here = location.href;
-            window.addEventListener("beforeunload", unloading);
+            guard();
         }
     };
+    // What the page says of a form arrives in a render, which is no event: watched for, and looked for once
+    // in a page that was drawn before this script came.
+    const marked = function (): void {
+        if (doc.querySelector(GUARDED + "[" + EDITED + "]")) guard();
+    };
+    if (typeof MutationObserver === "function") {
+        new MutationObserver(marked).observe(doc.documentElement, {subtree: true, attributes: true, attributeFilter: [EDITED]});
+    }
+    marked();
     // On the way down: a control that stops its own `input` from bubbling has still been typed into.
     listen("input", edited, true);
     listen("change", edited, true);
