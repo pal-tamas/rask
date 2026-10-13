@@ -652,6 +652,11 @@ public sealed partial class NotFoundPage : Component
 }
 ```
 
+The built-in page says three things — a heading that is also the tab's title, a sentence with the path that was
+asked for, and a link home — in the visitor's language: `RaskString.NotFoundTitle`, `NotFoundBody` (the path is its
+`{0}`) and `NotFoundBackHome` ([localization](localization.md)). The path is written as text, and nothing else of
+the request is shown.
+
 Only one `[NotFound]` component is allowed ([RASK012](diagnostics.md#rask012)), and `[NotFound]` cannot be combined
 with `[Route]` on the same class ([RASK013](diagnostics.md#rask013)).
 

@@ -66,6 +66,28 @@ public sealed partial class DevToolsToastingTestApp : Component
     private static void Throw() => throw new InvalidOperationException("the handler failed on purpose");
 }
 
+/// <summary>A page whose one button mounts a child whose <c>OnMount</c> throws before its first await.</summary>
+public sealed partial class DevToolsHookFaultTestApp : Component
+{
+    private bool _loading;
+
+    protected override Component? Render() =>
+    [
+        Button.OnClick(() => _loading = true)["load"],
+        DevToolsTestFrame[_loading ? DevToolsFaultingLoader : DevToolsTestChild.Caption("fine")]
+    ];
+}
+
+/// <summary>A component whose load throws as it mounts.</summary>
+public sealed partial class DevToolsFaultingLoader : Component
+{
+    /// <inheritdoc />
+    protected override async Task OnMount() => await Task.FromException(new InvalidOperationException("the load failed on purpose"));
+
+    /// <inheritdoc />
+    protected override Component? Render() => Span["loading"];
+}
+
 /// <summary>A component whose render always throws.</summary>
 public sealed partial class DevToolsThrowingChild : Component
 {

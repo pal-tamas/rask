@@ -57,6 +57,27 @@ public sealed class DevToolsErrorCaptureTests
     }
 
     [Fact]
+    public async Task A_hook_that_throws_as_its_component_mounts_is_listed_once_as_a_lifecycle_fault_a_boundary_took()
+    {
+        using var host = DevToolsLivePage.Host<DevToolsHookFaultTestApp>();
+        var (_, feed, socket, handlers) = await DevToolsLivePage.OpenWithHandlersAsync(host);
+
+        await socket.SendJsonAsync(new { id = handlers[0], type = "click" }, ct: TestContext.Current.CancellationToken);
+
+        // The frame that draws the error page: by then the fault, its unwinding through the walk and the
+        // boundary's log line, which carries the same exception, have all been reported.
+        var page = await socket.TryReceiveTextAsync(TimeSpan.FromSeconds(5));
+        Assert.Contains("Something went wrong", page, StringComparison.Ordinal);
+        var error = Assert.Single(feed.Errors.Snapshot(), listed => listed.Kind != DevToolsErrorKind.Diagnostic);
+        Assert.Equal(DevToolsErrorKind.Lifecycle, error.Kind);
+        Assert.Equal(1, error.Count);
+        Assert.Equal("the load failed on purpose", error.Message);
+        Assert.Equal(nameof(DevToolsFaultingLoader), error.Path[^1]);
+        Assert.True(error.Caught);
+        socket.Dispose();
+    }
+
+    [Fact]
     public async Task A_render_that_throws_is_listed_with_the_components_it_happened_inside()
     {
         using var host = DevToolsLivePage.Host<DevToolsErrorsTestApp>();

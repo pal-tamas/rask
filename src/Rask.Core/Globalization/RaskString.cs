@@ -41,10 +41,10 @@ public enum RaskString
     /// <summary>The clear (×) control's accessible name in a picker.</summary>
     PickerClear,
 
-    /// <summary>The heading of the built-in not-found page.</summary>
+    /// <summary>The heading of the built-in not-found page, and the title of its tab.</summary>
     NotFoundTitle,
 
-    /// <summary>The body of the built-in not-found page.</summary>
+    /// <summary>The sentence of the built-in not-found page, with the path that was asked for written into its <c>{0}</c>.</summary>
     NotFoundBody,
 
     /// <summary>The link back to the home page on the built-in not-found page.</summary>

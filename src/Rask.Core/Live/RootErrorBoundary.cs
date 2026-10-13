@@ -127,6 +127,7 @@ internal sealed class RootErrorBoundary : Component
 
         RenderedFallback = false;
         FallbackError = null;
+        RecoverOnceTheReaderHasGoneElsewhere(ctx, boundary);
         boundary.SetProps(
             Defaults is { Toasts: not null } defaults ? [inner, BuiltInToasts(ctx, defaults)] : [inner],
             (ex, recover) => Fallback(ctx, boundary, inner, ex, recover));
@@ -170,12 +171,11 @@ internal sealed class RootErrorBoundary : Component
         // loses the state that produced the bug at the moment they most want to look at it. React's
         // and Next's dev overlays leave the app mounted for exactly this reason.
         //
-        // Only for a fault the tree SURVIVED. After a render fault, re-rendering the subtree that
-        // just threw would only throw again — so a render fault still replaces the page, in
-        // development as in production, which is the honest outcome.
-        if (boundary is { Source: not ErrorSource.Render }
-            && DevErrorInfo.From(ex, boundary.Source == ErrorSource.Action ? "handler" : "lifecycle")
-                is { } devError)
+        // Only for a HANDLER's fault, which the tree survived. After a render fault, re-rendering the
+        // subtree that just threw would only throw again, and a lifecycle hook that faulted left its
+        // component without what it was loading, on its placeholder for good — so both replace the page,
+        // in development as in production, which is the honest outcome.
+        if (boundary is { Source: ErrorSource.Action } && DevErrorInfo.From(ex, "handler") is { } devError)
         {
             ctx.ReportDevError(devError);
 
@@ -188,6 +188,7 @@ internal sealed class RootErrorBoundary : Component
 
         RenderedFallback = true;
         FallbackError = ex;
+        _faultedAt ??= Address(ctx);
 
         // Body content only — the document around it is this component's, and it is already built
         // by the time the boundary trips. OwnsDocument lets the page contribute its own <title> and
@@ -196,6 +197,32 @@ internal sealed class RootErrorBoundary : Component
         // about the document, which is why the flag exists rather than being unconditional.
         return new DefaultErrorPage(ex, recover) { OwnsDocument = true };
     }
+
+    // Where the reader was when the error page took the app's place, or null while the app is shown.
+    private (string Path, object Query)? _faultedAt;
+
+    // The error page stands in for the page that faulted, not for the app: Back, or any address but that one,
+    // is another page, and it is drawn. One that faults too trips the boundary again.
+    private void RecoverOnceTheReaderHasGoneElsewhere(LiveRenderContext ctx, ErrorBoundary boundary)
+    {
+        if (_faultedAt is not { } faultedAt)
+        {
+            return;
+        }
+
+        if (boundary.Error is null)
+        {
+            _faultedAt = null;
+        }
+        else if (Address(ctx) is { } now && !(string.Equals(now.Path, faultedAt.Path, StringComparison.Ordinal) && ReferenceEquals(now.Query, faultedAt.Query)))
+        {
+            _faultedAt = null;
+            boundary.ClearErrorInRender();
+        }
+    }
+
+    private static (string Path, object Query)? Address(LiveRenderContext ctx) =>
+        ctx.Services?.GetService(typeof(Routing.RouteState)) is Routing.RouteState route ? (route.Path, route.Query) : null;
 
     // Compose the document. The App's Shell override is user code that builds components, so it is
     // held to the same promise as its Render(): a throw shows the error page rather than escaping to

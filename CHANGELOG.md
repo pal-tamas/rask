@@ -27,6 +27,41 @@ them until tagged releases begin.
   `Ui.NavmenuItem` is 36px tall under 1024 px (was 32px at every width), and a select with a search field
   limits its LIST to twenty rem, so its popup is that and the field (was twenty rem in all). Not built: under
   640 px Flux's date picker is a centred modal with its own footer; the kit's is the same popup at every width.
+- **The built-in not-found page speaks the app's language and titles its tab.** An app with no `[NotFound]`
+  page of its own got an untitled tab and, in a Hungarian app, English. Its heading, sentence and link are
+  the catalog's `NotFoundTitle`, `NotFoundBody` and `NotFoundBackHome`, with Hungarian in the kit ("Az oldal
+  nem található" · "Ezen a címen nincs oldal: /x" · "Vissza a kezdőlapra"), and the heading is the tab's
+  `<title>` too, over the app's own. **`NotFoundBody` carries the path as `{0}` now** — English
+  `No route is registered for {0}.`, before the prefix `No route is registered for ` — so a translation
+  puts the path where its sentence wants it. A catalog entry written without `{0}` still works: the path
+  follows it, as it did. The path is written as text; the status stays 404.
+
+- **A lifecycle hook that faults with no boundary of the app's shows the built-in error page.** **A behaviour
+  change.** Before: `protected override async Task OnMount() => _rows = await Load();` whose read threw
+  *before its first real await* — a cache or a validation that throws at once, a read that had already
+  completed — in a component with no `ErrorBoundary` of the app's around it was one `Rask.Lifecycle` log line,
+  and the page stayed on its placeholder for good; the first `GET` answered 200. (A hook that threw after an
+  `await` already reached the host's boundary.) After: every lifecycle fault — `OnMount`, `OnUpdated`,
+  `OnFirstRender`, `OnRendered`, before or after an `await`, in a page, a layout or a child however deep —
+  reaches the boundary a fault of that component's `Render` reaches, in the same pass: the built-in error
+  page, with the reference the `Rask.Errors` Error line carries and nothing of the exception outside
+  Development. A first `GET` whose hook faults before the response is sent answers **500**; a page already
+  painted on its placeholder is repainted as the error page in the frame that follows. An `ErrorBoundary`
+  the app wrote around the component trips as before, and now also for a hook that throws before its first
+  await. A hook that faults after its component left the page is still only recorded. A fault that lands
+  while its page is being drawn — after the walk met the component, before the walk is over — is reported
+  where it lands, so a page rendered once (a test host, a prerender) does not keep it for a walk that never
+  comes.
+- **In Development a lifecycle fault replaces the page too.** **A behaviour change.** Before: the overlay
+  over the running app, which stayed on its placeholder. After: the error page with the exception, its
+  stack and source, as a render fault shows it. The overlay is a handler's fault only.
+- **`Try again` runs the load that faulted again, and another address leaves the error page.** **A behaviour
+  change.** Before: recovering a boundary after a hook fault drew the component as its failed load left it —
+  on its placeholder, with nothing on the way — and a navigation from the host's error page showed the error
+  page again. After: the component whose `OnMount`/`OnUpdated` faulted gets both again when its boundary
+  recovers (the root's `Try again`, or the `retry` handed to your `Fallback`), and Back or any other address
+  from the root error page draws that page.
+
 - **`Ui.Button.IconTrailing` takes content as well as an icon — Flux's `iconTrailing` slot.**
   `Ui.Button.IconTrailing(Ui.Badge.Sm["3"])["Categories"]` beside `Ui.Button.IconTrailing(Ui.IconName.ChevronDown)`.
   The content is placed as it is, last in the button with nothing around it, and the button pads itself as it

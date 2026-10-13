@@ -689,6 +689,14 @@ internal static class HtmlSerializer
         {
             liveCtx.AdoptUnregistered(component);
         }
+
+        if (FaultedLoads.Any)
+        {
+            component.LoadAgainOnceRecovered();
+        }
+
+        // A hook of it that faulted before the walk got here is thrown now, to the boundary just stamped.
+        component.MetByTheWalk();
     }
 
     // Read once: the devtools see the whole component, render AND subtree walk, as one span. The parent is
@@ -783,7 +791,7 @@ internal static class HtmlSerializer
                 // cleanly. The guard prevents recursive catching of a fallback that itself
                 // throws — that escape bubbles to the next outer boundary instead.
                 html.Length = saved;
-                boundary.Trip(ex);
+                boundary.Trip(ex, HeldHookFault.SourceOf(ex));
                 Serialize(boundary.RenderForLive(), html);
             }
         }

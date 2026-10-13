@@ -59,8 +59,13 @@ public class HelloMessageTests
         // Re-armed per case: a completion source left set by the previous transport's run would let this one
         // connect before its own push, and the test would pass without exercising the handoff window at all.
         DetachedPushApp.Pushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        DetachedPushApp.Answered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var host = RaskTestHost.Create<DetachedPushApp>();
         var sessionId = MarkupAssert.SessionId(await host.Http.GetStringAsync("/start", TestContext.Current.CancellationToken));
+
+        // The push waits for the GET to have answered, not for a clock: a delay that ran out while a loaded
+        // machine was still rendering the GET put "loaded" into that response, and no catch-up frame ever came.
+        DetachedPushApp.Answered.SetResult();
 
         // Let MountAsyncApp's Mount await complete before opening the socket.
         // The continuation calls StateHasChanged with no socket attached, setting the
@@ -154,13 +159,18 @@ public class HelloMessageTests
         public static TaskCompletionSource Pushed =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+        /// <summary>Set by the test once the GET has answered: the detached work pushes only after it.</summary>
+        public static TaskCompletionSource Answered =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         private bool _loaded;
 
         protected override Task OnMount()
         {
+            var answered = Answered.Task;
             _ = Task.Run(async () =>
             {
-                await Task.Delay(50);
+                await answered;
                 _loaded = true;
                 StateHasChanged();
                 Pushed.TrySetResult();

@@ -46,12 +46,15 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     // hook is an await.
     internal bool PostFired { get; private set; }
 
+    /// <summary>Whether the hook is one that loads — <c>OnMount</c>, <c>OnUpdated</c> — which a recovered boundary runs again.</summary>
+    internal bool IsLoad { get; init; }
+
     // CreateCopy is invoked along ExecutionContext capture paths; our Post explicitly
     // SuppressFlow()s ExecutionContext propagation, so the runtime never reaches this
     // along the await chains we care about. A fresh copy with PostFired=false is safe —
     // but it must carry the same pass, or a copy would lose the gate exactly as Post used to.
     public override SynchronizationContext CreateCopy() =>
-        new LifecycleSyncContext(_component, _quiescence);
+        new LifecycleSyncContext(_component, _quiescence) { IsLoad = IsLoad };
 
     public override void Post(SendOrPostCallback d, object? state)
     {

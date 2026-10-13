@@ -181,9 +181,9 @@ mistake, the rule notes the ID.
   to reload when a route/query param changes; `OnFirstRender` / `OnRendered` for post-paint side effects (it's
   loop-safe — a re-render elsewhere won't refire it). Each `await` auto-re-renders, so mutate state
   after the await and it paints. See [lifecycle](lifecycle.md).
-- **A faulted async hook is silent** — the framework logs to `Console.Error` and does *not* re-render
-  or surface an error. The classic symptom is a component stuck on its loading placeholder. Wrap
-  risky hook work in `try/catch` to render your own error state, or use an `ErrorBoundary`. See
+- **A faulted hook takes the page** — an `OnMount`/`OnUpdated` that throws, before or after its first
+  `await`, shows the built-in error page in place of the whole page (a first request answers 500). Wrap
+  risky hook work in `try/catch` to render your own error state, or put an `ErrorBoundary` around it. See
   [lifecycle → gotchas](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component).
 - **Never `StateHasChanged()` in unmount** — the component is already leaving the tree, so it's a
   no-op by design. Use `OnUnmount` to tear down subscriptions, nothing more. Compose nested layouts

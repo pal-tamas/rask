@@ -404,7 +404,7 @@ they say when you set nothing.
 | `PickerSecond` | — (nothing reads it today) | `Second` |
 | `PickerClear` | Time picker | `Clear` |
 | `NotFoundTitle` | Not-found page | `Page not found` |
-| `NotFoundBody` | Not-found page | `No route is registered for ` |
+| `NotFoundBody` | Not-found page | `No route is registered for {0}.` |
 | `NotFoundBackHome` | Not-found page | `Back to home` |
 | `ErrorHeading` | Error page | `Something went wrong` |
 | `ErrorTryAgain` | Error page | `Try again` |

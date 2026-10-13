@@ -693,13 +693,15 @@ runs exactly as before — the browser just falls back to the reconnect overlay.
 
 ### When your code throws
 
-An unhandled exception from an event handler or an async lifecycle hook shows the same style of panel —
+An unhandled exception from an event handler shows the same style of panel —
 **over** the running app, which stays mounted, scrolled where it was, with your form input intact. That is
 the state that produced the bug, so it is the state worth keeping. Dismiss the panel and keep clicking; it
 counts repeats, so a handler throwing on every click is visible as such.
 
-A fault during *render* still replaces the page, in development as in production: re-rendering the subtree
-that just threw would only throw again. In production every fault gets the styled error page (a first response
+A fault during *render*, or in a *lifecycle hook*, replaces the page, in development as in production:
+re-rendering the subtree that just threw would only throw again, and a component whose load threw would sit on
+its placeholder for good. In development that page names the exception, with its stack and source. In
+production every such fault gets the styled error page (a first response
 answers `500`), and nothing of the exception reaches the browser — no type, no message, no stack: the page
 carries a reference, and the Error log line carries the same one beside the exception.
 
