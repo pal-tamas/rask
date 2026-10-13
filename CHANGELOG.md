@@ -165,6 +165,14 @@ them until tagged releases begin.
 - **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
   The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
   declared `__held0` (CS0128 inside generated code). They are numbered.
+- **A row pressed as the pointer arrives is picked, after a list lost rows.** The pointer coming over a row
+  of a kit list is a render of its own, so a press that follows it at once is read from the page before that
+  render and is matched to its row by what tells the rows of one page apart. A list that had just answered a
+  search with fewer rows left its last handler slots holding the long list's handlers; counted among that
+  page's handlers, they made what every render works out anew look like what tells rows apart, no row was the
+  same, and the press ran nothing — a city picked from the store's answer on rask.sh stayed unpicked. Slots a
+  walk does not reach are now said to hold nothing from that walk's page on. Both hosts.
+  `StaleClickAfterRowsLeftTests`, `SelectSearchDebounceTests`.
 - **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
   trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
   that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from
