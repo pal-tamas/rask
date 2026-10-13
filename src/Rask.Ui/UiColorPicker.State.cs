@@ -56,7 +56,7 @@ public sealed partial class UiColorPicker
     /// <summary>Takes a colour from the area, a slider or the dropper: the palette's tab stop follows the colour again.</summary>
     private Task MoveAsync(UiColorValue color)
     {
-        _roving = null;
+        (_roving, _typedOnSheet) = (null, false);
 
         return ChooseAsync(new Pick(color, Empty: false));
     }

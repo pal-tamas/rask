@@ -646,10 +646,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `docs/ui-kit.md#color-picker`, pinned by `UiColorValueTests`). Flux's `format` attribute is live on its element:
   writing it there is how hexa, rgb, hsl and hsla were measured. Not read: `color-mix()`, relative colours,
   `calc()`, `currentColor`, system colours. Unmeasured, no example on Flux's page: an INVALID trigger (the input's
-  red border), `clearable` with `copyable` together (clear first), a disabled button trigger. Not Flux's: on the
-  sheet Flux's popover input goes back to the page's colour after Enter while the sheet holds the typed one — the
-  kit's shows what the sheet holds; and Flux draws a thumb outside the area for a channel above 255, the kit holds
-  it at the edge.
+  red border), `clearable` with `copyable` together (clear first), a disabled button trigger. A Flux quirk kept: on the sheet
+  its popover input says the page's colour again after a colour was typed into it, while the sheet holds the typed
+  one (`_typedOnSheet`). Not Flux's: Flux draws a thumb outside the area for a channel above 255, the kit holds it
+  at the edge. A focused range input is not moved by a render (`syncFormProperty`), so a step it did not take
+  itself — an arrow, a press on its track — is put on the element too (`SetValueAsNumber`).
 
 ## Sidebar, header and navigation (merged 2026-10-08; the rail on the follow-up)
 - **Two checkboxes, no script.** `Ui.Sidebar` holds `#sidebar-open` (slid over the page; `data-rask-uncheck-on-navigate`)

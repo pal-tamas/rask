@@ -59,6 +59,10 @@ public sealed partial class UiColorPicker
 
     private readonly ElementRef<HTMLInputElement> _popoverInput = new();
 
+    private readonly ElementRef<HTMLInputElement> _hueRange = new();
+
+    private readonly ElementRef<HTMLInputElement> _alphaRange = new();
+
     private readonly List<ElementRef<HTMLButtonElement>> _swatchRefs = [];
 
     private IReadOnlyList<UiColorSwatch>? _paletteOf;
@@ -213,6 +217,7 @@ public sealed partial class UiColorPicker
                             .Value(value.ToString(CultureInfo.InvariantCulture))
                             .Type(InputType.Range)
                             .Id(rangeId)
+                            .Ref(alpha ? _alphaRange : _hueRange)
                             .Min("0")
                             .Max(max.ToString(CultureInfo.InvariantCulture))
                             .Step("1")

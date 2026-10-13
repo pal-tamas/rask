@@ -33,7 +33,7 @@ public sealed partial class UiColorPicker
     // Closed, the popover shows what the page holds again: what nobody selected on the sheet is gone.
     private void Opened(bool open)
     {
-        (_open, _roving) = (open, null);
+        (_open, _roving, _typedOnSheet) = (open, null, false);
         if (!open)
         {
             _shown = _kept;
@@ -92,7 +92,7 @@ public sealed partial class UiColorPicker
 
     // Where the pointer is along a track, 0 to 1. A slider moves in whole steps, as Flux's does.
     private Task ChannelDraggedAsync(Ui.ColorPickerChannel channel, string at) =>
-        !Off && TryFraction(at, out var along) ? SetChannelAsync(channel, (int)Math.Floor((along * Max(channel)) + 0.5)) : Task.CompletedTask;
+        !Off && TryFraction(at, out var along) ? MoveChannelAsync(channel, (int)Math.Floor((along * Max(channel)) + 0.5)) : Task.CompletedTask;
 
     // An arrow steps by one, and by ten with Shift — Flux's big step, which a range input does not have, so the
     // runtime keeps the arrows from the input and they are taken here.
@@ -112,7 +112,7 @@ public sealed partial class UiColorPicker
 
         var step = e.ShiftKey ? 10 : 1;
 
-        return SetChannelAsync(channel, Math.Clamp(ChannelValue(channel) + (direction * step), 0, Max(channel)));
+        return MoveChannelAsync(channel, Math.Clamp(ChannelValue(channel) + (direction * step), 0, Max(channel)));
     }
 
     // The range input's own change: Home, End and the page keys are the browser's — a page key is a tenth of
@@ -121,6 +121,17 @@ public sealed partial class UiColorPicker
         !Off && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? SetChannelAsync(channel, Math.Clamp(value, 0, Max(channel)))
             : Task.CompletedTask;
+
+    // A step the range input did not take itself — a key kept from it, a press on its track. A render does not
+    // move the value of the input its reader is on, and a press on the track leaves focus exactly there, so the
+    // value is put on the element as well.
+    private Task MoveChannelAsync(Ui.ColorPickerChannel channel, int value)
+    {
+        var range = channel == Ui.ColorPickerChannel.Alpha ? _alphaRange : _hueRange;
+        UiReach.Send(() => range.SetValueAsNumber(value));
+
+        return SetChannelAsync(channel, value);
+    }
 
     private Task SetChannelAsync(Ui.ColorPickerChannel channel, int value)
     {
@@ -163,13 +174,15 @@ public sealed partial class UiColorPicker
 
         _roving = TabStop(palette);
         _said = RaskStrings.Get(RaskString.ColorPickerSelected, "{0} selected", swatch.Named);
-        _shown = new Pick(color, Empty: false);
+        (_shown, _typedOnSheet) = (new Pick(color, Empty: false), false);
+        var kept = KeepAsync();
         if (_sheet && _open)
         {
-            _open = false;
+            // Closed from here: the tab stop follows the colour again, as it does when the reader closes it.
+            Opened(open: false);
         }
 
-        return KeepAsync();
+        return kept;
     }
 
     // The arrows move focus and stop at the edges; Home and End go to either end; Enter and Space pick.

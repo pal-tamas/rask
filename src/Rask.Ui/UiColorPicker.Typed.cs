@@ -16,6 +16,11 @@ public sealed partial class UiColorPicker
     // Text that was no colour, and the input it stays in until a colour is typed there.
     private (string Text, ElementRef<HTMLInputElement> Input)? _refused;
 
+    // A colour was typed into the sheet's own input and the sheet holds it. Flux's input then says the page's
+    // colour again — the one thing on its sheet that does not show what Select will take — until the area or a
+    // slider moves; kept, as Flux's picker is.
+    private bool _typedOnSheet;
+
     private void Typing(string text, ElementRef<HTMLInputElement> input) => (_typing, _typingIn) = (text, input);
 
     // Enter takes what was typed and leaves the input. The browser reports an edited input's change on Enter by
@@ -54,6 +59,7 @@ public sealed partial class UiColorPicker
             _refused = null;
             var pick = UiColorValue.TryParse(text, out var color) ? new Pick(color, Empty: false) : Pick.None;
             await (inPopover ? ChooseAsync(pick) : TakeAsync(pick)).ConfigureAwait(false);
+            _typedOnSheet = inPopover && _sheet && _open;
         }
         else if (Refuses)
         {
@@ -79,7 +85,7 @@ public sealed partial class UiColorPicker
             return text;
         }
 
-        return (ReferenceEquals(input, _popoverInput) ? _shown : _kept).Text(Written);
+        return (ReferenceEquals(input, _popoverInput) && !_typedOnSheet ? _shown : _kept).Text(Written);
     }
 
     private Task ClearAsync()

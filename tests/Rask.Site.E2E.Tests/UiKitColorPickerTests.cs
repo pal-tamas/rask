@@ -324,10 +324,13 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task On_a_phone_the_popover_is_a_sheet_that_holds_the_colour_until_Select() => RunAsync(async () =>
     {
+        // Reached at a desktop's width, where the sidebar is on the page, then narrowed: the picker learns the
+        // width when its popover opens.
+        await OpenAsync();
         await Page.SetViewportSizeAsync(390, 844);
         try
         {
-            await OpenAsync();
+            await Demo("intro").ScrollIntoViewIfNeededAsync();
             var intro = Demo("intro");
             var opener = intro.Locator("[data-ui-color-picker-swatch-button]");
             var dialog = intro.Locator("dialog");
@@ -368,10 +371,13 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task On_a_phone_a_swatch_is_taken_at_once_and_closes_the_sheet() => RunAsync(async () =>
     {
+        // Reached at a desktop's width, where the sidebar is on the page, then narrowed: the picker learns the
+        // width when its popover opens.
+        await OpenAsync();
         await Page.SetViewportSizeAsync(390, 844);
         try
         {
-            await OpenAsync();
+            await Demo("intro").ScrollIntoViewIfNeededAsync();
             var intro = Demo("intro");
             var dialog = intro.Locator("dialog");
 
@@ -399,12 +405,12 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
         await form.ScrollIntoViewIfNeededAsync();
 
         await input.FillAsync("#12");
-        await form.GetByText("Save").ClickAsync();
+        await form.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" }).ClickAsync();
         await Expect(form.Locator("#ui-color-picker-accent-error")).ToHaveTextAsync("Enter a valid color.");
         await Expect(input).ToHaveValueAsync("#12");
         await Expect(saved).ToContainTextAsync("nothing yet");
         await input.FillAsync("#123");
-        await form.GetByText("Save").ClickAsync();
+        await form.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" }).ClickAsync();
 
         await Expect(saved).ToContainTextAsync("Saved: #112233.");
         await Expect(input).ToHaveValueAsync("#112233");

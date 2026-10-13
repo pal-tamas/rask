@@ -392,6 +392,22 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task On_the_sheet_a_typed_colour_is_held_and_its_input_says_the_pages_again_as_fluxs_does()
+    {
+        var page = Page.Render(Picker);
+        await OnTheSheet(page);
+
+        await page.On(PopoverInput).Change("#00ff00");
+        var (held, inside, area) = (_color, page.Find(PopoverInput).Attribute("value"), page.Find(AreaField).Attribute("value"));
+        await page.On(Select).Click();
+
+        Assert.Equal("#bada55", held);
+        Assert.Equal("#bada55", inside);
+        Assert.Equal("1 0", area);
+        Assert.Equal("#00ff00", _color);
+    }
+
+    [Fact]
     public async Task On_the_sheet_what_nobody_selected_is_gone_when_it_closes()
     {
         var page = Page.Render(Picker);
@@ -416,6 +432,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("#eab308", _color);
         Assert.Equal("false", page.Find("dialog").Attribute("data-rask-modal-open"));
         Assert.Equal("Yellow selected", page.TextOf("[data-ui-color-picker-announce]"));
+        Assert.Equal("Yellow", page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label"));
     }
 
     [Fact]
