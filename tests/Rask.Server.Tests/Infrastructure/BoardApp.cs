@@ -27,7 +27,9 @@ public sealed class PumpBoard
 {
     private TaskCompletionSource? _held;
     private Action<int>? _onWalk;
+    private Action<int>? _onNoticesWalk;
     private int _walks;
+    private int _noticesWalks;
     private int _value;
 
     public event Action? Changed;
@@ -38,17 +40,32 @@ public sealed class PumpBoard
     /// <summary>How many times the list page has rendered since <see cref="Arm" />.</summary>
     public int Walks => Volatile.Read(ref _walks);
 
+    /// <summary>How many times the header's follower has rendered since <see cref="Arm" />.</summary>
+    public int NoticesWalks => Volatile.Read(ref _noticesWalks);
+
     /// <summary>How many times the page that asks for a render from every render has rendered.</summary>
     public int RunawayRenders;
 
     /// <summary>Run by the filter's handler before it navigates.</summary>
     public Action? InHandler { get; set; }
 
-    /// <summary>Counts the list page's renders from one, and runs <paramref name="onWalk" /> inside each.</summary>
-    public void Arm(Action<int> onWalk)
+    /// <summary>
+    ///     Counts the list page's renders and the header follower's from one, and runs <paramref name="onWalk" />
+    ///     inside each of the page's and <paramref name="onNoticesWalk" /> inside each of the follower's.
+    /// </summary>
+    public void Arm(Action<int> onWalk, Action<int>? onNoticesWalk = null)
     {
         Volatile.Write(ref _walks, 0);
+        Volatile.Write(ref _noticesWalks, 0);
+        Volatile.Write(ref _onNoticesWalk, onNoticesWalk);
         Volatile.Write(ref _onWalk, onWalk);
+    }
+
+    /// <summary>Called by the header's follower from its <c>Render</c>.</summary>
+    public void NoticesWalked()
+    {
+        var walk = Interlocked.Increment(ref _noticesWalks);
+        Volatile.Read(ref _onNoticesWalk)?.Invoke(walk);
     }
 
     /// <summary>Called by the list page as its <c>Render</c> ends: the walk is past the header, and the page has read its state.</summary>
@@ -62,10 +79,17 @@ public sealed class PumpBoard
     ///     Sets the value and raises the event from <paramref name="threads" /> threads at once, none of them
     ///     the caller's, and returns when all of them have.
     /// </summary>
-    public void Burst(int value, int threads = 4)
+    /// <param name="value">What the followers draw from here on.</param>
+    /// <param name="threads">How many threads raise it.</param>
+    /// <param name="raised">Run by each thread once its raise has returned.</param>
+    public void Burst(int value, int threads = 4, Action? raised = null)
     {
         Volatile.Write(ref _value, value);
-        OnThreadsOfTheirOwn(threads, () => Changed?.Invoke());
+        OnThreadsOfTheirOwn(threads, () =>
+        {
+            Changed?.Invoke();
+            raised?.Invoke();
+        });
     }
 
     /// <summary>Holds every read from now until <see cref="ReleaseFromOutside" />.</summary>
@@ -133,7 +157,11 @@ public sealed partial class BoardNotices(PumpBoard board) : Component
         return Task.CompletedTask;
     }
 
-    protected override Component? Render() => P.Id("notices")[$"notices {board.Value}."];
+    protected override Component? Render()
+    {
+        board.NoticesWalked();
+        return P.Id("notices")[$"notices {board.Value}."];
+    }
 }
 
 /// <summary>The list: its filter is in its address, and its rows are read when the address changes.</summary>

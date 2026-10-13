@@ -90,18 +90,36 @@ public sealed class FollowedSourceRenderTests
         Assert.Equal(2, board.Walks);
     }
 
+    // The first raise finds the session idle and renders it on the thread that raised. That render is held inside
+    // the header until every other thread has raised, so all of them land while it is being made.
     [Fact]
-    public async Task A_burst_while_the_session_is_idle_is_drawn_by_one_render()
+    public async Task A_burst_that_lands_while_an_idle_session_renders_is_one_more_render_however_many_threads_raised_it()
     {
+        const int Threads = 16;
         var board = new PumpBoard();
         await using var page = await Page.Open(board);
-        board.Arm(static _ => { });
+        using var theRestHaveRaised = new ManualResetEventSlim();
+        var raised = 0;
+        board.Arm(static _ => { }, walk =>
+        {
+            if (walk == 1)
+            {
+                theRestHaveRaised.Wait(TestContext.Current.CancellationToken);
+            }
+        });
 
-        board.Burst(9, threads: 16);
-        await page.Until("notices 9.");
+        board.Burst(9, Threads, () =>
+        {
+            if (Interlocked.Increment(ref raised) >= Threads - 1)
+            {
+                theRestHaveRaised.Set();
+            }
+        });
+        await page.Until("notices 9.", "page 9.");
         await page.Settled();
 
-        // One for the burst, and at most one more for a call that arrived while that one was being drawn.
+        // The render that was held, and one for everything raised while it was.
+        Assert.Equal(2, board.NoticesWalks);
         Assert.InRange(board.Walks, 1, 2);
     }
 
@@ -124,8 +142,8 @@ public sealed class FollowedSourceRenderTests
         Assert.Equal(RaskLogLevel.Warning, warning.Level);
         Assert.InRange(rendersWhenNamed, 1, 64);
         Assert.True(
-            threeMoreTook >= LiveSessionBase.RunawayPause,
-            $"three more renders of a runaway took {threeMoreTook}, which is not slowed to one every {LiveSessionBase.RunawayPause}.");
+            threeMoreTook >= RenderPace.Pause,
+            $"three more renders of a runaway took {threeMoreTook}, which is not slowed to one every {RenderPace.Pause}.");
         Assert.Equal("/board/list", LiveFrames.HistoryUrl(answered));
     }
 

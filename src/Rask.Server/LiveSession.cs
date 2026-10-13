@@ -403,15 +403,29 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
+    // Nobody to send to: the request is noted for the connection that attaches next, which renders it at its hello.
+    //
+    // The connection is re-read after the write, as the scope is: one that attached in between has read the flag
+    // as it was and will not look again, so the request renders itself instead of waiting for the next reconnect.
+    private bool LeftForTheNextConnection()
+    {
+        if (!_disposed && Volatile.Read(ref _transport) is { IsOpen: true })
+        {
+            return false;
+        }
+
+        _renderRequestedWhileDetached = true;
+        _renderRequestedInWave = true;
+        return _disposed || Volatile.Read(ref _transport) is not { IsOpen: true };
+    }
+
     protected override async Task RequestRenderInternalAsync(bool publishOnly)
     {
         // _disposed short-circuits a StateHasChanged raised from a Unmount/Dispose callback during
         // teardown: the tree walk runs under _renderLock, so re-entering RenderAndSendAsync (which
         // also waits on _renderLock) would deadlock disposal against itself.
-        if (_disposed || Volatile.Read(ref _transport) is not { IsOpen: true })
+        if (LeftForTheNextConnection())
         {
-            _renderRequestedWhileDetached = true;
-            _renderRequestedInWave = true;
             return;
         }
 
@@ -1306,8 +1320,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     Dispatch-tail render that coalesces in-handler StateHasChanged calls. The first send carries the
     ///     captured navigation and auth state; if a StateHasChanged inside the dispatch set
     ///     <c>_pendingRenderInScope</c> (a <c>RouteState.Changed</c> subscriber on a layout above the Router, a
-    ///     lifecycle hook that finished its await while the dispatch was still rendering), it renders again, up
-    ///     to twice.
+    ///     lifecycle hook that finished its await while the dispatch was still rendering, a followed source
+    ///     raising its event from another thread), it renders again, up to twice. A request that lands after
+    ///     that stays parked for the render the scope's end makes.
     /// </summary>
     /// <remarks>
     ///     The address is re-threaded into a rebuild only until a frame has carried it: a frame that was withheld
@@ -1345,23 +1360,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             }
         }
 
-        // Budget exhaustion was silent before: a third in-dispatch StateHasChanged
-        // never flushed, the next event's payload picked up the trailing state, and
-        // diagnosing "my UI is one render behind" required reading the source. A
-        // warning gives the user a single grep target.
-        if (_pendingRenderInScope)
-        {
-            RaskDiagnostics.Report(
-                RaskLogLevel.Warning, "Rask.Live",
-                $"[Rask.LiveSession] Coalesce-loop budget exhausted for session {Id}; " +
-                "a third in-dispatch render was queued and dropped. Inspect any handlers " +
-                "that re-trigger StateHasChanged in OnRendered / dispose callbacks " +
-                "during this dispatch.");
-
-            // Consume it: reported and dropped ON PURPOSE, as WasmLiveSession does. Leaving it set handed it to
-            // DrainRenderRequestedAfterScope, which rendered it anyway — the runaway the budget exists to stop.
-            _pendingRenderInScope = false;
-        }
+        // A request still parked here is past the budget, and is NOT dropped: the scope's end hands it to
+        // DrainRenderRequestedAfterScope, which makes it a render of its own. Dropping it left the state last
+        // written undrawn until the next event — three bursts of a followed source inside one dispatch, and the
+        // reader looked at a page one render behind. The budget bounds what one dispatch renders while it holds
+        // the session's lock; what comes without end after it is slowed and named by RenderPace.
     }
 
     // Synthesises a [taskId, false, error] reply for every drained invoke and feeds it

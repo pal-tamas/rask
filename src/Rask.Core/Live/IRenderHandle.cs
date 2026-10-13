@@ -17,6 +17,11 @@ public interface IRenderHandle
     /// </summary>
     Task RequestPublishRender() => RequestRender();
 
+    /// <summary>Told which component asked for the render being requested, so a session that is asked without end can say who.</summary>
+    internal void Asked(Component by)
+    {
+    }
+
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
     /// <summary>
