@@ -89,7 +89,8 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
 
         await Expect(page.Locator("#picked")).ToHaveTextAsync("Bersa");
         await Expect(page.Locator("#store [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "false");
-        await Expect(page.Locator("#searches")).ToHaveTextAsync("[ber]");
+        // The list shut and its field emptied: the page's search follows the field, as Flux's does.
+        await Expect(page.Locator("#searches")).ToHaveTextAsync("[ber][]");
     }
 
     [Fact]

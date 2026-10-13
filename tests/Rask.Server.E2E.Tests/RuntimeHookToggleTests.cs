@@ -161,6 +161,35 @@ public sealed class RuntimeHookToggleTests(PlaywrightFixture playwright) : IClas
         Assert.Equal([true, false], marks);
         Assert.Null(await page.GetAttributeAsync("#panel", "data-open"));
     }
+
+    [Fact]
+    public async Task What_names_a_popover_says_data_open_while_it_shows_and_keeps_it_through_a_render()
+    {
+        await using var session = await HookSession.OpenAsync<ToggleHookPage>(playwright);
+        var page = session.Page;
+
+        // One task again: the wrapper and the trigger are marked before the open panel's first frame.
+        var marks = await page.EvaluateAsync<bool[]>(
+            """
+            () => {
+                const [wrap, trigger, panel] = ['#named-wrap', '#named-trigger', '#named'].map(s => document.querySelector(s));
+                panel.showPopover();
+                const whileOpen = [wrap.hasAttribute('data-open'), trigger.hasAttribute('data-open'), panel.hasAttribute('data-open')];
+                panel.hidePopover();
+                return [...whileOpen, wrap.hasAttribute('data-open'), trigger.hasAttribute('data-open')];
+            }
+            """);
+        await page.ClickAsync("#named-trigger");
+        await Expect(page.Locator("#named-wrap")).ToHaveAttributeAsync("data-open", "");
+        // A render of the page around it: neither element carries the mark in what the server draws.
+        await page.EvaluateAsync("() => document.getElementById('again').click()");
+        await Expect(page.Locator("#again")).ToHaveTextAsync("drawn 1");
+
+        Assert.Equal([true, true, false, false, false], marks);
+        Assert.Equal(string.Empty, await page.GetAttributeAsync("#named-wrap", "data-open"));
+        Assert.Equal(string.Empty, await page.GetAttributeAsync("#named-trigger", "data-open"));
+        Assert.Null(await page.GetAttributeAsync("#marked", "data-open"));
+    }
 }
 
 /// <summary>Popovers and the elements that open them, written out by hand.</summary>
@@ -186,5 +215,15 @@ public sealed partial class ToggleHookPage : Component
 
     protected override string? HtmlLang => "en";
 
-    protected override Component? Render() => Div[Raw.Value(Html)];
+    private int _drawn;
+
+    // The named pair is drawn by the page, and differently each time, so a render does rewrite both elements.
+    protected override Component? Render() => Div[
+        Raw.Value(Html),
+        Button.Id("again").OnClick(() => _drawn++)[$"drawn {_drawn}"],
+        Div.Id("named-wrap").Class("drawn-" + _drawn).Data("rask-open-mark", "named")[
+            Button.Id("named-trigger").Class("drawn-" + _drawn).Data("rask-open-mark", "named").Attributes(("popovertarget", "named"))["named"],
+            Div.Id("named").Popover(Popover.Auto).Style("inset:auto;top:500px;left:100px")["Named"]
+        ]
+    ];
 }

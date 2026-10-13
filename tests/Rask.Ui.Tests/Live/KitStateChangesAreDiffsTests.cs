@@ -34,6 +34,12 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
         ["checkbox checked"] = on => Ui.Checkbox.Value(on).Label("Agree"),
         ["checkbox invalid"] = on => Ui.Checkbox.Value(false).Invalid(on),
         ["switch on"] = on => Ui.Switch.Value(on).Label("Alerts"),
+        ["toggle checked"] = on => Ui.Toggle.Icon(Ui.IconName.Bolt).Checked(on),
+        ["toggle checked with labels"] = on => Ui.Toggle.OnLabel("Sound on").OffLabel("Sound off").Checked(on),
+        ["toggle disabled"] = on => Ui.Toggle.Icon(Ui.IconName.Bolt).Disabled(on),
+        ["carousel disabled"] = on => Ui.Carousel.Disabled(on).Indicators()[Slides()],
+        ["carousel indicators"] = on => Ui.Carousel.Indicators(on)[Slides()],
+        ["carousel settings"] = on => Ui.Carousel.Autoplay(on).Wrap(on ? Ui.CarouselWrap.Rewind : null)[Slides()],
         ["field error before a description"] = on => Ui.Field[
             Ui.Label["Email"], Ui.Input.Value("a"), Ui.Error.Message(on ? "Enter an email address." : null), Ui.Description["Never shared."]
         ],
@@ -53,6 +59,7 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
         ["select options with and without an icon"] = on => Ui.Select.Value(on ? "a" : "b").Listbox[Options()],
         ["select options arriving"] = on => Ui.Select.Value((string?)null).Listbox.Searchable()[on ? Options() : []],
         ["select options leaving from under the answer"] = on => Ui.Select.Value("b").Listbox.Searchable().Filter(false)[on ? Options().Take(1) : Options()],
+        ["pillbox options leaving from under the pills"] = on => Ui.Pillbox.Values(Picked(true)).Combobox.Filter(false)[on ? [] : Pills()],
         ["pillbox values"] = on => Ui.Pillbox.Values(Picked(on)).Placeholder("Choose…")[Pills()],
         ["pillbox values with a clear button"] = on => Ui.Pillbox.Values(Picked(on))[Ui.PillboxTrigger.Placeholder("Choose…").Clearable(), Pills()],
         ["pillbox values in a combobox"] = on => Ui.Pillbox.Values(Picked(on)).Combobox.Placeholder("Choose…")[Pills()],
@@ -97,6 +104,8 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
     public static TheoryData<string> MorphNames => [.. Morphs.Keys];
 
     private static List<string> Picked(bool on) => on ? ["Alpha", "Beta"] : [];
+
+    private static IEnumerable<Component> Slides() => [Ui.CarouselSlide.Key("one")["One"], Ui.CarouselSlide.Key("two")["Two"]];
 
     private static IEnumerable<Component> Pills() => [Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"]];
 

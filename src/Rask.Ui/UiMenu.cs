@@ -108,23 +108,21 @@ public sealed partial class UiMenu : Component
         // On its own it is a menu some Ui.Context names by id, so it sits where the pointer was.
         var style = _host?.Style ?? global::Rask.UiContext.PointerStyle(Ui.ContextPosition.BottomEnd, distance: null, (0, 0));
 
-        return Div
+        var menu = Div
             .Id(id)
             .Popover(Popover.Auto)
             .Role("menu")
             .TabIndex(-1)
             .Class(UiClass.Compose(UiMenuRow.Panel, Class))
             .Data(data)
-            .Attributes(("autofocus", null), ("style", style))
-            // The SOLE writer of the open state: the browser opens the popover and closes it on Escape, a click
-            // outside, a pick and Tab, and this is where C# hears which.
-            .OnToggle(OnToggleAsync)[
-            Context.Provide(new UiMenuLevel(new UiMenuScope(id), -1))[Children ?? []]
-        ];
-    }
+            .Attributes(("autofocus", null), ("style", style));
+        if (_host?.Toggled is { } toggled)
+        {
+            // The browser opens the popover and closes it on Escape, a click outside, a pick and Tab. A page
+            // that asked to hear which is told here; one that did not is sent nothing.
+            menu = menu.OnToggle(e => toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
+        }
 
-    private Task OnToggleAsync(ToggleEvent e) =>
-        _host is { } host
-            ? host.Toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal))
-            : Task.CompletedTask;
+        return menu[Context.Provide(new UiMenuLevel(new UiMenuScope(id), -1))[Children ?? []]];
+    }
 }

@@ -120,6 +120,17 @@ const aKeyNobodyHears = taken();
 listeners.keydown({target: combo, key: "Enter"});
 const beforeAHandledKey = taken();
 
+// A key listed as "Backspace:empty" is heard only from a field that holds nothing: in a pillbox's input it takes
+// the last pill off there, and deletes a letter everywhere else.
+fresh();
+const pills = new StubField({"data-rask-on-keydown": "pills", "data-rask-keys": "Enter Backspace:empty"});
+pills.value = "be";
+listeners.keydown({target: pills, key: "Backspace"});
+const backspaceOverText = taken();
+pills.value = "";
+listeners.keydown({target: pills, key: "Backspace"});
+const backspaceInAnEmptyField = taken();
+
 // Every other event the READER raises is sent by the same `send`: one from MDN's table (dblclick), a pointer
 // crossing an edge, the start of a drag, a popover they opened or shut.
 fresh();
@@ -291,6 +302,8 @@ process.stdout.write(JSON.stringify({
     inTheOrderLastTouched,
     aKeyNobodyHears,
     beforeAHandledKey,
+    backspaceOverText,
+    backspaceInAnEmptyField,
     beforeATableEvent,
     beforeAPointerEntering,
     beforeADrag,

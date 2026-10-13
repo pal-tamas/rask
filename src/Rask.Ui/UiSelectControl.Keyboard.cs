@@ -15,13 +15,28 @@ public abstract partial class UiSelectControl<T>
     // A handler of the page's is running: a search it answers, or the option it is creating.
     private bool _busy;
 
-    // The search field waits for a pause before the page hears it (UiSelectSearch.Debounce), as the last render
-    // drew it. What the reader has typed since the page last heard is then the browser's alone: nothing here
-    // knows it, so whatever empties the field says so to the field itself.
-    private bool _waits;
+    // Who hears what is typed — the search field's slot, or the input's — as the last render read it.
+    private Callback<string> _hears;
 
-    // What the page last heard of the search. A pause that ends on the same text asks nothing again.
+    // How long the field typed into waits before the page hears it (its slot's Debounce), as the last render
+    // read it. While it waits, what the reader has typed since the page last heard is the browser's alone:
+    // nothing here knows it, so whatever rewrites the field says so to the field itself.
+    private int _pause;
+
+    // What the page last heard of the search. A pause that ends on the same text asks nothing again, and a
+    // field the control empties tells the page so only when the page thinks otherwise.
     private string _heard = string.Empty;
+
+    // The page has heard something typed since the field last came to rest.
+    private bool _searched;
+
+    // What a closed combobox says: its answer's words, as the last render read them.
+    private string _answer = string.Empty;
+
+    private bool Waits => _pause > 0;
+
+    // The field that is typed into: the combobox's input or the pillbox's, else the listbox's search field.
+    private ElementRef<HTMLInputElement> TypedInto => IsCombobox || PillsCombobox ? _input : _searchInput;
 
 #pragma warning disable S3459 // a mutable struct whose default is its empty state; Next() fills it in place
     private UiTypeAhead _typeAhead;
@@ -103,6 +118,21 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
+    // The list has shut and its field says what a closed one says: nothing, or a combobox's answer. The page's
+    // search follows the field, as Flux's does — measured on its backend-search examples, `search` is written
+    // "" on Escape and on a click elsewhere, and the answer's words when a combobox goes back to saying them.
+    // A field that waits may hold text no render drew, and a render changes nothing in it then.
+    private Task SettleAsync(string? says = null, bool held = false)
+    {
+        var text = says ?? (IsCombobox ? _answer : string.Empty);
+        if (Waits || held)
+        {
+            UiInputReach.Tell(TypedInto, text);
+        }
+
+        return FollowAsync(text, anew: says is not null);
+    }
+
     // The list's own state. What its search field holds is ShutAsync's to forget, or the toggle's.
     private void Close()
     {
@@ -119,14 +149,22 @@ public abstract partial class UiSelectControl<T>
     // C# shuts the list. The runtime carries that out and raises no toggle for it — the page already knows —
     // so what the search field holds is forgotten here, in the render that shuts the list, and said to the
     // field itself: it has the focus, and a render does not write over a field being typed into.
-    private async Task ShutAsync()
+    private async Task ShutAsync(string? says = null)
     {
         Close();
-        if (HasSearchField && (_search.Length > 0 || _waits))
+        if (PillsCombobox)
+        {
+            // What its input holds is ForgetTypedAsync's to empty.
+            return;
+        }
+
+        var held = HasSearchField && _search.Length > 0;
+        if (held)
         {
             _search = string.Empty;
-            await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
         }
+
+        await SettleAsync(says, held).ConfigureAwait(false);
     }
 
     // Flux's `strict`: a closed combobox shows its answer, whatever was typed.
@@ -136,13 +174,14 @@ public abstract partial class UiSelectControl<T>
         _typing = false;
     }
 
-    private void OnInputBlur()
+    private async Task OnInputBlurAsync()
     {
         // Only while closed. A click on a row blurs the input first, and unfiltering the list under the
         // pointer would move another row beneath the click.
         if (!_open)
         {
             ForgetSearch();
+            await SettleAsync().ConfigureAwait(false);
         }
     }
 
@@ -224,11 +263,11 @@ public abstract partial class UiSelectControl<T>
 
     // ----- The listbox's search field ------------------------------------------------------------------
 
-    private Task SearchedAsync(string text, Callback<string> heard, bool opens)
+    private Task SearchedAsync(string text, bool opens)
     {
         Typed(text, opens);
 
-        return HearAsync(text, heard);
+        return HearAsync(text);
     }
 
     // What the list itself makes of the text: the rows it leaves, and the cursor back at the top.
@@ -244,18 +283,19 @@ public abstract partial class UiSelectControl<T>
     }
 
     // The page's own search: every keystroke, or the text a pause ended on.
-    private async Task HearAsync(string text, Callback<string> heard)
+    private async Task HearAsync(string text)
     {
-        if (!heard.HasValue || (_waits && string.Equals(text, _heard, StringComparison.Ordinal)))
+        if (!_hears.HasValue || (Waits && string.Equals(text, _heard, StringComparison.Ordinal)))
         {
             return;
         }
 
         _heard = text;
+        _searched = true;
         _busy = true;
         try
         {
-            await heard.Invoke(text).ConfigureAwait(false);
+            await _hears.Invoke(text).ConfigureAwait(false);
         }
         finally
         {
@@ -263,31 +303,87 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
+    // The control itself has rewritten its field, and the page hears of it when it thinks otherwise. A field
+    // that only came back to rest tells a page that heard a search since it last rested; one that says something
+    // new (a combobox's pick, its answer cleared) tells it whatever went before, as Flux's input does. A
+    // combobox loaded with an answer and opened and shut tells nothing: nothing was typed.
+    private async Task FollowAsync(string text, bool anew = false)
+    {
+        var tells = (anew || _searched) && !string.Equals(text, _heard, StringComparison.Ordinal);
+        if (tells)
+        {
+            await HearAsync(text).ConfigureAwait(false);
+        }
+
+        _searched = false;
+    }
+
     // The pause the browser counted has ended (`data-rask-on-pause`). A list that has shut meanwhile asks
     // nothing: the reader picked, or left, and the text went with the list.
-    private Task PausedAsync(string text, Callback<string> heard)
+    private Task PausedAsync(string text)
     {
         if (!_open)
         {
             return Task.CompletedTask;
         }
 
-        return Filter == false ? SearchedAsync(text, heard, opens: false) : HearAsync(text, heard);
+        if (Filter == false && !string.Equals(text, _search, StringComparison.Ordinal))
+        {
+            Typed(text, opens: false);
+        }
+
+        return HearAsync(text);
+    }
+
+    // What a keystroke is to the control. With no pause, the list's own reading of the text and the page's
+    // search. With one, the list's alone, and only where there is something for it to do: rows the control
+    // hides itself, or a closed list the first key opens. A list the page filters has nothing to draw until
+    // the page has answered, and hears nothing until the pause.
+    private Func<string, Task>? AtEveryKey(bool opens)
+    {
+        if (!Waits)
+        {
+            return text => SearchedAsync(text, opens);
+        }
+
+        return Filter != false || (opens && !_open) ? text => TypedAsync(text, opens) : null;
+    }
+
+    private Task TypedAsync(string text, bool opens)
+    {
+        Typed(text, opens);
+
+        return Task.CompletedTask;
     }
 
     // The search field's own clear button.
-    private async Task ClearSearchAsync(Callback<string> heard)
+    private async Task ClearSearchAsync()
     {
-        await SearchedAsync(string.Empty, heard, opens: false).ConfigureAwait(false);
-        await ForgetUnheardAsync().ConfigureAwait(false);
-    }
-
-    // Empties a field that may hold text no render has drawn: a render changes nothing in it then.
-    private async Task ForgetUnheardAsync()
-    {
-        if (_waits)
+        await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
+        if (Waits)
         {
             await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
+        }
+    }
+
+    // What the field holds now, asked of the browser where a field that waits may hold more than the page
+    // has heard. The create row is about that text: Flux sends it with the press (measured: typed and pressed
+    // at once, the request carries `search` and the call together).
+    private async Task<string> TypedNowAsync(View view)
+    {
+        if (!Waits)
+        {
+            return view.Search;
+        }
+
+        try
+        {
+            return await TypedInto.Value.ConfigureAwait(false) ?? view.Search;
+        }
+        catch (InvalidOperationException)
+        {
+            // No browser behind this render: what the page last heard is all there is.
+            return view.Search;
         }
     }
 
@@ -301,6 +397,7 @@ public abstract partial class UiSelectControl<T>
             {
                 Close();
                 await UiInputReach.SayAsync(_input, PickedWords(view)).ConfigureAwait(false);
+                await FollowAsync(PickedWords(view)).ConfigureAwait(false);
             }
             else
             {
@@ -321,6 +418,7 @@ public abstract partial class UiSelectControl<T>
                 _search = string.Empty;
                 _typing = true;
                 await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
+                await FollowAsync(string.Empty, anew: true).ConfigureAwait(false);
                 break;
             case Keys.Tab:
                 ForgetSearch();
@@ -349,14 +447,16 @@ public abstract partial class UiSelectControl<T>
         if (!IsMultiple)
         {
             await CommitAsync([value]).ConfigureAwait(false);
+            var words = view.Parts.Rows[index].Option.SelectedText;
             if (closes)
             {
-                await ShutAsync().ConfigureAwait(false);
+                // A combobox goes on to say its new answer, and the page's search with it.
+                await ShutAsync(IsCombobox ? words : null).ConfigureAwait(false);
             }
 
             if (IsCombobox)
             {
-                await UiInputReach.SayAsync(_input, view.Parts.Rows[index].Option.SelectedText).ConfigureAwait(false);
+                await UiInputReach.SayAsync(_input, words).ConfigureAwait(false);
             }
 
             return;
@@ -366,18 +466,35 @@ public abstract partial class UiSelectControl<T>
         _cursor = index;
         await CommitAsync(view.Picked.Contains(value) ? [.. view.Picked.Where(held => !Same(held, value))] : [.. view.Picked, value])
             .ConfigureAwait(false);
-        if ((Clear ?? Ui.SelectClear.Select) == Ui.SelectClear.Select && (view.Search.Length > 0 || _waits))
+        if (await ForgetAtChoiceAsync(view).ConfigureAwait(false))
         {
-            await SearchedAsync(string.Empty, SearchHeard(view), opens: false).ConfigureAwait(false);
-            await UiInputReach.SayAsync(PillsCombobox ? _input : _searchInput, string.Empty).ConfigureAwait(false);
             // The select's cursor stays on the row just switched; the pillbox's goes back to the top, as Flux's does.
             _cursor = Pills is null ? index : First;
         }
     }
 
-    // Who hears what is typed: the search field's slot, or the pillbox's own input.
-    private Callback<string> SearchHeard(View view) =>
-        (PillsCombobox ? view.Parts.Input?.OnInput : view.Parts.Search?.OnInput) ?? default;
+    // Flux's `clear="select"`: a choice among several empties what was typed. True when there was anything to empty.
+    private async Task<bool> ForgetAtChoiceAsync(View view)
+    {
+        if ((Clear ?? Ui.SelectClear.Select) != Ui.SelectClear.Select || (view.Search.Length == 0 && !Waits))
+        {
+            return false;
+        }
+
+        await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
+        await UiInputReach.SayAsync(TypedInto, string.Empty).ConfigureAwait(false);
+
+        return true;
+    }
+
+    // Who hears what is typed, and after how long a pause: the input's slot where one is typed into, else the
+    // search field's.
+    private void ReadSearch(Parts parts)
+    {
+        var typed = IsCombobox || PillsCombobox;
+        _hears = (typed ? parts.Input?.OnInput : parts.Search?.OnInput) ?? default;
+        _pause = UiSearchPause.Of(_hears, typed ? parts.Input?.Debounce : parts.Search?.Debounce);
+    }
 
     // The combobox's words for its answer: the first picked row's, or the answer's as last drawn once a search
     // the page answers has taken its row away.
@@ -389,7 +506,7 @@ public abstract partial class UiSelectControl<T>
         _busy = true;
         try
         {
-            await view.Parts.Create!.OnClick.Invoke(view.Search).ConfigureAwait(false);
+            await view.Parts.Create!.OnClick.Invoke(await TypedNowAsync(view).ConfigureAwait(false)).ConfigureAwait(false);
         }
         finally
         {
@@ -408,6 +525,11 @@ public abstract partial class UiSelectControl<T>
     {
         await CommitAsync([]).ConfigureAwait(false);
         ForgetSearch();
+        if (IsCombobox)
+        {
+            // With no answer left to say, the input is empty, and the page's search with it.
+            await FollowAsync(string.Empty, anew: true).ConfigureAwait(false);
+        }
     }
 
     private static bool Same(T a, T b) => EqualityComparer<T>.Default.Equals(a, b);

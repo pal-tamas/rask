@@ -58,6 +58,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Debounce` on every field that asks a store: `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`,
+  `Ui.Autocomplete`.** The step `Ui.SelectSearch` has, with the same meaning — Flux's
+  `wire:model.live.debounce.250ms`: `Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds)` calls `OnInput`
+  once with the final text when typing has paused, the browser counts the pause and sends nothing meanwhile,
+  a row pressed or Enter during it picks from the list as drawn and the unsent text is dropped, and a pause
+  ending on the text last heard asks nothing. The first key in a closed combobox or pillbox opens the list and
+  asks the page nothing. On `Ui.Autocomplete`, which has no search callback apart from its value, the pause
+  is when what was typed reaches `OnChange` or the bound member (`Debounce` implies `Live()`, as on
+  `Ui.Input`); its list still narrows at every key. Without the step nothing changes. One reading for the
+  five (`UiSearchPause`). `UiSearchDebounceTests`, `SearchDebounceTests`.
+
 - **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
   beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
   another. Generated code calls it; an app has no reason to.
@@ -92,6 +103,24 @@ them until tagged releases begin.
 - **A reconnect or a revalidation that changes nothing about the user's rights no longer counts as a change.**
   Claims a token carries about itself (`exp`, `iat`, `nbf`, `jti`, `auth_time`, `nonce`, `at_hash`, `c_hash`) are
   not compared.
+- **The page's search follows the field a select, combobox or pillbox rewrites.** Measured on Flux's
+  backend-search examples: the `search` model is written `""` when the list shuts (Escape, a click elsewhere),
+  `""` when a pick among several or a pill taken off empties what was typed, and the picked option's words
+  when a combobox goes on to say its answer. `OnInput` of `Ui.SelectSearch` / `Ui.SelectInput` /
+  `Ui.PillboxSearch` / `Ui.PillboxInput` now hears those too — once, and only when the page had heard
+  otherwise — so a page that answers a search no longer holds the last search's rows behind an empty field.
+  A list opened and shut with nothing typed tells the page nothing. Taking a pill off empties the input among
+  the pills, as Flux does.
+- **A create row is handed what the field holds when it is pressed.** Under `Debounce` the page may not have
+  heard the last letters; Flux sends the text with the press, and `OnClick` now gets it from the field.
+- **A search field over a list sends only the list's own keys** (`data-rask-keys`, always — it was written
+  only beside `Debounce`): a letter typed into `Ui.SelectSearch` or `Ui.PillboxSearch` is its `input` and no
+  longer a `keydown` round trip as well. A pillbox's input hears Backspace only while it is empty
+  (`Backspace:empty`, a new form of a `data-rask-keys` entry).
+- **`Ui.Autocomplete` takes its input's `change` only once its list is shut.** A press on an item leaves the
+  input first; a page that answered what was typed with other items drew them under that press and the press
+  ran nothing. The pick, or the list shutting, hands the text over instead; an emptied input still tells at once.
+
 - **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
   pressed.** **A behaviour change under 640 px**, with nothing to change in an app — the same component, the same
   steps, one markup. Measured on Flux's live page at 390 × 844 and held to it example by example
@@ -226,6 +255,38 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+
+- **A page that follows a background source is never left one render behind.** In production: a date filter
+  "did not work" until something else happened on the page, with `Coalesce-loop budget exhausted … a third
+  in-dispatch render was queued and dropped` in the log. A dispatch renders at most three times, and a render
+  asked for after that was dropped on purpose, to stop a component that asks from every render. It could not tell
+  that from three honest causes arriving together — a route change, a read coming back, a singleton's event raised
+  from pool threads (`board.Changed += StateHasChanged`) — and the state written last stayed undrawn until the
+  next event. Nothing is dropped now, on either host or in the DevTools panel: the request is one more render
+  straight after the dispatch. A true runaway is bounded instead by what it is: after ten renders in a row each
+  asked for during the one before, every further one waits 250 ms, and one warning on `Rask.Live` names the
+  component types that asked (the old warning named nothing). Two smaller losses on the same path are closed: a
+  `StateHasChanged` from another thread during a render that then threw, and one that arrived as a connection
+  attached. `StateHasChanged()` from any thread is documented as supported
+  (`docs/lifecycle.md#following-a-singletons-event`).
+- **A pillbox keeps its pills when a search brings rows without them.** The pills were drawn from the rows
+  rendered, so under `Filter(false)` a pill whose option the page's answer left out vanished while the model
+  went on holding the value — and could no longer be taken off. Measured on Flux's "With backend search":
+  three picked, a search that leaves one option and then none, and the three pills stand in the order picked;
+  the cross on one whose option is not rendered takes it out of the value. The pillbox now keeps what each
+  answer showed when it was last drawn, keyed by its value, for as long as the value holds it (as `Ui.Select`
+  does for its one answer); a named select of several posts them too. A value that leaves takes its face with
+  it, and one no render ever drew an option for has no pill. No new API. `UiPillboxKeptAnswersTests`,
+  `PillboxKeptAnswersTests`.
+
+- **A link pressed while a handler awaits the browser is answered, where it used to hang.** A handler that
+  awaits a call into the browser — `IJSRuntime`, an `ElementRef` method — has that call sent with the next
+  frame. A `navigate` frame read before that frame went out withheld it ("what this render would show is on
+  its way out"), for the navigation's own frame to carry; but the navigation takes its turn BEHIND the handler,
+  which was awaiting the answer to a call nobody had been sent. Neither moved: on a live Server page the link
+  did nothing for seconds, and over a bare socket no frame came at all. A frame that carries a call into the
+  browser is now sent whatever is queued behind it (`LiveSession.NothingToSend`). Seen as Escape in a combobox
+  `Ui.Select` followed at once by a nav link; the shape is any app handler's.
 
 - **A one-value value object inside a constructor-built value object no longer stops the app at startup
   ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
@@ -425,6 +486,61 @@ them until tagged releases begin.
 
 ### Added
 
+- **BREAKING: `Ui.Carousel` is Flux's `flux:carousel`**, with `Ui.CarouselSlide` and `Ui.CarouselControls`.
+  It was daisyUI's wrapper around `carousel-item` children; daisyUI's `carousel` rules leave the kit's sheet.
+  ```csharp
+  Ui.Carousel[Div.Class("carousel-item w-full")[photo], …]                 // was
+  Ui.Carousel[Ui.CarouselSlide.Class("w-full")[photo], …]                  // now
+  ```
+  Previous and next arrows over the slides (`Arrows(false)`, `ArrowsPosition`: `Inside` / `Overlap` /
+  `Outside`, `ArrowsClass`), `Indicators()`, `Autoplay()` + `AutoplayInterval`, `Fade()`, `Bleed()`, `Snap`,
+  `Scroll`, `Advance` (`Page` moves by the slides in view), `Wrap` (`Rewind`), `Disabled()`, `TrackClass`, and
+  `Name` to join a `Ui.CarouselControls` placed anywhere on the page. The browser scrolls and snaps; the
+  runtime's carousel hook keeps the arrows, the slide in view and the indicators in step and runs autoplay,
+  with nothing sent to the page — zero frames either way on a Server page (`UiDrawnInTheBrowserTests`). A
+  carousel that rewinds says no `data-at-end`, as Flux's does not, so its next arrow stays at the end. Its
+  accessible names are eight new catalog entries (`CarouselRole`,
+  `CarouselLabel`, `CarouselSlideRole`, `CarouselSlideLabel`, `CarouselPrevious`, `CarouselNext`,
+  `CarouselIndicators`, `CarouselShowSlide`), with Hungarian in the kit. Measured from Flux's page and held to
+  it by `node scripts/flux/parity.mjs carousel`; `node scripts/flux/parity-carousel.mjs` walks Flux's eight
+  live carousels and the kit's with the same pointer and keys — arrows, both ends, Enter and Space, the
+  indicators, external controls, page advance, autoplay under the pointer, under focus and with reduced
+  motion — and holds every step equal.
+- **A carousel's autoplay holds while focus is inside it** (`data-rask-carousel` with `data-autoplay`), as it
+  holds under the pointer, and starts afresh when both are gone. Measured on Flux: no move in 7 s with focus
+  on an arrow, the next one 3.5 s after it left.
+
+- **`Ui.Toggle`** — Flux's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+  `Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")` is a `<button role="switch">` whose icon is its
+  outline when off and its solid drawing when on; `OnIcon` / `OffIcon` for two icons, `Icon(component)` for
+  your own, `Label` / `OnLabel` / `OffLabel` or children for words, `Sm` / `Xs`, `Filled` / `Ghost` / `Subtle`,
+  `Color` for the icon when on, `Disabled()`. A press, Space and Enter turn it. `Bind(() => m.FastMode)` is
+  written with the next action (`.Live()`: at once); with `OnChange` beside it the member is written at once
+  and `OnChange` runs after — Flux's `wire:model` with `wire:change`. Unbound with `OnChange` it reports each
+  turn. With neither, a press only changes what it draws, so the browser turns it and nothing is sent to the
+  server (`data-rask-switch`, a new runtime hook: `aria-checked` and `data-checked` flip on a press of a
+  `<button role="switch">` that carries it, held against the morph). While its handler runs it shows a spinner and takes no press. Measured from
+  Flux's page and held to it by `node scripts/flux/parity.mjs toggle`.
+- **BREAKING: `Ui.Swap` and `Ui.SwapAnimation` are removed.** The daisyUI control with two faces is Flux's
+  toggle with two icons, and daisyUI's `swap` rules leave the kit's sheet:
+  ```csharp
+  Ui.Swap.AccessibleLabel("Mute").On(muteIcon).Off(soundIcon).Active(muted).OnChange(on => muted = on)   // was
+  Ui.Toggle.Tooltip("Mute").OnIcon(Ui.IconName.SpeakerXMark).OffIcon(Ui.IconName.SpeakerWave)
+      .Checked(muted).OnChange(on => muted = on)                                                         // now
+  ```
+  It says `role="switch"` and `aria-checked` where the swap said `aria-pressed`. There is no rotate or flip.
+
+- **`Ui.Flag`** — Flux's `flux:flag`: `Ui.Flag.Country("US")`, a country's flag from its two-letter Unicode
+  region code (either case), 24px wide and 3:2. `Xs` / `Md` / `Lg` / `Xl` for the other widths (a `w-*` in
+  `Class` wins over them), `Circle()` for a round crop, `Src` for an image of your own, `Alt` when nothing
+  beside it names the country (empty by default: decoration). Measured from Flux's page and held to it by
+  `node scripts/flux/parity.mjs flag`. **The 254 drawings are files, not part of the assembly**: an app that
+  shows flags sets `<RaskUiWriteFlags>true</RaskUiWriteFlags>` and the build copies them into
+  `wwwroot/flags` with their notice; an app that does not carries none of their 172 KB, and the package grows
+  by 82 KB. In a one-project WebAssembly app the browser half writes them. They are
+  [country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves,
+  vendored by `scripts/flux/flags.mjs` from the pinned npm tarball; `UN` and `CQ` are not in that set and draw
+  the empty frame, as an unknown code does.
 - **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
   `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
   `Search` at every keystroke (unchanged when the step is absent). After:
@@ -1363,6 +1479,22 @@ them until tagged releases begin.
   `rask.js` +64 bytes, `rask.wasm.js` +62. See `docs/forms.md#ask-before-leaving-unsaved-changes`.
 
 ### Performance
+
+- **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
+  shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
+  field the reader had typed into since. The runtime turns the field to text and back in the click
+  (`data-rask-view`) and says so on the button with Flux's `data-viewable-open`.
+- **Opening and closing a dropdown, a popover or a context menu sends the server nothing** — as in Flux UI,
+  where that is its own script's and Livewire hears only a bound value or an action the page wrote. The
+  panel's `toggle` was sent on every open, Escape and press outside, and answered with a render, whether or not
+  the page had asked to hear it: one frame each way per open and per close, two for a pointer crossing a
+  `Hover()` dropdown or a collapsed sidebar's rail. Now it is sent only to a page that gave `OnToggle`; `data-open`
+  on the dropdown, its trigger and a context menu's area is written by the runtime in the task the browser
+  opens the panel in (`data-rask-open-mark="<panel id>"`), a round trip sooner than a render brought it. Frames
+  per gesture, before → after: open 1 → 0, Escape 1 → 0, press outside 1 → 0, hover in and out 2 → 0. A new
+  gate, `KitDrawsWithoutAskingTests`, puts every kit component through a pointer, the keyboard, opening,
+  paging and dragging on a live Server page and holds each gesture to a frame budget: nothing for what is only
+  drawn, the frames owed for a value or a callback, and a list of what still round-trips that can only shrink.
 
 - **A child that changes element is answered with its parent, not the whole page — and so is a navigation
   inside a layout.** `cond ? A : B`, words that become an element, a loading line that becomes a table, a

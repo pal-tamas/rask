@@ -8,7 +8,10 @@ namespace Rask;
 /// <param name="Style">Where the panel sits: anchor positioning against the trigger, or the pointer's position.</param>
 /// <param name="Controlled">The open state the page asked for, when the page owns it.</param>
 /// <param name="Detail">A value for the panel's <c>data-detail</c>.</param>
-/// <param name="Toggled">Tells the host the reader opened or closed the panel.</param>
+/// <param name="Toggled">
+///     Tells the host the reader opened or closed the panel. Null when the page did not ask to hear it: the
+///     panel then listens for nothing, and opening and closing it is the browser's alone.
+/// </param>
 /// <param name="Hover">The pointer opens the panel, so the page behind it keeps its pointer and its scroll.</param>
 /// <param name="Place">
 ///     The same place in the runtime's words, for the panel's <c>data-rask-place</c>: the side, the alignment,
@@ -19,6 +22,6 @@ internal sealed record UiPopupHost(
     string Style,
     bool? Controlled,
     string? Detail,
-    Func<bool, Task> Toggled,
+    Func<bool, Task>? Toggled,
     bool Hover = false,
     string? Place = null);

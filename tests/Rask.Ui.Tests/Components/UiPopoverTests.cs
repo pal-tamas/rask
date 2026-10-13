@@ -120,14 +120,14 @@ public partial class UiPopoverTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_open_popover_says_so_on_the_dropdown_and_the_trigger_and_asks_the_runtime_to_say_so_on_the_panel()
+    public void An_open_popover_asks_the_runtime_to_say_so_on_the_dropdown_the_trigger_and_the_panel()
     {
         var html = Html(dropdown => dropdown.Open(true));
 
-        var marks = Regex.Matches(html, "data-open=\"\"");
+        var marks = Regex.Matches(html, "data-rask-open-mark=\"uidd-\\d+-panel\"");
 
         Assert.Equal(2, marks.Count);
-        Assert.DoesNotContain("data-open", Panel(html), StringComparison.Ordinal);
+        Assert.DoesNotContain("data-open", html, StringComparison.Ordinal);
         Assert.Contains("data-rask-open-mark=\"\"", Panel(html), StringComparison.Ordinal);
         Assert.Contains("aria-expanded=\"true\"", html, StringComparison.Ordinal);
     }

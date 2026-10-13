@@ -360,7 +360,7 @@ Not every component honours every member — daisyUI defines no `input-outline` 
 the markup looking as though it styled something.
 
 Other axes follow the same rule: `Ui.Position`, `Ui.Align`, `Ui.ModalPosition`, `Ui.MaskShape`,
-`Ui.LoadingShape`, `Ui.SwapAnimation`, `Ui.AuraStyle`.
+`Ui.LoadingShape`, `Ui.AuraStyle`.
 
 ### One vocabulary for placing things
 
@@ -1107,6 +1107,133 @@ the default: `Ui.TimelineItem.Baseline.Class("[&_[data-ui-timeline-baseline]]:te
 Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[ … ]
 ```
 
+## Carousel
+
+`Ui.Carousel` is Flux UI's `flux:carousel`: slides that scroll sideways and come to rest on one.
+
+```csharp
+Ui.Carousel.TrackClass("rounded-lg overflow-hidden")[
+    Ui.CarouselSlide.Class("w-full")[photo],
+    Ui.CarouselSlide.Class("w-full")[another]
+]
+
+Ui.Carousel.Indicators().Arrows(false)[…]                 // an indicator per slide, no arrows
+Ui.Carousel.Autoplay().AutoplayInterval(3500)[…]          // advances by itself; 5000 ms when unset
+
+Ui.CarouselControls.Name("stays")                         // anywhere on the page
+Ui.Carousel.Name("stays").Bleed().Arrows(false)[
+    stays.Select(stay => Ui.CarouselSlide.Key(stay.Id).Class("w-4/5 sm:w-1/2 md:w-1/3")[Stay(stay)])
+]
+```
+
+A slide's width is its class, and decides how many are in view.
+
+| | |
+| --- | --- |
+| `Arrows(false)` | No previous and next buttons over the slides. |
+| `ArrowsPosition` | `Inside` (default), `Overlap` (half over each edge), `Outside`. `ArrowsClass` adds classes to both. |
+| `Indicators()` | One button per slide under the carousel. |
+| `Autoplay()`, `AutoplayInterval(ms)` | Advances on the interval and goes back to the first slide after the last. It holds under the pointer and while focus is inside, and never starts for a reader who asked for less motion. |
+| `Fade()` | Fades the edge of the track that has more slides behind it. |
+| `Bleed()` | Runs the track through the padding around it (`--ui-bleed`, which a card sets, or 1.5rem), the slides still starting at the gutter. |
+| `Snap` | `Proximity` (default) or `Mandatory`. |
+| `Scroll` | How an arrow or an indicator moves it: `Smooth` (default) or `Instant`. |
+| `Advance` | `Slide` (default) or `Page`: an arrow moves by the slides in view. |
+| `Wrap` | `None` (default) or `Rewind`: at the end the next arrow stays and returns to the first slide. |
+| `Disabled()` | Takes the arrows and the indicators out of use. The slides still scroll. |
+| `Name` | Joins it to a `Ui.CarouselControls` of the same name elsewhere on the page. |
+| `TrackClass` | Classes for the scrolling track. |
+
+**Nothing is sent to the page.** The scrolling is the browser's — scroll-snap, so a wheel, a swipe and the
+keyboard move it as they move any scroller. What a stylesheet cannot do, Rask's runtime does from the markup
+(`data-rask-carousel`): it marks the root and each arrow `data-at-start` / `data-at-end`, disables the arrow
+with nowhere to go, marks the slide in view `data-selected` and its indicator `aria-current`, moves the track
+when an arrow or an indicator is pressed, and runs autoplay. There is no `OnChange`, as Flux has none.
+
+A screen reader hears a group called "carousel" holding "slide, 2 of 5"; those words, and the buttons'
+names, are in the [translation catalog](localization.md).
+
+daisyUI's `carousel` wrapper, which `Ui.Carousel` used to draw around `carousel-item` children, is gone.
+
+## Toggle
+
+`Ui.Toggle` is Flux UI's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
+Reach for it when the setting is icon-sized; one that needs its words beside it is a `Ui.Switch`.
+
+```csharp
+Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")                          // turned in the browser
+Ui.Toggle.Icon(Ui.IconName.Heart).Color(Ui.Color.Red).Checked()                // starts on
+Ui.Toggle.Bind(() => settings.Sound).OnLabel("Sound on").OffLabel("Sound off") // two-way bound
+Ui.Toggle.Bind(() => project.Active).OnChange(Save).Icon(Ui.IconName.LightBulb) // written, then saved
+Ui.Toggle.Checked(muted).OnChange(on => muted = on)                            // the page keeps it
+```
+
+| | |
+| --- | --- |
+| `Icon` | A Heroicon — its outline when off, its solid drawing when on — or icons of your own (Flux's `icon` slot), each shown for its state with `group-data-checked:`. |
+| `OnIcon` / `OffIcon` | A different Heroicon for each state. |
+| `Label`, `OnLabel` / `OffLabel` | Short text beside the icon, or one per state. Children take their place. |
+| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
+| `Variant` | `Outline`, `Filled`, `Ghost`, `Subtle`. |
+| `Color` | The icon's colour when on; the accent when unset. Off, it stays neutral. |
+| `Tooltip` | A tooltip, and the accessible name of a toggle that shows only an icon. |
+| `Checked` | Whether it is on, for a toggle that is not bound. |
+| `Disabled()` | Dimmed, and out of the tab order. |
+
+It is a `<button role="switch">`: a press, Space and Enter turn it, and a screen reader says "on" or "off".
+
+**Whose state it is.** `Bind` two-way binds a `bool`: the member is written with the next action, as every
+kit control's is, and at once with `.Live()`. A bound toggle the page listens to with `OnChange` is written at
+once too, and `OnChange` runs after the write — Flux's `wire:model` beside `wire:change`, one round trip that
+saves. Unbound and listened to with `OnChange`, it reports each turn, and a page that hands it a different
+`Checked` has the last word. While its handler runs the runtime marks the button `data-loading`: what it shows
+gives way to a spinner and it takes no further press.
+
+**A toggle nobody listens to sends nothing.** With no `Bind` and no `OnChange` a press only changes what the
+toggle draws, so the browser does it (`data-rask-switch`): `aria-checked` and `data-checked` flip there, and
+not one frame goes to the server. `Checked` is then where it starts.
+
+`Ui.Swap`, the daisyUI control with two faces, is gone: `Ui.Toggle.OnIcon(…).OffIcon(…)` is that control.
+
+## Flag
+
+`Ui.Flag` is Flux UI's `flux:flag`: a country's flag from its two-letter Unicode region code.
+
+```csharp
+Ui.Flag.Country("US")                                  // 24px wide, 3:2
+Ui.Flag.Country("de").Xl                               // Xs 20px, Sm 24px (default), Md 32px, Lg 40px, Xl 48px
+Ui.Flag.Country("JP").Circle()                         // cropped to a circle
+Ui.Flag.Country("CA").Alt("Canada")                    // says so, when nothing beside it does
+Ui.Flag.Src("/img/flags/california.svg").Alt("California").Xl
+```
+
+| | |
+| --- | --- |
+| `Country` | The region code, in either case. A code with no drawing shows the empty frame. |
+| `Src` | An image of your own — a subdivision, an organization, a historical flag. It wins over `Country`. |
+| `Alt` | Alternative text. Empty when unset: a flag is decoration beside the country's name. |
+| `Size` | The width: `Xs`, `Sm`, `Md`, `Lg`, `Xl`. A `w-*` in `Class` wins over it. |
+| `Circle()` | A circular crop. |
+
+The registry is Unicode's two-letter flag sequences, as Flux's is, and saying a code is in it takes no
+position on any country, territory or border. The drawings are
+[country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves;
+`UN` and `CQ` are not in that set and draw the empty frame.
+
+**The 254 drawings are files, not part of the assembly** — 172 KB an app that shows three flags should not
+download. An app that draws flags says so, and the build copies them into `wwwroot/flags` with their notice
+(`wwwroot/flags/LICENSE.txt`):
+
+```xml
+<PropertyGroup>
+  <RaskUiWriteFlags>true</RaskUiWriteFlags>
+</PropertyGroup>
+```
+
+Each `Ui.Flag` is then one `<img loading="lazy">` of `/flags/<CC>.svg`: a page fetches the flags it shows.
+In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without the
+switch every flag is a broken image, so set it in the project that serves the pages.
+
 ## Buttons and links that go somewhere
 
 Every kit component that goes somewhere takes a `RouteUrl`: `Ui.Button.Href`, `Ui.Link.Href`,
@@ -1397,11 +1524,11 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Swap` `Ui.Fab` |
-| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Fab` |
+| **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Flag` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
@@ -1576,8 +1703,10 @@ on the closed trigger opens the menu onto its first row. The row under the curso
 focus, not `aria-activedescendant`), `tabindex="0"` and `data-active` — all three written by the runtime and
 held against the next render, never rendered. The runtime also presses the focused row on Enter and Space,
 closes the popover after a pick or when Tab leaves, and hands focus back to the trigger after a click outside.
-What the page hears is a row being pressed — its `OnClick`, a checkbox's or a radio's value — and the menu
-opening and closing (`OnToggle`); a `Ui.MenuItem` with no `OnClick` sends nothing at all.
+What the page hears is a row being pressed — its `OnClick`, a checkbox's or a radio's value — and, only when
+it gave `OnToggle`, the menu opening and closing. Without `OnToggle` opening and closing a dropdown, a popover or
+a context menu sends nothing, and neither does a `Ui.MenuItem` with no `OnClick`: `data-open` and
+`aria-expanded` are written in the browser.
 
 A pick closes the menu — a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a radio
 group or a single row keeps it up, for the menu someone ticks several of.
@@ -1607,7 +1736,7 @@ which is what lets a dropdown close itself when the action inside it completes.
 Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[ trigger, Ui.Menu[ … ] ]
 ```
 
-**The page owns it, in C#.** `Ui.Swap`, `Ui.Tabs` and `Ui.Modal`'s `Open` path hold their state in a field and
+**The page owns it, in C#.** `Ui.Tabs`, a `Ui.Toggle` given `Checked` and `Ui.Modal`'s `Open` path hold their state in a field and
 redraw through the live diff.
 
 **The browser owns it, and tells the page.** A `Ui.AccordionItem` is a `<details>`: it opens with no handler at
@@ -1823,6 +1952,12 @@ ends on the text the page last heard asks nothing again; the field's clear butto
 Without `Filter(false)` the select goes on hiding rows at every keystroke and only `OnInput` waits.
 `Debounce(TimeSpan.Zero)` is every keystroke, as on `Ui.Input`.
 
+**The page's search follows the field.** When the select itself rewrites the field — the list shuts and the
+field is emptied, a pick among several empties it — `OnInput` hears that text too, once, and only when the
+page thinks otherwise: after a search for "ber" and a pick it is called with `""`, so the page goes back to
+the rows it starts from. Measured on Flux's backend-search examples, where the `search` model is written
+`""` on Escape and on a click elsewhere. A list opened and shut with nothing typed tells the page nothing.
+
 **The answer stays in the button when the rows change.** A search the page answers may bring rows that no
 longer include the option picked. The select goes on saying it, as Flux's does: the button (and a combobox's
 input, and the hidden input of a named select) keep the picked option's words, icon and avatar for as long
@@ -1880,6 +2015,26 @@ Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
 
 In a listbox with no search the create row is always shown and `OnClick` is handed an empty string — the
 case where the page opens a form of its own.
+
+**Search from the database.** `Debounce` on `Ui.SelectInput` is the same step as on `Ui.SelectSearch`: one
+query for a word.
+
+```csharp
+Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
+    Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds),
+    _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name])
+]
+
+private async Task Search(string text) =>
+    _users = await User.Where(u => u.Name.Contains(text)).OrderBy(u => u.Name).Take(20).ToList();
+```
+
+Nothing is sent while the reader types into the open list; the first key in a closed one opens it, and asks
+the page nothing. A row pressed, or Enter, during the pause picks from the list as drawn and the text typed
+since is dropped. The input then says the answer, and `OnInput` hears those words — Flux's `search` model is
+its input's text, so after a pick of "Analytics" the page is asked for "Analytics", and for `""` when Escape
+empties a closed combobox. The create row offers itself from the text the page last heard, and its `OnClick`
+is handed what the input holds when it is pressed, typed-since included (Flux sends the two together).
 
 **No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
 trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
@@ -1946,6 +2101,31 @@ It takes what Flux documents for it, which is the input's own list: `Type`, `Lab
 as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
 `OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
 
+**Suggestions from the database.** `Debounce(250.Milliseconds)` hands the page what was typed once typing has
+paused as well — Flux's `wire:model.live.debounce.250ms` — and the page answers it with the items:
+
+```csharp
+Ui.Autocomplete.Value(_city).OnChange(Search).Debounce(250.Milliseconds).Label("City")[
+    _found.Select(city => Ui.AutocompleteItem.Key(city)[city])
+]
+
+private async Task Search(string text)
+{
+    _city = text;
+    _found = await City.Where(c => c.Name.Contains(text)).OrderBy(c => c.Name).Take(20).Select(c => c.Name).ToList();
+}
+```
+
+The autocomplete has no search callback apart from its value: what is typed IS what it holds, so the pause
+is when the value arrives. The list still narrows at every keystroke — Flux's autocomplete has no
+`filter` to turn off — and only the page waits. An item pressed during the pause is the text, and what was
+typed before it is never handed over; Escape empties; the clear button tells the page at once. A bound
+autocomplete writes its member at the pause: `Debounce` is a way of being `Live()`, as on `Ui.Input`, so
+`Bind(() => m.City).Debounce(…)` needs no `.Live()` beside it, and `AfterBind` is where the search goes.
+Without the step nothing changes: `.Live()` alone writes a pick, a clear and a leave at once, and never what
+is being typed. The input's own `change` is not taken while the list is open — a press on an item leaves the
+input first — so a click elsewhere hands over what was typed as the list shuts.
+
 No script: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the filter and the
 picking are C#. As recorded on Flux's page:
 
@@ -1987,7 +2167,7 @@ Ui.Pillbox.Bind(() => model.Skills).Combobox.Placeholder("Choose skills...")[…
 | `Ui.PillboxOption` | `Value`, `Label`, `SelectedLabel` (what its pill says), `Disabled()`, `Filterable(false)` (a search never hides it), or children of your own — an icon beside the words. The pill shows the words alone. |
 | `Ui.PillboxOptionCreate` | `MinLength`, `OnClick` handed the text as typed. Offered once that text is long enough and names no option; with nothing to type into it is always there, and opens a form of the page's own. Written before the options, it is drawn before them. |
 | `Ui.PillboxOptionEmpty` | What the list says when nothing matches; `WhenLoading` while the page answers. |
-| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Invalid()`. |
+| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput` / `Debounce`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Debounce` / `Invalid()`. |
 
 Creating the option that is not there, with the page holding what was typed:
 
@@ -1999,6 +2179,33 @@ Ui.Pillbox.Bind(() => model.TagIds).Combobox[
 ]
 ```
 
+**Search from the database.** `Filter(false)` leaves the options to the page, and `Debounce` on the input
+among the pills — or on `Ui.PillboxSearch`, over the list — asks it once typing has paused, as
+`Ui.SelectSearch.Debounce` does:
+
+```csharp
+Ui.Pillbox.Bind(() => model.TagIds).Combobox.Filter(false)[
+    Ui.PillboxInput.OnInput(Search).Debounce(250.Milliseconds).Placeholder("Choose tags..."),
+    _found.Select(tag => Ui.PillboxOption.Key(tag.Id).Value(tag.Id)[tag.Name])
+]
+
+private async Task Search(string text) =>
+    _found = await Tag.Where(t => t.Name.Contains(text)).OrderBy(t => t.Name).Take(20).ToList();
+```
+
+Nothing is sent while the reader types into the open list. A row pressed, or Enter, during the pause adds
+the pill from the list as drawn, and the text typed since is dropped. A pick, a pill taken off and the list
+shutting each empty what was typed, and `OnInput` then hears `""` when the page had heard a search — as
+Flux's `search` model does. Backspace is heard only from an input that holds nothing, where it takes the last
+pill off.
+
+**The pills stay when the rows change.** A search the page answers may bring rows that no longer hold a
+picked option. The pillbox keeps what each answer showed when it was last drawn, for as long as the value
+holds it: the pills stand, in the order picked, the cross on one still takes it out of the value, and
+Backspace still takes the last. A select of several goes on counting and posting them the same way. A value
+that leaves takes what it showed with it, and a value no render ever drew an option for has no pill — render
+its option once, or keep it among the rows the search answers with. Measured on Flux's "With backend search".
+
 It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
 page, where it differs from the select's listbox:
 
@@ -2007,7 +2214,7 @@ page, where it differs from the select's listbox:
 | A click, Space, ArrowDown, ArrowUp | Open the list. Enter on the closed trigger does nothing. |
 | Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
 | A letter on the closed trigger | Switches the next option that starts with it, without opening. |
-| The cross on a pill | Takes that option off; the list stays as it was. |
+| The cross on a pill | Takes that option off; the list stays as it was, and what was typed among the pills is emptied. |
 | The pointer leaving the list | No row is lit any more. |
 | Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
 | Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
@@ -2397,7 +2604,7 @@ Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]           
   the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
   draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
   takes the red-500 border Flux's input has.
-- **Gone with daisyUI's controls:** `Ui.Toggle` (now `Ui.Switch`), `Tone` and `Size` on all three, children as
+- **Gone with daisyUI's controls:** the daisy `Ui.Toggle` (that control is `Ui.Switch`; today's `Ui.Toggle` is Flux's toggle, above), `Tone` and `Size` on all three, children as
   the label (now `Label`), `Ui.Radio.Text` / `.Group` and a radio bound to its own `bool`, and the groups'
   `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
   `Hint`, `Error`, `Badge` and `AccessibleLabel`.

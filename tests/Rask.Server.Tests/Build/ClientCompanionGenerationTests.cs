@@ -266,12 +266,77 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Contains("<RaskUiEditorEngine>false</RaskUiEditorEngine>", optedOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_server_half_leaves_the_flags_it_asked_for_to_its_browser_app()
+    {
+        // As with the editor's engine: both halves writing wwwroot/flags is 255 relative paths twice in the publish.
+        WriteProject(clientSwitch: null, WebSdk, flags: true);
+
+        var result = await Run("-t:RaskUiWriteFlags;RaskUiLeaveFlagsToClient", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.False(Directory.Exists(Path.Combine(_dir, Flags)), "the server half wrote the flags too");
+        Assert.DoesNotContain(Flags, content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_server_app_with_no_browser_half_writes_the_flags_with_their_notice_only_when_it_asks()
+    {
+        WriteProject(clientSwitch: false, WebSdk);
+        var unasked = await Run("-t:RaskUiWriteFlags", "-v:minimal");
+        var before = Directory.Exists(Path.Combine(_dir, Flags));
+
+        WriteProject(clientSwitch: false, WebSdk, flags: true);
+        var content = Slashes(await Evaluate("-getItem:Content"));
+        var asked = await Run("-t:RaskUiWriteFlags", "-v:minimal");
+
+        Assert.True(unasked.ExitCode == 0, unasked.Output);
+        Assert.False(before, "flags were written for an app that never asked for them");
+        Assert.True(asked.ExitCode == 0, asked.Output);
+        // Declared before they exist, so the first build already serves them.
+        Assert.Contains(Flags + "/US.svg", content, StringComparison.Ordinal);
+        Assert.Equal(254, Directory.GetFiles(Path.Combine(_dir, Flags), "*.svg").Length);
+        Assert.True(File.Exists(Path.Combine(_dir, Flags, "LICENSE.txt")), "the drawings travel with their notice");
+    }
+
+    [Fact]
+    public async Task Flags_an_earlier_build_left_in_the_server_half_are_removed_and_not_published()
+    {
+        Write(Flags + "/US.svg", "<svg/>");
+        Write(Flags + "/mine.svg", "<svg/>");
+        WriteProject(clientSwitch: null, WebSdk, flags: true);
+
+        var content = Slashes(await Evaluate("-getItem:Content"));
+        var result = await Run("-t:RaskUiLeaveFlagsToClient", "-v:minimal");
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.DoesNotContain(Flags + "/US.svg", content, StringComparison.Ordinal);
+        Assert.False(File.Exists(Path.Combine(_dir, Flags, "US.svg")));
+        // Only the kit's own files: a drawing the app put there itself is the app's.
+        Assert.True(File.Exists(Path.Combine(_dir, Flags, "mine.svg")));
+    }
+
+    [Fact]
+    public async Task The_browser_app_writes_the_flags_only_when_the_app_asked_for_them()
+    {
+        WriteProject(clientSwitch: null, WebSdk);
+        var unsaid = await Generate();
+
+        WriteProject(clientSwitch: null, WebSdk, flags: true);
+        var asked = await Generate();
+
+        Assert.DoesNotContain("RaskUiWriteFlags", unsaid, StringComparison.Ordinal);
+        Assert.Contains("<RaskUiWriteFlags>true</RaskUiWriteFlags>", asked, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
     private static partial Regex CompileGlob();
 
     private const string WebSdk = "Microsoft.NET.Sdk.Web";
     private const string EditorEngine = "wwwroot/js/rask-ui-editor.js";
     private const string EditorNotices = "wwwroot/js/rask-ui-editor.LICENSES.txt";
+    private const string Flags = "wwwroot/flags";
 
     private void Write(string relative, string content)
     {
@@ -282,7 +347,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
 
     // The kit's targets are imported as its package would import them, and the kit is "referenced" by name
     // only: nothing here compiles, so the reference is never resolved.
-    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null) =>
+    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool flags = false) =>
         Write("App.csproj", $"""
             <Project Sdk="{sdk}">
               <PropertyGroup>
@@ -291,6 +356,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
                 <RaskClientCompanionSrc>{SrcDir}</RaskClientCompanionSrc>
                 {(clientSwitch is { } on ? $"<RaskClient>{on.ToString().ToLowerInvariant()}</RaskClient>" : "")}
                 {(editorEngine is { } engine ? $"<RaskUiEditorEngine>{engine.ToString().ToLowerInvariant()}</RaskUiEditorEngine>" : "")}
+                {(flags ? "<RaskUiWriteFlags>true</RaskUiWriteFlags>" : "")}
               </PropertyGroup>
               <ItemGroup>
                 <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>

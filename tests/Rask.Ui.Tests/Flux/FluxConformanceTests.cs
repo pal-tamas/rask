@@ -206,6 +206,11 @@ public sealed class FluxConformanceTests
         ["flux:tabs"] = typeof(UiTabs),
         ["flux:tab"] = typeof(UiTab),
         ["flux:tab.panel"] = typeof(UiTabPanel),
+        ["flux:flag"] = typeof(UiFlag),
+        ["flux:toggle"] = typeof(UiToggle),
+        ["flux:carousel"] = typeof(UiCarousel),
+        ["flux:carousel.slide"] = typeof(UiCarouselSlide),
+        ["flux:carousel.controls"] = typeof(UiCarouselControls),
     };
 
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
@@ -368,6 +373,7 @@ public sealed class FluxConformanceTests
         ["flux:checkbox.group/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:radio.group/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:switch/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
+        ["flux:toggle/Live"] = "`wire:model.live`: the property is written as soon as it is turned",
         ["flux:editor/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:calendar/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:date-picker/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
@@ -418,6 +424,9 @@ public sealed class FluxConformanceTests
         ["flux:select.input/OnInput"] = "as Value: the write of that `wire:model.live`",
         ["flux:select.search/Value"] = "`wire:model.live` on the search field, as Flux's dynamic-options example writes it on `flux:select.input`: a list the page filters itself (`:filter=\"false\"`)",
         ["flux:select.search/OnInput"] = "as Value: the write of that `wire:model.live`",
+        ["flux:select.input/Debounce"] = "`wire:model.live.debounce.250ms` on the combobox's input, as flux:select.search/Debounce",
+        ["flux:pillbox.search/Debounce"] = "as flux:select.search/Debounce",
+        ["flux:autocomplete/Debounce"] = "`wire:model.live.debounce.250ms`: the property holds what was typed once typing has paused, as `flux:input/Debounce`",
         ["flux:select.search/Debounce"] = "`wire:model.live.debounce.250ms` on the search field: the page hears the search once typing has paused, as `flux:input/Debounce`",
         ["flux:pillbox/Variant"] = "`variant=\"combobox\"`, which every combobox example on Flux's page writes and its reference omits",
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
@@ -462,6 +471,8 @@ public sealed class FluxConformanceTests
         ["flux:radio.group/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
         ["flux:radio.group/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
         ["flux:switch/Bind"] = "`wire:model`, two-way",
+        ["flux:toggle/Bind"] = "`wire:model`, two-way. Read one way it is Flux's own `checked`, so the toggle declares no Value",
+        ["flux:toggle/OnChange"] = "`wire:change`, which Flux's page pairs with `wire:model` to save in one request: called after the write",
         ["flux:switch/Value"] = "`wire:model` read one way; OnChange is the other way",
         ["flux:switch/OnChange"] = "`wire:model`'s write, handed to the parent",
         ["flux:switch/Validate"] = "the Livewire component's rule for the `wire:model` property",

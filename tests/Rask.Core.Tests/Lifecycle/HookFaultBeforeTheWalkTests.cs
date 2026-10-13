@@ -188,8 +188,15 @@ public partial class HookFaultBeforeTheWalkTests : global::Rask.Core.RaskMarkup
     {
         var captured = new List<RaskDiagnosticEvent>();
         var previous = RaskDiagnostics.Sink;
+        // The sink is the whole process's: a class running beside this one reports into it too. Only what was
+        // said about this class's own fault is counted.
         RaskDiagnostics.Sink = line =>
         {
+            if (line.Exception is not { Message: Secret })
+            {
+                return;
+            }
+
             lock (captured)
             {
                 captured.Add(line);

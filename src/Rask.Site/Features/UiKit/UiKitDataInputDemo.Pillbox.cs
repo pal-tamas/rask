@@ -24,6 +24,10 @@ public sealed partial class UiKitDataInputDemo
     private List<int> _pillNamed = [];
     private string _tagSearch = "";
     private string _tagQuery = "";
+    private int _tagQueries;
+    private List<string> _pillStored = [];
+    private string[] _skillsFound = SkillNames;
+    private int _skillQueries;
     private bool _namingTag;
     private string _tagName = "";
 
@@ -31,7 +35,8 @@ public sealed partial class UiKitDataInputDemo
         Section(
             "Pillbox",
             "Several answers out of a list, each shown as a pill that can be taken off again. Sm is the smaller one, "
-            + "Searchable puts a search field over the options, and an option's content can be more than words.",
+            + "Searchable puts a search field over the options, and an option's content can be more than words. "
+            + "Ui.PillboxSearch with Filter(false) and Debounce asks the page for the options once typing has paused.",
             Div.Data(Testid("ui-pillbox")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-2")[
                 Div.Class("max-w-80")[
                     Ui.Pillbox.Key("tags").Values(_pillTags).OnChange(picked => _pillTags = [.. picked]).Placeholder("Choose tags...").Id("ui-pillbox-tags")[
@@ -56,8 +61,15 @@ public sealed partial class UiKitDataInputDemo
                         ])
                     ]
                 ],
+                Div.Class("max-w-80")[
+                    Ui.Pillbox.Key("store").Values(_pillStored).OnChange(picked => _pillStored = [.. picked]).Filter(false)
+                        .Placeholder("Choose skills...").Id("ui-pillbox-store")[
+                        Ui.PillboxSearch.Placeholder("Search skills...").OnInput(SearchSkills).Debounce(250.Milliseconds),
+                        _skillsFound.Select(name => Ui.PillboxOption.Key("store-" + name)[name])
+                    ]
+                ],
                 P.Class("text-sm text-ui-muted sm:col-span-2").Data(Testid("ui-pillbox-state"))[
-                    $"Tags: {Listed(_pillTags)}. Skills: {Listed(_pillSkills)}."
+                    $"Tags: {Listed(_pillTags)}. Skills: {Listed(_pillSkills)}. Stored: {Listed(_pillStored)}. Searches: {_skillQueries}."
                 ]
             ]);
 
@@ -66,8 +78,8 @@ public sealed partial class UiKitDataInputDemo
             "Pillbox combobox",
             "Combobox puts an input among the pills: typing narrows the list, and Backspace in the empty input takes "
             + "the last pill off. Ui.PillboxOptionCreate offers to make an option of what was typed; with Filter(false) "
-            + "the page answers each keystroke itself; and with nothing to type into, the create row opens a form of "
-            + "the page's own.",
+            + "the page answers the search itself, once typing has paused for Debounce on Ui.PillboxInput, and the "
+            + "pills stay whatever it answers; and with nothing to type into, the create row opens a form of the page's own.",
             Div.Data(Testid("ui-pillbox-combobox")).Class("grid max-w-3xl items-start gap-6 sm:grid-cols-2")[
                 Div.Class("max-w-80")[
                     Ui.Pillbox.Key("combobox").Values(_pillTyped).OnChange(picked => _pillTyped = [.. picked]).Combobox.Placeholder("Choose skills...")
@@ -83,8 +95,8 @@ public sealed partial class UiKitDataInputDemo
                     ]
                 ],
                 Div.Class("max-w-80")[
-                    Ui.Pillbox.Key("backend").Values(_pillFound).OnChange(picked => _pillFound = [.. picked]).Combobox.Filter(false)[
-                        Ui.PillboxInput.OnInput(text => _tagQuery = text).Placeholder("Choose tags..."),
+                    Ui.Pillbox.Key("backend").Values(_pillFound).OnChange(picked => _pillFound = [.. picked]).Combobox.Filter(false).Id("ui-pillbox-backend")[
+                        Ui.PillboxInput.OnInput(QueryTags).Debounce(250.Milliseconds).Placeholder("Choose tags..."),
                         _tagList.Where(Queried).Select(tag => Ui.PillboxOption.Key("backend-" + tag.Id).Value(tag.Id)[tag.Name]),
                         Ui.PillboxOptionEmpty.WhenLoading("Loading tags...")["No tags found."]
                     ]
@@ -102,9 +114,23 @@ public sealed partial class UiKitDataInputDemo
                         : null
                 ],
                 P.Class("text-sm text-ui-muted sm:col-span-2").Data(Testid("ui-pillbox-combobox-state"))[
-                    $"Skills: {Listed(_pillTyped)}. Tags: {Listed(_pillCreated.Select(TagName))}."
+                    $"Skills: {Listed(_pillTyped)}. Tags: {Listed(_pillCreated.Select(TagName))}. "
+                    + $"Found: {Listed(_pillFound.Select(TagName))}. Searches: {_tagQueries}."
                 ]
             ]);
+
+    // The page's answer to the search: a query, here over a list.
+    private void SearchSkills(string text)
+    {
+        _skillQueries++;
+        _skillsFound = [.. SkillNames.Where(name => name.Contains(text, StringComparison.CurrentCultureIgnoreCase))];
+    }
+
+    private void QueryTags(string text)
+    {
+        _tagQueries++;
+        _tagQuery = text;
+    }
 
     private static string Listed(IEnumerable<string> names) => string.Join(", ", names) is { Length: > 0 } listed ? listed : "none";
 

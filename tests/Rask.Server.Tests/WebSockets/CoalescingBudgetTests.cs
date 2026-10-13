@@ -3,13 +3,14 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
 
-// The coalescing loop renders a dispatch at most three times, then reports the rest as dropped. The server left the
-// dropped request pending, so the dispatch's drain rendered it anyway — and every render it caused queued the next.
-// WasmLiveSession consumes it on purpose; the server now does the same.
+// The coalescing loop renders a dispatch at most three times. A request still pending then is not dropped — that
+// left the state last written undrawn until the next event — and becomes one render after the dispatch. That one is
+// a publish render, which fires no OnRendered on a component that has rendered before, so a chain that asks from
+// every OnRendered ends there.
 public class CoalescingBudgetTests
 {
     [Fact]
-    public async Task A_render_chain_longer_than_the_budget_stops_at_the_budget()
+    public async Task A_render_chain_longer_than_the_budget_is_the_budget_and_one_render_after_the_dispatch()
     {
         await using var fixture = await ConnectedSession.Connect<RerenderChainApp>();
 
@@ -18,7 +19,7 @@ public class CoalescingBudgetTests
 
         var root = Assert.IsType<RootErrorBoundary>(fixture.Session.View);
         var app = Assert.IsType<RerenderChainApp>(root.Inner);
-        Assert.Equal(3, app.RendersAfterNavigation);
+        Assert.Equal(4, app.RendersAfterNavigation);
     }
 
     // Each render of the chain differs from the last, so each is a frame. The address is the navigation's, said
