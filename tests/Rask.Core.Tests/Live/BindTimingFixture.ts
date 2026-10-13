@@ -4,11 +4,13 @@
 // Time passes when the fixture says so (stub-events.ts). The C# test (BindTimingClientTests) runs this in a
 // node subprocess and asserts the JSON line.
 
-import {elapse, listeners, StubField} from "./stub-events.js";
+import {elapse, frame, listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {changeSent, flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
 
 let sent: string[] = [];
+// The same messages by the handler they went to: a field that names its pause's handler apart has two.
+let heard: string[] = [];
 let owed: (() => void)[] = [];
 let answers = false;
 
@@ -16,6 +18,7 @@ setHost({
     send(payload: unknown) {
         const event = payload as { id: string; type: string; value?: string };
         sent.push(event.value === undefined ? event.type + ":" + event.id : event.type + ":" + event.value);
+        heard.push(event.id + ":" + event.value);
         return answers ? new Promise<void>(function (answer) { owed.push(answer); }) : undefined;
     },
     inRoot: () => true,
@@ -120,6 +123,48 @@ type(field, "At");
 const edited = sent.slice();
 const editStillAsked = field.hasAttribute("data-rask-on-edit");
 
+// A handler that hears the pause (data-rask-on-pause — a search field that asks a store): nothing while the
+// reader types, nothing as the field is left, nothing ahead of what the reader does next — each of which sends
+// a bound value — and the text at the pause, to that handler.
+settle();
+field = new StubField({"data-rask-on-pause": "h7", "data-rask-debounce": "300"});
+heard = [];
+type(field, "A");
+frame();
+type(field, "At");
+frame();
+listeners.change({target: field});
+flushInputsNow();
+elapse(299);
+const askedWhileTyping = heard.slice();
+elapse(1);
+const askedAtPause = heard.slice();
+
+// With an input handler beside it (a list the page hides rows of at every key, and searches a store for at
+// the pause): that one hears every key, a frame later as any input handler does, and the other the pause alone.
+settle();
+field = new StubField({"data-rask-on-input": "h1", "data-rask-on-pause": "h7", "data-rask-debounce": "300"});
+heard = [];
+type(field, "A");
+frame();
+type(field, "At");
+frame();
+elapse(299);
+const besideWhileTyping = heard.slice();
+elapse(1);
+const besideAtPause = heard.slice();
+
+// A character being composed counts no pause for the handler either.
+settle();
+field = new StubField({"data-rask-on-pause": "h7", "data-rask-debounce": "300"});
+heard = [];
+type(field, "あ", true);
+elapse(1000);
+const askedComposing = heard.slice();
+listeners.compositionend({target: field});
+elapse(300);
+const askedComposed = heard.slice();
+
 // Bound on blur: typing sends nothing. Whatever must follow the value sends it as the change it is — and the
 // `change` the browser then fires for that same value is not sent a second time.
 field = blurBound();
@@ -163,6 +208,12 @@ process.stdout.write(JSON.stringify({
     cleared,
     edited,
     editStillAsked,
+    askedWhileTyping,
+    askedAtPause,
+    besideWhileTyping,
+    besideAtPause,
+    askedComposing,
+    askedComposed,
     typedIntoBlur,
     committedOnce,
     duplicate,

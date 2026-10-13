@@ -1,4 +1,5 @@
 using Rask.Core.Forms;
+using Rask.Core.Live;
 
 namespace Rask;
 
@@ -198,6 +199,12 @@ public abstract partial class UiSelectControl<T>
             aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
         }
 
+        // With no page behind the render there is no handler to name, and nothing to wait for.
+        var live = LiveRenderContext.CurrentSync;
+        var pause = live is null ? 0 : slot?.Pause ?? 0;
+        _waits = pause > 0;
+        var atPause = _waits ? live!.RegisterHandler((Func<string, Task>)(text => PausedAsync(text, slot?.OnInput ?? default))) : null;
+
         return Div.Class(UiClass.Compose(UiSelectLook.Search, slot?.Class)).Data(Pills is null ? "ui-select-search" : "ui-pillbox-search", "")[
             Div.Class(UiSelectLook.SearchIcon)[Ui.Icon.Name(slot?.Icon ?? Ui.IconName.MagnifyingGlass).Micro],
             Input
@@ -209,13 +216,13 @@ public abstract partial class UiSelectControl<T>
                 .Autocomplete("off")
                 .Autofocus()
                 .Ref(_searchInput)
-                .Attributes(SearchInputMarks())
+                .Attributes(SearchMarks(pause, atPause))
                 // The list's keys are the field's while it is typed into: Enter picks instead of submitting a
                 // form around the select, and the arrows walk the rows instead of the caret.
                 .Data("rask-contain-keys", UiListboxLook.ListKeys)
                 .Class(UiSelectLook.SearchInput)
                 .Aria(aria)
-                .OnInput(text => SearchedAsync(text, slot?.OnInput ?? default, opens: false))
+                .OnInput(AtEveryKey(slot, pause))
                 .OnKeyDown(e => OnListKeyAsync(e, view)),
             slot?.Clearable == false
                 ? null
@@ -226,10 +233,48 @@ public abstract partial class UiSelectControl<T>
                         .Class(UiSelectLook.SearchClearButton)
                         .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
                         .Data("ui-button", "")
-                        .OnClick(() => SearchedAsync(string.Empty, slot?.OnInput ?? default, opens: false))[
+                        .OnClick(() => ClearSearchAsync(slot?.OnInput ?? default))[
                         Ui.Icon.Name(Ui.IconName.XMark).Micro
                     ]
                 ]
         ];
+    }
+
+    // A search that waits for a pause (UiSelectSearch.Debounce). The browser counts it (`data-rask-on-pause`,
+    // rask-input.ts) and sends the page's search nothing while the reader types. Of the keys only the list's own
+    // are heard then: a letter was a round trip that changed nothing.
+    private Dictionary<string, string?> SearchMarks(int pause, string? atPause)
+    {
+        if (atPause is null)
+        {
+            return SearchInputMarks();
+        }
+
+        return new Dictionary<string, string?>(SearchInputMarks(), StringComparer.Ordinal)
+        {
+            ["data-rask-debounce"] = pause.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["data-rask-on-pause"] = atPause,
+            ["data-rask-keys"] = UiListKeys.Search,
+        };
+    }
+
+    // What a keystroke is to the select. With no pause, the list's own reading of the text and the page's search.
+    // With one, the list's alone, and only where the select hides the rows itself: a list the page filters has
+    // nothing to draw until the page has answered, and hears nothing until the pause.
+    private Func<string, Task>? AtEveryKey(UiSelectSearch? slot, int pause)
+    {
+        if (pause == 0)
+        {
+            return text => SearchedAsync(text, slot?.OnInput ?? default, opens: false);
+        }
+
+        return Filter == false ? null : Filtered;
+    }
+
+    private Task Filtered(string text)
+    {
+        Typed(text, opens: false);
+
+        return Task.CompletedTask;
     }
 }

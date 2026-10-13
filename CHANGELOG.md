@@ -7,6 +7,23 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`ValueObjectColumn.Map` takes a property of a value object.** The overload for `ComplexTypePropertyBuilder`
+  beside the one for `PropertyBuilder` — what the generated mapping calls for a one-value value object held inside
+  another. Generated code calls it; an app has no reason to.
+- **`Ui.ColorPicker` — Flux UI's color picker, exactly.** `Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")`:
+  a colour picked from a palette, dragged out of a saturation and brightness area, or typed, written as
+  `Format` says (`Hex`, `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`). With `Type(Ui.ColorPickerType.Button)`, `.Sm` /
+  `.Xs`, `Swatches([...])`, `Dropper()`, `Clearable()`, `Copyable()`, and a popover composed from
+  `Ui.ColorPickerArea`, `Ui.ColorPickerSlider`, `Ui.ColorPickerInput`, `Ui.ColorPickerSwatches`,
+  `Ui.ColorPickerSwatch` and `Ui.ColorPickerDropper`. A bound colour is written with the reader's next action,
+  `.Live()` as it is chosen. On a phone the popover is a sheet that keeps what is chosen until Select. A typed
+  `oklch()`, `lab()`, `lch()`, `oklab()` or `color()` becomes what Flux's picker makes of it, also where that is
+  wrong (`oklch(0.7 0.1 200)` → `#0100c8`); text that is no colour in a picker bound in a form is refused with
+  "Enter a valid color." and holds the save. 41 new catalog keys (`ColorPicker…`, `ColorSwatch…`,
+  `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
+
 ### Changed
 
 - **On a phone `Ui.DatePicker` is what Flux UI's is there: a sheet over the page that writes when its button is
@@ -29,6 +46,31 @@ them until tagged releases begin.
   date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
   `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
   640 px — only its trigger is 16px text and 12rem there — and is not changed here.
+- **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
+  property like `public NormPercent? Discount { get; private set; }` over
+  `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
+  carried the struct itself (`NormPercent? Discount`), its `Validate` was never run — not by a form, not by
+  `Create`/`Update`, and with no RASK102 for a misshapen one — the read face showed the struct, and the
+  generated mapping left the property out, so EF Core refused the model unless `Configure` mapped it by hand.
+  It is now exactly what a nullable reference-type value object (`Sku?`) has always been: the form model and
+  the wire carry the held value (`decimal? Discount`), an empty field is stored as `NULL` and is neither
+  required nor put to the rule, a filled one is asked `NormPercent.Validate` by the form and by the writes, the
+  column is a nullable converted scalar that takes `HasMaxLength` and a unique index (rows holding nothing never
+  collide), the read face shows `decimal? Discount`, and RASK102 reports a `Validate` of the wrong shape. **What
+  to change:** code that set or read the model's property as the struct — `model.Discount = new NormPercent(5)`
+  becomes `model.Discount = 5`, `model.Discount?.Value` becomes `model.Discount` — and a read-face query that
+  reached `.Value`. A hand-written `HasConversion` for the property in `Configure` still wins and can be deleted.
+  Unchanged: a non-nullable struct value object, and a nullable struct of several values (`Money?`), which stays
+  the plain value it was.
+- **RASK102 names the two `Validate` shapes that invite the miss.** A value object over a number, a date or
+  an id whose rule takes the value as nullable — `Validate(decimal? value)` on `NormPercent(decimal Value)` —
+  was already reported, with a reason that only stated the mismatch; it now says what to write: "declare it
+  'decimal', because an unfilled field is never put to the rule and a property that is not nullable is required
+  by its type". A `Validate` taking its value by `ref`, `out` or `ref readonly` was taken for the rule and the
+  generated call then failed to compile inside generated code (CS1620); it is now reported — "it takes its
+  value by 'ref', and a rule is handed the value itself" — and the field is required by its type like any
+  other without a rule. `in` stays a rule, and so does `Validate(string? value)` over a `string`, which is
+  asked with the empty string and never `null`. Nothing changes in what runs for an empty field.
 - **A panel of the kit stays inside the viewport, exactly as Flux UI's does.** **A behaviour change.** A menu,
   a popover, a context menu, a tooltip, the list of a select, an autocomplete or a pillbox, a calendar and a
   list of times used to be placed by CSS anchor rules alone, which can turn a panel to the other side and nothing else: a
@@ -118,6 +160,55 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+
+- **A one-value value object inside a constructor-built value object no longer stops the app at startup
+  ([#1244](https://github.com/pal-tamas/rask/issues/1244)).** `record Terms(Sku Early, int Days)` held by an
+  aggregate compiled, and then EF Core refused the model — *No suitable constructor was found … Cannot bind
+  'Early'* — because the inner `Sku` was mapped as a complex type, and a constructor parameter binds to a column
+  only. A one-value value object is now a converted scalar column wherever it is held, the rule the aggregate's own
+  properties already followed: `ValueObjectColumn.Map(b0.Property(x => x.Early), (Sku v) => v.Value)` under the
+  column name it always had (`Terms_Early`). **Nothing migrates**: EF Core's migration differ finds no operation
+  between the two mappings on SQLite, SQL Server and PostgreSQL, one and two levels deep, with a length and a
+  precision on the column, for a class and a struct, nullable and not; only the order of columns in a table
+  created from scratch differs. Two things an app may have written against the old mapping change with it, for
+  the value-object shape that already worked (one built through its members): `Configure` reaches the inner
+  value as a property, not a complex type — `ComplexProperty(c => c.Price).ComplexProperty(m => m.Currency)
+  .Property(v => v.Value)` becomes `ComplexProperty(c => c.Price).Property(m => m.Currency)` — and a query on
+  the write model that reached `c.Price.Currency.Value` no longer translates (compare the whole value, or use the
+  read face), exactly as on the aggregate itself. Still not mapped: a constructor-built value object holding
+  another of SEVERAL values — build the outer one through its members.
+- **The read face reads nothing as nothing for a nullable one-value value object inside another value
+  object.** `Sku? Early` (or a one-value struct held as `T?`) inside a value object was stored correctly, and the
+  read face then threw *The data is NULL at ordinal 0* on a row that held none: the column's nullability was read
+  off the inner value, not off the optional value object around it. It is the scalar's own now.
+- **Two value objects side by side, each holding a ruled one-value value object, generate code that compiles.**
+  The generated rule check named its pattern variable by depth, so `Size` and `Box` on one aggregate both
+  declared `__held0` (CS0128 inside generated code). They are numbered.
+- **An icon button is named by its tooltip and nothing more, on every response.** `Ui.Tooltip` wires its
+  trigger at render — `aria-labelledby` for one without words, `aria-describedby` for one with — on a button
+  that outlives the render. Wired a second time, an icon button's `aria-labelledby` (the tooltip's own, from
+  the first time) was read as a name of the button's own, so it was ALSO given `aria-describedby` with the same
+  id. Whether that happened depended on how often the button had been walked: a first response renders in
+  waves, as many as its awaited reads take, so a list read in `OnUpdated` was served with the doubled link on
+  most requests and without it on about one in 150 — the same `GET`, two documents — and a live page flipped
+  between the two as it re-rendered. The tooltip's own id no longer counts as another name: an icon button
+  carries `aria-labelledby` alone (as Flux writes it), a button with words `aria-describedby` alone, however
+  many times it is rendered. Markup that tested for `aria-describedby="ui-tooltip-…"` on an icon button was
+  testing for the fault. Every other id the kit makes up — a field's `f-field-<n>`, a select's list, a menu, a
+  modal, tabs, an accordion — was checked through the same path and was already the same on every response.
+- **A select goes on saying its answer when a search brings rows that no longer include it.** With
+  `Filter(false)` and a page that answers the search with other rows, the listbox button fell back to its
+  placeholder, a combobox's input emptied, a named select posted nothing and "3 selected" became the count
+  of the rows still drawn — while the model kept the value. Measured on Flux (fluxui.dev/components/select):
+  the picked option stays stamped in the button when its option leaves the list or every option is replaced,
+  the backend-search combobox shows "Infrastructure" over a list that holds only "Branding", and "3 selected"
+  stands with none of the three rows left. The select now keeps the face of the answer it last drew — words,
+  icon, avatar, posted value — for as long as the value is that one, under the same key and shape, so a render
+  that brings other options changes nothing in the button; several answers are counted from the value. No
+  row is marked picked while the answer is not among them, and the cursor opens on the first row, as Flux's.
+  Content that is more than words is kept as its words. A value set from code that no render ever drew an
+  option for still shows the placeholder (Flux's page as loaded does too; after a pick Flux would go on
+  showing the option picked before, which the kit does not). No new API.
 
 - **An open `Ui.Popover` says `data-open` in the frame it opens.** The panel's mark was written by a render, so
   on a Server page it arrived a round trip after the browser had opened the panel and Flux's `data-open:flex`
@@ -259,6 +350,21 @@ them until tagged releases begin.
   as it was: Flux's own input drifts the same 40px on fluxui.dev, and the kit's is Flux's.
 
 ### Added
+
+- **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
+  `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
+  `Search` at every keystroke (unchanged when the step is absent). After:
+  `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)` calls it once, with the text the field holds when
+  typing has paused that long. The browser counts the pause and sends nothing while the reader types: with
+  `Filter(false)` not one frame, and of the keys only the list's own (the arrows, Enter, Tab). A row pressed,
+  or Enter, during the pause picks from the list as it is drawn, and the text typed since is dropped with the
+  list, never searched for — sent ahead of the press it would have redrawn the rows under it. The arrows walk
+  the list as drawn and the search arrives at its pause; a pause that ends on the text the page last heard
+  asks nothing again; the field's clear button tells the page at once. Without `Filter(false)` the select
+  goes on hiding rows at every keystroke and only `OnInput` waits. `Debounce(TimeSpan.Zero)` is every
+  keystroke, as on `Ui.Input`. The runtime's part is `data-rask-on-pause` beside `data-rask-debounce`
+  (`docs/js-interop-runtime.md`): a handler that hears the pause, where a bound field's value is also sent
+  ahead of the next action. `rask.js` and `rask.wasm.js` are 345 and 344 bytes larger.
 
 - **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
   `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or

@@ -933,7 +933,8 @@ exactly that value and returning the messages — `IEnumerable<string>`, or a `V
 the field that holds it, before any `.Validate(…)` written on the field, which then runs only for a value it
 accepted. There is no interface and no attribute. A `Validate` of any other shape is not a rule, and the build
 says so ([RASK102](diagnostics.md#rask102)) rather than let it look like a rule that passed; one on a value
-object of several values is left alone.
+object of several values is left alone. Over a number, a date or an id, declare the parameter `decimal`, not
+`decimal?` — RASK102 says so: an unfilled field is never put to the rule.
 
 **A non-nullable value-object property is required: its rule is asked with the empty value.** So "required" is
 said by the type, in its own words, and no attribute is needed:
@@ -955,7 +956,8 @@ public static IEnumerable<string> Validate(string value)
   with no form) still says *This field is required.*
 - a value object over a **number, a date or an id** has no empty value to be asked about, so an unfilled field
   says the one sentence *This field is required.* and the rule is asked once there is a value
-- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule
+- a **nullable** property (`DestinationName? Alias`) is optional: an empty field is not put to the rule — and
+  so is a one-value **struct** held as `T?` (`NormPercent? Discount`), whose field is the `decimal?` it holds
 - a **plain** non-nullable property — `int Weight`, `decimal Price`, `DateOnly Built`, `Guid OwnerId`, `bool`,
   `string Plate` — and a value object with no rule are required the same way: an unfilled field says the one
   sentence. For text, unfilled means `null`, `""` or only white space; for everything else, no value
@@ -1479,6 +1481,23 @@ public sealed class Customer : Aggregate<Guid>
 form model carries it as its value, `string? Email`. A value object with several values is prefixed by the
 property, and a form model carries it as a nested model.
 
+**Declare it nullable and it is optional** — a class or a struct alike:
+
+```csharp
+public readonly record struct Percent(decimal Value)
+{
+    public static IEnumerable<string> Validate(decimal value) => value is < 0 or > 100 ? ["0 to 100."] : [];
+}
+
+public Email? Backup { get; private set; }        // nullable column Backup,   form field string?  Backup
+public Percent? Discount { get; private set; }    // nullable column Discount, form field decimal? Discount
+```
+
+An empty field is stored as `NULL` and is not put to the rule; a filled one is asked `Percent.Validate` by the
+form and by `Create`/`Update`, and the read face shows `decimal? Discount`. A nullable struct of **several**
+values (`Money?` over a `record struct`) is not unwrapped: the form model carries the struct as it is, and its
+mapping is yours to write in `Configure`.
+
 That one column is an ordinary scalar column with a conversion — the value object goes in and out through its
 one value — so everything a column can have, it can have, configured on the property itself:
 
@@ -1508,8 +1527,20 @@ await db.Set<Customer>().Where(c => c.Email.Value.Contains("ada")).ToListAsync(c
 ```
 
 Before, when a one-value value object was a complex type, the last line translated and no index could name the
-column. Filter and sort on the read face, or compare whole values. This applies to a one-value value object the
-**entity** holds; one nested inside a larger value object (`Price.Currency`) is still part of that complex type.
+column. Filter and sort on the read face, or compare whole values.
+
+**The same holds inside another value object.** `Currency` in `record Money(decimal Amount, Currency Currency)`
+is a converted scalar column of `Money` — `Price_Currency`, the column it always was — which is what lets EF Core
+hand it to `Money`'s constructor. Its facets go on that property:
+
+```csharp
+builder.ComplexProperty(c => c.Price).Property(m => m.Currency).HasMaxLength(3);
+```
+
+One shape stays out of reach: a value object built through its **constructor** cannot hold another value object
+of **several** values (`record Order(Money Total, …)`) — EF Core binds a constructor parameter to a column, never
+to a complex type. Give the outer type a parameterless constructor and settable properties (both may be
+private) and it maps.
 
 What is **not** a value object: a type EF Core maps as a column on its own (`string`, `DateTime`, `Guid`, an
 enum, anything from `System` or `Microsoft`), a collection, an abstract or generic type, and an `Entity<TId>`.

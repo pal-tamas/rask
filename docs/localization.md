@@ -535,6 +535,47 @@ they say when you set nothing.
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |
 | `ErrorTitle` | Error page | `Application error` |
+| `ColorPickerOpen` | Color picker | `Open color picker` |
+| `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
+| `ColorPickerInput` | Color picker | `Color` |
+| `ColorPickerPlaceholder` | Color picker | `Enter a color` |
+| `ColorPickerArea` | Color picker | `Saturation and brightness` |
+| `ColorPickerAreaRole` | Color picker | `2D color picker` |
+| `ColorPickerAreaValue` | Color picker | `Saturation {0}%, brightness {1}%` |
+| `ColorPickerHue` | Color picker | `Hue` |
+| `ColorPickerOpacity` | Color picker | `Opacity` |
+| `ColorPickerValue` | Color picker | `Color value` |
+| `ColorPickerSwatches` | Color picker | `Color swatches` |
+| `ColorPickerSelected` | Color picker | `{0} selected` |
+| `ColorPickerDropper` | Color picker | `Pick a color from the screen` |
+| `ColorPickerClear` | Color picker | `Clear color` |
+| `ColorPickerCancel` | Color picker | `Cancel` |
+| `ColorPickerSelect` | Color picker | `Select` |
+| `ValidationColor` | Validation | `Enter a valid color.` |
+| `ColorSwatchRed` | Color picker | `Red` |
+| `ColorSwatchOrange` | Color picker | `Orange` |
+| `ColorSwatchAmber` | Color picker | `Amber` |
+| `ColorSwatchYellow` | Color picker | `Yellow` |
+| `ColorSwatchGreen` | Color picker | `Green` |
+| `ColorSwatchTeal` | Color picker | `Teal` |
+| `ColorSwatchSky` | Color picker | `Sky` |
+| `ColorSwatchIndigo` | Color picker | `Indigo` |
+| `ColorSwatchPurple` | Color picker | `Purple` |
+| `ColorSwatchPink` | Color picker | `Pink` |
+| `ColorSwatchRose` | Color picker | `Rose` |
+| `ColorSwatchOrangeLight` | Color picker | `Orange light` |
+| `ColorSwatchAmberLight` | Color picker | `Amber light` |
+| `ColorSwatchLime` | Color picker | `Lime` |
+| `ColorSwatchEmerald` | Color picker | `Emerald` |
+| `ColorSwatchCyan` | Color picker | `Cyan` |
+| `ColorSwatchIndigoLight` | Color picker | `Indigo light` |
+| `ColorSwatchVioletLight` | Color picker | `Violet light` |
+| `ColorSwatchPinkLight` | Color picker | `Pink light` |
+| `ColorSwatchRoseLight` | Color picker | `Rose light` |
+| `ColorSwatchStone` | Color picker | `Stone` |
+| `ColorSwatchSlate` | Color picker | `Slate` |
+| `ColorSwatchBlack` | Color picker | `Black` |
+| `ColorSwatchWhite` | Color picker | `White` |
 | `DatePickerConfirmRange` | Date picker | `Select range` |
 | `DatePickerPresetsPlaceholder` | Date picker | `Choose predefined range...` |
 

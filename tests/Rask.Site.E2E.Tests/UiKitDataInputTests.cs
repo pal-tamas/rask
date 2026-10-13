@@ -687,6 +687,23 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task A_search_that_waits_for_a_pause_asks_the_store_once_and_picks_from_its_answer() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var scope = Page.Locator("[data-testid='ui-select-store']");
+
+        await Page.Locator("#ui-select-store").ClickAsync();
+        await Expect(scope.Locator("[data-ui-select-search] input")).ToBeFocusedAsync();
+        // One `input` for the whole word: how fast a loaded runner types is not what the pause is held to here.
+        await scope.Locator("[data-ui-select-search] input").FillAsync("ber");
+        await Expect(scope.Locator("[data-ui-option]:visible")).ToHaveTextAsync(["Berlin", "Bern"]);
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Bern" }).ClickAsync();
+
+        await Expect(Page.Locator("[data-testid='ui-select-store-state']")).ToHaveTextAsync("City: Bern. Queries: 1.");
+        await Expect(Page.Locator("#ui-select-store")).ToContainTextAsync("Bern");
+    });
+
+    [Fact]
     public Task The_multiple_listbox_stays_open_and_counts_its_answers() => RunAsync(async () =>
     {
         await OpenAsync();

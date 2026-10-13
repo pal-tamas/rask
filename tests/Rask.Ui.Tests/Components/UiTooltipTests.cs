@@ -57,6 +57,21 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_trigger_rendered_twice_inside_one_tooltip_is_linked_once_and_the_same_way()
+    {
+        var icon = Ui.Tooltip.Content("Settings")[Ui.Button.Icon(Ui.IconName.Cog6Tooth)];
+        var named = Ui.Tooltip.Content("Settings")[Ui.Button.Aria("labelledby", "title").Icon(Ui.IconName.Cog6Tooth)];
+
+        var first = icon.ToHtml() + named.ToHtml();
+        var second = icon.ToHtml() + named.ToHtml();
+
+        Assert.Equal(first, second);
+        Assert.Contains($" aria-labelledby=\"{ContentId(first)}\"", second);
+        Assert.Contains(" aria-labelledby=\"title\" aria-describedby=\"ui-tooltip-", second);
+        Assert.Single(Regex.Matches(second, "aria-describedby"));
+    }
+
+    [Fact]
     public void A_kit_button_is_wired_exactly_as_a_plain_one()
     {
         var html = Ui.Tooltip.Content("Saves the draft")[Ui.Button["Save"]].ToHtml();

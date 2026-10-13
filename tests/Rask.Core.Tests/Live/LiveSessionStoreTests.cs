@@ -73,28 +73,91 @@ public partial class LiveSessionStoreTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_get_after_a_scheduled_removal_cancels_it_and_the_session_stays_registered()
     {
+        var clock = new StoppedClock();
         var store = NewStore();
+        store.Clock = clock;
         var session = store.Create(_ => new StubComponent(Span));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(200));
         var fetched = store.Get(session.Id);
 
         Assert.NotNull(fetched);
-        await Task.Delay(400, TestContext.Current.CancellationToken);
-        Assert.NotNull(store.Get(session.Id));
+        Assert.False(store.HasPendingRemoval(session.Id));
+        await WaitForAsync(() => clock.NothingIsCounting, LongEnoughToHang);
+        Assert.True(clock.NothingIsCounting);
     }
 
     [Fact]
     public async Task Scheduling_removal_twice_for_the_same_id_replaces_the_earlier_schedule()
     {
+        var clock = new StoppedClock();
         var store = NewStore();
+        store.Clock = clock;
         var session = store.Create(_ => new StubComponent(Span));
 
         store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(50));
         store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(5));
 
-        await Task.Delay(200, TestContext.Current.CancellationToken);
-        Assert.NotNull(store.Get(session.Id));
+        await WaitForAsync(() => clock.OnlyCounts(TimeSpan.FromSeconds(5)), LongEnoughToHang);
+        Assert.True(clock.OnlyCounts(TimeSpan.FromSeconds(5)));
+        Assert.NotNull(store.Peek(session.Id));
+    }
+
+    private static readonly TimeSpan LongEnoughToHang = TimeSpan.FromSeconds(30);
+
+    // A clock on which no grace period ever ends: what the store is counting is read off its timers, so
+    // a schedule that was replaced is one whose timer was put down, however long the test's thread waited.
+    private sealed class StoppedClock : TimeProvider
+    {
+        private readonly List<StoppedTimer> _timers = [];
+
+        public bool NothingIsCounting
+        {
+            get
+            {
+                lock (_timers)
+                {
+                    return _timers.TrueForAll(static timer => timer.PutDown);
+                }
+            }
+        }
+
+        public bool OnlyCounts(TimeSpan period)
+        {
+            lock (_timers)
+            {
+                return _timers.Exists(timer => !timer.PutDown && timer.Due == period)
+                    && _timers.TrueForAll(timer => timer.PutDown || timer.Due == period);
+            }
+        }
+
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        {
+            var timer = new StoppedTimer(dueTime);
+            lock (_timers)
+            {
+                _timers.Add(timer);
+            }
+
+            return timer;
+        }
+    }
+
+    private sealed class StoppedTimer(TimeSpan due) : ITimer
+    {
+        public TimeSpan Due { get; } = due;
+
+        public bool PutDown { get; private set; }
+
+        public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+        public void Dispose() => PutDown = true;
+
+        public ValueTask DisposeAsync()
+        {
+            PutDown = true;
+            return ValueTask.CompletedTask;
+        }
     }
 
     [Fact]

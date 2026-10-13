@@ -1,7 +1,7 @@
 {
  "release": "v2.20.1",
  "measuredOn": "linux",
- "measuredWith": "f296da16dd577edf",
+ "measuredWith": "233426ec12f4e73d",
  "pages": {
   "header": {
    "light/header@1280#0": "3c46de095e69b4ad",
@@ -190,7 +190,7 @@
    "light/multiple-dates#0": "b1af51ccd48bd68b",
    "light/date-range#0": "e17862f4e0c963d6",
    "light/size#0": "7192ac7052367795",
-   "light/static#0": "a35dd2314e008dc6",
+   "light/static#0": "fa3caaca62ffa25b",
    "light/min/max-dates#0": "e765008678b14c4e",
    "light/unavailable-dates#0": "e765008678b14c4e",
    "light/with-today-shortcut#0": "40c9cdf8de81fd5e",
@@ -204,7 +204,7 @@
    "dark/multiple-dates#0": "2a4277e1bfe50640",
    "dark/date-range#0": "1fdef0ea382fd1f1",
    "dark/size#0": "62ead3657a62cbb9",
-   "dark/static#0": "e0ed19539555b832",
+   "dark/static#0": "4643524bc0fd634e",
    "dark/min/max-dates#0": "376e4800cbc2be0f",
    "dark/unavailable-dates#0": "376e4800cbc2be0f",
    "dark/with-today-shortcut#0": "66cbcb1659478e10",
@@ -288,10 +288,10 @@
    "dark/page-advance#0": "5f9f5ff24515e202"
   },
   "chart": {
-   "light/intro#0": "6f5cad3a08c5e24b",
+   "light/intro#0": "cd989dd259ad31e0",
    "light/line-chart#0": "unstable",
    "light/area-chart#0": "unstable",
-   "light/multiple-lines#0": "401763980db12490",
+   "light/multiple-lines#0": "85e86fab1b441a92",
    "light/bar-chart#0": "unstable",
    "light/bar-chart#1": "unstable",
    "light/horizontal-charts#0": "unstable",
@@ -305,10 +305,10 @@
    "light/live-summary#0": "unstable",
    "light/sparkline#0": "b28e6f0a9815aa63",
    "light/dashboard-stat#0": "5b1ae4acfdc5a5a3",
-   "dark/intro#0": "4b90e4038e47b119",
+   "dark/intro#0": "f15e3d8dec4221a0",
    "dark/line-chart#0": "unstable",
    "dark/area-chart#0": "unstable",
-   "dark/multiple-lines#0": "89c439fa4ef0ea6f",
+   "dark/multiple-lines#0": "279b4fddec7f62c5",
    "dark/bar-chart#0": "unstable",
    "dark/bar-chart#1": "unstable",
    "dark/horizontal-charts#0": "unstable",

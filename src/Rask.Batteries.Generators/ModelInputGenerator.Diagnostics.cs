@@ -110,7 +110,8 @@ public sealed partial class ModelInputGenerator
         DiagnosticSeverity.Warning,
         true,
         description: "A value object that holds one value states its rule by convention: a public static, "
-                     + "non-generic Validate taking exactly the value it holds and returning the messages. A form "
+                     + "non-generic Validate taking exactly the value it holds — by value or 'in', never as its "
+                     + "nullable form — and returning the messages. A form "
                      + "bound to the aggregate's generated model then runs it with nothing written on the field. "
                      + "A Validate of any other shape is not run, and a rule that never runs looks exactly like "
                      + "one that ran and passed.",

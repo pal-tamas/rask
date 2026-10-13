@@ -152,6 +152,8 @@ const NATIVE = {
   'ui-date-picker-select': 'div',
   // The time picker: the list of times is a popover the browser opens.
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
+  // The color picker: a modal <dialog> the runtime shows, and the box Flux scripts its Select button through.
+  'ui-color-picker': 'div', 'ui-color-picker-select': 'div',
   // The slider and the one-time code: a box around native inputs.
   'ui-slider': 'div', 'ui-otp': 'div',
   // The tabs: a role="tablist" of buttons, with the runtime's arrow keys (rask-tabs.ts).
@@ -179,15 +181,17 @@ const sameTag = (a, b) => (NATIVE[a.tag] ?? NATIVE_PART[mark(a, 'data-flux-')] ?
 const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // What the kit adds to do WITHOUT script what Flux does with it: a chart's hover strips, each carrying the
 // cursor and tooltip Flux's script would move there. Flux has no such node, so there is nothing to pair it with.
-// …and the box in a calendar that only the stylesheet sizes, which is how the page learns that it is drawn for
-// a phone: Flux asks the window.
-const EXTRA = ['data-ui-chart-hover', 'data-ui-calendar-narrow'];
+// …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
+// whether the dialog is Flux's sheet: Flux asks the window. And the one in a calendar, which is how the page
+// learns that it is drawn for a phone.
+const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet', 'data-ui-calendar-narrow'];
 // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
 // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
 // how each says where the popup goes is not compared; where it ends up is — its offset from the root it
 // floats beside, like every other node's.
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
-const placed = (a, b) => 'popover' in b.attrs && a.style.position === 'absolute' && b.style.position === 'fixed';
+// The same holds for a modal <dialog> the kit anchors to its trigger (the color picker's).
+const placed = (a, b) => ('popover' in b.attrs || b.tag === 'dialog') && a.style.position === 'absolute' && b.style.position === 'fixed';
 // A dialog the VIEWPORT places (`position: fixed` on both sides: Flux's date picker under 640 px, centred over
 // the page) is nowhere against the trigger that opened it — that distance is how far each page happened to be
 // scrolled. It is held to its place in the viewport, and what is inside it to the dialog.

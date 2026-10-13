@@ -85,6 +85,140 @@ public class ValueObjectRuleShapeTests
         Assert.StartsWith("'Sku.Validate(int)' on value object 'Sku'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
+    private const string PercentHolder = """
+
+        public sealed class Norm : Aggregate<Guid>
+        {
+            private Norm() { }
+            public NormPercent Percent { get; private set; }
+        }
+        """;
+
+    private const string Signature =
+        "a rule is 'public static IEnumerable<string> Validate(decimal value)', or the same returning "
+        + "ValueTask<IEnumerable<string>> or Task<IEnumerable<string>>";
+
+    [Fact]
+    public void A_Validate_taking_the_held_value_as_nullable_is_reported_with_the_parameter_to_declare()
+    {
+        const string source = """
+            public readonly record struct NormPercent(decimal Value)
+            {
+                public static IEnumerable<string> Validate(decimal? value) => value is null ? ["Required."] : [];
+            }
+            """;
+
+        var diagnostic = Assert.Single(Rask102(source, PercentHolder));
+
+        Assert.Equal(
+            "'NormPercent.Validate(decimal?)' on value object 'NormPercent' is not run by any form because its "
+            + "parameter is 'decimal?', not the 'decimal' it holds; declare it 'decimal', because an unfilled field "
+            + "is never put to the rule and a property that is not nullable is required by its type — " + Signature,
+            diagnostic.GetMessage());
+        Assert.Equal(8, diagnostic.Location.GetLineSpan().StartLinePosition.Line);
+    }
+
+    [Theory]
+    [InlineData("public static IEnumerable<string> Validate(int value) => [];", "its parameter is 'int', not the 'decimal' it holds —")]
+    [InlineData("public static IEnumerable<string> Validate(int? value) => [];", "its parameter is 'int?', not the 'decimal' it holds —")]
+    [InlineData("public static IEnumerable<string> Validate(NormPercent? value) => [];", "its parameter is 'NormPercent?', not the 'decimal' it holds —")]
+    [InlineData("public static bool Validate(decimal value) => true;", "it returns 'bool', not the messages —")]
+    [InlineData("public IEnumerable<string> Validate() => [];", "it is not static —")]
+    public void A_struct_value_object_with_a_misshapen_Validate_is_reported(string method, string reason)
+    {
+        var source = $$"""
+            public readonly record struct NormPercent(decimal Value)
+            {
+                {{method}}
+            }
+            """;
+
+        var diagnostic = Assert.Single(Rask102(source, PercentHolder));
+
+        Assert.Contains("on value object 'NormPercent' is not run by any form because " + reason, diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.EndsWith(Signature, diagnostic.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ref decimal value) => [];", "ref")]
+    [InlineData("out decimal value) { value = 0; return []; }", "out")]
+    [InlineData("ref readonly decimal value) => [];", "ref readonly")]
+    public void A_Validate_taking_its_value_by_ref_or_out_is_reported(string rest, string word)
+    {
+        var source = $$"""
+            public readonly record struct NormPercent(decimal Value)
+            {
+                public static IEnumerable<string> Validate({{rest}}
+            }
+            """;
+
+        var run = GeneratorHarness.Run(
+            Usings + source + PercentHolder, new ModelInputGenerator(), "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK102");
+        Assert.Contains(
+            $"is not run by any form because it takes its value by '{word}', and a rule is handed the value itself — ",
+            diagnostic.GetMessage(),
+            StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain("NormPercent.Validate(", run.GeneratedSource("Shop.NormModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_Validate_taking_its_value_by_in_is_the_rule_and_the_generated_call_compiles()
+    {
+        const string source = """
+            public readonly record struct NormPercent(decimal Value)
+            {
+                public static IEnumerable<string> Validate(in decimal value) => value < 0 ? ["Negative."] : [];
+            }
+            """;
+
+        var run = GeneratorHarness.Run(
+            Usings + source + PercentHolder, new ModelInputGenerator(), "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK102");
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("global::Shop.NormPercent.Validate(held)", run.GeneratedSource("Shop.NormModel"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_misshapen_Validate_on_a_struct_held_only_as_nullable_is_reported_too()
+    {
+        const string source = """
+            public readonly record struct NormPercent(decimal Value)
+            {
+                public static IEnumerable<string> Validate(decimal? value) => [];
+            }
+            """;
+
+        var diagnostics = Rask102(source, """
+
+            public sealed class Norm : Aggregate<Guid>
+            {
+                private Norm() { }
+                public NormPercent? Discount { get; private set; }
+            }
+            """);
+
+        Assert.Contains("declare it 'decimal'", Assert.Single(diagnostics).GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_text_rule_declared_with_a_nullable_annotation_is_still_the_rule()
+    {
+        const string source = """
+            public sealed record Sku(string Value)
+            {
+                public static IEnumerable<string> Validate(string? value) => string.IsNullOrEmpty(value) ? ["Required."] : [];
+            }
+            """;
+
+        var diagnostics = Rask102(source);
+
+        Assert.Empty(diagnostics);
+    }
+
     [Theory]
     [InlineData("public static IEnumerable<string> Validate(string value) => [];")]
     [InlineData("public static ValueTask<IEnumerable<string>> Validate(string value) => new(Array.Empty<string>());")]

@@ -365,6 +365,9 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
     }
 
+    /// <summary>The clock a removal's grace period is counted on. A test stops it.</summary>
+    internal TimeProvider Clock { get; set; } = TimeProvider.System;
+
     internal void ScheduleRemoval(string id, TimeSpan delay)
     {
         // Draining: the drain owns teardown and disposes every session awaited, inside the shutdown
@@ -430,7 +433,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
     {
         try
         {
-            await Task.Delay(delay, token).ConfigureAwait(false);
+            await Task.Delay(delay, Clock, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

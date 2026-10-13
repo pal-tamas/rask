@@ -333,6 +333,60 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
+    public void A_text_rule_with_a_nullable_parameter_is_asked_with_the_empty_string_and_never_null()
+    {
+        var run = RunWithForms("""
+            public sealed record Label(string Value)
+            {
+                public static IEnumerable<string> Validate(string? value) => string.IsNullOrEmpty(value) ? ["Name it."] : [];
+            }
+            public sealed class Shelf : Aggregate<Guid>
+            {
+                private Shelf() { }
+                public Label Label { get; private set; } = new("");
+                public Label? Note { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ShelfModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "__Rule_Root_Label(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::Rask.Data.GeneratedModelRules.OrRequired(global::Shop.Label.Validate(\"\"), __RequiredText());",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "__Rule_Root_Note(string? value) =>\n        value is { } held ? global::Shop.Label.Validate(held) : global::System.Array.Empty<string>();",
+            source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Label.Validate(null", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Label.Validate(value)", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Two_value_objects_side_by_side_that_each_hold_a_ruled_one_are_asked_under_names_that_do_not_collide()
+    {
+        var run = RunWithForms("""
+            public sealed record Box(Sku Code, int Units);
+            public sealed record Crate(Size Size, Sku Code);
+            public sealed class Pallet : Aggregate<Guid>
+            {
+                private Pallet() { }
+                public Size Size { get; private set; } = new(new(""), 0);
+                public Box Box { get; private set; } = new(new(""), 0);
+                public Crate Crate { get; private set; } = new(new(new(""), 0), new(""));
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.PalletModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("if (model.Size is { } __held", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Crate.Size.Code\",", source, StringComparison.Ordinal);
+        Assert.Contains("Told(failures, path, \"Box.Code\",", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_Validate_of_any_other_shape_is_not_a_rule_and_neither_is_one_on_a_value_object_of_several_values()
     {
         var run = RunWithForms(Product);
