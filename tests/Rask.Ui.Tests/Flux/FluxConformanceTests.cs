@@ -410,6 +410,7 @@ public sealed class FluxConformanceTests
         ["flux:select.input/OnInput"] = "as Value: the write of that `wire:model.live`",
         ["flux:select.search/Value"] = "`wire:model.live` on the search field, as Flux's dynamic-options example writes it on `flux:select.input`: a list the page filters itself (`:filter=\"false\"`)",
         ["flux:select.search/OnInput"] = "as Value: the write of that `wire:model.live`",
+        ["flux:select.search/Debounce"] = "`wire:model.live.debounce.250ms` on the search field: the page hears the search once typing has paused, as `flux:input/Debounce`",
         ["flux:pillbox/Variant"] = "`variant=\"combobox\"`, which every combobox example on Flux's page writes and its reference omits",
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
         ["flux:pillbox.search/Value"] = "as flux:select.search",

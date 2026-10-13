@@ -231,6 +231,10 @@ public abstract partial class UiSelectControl<T>
             // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
             await UiInputReach.SayAsync(_input, string.Empty).ConfigureAwait(false);
         }
+        else if (!_open)
+        {
+            await ForgetUnheardAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task OnPillInputKeyAsync(KeyboardEvent e, View view)

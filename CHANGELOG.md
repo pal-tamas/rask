@@ -223,6 +223,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.SelectSearch.Debounce(…)`** — a search that asks a database hears one text, not one per letter. Flux's
+  `wire:model.live.debounce.250ms` on the search field. Before: `Ui.SelectSearch.OnInput(Search)` called
+  `Search` at every keystroke (unchanged when the step is absent). After:
+  `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)` calls it once, with the text the field holds when
+  typing has paused that long. The browser counts the pause and sends nothing while the reader types: with
+  `Filter(false)` not one frame, and of the keys only the list's own (the arrows, Enter, Tab). A row pressed,
+  or Enter, during the pause picks from the list as it is drawn, and the text typed since is dropped with the
+  list, never searched for — sent ahead of the press it would have redrawn the rows under it. The arrows walk
+  the list as drawn and the search arrives at its pause; a pause that ends on the text the page last heard
+  asks nothing again; the field's clear button tells the page at once. Without `Filter(false)` the select
+  goes on hiding rows at every keystroke and only `OnInput` waits. `Debounce(TimeSpan.Zero)` is every
+  keystroke, as on `Ui.Input`. The runtime's part is `data-rask-on-pause` beside `data-rask-debounce`
+  (`docs/js-interop-runtime.md`): a handler that hears the pause, where a bound field's value is also sent
+  ahead of the next action. `rask.js` and `rask.wasm.js` are 345 and 344 bytes larger.
+
 - **`Ui.DatePicker.Clearable()`** — Flux's `clearable` on `flux:date-picker`, `flux:date-picker.button` and
   `flux:date-picker.input`: a ✕ in the trigger, before the chevron, while a date is chosen. A bound `DateOnly?` or
   `UiDateRange?` becomes `null`; a `DateOnly` / `UiDateRange` goes back to its unset value, which is also what

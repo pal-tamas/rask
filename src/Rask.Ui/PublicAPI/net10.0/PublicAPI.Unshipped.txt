@@ -2501,6 +2501,8 @@ Rask.UiSelectSearch.Class.get -> string?
 Rask.UiSelectSearch.Class.set -> void
 Rask.UiSelectSearch.Clearable.get -> bool?
 Rask.UiSelectSearch.Clearable.set -> void
+Rask.UiSelectSearch.Debounce.get -> System.TimeSpan?
+Rask.UiSelectSearch.Debounce.set -> void
 Rask.UiSelectSearch.Icon.get -> Rask.Ui.IconName?
 Rask.UiSelectSearch.Icon.set -> void
 Rask.UiSelectSearch.OnInput.get -> Rask.Core.Callback<string!>
@@ -4152,6 +4154,7 @@ static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b) -> Rask.U
 static RaskBuilderSettersRask_Ui.Current(this Rask.UiSidebarItem! __b, bool? value) -> Rask.UiSidebarItem!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartArea! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartArea!
 static RaskBuilderSettersRask_Ui.Curve(this Rask.UiChartLine! __b, Rask.Ui.ChartCurve? value) -> Rask.UiChartLine!
+static RaskBuilderSettersRask_Ui.Debounce(this Rask.UiSelectSearch! __b, System.TimeSpan? value) -> Rask.UiSelectSearch!
 static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiInput<T>! __b, System.TimeSpan? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Debounce<T>(this Rask.UiTextarea<T>! __b, System.TimeSpan? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Description(this Rask.UiAutocomplete! __b, string? value) -> Rask.UiAutocomplete!

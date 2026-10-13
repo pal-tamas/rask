@@ -16,6 +16,9 @@ internal static class UiListKeys
     /// <summary>The arrows walk the list, Enter picks, Escape and Tab close it.</summary>
     internal const string Text = $"{Keys.ArrowDown} {Keys.ArrowUp} {Keys.Enter} {Keys.Escape} {Keys.Tab}";
 
+    /// <summary>A listbox's search field: the arrows walk the list, Enter picks, Tab closes it. Escape is the popover's own.</summary>
+    internal const string Search = $"{Keys.ArrowDown} {Keys.ArrowUp} {Keys.Enter} {Keys.Tab}";
+
     /// <summary>The same, and Backspace: in an empty pillbox input it takes the last pill off.</summary>
     internal const string Pills = $"{Text} {Keys.Backspace}";
 
