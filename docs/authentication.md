@@ -264,9 +264,13 @@ user was signed out is its former user's or nobody's: another signed-in user is 
 
 | When | What happens |
 |---|---|
-| a connection attaches (a socket, a reconnect, an HTTP stream) | asked before anything is rendered or dispatched for it |
-| before every handler, and before every navigation | asked, with no interval in which an event is taken on trust. The events of one frame — what one task of the browser produced — ask once between them |
-| before a render the server starts itself (a timer, a followed service, a data change) | asked unless something asked within the last **second**. This is the one time bound there is, and it is here because such a render is not a reader's action: a page that repaints twenty times a second would otherwise read the user's row twenty times a second |
+| a connection attaches (a socket's `hello`, a reconnect, an HTTP stream), and a post of the HTTP fallback brings another principal | asked about the principal the connection carries **before** the session is given it: the session only ever holds the answer, and nothing rendered or dispatched sees what the cookie merely claims |
+| before every handler (an event, a submit, a `files` event) and before every navigation | asked, with no interval in which an event is taken on trust. The events of one frame — what one task of the browser produced — ask once between them, and again when the frame has run for more than a second |
+| before a call a page's script makes into the server (`DotNet.invokeMethodAsync`, a `dotNetInvoke` frame) | asked unless something asked within the last second, and not made at all for a session whose sign-in ended |
+| before a render the server starts itself (a timer, a followed service, a data change) | asked unless something asked within the last **second**. This second is the one time bound there is, and it is here because such a render is not a reader's action: a page that repaints twenty times a second would otherwise read the user's row twenty times a second |
+
+The answer to a call the server made into the page (`jsResult`) is an answer, not an act, and is taken as it
+comes. An upload and a download are requests of their own, checked against the principal that request carries.
 
 It is handed the principal the session holds and answers one of three ways:
 
@@ -274,10 +278,22 @@ It is handed the principal the session holds and answers one of three ways:
 |---|---|
 | the same principal — the instance it was handed, or one with the same claims | goes on. Handing the instance back costs the host nothing: no allocation, no comparison |
 | a principal with other claims — a role removed, another tenant | takes it. The event runs under it, and the **whole page renders again**, so an `Authorize` gate, a route's guard and anything that reads `IUserProvider.Current` as it renders show the truth |
-| `null` | has no user any more, and [goes to the sign-in page](#when-the-user-is-gone) |
+| `null` — or a principal for **somebody else** | has no user any more, and [goes to the sign-in page](#when-the-user-is-gone). A session never changes hands through a revalidator; an answer that names another user is logged once as a warning |
 
 One that throws refuses the event: nothing runs, the failure is logged on `Rask.Live`, and the reader's next
-action asks again. A connection that cannot be asked about is closed, and the tab's reconnect asks again.
+action asks again. A connection that cannot be asked about is closed with nothing adopted from it, and the tab's
+reconnect asks again. An answer that arrives after the session has taken another principal — a connection
+attached meanwhile — is about somebody it no longer acts for, and changes nothing.
+
+**A sliding sign-in is kept alive by its user, not by its page.** `Rask.Auth` moves a session's expiry when a
+request or a reader's action resumes it. A question asked for a render the server started itself reads the row
+and moves nothing, so a page with a clock on it, left open in an empty room, expires when its sign-in does.
+
+**A token issued again is taken quietly.** When the browser's credential is replaced by one that says the same
+— a refreshed token with a later `exp` — the session holds the new one from the next connection, post or
+[question the tab asks](#when-the-browsers-cookie-changes), and tells nobody: nothing changed. So a revalidator
+that reads `exp`, like the one below, reads the new date, and a user whose token was refreshed in time is not
+signed out when the first one lapses.
 
 What counts as "other claims": every claim except the ones a token carries about itself — `exp`, `iat`, `nbf`,
 `jti`, `auth_time`, `nonce`, `at_hash`, `c_hash`. A token issued again for the same user with the same rights
@@ -349,7 +365,9 @@ as it is now:
 
 It asks when the tab becomes the reader's again — it turns visible, its window takes the focus, it comes back
 from the back/forward cache — and when another tab of the browser says the credential changed, which a tab does
-after a sign-in or a sign-out through Rask and after finding a change itself. A reader can only start something
+after a sign-in or a sign-out through Rask and after finding a change itself (a tab that was told does not tell
+on, so tabs do not wake each other in a circle; one that asks too often is told to ask later, holds what it has
+to send, and asks again). A reader can only start something
 in a tab they are looking at, and "changed it over there, came back here" always passes through one of those.
 What they cannot see is bounded: an answer is trusted for **30 seconds** in the window that has the focus and
 **2 seconds** in one that does not, and the first thing sent after that waits for a new one. Those are the longest
@@ -366,7 +384,10 @@ One behaviour on every page, guarded or not. A session that **had** a user and h
 revalidator answered `null`, the cookie expired, they signed out elsewhere — goes to the sign-in page with the
 way back: `/login?returnUrl=…`, the address the route guard has always used. No message is shown; the page says
 what is needed. An open page is navigated there in place. A tab whose connection was refused loads its page again
-and is redirected there by that request.
+and is redirected there by that request: the tab marks the reload with a cookie that lasts thirty seconds and
+names the app it is for — `__Host-rask-ended` over https, which a browser takes from this host alone, so a
+neighbouring subdomain cannot plant it — and the server believes it once, for an anonymous request to that app,
+and removes it. An app with no page at `/login` has nowhere to send them, and serves the page it was asked for.
 
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.

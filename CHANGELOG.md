@@ -42,6 +42,17 @@ them until tagged releases begin.
   place when the page is open, redirected by the page's own request when its connection was refused. A visitor
   who never signed in is not asked about and is left alone.
 - **An app that signs users in and registers no `ISessionRevalidator` is warned once at startup** (`Rask.Live`).
+- **What a live session guarantees about its user, in full.** A connection's principal is asked about before the
+  session is given it, so nothing follows a principal the revalidator has not answered for, and a connection that
+  cannot be asked about leaves the session as it was. A call a page's script makes into the server
+  (`DotNet.invokeMethodAsync`) asks like an event and is not made for an ended sign-in. A principal that changes
+  in a render the server started itself takes its tenant with it, and a navigation to the address the page is
+  already on asks the tenant resolver again. A revalidator's answer that arrives late, or names another user,
+  never replaces the session's user. A frame that runs for more than a second asks again between its events. A
+  token issued again with the same rights is kept, so its new expiry is the one read. A render nobody asked for
+  does not keep a sliding `Rask.Auth` session alive. The mark a tab leaves when it lost its user is believed only
+  from this host (`__Host-rask-ended` over https) and for this app, once. `PrincipalRights` counts an identity's
+  role and name claim types, and the log line for a refused attach is limited to twenty in ten seconds.
 - **A reconnect no longer hands a live page back the user its sign-in check had taken away.** The Server host
   re-checks an open page's user at most every 30 seconds (`ISessionRevalidator`), and a reconnect re-seeded the
   principal from its cookie or token without asking again — so a session ended or narrowed a moment earlier acted
