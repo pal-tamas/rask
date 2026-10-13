@@ -119,6 +119,30 @@ public class RaskJSRuntimeTests
         Assert.Equal("done", JsClickApp.LastStatus);
     }
 
+    // A handler awaiting the browser's answer, and a link pressed before the call had been sent: the frame that
+    // carries the call was withheld for the navigation's own, and the navigation waits behind the handler.
+    [Fact]
+    public async Task A_link_pressed_while_a_handler_awaits_the_browser_does_not_hold_back_the_call_it_awaits()
+    {
+        using var host = RaskTestHost.Create<JsClickThenLeaveApp>();
+        var initialHtml = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        using var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = MarkupAssert.SessionId(initialHtml) }, ct: TestContext.Current.CancellationToken);
+        var clickId = Regex.Match(initialHtml, @"data-rask-on-click=""([^""]+)""").Groups[1].Value;
+
+        await ws.SendJsonAsync(new { id = clickId, type = "click" }, ct: TestContext.Current.CancellationToken);
+        await ws.SendJsonAsync(new { type = "navigate", path = "/elsewhere", query = "" }, ct: TestContext.Current.CancellationToken);
+        var calling = await ws.ReceiveTextAsync();
+        using var doc = JsonDocument.Parse(calling);
+        var called = doc.RootElement.TryGetProperty("jsInvokes", out var jsInvokes);
+        await ws.SendJsonAsync(new { type = "jsResult", id = called ? jsInvokes[0].GetProperty("id").GetInt64() : 0, success = true }, ct: TestContext.Current.CancellationToken);
+        await JsClickThenLeaveApp.Completed.Task.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
+        var arrived = await ws.ReceiveTextAsync();
+
+        Assert.True(called, "the first frame after the press carries the call the handler awaits: " + calling);
+        Assert.Contains("/elsewhere", arrived, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task An_invoke_from_OnRendered_does_not_start_a_render_storm()
     {
@@ -258,6 +282,22 @@ internal sealed partial class JsClickApp : Component
     {
         await _js.InvokeVoidAsync("sessionStorage.setItem", "k", "v");
         LastStatus = "done";
+        Completed.TrySetResult();
+    }
+}
+
+internal sealed partial class JsClickThenLeaveApp(IJSRuntime js) : Component
+{
+    public static TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    protected override Component? HeadAssets => Markup.Title["t"];
+    protected override string? HtmlLang => null;
+
+    protected override Component? Render() => Button.OnClick(SetAsync)["set"];
+
+    private async Task SetAsync()
+    {
+        await js.InvokeVoidAsync("sessionStorage.setItem", "k", "v");
         Completed.TrySetResult();
     }
 }
