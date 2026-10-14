@@ -244,14 +244,10 @@ public static class ReadModelRegistry
         }
 
         // Either a converter the author wrote, or only the type it is stored as (HasConversion<string>()), which EF
-        // Core keeps as the provider type and builds the converter from.
-        if (declared.GetValueConverter() is { } converter)
+        // Core builds the converter from: the write model's type mapping holds the one in force.
+        if ((declared.GetValueConverter() ?? declared.FindTypeMapping()?.Converter) is { } converter)
         {
             tenant.HasConversion(converter);
-        }
-        else if (declared.GetProviderClrType() is { } stored)
-        {
-            tenant.HasConversion(stored);
         }
 
         if (declared.GetMaxLength() is { } maxLength)
