@@ -51,14 +51,14 @@ public sealed class WasmJourneyTests(PlaywrightFixture playwright, WasmFixtureHo
 
         var button = await devTools.Page.Locator("#fixture-click").BoundingBoxAsync();
         await devTools.Panel.GetByRole(AriaRole.Button, new() { Name = "Pick" }).ClickAsync();
-        await Expect(devTools.Panel.Locator("[aria-pressed=\"true\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("the panel's Pick, pressed", () => Expect(devTools.Panel.Locator("[aria-pressed=\"true\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible));
         var (x, y) = (button!.X + (button.Width / 2), button.Y + (button.Height / 2));
         await devTools.Page.Mouse.MoveAsync(x, y, new() { Steps = 4 });
         await Expect(devTools.Page.Locator("rask-devtools .hl-label"))
             .ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^FixtureCounter"), DevToolsPage.Text);
         await devTools.Page.Mouse.ClickAsync(x, y);
 
-        await Expect(devTools.Panel.Locator("[data-rask-devtools-details]")).ToContainTextAsync("Step", DevToolsPage.Contains);
+        await DevToolsPage.Step("the picked component's details", () => Expect(devTools.Panel.Locator("[data-rask-devtools-details]")).ToContainTextAsync("Step", DevToolsPage.Contains));
         await Expect(devTools.Page.Locator("#fixture-counter p")).ToHaveTextAsync("clicks=0");
     }
 
@@ -77,7 +77,7 @@ public sealed class WasmJourneyTests(PlaywrightFixture playwright, WasmFixtureHo
         await devTools.Pill.ClickAsync();
         await devTools.ShowTabAsync("Errors");
         var errors = devTools.Panel.Locator("body");
-        await Expect(errors).ToContainTextAsync("failed on purpose", DevToolsPage.Contains);
-        await Expect(errors).ToContainTextAsync("App", DevToolsPage.Contains);
+        await DevToolsPage.Step("the Errors tab's entry", () => Expect(errors).ToContainTextAsync("failed on purpose", DevToolsPage.Contains));
+        await DevToolsPage.Step("the Errors tab's source", () => Expect(errors).ToContainTextAsync("App", DevToolsPage.Contains));
     }
 }

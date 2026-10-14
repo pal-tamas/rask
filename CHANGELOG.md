@@ -1603,6 +1603,9 @@ them until tagged releases begin.
   Fields on a panel that is not shown stay in their form, keep what was typed and are submitted. The DevTools
   panel on a WebAssembly page — a frame the page writes, with no hook loader of its own — now carries the
   behaviour hooks too, so its tabs, and whatever else the kit draws in the browser, work there as on a page.
+  Bundled in rather than loaded on demand: the panel always draws a tablist, so the loader would fetch them as
+  it opens anyway, and the frame is a Debug-only document a Release build strips. Its script grows from 49,032
+  to 110,394 bytes minified (14,329 to 33,075 gzipped).
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click

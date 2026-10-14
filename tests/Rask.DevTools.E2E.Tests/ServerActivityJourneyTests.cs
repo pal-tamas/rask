@@ -79,9 +79,9 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
 
         var open = devTools.Page.Locator("[data-rask-dev-error] [data-rask-devtools-open]");
         await open.ClickAsync(new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds });
-        await Expect(devTools.Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync("Errors", DevToolsPage.Contains);
+        await DevToolsPage.Step("the panel's selected tab", () => Expect(devTools.Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync("Errors", DevToolsPage.Contains));
         var entry = devTools.Panel.Locator("body");
-        await Expect(entry).ToContainTextAsync("locked by another deploy", DevToolsPage.Contains);
-        await Expect(entry).ToContainTextAsync("DeployCard", DevToolsPage.Contains);
+        await DevToolsPage.Step("the Errors tab's entry", () => Expect(entry).ToContainTextAsync("locked by another deploy", DevToolsPage.Contains));
+        await DevToolsPage.Step("the Errors tab's component", () => Expect(entry).ToContainTextAsync("DeployCard", DevToolsPage.Contains));
     }
 }
