@@ -4131,21 +4131,12 @@ public static partial class RaskEndpointExtensions
         SessionUploadStore uploads,
         RaskUploadOptions options)
     {
-        // Peek, not Get: Get cancels the pending removal for good, pinning the session and all it staged.
-        var session = sessions.Peek(sessionId);
-        if (session is null)
-        {
-            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
         // The {sessionId} is the only credential on this multipart POST (DisableAntiforgery), so
         // guard it like the WS handshake: reject cross-origin posts and require the request's
         // authenticated user to match the session owner.
-        if (!IsSameOrigin(ctx.Request)
-            || !MayDrive(UserOf(ctx), session))
+        if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            ctx.Response.StatusCode = refusal;
             return;
         }
 
@@ -4250,6 +4241,38 @@ public static partial class RaskEndpointExtensions
         await ctx.Response.Body.WriteAsync(ms.ToArray(), ctx.RequestAborted).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     Null when an upload or download may act on session <paramref name="sessionId" />; otherwise the
+    ///     status to answer it with — 404 for a session that is gone, 403 for a cross-origin request or one
+    ///     from anyone but the session's owner.
+    /// </summary>
+    private static int? RefuseSessionRequest(HttpContext ctx, LiveSessionStore sessions, string sessionId)
+    {
+        // Peek, not Get: Get cancels the pending removal for good, pinning the session and all it staged.
+        if (sessions.Peek(sessionId) is not { } session)
+        {
+            return StatusCodes.Status404NotFound;
+        }
+
+        if (!IsSameOrigin(ctx.Request))
+        {
+            return StatusCodes.Status403Forbidden;
+        }
+
+        try
+        {
+            return MayDrive(UserOf(ctx), session) ? null : StatusCodes.Status403Forbidden;
+        }
+        catch (ObjectDisposedException)
+        {
+            // Only the session's teardown disposes the scope MayDrive reads the owner from: Peek found the
+            // session, then its removal — a never-connected page's grace period ending, say — disposed it on
+            // another thread. The session is gone, so this is the answer a Peek a moment later would have given,
+            // not a 500 (#1207).
+            return StatusCodes.Status404NotFound;
+        }
+    }
+
     private static async Task HandleDownloadAsync(
         HttpContext ctx,
         string sessionId,
@@ -4259,18 +4282,10 @@ public static partial class RaskEndpointExtensions
     {
         // A leaked download URL must not serve a victim's file to another principal: require the
         // session to still exist and the request to be same-origin and from the session owner
-        // before consuming the one-shot entry. Peek, not Get, for the reason HandleUploadAsync gives.
-        var session = sessions.Peek(sessionId);
-        if (session is null)
+        // before consuming the one-shot entry.
+        if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
-            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
-        if (!IsSameOrigin(ctx.Request)
-            || !MayDrive(UserOf(ctx), session))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            ctx.Response.StatusCode = refusal;
             return;
         }
 

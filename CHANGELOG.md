@@ -385,6 +385,10 @@ them until tagged releases begin.
   startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
   devtools also fails if the app assembly still names it. The template gate now publishes the server template in
   Release and starts it.
+- **An upload or download that races its session's removal answers 404, not 500** (#1207). A request whose session
+  was found and then reclaimed on another thread before its owner was checked — a never-connected page's grace
+  period ending at that moment — failed with an `ObjectDisposedException` from the session's disposed services.
+  It now gets the answer the session being gone always gave.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
