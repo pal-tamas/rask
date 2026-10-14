@@ -368,6 +368,11 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// <summary>The clock a removal's grace period is counted on. A test stops it.</summary>
     internal TimeProvider Clock { get; set; } = TimeProvider.System;
 
+    /// <summary>How many refused attaches this host still writes to the log in the current window.</summary>
+    internal RefusedAttachLines RefusedAttachLines => _refusedAttachLines ??= new RefusedAttachLines(() => Clock);
+
+    private RefusedAttachLines? _refusedAttachLines;
+
     internal void ScheduleRemoval(string id, TimeSpan delay)
     {
         // Draining: the drain owns teardown and disposes every session awaited, inside the shutdown

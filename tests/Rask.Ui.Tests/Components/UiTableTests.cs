@@ -23,8 +23,21 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var html = Orders().ToHtml();
 
-        Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0\"><div class=\"block overflow-auto\"><table ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0\"><div class=\"relative block overflow-auto\"><table ", html, StringComparison.Ordinal);
         Assert.EndsWith("</table></div></div>", html, StringComparison.Ordinal);
+    }
+
+    // An owner-approved departure from Flux (2026-10-14): Flux's frame is static, so a checkbox's hidden input or a
+    // hidden heading in a cell escapes it and the whole page scrolls sideways on a phone.
+    [Fact]
+    public void The_scroll_area_holds_what_its_cells_place_absolutely()
+    {
+        var html = Ui.Table[
+            Ui.TableColumns[Ui.TableColumn[Span.Class("sr-only")["Actions"]]],
+            Ui.TableRows[Ui.TableRow[Ui.TableCell[Ui.Checkbox.Label("Pick")]]]
+        ].ToHtml();
+
+        Assert.Contains("<div class=\"relative block overflow-auto\"><table ", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -52,7 +65,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Table.Id("orders").Class("mb-0").Data("testid", "orders").Aria(("label", "Orders")).ContainerClass("max-h-80").ToHtml();
 
-        var box = html[..html.IndexOf("<div class=\"block overflow-auto\"", StringComparison.Ordinal)];
+        var box = html[..html.IndexOf("<div class=\"relative block overflow-auto\"", StringComparison.Ordinal)];
         var table = html[html.IndexOf("<table", StringComparison.Ordinal)..];
 
         Assert.Equal("<div class=\"flex flex-col *:data-ui-pagination:shrink-0 max-h-80\">", box);

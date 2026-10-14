@@ -30,6 +30,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="MailKit"/>
+    <!-- Lifts the vulnerable transitive copy; see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 
   <!-- MailOptions binds Rask:Mail. The configuration binding source generator writes that bind at compile time,

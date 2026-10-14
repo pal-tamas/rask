@@ -215,10 +215,6 @@ public sealed class LiveRenderContext : IDisposable
 
     internal ErrorBoundary? CurrentBoundary => _boundaryStack.Count > 0 ? _boundaryStack.Peek() : null;
 
-    // The form that asks before it is left whose children the walk is writing, if it is inside one: every
-    // component met meanwhile is drawn in that form (Forms/ReaderEdits). A <form> holds no <form>, so one field.
-    internal Forms.IGuardedForm? GuardedForm { get; set; }
-
     private Component CurrentParent => _parentStack.Count > 0 ? _parentStack.Peek() : _root;
 
     /// <summary>

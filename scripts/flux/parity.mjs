@@ -189,6 +189,14 @@ const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
 // whether the dialog is Flux's sheet: Flux asks the window. And the one in a calendar, which is how the page
 // learns that it is drawn for a phone.
+// The owner-approved departures in LOOK (SKILL.md "Owner-approved departures"): each names the node by where it
+// sits, and only the named properties are let go there.
+const DEPARTED = [
+  // 2026-10-14: Ui.Table's scroll frame — the box holding the <table> itself — is `relative`, so it holds what
+  // its cells place absolutely.
+  { holds: 'table', keys: ['position'] },
+];
+
 const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet', 'data-ui-calendar-narrow'];
 // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
 // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
@@ -353,7 +361,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs, placed(a, b) ? PLACEMENT : undefined);
+  const departs = departedFrom(mine, b);
+  const unheld = placed(a, b) ? new Set([...PLACEMENT, ...departs]) : (departs.length ? new Set(departs) : undefined);
+  compareStyles(a.style, b.style, where, diffs, unheld);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
@@ -378,6 +388,11 @@ function compareLook(theirs, a, mine, b, where, diffs) {
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
+}
+
+function departedFrom(example, node) {
+  const holds = tag => example.nodes.some(c => c.parent === node.id && c.tag === tag);
+  return DEPARTED.filter(d => holds(d.holds)).flatMap(d => d.keys);
 }
 
 function isNativeControl(example, node) {
