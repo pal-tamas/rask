@@ -1608,6 +1608,19 @@ them until tagged releases begin.
   them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
   search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
   create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+  Per gesture on the kit's frame gate, before → after, for every list kind (listbox, searchable listbox,
+  combobox, pillbox, autocomplete): open by a press 1 → 0; the pointer over the open list 3–7 → 0; the cursor keys
+  3–9 → 0; Escape 1–3 → 0; a press outside 1–2 → 0; typing to filter 1–2 → 0; Tab in and out 3–5 → 0 (the
+  native select's 2 → 0). Owed and kept: a pick 1 (the value); a debounced search 1 at the pause; a search the
+  page heard, ended by Escape, a pick or a click elsewhere, 1 (`OnInput("")`). A bound select that waits still
+  sends its pick as one frame of drawing (`data-rask-draws`), where Flux sends none.
+  **Changed for an app**: `Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`,
+  `Ui.PillboxInput` and `Ui.Autocomplete` works as before, and the "the search is over" `OnInput("")` (or a
+  combobox's new answer's words) is now raised by the browser as it rewrites the field, once, and only when the
+  page had heard a search; a search it never heard is dropped unsaid. Escape on an autocomplete whose page holds
+  no text tells the page nothing. A press on an autocomplete's suggestion keeps the focus in the input, so the
+  text typed before it is never handed over by the blur. `OnToggle` on these controls was never public and
+  nothing of the open state is sent.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click
