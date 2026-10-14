@@ -129,7 +129,7 @@ The kit's `Ui.Input` and `Ui.Textarea` forward all three steps to Core's.
 
 **Every chosen control of the kit follows the same rule**, and `.Live()` is on each of them: `Ui.Checkbox`,
 `Ui.Switch`, `Ui.Select` (native, listbox, combobox, multiple), `Ui.Pillbox`, `Ui.Autocomplete`,
-`Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Rating`, `Ui.Filter`, `Ui.Calendar`,
+`Ui.CheckboxGroup`, `Ui.RadioGroup`, `Ui.Slider`, `Ui.Otp`, `Ui.Calendar`,
 `Ui.DatePicker`, `Ui.TimePicker`, `Ui.Editor`, `Ui.Tabs`, `Ui.MenuCheckbox` and `Ui.MenuRadioGroup`.
 
 ```csharp
@@ -271,10 +271,10 @@ number."), ahead of "required" and of any rule, and the submit handler does not 
 that fits — see [what a number field says when it cannot read what was typed](forms-validation.md#what-a-number-field-says-when-it-cannot-read-what-was-typed).
 
 **Controls over a value type bind its nullable too.** `Ui.Checkbox` and `Ui.Switch` are over `bool`,
-`Ui.Rating` over `int`, `Ui.Slider` over a number and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
+`Ui.Slider` over a number and `Ui.Calendar` over `DateOnly`, and each also binds the nullable
 form: `Ui.Checkbox.Bind(() => model.InStock)` compiles whether `InStock` is a `bool` or a `bool?`, which is what a
 [generated form model](data.md#a-create-and-an-edit-form) holds. A `null` draws as the control's empty state
-(unchecked, unrated, no day picked, a slider at its lowest value), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
+(unchecked, no day picked, a slider at its lowest value), and a change writes a value. `Value` and `OnChange` stay over the plain type. The
 date controls go one further: `Ui.Calendar` binds a `DateOnly`, and behind Flux's mode steps a collection of days
 (`Ui.Calendar.Multiple.Bind(…)`) or a `UiDateRange` (`Ui.Calendar.Range.Bind(…)`); `Ui.DatePicker` a `DateOnly` or,
 as `Ui.DatePicker.Range`, a `UiDateRange`; and `Ui.TimePicker` a `TimeOnly?`, a `TimeOnly` or a collection of

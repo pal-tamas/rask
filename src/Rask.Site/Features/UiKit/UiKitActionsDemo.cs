@@ -38,8 +38,6 @@ public sealed partial class UiKitActionsDemo : Component
         ModalOptionsSection(),
         StateDrivenModalSection(),
 
-        FloatingActionButtonSection(),
-
         P.Class("mt-6 text-sm text-ui-muted")
             .Data(Testid("ui-actions-log"))[$"Last action: {_lastAction}."]
     ];
@@ -410,26 +408,6 @@ public sealed partial class UiKitActionsDemo : Component
             Ui.Heading.Level(2).Lg["Update profile"],
             Ui.Text.Class("mt-2")["Make changes to your personal details."]
         ];
-
-    private static Component FloatingActionButtonSection() =>
-        Section(
-            "Floating action button",
-            "Opened by the browser on focus-within — daisyUI defines no class to force it, so this one "
-            + "is deliberately not state-driven. It is pinned to the corner of the VIEWPORT, which is "
-            + "what a FAB is; look bottom-right, then tab to it or click it.",
-            // Not repositioned into this section, deliberately. `.fab` is `position: fixed`, and pulling
-            // it back into the flow would mean a site utility overriding a kit component class ACROSS
-            // TWO <link> stylesheets — where CSS layers do not merge, so which rule wins stops being
-            // something either sheet decides. It is also `pointer-events: none` on the container, so a
-            // floating FAB intercepts nothing but its own buttons.
-            Div.Data(Testid("ui-fab"))[
-                Ui.Fab
-                    .AccessibleLabel("Compose")
-                    .Icon(Ui.IconName.Plus)[
-                    Ui.Button.Sm.Key("photo")["Photo"],
-                    Ui.Button.Sm.Key("file")["File"]
-                ]
-            ]);
 
     private static AttrBag Testid(string value) => new("testid", value);
 

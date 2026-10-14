@@ -133,7 +133,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         //
         //  * an ABSTRACT component. Nothing can construct it, so it gets no factory and no entry, but it
         //    is still a component, and an abstract base that composes other components (UiElement,
-        //    UiFormField<T>, PollingPanel) could otherwise name no entry at all.
+        //    PollingPanel) could otherwise name no entry at all.
         //  * a MARKUP host: a type deriving from Rask.Core.RaskMarkup, or carrying [RaskMarkup], that is
         //    not a Component. This is how the surface reaches code that is not inside a component — a
         //    test class, a fixture, a factory of demo components — which is a quarter of every call site

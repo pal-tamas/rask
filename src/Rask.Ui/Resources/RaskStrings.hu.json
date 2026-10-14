@@ -109,9 +109,6 @@
   "SliderRangeStart": "{0}, a tartomány eleje",
   "SliderRangeEnd": "{0}, a tartomány vége",
 
-  "RatingNone": "Nincs értékelés",
-  "RatingValue": "{0} / {1}",
-
   "SidebarToggle": "Oldalsáv megnyitása vagy bezárása",
   "SidebarSearch": "Keresés",
 
@@ -134,10 +131,6 @@
   "DataGridSelectRow": "Sor kijelölése",
   "DataGridExpandRow": "Sor kinyitása",
   "DataGridCollapseRow": "Sor összecsukása",
-
-  "DiffHandle": "Összehasonlítás",
-  "FilterReset": "Összes",
-  "FieldValidating": "Ellenőrzés…",
 
   "FileItemRemove": "Fájl eltávolítása",
 

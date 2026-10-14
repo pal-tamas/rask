@@ -23,8 +23,8 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-aura", "ui-text-rotate", "ui-hover-3d",
-                     "ui-hover-gallery", "ui-console-pieces", "ui-chart", "ui-table", "ui-display-rest",
+                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-console-pieces", "ui-chart", "ui-table",
+                     "ui-display-rest",
                      "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
                      "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
                      "ui-timeline-align", "ui-timeline-baseline", "ui-timeline-spacing", "ui-carousel", "ui-flag",
@@ -181,29 +181,6 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         Assert.StartsWith("height, content-visibility, overflow | 0.25s, 0.25s, 0s | cubic-bezier(0.4, 0, 0.2, 1)", slot, StringComparison.Ordinal);
         Assert.True(midway > closed + 1 && midway < open - 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
-    });
-
-    // TheRotatorShowsEveryWordInTheMarkup moved DOWN to Rask.UiTests.Components.UiTextRotateTests.
-    // Its own comment gave the reason: the words are in the DOM "whatever the browser is doing with
-    // them", which makes it a claim about rendered markup, and it was paying a published bundle and a
-    // Chromium page to read four words out of a string. The unit test asserts more than it did — the
-    // ORDER of the words, and the inner wrapper daisyUI counts children on — in under a millisecond.
-    //
-    // It was the only one of the forty-two UiKit journeys that could move. The rest assert CSS
-    // visibility, layout geometry, real input, keyboard and focus, none of which survive that trip.
-
-    [Fact]
-    public Task The_decorative_components_announce_nothing() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        // An aura that claimed a role would put a meaningless announcement between a screen-reader user
-        // and the content it is drawn around.
-        var aura = Page.Locator("[data-testid='ui-aura'] .aura").First;
-
-        await Expect(aura).ToBeVisibleAsync();
-        Assert.Null(await aura.GetAttributeAsync("role"));
-        Assert.Null(await aura.GetAttributeAsync("aria-label"));
     });
 
     [Fact]

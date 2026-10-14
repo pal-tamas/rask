@@ -945,7 +945,7 @@ public sealed partial class ComponentFactoryGenerator
         // initializer is a required factory param with no default). A type-parameter prop must use
         // `default` — `null` has no conversion to an unconstrained T.
         //
-        // So must a base's `T? Value` closed over a STRUCT (`UiFormField<DateOnly>`): the property keeps its
+        // So must a base's `T? Value` closed over a STRUCT (`FieldBase<DateOnly>`): the property keeps its
         // annotation, so it is optional, but `T?` on an unconstrained T is not Nullable<T> — the substituted type
         // is plain `DateOnly`, which `null` does not convert to. Every type that CAN hold null is written with
         // its `?` (an annotated reference type, or Nullable<T>), so the missing `?` is what gives it away.

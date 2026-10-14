@@ -91,29 +91,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_bound_rating_lights_as_many_stars_as_the_model_says()
-    {
-        var model = new Profile { Stars = 3 };
-        var html = Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
-
-        // One checked radio, and it is the third star — a rating group is exclusive, so a second one
-        // would mean the browser and the model disagree about the value.
-        Assert.Equal(1, Occurrences(html, "checked"));
-        Assert.Contains("value=\"3\" checked", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_unrated_bound_rating_checks_the_hidden_option()
-    {
-        // Without it a rating can be raised and lowered but never cleared: a radio group offers no way
-        // back to none.
-        var html = Rating(stars: 0);
-
-        Assert.Contains("value=\"0\" checked", html, StringComparison.Ordinal);
-        Assert.Equal(1, Occurrences(html, "checked"));
-    }
-
-    [Fact]
     public void A_bound_otp_draws_the_model()
     {
         var model = new Profile { Code = "1234" };
@@ -124,24 +101,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         Assert.Contains("type=\"hidden\"", html, StringComparison.Ordinal);
         Assert.Equal(1, Occurrences(html, "value=\"1234\""));
         Assert.Equal(1, Occurrences(html, " value="));
-    }
-
-    [Fact]
-    public void A_bound_filter_checks_the_models_option()
-    {
-        var model = new Profile { Tag = "feature" };
-        var html = Filter(model);
-
-        Assert.Contains("value=\"feature\" checked", html, StringComparison.Ordinal);
-        Assert.Equal(1, Occurrences(html, "checked"));
-    }
-
-    [Fact]
-    public void A_bound_filter_with_nothing_chosen_checks_the_reset()
-    {
-        var model = new Profile { Tag = null };
-
-        Assert.Contains("value=\"\" checked", Filter(model), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -197,9 +156,9 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Resolve_reads_the_model_when_bound_and_the_property_when_not()
     {
-        var model = new Profile { Tag = "docs" };
-        var bound = new UiFilter<string> { Group = "t", Options = [], Bind = () => model.Tag };
-        var controlled = new UiFilter<string> { Group = "t", Options = [], Value = "bug" };
+        var model = new Profile { Code = "docs" };
+        var bound = new UiOtp { Bind = () => model.Code };
+        var controlled = new UiOtp { Value = "bug" };
 
         Assert.Equal("docs", UiFormCommit.Resolve<string>(bound).Current);
         Assert.Equal("bug", UiFormCommit.Resolve<string>(controlled).Current);
@@ -208,20 +167,18 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task CommitAsync_writes_the_model_back_and_then_runs_AfterBind()
     {
-        var model = new Profile { Tag = "bug" };
+        var model = new Profile { Code = "bug" };
         var after = "";
-        var control = new UiFilter<string>
+        var control = new UiOtp
         {
-            Group = "t",
-            Options = [],
-            Bind = () => model.Tag,
+            Bind = () => model.Code,
             AfterBind = new Rask.Core.Callback<string>(v => after = v),
         };
 
         var (acc, ctx, _) = UiFormCommit.Resolve<string>(control);
         await UiFormCommit.CommitAsync(control, acc, ctx, "docs");
 
-        Assert.Equal("docs", model.Tag);
+        Assert.Equal("docs", model.Code);
         Assert.Equal("docs", after);
     }
 
@@ -229,7 +186,7 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
     public async Task CommitAsync_reports_to_the_parent_when_the_control_is_controlled()
     {
         var seen = "";
-        var control = new UiFilter<string> { Group = "t", Options = [], Value = "bug", OnChange = new Rask.Core.Callback<string>(v => seen = v) };
+        var control = new UiOtp { Value = "bug", OnChange = new Rask.Core.Callback<string>(v => seen = v) };
 
         var (acc, ctx, _) = UiFormCommit.Resolve<string>(control);
         await UiFormCommit.CommitAsync(control, acc, ctx, "docs");
@@ -245,18 +202,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
 
         return Ui.Switch.Bind(() => model.Alerts).Label("Email alerts").ToHtml();
     }
-
-    private static string Rating(int stars)
-    {
-        var model = new Profile { Stars = stars };
-
-        return Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
-    }
-
-    private static string Filter(Profile model) =>
-        Ui.Filter.Bind(() => model.Tag!).Group("tags")
-            .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
-            .ToHtml();
 
     private static int Occurrences(string haystack, string needle)
     {
@@ -283,9 +228,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
 
         public string Code { get; set; } = "";
 
-
-        public string? Tag { get; set; }
-
         public bool Agreed { get; set; }
 
         public bool Alerts { get; set; }
@@ -293,8 +235,6 @@ public partial class UiFormBindingTests : global::Rask.Core.RaskMarkup
         public bool Express { get; set; }
 
         public double Volume { get; set; }
-
-        public int Stars { get; set; }
 
         public DateOnly Delivery { get; set; }
     }

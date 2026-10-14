@@ -62,7 +62,6 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
             a => a.At = new TimeOnly(9, 30), a => a.At = new TimeOnly(14, 0), a => a.At = null,
         ]),
         ["slider"] = (a => Ui.Slider.Bind(() => a.Volume), [a => a.Volume = 40, a => a.Volume = 100, a => a.Volume = 0]),
-        ["rating"] = (a => Ui.Rating.Bind(() => a.Stars).Group("stars").Label("Stars").Max(5), [a => a.Stars = 1, a => a.Stars = 5, a => a.Stars = 2, a => a.Stars = 0]),
         ["otp"] = (a => Ui.Otp.Bind(() => a.Text).Length(6), [a => a.Text = "1", a => a.Text = "123456", a => a.Text = "12", a => a.Text = string.Empty]),
         ["editor"] = (a => Ui.Editor.Bind(() => a.Body), [a => a.Body = "<p>One</p>", a => a.Body = "<p>One</p><p>Two</p>", a => a.Body = null]),
     };
@@ -187,8 +186,6 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
         public TimeOnly? At { get; set; }
 
         public int Volume { get; set; }
-
-        public int Stars { get; set; }
 
         public string? Body { get; set; }
     }

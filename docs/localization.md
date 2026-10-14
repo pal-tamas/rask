@@ -499,8 +499,6 @@ they say when you set nothing.
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |
-| `RatingNone` | Rating | `No rating` |
-| `RatingValue` | Rating | `{0} of {1}` |
 | `SidebarToggle` | Sidebar | `Toggle sidebar` |
 | `SidebarSearch` | Sidebar | `Search` |
 | `CommandEmpty` | Command | `No results` |
@@ -521,9 +519,6 @@ they say when you set nothing.
 | `DataGridSelectRow` | Data grid | `Select row` |
 | `DataGridExpandRow` | Data grid | `Expand row` |
 | `DataGridCollapseRow` | Data grid | `Collapse row` |
-| `DiffHandle` | Diff | `Compare` |
-| `FilterReset` | Filter | `All` |
-| `FieldValidating` | Form field | `Checking…` |
 | `FileItemRemove` | File upload | `Remove file` |
 | `ValidationRequired` | Validation | `This field is required.` |
 | `ValidationWholeNumber` | Validation | `Enter a whole number.` |

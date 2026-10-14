@@ -2,7 +2,7 @@ namespace Rask.Site.Features.UiKit;
 
 /// <summary>
 ///     The kit's form controls: Flux UI's input, textarea, checkbox, radio, switch, calendar, date picker and time
-///     picker, example by example, then the controls that are still daisyUI's until each is rebuilt.
+///     picker, example by example.
 /// </summary>
 public sealed partial class UiKitDataInputDemo : Component
 {
@@ -12,7 +12,6 @@ public sealed partial class UiKitDataInputDemo : Component
     // PIN, and the three laid out by hand.
     private readonly string[] _codes = ["", "", "", "L49R4", "1234", "", "", ""];
     private string? _verified;
-    private string? _tag;
     private string _search = "Jack Skellington";
     private int _palette;
     // Sliders, one value per example.
@@ -20,7 +19,6 @@ public sealed partial class UiKitDataInputDemo : Component
     private int[] _band = [200, 800];
     private int[] _apart = [450, 550];
     private int[] _price = [200, 800];
-    private int _stars = 4;
     private readonly Signup _signup = new();
 
     /// <inheritdoc />
@@ -44,17 +42,14 @@ public sealed partial class UiKitDataInputDemo : Component
         SliderSection(),
         SliderTicksSection(),
         RangeSliderSection(),
-        RatingSection(),
         OneTimeCodeSection(),
         OneTimeCodeLayoutSection(),
-        FilterSection(),
         CalendarSection(),
         DatePickerSection(),
         TimePickerSection(),
         UiKitColorPickerDemo,
         FileUploadSection(),
-        BoundModelSection(),
-        MaskSection()
+        BoundModelSection()
     ];
 
     private Component InputSection()
@@ -220,15 +215,6 @@ public sealed partial class UiKitDataInputDemo : Component
                 ]
             ]);
 
-    private Component RatingSection() =>
-        Section(
-            "Rating",
-            "Radios sharing a name, so the arrow keys move between stars and a screen reader hears a group.",
-            Div.Data(Testid("ui-rating")).Class("grid max-w-sm gap-4")[
-                Ui.Rating.Value(_stars).Key("stars").Group("score").Label("Rate this").Max(5)
-                    .OnChange(v => { _stars = v; })
-            ]);
-
     private Component OneTimeCodeSection() =>
         Section(
             "OTP input — Flux UI's, example by example",
@@ -303,20 +289,6 @@ public sealed partial class UiKitDataInputDemo : Component
     private static string Number(int value) =>
         value.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    private Component FilterSection() =>
-        Section(
-            "Filter",
-            "Radios rather than buttons: daisyUI hides the unpicked options and shows the reset in "
-            + "their place, in CSS, and the group gives a keyboard its arrow keys for free.",
-            Div.Data(Testid("ui-filter")).Class("space-y-2")[
-                Ui.Filter.Value(_tag).Key("tags").Group("demo-tags")
-                    .Options([("bug", "bug"), ("feature", "feature"), ("docs", "docs")])
-                    .ResetLabel("All").OnChange(tag => { _tag = tag; }),
-                P.Class("text-sm text-ui-muted").Data(Testid("ui-filter-state"))[
-                    _tag is null ? "Showing everything." : $"Filtered to {_tag}."
-                ]
-            ]);
-
     private Component BoundModelSection() =>
         Section(
             "Bound to a model",
@@ -332,27 +304,13 @@ public sealed partial class UiKitDataInputDemo : Component
                         Ui.Input.Bind(() => _signup.Seats).Live().Label("Seats")
                     ],
                     Div.Class("mt-3 flex flex-wrap items-center gap-4")[
-                        Ui.Checkbox.Bind(() => _signup.Agreed).Live().Label("I agree to the terms"),
-                        Ui.Rating.Bind(() => _signup.Score).Group("bound-score").Label("Rate this").Live().Max(5)
+                        Ui.Checkbox.Bind(() => _signup.Agreed).Live().Label("I agree to the terms")
                     ]
                 ],
                 P.Class("text-sm text-ui-muted").Data(Testid("ui-bound-state"))[
                     $"{_signup.Email} · {_signup.Seats.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
                     + $" seats · agreed {(_signup.Agreed ? "yes" : "no")}"
-                    + $" · {_signup.Score.ToString(System.Globalization.CultureInfo.InvariantCulture)} stars"
                 ]
-            ]);
-
-    private static Component MaskSection() =>
-        Section(
-            "Mask",
-            "A closed set of shapes. Whatever is masked has to survive losing its corners.",
-            Div.Data(Testid("ui-mask")).Class("flex flex-wrap gap-3")[
-                Masked("circle", Ui.MaskShape.Circle),
-                Masked("squircle", Ui.MaskShape.Squircle),
-                Masked("hexagon", Ui.MaskShape.Hexagon),
-                Masked("star", Ui.MaskShape.Star2),
-                Masked("heart", Ui.MaskShape.Heart)
             ]);
 
     private static Component ToggleSection() =>
@@ -363,9 +321,6 @@ public sealed partial class UiKitDataInputDemo : Component
             UiKitToggleDemo.Key("toggles"));
 
     private static AttrBag Testid(string value) => new("testid", value);
-
-    private static UiMask Masked(string key, Ui.MaskShape shape) =>
-        Ui.Mask.Key(key).Shape(shape).Class("size-14 bg-primary");
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[
@@ -384,7 +339,5 @@ public sealed partial class UiKitDataInputDemo : Component
         public string Website { get; set; } = "";
 
         public bool Agreed { get; set; }
-
-        public int Score { get; set; }
     }
 }

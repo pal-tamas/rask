@@ -14,7 +14,7 @@ public sealed partial class UiKitNavigationDemo : Component
     protected override Component? Render() =>
     [
         TabsSection(),
-        MenuStepsAndDockSection(),
+        NavlistAndBreadcrumbsSection(),
         PaginationSection()
     ];
 
@@ -27,20 +27,15 @@ public sealed partial class UiKitNavigationDemo : Component
             + "stop, so Tab lands in its panel.",
             UiKitTabsDemo);
 
-    private static Component MenuStepsAndDockSection() =>
+    private static Component NavlistAndBreadcrumbsSection() =>
         Section(
-            "Nav list, steps, breadcrumbs and the dock",
+            "Nav list and breadcrumbs",
             "The rest of the category, each a real link where it navigates.",
             Div.Data(Testid("ui-nav-rest")).Class("space-y-4")[
                 Ui.Navlist[
                     Ui.NavlistItem.Key("m1").Href("#overview").Current()["Overview"],
                     Ui.NavlistItem.Key("m2").Href("#queues").Current(false)["Queues"],
                     Ui.NavlistItem.Key("m3").Href("#logs").Current(false)["Logs"]
-                ],
-                Ui.Steps[
-                    Ui.Step.Key("s1").Success["Ordered"],
-                    Ui.Step.Key("s2").Success["Packed"],
-                    Ui.Step.Key("s3")["Shipped"]
                 ],
                 // The last crumb has no href, because the page you are on is not a link to itself; it says
                 // aria-current instead.

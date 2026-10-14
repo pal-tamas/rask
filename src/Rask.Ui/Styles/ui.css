@@ -166,7 +166,7 @@
 
   /*
     The three daisyUI tones the kit's own palette never named, given the same treatment for the same
-    reason: the components below write .btn-secondary, .alert-info and .step-neutral, and those are
+    reason: the components below write .btn-secondary and .alert-info, and those are
     fills whose label has to be readable too. Weights solved like the others — the largest that clears
     4.6:1 against both grounds on every palette — and lower than the semantic tones because these three
     run to pale mid-tones (`accent` needs 14%, and no palette needs a correction on top).
@@ -352,10 +352,7 @@
 
   WHAT IS NOT HERE, and why. The `checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` tones
   carry no text: WCAG asks 3:1 of them as non-text UI (1.4.11), not 4.5, and recolouring them would be a
-  redesign rather than a fix. `step-*` does carry a label and is NOT corrected here — daisyUI sets its
-  variables on compound pseudo-element selectors (`.step-primary + .step-primary:before`) that an
-  inherited custom property cannot reach, so it needs its own matching selectors. Both are measured and
-  filed rather than left implicit.
+  redesign rather than a fix. It is measured and filed rather than left implicit.
 
   IN `rask-ui-corrections`, NOT `rask`, and that is the whole reason these land at all.
 
@@ -978,49 +975,6 @@
 }
 
 /*
-  A VALIDATION MESSAGE THIS KIT RENDERED HAS TO BE VISIBLE.
-
-  daisyUI reveals `.validator-hint` with `.validator:user-invalid ~ .validator-hint` -- a SIBLING
-  selector, and one that answers to the BROWSER's own constraint validation. Neither half survives a
-  form field:
-
-    * UiFormField wraps a labelled control in <label>, so the control is no longer a sibling of the
-      hint. The selector stops matching and the message renders `display: none` -- present in the DOM,
-      correct text, invisible. That is the shape of failure worth being loud about: the markup reads
-      right, the value is right, the build is green, and the reader is told nothing.
-    * `:user-invalid` is the browser's judgement. This kit's messages come from C#, and the element is
-      rendered ONLY while the value is actually invalid -- so its presence is already the signal, and
-      making it wait for a second, unrelated opinion is how a valid-per-the-browser but
-      invalid-per-the-model value ends up silently unexplained.
-
-  So: a hint the kit put in a fieldset shows. Layered with the rest of the kit's corrections, so an
-  app's own utilities still outrank it.
-*/
-@layer rask-ui-corrections {
-  /*
-    A validation message THIS KIT rendered has to be visible.
-
-    daisyUI reveals `.validator-hint` with `.validator:user-invalid ~ .validator-hint`: a CSS-only
-    mechanism that asks the BROWSER whether the value is acceptable, and that needs the hint to be a
-    SIBLING of the input. Neither half survives contact with the kit. UiValidator is rendered by C#
-    and only while the value is actually wrong, so its presence is already the answer; and UiFormField
-    wraps a labelled control in a <label>, so a validator placed beside the field is not a sibling of
-    anything that selector can see. The message then renders with the right text, in the right place,
-    and invisible.
-
-    Scoped to the kit's own marker rather than to `.validator-hint`, so hand-written daisyUI markup
-    keeps the CSS-only behaviour exactly as documented.
-
-    VISIBILITY, not display: daisyUI hides it with `visibility: hidden` and keeps its box, so the
-    message reserves its line either way and revealing it shifts nothing. Setting `display` here reads
-    correctly in the sheet and changes nothing on screen — which is how the first attempt at this went.
-  */
-  .validator-shown {
-    visibility: visible;
-  }
-}
-
-/*
   AN ICON IN A DAISY BUTTON IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
 
   Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
@@ -1039,27 +993,6 @@
   .btn > svg.size-5[class*=" shrink-0"] {
     width: 1rem;
     height: 1rem;
-  }
-}
-
-/*
-  AN ERROR HINT UNDER A FLOATING LABEL HAS TO BE REVEALED THROUGH THE LABEL.
-
-  daisyUI reveals `.validator-hint` with a GENERAL SIBLING selector from the control:
-  `:is(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"]), …) ~ .validator-hint`.
-  A floating label cannot keep the control a sibling of its hint — daisyUI draws the caption as the first
-  child of a <label> that HOLDS the control — so every kit text field that floats its label (the default)
-  put its hint out of that selector's reach. The hint would render with the right text and stay
-  `visibility: hidden`, the exact failure a browser test caught once already for a wrapping legend.
-
-  So the same two conditions are asked of the label's CONTENTS instead. Visibility and the error colour are
-  mirrored; daisyUI's `display: revert-layer` companion is not, because the kit never writes a hint with the
-  `hidden` utility it exists to undo.
-*/
-@layer rask-ui-corrections {
-  .floating-label:has(.validator:user-invalid, .validator[aria-invalid]:not([aria-invalid="false"])) ~ .validator-hint {
-    visibility: visible;
-    color: var(--color-ui-danger-ink);
   }
 }
 

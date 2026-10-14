@@ -155,11 +155,11 @@ public sealed partial class ComponentFactoryGenerator
             var ownBits = OwnPendingBits(c);
             // OwnSetterProps is everything the component does not inherit from Rask.Core's
             // Element/Component chain — its own props AND those it inherits from an intermediate base
-            // (HtmlMediaElement, UiElement, UiFormField<T>, a consumer's own base). The shared chain is
+            // (HtmlMediaElement, UiElement, a consumer's own base). The shared chain is
             // emitted once as constrained generic extensions above and must not be duplicated per tag;
             // an intermediate base has no such emission, so skipping it left those props with no setter
             // at all (every kit control's Label/Size, every media element's Src). The receiver
-            // stays the CONCRETE component so the chain keeps its type — a `UiFormField<T>`-typed
+            // stays the CONCRETE component so the chain keeps its type — a base-typed
             // extension would return the base and break the next setter. An init-only prop can only be
             // assigned in an object initializer (CS8852), so it has no setter — the factory reaches it
             // through the initializer instead. The bound IFormControl<T> members are emitted below from

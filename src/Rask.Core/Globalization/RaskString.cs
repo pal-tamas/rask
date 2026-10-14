@@ -329,12 +329,6 @@ public enum RaskString
     /// <summary>What a range slider's second thumb says its value is.</summary>
     SliderRangeEnd,
 
-    /// <summary>The accessible name of a rating's empty choice.</summary>
-    RatingNone,
-
-    /// <summary>The accessible name of one star of a rating: its place, and how many stars there are.</summary>
-    RatingValue,
-
     /// <summary>The accessible name of the control that opens, closes or collapses the sidebar.</summary>
     SidebarToggle,
 
@@ -394,15 +388,6 @@ public enum RaskString
 
     /// <summary>The accessible name of the control that closes a row's detail.</summary>
     DataGridCollapseRow,
-
-    /// <summary>The accessible name of a diff's handle when it is given none.</summary>
-    DiffHandle,
-
-    /// <summary>The accessible name of a filter's reset choice when it is given none.</summary>
-    FilterReset,
-
-    /// <summary>What a field says while its value is being checked.</summary>
-    FieldValidating,
 
     /// <summary>The accessible name of the control that removes a file from an upload's list.</summary>
     FileItemRemove,

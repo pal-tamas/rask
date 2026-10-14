@@ -132,8 +132,7 @@ departure in behaviour carries none.
 
 **Form controls** take Flux's `Label` / `Description` / `DescriptionTrailing` / `Badge` and never draw a
 label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to copy):
-1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl` — NOT `UiFormField<T>`, which
-   stays only for the daisyUI controls and is deleted with the last of them. Declare the five binding props
+1. `public sealed partial class UiX<T> : Component, IFormControl<T>, IUiFormControl`. Declare the five binding props
    (`Value`, `OnChange`, `Bind`, `Validate`, `AfterBind`), Flux's props, `Invalid`, `ShowValidation`, `Id`, `Class`;
    `string IUiFieldControl.ControlId => UiFieldId.Derive(Id, Bind, Label);`, `LambdaExpression? IUiFieldControl.Bound => Bind;`
    (a prop Flux does not document on that part, e.g. `Badge` on the input: `string? IUiFormControl.Badge => null;`).
