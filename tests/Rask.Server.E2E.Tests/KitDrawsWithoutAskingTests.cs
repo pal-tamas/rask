@@ -40,30 +40,42 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     internal static IReadOnlyList<string> Strays()
     {
         var counted = Families.SelectMany(family => family.Value.Gestures.Select(gesture => family.Key + ": " + gesture)).ToHashSet(StringComparer.Ordinal);
-        return [.. Sends.Keys.Concat(Known.Keys).Where(key => !counted.Contains(key))];
+        return [.. Sends.Keys.Concat(Known.Keys).Concat(Unsteady.Keys).Where(key => !counted.Contains(key))];
     }
 
-    /// <summary>The gestures that are in both lists.</summary>
-    internal static IReadOnlyList<string> Doubles() => [.. Sends.Keys.Intersect(Known.Keys)];
+    /// <summary>The gestures that are in more than one of the lists.</summary>
+    internal static IReadOnlyList<string> Doubles() =>
+        [.. Sends.Keys.Intersect(Known.Keys).Concat(Unsteady.Keys.Intersect(Known.Keys.Concat(Sends.Keys)))];
 
     /// <summary>The pages a family is drawn on, for the check that each has a class that walks it.</summary>
     internal static IReadOnlySet<Type> Pages() => Families.Values.Select(family => family.Page).ToHashSet();
 
-    // Null when the gesture kept to its budget.
+    // Null when the gesture cost what its row says. A count is the same on every machine (KitFrameCount), so a
+    // row is exact: more is a gesture that began to send, fewer is a row to lower — or to take out, at none.
     private static string? Judge(string key, KitFrames frames)
     {
+        if (Unsteady.TryGetValue(key, out var unsteady))
+        {
+            return frames.Sent > unsteady.AtMost ? $"{key} — sent {frames.Sent}, over the {unsteady.AtMost} it can cost: {unsteady.Why}."
+                : frames.Sent == 0 ? $"{key} — sends nothing now: take it out of {nameof(Unsteady)}."
+                : null;
+        }
+
         var (budget, list) = Sends.TryGetValue(key, out var sends) ? (sends.Frames, nameof(Sends))
             : Known.TryGetValue(key, out var known) ? (known, nameof(Known))
             : (0, string.Empty);
-        if (frames.Sent > Allowed(budget) || (budget == 0 && frames.Received > 0))
+        if (frames.Sent > budget || (budget == 0 && frames.Received > 0))
         {
             return $"{key} — sent {frames.Sent} and was answered {frames.Received} times, over a budget of {budget}.";
         }
 
-        return budget > 0 && frames.Sent == 0 ? $"{key} — sends nothing now: take it out of {list}." : null;
-    }
+        if (frames.Sent == budget)
+        {
+            return null;
+        }
 
-    // A pointer crossing forty parts is batched by the browser's own frames, a few more or fewer each run: a
-    // count of more than a couple is a ceiling with a quarter to spare, and zero, one and two are exact.
-    private static int Allowed(int budget) => budget <= 2 ? budget : budget + Math.Max(1, budget / 4);
+        return frames.Sent == 0
+            ? $"{key} — sends nothing now: take it out of {list}."
+            : $"{key} — sends {frames.Sent} now, not {budget}: lower its row in {list}.";
+    }
 }

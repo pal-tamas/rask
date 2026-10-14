@@ -380,6 +380,74 @@ public sealed class TenancyTests : IDisposable
     }
 
     [Fact]
+    public async Task A_row_whose_tenant_is_a_shadow_guid_is_not_saved_from_another_tenant_either()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveAsync(database, _acme, "ACME-1");
+        Ledger loaded;
+        using (Tenant.Use(_acme))
+        {
+            loaded = await database.Context.Set<Ledger>().SingleAsync(l => l.Id == id, TestContext.Current.CancellationToken);
+        }
+
+        loaded.Add("carriage");
+        using (Tenant.Use(_globex))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        database.Context.ChangeTracker.Clear();
+        using (Tenant.Across())
+        {
+            Assert.Equal(0, await LedgerEntry.Count(cancellationToken: TestContext.Current.CancellationToken));
+        }
+    }
+
+    [Fact]
+    public async Task A_new_row_that_names_a_tenant_itself_is_saved_inside_Across_and_refused_in_another_tenant()
+    {
+        await using var database = await StartDatabaseAsync();
+        var theirs = Vault.For("V-1");
+        database.Context.Add(theirs);
+        database.Context.Entry(theirs).Property(v => v.TenantId).CurrentValue = _acme;
+
+        using (Tenant.Use(_globex))
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+        }
+
+        using (Tenant.Across())
+        {
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        using (Tenant.Use(_acme))
+        {
+            Assert.Equal(["V-1"], await Vault.Select(v => v.Code));
+        }
+    }
+
+    // Its TenantId is its own data: no tenant in flight says anything about who may change it.
+    [Fact]
+    public async Task A_row_of_a_table_that_is_not_partitioned_is_saved_whatever_tenant_is_in_flight()
+    {
+        await using var database = await StartDatabaseAsync();
+        var haulier = Haulier.For("acme", _acme);
+        database.Context.Add(haulier);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        database.Context.Remove(haulier);
+        using (Tenant.Use(_globex))
+        {
+            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Empty(await Haulier.Select(c => c.Name));
+    }
+
+    [Fact]
     public async Task A_tenant_declared_on_a_table_that_is_not_partitioned_is_an_ordinary_column()
     {
         await using var database = await StartDatabaseAsync();
