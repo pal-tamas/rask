@@ -92,14 +92,31 @@ else is named:
 </PropertyGroup>
 ```
 
+A source file is one matched by `RaskSpaClientInputs`, globs relative to the client: by default
+`*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*`. A client whose sources live elsewhere names them,
+or its bundle is built once and never again — a repository-root package with its apps under `apps/`,
+served by a host in `apps/web/host`:
+
+```xml
+<PropertyGroup>
+  <RaskSpaClientDir>../../..</RaskSpaClientDir>
+  <RaskSpaClientInputs>*.json;*.js;apps/**/*;libs/**/*</RaskSpaClientInputs>
+</PropertyGroup>
+```
+
+`node_modules`, every `bin/` and `obj/`, and the dist directory are never counted, so a glob that
+covers the host project itself does not rebuild the bundle on every build.
+
 An app on `Rask.Server` already has `MapRaskSpa`, but not the build steps: reference
 `Rask.Spa.Hosting` directly to get them.
 
 ## Building and publishing
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
-lockfile), then `npm run build`. Both steps are incremental — an install re-runs when `package.json`
-or the lockfile changes, a build when a source file does. `dotnet publish` copies the bundle into
+lockfile), then `npm run build`. A `yarn.lock` or `pnpm-lock.yaml` counts as the lockfile, and the
+default install follows it: `yarn install --frozen-lockfile` or `pnpm install --frozen-lockfile`. Both
+steps are incremental — an install re-runs when `package.json` or the lockfile changes (or
+`node_modules` is gone), a build when a source file does. `dotnet publish` copies the bundle into
 `wwwroot` next to the app, so a deployed container carries the front end rather than a path that only
 existed on the build machine.
 
@@ -187,9 +204,10 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaClientDir` | a `client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |
-| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
+| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists; left at `npm ci`, a `yarn.lock` or `pnpm-lock.yaml` runs that manager's frozen install instead. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
+| `RaskSpaClientInputs` | `*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*` | The client sources, relative to it, whose change rebuilds the bundle. |
 | `RaskSpaMinimumNode` | `22.12.0` (`22.22.3` in the Angular template) | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
