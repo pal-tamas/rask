@@ -149,6 +149,25 @@ them until tagged releases begin.
   aggregate's static `Configure`, as one chain from `Property(x => x.Id)`, `Property("Id")` or
   `Property(nameof(Id))`; configured anywhere else, the key is still inserted as given and the creates stay those
   of a stored identity. See [writing](docs/data.md#writing-create-update-delete).
+- **`Ui.Phone`: Flux UI's phone field.** `Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Phone number")` — a
+  country picked from a searchable list of flags, the number formatted as it is typed in that country's way, and
+  ONE bound `string`: E.164 (`+36301234567`) once the number is possible, the text as typed until then, as Flux's
+  is. Flux's props in C# (`Country`, `Countries`, `CountryOrder`, `Placeholder`, `Size`, `Variant`, `Label`,
+  `Description`, `Disabled`, `ReadOnly`, `Invalid`, `Name`) and the kit's binding (`Bind`/`Value`/`OnChange`/
+  `Validate`/`AfterBind`, written with the next action, or `.Live()` / `.Debounce(…)`). The engine is the one Flux
+  runs, intl-tel-input 29.2.3 with its libphonenumber utils, so its formatting quirks are Flux's too; it is held to
+  Flux's live page key by key (`UiPhoneTests`), as loaded and with its list open (`parity.mjs phone`,
+  `parity-phone.mjs`). Typing, formatting and the whole list are the browser's: they send the server nothing. The
+  engine is two files every app's build writes to `wwwroot/js` (`rask-ui-phone.js`, 21 KB gzipped, and
+  `rask-ui-phone-utils.js`, 61 KB), fetched by the runtime's new `data-rask-phone` hook only on a page that draws
+  a phone field; `<RaskUiPhoneEngine>false</RaskUiPhoneEngine>` opts an app out. Third-party notices ship beside
+  them in `rask-ui-phone.LICENSES.txt`: intl-tel-input (MIT, Copyright (c) 2014-2016 Jack O'Connor) and the
+  utils' libphonenumber and Closure Library code (Apache-2.0, The Libphonenumber Authors / The Closure Library
+  Authors). New string key `PhoneChangeCountry` ("Change country"; Hungarian "Ország módosítása").
+- **The flag drawings come with the phone engine.** `RaskUiWriteFlags` left unset now follows it: an app that gets
+  the phone engine gets `wwwroot/flags` too (172 KB on disk, a request per flag drawn). `true` still asks for them
+  on a host without the engine, and `false` now says none.
+
 - **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
   job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
   status question to every other pump. After: jobs of one lane run one at a time, in the order they are due, and

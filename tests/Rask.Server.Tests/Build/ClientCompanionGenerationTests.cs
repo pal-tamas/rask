@@ -281,18 +281,19 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public async Task A_server_app_with_no_browser_half_writes_the_flags_with_their_notice_only_when_it_asks()
+    public async Task A_server_app_with_no_browser_half_writes_the_flags_with_the_phone_engine_unless_it_says_no()
     {
-        WriteProject(clientSwitch: false, WebSdk);
-        var unasked = await Run("-t:RaskUiWriteFlags", "-v:minimal");
+        // The phone's list draws a flag a country, so an app that gets the phone engine gets the drawings with it.
+        WriteProject(clientSwitch: false, WebSdk, flags: false);
+        var refused = await Run("-t:RaskUiWriteFlags", "-v:minimal");
         var before = Directory.Exists(Path.Combine(_dir, Flags));
 
-        WriteProject(clientSwitch: false, WebSdk, flags: true);
+        WriteProject(clientSwitch: false, WebSdk);
         var content = Slashes(await Evaluate("-getItem:Content"));
         var asked = await Run("-t:RaskUiWriteFlags", "-v:minimal");
 
-        Assert.True(unasked.ExitCode == 0, unasked.Output);
-        Assert.False(before, "flags were written for an app that never asked for them");
+        Assert.True(refused.ExitCode == 0, refused.Output);
+        Assert.False(before, "flags were written for an app that said it wants none");
         Assert.True(asked.ExitCode == 0, asked.Output);
         // Declared before they exist, so the first build already serves them.
         Assert.Contains(Flags + "/US.svg", content, StringComparison.Ordinal);
@@ -318,7 +319,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public async Task The_browser_app_writes_the_flags_only_when_the_app_asked_for_them()
+    public async Task The_browser_app_writes_the_flags_as_the_app_said_and_with_its_phone_engine_when_it_said_nothing()
     {
         WriteProject(clientSwitch: null, WebSdk);
         var unsaid = await Generate();
@@ -326,8 +327,56 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         WriteProject(clientSwitch: null, WebSdk, flags: true);
         var asked = await Generate();
 
+        WriteProject(clientSwitch: null, WebSdk, flags: false);
+        var refused = await Generate();
+
+        // Nothing said: the browser half decides by its own phone engine, which a WebAssembly app has.
         Assert.DoesNotContain("RaskUiWriteFlags", unsaid, StringComparison.Ordinal);
         Assert.Contains("<RaskUiWriteFlags>true</RaskUiWriteFlags>", asked, StringComparison.Ordinal);
+        Assert.Contains("<RaskUiWriteFlags>false</RaskUiWriteFlags>", refused, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_server_half_leaves_the_phone_engine_to_its_browser_app()
+    {
+        // As with the editor's engine: both halves writing wwwroot/js/rask-ui-phone.js is NETSDK1152.
+        WriteProject(clientSwitch: null, WebSdk);
+
+        var result = await Run("-t:RaskUiWritePhone;RaskUiLeavePhoneToClient", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.False(File.Exists(Path.Combine(_dir, PhoneEngine)), "the server half wrote the phone engine too");
+        Assert.DoesNotContain("rask-ui-phone", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_server_app_with_no_browser_half_writes_the_phone_engine_its_utils_and_their_notices_with_nothing_said()
+    {
+        WriteProject(clientSwitch: false, WebSdk);
+
+        var result = await Run("-t:RaskUiWritePhone", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, PhoneEngine)), result.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, "wwwroot/js/rask-ui-phone-utils.js")), result.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, "wwwroot/js/rask-ui-phone.LICENSES.txt")), result.Output);
+        // Declared before they exist, so the first build already serves them.
+        Assert.Contains(PhoneEngine, content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_browser_app_writes_the_phone_engine_unless_the_app_said_it_draws_none()
+    {
+        WriteProject(clientSwitch: null, WebSdk);
+        var unsaid = await Generate();
+
+        WriteProject(clientSwitch: null, WebSdk, phoneEngine: false);
+        var optedOut = await Generate();
+
+        Assert.DoesNotContain("RaskUiPhoneEngine", unsaid, StringComparison.Ordinal);
+        Assert.Contains("<RaskUiPhoneEngine>false</RaskUiPhoneEngine>", optedOut, StringComparison.Ordinal);
     }
 
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
@@ -337,6 +386,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     private const string EditorEngine = "wwwroot/js/rask-ui-editor.js";
     private const string EditorNotices = "wwwroot/js/rask-ui-editor.LICENSES.txt";
     private const string Flags = "wwwroot/flags";
+    private const string PhoneEngine = "wwwroot/js/rask-ui-phone.js";
 
     private void Write(string relative, string content)
     {
@@ -347,7 +397,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
 
     // The kit's targets are imported as its package would import them, and the kit is "referenced" by name
     // only: nothing here compiles, so the reference is never resolved.
-    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool flags = false) =>
+    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool? flags = null, bool? phoneEngine = null) =>
         Write("App.csproj", $"""
             <Project Sdk="{sdk}">
               <PropertyGroup>
@@ -356,7 +406,8 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
                 <RaskClientCompanionSrc>{SrcDir}</RaskClientCompanionSrc>
                 {(clientSwitch is { } on ? $"<RaskClient>{on.ToString().ToLowerInvariant()}</RaskClient>" : "")}
                 {(editorEngine is { } engine ? $"<RaskUiEditorEngine>{engine.ToString().ToLowerInvariant()}</RaskUiEditorEngine>" : "")}
-                {(flags ? "<RaskUiWriteFlags>true</RaskUiWriteFlags>" : "")}
+                {(flags is { } drawn ? $"<RaskUiWriteFlags>{drawn.ToString().ToLowerInvariant()}</RaskUiWriteFlags>" : "")}
+                {(phoneEngine is { } phone ? $"<RaskUiPhoneEngine>{phone.ToString().ToLowerInvariant()}</RaskUiPhoneEngine>" : "")}
               </PropertyGroup>
               <ItemGroup>
                 <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>

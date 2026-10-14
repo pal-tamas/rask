@@ -51,6 +51,7 @@ internal static class HookBundleTag
         "data-rask-carousel", "data-rask-carousel-controls",
         "data-rask-scroll-to",
         "data-rask-switch",
+        "data-rask-phone",
         "data-rask-list",
     ];
 

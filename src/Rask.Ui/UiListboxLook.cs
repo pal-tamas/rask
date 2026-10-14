@@ -11,7 +11,8 @@ namespace Rask;
 /// </remarks>
 internal static class UiListboxLook
 {
-    private const string Look =
+    /// <summary>The popup's border, fill and padding, before its width: a control that sets a width of its own (the phone's picker) starts here.</summary>
+    internal const string Look =
         "p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
         + "border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-start";
 

@@ -107,6 +107,8 @@ public sealed partial class KitFieldFramePage : KitFramePage
             Part("field", Ui.Field[Ui.Label["Email"], Ui.Input.Value(_name).Id("in-field").OnChange(v => _name = v), Ui.Description["Never shared."]]),
             Part("slider", Ui.Slider.Value(_volume).OnChange(v => _volume = v)),
             Part("otp", Ui.Otp.Value(_code).Length(4).OnChange(v => _code = v)),
+            // Bound as a form binds it: the number waits for the next action, as Flux's wire:model does.
+            Part("phone", Ui.Phone.Bind(() => _choices.Phone).Country("US").Label("Phone")),
             Part("file-upload", Ui.FileUpload.Id("files").Label("Upload files").Multiple()[
                 Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("PNG up to 10MB")
             ])
@@ -115,6 +117,8 @@ public sealed partial class KitFieldFramePage : KitFramePage
     private sealed class Choices
     {
         public ICollection<string> Channels { get; set; } = ["mail"];
+
+        public string? Phone { get; set; }
     }
 }
 

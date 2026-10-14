@@ -478,14 +478,89 @@
   </Target>
 
   <!--
+    THE PHONE ENGINE, for every app that references the kit, as the editor's is.
+
+    Ui.Phone is intl-tel-input, the library fluxui.dev's phone field runs: rask-ui-phone.js (61 KB, 21 KB
+    gzipped) and, beside it, its utils — Google's libphonenumber, compiled — rask-ui-phone-utils.js (263 KB,
+    61 KB gzipped). Neither is in Rask's runtime nor in the kit's assembly: the runtime's hook fetches the engine
+    the first time a page carries a phone field (data-rask-phone, UiPhoneEngine), and the engine the utils when
+    its first field mounts. A page with no phone field fetches neither.
+
+    NO SWITCH, as the editor's: an APP gets the files, a library does not. The flags the picker draws come with
+    them (RaskUiWriteFlags, below, follows this switch unless the app says otherwise), so a phone field needs no
+    second setting. What an app that draws none carries is 0.5 MB on disk in its publish folder, and nothing on
+    any page.
+
+        <RaskUiPhoneEngine>false</RaskUiPhoneEngine>   an app that will never draw one keeps its wwwroot clean
+        <RaskUiPhoneEngine>true</RaskUiPhoneEngine>    a host that is not a Web SDK project (a test host on Kestrel)
+
+    NOT THE SERVER HALF OF A ONE-PROJECT WEBASSEMBLY APP ($(RaskClient)), for the editor's reason (NETSDK1152):
+    the browser half owns the files.
+  -->
+  <PropertyGroup>
+    <RaskUiPhoneEngine Condition="'$(RaskUiPhoneEngine)' == '' AND ('$(UsingMicrosoftNETSdkWeb)' == 'true' OR '$(UsingMicrosoftNETSdkWebAssembly)' == 'true')">true</RaskUiPhoneEngine>
+    <RaskUiPhoneEngine Condition="'$(RaskUiPhoneEngine)' == ''">false</RaskUiPhoneEngine>
+    <!-- From the package: beside these targets. In this repository: the committed files in the kit's sources. -->
+    <_RaskUiPhoneSource>$(MSBuildThisFileDirectory)</_RaskUiPhoneSource>
+    <_RaskUiPhoneSource Condition="!Exists('$(MSBuildThisFileDirectory)rask-ui-phone.js')">$(MSBuildThisFileDirectory)../Resources/</_RaskUiPhoneSource>
+    <_RaskUiPhonePrefix>rask-ui-</_RaskUiPhonePrefix>
+    <_RaskUiPhonePrefix Condition="!Exists('$(MSBuildThisFileDirectory)rask-ui-phone.js')">ui-</_RaskUiPhonePrefix>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RaskUiPhoneEngine)' == 'true' AND '$(RaskClient)' != 'true'">
+    <_RaskUiPhoneKit Include="package" Condition="Exists('$(MSBuildThisFileDirectory)rask-ui-phone.js')"/>
+    <_RaskUiPhoneKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Ui'))"/>
+    <_RaskUiPhoneKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Server'))"/>
+    <_RaskUiPhoneKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm'))"/>
+  </ItemGroup>
+
+  <!-- The three files: what each is called where it lands, and where it comes from. -->
+  <ItemGroup>
+    <_RaskUiPhoneFile Include="wwwroot/js/rask-ui-phone.js" Source="$(_RaskUiPhoneSource)$(_RaskUiPhonePrefix)phone.js"/>
+    <_RaskUiPhoneFile Include="wwwroot/js/rask-ui-phone-utils.js" Source="$(_RaskUiPhoneSource)$(_RaskUiPhonePrefix)phone-utils.js"/>
+    <_RaskUiPhoneFile Include="wwwroot/js/rask-ui-phone.LICENSES.txt" Source="$(_RaskUiPhoneSource)$(_RaskUiPhonePrefix)phone.LICENSES.txt"/>
+  </ItemGroup>
+
+  <!-- Declared before they exist, so a FIRST build serves them: see the stylesheet's own note above (#1105). -->
+  <ItemGroup Condition=" '@(_RaskUiPhoneKit)' != '' ">
+    <Content Include="wwwroot/js/rask-ui-phone.js" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/js/rask-ui-phone.js')" Pack="false"/>
+    <Content Include="wwwroot/js/rask-ui-phone-utils.js" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/js/rask-ui-phone-utils.js')" Pack="false"/>
+    <Content Include="wwwroot/js/rask-ui-phone.LICENSES.txt" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/js/rask-ui-phone.LICENSES.txt')" Pack="false"/>
+  </ItemGroup>
+
+  <!-- Copies an earlier build left in the server half, before it had a browser half: the collision again. -->
+  <ItemGroup Condition="'$(RaskClient)' == 'true'">
+    <Content Remove="@(_RaskUiPhoneFile)"/>
+  </ItemGroup>
+
+  <Target Name="RaskUiLeavePhoneToClient"
+          Condition="'$(RaskClient)' == 'true'"
+          BeforeTargets="BeforeBuild">
+    <Delete Files="@(_RaskUiPhoneFile->'$(MSBuildProjectDirectory)/%(Identity)')"/>
+  </Target>
+
+  <Target Name="RaskUiWritePhone"
+          Condition="'@(_RaskUiPhoneKit)' != ''"
+          BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('%(_RaskUiPhoneFile.Source)')"
+           Text="Rask.Ui: the phone engine's file %(_RaskUiPhoneFile.Source) could not be found, so %(_RaskUiPhoneFile.Identity) cannot be written and every Ui.Phone would stay a plain field. From the package it ships beside these targets; in this repository it is in src/Rask.Ui/Resources, built by Resources/phone/build.mjs. An app that draws no phone field can say &lt;RaskUiPhoneEngine&gt;false&lt;/RaskUiPhoneEngine&gt;."/>
+    <MakeDir Directories="$(MSBuildProjectDirectory)/wwwroot/js"/>
+    <Copy SourceFiles="@(_RaskUiPhoneFile->'%(Source)')"
+          DestinationFiles="@(_RaskUiPhoneFile->'$(MSBuildProjectDirectory)/%(Identity)')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
+  <!--
     UI.FLAG'S DRAWINGS, for an app that says it shows flags.
 
     254 SVGs, 172 KB: not in the kit's assembly, for the editor engine's reason — a browser-WASM app downloads
     every assembly up front, and an app that shows three flags should fetch three. They are static files in
     wwwroot/flags, and Ui.Flag's <img> asks for the one it draws.
 
-    OPT IN, unlike the engine: 255 files in every app's wwwroot is not a cost to hand an app that draws none.
-        <RaskUiWriteFlags>true</RaskUiWriteFlags>
+    WITH THE PHONE ENGINE, whose picker draws a flag a country: an app that gets that engine (above) gets the
+    drawings, and one that does not gets none. Either can say otherwise:
+        <RaskUiWriteFlags>true</RaskUiWriteFlags>    flags for an app with no phone engine (a library's host)
+        <RaskUiWriteFlags>false</RaskUiWriteFlags>   none, phone engine or not (its picker then draws empty frames)
     The path is fixed (UiFlag asks for /flags/<CC>.svg). The notice travels with the drawings: MIT asks for
     it in every copy.
 
@@ -495,7 +570,6 @@
     item's condition, never a property's, so it holds whichever package's targets are imported first.
   -->
   <PropertyGroup>
-    <RaskUiWriteFlags Condition="'$(RaskUiWriteFlags)' == ''">false</RaskUiWriteFlags>
     <_RaskUiFlagsOutput>wwwroot/flags</_RaskUiFlagsOutput>
     <!-- From the package: flags/ at its root, one folder up from these targets and from their twin in
          buildTransitive/. In this repository: the kit's own Flags folder, one folder up as well. -->
@@ -503,7 +577,8 @@
     <_RaskUiFlagsSource Condition="!Exists('$(_RaskUiFlagsSource)/LICENSE.txt')">$(MSBuildThisFileDirectory)../Flags</_RaskUiFlagsSource>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(RaskUiWriteFlags)' == 'true'">
+  <!-- Asked for by name, or unsaid in an app that gets the phone engine. -->
+  <ItemGroup Condition="'$(RaskUiWriteFlags)' == 'true' OR ('$(RaskUiWriteFlags)' == '' AND '@(_RaskUiPhoneKit)' != '')">
     <_RaskUiFlagSource Include="$(_RaskUiFlagsSource)/*.svg;$(_RaskUiFlagsSource)/LICENSE.txt"/>
     <_RaskUiFlagFile Include="@(_RaskUiFlagSource)" Condition="'$(RaskClient)' != 'true'"/>
   </ItemGroup>
@@ -514,18 +589,19 @@
   </ItemGroup>
 
   <!-- Copies an earlier build left in the server half, before it had a browser half: the collision again. -->
-  <ItemGroup Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' == 'true'">
-    <Content Remove="@(_RaskUiFlagSource->'$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
+  <ItemGroup Condition="'$(RaskClient)' == 'true'">
+    <_RaskUiFlagLeft Include="$(_RaskUiFlagsSource)/*.svg;$(_RaskUiFlagsSource)/LICENSE.txt"/>
+    <Content Remove="@(_RaskUiFlagLeft->'$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
   </ItemGroup>
 
   <Target Name="RaskUiLeaveFlagsToClient"
-          Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' == 'true'"
+          Condition="'$(RaskClient)' == 'true'"
           BeforeTargets="BeforeBuild">
-    <Delete Files="@(_RaskUiFlagSource->'$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
+    <Delete Files="@(_RaskUiFlagLeft->'$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)/%(Filename)%(Extension)')"/>
   </Target>
 
   <Target Name="RaskUiWriteFlags"
-          Condition="'$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' != 'true'"
+          Condition="'@(_RaskUiFlagFile)' != '' OR ('$(RaskUiWriteFlags)' == 'true' AND '$(RaskClient)' != 'true')"
           BeforeTargets="BeforeBuild">
     <!-- Fails rather than warns: the project asked for the flags by name, and without them every Ui.Flag is an empty frame. -->
     <Error Condition="'@(_RaskUiFlagFile)' == ''"

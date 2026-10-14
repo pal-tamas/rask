@@ -32,6 +32,7 @@ import "./rask-scroll.js";   // data-rask-scroll-to
 import "./rask-switch.js";   // data-rask-switch
 import "./rask-tabs.js";     // role="tablist": the arrow keys
 import "./rask-menu-keys.js"; // role="menu": the keys, the pick, focus following the cursor
+import "./rask-phone.js";    // data-rask-phone
 import "./rask-list.js";     // data-rask-list: a list of options' cursor, keys, search and open state
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.

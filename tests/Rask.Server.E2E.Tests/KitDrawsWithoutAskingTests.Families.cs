@@ -19,6 +19,18 @@ public abstract partial class KitDrawsWithoutAskingTests
     private const string CommandButton = "[data-c='command'] > button";
     private const string RangeStart = "[data-c='calendar-range'] [role=gridcell] button >> nth=10";
     private const string Rail = "label[for=sidebar-rail][role=button]";
+    private const string PhoneNumber = "[data-c='phone'] input[type=tel]";
+    private const string PhoneButton = "[data-c='phone'] button[role=combobox]";
+
+    // The phone engine is a file the field fetches: every gesture waits for it to have taken the field over.
+    private static readonly Func<Microsoft.Playwright.IPage, Task> PhoneMounted = page =>
+        page.Locator("[data-c='phone'] [data-ui-phone-ready]").WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Attached });
+
+    private static readonly Func<Microsoft.Playwright.IPage, Task> PhoneOpen = async page =>
+    {
+        await PhoneMounted(page);
+        await page.Locator(PhoneButton).ClickAsync();
+    };
 
     private static readonly Dictionary<string, Family> Families = new(StringComparer.Ordinal)
     {
@@ -65,6 +77,23 @@ public abstract partial class KitDrawsWithoutAskingTests
             Typing("[data-c='otp'] [data-ui-otp-input]", "12", "typing half the code"),
             Typing("[data-c='otp'] [data-ui-otp-input]", "1234", "typing the whole code")),
         ["file-upload"] = On<KitFieldFramePage>("file-upload"),
+        ["phone"] = On<KitFieldFramePage>("phone",
+        [
+            Typing(PhoneNumber, "2015550123", arrange: PhoneMounted),
+            new("typing, then leaving the field", async page =>
+            {
+                await page.Locator(PhoneNumber).ClickAsync();
+                await page.Keyboard.TypeAsync("2015550123");
+                await page.Keyboard.PressAsync("Tab");
+            }, PhoneMounted),
+            Press("open by a press", PhoneButton, PhoneMounted),
+            Pointer("[data-c='phone'] [popover]", PhoneOpen, "pointer over the open popup"),
+            Cursor(PhoneOpen),
+            Typing("[data-c='phone'] [popover] input", "hun", "typing to filter", PhoneOpen),
+            Escape(PhoneOpen),
+            Outside(PhoneOpen),
+            Press("pick a country", "[data-c='phone'] [role=option] >> nth=3", PhoneOpen),
+        ]),
 
         ["dropdown"] = On<KitOverlayFramePage>("dropdown", Popup("#dropdown-open", "[data-c='dropdown'] [popover]")),
         ["dropdown-hover"] = On<KitOverlayFramePage>("dropdown-hover"),

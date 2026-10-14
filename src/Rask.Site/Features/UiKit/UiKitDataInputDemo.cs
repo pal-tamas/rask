@@ -47,6 +47,7 @@ public sealed partial class UiKitDataInputDemo : Component
         RatingSection(),
         OneTimeCodeSection(),
         OneTimeCodeLayoutSection(),
+        PhoneSection(),
         FilterSection(),
         CalendarSection(),
         DatePickerSection(),
