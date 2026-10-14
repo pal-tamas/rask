@@ -211,10 +211,52 @@ public static class ReadModelRegistry
             // would match nothing on one provider and fail on another.
             var column = write is null ? TenantColumn.TypeFor(mapping.WriteType) : TenantColumn.TypeFor(write);
 
-            builder.Property(column, Columns.TenantId);
+            var tenant = builder.Property(column, Columns.TenantId);
+            MirrorDeclaredTenantColumn(
+                tenant,
+                write?.FindProperty(Columns.TenantId),
+                write is null ? null : StoreObjectIdentifier.Create(write, StoreObjectType.Table));
             builder.HasQueryFilter(
                 ModelBuilderExtensions.TenantFilter,
                 TenantColumn.BuildFilter(mapping.ReadType, column, context));
+        }
+    }
+
+    // A tenant column the write side declares and configured — kept as TEXT through a conversion, named as an existing
+    // table names it — is read the way it is written. Left as the face's own shadow column it would compare a Guid
+    // with text: nothing on one provider (the text's case differs) and a scan that fails on a stray value on another.
+    private static void MirrorDeclaredTenantColumn(
+        PropertyBuilder tenant, IProperty? declared, StoreObjectIdentifier? store)
+    {
+        if (declared is null)
+        {
+            return;
+        }
+
+        if ((store is { } table ? declared.GetColumnName(table) : declared.GetColumnName()) is { Length: > 0 } name)
+        {
+            tenant.HasColumnName(name);
+        }
+
+        if (declared.GetColumnType() is { Length: > 0 } columnType)
+        {
+            tenant.HasColumnType(columnType);
+        }
+
+        // Either a converter the author wrote, or only the type it is stored as (HasConversion<string>()), which EF
+        // Core keeps as the provider type and builds the converter from.
+        if (declared.GetValueConverter() is { } converter)
+        {
+            tenant.HasConversion(converter);
+        }
+        else if (declared.GetProviderClrType() is { } stored)
+        {
+            tenant.HasConversion(stored);
+        }
+
+        if (declared.GetMaxLength() is { } maxLength)
+        {
+            tenant.HasMaxLength(maxLength);
         }
     }
 

@@ -361,6 +361,14 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
+  `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
+  has) wrote and filtered its own rows by that text, but a READ through the generated read face
+  (`Invoice.Where(…)`, `Invoice.Count()`) compared the column with a `Guid`: nothing was found on SQLite (the
+  Guid's upper-case text is not the stored lower-case), and on SQL Server the column was converted to
+  `uniqueidentifier` for every row, which scans and fails on any value that is not a Guid. After: the face takes
+  the declared column's name, type, length and conversion, so the filter binds the text the column holds. A
+  tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
 - A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
