@@ -334,7 +334,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
         }
 
         var change = Spelled(((IFormControl<T>)this).ControlledChangeHandler());

@@ -403,6 +403,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A tab that uploads files one after another no longer runs out of its upload budget.** A staged file is
+  handed back once the event that carried it is dispatched — a form submit's and an unreached handler's too.
+- **`.OnFiles(() => …)` runs.** A files handler written without its argument was refused every frame as a stale
+  id and silently never ran; it is now fed the files frame like `.OnFiles(files => …)`.
+- **`.OnInput(() => …)` on an input or a textarea, and `.OnSelect(() => …)` on a select, run.** The same silent
+  refusal; a test now walks every typed event slot, so a new one cannot regress unnoticed.
+- **An event batch that never reached its handlers hands its uploads back.** A batch dropped after a sign-in
+  in it, or one whose session was gone by the time it reached the lock, kept its files staged until the session
+  ended; they are now released where every dispatched event's are.
 - **A TypeScript tool fetched at build time asks again when the network fails for a moment.** The tsgo / esbuild /
   compiler download (and its registry metadata) is retried twice, after 2 s and 5 s, on a dropped connection, a
   timeout or a registry 5xx/408/429; a 404 or a download that fails its integrity check still fails at once, and
@@ -2380,12 +2389,6 @@ them until tagged releases begin.
 - **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
   Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — as every `Rask.Ui`
   handler awaits its calls — was never sent, and the session waited on it for good.
-- **A tab that uploads files one after another no longer runs out of its upload budget.** A staged file is
-  handed back once the event that carried it is dispatched — a form submit's and an unreached handler's too.
-- **`.OnFiles(() => …)` runs.** A files handler written without its argument was refused every frame as a stale
-  id and silently never ran; it is now fed the files frame like `.OnFiles(files => …)`.
-- **A queued event batch whose socket closed before it ran hands its uploads back.** Its files stayed staged
-  until the session ended; they are now released where every dispatched event's are.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

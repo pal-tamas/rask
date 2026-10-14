@@ -288,5 +288,6 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     // delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike for this
     // shape, and Component's dispatch has an arm for each, so wrapping would only cost an allocation and
     // a frame. The carrier holds exactly one of them, so there is no longer a pair to pick between.
-    private Delegate? SelectionHandler() => OnSelect.Handler;
+    private Delegate? SelectionHandler() =>
+        OnSelect.Handler is { } picked ? ArgumentIgnoringHandler<IReadOnlyList<string>>.Fed(picked) : null;
 }
