@@ -274,7 +274,9 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
         if (typedInto)
         {
-            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)));
+            WriteTypedBind(
+                sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
+                HeardValues.IsSecret(ResolveType(acc), Autocomplete, Data));
             return;
         }
 

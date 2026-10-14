@@ -13,8 +13,6 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static readonly DateOnly Today = new(2026, 1, 15);
 
     private sealed class Booking
@@ -47,7 +45,6 @@ public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
 
     private static async Task Pick(Page page, string room)
     {
-        await page.On("[popover]").Raise("toggle", Opened);
         await page.On($"[data-ui-option]:has-text(\"{room}\")").Click();
     }
 

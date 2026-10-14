@@ -16,7 +16,20 @@ namespace Rask.Server.E2E.Tests;
 public sealed class EmptiedOnSubmitTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
     private Task<HookSession> OpenAsync(bool kit) =>
-        kit ? HookSession.OpenAsync<ChatKitPage>(playwright) : HookSession.OpenAsync<ChatCorePage>(playwright);
+        kit
+            ? HookSession.OpenAsync<ChatKitPage>(playwright, beforeLoad: KeepFrames)
+            : HookSession.OpenAsync<ChatCorePage>(playwright, beforeLoad: KeepFrames);
+
+    // Every frame the server sends, kept as the page received it.
+    private static Task KeepFrames(IPage page) => page.AddInitScriptAsync(
+        """
+        window.__frames = [];
+        const listen = WebSocket.prototype.addEventListener;
+        WebSocket.prototype.addEventListener = function (type, listener, options) {
+            if (type !== "message") return listen.call(this, type, listener, options);
+            return listen.call(this, type, function (e) { window.__frames.push(String(e.data)); listener(e); }, options);
+        };
+        """);
 
     [Theory]
     [InlineData(false)]
@@ -52,6 +65,23 @@ public sealed class EmptiedOnSubmitTests(PlaywrightFixture playwright) : IClassF
 
         await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=|second");
         await Expect(page.Locator("#notes")).ToHaveValueAsync("");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_password_the_submit_empties_is_empty_and_the_page_never_said_its_text_beside_it(bool kit)
+    {
+        await using var session = await OpenAsync(kit);
+        var page = session.Page;
+        await Ready(page);
+        await page.Locator("#secret").PressSequentiallyAsync("hunter2-correct-horse");
+        await page.Locator("#secret").PressAsync("Enter");
+
+        await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=|");
+        await Expect(page.Locator("#secret")).ToHaveValueAsync("");
+        // What the page wrote beside the field is a count: "<n>:<text>" is how a non-secret word is written.
+        Assert.DoesNotContain(":hunter2-correct-horse", string.Concat(await page.EvaluateAsync<string[]>("() => window.__frames")), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -105,6 +135,8 @@ public sealed class ChatDraft
     public string Message { get; set; } = "";
 
     public string Notes { get; set; } = "";
+
+    public string Secret { get; set; } = "";
 }
 
 /// <summary>A chat box of plain Core controls.</summary>
@@ -132,6 +164,7 @@ public sealed partial class ChatCorePage : Component
         Form.Model(_draft).OnSubmit(Send).NoValidate(true)[
             Input.Bind(() => _draft.Message).Id("message"),
             Textarea.Bind(() => _draft.Notes).Id("notes"),
+            Input.Bind(() => _draft.Secret).Type(InputType.Password).Id("secret"),
             Button.Type(ButtonType.Submit).Id("send")["send"]
         ]
     ];
@@ -147,6 +180,7 @@ public sealed partial class ChatCorePage : Component
         _sent = $"{draft.Message}|{draft.Notes}";
         draft.Message = "";
         draft.Notes = "";
+        draft.Secret = "";
     }
 }
 
@@ -175,6 +209,7 @@ public sealed partial class ChatKitPage : Component
         Form.Model(_draft).OnSubmit(Send).NoValidate(true)[
             Ui.Input.Bind(() => _draft.Message).Id("message"),
             Ui.Textarea.Bind(() => _draft.Notes).Id("notes"),
+            Ui.Input.Bind(() => _draft.Secret).Type(InputType.Password).Id("secret"),
             Ui.Button.Submit.Id("send")["send"]
         ]
     ];
@@ -190,5 +225,6 @@ public sealed partial class ChatKitPage : Component
         _sent = $"{draft.Message}|{draft.Notes}";
         draft.Message = "";
         draft.Notes = "";
+        draft.Secret = "";
     }
 }

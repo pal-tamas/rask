@@ -27,24 +27,46 @@ public sealed partial class KitPickerFramePage : KitFramePage
         ];
 }
 
-/// <summary>The select family, counted here and owned elsewhere.</summary>
+/// <summary>The select family: every kind of list the runtime keeps in the browser (<c>data-rask-list</c>).</summary>
 public sealed partial class KitSelectFramePage : KitFramePage
 {
+    private readonly Answers _answers = new();
     private string? _fruit = "b";
     private string? _city;
+    private string? _found;
     private string _state = string.Empty;
     private List<string> _tags = ["Alpha"];
+    private List<string> _typedTags = ["Alpha"];
+    private string _sought = string.Empty;
+
+    private sealed class Answers
+    {
+        public string? Fruit { get; set; } = "b";
+
+        public string State { get; set; } = string.Empty;
+    }
 
     protected override Component? Render() =>
         Div.Id("stage")[
             Part("select-native", Ui.Select.Value(_fruit).Id("native").OnChange(v => _fruit = v)[Options()]),
             Part("select", Ui.Select.Value(_fruit).Listbox.Id("listbox").Placeholder("Choose…").OnChange(v => _fruit = v)[Options()]),
+            Part("select-bound", Ui.Select.Bind(() => _answers.Fruit).Listbox.Id("bound").Placeholder("Choose…")[Options()]),
             Part("select-searchable", Ui.Select.Value(_city).Listbox.Searchable().Id("searchable").Placeholder("Choose…").OnChange(v => _city = v)[Options()]),
+            Part("select-searched", Ui.Select.Value(_found).Listbox.Searchable().Filter(false).Id("searched").Placeholder("Choose…").OnChange(v => _found = v)[
+                Ui.SelectSearch.OnInput(text => _sought = text).Debounce(500.Milliseconds),
+                Options()
+            ], Span.Id("sought")[_sought]),
             Part("select-combobox", Ui.Select.Value(_city).Combobox.Id("combobox").Placeholder("Choose…").OnChange(v => _city = v)[Options()]),
             Part("autocomplete", Ui.Autocomplete.Value(_state).Id("autocomplete").OnChange(v => _state = v)[
                 Ui.AutocompleteItem.Key("al")["Alabama"], Ui.AutocompleteItem.Key("ak")["Alaska"], Ui.AutocompleteItem.Key("az")["Arizona"]
             ]),
+            Part("autocomplete-bound", Ui.Autocomplete.Bind(() => _answers.State).Id("autocomplete-bound")[
+                Ui.AutocompleteItem.Key("al")["Alabama"], Ui.AutocompleteItem.Key("ak")["Alaska"], Ui.AutocompleteItem.Key("az")["Arizona"]
+            ]),
             Part("pillbox", Ui.Pillbox.Values(_tags).Id("pillbox").Placeholder("Choose…").OnChange(v => _tags = [.. v])[
+                Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
+            ]),
+            Part("pillbox-combobox", Ui.Pillbox.Values(_typedTags).Combobox.Id("pillbox-combobox").Placeholder("Choose…").OnChange(v => _typedTags = [.. v])[
                 Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
             ])
         ];

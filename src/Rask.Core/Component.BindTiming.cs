@@ -14,7 +14,7 @@ public abstract partial class Component
     // message is about a value already being corrected.
     private protected static void WriteTypedBind(
         StringBuilder sb, LiveRenderContext ctx, BindTiming timing, ExpressionAccessor.Accessor acc,
-        EditContext? bindCtx, Func<Task>? afterBind, bool text)
+        EditContext? bindCtx, Func<Task>? afterBind, bool text, bool secret = false)
     {
         if (timing.AtEveryKey && text)
         {
@@ -40,7 +40,7 @@ public abstract partial class Component
 
             // The render that answers what the field was sent with says what that was: a field that still holds it
             // takes the value rendered here, focused or not — a submit that empties it empties it (HeardValues).
-            if (ctx.Handle?.HeardValues?.Told(commit) is { } heard)
+            if (ctx.Handle?.HeardValues?.Told(commit, secret) is { } heard)
             {
                 AppendAttr(sb, "data-rask-heard", heard);
             }

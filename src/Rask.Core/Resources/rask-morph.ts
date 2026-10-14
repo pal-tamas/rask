@@ -178,7 +178,8 @@ export function raskShouldSuppressValue(el: Element | null, incoming: string): b
 // (data-rask-heard="<count>:<text>", Forms/HeardValues.cs). A field that still holds exactly that has nothing
 // unsent, and takes the value the page rendered for it, focused or not and whatever the guard above recorded — a
 // submit that empties a chat box empties it (#1245). A field the reader has typed on in since keeps what they
-// typed. The word is acted on ONCE per count, when the page's value is no longer the one it heard: the page never
+// typed. A secret's word is the count alone (no text ever goes into a page): a secret is only ever CLEARED, when the
+// page renders it empty — never given a value. The word is acted on ONCE per count, when the page's value is no longer the one it heard: the page never
 // takes it back out (that would be a frame of its own), so a later render that still carries it is old news — and
 // the render between the change and the action, which still holds what was heard, is not the answer yet.
 const _raskHeardCounts = new WeakMap<Element, string>();
@@ -187,12 +188,20 @@ export function raskAdoptHeard(el: Element): void {
     const word = el.getAttribute("data-rask-heard");
     if (word === null || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")) return;
     const at = word.indexOf(":");
-    const count = word.slice(0, at);
-    if (at < 0 || _raskHeardCounts.get(el) === count) return;
-    const heard = word.slice(at + 1);
+    const count = at < 0 ? word : word.slice(0, at);
+    if (_raskHeardCounts.get(el) === count) return;
     const field = el as HTMLInputElement | HTMLTextAreaElement;
     // An input's rendered value is its `value` attribute, a textarea's its text: both read as defaultValue.
     const rendered = field.defaultValue;
+    if (at < 0) {
+        // A secret: the page said the count and nothing else. Only "the page renders it empty" is acted on.
+        if (rendered !== "") return;
+        _raskHeardCounts.set(el, count);
+        _raskPendingValues().delete(el);
+        if (field.value !== "") field.value = "";
+        return;
+    }
+    const heard = word.slice(at + 1);
     if (rendered === heard) return;
     _raskHeardCounts.set(el, count);
     if (field.value !== heard) return;

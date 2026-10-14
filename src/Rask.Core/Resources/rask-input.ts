@@ -18,7 +18,7 @@ import {
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
 import { isHandlerEvent } from "./rask-batch.js";
-import { draws, isUnasked, unasked } from "./rask-owned.js";
+import { draws, isUnasked, seam, unasked } from "./rask-owned.js";
 
 /** Any element this module reads a `value` off. */
 type ValueElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
@@ -218,9 +218,26 @@ function ask(el: ValueElement, composing: boolean): void {
     asking.set(el, composing ? 0 : window.setTimeout(function () {
         asking.delete(el);
         const id = el.getAttribute(ON_PAUSE);
-        if (id && el.isConnected) sendOwn(function () { send({ id, type: "input", value: el.value }); });
+        if (id && el.isConnected) {
+            // Kept for whoever rewrites the field later (rask-list.ts): it tells the page only what the page does not know.
+            seam.told!.set(el, el.value);
+            sendOwn(function () { send({ id, type: "input", value: el.value }); });
+        }
     }, Number(el.getAttribute(PAUSE))));
 }
+
+// A field the runtime itself rewrote (rask-list.ts): the pause it was counting ends, and its handler hears
+// what it says now — or nothing, when what was typed is simply gone.
+seam.hear = function (el: Element, now: boolean): void {
+    const field = el as ValueElement;
+    clearTimeout(asking.get(field));
+    asking.delete(field);
+    const id = field.getAttribute(ON_PAUSE);
+    if (now && id && field.isConnected) {
+        seam.told!.set(field, field.value);
+        sendOwn(function () { send({ id, type: "input", value: field.value }); });
+    }
+};
 
 function flushInputs(): void {
     inputRaf = 0;

@@ -146,7 +146,9 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             // Bound: the model is written when the field's timing says (Component.BindTiming.cs).
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
-            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)));
+            WriteTypedBind(
+                sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
+                HeardValues.IsSecret(null, Autocomplete, Data));
             return;
         }
 

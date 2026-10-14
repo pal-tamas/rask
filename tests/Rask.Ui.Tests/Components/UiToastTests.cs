@@ -268,7 +268,6 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
             ],
             Session());
         await page.Click("Save");
-        await page.On("[popover=\"auto\"]").Raise("toggle", """{"oldState":"closed","newState":"open"}""");
         await page.On("[data-ui-option]:has-text(\"Attic\")").Click();
 
         await page.On("[data-rask-dismiss]").Raise("click", """{"unasked":true}""");

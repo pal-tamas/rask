@@ -58,12 +58,12 @@ public class HeardFieldTests
         return (html, MarkupAssert.SessionId(html));
     }
 
-    private static string Batch(params string[] events) => $$"""{"type":"batch","events":[{{string.Join(',', events)}}]}""";
+    internal static string Batch(params string[] events) => $$"""{"type":"batch","events":[{{string.Join(',', events)}}]}""";
 
-    private static string Change(string html, string id, string value) =>
+    internal static string Change(string html, string id, string value) =>
         $$"""{"id":"{{Attr(html, id, "data-rask-on-change")}}","type":"change","value":"{{value}}"}""";
 
-    private static string Submit(string html) => Regex.Match(html, "data-rask-on-submit=\"(h\\d+)\"").Groups[1].Value;
+    internal static string Submit(string html) => Regex.Match(html, "data-rask-on-submit=\"(h\\d+)\"").Groups[1].Value;
 
     // The value of `attribute` on the element whose id is `id`.
     internal static string Attr(string html, string id, string attribute)
@@ -74,7 +74,7 @@ public class HeardFieldTests
         return match.Groups[1].Value;
     }
 
-    private static string HtmlOf(string frame)
+    internal static string HtmlOf(string frame)
     {
         using var doc = JsonDocument.Parse(frame);
         return doc.RootElement.GetProperty("html").GetString()!;

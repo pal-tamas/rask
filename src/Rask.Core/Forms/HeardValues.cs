@@ -23,6 +23,10 @@ namespace Rask.Core.Forms;
 ///         and the browser acts on a word once. Nothing takes it back out: removing it would be a frame of its own.
 ///         At most <see cref="Most" /> fields are kept.
 ///     </para>
+///     <para>
+///         A secret field gets the count alone (<c>data-rask-heard="3"</c>), and the browser then only ever CLEARS it,
+///         when the page renders it empty: no text of a password goes into a page, a frame or an answer here.
+///     </para>
 /// </remarks>
 internal sealed class HeardValues
 {
@@ -57,13 +61,35 @@ internal sealed class HeardValues
 
     /// <summary>What the browser last sent for the field <paramref name="handlerId" /> commits, or null.</summary>
     /// <param name="handlerId">The field's handler, as this render registered it.</param>
-    public string? Told(string handlerId)
+    /// <param name="secret">The field holds a secret: only the count is written, never the text.</param>
+    public string? Told(string handlerId, bool secret = false)
     {
         lock (_gate)
         {
-            return _heard is { Count: > 0 } heard && heard.TryGetValue(handlerId, out var told)
-                ? string.Create(CultureInfo.InvariantCulture, $"{told.Count}:{told.Text}")
-                : null;
+            if (_heard is not { Count: > 0 } heard || !heard.TryGetValue(handlerId, out var told))
+            {
+                return null;
+            }
+
+            return secret
+                ? told.Count.ToString(CultureInfo.InvariantCulture)
+                : string.Create(CultureInfo.InvariantCulture, $"{told.Count}:{told.Text}");
         }
     }
+
+    /// <summary>
+    ///     Whether a field holds a secret, whose text is never written back into a page: a password, a hidden
+    ///     field, one the browser fills as a credential or a code, or one the app marks <c>data-rask-secret</c>.
+    /// </summary>
+    /// <param name="type">The field's resolved <c>type</c>.</param>
+    /// <param name="autocomplete">Its <c>autocomplete</c> tokens.</param>
+    /// <param name="data">Its <c>data-*</c> bag.</param>
+    public static bool IsSecret(string? type, string? autocomplete, IReadOnlyDictionary<string, string?>? data) =>
+        string.Equals(type, "password", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(type, "hidden", StringComparison.OrdinalIgnoreCase)
+        || (autocomplete is not null
+            && (autocomplete.Contains("current-password", StringComparison.OrdinalIgnoreCase)
+                || autocomplete.Contains("new-password", StringComparison.OrdinalIgnoreCase)
+                || autocomplete.Contains("one-time-code", StringComparison.OrdinalIgnoreCase)))
+        || (data is not null && data.ContainsKey("rask-secret"));
 }
