@@ -325,6 +325,13 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A scaffolded app published in Release starts (#1226).** Before: `dotnet publish -c Release` of a fresh `rask new`
+  app died before it listened, with `Could not load file or assembly 'Rask.DevTools'` from `AddMvcCore` (reached
+  through `AddRaskApi`): the publish removed the devtools, but the Web SDK had compiled an MVC
+  `[ApplicationPart("Rask.DevTools")]` into the app's own assembly, and MVC loads every application part at
+  startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
+  devtools also fails if the app assembly still names it. The template gate now publishes the server template in
+  Release and starts it.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
