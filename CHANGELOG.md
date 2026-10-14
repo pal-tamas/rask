@@ -370,6 +370,13 @@ them until tagged releases begin.
   code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
   daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`, and the chart frame's `aspect-3/1`) are named in `ui.precompiled.css` instead. A change under
   `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
+- **A scaffolded app published in Release starts (#1226).** Before: `dotnet publish -c Release` of a fresh `rask new`
+  app died before it listened, with `Could not load file or assembly 'Rask.DevTools'` from `AddMvcCore` (reached
+  through `AddRaskApi`): the publish removed the devtools, but the Web SDK had compiled an MVC
+  `[ApplicationPart("Rask.DevTools")]` into the app's own assembly, and MVC loads every application part at
+  startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
+  devtools also fails if the app assembly still names it. The template gate now publishes the server template in
+  Release and starts it.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
