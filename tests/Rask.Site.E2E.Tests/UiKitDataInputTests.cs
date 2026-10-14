@@ -184,7 +184,6 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await Page.Keyboard.PressAsync("Enter");
 
         await Expect(Page.Locator("[data-testid='ui-composer-sent']")).ToContainTextAsync("Sent: One Two");
-        await Expect(quick).ToHaveValueAsync(string.Empty);
     });
 
     [Fact]

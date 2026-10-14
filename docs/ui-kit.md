@@ -979,7 +979,7 @@ Ui.Composer.Bind(() => chat.Prompt).Input(Ui.Editor.Toolbar("bold italic bullet 
 - **Keys.** Ctrl+Enter or Cmd+Enter sends the form (Flux's `cmd+enter`); `.Enter` makes Enter alone send it and
   leaves Shift+Enter for a new line. The keys are the runtime's (`data-rask-submit-keys`), in the keydown itself:
   no newline lands first, and the form is submitted as its submit button would submit it. Outside a form the
-  keys do nothing. Neither key empties the box — the page does that in its submit handler.
+  keys do nothing. Neither key empties the box, as on Flux's page.
 - **Height.** Two lines unless `Rows` says otherwise; the box grows a line at a time with its text up to
   `MaxRows` (ten unless set) and scrolls from there (`data-rask-grow`). A box the page empties keeps its height,
   as Flux's does.
