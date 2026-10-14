@@ -413,6 +413,15 @@ them until tagged releases begin.
   was found and then reclaimed on another thread before its owner was checked — a never-connected page's grace
   period ending at that moment — failed with an `ObjectDisposedException` from the session's disposed services.
   It now gets the answer the session being gone always gave.
+- **`Rask.Spa.Hosting` rebuilds a yarn or pnpm client, and one at the repository root, when its sources change
+  (#1237).** Before: the install's up-to-date check compared against npm's `node_modules/.package-lock.json`,
+  which yarn never writes, so the install ran on every build; a `yarn.lock` did not count as a lockfile, so the
+  first install was `npm install`; and the build's inputs were fixed to `src/**` and `public/**`, so a client
+  whose sources live in `apps/` or `libs/` was built once and its stale bundle served for ever. After: any
+  lockfile counts and the default install follows it (`yarn install --frozen-lockfile`, `pnpm install
+  --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
+  and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
+  dist directory are never counted, so a glob that covers the host does not rebuild every time.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
