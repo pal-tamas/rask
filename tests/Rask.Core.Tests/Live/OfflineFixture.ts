@@ -14,7 +14,8 @@ page.window = {
 };
 page.document = {
     documentElement: {
-        toggleAttribute(name: string, force?: boolean) { if (force) { attributes.add(name); } else { attributes.delete(name); } },
+        setAttribute(name: string) { attributes.add(name); },
+        removeAttribute(name: string) { attributes.delete(name); },
     },
 };
 

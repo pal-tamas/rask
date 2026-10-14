@@ -11,7 +11,9 @@ let connectionDown = false;
 
 function paint(): void {
     if (typeof document === "undefined" || !document.documentElement) return;
-    document.documentElement.toggleAttribute("data-rask-offline", browserOffline || connectionDown);
+    const html = document.documentElement;
+    if (browserOffline || connectionDown) html.setAttribute("data-rask-offline", "");
+    else html.removeAttribute("data-rask-offline");
 }
 
 /** The host's live connection is down (true) or back (false). The browser's own report is kept apart from it. */
