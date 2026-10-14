@@ -172,6 +172,23 @@ export function raskShouldSuppressValue(el: Element | null, incoming: string): b
     return false;
 }
 
+// What the page heard. A bound field that waits for the next action is the reader's while they are in it, and a
+// render that knows nothing newer leaves it alone (the value sync in morph(), the focus guard in rask-dom.ts).
+// The render that answers the action the field went with does know: it carries what it heard beside the
+// field (data-rask-heard, Forms/HeardValues.cs). A field that still holds exactly that has nothing unsent, and
+// takes the value the page rendered for it, focused or not and whatever the guard above recorded — a submit
+// that empties a chat box empties it (#1245). A field the reader has typed on in since keeps what they typed.
+export function raskAdoptHeard(el: Element): void {
+    const heard = el.getAttribute("data-rask-heard");
+    if (heard === null || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")) return;
+    const field = el as HTMLInputElement | HTMLTextAreaElement;
+    // An input's rendered value is its `value` attribute, a textarea's its text: both read as defaultValue.
+    const rendered = field.defaultValue;
+    if (field.value !== heard || rendered === heard) return;
+    _raskPendingValues().delete(el);
+    field.value = rendered;
+}
+
 // The `.checked` analogue of the value guard above. A native radio/checkbox click flips the
 // `.checked` PROPERTY but leaves the `checked` ATTRIBUTE untouched, so the change dispatch records
 // the pre-click attribute state (raskNotePendingChecked) — exactly as the value guard records the
@@ -782,6 +799,7 @@ export function morph(fromNode: Node, toNode: Node): void {
         }
         if (isDocHead) _raskDiscardFrameworkHeadMutations();
         if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
+        raskAdoptHeard(from);
         return;
     }
 
@@ -797,4 +815,6 @@ export function morph(fromNode: Node, toNode: Node): void {
     // After the options are reconciled, never before: the selection is read off the incoming
     // `selected` attributes, and until the child walk above has run they are still the old render's.
     if (tag === "SELECT") raskSyncSelectSelection(from as HTMLSelectElement);
+    // After the children, never before: a textarea's rendered value is its text.
+    raskAdoptHeard(from);
 }

@@ -37,6 +37,13 @@ public abstract partial class Component
         {
             AppendAttr(sb, "data-rask-on-change", commit);
             AppendAttr(sb, "data-rask-bind-on", timing.WaitsForAction ? "action" : "blur");
+
+            // The render that answers what the field was sent with says what that was: a field that still holds it
+            // takes the value rendered here, focused or not — a submit that empties it empties it (HeardValues).
+            if (ctx.Handle?.HeardValues?.Told(commit) is { } heard)
+            {
+                AppendAttr(sb, "data-rask-heard", heard);
+            }
         }
 
         if (BindingHelpers.ClearOnEditHandler(bindCtx, acc.Field) is { } clear)

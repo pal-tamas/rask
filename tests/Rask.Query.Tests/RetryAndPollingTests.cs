@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 using Rask.Cqrs;
 
 namespace Rask.Querying.Tests;
@@ -163,6 +164,55 @@ public class RetryAndPollingTests
         // A polling query that outlives its component keeps a session doing work for ever.
         await Task.Delay(120, TestContext.Current.CancellationToken);
         Assert.Equal(afterDispose, dispatcher.QueryCountFor<GetOrders>());
+    }
+
+    [Fact]
+    public async Task A_polling_query_takes_no_tick_while_the_tab_is_hidden()
+    {
+        var visibility = new PageVisibility();
+        var dispatcher = new CountingDispatcher();
+        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), visibility: visibility);
+        using var query = client.Query(new GetOrders(1), new QueryOptions
+        {
+            StaleTime = TimeSpan.FromHours(1),
+            RefetchInterval = TimeSpan.FromMilliseconds(15),
+        });
+        await Settle(query);
+
+        visibility.Set(hidden: true);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
+        var whenHidden = dispatcher.QueryCountFor<GetOrders>();
+        await Task.Delay(150, TestContext.Current.CancellationToken);
+
+        // At most the one tick that had passed its check as the tab went: nothing after it.
+        Assert.Equal(whenHidden, dispatcher.QueryCountFor<GetOrders>());
+    }
+
+    [Fact]
+    public async Task A_tick_that_fell_due_while_the_tab_was_hidden_is_taken_the_moment_it_is_shown()
+    {
+        var visibility = new PageVisibility();
+        var dispatcher = new CountingDispatcher();
+        var client = new SessionQueryClient(dispatcher, new TestClock(DateTimeOffset.UnixEpoch), visibility: visibility);
+        visibility.Set(hidden: true);
+        using var query = client.Query(new GetOrders(1), new QueryOptions
+        {
+            StaleTime = TimeSpan.FromHours(1),
+            RefetchInterval = TimeSpan.FromMilliseconds(15),
+        });
+        await Settle(query);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        var whileHidden = dispatcher.QueryCountFor<GetOrders>();
+
+        visibility.Set(hidden: false);
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (dispatcher.QueryCountFor<GetOrders>() == whileHidden && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(5, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(1, whileHidden);
+        Assert.True(dispatcher.QueryCountFor<GetOrders>() > whileHidden, "the overdue tick was never taken");
     }
 
     [Fact]

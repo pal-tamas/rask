@@ -293,6 +293,7 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<RaskLiveMarker>();
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<PageVisibility>();
         services.AddScoped<ServerPageResponse>();
         services.AddScoped<IPageResponse>(sp => sp.GetRequiredService<ServerPageResponse>());
         // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
@@ -2241,7 +2242,8 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        return false;
+        // The tab went out of sight or came back: what polls waits for it (PageVisibility). No render needed.
+        return PageVisibility.Heard(root, session.Services);
     }
 
     // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
@@ -2688,6 +2690,7 @@ public static partial class RaskEndpointExtensions
             return acked;
         }
 
+        session.BeginFrame();
         var submits = EventBatch.AnnounceSubmits(session.View, events);
         session.WhoAnswered = WhoAnswer.OwedToBatch;
         try
@@ -2857,7 +2860,11 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            token =>
+            {
+                session.BeginFrame();
+                return session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token);
+            },
             metrics,
             handlerTimeout,
             lockHeld: false,

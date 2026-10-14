@@ -85,6 +85,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Lazy` — a component mounted when it is scrolled into view, Livewire's `#[Lazy]`.** Before: a widget below the
+  fold mounted with the page, its reads holding the first response. After: `Lazy.Placeholder(Ui.Skeleton)[SalesWidget]`
+  renders the placeholder (an empty `div` for `Lazy[SalesWidget]`) and mounts the widget — `OnMount`, its reads —
+  only once any of the placeholder is in the viewport: one frame, nobody's action, on both hosts
+  (`data-rask-lazy`, a behaviour hook).
+
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -325,6 +331,18 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+
+- **A polling query waits while the reader's tab is hidden.** Before: `QueryOptions.RefetchInterval` went on asking
+  the server in a background tab for as long as the page was open. After: no tick is taken while the tab is out of
+  sight, and the one that fell due meanwhile is taken the moment the reader comes back — the browser says so with a
+  `visibility` frame, on both hosts. docs/lifecycle.md no longer shows a detached `_ = Poll()` loop: data is kept
+  fresh with `RefetchInterval` ([Polling](docs/query.md#polling)).
+- **A field the submit empties is empty in the browser (#1245).** Before: a bound field that waits for the next
+  action and is set to `""` by the handler of the submit it went with kept the typed text — the last render had it
+  empty too, so the diff said nothing — and a chat box could not clear itself. After: the render that answers the
+  action writes what it heard beside the field (`data-rask-heard`), and a field that still holds exactly that takes
+  the rendered value, focused or not, as Livewire's does. A field typed on since keeps what was typed, and a render
+  that answers something else still leaves it alone. Server and WASM.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a

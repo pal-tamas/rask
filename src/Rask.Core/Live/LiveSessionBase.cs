@@ -270,6 +270,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     Forms.PendingBinds? IRenderHandle.PendingBinds => _pendingBinds ??= new Forms.PendingBinds(View);
 
+    // What the browser last sent for this session's fields (Forms/HeardValues).
+    private Forms.HeardValues? _heard;
+
+    Forms.HeardValues? IRenderHandle.HeardValues => _heard ??= new Forms.HeardValues();
+
+    /// <summary>A frame of events from the browser starts its dispatch, under the session's lock.</summary>
+    internal void BeginFrame() => _heard?.NextFrame();
+
     /// <summary>
     ///     Whether the last render actually mounted <paramref name="pageType" />.
     /// </summary>

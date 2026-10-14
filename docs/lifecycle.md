@@ -109,20 +109,37 @@ form once it is there, and let a form component of your own read its model prop 
 its `OnMount` is taken once, before the read is back. See
 [an edit page that reads its record](forms.md#an-edit-page-that-reads-its-record).
 
-Work you deliberately detach from the hook is **not** waited on. A poll loop started with
-`_ = Poll()` returns from `OnMount` immediately, so the response goes out and the loop
-keeps pushing over the live connection:
+Data that has to stay fresh after the first render is not a loop in a hook. Poll it with the query that reads it —
+`RefetchInterval` refetches on that interval while the component renders it, stops when it unmounts, and waits while
+the reader's tab is hidden ([Polling](query.md#polling)):
 
 ```csharp
-protected override async Task OnMount()
+protected override Component? Render()
 {
-    await Read();    // awaited: the GET waits for this
-    _ = Poll();      // detached: it must not hold the response open
+    var sales = QueryClient.Query(new GetSales(), new QueryOptions { RefetchInterval = TimeSpan.FromSeconds(30) });
+    return sales.Data is { } data ? P[$"{data.Total} sold"] : P["Loading..."];
 }
 ```
 
-Neither call passes a cancellation token: both run inside the component's own work and are cancelled when it
-unmounts.
+## Load when in view
+
+A widget far down a page need not cost the first response anything. Wrap it in `Lazy`, and it is not mounted —
+no `OnMount`, none of its reads — until the reader scrolls to it; what stands in its place until then is the
+placeholder:
+
+```csharp
+protected override Component? Render() =>
+[
+    Ui.Heading["Dashboard"],
+    Lazy.Placeholder(Ui.Skeleton)[SalesWidget],   // mounted once the skeleton is scrolled into view
+];
+```
+
+The first `GET` carries the placeholder. The moment any of it is in the viewport the browser says so, once, and
+the page answers with the widget in its place — on both hosts. `Lazy[SalesWidget]` puts an empty `div` there, as
+Livewire does. Each lazy is a frame of its own, so a slow one holds no other back, and a lazy inside a loaded one
+waits for its own turn. It is Livewire's `#[Lazy]`; Livewire's `defer` — load right after the page, wherever it
+is — has no Rask spelling yet.
 
 ### When `OnUpdated` refires
 
@@ -151,8 +168,8 @@ Splitting the loop does not rescue it either. Letting the hook return before the
 widget, and starting the loop detached lets it outlive the render pass and re-render against a session scope
 that has already been disposed.
 
-Put ongoing work in a **service with its own lifetime** and have the component subscribe to it — which is what
-[Background service](#background-service) below shows. The component's own hooks then do what they are for:
+Data to keep fresh is a polling query, above. Any other ongoing work goes in a **service with its own lifetime**
+that the component subscribes to — which is what [Background service](#background-service) below shows. The component's own hooks then do what they are for:
 subscribe on mount, unsubscribe on unmount.
 
 ## Async rules

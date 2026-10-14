@@ -447,6 +447,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return HandleNavigateAsync(root, copyFrame);
         }
 
+        // The tab went out of sight or came back: what polls waits for it. No render needed.
+        if (PageVisibility.Heard(root, Services))
+        {
+            return NoFrame;
+        }
+
         if (string.Equals(type, "batch", StringComparison.Ordinal))
         {
             return root.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array
@@ -479,6 +485,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         try
         {
+            BeginFrame();
             return await RunHandlerAsync(handlerId, root, copyFrame, deferRender: false).ConfigureAwait(false);
         }
         finally
@@ -508,6 +515,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return Array.Empty<byte>();
         }
 
+        BeginFrame();
         var submits = EventBatch.AnnounceSubmits(View, events);
         try
         {

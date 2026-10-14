@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Claims;
 using Rask.Core.Authentication;
+using Rask.Core.Live;
 using Rask.Cqrs;
 
 namespace Rask.Querying;
@@ -27,9 +28,11 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
     private readonly IUserProvider? _users;
     private ClaimsPrincipal? _readFor;
 
-    public SessionQueryClient(IDispatcher dispatcher, TimeProvider? time = null, IUserProvider? users = null)
+    public SessionQueryClient(
+        IDispatcher dispatcher, TimeProvider? time = null, IUserProvider? users = null, PageVisibility? visibility = null)
     {
         _dispatcher = dispatcher;
+        Visibility = visibility;
         _time = time ?? Clock.TimeProvider;
         _users = users;
         if (users is not null)
@@ -49,6 +52,9 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
             Forget();
         }
     }
+
+    /// <summary>Whether the reader's tab is in sight, where the host says so: a polling query waits while it is not.</summary>
+    internal PageVisibility? Visibility { get; }
 
     /// <summary>Stops the live-refresh listener when the session's scope ends.</summary>
     public void Dispose()

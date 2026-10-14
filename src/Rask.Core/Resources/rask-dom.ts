@@ -15,6 +15,7 @@ import {
     _raskDiscardFrameworkHeadMutations,
     _raskTagForeignHeadNodes,
     morph,
+    raskAdoptHeard,
     raskShouldSuppressChecked,
     raskShouldSuppressSelected,
     raskShouldSuppressValue,
@@ -169,6 +170,10 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
     // head insertions, never a coincidentally-pending library injection.
     _raskTagForeignHeadNodes();
 
+    // The fields this diff wrote a value, a text or a heard value on: each asked once the whole diff is in,
+    // when its rendered value is final (raskAdoptHeard, rask-morph.ts). Null for the diffs that write none.
+    let fields: Set<Element> | null = null;
+
     for (const op of ops) {
         const k = op[0];
         const path = op[1] || [];
@@ -186,6 +191,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     // (the attribute is the *default*, not the current state). Sync
                     // the IDL property too so user-visible state matches the diff.
                     syncFormProperty(el, name1, newVal, true);
+                    if (name1 === "value" || name1 === "data-rask-heard") (fields ||= new Set()).add(el);
                 }
                 break;
             }
@@ -210,6 +216,8 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     // codec ships it as a Remove+Insert that routes to the full-HTML morph.
                     const txtVal = op[2];
                     textNode.textContent = txtVal == null ? "" : txtVal;
+                    const holder = textNode.parentNode;
+                    if (holder && holder.nodeName === "TEXTAREA") (fields ||= new Set()).add(holder as Element);
                 }
                 break;
             }
@@ -318,6 +326,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                 return;
         }
     }
+    if (fields) fields.forEach(raskAdoptHeard);
     // A diff can insert Head-declared <script>/<link> into <head> (keyed InsertSubtree). Discard those
     // framework mutations from the head observer's queue so they aren't tagged as foreign injections
     // (see _raskHeadObserver in rask-morph.js).

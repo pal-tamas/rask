@@ -89,4 +89,8 @@ public interface IRenderHandle
     // The values this session's controls chose that wait for the next action (Forms/PendingBinds). A handle
     // that is not a session holds none, and a control under it writes as it is chosen.
     internal Forms.PendingBinds? PendingBinds => null;
+
+    // What the browser last sent for this session's fields, written back beside them by the render that answers
+    // it (Forms/HeardValues). A handle that is not a session hears nothing.
+    internal Forms.HeardValues? HeardValues => null;
 }
