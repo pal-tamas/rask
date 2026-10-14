@@ -26,17 +26,17 @@ public sealed partial class UiKitDataInputDemo
                         ]
                     ]
                 ],
-                Ui.Phone.Key("office").Bind(() => _contact.Office).Country("GB").Label("Office phone"),
-                Ui.Phone.Key("support").Bind(() => _contact.Support).Country("US").Countries(Four).Label("Support phone"),
-                Ui.Phone.Key("contact").Bind(() => _contact.Other).Country("US").CountryOrder(Four).Label("Contact phone"),
-                Ui.Phone.Key("filled").Value("+12015550123").Country("US").Filled.Label("Mobile phone"),
+                Ui.Phone.Bind(() => _contact.Office).Key("office").Country("GB").Label("Office phone"),
+                Ui.Phone.Bind(() => _contact.Support).Key("support").Country("US").Countries(Four).Label("Support phone"),
+                Ui.Phone.Bind(() => _contact.Other).Key("contact").Country("US").CountryOrder(Four).Label("Contact phone"),
+                Ui.Phone.Value("+12015550123").Key("filled").Country("US").Filled.Label("Mobile phone"),
                 Div.Key("sizes").Class("space-y-4")[
-                    Ui.Phone.Key("sm").Value("+12015550123").Country("US").Sm,
-                    Ui.Phone.Key("xs").Value("+12015550123").Country("US").Xs
+                    Ui.Phone.Value("+12015550123").Key("sm").Country("US").Sm,
+                    Ui.Phone.Value("+12015550123").Key("xs").Country("US").Xs
                 ],
-                Ui.Phone.Key("disabled").Value("+12015550123").Country("US").Disabled().Label("Disabled phone"),
-                Ui.Phone.Key("readonly").Value("+12015550123").Country("US").ReadOnly().Label("Readonly phone"),
-                Ui.Phone.Key("invalid").Id("invalid-phone").Value("201").Country("US").Invalid().Label("Phone number")
+                Ui.Phone.Value("+12015550123").Key("disabled").Country("US").Disabled().Label("Disabled phone"),
+                Ui.Phone.Value("+12015550123").Key("readonly").Country("US").ReadOnly().Label("Readonly phone"),
+                Ui.Phone.Value("201").Key("invalid").Id("invalid-phone").Country("US").Invalid().Label("Phone number")
                     .DescriptionTrailing("Enter a complete phone number.")
             ]);
 
