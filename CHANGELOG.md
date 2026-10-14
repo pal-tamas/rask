@@ -85,6 +85,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **`.Confirm("…")` asks before a click or a submit is sent — Livewire's `wire:confirm`.** A step on every element,
+  kit components included: `Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the
+  partner?")` shows the browser's `confirm` first, and `.Confirm("Type the name to delete it", expect: row.Name)`
+  (Livewire's `.prompt`) lets the action go only when the reader types the name exactly. On a `Form` it asks before
+  the submit, on a submit button before the submit it makes. Refused, nothing leaves the browser — not the event,
+  and not the fields waiting to go with it. Both hosts (`rask-confirm.ts`); `docs/forms.md#asking-before-an-action`.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only

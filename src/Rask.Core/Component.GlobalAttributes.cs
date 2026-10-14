@@ -102,6 +102,9 @@ public abstract partial class Component
         public ContentEditable? ContentEditable;
         public bool? Spellcheck;
         public bool? Translate;
+
+        // Element.Confirm: the question, and after ConfirmExpectSeparator the answer the prompt form waits for.
+        public string? Confirm;
     }
 
     // The whole side object in one read, for the writer's single null check.
@@ -173,6 +176,18 @@ public abstract partial class Component
             if (value is not null || _live?.Globals is not null)
             {
                 Globals.Spellcheck = value;
+            }
+        }
+    }
+
+    internal string? ConfirmInternal
+    {
+        get => _live?.Globals?.Confirm;
+        set
+        {
+            if (value is not null || _live?.Globals is not null)
+            {
+                Globals.Confirm = value;
             }
         }
     }

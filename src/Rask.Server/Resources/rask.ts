@@ -53,6 +53,7 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -1837,6 +1838,8 @@ import {
         const t = closestFrom(e.target, "[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
+        // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent.
+        if (!submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
         // The form's own button waits, not the form: it is what was pressed and what must not be pressed
         // twice. Enter in a field submits through the form's default button, which the browser reports as
         // the submitter too.

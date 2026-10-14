@@ -1,4 +1,5 @@
 #nullable enable
+const Rask.Core.BuilderRuntime.SharedElementPending = 2097151 -> ulong
 override Rask.Core.Css.GetHashCode() -> int
 override Rask.Core.Css.ToString() -> string!
 override Rask.Core.Messaging.ToastLink.Equals(object? obj) -> bool
@@ -3581,6 +3582,8 @@ Rask.Core.Element.Attributes.get -> System.Collections.Generic.IReadOnlyDictiona
 Rask.Core.Element.Attributes.set -> void
 Rask.Core.Element.Class.get -> string?
 Rask.Core.Element.Class.set -> void
+Rask.Core.Element.Confirm.get -> string?
+Rask.Core.Element.Confirm.set -> void
 Rask.Core.Element.ContentEditable.set -> void
 Rask.Core.Element.Data.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
 Rask.Core.Element.Data.set -> void
@@ -7364,6 +7367,8 @@ static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeMode
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeModel! __b, System.Func<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Capability(this Rask.Core.Components.GestureTrigger! __b, string! value) -> Rask.Core.Components.GestureTrigger!
 static RaskBuilderSettersRask_Core.Class<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.Confirm<T>(this T! __b, string! text, string! expect) -> T!
+static RaskBuilderSettersRask_Core.Confirm<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Data(this Rask.Core.Components.Shareable! __b, Rask.Core.Browser.ShareData! value) -> Rask.Core.Components.Shareable!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> T!
@@ -19251,7 +19256,6 @@ const Rask.Core.AriaRole.Tooltip = "tooltip" -> string!
 const Rask.Core.AriaRole.Tree = "tree" -> string!
 const Rask.Core.AriaRole.Treegrid = "treegrid" -> string!
 const Rask.Core.AriaRole.Treeitem = "treeitem" -> string!
-const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 static RaskBuilderSettersRask_Core.AriaActiveDescendant<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b, bool? value) -> T!

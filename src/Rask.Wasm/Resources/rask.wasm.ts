@@ -41,6 +41,7 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { tell } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -751,6 +752,8 @@ document.addEventListener("submit", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
+    // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent.
+    if (!submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
     // The form's own button waits, not the form. Mirrors rask.ts.
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
     if (isVisiblyLoading(submitter)) return;

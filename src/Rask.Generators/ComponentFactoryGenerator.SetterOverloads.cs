@@ -438,6 +438,18 @@ public sealed partial class ComponentFactoryGenerator
                 .Append(" __b, params global::System.ReadOnlySpan<string?> parts)").Append(where)
                 .Append(" => ").Append(escaped).AppendLine("(__b, global::Rask.Core.BuilderRuntime.JoinClasses(parts));");
         }
+
+        // Livewire's `wire:confirm.prompt`: `.Confirm("Type the name to delete it", expect: row.Name)`. Both halves
+        // ride the one Confirm string, split by U+001F (Element.ConfirmExpectSeparator), so the step stays the setter.
+        if (string.Equals(typeFqn, "string?", StringComparison.Ordinal)
+            && string.Equals(setterName, "Confirm", StringComparison.Ordinal))
+        {
+            sb.AppendLine("    /// <summary>Asks the reader to type <paramref name=\"expect\" /> before the action is sent; it goes only on an exact match.</summary>");
+            sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)
+                .Append(typeArgs).Append("(this ").Append(self)
+                .Append(" __b, string text, string expect)").Append(where)
+                .Append(" => ").Append(escaped).AppendLine("(__b, text + \"\\u001F\" + expect);");
+        }
     }
 
     private static void EmitKeySetter(StringBuilder sb, string typeFqn, string receiver, string visibility, int pendingBit)

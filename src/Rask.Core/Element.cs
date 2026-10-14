@@ -571,6 +571,8 @@ public abstract partial class Element : Component
             AppendAttr(sb, "draggable", "true");
         }
 
+        WriteConfirm(sb);
+
         // The full GlobalEventHandlers surface — drag, keyboard, click, scroll, mouse, pointer, touch,
         // focus, clipboard, wheel — is emitted by EmitDomEvents in one fixed order from the unified
         // DomEvents store (see Element.Events.cs). data-rask-on-* hooks register a handler id per wired
