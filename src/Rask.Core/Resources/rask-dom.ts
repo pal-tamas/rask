@@ -72,6 +72,27 @@ function relevantChildSkipping(parent: Node | null, index: number, skip: Node): 
     return null;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+
+// Parse an InsertSubtree's markup in the namespace of the parent it lands in. A <template> parses in
+// HTML, so a <circle> or <path> inserted on its own under an <svg> came out an HTMLUnknownElement that
+// never drew (#1242). Under an SVG or MathML parent the markup is parsed in a shallow clone of that
+// parent instead — the same context-correct parse MorphSubtree does — and a <foreignObject> parent,
+// being an HTML integration point, still yields HTML children. An HTML parent keeps the <template>,
+// whose parser takes any child as written (a <tr> straight under a <table>, with no implied <tbody>).
+function parseInsert(parent: Node, html: string): ParentNode {
+    const ns = isElement(parent) ? parent.namespaceURI : null;
+    if (ns === SVG_NS || ns === MATHML_NS) {
+        const model = (parent as Element).cloneNode(false) as Element;
+        model.innerHTML = html;
+        return model;
+    }
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    return template.content;
+}
+
 // Relocate `node` before `ref` under `parent`. Prefer the Atomic Move API
 // (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
 // focused descendant keeps its focus, selection, and caret across a keyed reorder.
@@ -225,20 +246,19 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                 const slot = path[path.length - 1];
                 const parent = resolvePath(parentPath);
                 if (!parent) break;
-                const template = document.createElement("template");
-                template.innerHTML = insertHtml;
+                const parsed = parseInsert(parent, insertHtml);
                 // Scripts parsed via innerHTML carry the "already started" flag and will
                 // NOT execute when inserted into the live document. Rebuild them via
                 // reviveScript so a scoped <script src="/_rask/a/{hash}.js"> (or a user
                 // Head <script>) delivered through a keyed InsertSubtree diff actually
                 // runs — otherwise its window.Rask.{Type}/global never appears. Mirrors
                 // the full-HTML morph path, which already revives inserted scripts.
-                for (const oldScript of template.content.querySelectorAll("script")) {
+                for (const oldScript of parsed.querySelectorAll("script")) {
                     oldScript.parentNode?.replaceChild(reviveScript(oldScript), oldScript);
                 }
                 const refNode = parent.childNodes[slot] || null;
-                while (template.content.firstChild) {
-                    parent.insertBefore(template.content.firstChild, refNode);
+                while (parsed.firstChild) {
+                    parent.insertBefore(parsed.firstChild, refNode);
                 }
                 break;
             }

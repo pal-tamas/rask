@@ -328,6 +328,10 @@ them until tagged releases begin.
 ### Fixed
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
+  so a `Circle` or `SvgPath` appended to an `Svg` (or inserted by key among its children) arrived as an
+  `HTMLUnknownElement` and never rendered. An insert under an SVG or MathML parent is now parsed in that
+  parent's own namespace, the way a scoped morph already was (#1242).
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
