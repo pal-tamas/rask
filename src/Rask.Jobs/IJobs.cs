@@ -19,5 +19,5 @@ public interface IJobs
     /// resolved the delay itself would enqueue against a clock the processor never reads.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default);
+    Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default);
 }

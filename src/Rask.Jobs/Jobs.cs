@@ -22,7 +22,7 @@ public static class Jobs
 {
     /// <summary>Runs <paramref name="job" /> in the background, as soon as the processor next polls.</summary>
     public static Enqueuing Enqueue(IJob job, CancellationToken cancellationToken = default) =>
-        new(null, job, null, null, cancellationToken);
+        new(null, job, null, null, null, cancellationToken);
 
     /// <summary>
     ///     Whether Rask.Jobs is registered at all. For an operator surface that renders "off" rather than
