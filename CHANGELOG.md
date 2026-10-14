@@ -9,6 +9,7 @@ them until tagged releases begin.
 
 ### Security
 
+- **A Production host no longer shows exception text because a Development host started first in the same process (and a Development host keeps its overlay).** Whether a toast, the error page, the overlay or a refused diff names the exception is now decided by the host whose render, handler or session it is — `AddRask` registers its `IHostEnvironment` answer in that host's own services — instead of `LiveOptions.IsDevelopment`, a process-wide flag the first host to map claimed for every host after it; that flag is now only the fallback for a host that gives no answer (a WASM app, a component rendered outside a host).
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine

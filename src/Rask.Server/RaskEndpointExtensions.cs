@@ -291,6 +291,10 @@ public static partial class RaskEndpointExtensions
     private static void AddSessionServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
     {
         services.AddSingleton<RaskLiveMarker>();
+
+        // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
+        // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
+        services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
         services.AddScoped<ServerPageResponse>();
@@ -479,11 +483,6 @@ public static partial class RaskEndpointExtensions
         // true/false was already set (via AddRask or directly): minify outside Development, and keep it
         // readable + hot-reloadable in Development.
         LiveOptions.MinifyScopedAssets ??= !environment.IsDevelopment();
-
-        // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
-        // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
-        // an IDE profile — used to give you the production error page while developing (#605).
-        LiveOptions.IsDevelopment ??= environment.IsDevelopment();
     }
 
     /// <summary>

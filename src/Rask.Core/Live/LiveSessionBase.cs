@@ -77,6 +77,13 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     protected virtual RenderEngine EngineCore => RenderEngine.Server;
 
+    // Whether this session's host runs in Development — its own host's answer, asked once, never another's.
+    private bool? _isDevelopment;
+
+    internal bool IsDevelopment => _isDevelopment ??= HostMode.Of(Services) == true;
+
+    bool IRenderHandle.IsDevelopment => IsDevelopment;
+
     void IRenderHandle.RunInOrder(Func<Task> work) => RunInOrderCore(work);
 
     // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.
@@ -519,7 +526,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         FrameSinkScope.Popper popper = default;
         if (DiffMode != LiveDiffMode.DisabledFull)
         {
-            _renderCache ??= new SessionRenderCache();
+            _renderCache ??= new SessionRenderCache { Development = IsDevelopment };
             frameWriter = _renderCache.PrepareCurrentBuffer();
             popper = FrameSinkScope.Push(frameWriter);
         }
@@ -773,7 +780,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
         // A render with a sign-in handoff or a download never reaches the differ, so the branch that names a
         // refused diff never sees it. In Development it is named here: no whole page goes out unexplained.
-        if (diffCache is null && frameWriter is not null && LiveOptions.IsDevelopment == true)
+        if (diffCache is null && frameWriter is not null && IsDevelopment)
         {
             FullPageReply.ReportOutOfBand(auth is not null, html.Length);
         }
@@ -869,7 +876,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         // The whole page goes out instead. In Development, say why: nothing else names the node the differ gave up on.
-        if (LiveOptions.IsDevelopment == true)
+        if (IsDevelopment)
         {
             FullPageReply.Report(compared, _diffOps, renderCache.LastDiffForcedFullHtml, diffBytes, html.Span);
         }

@@ -1210,6 +1210,9 @@ public static partial class FrameDiffer
         // which reparses the markup correctly, instead of shipping a mis-targeted positional patch.
         internal bool ForceFullHtml { get; set; }
 
+        // Whether the session's host runs in Development: only then is a morph's reason worked out and kept.
+        internal bool Development { get; init; }
+
         // What each morph of a parent's children was written for, said once the diff is whole. Only ever
         // filled in Development: a page author reads it to find the child that changed shape.
         private List<(int Op, string Said)>? _morphed;
@@ -1224,7 +1227,7 @@ public static partial class FrameDiffer
 
         internal void NoteMorphed(int op, int chars, string why)
         {
-            if (LiveOptions.IsDevelopment == true)
+            if (Development)
             {
                 (_morphed ??= []).Add((op, FullPageReply.Morphed(Path, chars, why)));
             }
