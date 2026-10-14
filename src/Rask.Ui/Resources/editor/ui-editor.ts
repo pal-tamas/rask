@@ -16,15 +16,12 @@ import { Editor, type AnyExtension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
-import Table from '@tiptap/extension-table';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TableRow from '@tiptap/extension-table-row';
+import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
 import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
+import { Placeholder } from '@tiptap/extensions';
 
 type Change = (html: string) => void;
 type Init = (context: { editor: Editor }) => void;
@@ -130,7 +127,7 @@ class Mounted {
   setValue(html: string): void {
     if (html === this.value) return;
     this.silent = true;
-    this.editor.commands.setContent(html, true);
+    this.editor.commands.setContent(html, { emitUpdate: true });
     this.silent = false;
   }
 
@@ -150,7 +147,9 @@ class Mounted {
   private extensions(): Map<string, AnyExtension> {
     const placeholder = this.root.getAttribute('data-placeholder');
     const all: AnyExtension[] = [
-      StarterKit,
+      // Tiptap 3's kit also carries Link, Underline, list keys and a trailing paragraph: the first two are
+      // configured below, under their own names, and the other two are not in Flux's editor.
+      StarterKit.configure({ link: false, underline: false, listKeymap: false, trailingNode: false }),
       Highlight,
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholder as string, showOnlyWhenEditable: false }),

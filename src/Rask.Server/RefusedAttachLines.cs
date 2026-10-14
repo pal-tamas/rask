@@ -3,22 +3,25 @@ namespace Rask.Server;
 /// <summary>How many refused attaches are written to the log: a handful a window, however many are refused.</summary>
 /// <remarks>
 ///     A refused attach costs its sender nothing and can be repeated without end with any id. Every one is refused;
-///     only the first few of each ten seconds are logged, which is enough to tell an operator it is happening.
+///     only the first few of each ten seconds are logged, which is enough to tell an operator it is happening. Each
+///     host keeps its own window, read on its store's clock.
 /// </remarks>
-internal static class RefusedAttachLines
+internal sealed class RefusedAttachLines(Func<TimeProvider> clock)
 {
     internal const int PerWindow = 20;
 
-    private const long WindowMilliseconds = 10_000;
+    private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
 
-    private static long _windowStart;
-    private static int _written;
+    private long _windowStart = long.MinValue;
+    private int _written;
 
     /// <summary>Whether one more line may be written now.</summary>
-    internal static bool Admit()
+    internal bool Admit()
     {
-        var now = Environment.TickCount64;
-        if (now - Volatile.Read(ref _windowStart) >= WindowMilliseconds)
+        var time = clock();
+        var now = time.GetTimestamp();
+        var start = Volatile.Read(ref _windowStart);
+        if (start == long.MinValue || time.GetElapsedTime(start, now) >= Window)
         {
             Volatile.Write(ref _windowStart, now);
             Volatile.Write(ref _written, 0);
@@ -26,7 +29,4 @@ internal static class RefusedAttachLines
 
         return Interlocked.Increment(ref _written) <= PerWindow;
     }
-
-    /// <summary>Lets a test start from an empty window.</summary>
-    internal static void ResetForTests() => Volatile.Write(ref _windowStart, 0);
 }
