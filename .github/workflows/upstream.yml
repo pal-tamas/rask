@@ -3,7 +3,10 @@ name: upstream
 # Follows everything Rask is generated from, every day, with nobody watching.
 #
 #   follow   scripts/upstream/follow.sh — MDN's latest stable data and the public surface that moves
-#            with it, and Node's Active LTS line. Nothing moved: the run ends here, green.
+#            with it, Node's Active LTS line, the Docker images the code names, Litestream, the
+#            compilers a build downloads (esbuild, tsgo, typescript 6.x, Tailwind) with their digests,
+#            the adapter fixtures' frameworks, and the actions a scaffolded deploy workflow uses.
+#            Nothing moved: the run ends here, green. Dependabot keeps the rest (.github/dependabot.yml).
 #   gates    the same gates a push to main is held to (gates.yml), on the commit about to land.
 #   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
 #   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
@@ -37,7 +40,7 @@ concurrency:
 
 jobs:
   follow:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write   # push the branch the gates run on
     outputs:
@@ -57,6 +60,8 @@ jobs:
           node-version: lts/*
 
       - name: Follow upstream
+        env:
+          GH_TOKEN: ${{ github.token }}   # GitHub's release API allows an anonymous caller 60 requests an hour
         run: scripts/upstream/follow.sh
 
       - name: Commit what moved
@@ -74,7 +79,12 @@ jobs:
           # What moved, read off the paths: the subject says it and the stat is the body.
           moved=""
           git diff --cached --quiet -- src/Rask.Core/Dom/mdn.snapshot.json || moved="MDN"
-          git diff --cached --quiet -- src/Rask.Cli/NodeRequirement.cs || moved="${moved:+$moved and }Node LTS"
+          git diff --cached --quiet -- src/Rask.Cli/NodeRequirement.cs || moved="${moved:+$moved, }Node LTS"
+          git diff --cached --quiet -- src/Rask.Cli/Commands scripts/*.sh || moved="${moved:+$moved, }images"
+          git diff --cached --quiet -- src/Rask.SQLite.Litestream || moved="${moved:+$moved, }Litestream"
+          git diff --cached --quiet -- src/Rask.TypeScript.Tasks src/Rask.Tailwind.Tasks || moved="${moved:+$moved, }compilers"
+          git diff --cached --quiet -- tests/Rask.External.Tests || moved="${moved:+$moved, }adapter fixtures"
+          git diff --cached --quiet -- src/Rask.Cli/Scaffolding || moved="${moved:+$moved, }scaffolded actions"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -99,7 +109,7 @@ jobs:
 
   land:
     needs: [follow, gates]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, and removing the branch
       actions: write    # start the workflows a push from here cannot start
@@ -137,7 +147,7 @@ jobs:
           fi
 
   flux:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, for the lock a baseline measured
     env:
@@ -152,14 +162,17 @@ jobs:
           node-version: lts/*
 
       # The scripts take any Playwright driver (RASK_FLUX_PLAYWRIGHT); the one the E2E project
-      # carries would cost a build of the whole site to get at. Pinned to that one's release
-      # (Microsoft.Playwright in Directory.Packages.props): a new Chromium is a relock, so it is a choice.
+      # carries would cost a build of the whole site to get at. The same release line as that one
+      # (Microsoft.Playwright in Directory.Packages.props, which Dependabot moves): a new Chromium is a
+      # relock, so it arrives with that bump rather than on its own.
       - name: Chromium
         run: |
           set -eu
+          line="$(sed -n 's/.*Include="Microsoft.Playwright" Version="\([0-9]*\.[0-9]*\)\..*/\1/p' Directory.Packages.props)"
+          [ -n "$line" ] || { echo "no Microsoft.Playwright in Directory.Packages.props" >&2; exit 1; }
           mkdir -p "$RUNNER_TEMP/playwright" && cd "$RUNNER_TEMP/playwright"
           npm init -y >/dev/null
-          npm install --silent --no-audit --no-fund playwright@1.63
+          npm install --silent --no-audit --no-fund "playwright@$line"
           npx playwright install --with-deps chromium
           echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
 
@@ -211,7 +224,7 @@ jobs:
   # released overnight is what the next scaffold gets. This proves that set, on main as it is, every day —
   # scaffolded, installed from the live registry, built, linted and served — rather than when a template changes.
   front-end-keys:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       keys: ${{ steps.list.outputs.keys }}
     steps:
@@ -222,7 +235,7 @@ jobs:
   front-ends:
     needs: front-end-keys
     name: front end ${{ matrix.key }} (newest npm)
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false   # one template that no longer installs says nothing about the others
@@ -245,7 +258,7 @@ jobs:
   report:
     needs: [follow, gates, land, flux, front-ends]
     if: always() && (contains(needs.*.result, 'failure') || needs.flux.outputs.moved == 'true')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       issues: write

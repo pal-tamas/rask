@@ -16,6 +16,7 @@ trap 'rm -rf "$tmp"' EXIT
 
 files=(src/Rask.Cli/NodeRequirement.cs rask.sh rask.ps1 docs/installation.md scripts/upstream/node-lts.sh
        src/Rask.Templates/react/Dockerfile src/Rask.Templates/server/Dockerfile src/Rask.Templates/react/client/package.json
+       src/Rask.Templates/angular/client/package.json
        src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props src/Rask.External/build/Rask.External.props)
 fresh() {
   rm -rf "$tmp/tree"
@@ -37,7 +38,7 @@ count() { (grep -rF --exclude=node-lts.sh -- "$1" "$tmp/tree" || true) | wc -l |
 echo "==> upstream node-lts"
 
 fresh
-printf '[{"version":"v%s.3.0","lts":false},{"version":"v%s.11.2","lts":"Neon"},{"version":"v%s.9.0","lts":"Neon"},{"version":"v%s.0.0","lts":false},{"version":"v%s","lts":"Old"}]' \
+printf '[{"version":"v%s.3.0","lts":false},{"version":"v%s.11.2","lts":"Neon","npm":"99.1.0"},{"version":"v%s.9.0","lts":"Neon"},{"version":"v%s.0.0","lts":false},{"version":"v%s","lts":"Old"}]' \
   $((next + 1)) "$next" "$next" "$next" "$stated" > "$tmp/moved.json"
 "$tmp/tree/scripts/upstream/node-lts.sh" "$tmp/moved.json" >/dev/null
 check "no copy of the old version is left"        0 "$(count "$stated")"
@@ -50,6 +51,7 @@ check "a front end's image installs the new line" 1 "$(count "setup_$next.x")"
 check "...and no image is left on the old one"    0 "$(count "setup_$major.x")"
 check "an image with no Node is left alone"       "" "$(cmp -s "$tmp/tree/src/Rask.Templates/server/Dockerfile" "$root/src/Rask.Templates/server/Dockerfile" || echo changed)"
 check "@types/node follows the new line"          1 "$(count "\"@types/node\": \"^$next.0.0\"")"
+check "Angular names the npm that release bundles"  1 "$(count "\"packageManager\": \"npm@99.1.0\"")"
 check "the floor is the line's first LTS release" 1 "$(count "BuildFloor = new($next, 9, 0)")"
 check "...and both build props enforce it"        2 "$(count ">$next.9.0</")"
 

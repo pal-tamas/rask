@@ -276,8 +276,9 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
-  (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
-  gated and THEN landed on `main`, with nobody watching. Its `front-ends` matrix scaffolds every
+  (`scripts/public-api/record.py`), moves the stated Node line to the Active LTS, and moves every pin
+  Dependabot cannot read to its newest stable release (the followers listed under *What updates
+  itself*); the result is gated and THEN landed on `main`, with nobody watching. Its `front-ends` matrix scaffolds every
   front-end template on the newest npm set `rask new` chooses and runs
   `scripts/run-template-e2e.sh --front-end=<key>` on it. It opens an issue only when it needs a
   person: the gates refused what upstream shipped, a template no longer builds on the newest npm
@@ -466,8 +467,28 @@ The standing rule is **the latest LTS** — Node, .NET, and the front-end toolch
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
 stopped getting security patches.
 
-**What updates itself.** `.github/dependabot.yml` covers NuGet, GitHub Actions and the site's npm
-front end weekly. The front-end templates are not in it, because they name no versions: every package
+**What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
+and `scripts/tools/RaskRename`'s own), GitHub Actions (the workflows and the shared
+`.github/actions/setup`), the npm lockfiles (the site, the rich text editor's engine in
+`src/Rask.Ui/Resources/editor`, the devtools E2E island bundler) and the base images of every template
+`Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
+moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
+self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`):
+
+| Follower | Pins | Upstream |
+| --- | --- | --- |
+| `node-lts.sh` | `ScaffoldLine`, the build floors, `setup_NN.x`, `@types/node`, Angular's `packageManager` npm | nodejs.org's index |
+| `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the scripts' `postgres:NN-alpine` — each to the newest tag of the same shape | Docker Hub |
+| `litestream.py` | `RaskLitestreamVersion`, its seven SHA-256s (downloaded and checked against `checksums.txt`), the templates' `litestream/litestream` image | GitHub releases |
+| `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskExternalTypeScriptVersion` (newest 6.x — the JS API), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download; a new Tailwind major moves the templates' ranges | npm, GitHub releases |
+| `fixtures.py` | the adapter fixtures in `Rask.External.Tests.csproj` (rxjs: the newest Angular's peer range takes) | npm |
+| `actions.py` | the action majors in the deploy workflow `rask deploy` scaffolds | GitHub releases |
+
+Not followed, on purpose: Roslyn (held to the SDK's compiler), daisyUI (leaving with the Flux rebuild).
+The runner image (`runs-on: ubuntu-26.04`) is moved by hand: the workflow token may not push a change
+to `.github/workflows`.
+
+The front-end templates are not in it, because they name no versions: every package
 in a template client and in `_islands/*/island.json` is `latest`, and `rask new` resolves them against
 the registry to the newest set that installs together — peers that agree, an `engines.node` that takes
 the newest LTS — written as `^x.y.z`. No template ships a lockfile; the app writes its own on the first
@@ -478,13 +499,9 @@ that must move together are grouped (`microsoft-extensions`, `test-tooling`, `sp
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
 for every downstream consumer.
 
-**What does not.** Several pins are invisible to Dependabot because they are not `PackageReference`s:
-`RaskEsbuildVersion` and `RaskTsgoVersion` (`Rask.Core.targets`), `RaskTailwindVersion`
-(`Rask.Tailwind.props`), the two Node build floors (`RaskExternalMinimumNode` for islands and
-`RaskSpaMinimumNode` for front ends — one number, in two props files), and the Node scaffold line
-(`NodeRequirement.ScaffoldLine`) with the NodeSource line (`setup_NN.x`) in each front-end template's
-`Dockerfile`. The Node ones are followed by `scripts/upstream/node-lts.sh`; the
-`check-dependency-updates` skill walks the rest.
+**What does not.** The runner image, by hand (above); the holds named in `.github/dependabot.yml`'s
+ignore lists; and anything new. A pin added outside both is a pin nobody moves, so give it a follower
+(or a Dependabot entry) in the same change — the `check-dependency-updates` skill lists what exists.
 
 **What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
 matter most are asserted by an offline unit test rather than by a comment:

@@ -40,7 +40,7 @@ internal sealed partial class DbCommand
     ///     unambiguously canonical — the alternative was requiring a <c>sqlite3</c> on the host, which is a
     ///     dependency we could neither pin nor install.
     /// </summary>
-    private const string SqliteImage = "alpine:3.21";
+    private const string SqliteImage = "alpine:3.24";
 
     /// <summary>Where the container writes its copy, inside the mounted data volume.</summary>
     private const string RemoteBackupPath = "/data/.rask-backup.db";

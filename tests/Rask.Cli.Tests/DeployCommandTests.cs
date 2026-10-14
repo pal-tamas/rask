@@ -345,7 +345,7 @@ public sealed partial class DeployCommandTests
             CaptureHandler = Captures(),
             // The probe fails for the image being deployed, and would fail for any probe — so the restore
             // is asserted on the run that happens, not on a second probe passing.
-            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,
+            RunHandler = args => args.Contains("curlimages/curl:8.22.0") ? 1 : 0,
         };
         var console = new StringConsole();
         var command = Create(fs, runner, console);
@@ -374,7 +374,7 @@ public sealed partial class DeployCommandTests
                 : args.Contains("ps") ? new ProcessResult(0, string.Empty, string.Empty)
                 : args.Contains("inspect") ? new ProcessResult(0, "true\n", string.Empty)
                 : new ProcessResult(0, string.Empty, string.Empty),
-            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,
+            RunHandler = args => args.Contains("curlimages/curl:8.22.0") ? 1 : 0,
         };
         var console = new StringConsole();
         var command = Create(fs, runner, console);
@@ -614,7 +614,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(
         [
             "-H", "ssh://deploy@box", "run", "--rm", "--network", "container:shop-green",
-            "curlimages/curl:8.11.1", "-fsS", "-m", "5", "http://localhost:8080/health",
+            "curlimages/curl:8.22.0", "-fsS", "-m", "5", "http://localhost:8080/health",
         ], args);
     }
 
@@ -637,7 +637,7 @@ public sealed partial class DeployCommandTests
 
         Assert.Equal(0, exit);
         var runs = runner.Invocations.Where(i => !i.Captured).ToList();
-        int Probe = runs.FindIndex(i => i.Arguments.Contains("curlimages/curl:8.11.1"));
+        int Probe = runs.FindIndex(i => i.Arguments.Contains("curlimages/curl:8.22.0"));
         int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
         Assert.True(Probe >= 0, "the app is probed over HTTP");
         Assert.True(Reload >= 0 && Probe < Reload, "readiness is confirmed before Caddy is reloaded");
@@ -651,7 +651,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner
         {
             CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n"), // running=true
-            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,   // the probe fails
+            RunHandler = args => args.Contains("curlimages/curl:8.22.0") ? 1 : 0,   // the probe fails
         };
         var console = new StringConsole();
         var command = Create(fs, runner, console);
@@ -677,7 +677,7 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo", "--no-health-check"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("curlimages/curl:8.11.1"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("curlimages/curl:8.22.0"));
         Assert.True(DeployConfig.Load(fs, WorkingDir).HealthCheckDisabled);
     }
 
@@ -715,7 +715,7 @@ public sealed partial class DeployCommandTests
 
         await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--dry-run"], CancellationToken.None);
 
-        Assert.Contains("curlimages/curl:8.11.1", console.OutText);
+        Assert.Contains("curlimages/curl:8.22.0", console.OutText);
 
         var offConsole = new StringConsole();
         var offCommand = Create(new FakeFileSystem(), new FakeProcessRunner(), offConsole);
@@ -732,7 +732,7 @@ public sealed partial class DeployCommandTests
         var runner = new FakeProcessRunner
         {
             CaptureHandler = Captures(),                                            // ready host, container running
-            RunHandler = args => args.Contains("curlimages/curl:8.11.1") ? 1 : 0,   // the probe fails
+            RunHandler = args => args.Contains("curlimages/curl:8.22.0") ? 1 : 0,   // the probe fails
         };
         var console = new StringConsole();
         var command = Create(fs, runner, console);

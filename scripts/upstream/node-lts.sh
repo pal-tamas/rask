@@ -7,6 +7,8 @@
 #                @types/node follow the line too.
 #   BuildFloor   — the first release of that line: the floor a build enforces (RaskSpaMinimumNode,
 #                RaskExternalMinimumNode). Rask builds on the latest LTS and nothing older.
+#   packageManager — a template client that names its npm (Angular's CLI wants one) names the npm the
+#                newest LTS release bundles (index.json's "npm").
 #
 # NodeRequirementTests and TemplateNodePinTests hold every copy to these two. This rewrites them all in
 # one pass, so the gates judge a consistent tree.
@@ -43,6 +45,7 @@ releases="$(printf '%s' "$index" | tr '{' '\n')"
 codename="$(printf '%s\n' "$releases" | grep -F "\"version\":\"v$latest\"" | sed -n 's/.*"lts":"\([A-Za-z]*\)".*/\1/p' | head -n 1 || true)"
 # The index is newest first, so the line's first LTS release is its last entry carrying the codename.
 first="$(printf '%s\n' "$releases" | grep -F "\"lts\":\"$codename\"" | tail -n 1 | sed -n 's/.*"version":"v\([0-9.]*\)".*/\1/p' || true)"
+npm="$(printf '%s\n' "$releases" | grep -F "\"version\":\"v$latest\"" | sed -n 's/.*"npm":"\([0-9.]*\)".*/\1/p' | head -n 1 || true)"
 
 moved=""
 
@@ -81,6 +84,16 @@ if [ -n "$first" ] && [ "$first" != "$floor" ] && rask_version_ge "$first" "$flo
   perl -pi -e 's/(<RaskSpaMinimumNode Condition="[^"]*">)[0-9.]+(<)/${1}$ENV{FLOOR}$2/' src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props
   perl -pi -e 's/(<RaskExternalMinimumNode Condition="[^"]*">)[0-9.]+(<)/${1}$ENV{FLOOR}$2/' src/Rask.External/build/Rask.External.props
   moved="${moved:+$moved; }floor $floor -> $first"
+fi
+
+# A template that names its package manager (Angular's CLI wants one) names the npm that Node release bundles.
+if [ -n "$npm" ]; then
+  for manifest in src/Rask.Templates/*/client/package.json; do
+    if grep -qE '"packageManager": *"npm@' "$manifest" && ! grep -qF "\"npm@$npm\"" "$manifest"; then
+      NPM="$npm" perl -pi -e 's/("packageManager"\s*:\s*)"npm@[0-9.]+"/$1"npm\@$ENV{NPM}"/' "$manifest"
+      moved="${moved:+$moved; }packageManager npm@$npm in $manifest"
+    fi
+  done
 fi
 
 echo "node lts: ${moved:-$stated is the newest release of the Active LTS line, $floor its first (nodejs.org: $latest)}."

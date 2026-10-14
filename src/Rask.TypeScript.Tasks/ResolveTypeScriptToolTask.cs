@@ -41,9 +41,8 @@ public sealed class ResolveTypeScriptToolTask : Task
 
     /// <summary>The pinned version, without a leading <c>v</c>.</summary>
     /// <remarks>
-    ///     Pinned rather than floating for the usual reproducibility reason, and for one specific to
-    ///     tsgo: <c>@typescript/native-preview</c> publishes dated development builds to its
-    ///     <c>latest</c> tag, so "latest" there means "whatever was built the morning you ran it".
+    ///     Pinned rather than floating: a compiler that moved on its own would change a build with
+    ///     nothing in the diff. <c>scripts/upstream/tools.py</c> moves the pins, digests included.
     /// </remarks>
     [Required]
     public string Version { get; set; } = string.Empty;

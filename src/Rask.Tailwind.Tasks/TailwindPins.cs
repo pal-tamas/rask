@@ -15,9 +15,9 @@ namespace Rask.Tailwind.Tasks;
 ///         day somebody looked.
 ///     </para>
 ///     <para>
-///         <b>Bumping <c>RaskTailwindVersion</c> means replacing this table</b> from that release's
-///         <c>sha256sums.txt</c> (the <c>check-dependency-updates</c> skill). A test fails the build's
-///         tests while the pinned version has an asset with no entry here.
+///         <c>scripts/upstream/tools.py</c> moves <c>RaskTailwindVersion</c> and this table together, from
+///         assets it downloads and hashes itself, and only when they agree with the release's
+///         <c>sha256sums.txt</c>. A test fails while the pinned version has an asset with no entry here.
 ///     </para>
 /// </remarks>
 internal static class TailwindPins

@@ -126,6 +126,22 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Every pin Rask carries now follows its newest stable release by itself.** Before: Dependabot moved NuGet,
+  the workflows' actions and the site's npm, and nothing moved the rest. After: Dependabot also covers the
+  composite setup action, the template and devhost base images, the editor engine's and the devtools E2E's npm,
+  and `scripts/tools/RaskRename`; and `upstream.yml` runs a follower per pin it cannot read, each with a self-test
+  over saved answers (`scripts/tests/upstream-followers.test.sh`). Moved today:
+  - **tsgo is TypeScript 7.0.2, the stable native compiler** (was the dated preview 7.0.0-dev.20260707.2): the
+    scoped TypeScript compile downloads `@typescript/typescript-<os>-<arch>` and runs its `lib/tsc`.
+    `RaskTsgoVersion` keeps its name; an app that overrides it with a `native-preview` dev build must move to a
+    7.x release.
+  - **Litestream 0.5.17** (was 0.5.14), its SHA-256s computed from the downloads and checked against the
+    release's `checksums.txt`; the template images copy the same release (they were on 0.3.13).
+  - **`rask deploy`'s health probe runs `curlimages/curl:8.22.0`** (was 8.11.1) and **`rask db backup` runs
+    `alpine:3.24`** (was 3.21); the scaffolded deploy workflow uses `actions/checkout@v7` and
+    `actions/setup-dotnet@v6` (were v4); Rask's own CI runs on `ubuntu-26.04` with `setup-dotnet@v6`.
+  - The adapter fixtures test Preact 11.0.1, happy-dom 21.0.1, Vue 3.5.44, Solid 1.9.17, Svelte 5.57.2 and
+    Angular 22.2.2; the provider scripts start PostgreSQL 18.
 - **BREAKING: the Node build floor is the Active LTS line's first release, 24.11.0 (was 22.12.0).** An app with
   islands or a front end no longer builds on Node 22: it fails with `RASKISLAND001` or `RASKSPA005`. Install the
   current LTS (`nvm install --lts`), or set `RaskExternalMinimumNode` / `RaskSpaMinimumNode` to keep an older
