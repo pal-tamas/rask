@@ -345,12 +345,13 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 |---|---|---|
 | `Guid CustomerId` + a `Customer : Aggregate<Guid>` | exact name match | `Customer` |
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
+| `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid CustomerId`, no `Customer` aggregate | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
 
 The navigation is named after the **property**, not the target, so two references to the same aggregate never
-collide. And it is the one thing the write model cannot do, so this is the join you came for:
+collide. (`CategoryId` on `Category` — the exact name of its own type — stays a plain column: it reads as the row's own id.) And it is the one thing the write model cannot do, so this is the join you came for:
 
 ```csharp
 await Order

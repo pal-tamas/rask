@@ -225,7 +225,7 @@ internal static class ReadModelShape
 
         if (aggregates.TryGetValue(reference.Target, out var exact))
         {
-            return Accept(reference, owner, exact, ref problem);
+            return Accept(reference, owner, exact, exactName: true, ref problem);
         }
 
         // Suffix: ShippedByUserId -> User. Longest wins, and a tie is ambiguous rather than a guess.
@@ -268,14 +268,16 @@ internal static class ReadModelShape
             return null;
         }
 
-        return Accept(reference, owner, found, ref problem);
+        return Accept(reference, owner, found, exactName: false, ref problem);
     }
 
     private static ReadNavigation? Accept(
-        ReadReference reference, string owner, ReadTarget target, ref ReadReferenceProblem problem)
+        ReadReference reference, string owner, ReadTarget target, bool exactName, ref ReadReferenceProblem problem)
     {
-        // An id of the declaring type itself is a self-reference: a column, and nothing more.
-        if (string.Equals(target.OwnerTypeName, owner, StringComparison.Ordinal))
+        // An id named exactly like the declaring type — Category.CategoryId — is that row's own id, a column and
+        // nothing more. A longer name that ends in it — Supply.SumSupplyId — can only point at another row of the
+        // same table, and gets its join like any other reference (EF aliases the second use of the table).
+        if (exactName && string.Equals(target.OwnerTypeName, owner, StringComparison.Ordinal))
         {
             return null;
         }
