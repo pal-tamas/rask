@@ -53,6 +53,17 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Every_flag_the_picker_fills_carries_the_phones_marker()
+    {
+        var html = Ui.Phone.Value("").Country("HU").ToHtml().Decoded();
+
+        var marked = Regex.Matches(html, "data-ui-phone-country-flag").Count;
+
+        // The button's copy, its template, the row's template and the chosen country's row.
+        Assert.Equal(4, marked);
+    }
+
+    [Fact]
     public void With_no_country_the_button_shows_the_globe_and_its_name_alone()
     {
         var html = Ui.Phone.Value("").ToHtml().Decoded();

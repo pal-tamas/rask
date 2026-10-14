@@ -22,7 +22,7 @@ public sealed partial class UiKitDataInputDemo
                     Div.Class("flex items-center gap-3")[
                         Ui.Button.Sm.Data(Testid("ui-phone-save")).OnClick(() => { _savedPhone = _contact.Mobile; })["Save"],
                         P.Class("text-sm text-ui-muted").Data(Testid("ui-phone-saved"))[
-                            _savedPhone is null ? "Nothing saved yet." : $"Saved: {(_savedPhone.Length == 0 ? "(empty)" : _savedPhone)}"
+                            Saved()
                         ]
                     ]
                 ],
@@ -39,6 +39,16 @@ public sealed partial class UiKitDataInputDemo
                 Ui.Phone.Value("201").Key("invalid").Id("invalid-phone").Country("US").Invalid().Label("Phone number")
                     .DescriptionTrailing("Enter a complete phone number.")
             ]);
+
+    private string Saved()
+    {
+        if (_savedPhone is null)
+        {
+            return "Nothing saved yet.";
+        }
+
+        return _savedPhone.Length == 0 ? "Saved: (empty)" : $"Saved: {_savedPhone}";
+    }
 
     // What the examples bind to: strings, as a form model has them, empty until the reader types.
     public sealed class Contact

@@ -68,6 +68,10 @@ bind(ROOT, function (root) {
 });
 
 if (page) {
+    // Every field already on the page mounts now. The bound field's watch above adopts only a field that holds a
+    // value when the hooks arrive late (rask-bound.ts), and an empty field is a field all the same.
+    page.querySelectorAll(ROOT).forEach(start);
+
     // What the picker hears: opening and closing it, the keys of its button and of its search field, the
     // pointer over its rows and a press on one. The engine does the rest; nothing reaches the server.
     const heard = function (e: Event): void {
