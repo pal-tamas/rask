@@ -23,11 +23,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"/>
-    <!-- Microsoft.Data.SqlClient asks for a vulnerable 9.0.11 (CVE-2026-84008); see Directory.Packages.props. -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
+    <!-- Lifts the vulnerable transitive copy; see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 
   <!-- UseRaskSqlServer(services) binds Rask:SqlServer and reads Rask:ConnectionStrings:App. The configuration binding

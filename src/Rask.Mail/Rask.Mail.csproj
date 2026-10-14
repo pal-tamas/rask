@@ -30,7 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="MailKit"/>
-    <!-- MimeKit asks for a vulnerable 10.0.0 (CVE-2026-84008); see Directory.Packages.props. -->
+    <!-- Lifts the vulnerable transitive copy; see Directory.Packages.props. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 

@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Rask.Core.Live;
 
 namespace Rask.Core.Forms;
 
@@ -19,8 +20,24 @@ internal static class ReaderEdits
 {
     private static readonly ConditionalWeakTable<Component, IGuardedForm> _formOf = [];
 
-    /// <summary>Notes that <paramref name="component" /> is drawn inside <paramref name="form" />.</summary>
-    internal static void Hold(Component component, IGuardedForm form)
+    // The guarded form whose children a walk on this thread is writing, with that walk, so a walk begun inside
+    // it (another root's) is in no form. Not a field of LiveRenderContext: every render of every app allocates
+    // one of those, and only a ConfirmLeave form needs this. The walk is synchronous, so one thread sees it all.
+    [ThreadStatic] private static Writing? _writing;
+
+    /// <summary>Opens <paramref name="form" />'s children to <paramref name="live" />'s walk; disposing closes them.</summary>
+    internal static IDisposable Write(LiveRenderContext live, IGuardedForm form, IDisposable? bound) => _writing = new Writing(live, form, bound, _writing);
+
+    /// <summary>Notes that <paramref name="component" />, met by <paramref name="live" />'s walk, is drawn inside the form being written.</summary>
+    internal static void HoldIfWritten(Component component, LiveRenderContext live)
+    {
+        if (_writing is { } writing && ReferenceEquals(writing.Live, live))
+        {
+            Hold(component, writing.Form);
+        }
+    }
+
+    private static void Hold(Component component, IGuardedForm form)
     {
         if (!_formOf.TryGetValue(component, out var held) || !ReferenceEquals(held, form))
         {
@@ -35,5 +52,20 @@ internal static class ReaderEdits
         {
             form.NoteReaderEdit();
         }
+    }
+
+    private sealed class Writing(LiveRenderContext live, IGuardedForm form, IDisposable? bound, Writing? outer) : IDisposable
+    {
+        internal LiveRenderContext Live => live;
+
+        internal IGuardedForm Form => form;
+
+        public void Dispose()
+        {
+            Close(outer);
+            bound?.Dispose();
+        }
+
+        private static void Close(Writing? outer) => _writing = outer;
     }
 }

@@ -54,7 +54,7 @@ unset prop).
 Rendered attributes are not in that gate: compare them with Flux's live DOM (marker and ARIA names per
 `[data-flux-*]` node) when a component changes.
 
-**Owner-approved departures from Flux's behaviour** — the whole list; anything not on it is a parity bug.
+**Owner-approved departures from Flux** (behaviour and, rarely, look) — the whole list; anything not on it is a parity bug.
 `FluxConformanceTests.Translations` cannot hold these: it is keyed by a prop the component carries, and a
 departure in behaviour carries none.
 - **2026-10-12 — typed `Ui.DatePicker` / `Ui.TimePicker` left with parts that make no value.** Flux keeps the
@@ -65,6 +65,10 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
+- **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
+  cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
+  scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets
+  `position` go on that node only (`DEPARTED`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
