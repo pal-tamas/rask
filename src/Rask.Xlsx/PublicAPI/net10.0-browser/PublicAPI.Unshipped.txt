@@ -1,0 +1,36 @@
+#nullable enable
+Rask.Workbooks.Xlsx
+Rask.Workbooks.Xlsx.Day
+Rask.Workbooks.Xlsx.Day.Day() -> void
+Rask.Workbooks.Xlsx.Day.Day(System.DateTime wallClock) -> void
+Rask.Workbooks.Xlsx.Day.WallClock.get -> System.DateTime
+Rask.Workbooks.Xlsx.Folded
+Rask.Workbooks.Xlsx.Folded.Count.get -> int
+Rask.Workbooks.Xlsx.Folded.Folded(System.Collections.Generic.IReadOnlyList<object?>! cells) -> void
+Rask.Workbooks.Xlsx.Folded.GetEnumerator() -> System.Collections.Generic.IEnumerator<object?>!
+Rask.Workbooks.Xlsx.Folded.this[int index].get -> object?
+Rask.Workbooks.Xlsx.Formula
+Rask.Workbooks.Xlsx.Formula.Formula() -> void
+Rask.Workbooks.Xlsx.Formula.Formula(string! text, decimal now, bool whole = false) -> void
+Rask.Workbooks.Xlsx.Formula.Now.get -> decimal
+Rask.Workbooks.Xlsx.Formula.Text.get -> string!
+Rask.Workbooks.Xlsx.Formula.Whole.get -> bool
+Rask.Workbooks.Xlsx.Moment
+Rask.Workbooks.Xlsx.Moment.Moment() -> void
+Rask.Workbooks.Xlsx.Moment.Moment(System.DateTime wallClock) -> void
+Rask.Workbooks.Xlsx.Moment.WallClock.get -> System.DateTime
+Rask.Workbooks.Xlsx.Sheet
+Rask.Workbooks.Xlsx.Sheet.Headings.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Workbooks.Xlsx.Sheet.Name.get -> string!
+Rask.Workbooks.Xlsx.Sheet.Rows.get -> System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>!
+Rask.Workbooks.Xlsx.Sheet.Sheet(string! name, System.Collections.Generic.IReadOnlyList<string!>! headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! rows, System.Collections.Generic.IReadOnlyList<object?>? total = null) -> void
+Rask.Workbooks.Xlsx.Sheet.Total.get -> System.Collections.Generic.IReadOnlyList<object?>?
+Rask.Workbooks.Xlsx.Strong
+Rask.Workbooks.Xlsx.Strong.Strong() -> void
+Rask.Workbooks.Xlsx.Strong.Strong(object? value) -> void
+Rask.Workbooks.Xlsx.Strong.Value.get -> object?
+Rask.Workbooks.Xlsx.Sum
+Rask.Workbooks.Xlsx.Sum.Sum() -> void
+static Rask.Workbooks.Xlsx.Write(params Rask.Workbooks.Xlsx.Sheet![]! sheets) -> byte[]!
+static Rask.Workbooks.Xlsx.Write(string! sheet, System.Collections.Generic.IReadOnlyList<string!>! headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! rows, System.Collections.Generic.IReadOnlyList<object?>? total = null) -> byte[]!
+const Rask.Workbooks.Xlsx.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> string!

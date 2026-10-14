@@ -20,8 +20,8 @@ public sealed class NodeRequirementTests
     ///         people to install a Node that the build then rejects — or, worse, accepts one it will not.
     ///     </para>
     ///     <para>
-    ///         22.12.0 because the islands build runs vite, whose <c>^20.19.0 || &gt;=22.12.0</c> has a hole
-    ///         a single numeric floor cannot express; 22.12.0 is the lowest version with none beneath it.
+    ///         The first release of the Active LTS line: Rask builds on the latest LTS, and
+    ///         <c>scripts/upstream/node-lts.sh</c> moves the floor with the line.
     ///     </para>
     /// </remarks>
     [Fact]

@@ -116,11 +116,9 @@
     <!-- The floor _RaskExternalProbeNode enforces as RASKISLAND001, so an old Node is reported here
          rather than failing inside vite with an engines error nobody reads.
 
-         22.12.0, because the build runs vite, and vite's requirement is `^20.19.0 || >=22.12.0`. That range has a HOLE — 21.x satisfies neither arm — and a numeric
-         floor cannot express it, so a floor of 20.19.0 (what this said while nothing read it) would
-         have admitted 21.x and let it fail in the bundler anyway. 22.12.0 is the lowest version with
-         no hole beneath it, and Node 20 "Iron" is EOL besides. -->
-    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">22.12.0</RaskExternalMinimumNode>
+         The first release of the Active LTS line, the same floor a front end takes (RaskSpaMinimumNode):
+         Rask builds on the latest LTS, and scripts/upstream/node-lts.sh moves both with the line. -->
+    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">24.11.0</RaskExternalMinimumNode>
 
     <!--
       Package islands: an island whose Module names an npm package gets its props from the package's own

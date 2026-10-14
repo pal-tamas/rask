@@ -3,8 +3,9 @@ using Rask.Generators.Blazor;
 namespace Rask.Generators.Tests;
 
 /// <summary>
-///     Covers <see cref="BlazorGenerator" />'s check on <c>[BlazorParameter]</c>: a mapping that names a parameter the
-///     hosted component does not declare is RASK100, because the property stays a chain step that nothing writes.
+///     Covers <see cref="BlazorGenerator" />'s check on <c>[BlazorParameter]</c> — a mapping that names a parameter the
+///     hosted component does not declare is RASK100, because the property stays a chain step that nothing writes —
+///     and the parameter writer it emits for a property the island declares itself.
 /// </summary>
 /// <remarks>
 ///     The Blazor types are declared in the source itself. The generator matches them by name — it has to, it runs
@@ -21,7 +22,10 @@ public class BlazorGeneratorTests
 
         namespace Rask.Blazor
         {
-            public abstract class BlazorComponent<T> { }
+            public abstract class BlazorComponent<T>
+            {
+                protected virtual void WriteParameters(System.Collections.Generic.IDictionary<string, object?> into) { }
+            }
 
             public sealed class BlazorParameterAttribute(string name) : System.Attribute
             {
@@ -39,6 +43,7 @@ public class BlazorGeneratorTests
             public class MudChart : ChartBase
             {
                 [Microsoft.AspNetCore.Components.Parameter] public string? ChartSeries { get; set; }
+                [Microsoft.AspNetCore.Components.Parameter] public int Count { get; set; }
                 public string? NotAParameter { get; set; }
             }
         }
@@ -79,6 +84,31 @@ public class BlazorGeneratorTests
         var run = GeneratorHarness.Run(source, new BlazorGenerator());
 
         Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK100");
+    }
+
+    [Fact]
+    public void A_non_nullable_value_type_the_island_declares_itself_compiles_and_is_always_passed_on()
+    {
+        // #1196: the writer used to test it with `is not null`, which is CS0037 on an int.
+        var source = Island("public int Count { get; set; }");
+
+        var run = GeneratorHarness.Run(source, new BlazorGenerator());
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var writer = run.GeneratedSource("Chart.Blazor");
+        Assert.Contains("into[\"Count\"] = this.Count;", writer, StringComparison.Ordinal);
+        Assert.DoesNotContain("this.Count is not null", writer, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_nullable_value_type_the_island_declares_itself_is_still_omitted_while_null()
+    {
+        var source = Island("public int? Count { get; set; }");
+
+        var run = GeneratorHarness.Run(source, new BlazorGenerator());
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("if (this.Count is not null)", run.GeneratedSource("Chart.Blazor"), StringComparison.Ordinal);
     }
 
     private static string Island(string member) =>

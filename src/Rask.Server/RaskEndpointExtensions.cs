@@ -2327,7 +2327,7 @@ public static partial class RaskEndpointExtensions
             var rebuilt = await ResumeAttachAsync(
                 resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
-            ReportRefusedAttach(sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
+            ReportRefusedAttach(store, sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
             return rebuilt;
         }
 
@@ -2357,6 +2357,10 @@ public static partial class RaskEndpointExtensions
             AbandonAttach(session, transport, store, limits);
             throw;
         }
+        finally
+        {
+            session.AttachSettled();
+        }
 
         return new AttachOutcome(AttachStatus.Attached, session);
     }
@@ -2365,7 +2369,8 @@ public static partial class RaskEndpointExtensions
     // a fingerprint of the id, never the id — that is the secret a holder drives a session with — and nobody: no
     // claim and no token. An id this host never had whose page was rebuilt from a resume record is every tab after
     // a deploy, and is not reported.
-    private static void ReportRefusedAttach(string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
+    private static void ReportRefusedAttach(
+        LiveSessionStore store, string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
     {
         if (existing is null && rebuilt)
         {
@@ -2380,7 +2385,7 @@ public static partial class RaskEndpointExtensions
         };
         // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time;
         // the line in the log is not.
-        if (!RefusedAttachLines.Admit())
+        if (!store.RefusedAttachLines.Admit())
         {
             return;
         }
@@ -2543,6 +2548,10 @@ public static partial class RaskEndpointExtensions
         {
             AbandonAttach(session, transport, store, limits);
             throw;
+        }
+        finally
+        {
+            session.AttachSettled();
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
@@ -4122,21 +4131,12 @@ public static partial class RaskEndpointExtensions
         SessionUploadStore uploads,
         RaskUploadOptions options)
     {
-        // Peek, not Get: Get cancels the pending removal for good, pinning the session and all it staged.
-        var session = sessions.Peek(sessionId);
-        if (session is null)
-        {
-            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
         // The {sessionId} is the only credential on this multipart POST (DisableAntiforgery), so
         // guard it like the WS handshake: reject cross-origin posts and require the request's
         // authenticated user to match the session owner.
-        if (!IsSameOrigin(ctx.Request)
-            || !MayDrive(UserOf(ctx), session))
+        if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            ctx.Response.StatusCode = refusal;
             return;
         }
 
@@ -4241,6 +4241,38 @@ public static partial class RaskEndpointExtensions
         await ctx.Response.Body.WriteAsync(ms.ToArray(), ctx.RequestAborted).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     Null when an upload or download may act on session <paramref name="sessionId" />; otherwise the
+    ///     status to answer it with — 404 for a session that is gone, 403 for a cross-origin request or one
+    ///     from anyone but the session's owner.
+    /// </summary>
+    private static int? RefuseSessionRequest(HttpContext ctx, LiveSessionStore sessions, string sessionId)
+    {
+        // Peek, not Get: Get cancels the pending removal for good, pinning the session and all it staged.
+        if (sessions.Peek(sessionId) is not { } session)
+        {
+            return StatusCodes.Status404NotFound;
+        }
+
+        if (!IsSameOrigin(ctx.Request))
+        {
+            return StatusCodes.Status403Forbidden;
+        }
+
+        try
+        {
+            return MayDrive(UserOf(ctx), session) ? null : StatusCodes.Status403Forbidden;
+        }
+        catch (ObjectDisposedException)
+        {
+            // Only the session's teardown disposes the scope MayDrive reads the owner from: Peek found the
+            // session, then its removal — a never-connected page's grace period ending, say — disposed it on
+            // another thread. The session is gone, so this is the answer a Peek a moment later would have given,
+            // not a 500 (#1207).
+            return StatusCodes.Status404NotFound;
+        }
+    }
+
     private static async Task HandleDownloadAsync(
         HttpContext ctx,
         string sessionId,
@@ -4250,18 +4282,10 @@ public static partial class RaskEndpointExtensions
     {
         // A leaked download URL must not serve a victim's file to another principal: require the
         // session to still exist and the request to be same-origin and from the session owner
-        // before consuming the one-shot entry. Peek, not Get, for the reason HandleUploadAsync gives.
-        var session = sessions.Peek(sessionId);
-        if (session is null)
+        // before consuming the one-shot entry.
+        if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
-            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
-        if (!IsSameOrigin(ctx.Request)
-            || !MayDrive(UserOf(ctx), session))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            ctx.Response.StatusCode = refusal;
             return;
         }
 
@@ -4308,7 +4332,14 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
+        // Under a path base the tag also carries the prefix, which the runtime reads for its socket URL, the
+        // history it pushes and the paths it strips (#1235). An attribute rather than a <base href>: a <base>
+        // re-resolves every relative URL in the page — `#section` becomes `/prefix/#section` — and the app may
+        // already have one. Omitted without a path base, so that page is byte-for-byte what it was.
+        public Component Render() => LiveOptions.PathBase.Length == 0
+            ? Script.Src(RuntimePath + "?v=" + Runtime.Value.Hash)
+            : Script.Data("rask-base", LiveOptions.PathBase + "/")
+                .Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
     }
 
     internal sealed class RaskLiveMarker

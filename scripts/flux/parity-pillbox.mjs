@@ -53,6 +53,11 @@ await openParity({
       keys: ['click', 'click:1', 'leave', 'ArrowDown', 'hover:3', 'leave', 'ArrowDown', 'Escape', 'remove:0', 'click', 'click:2', 'click:3', 'Escape', 'remove:0'],
     },
     {
+      name: 'pointer and keys', flux: 0, rask: '#ui-pillbox-tags',
+      keys: ['click', 'ArrowDown', 'ArrowDown', 'leave', 'ArrowDown', 'hover:4', 'leave', 'ArrowDown', 'hover:1', 'ArrowDown', 'Enter',
+        'ArrowDown', 'click:4', 'leave', 'ArrowDown', 'Escape', 'type:p', 'type:p', 'click', 'End', 'Home', 'ArrowUp', 'Tab'],
+    },
+    {
       name: 'searchable', flux: 2, rask: '#ui-pillbox-searchable',
       keys: ['click', 'type:p', 'ArrowDown', 'Enter', 'type:zz', 'Backspace', 'Backspace', 'ArrowDown', 'Enter', 'Escape', 'ArrowDown', 'Tab'],
     },

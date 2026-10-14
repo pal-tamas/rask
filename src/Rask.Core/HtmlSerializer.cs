@@ -434,6 +434,11 @@ internal static class HtmlSerializer
         }
 
         html.Append('>');
+        if (isShell && live is not null && string.Equals(tagName, "html", StringComparison.Ordinal))
+        {
+            live.BodyWritten = false;
+        }
+
         using (el.EnterChildrenScopeInternal())
         {
             SerializeElementChildren(el, opaque, live, html);
@@ -444,9 +449,9 @@ internal static class HtmlSerializer
             AppendHeadAssets(live, html);
         }
 
-        if (string.Equals(tagName, "body", StringComparison.Ordinal) && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime)
+        if (isShell && live is not null)
         {
-            AppendRuntimeScript(runtime, html);
+            CloseShellElement(tagName, live, html);
         }
 
         html.Append("</").Append(tagName).Append('>');
@@ -581,6 +586,27 @@ internal static class HtmlSerializer
         }
     }
 
+    // The runtime <script> goes in at </body>; a live document that reaches </html> without having written a
+    // body has nowhere for it (or for the session id), so it says so rather than painting a page that never
+    // connects (#1234). Only where a runtime is registered: without one nothing was going to connect anyway.
+    private static void CloseShellElement(string tagName, LiveRenderContext live, HtmlWriter html)
+    {
+        if (string.Equals(tagName, "body", StringComparison.Ordinal))
+        {
+            live.BodyWritten = true;
+            if (live.Services?.GetService<IRaskRuntimeScript>() is { } runtime)
+            {
+                AppendRuntimeScript(runtime, html);
+            }
+        }
+        else if (string.Equals(tagName, "html", StringComparison.Ordinal)
+                 && !live.BodyWritten
+                 && live.Services?.GetService<IRaskRuntimeScript>() is not null)
+        {
+            ShellBodyRepair.ReportNoBodyWritten();
+        }
+    }
+
     // The <body> element is framework-managed for the live runtime <script>:
     // resolve the host-registered IRaskRuntimeScript and emit its tag as the
     // last body child, so the user no longer hand-places RaskRuntimeScript().
@@ -679,10 +705,7 @@ internal static class HtmlSerializer
         // lifecycle and event-handler catch sites can find it later.
         component.Boundary ??= liveCtx.CurrentBoundary;
 
-        if (liveCtx.GuardedForm is { } form)
-        {
-            Forms.ReaderEdits.Hold(component, form);
-        }
+        Forms.ReaderEdits.HoldIfWritten(component, liveCtx);
 
         // A component no chain entry registered — one the app built itself, a plugin or a type chosen at
         // runtime — reaches the walk with its lifecycle never started. Adopt it here, so it gets Mount,

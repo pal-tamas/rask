@@ -45,6 +45,14 @@ await openParity({
         'ArrowDown', 'hover:1', 'ArrowDown', 'click:4', 'ArrowDown', 'Escape', 'ArrowDown', 'Tab'],
     },
     {
+      // The pointer and the keys together: a row the pointer lit goes dark when it leaves and one the keys
+      // lit stays, the arrows go on from the lit row and start from an end when none is, Enter picks what
+      // the pointer lit and nothing when no row is, Space shuts the open list, letters pick on the shut one.
+      name: 'listbox, pointer and keys', flux: 3, rask: '#ui-select-listbox',
+      keys: ['click', 'hover:2', 'ArrowDown', 'leave', 'ArrowDown', 'hover:5', 'leave', 'ArrowUp', 'hover:1', 'Enter',
+        'click', 'hover:6', 'leave', 'Enter', 'Escape', 'click', 'hover:2', 'Space', 'type:d', 'type:o', 'click', 'ArrowUp', 'Escape', 'Tab'],
+    },
+    {
       // Enter on the CLOSED button. Flux leaves the list shut; a native <button popovertarget> is pressed by
       // Enter, and C# cannot prevent a key's default. The runtime hook that would (contain Enter on a closed
       // listbox button) does not exist — see FluxConformanceTests.NotTranslated. Printed, and not counted.
@@ -58,12 +66,22 @@ await openParity({
         'Enter', 'ArrowDown', 'type:leg', 'Escape', 'ArrowDown', 'type:á', 'Tab'],
     },
     {
+      name: 'searchable, pointer and keys', flux: 10, rask: '#ui-select-searchable',
+      keys: ['click', 'hover:2', 'ArrowDown', 'leave', 'ArrowDown', 'type:co', 'hover:5', 'leave', 'ArrowUp', 'Backspace', 'Backspace',
+        'hover:1', 'Enter', 'click', 'type:w', 'Escape', 'click', 'Tab'],
+    },
+    {
       name: 'multiple', flux: 12, rask: '#ui-select-multiple',
       keys: ['focus', 'ArrowDown', 'ArrowDown', 'Enter', 'ArrowDown', 'Enter', 'Enter', 'Escape', 'type:o', 'ArrowDown', 'Tab'],
     },
     {
       name: 'combobox', flux: 13, rask: '#ui-select-combobox',
       keys: ['click', 'Escape', 'type:de', 'ArrowDown', 'Enter', 'ArrowDown', 'ArrowDown', 'Escape', 'Escape', 'type:xyz', 'Tab'],
+    },
+    {
+      name: 'combobox, pointer and keys', flux: 13, rask: '#ui-select-combobox',
+      keys: ['click', 'hover:2', 'ArrowDown', 'leave', 'ArrowDown', 'type:de', 'hover:2', 'leave', 'ArrowDown', 'Enter',
+        'click', 'ArrowUp', 'Escape', 'type:co', 'Escape', 'Tab'],
     },
   ],
 });

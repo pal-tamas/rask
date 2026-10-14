@@ -12,6 +12,11 @@ project or a component library adds it itself:
 using Rask.Core.Routing;
 ```
 
+In a Web SDK project without it, `[Route]` finds ASP.NET's `Microsoft.AspNetCore.Routing.Route` class instead
+and the build stops with `CS0616: 'Route' is not an attribute class` — the fix is the line above. A hand-wired host
+puts it in the page files rather than in a global using when it also has MVC controllers: their `[Route]` is
+`Microsoft.AspNetCore.Mvc.RouteAttribute`, and both in scope is CS0104 (see [SPA hosting](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
+
 See also: [lifecycle.md](lifecycle.md) for hook timing on routed pages, [authentication.md](authentication.md) for
 auth gating, and [diagnostics.md](diagnostics.md) for the routing analyzers (RASK003–RASK013).
 

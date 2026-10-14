@@ -85,11 +85,14 @@ expect_has   "the feed's own fixture reaches the CLI gates"        packaging tes
 expect_has   "the CLI reaches the CLI gates"                       packaging src/Rask.Cli/Program.cs
 expect_has   "a template reaches the CLI gates"                    packaging src/Rask.Templates/server/Program.cs
 expect_has   "a shipped project file reaches the CLI gates"        packaging src/Rask.Mail/Rask.Mail.csproj
+expect_has   "a kit component reaches the CLI gates (#1214)"       packaging src/Rask.Ui/UiSelectSearch.cs
+expect_has   "the kit's Tailwind input reaches the CLI gates"      packaging src/Rask.Ui/Styles/ui.css
+expect_has   "the Tailwind build task reaches the CLI gates"       packaging src/Rask.Tailwind.Tasks/CssClassNames.cs
 
 # The front-end gates are one job per template, also selected by file: a template's tree reaches its
 # own job, and what installs, generates, bundles and serves every front end reaches all of them.
-expect_has   "a front end's lockfile reaches its own job"          frontend-vue     src/Rask.Templates/vue/client/package-lock.json
-expect_lacks "...and no other front end's"                         frontend-react   src/Rask.Templates/vue/client/package-lock.json
+expect_has   "a front end's manifest reaches its own job"          frontend-vue     src/Rask.Templates/vue/client/package.json
+expect_lacks "...and no other front end's"                         frontend-react   src/Rask.Templates/vue/client/package.json
 expect_has   "a front end's host half reaches it too"              frontend-angular src/Rask.Templates/angular/Program.cs
 expect_lacks "the server template reaches no front end"            frontend-react   src/Rask.Templates/server/Program.cs
 expect_lacks "an island fragment reaches no front end"             frontend-react   src/Rask.Templates/_islands/react/island.json

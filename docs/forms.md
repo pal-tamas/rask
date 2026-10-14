@@ -53,6 +53,10 @@ derives everything from the bound property:
   `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
   `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
+- **Passwords are the browser's.** An input of `type=password` (or `autocomplete` `current-password`,
+  `new-password` or `one-time-code`) sends what was typed to the model and never gets it back: the server writes
+  `""` to clear it and nothing else, so a model value set from the server does not reach the field, and a page
+  that prefills a password is a bug in the page.
 - **Update timing** — a bound control says nothing until the next action, and its value travels with
   that: see [bind timing](#bind-timing).
 

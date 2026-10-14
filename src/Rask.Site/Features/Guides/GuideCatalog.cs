@@ -195,6 +195,11 @@ public static class GuideCatalog
             SearchTitle = "File uploads in ASP.NET Core on disk, S3 or Azure",
             Description = "Keep user uploads in .NET on disk, S3, R2 or Azure Blob with a row in your database: sniffed content types, size limits, public and signed temporary URLs.",
         },
+        new("xlsx", "Excel export", "An .xlsx workbook from headings and rows, with no dependency.", "Backend services")
+        {
+            SearchTitle = "Export an Excel .xlsx file from C# with no library",
+            Description = "Write an Excel .xlsx workbook from .NET with nothing but System.IO.Compression: bold frozen headings, filters, fitted columns, folded rows and a SUBTOTAL row.",
+        },
         new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "Backend services")
         {
             SearchTitle = "ASP.NET Core APIs with a generated typed client",

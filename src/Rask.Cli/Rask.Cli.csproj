@@ -57,6 +57,11 @@
          warnings and runs, with Spectre.Console + Spectre.Console.Ansi trimming to ~0.7 MB. Nothing in the
          repo enforces trimming today (see the note in JsonOutput.cs), but the option stays open. -->
     <PackageReference Include="Spectre.Console"/>
+    <!-- `rask new` writes the newest front-end versions that agree with each other's peer ranges
+         (NpmCompatibleVersions), and a peer range is npm's grammar — `^5 || ^6`, `>=4.8.4 <6.1.0`, `x`,
+         hyphens. Semver parses exactly that (SemVersionRange.ParseNpm); a second copy of the grammar is
+         the kind of parser that is right until the first range it has never seen. -->
+    <PackageReference Include="Semver"/>
   </ItemGroup>
 
   <!-- The template trees ARE the scaffolder's payload: `rask new` writes these bytes out, so editing a
