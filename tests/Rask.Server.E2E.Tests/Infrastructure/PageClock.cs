@@ -20,4 +20,10 @@ internal static class PageClock
 
     /// <summary>Stops the page's time, an hour past where it started: later than any run reaches on its own.</summary>
     public static Task StopAsync(IPage page) => page.Clock.PauseAtAsync(Start.AddHours(1));
+
+    /// <summary>
+    ///     Stops the page's time for the <paramref name="nth" /> time in one context: that many hours past where
+    ///     it started, since a clock set going again in between is stopped later than it has reached.
+    /// </summary>
+    public static Task StopAsync(IPage page, int nth) => page.Clock.PauseAtAsync(Start.AddHours(nth));
 }
