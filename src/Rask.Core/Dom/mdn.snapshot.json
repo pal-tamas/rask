@@ -1,17 +1,17 @@
 {
  "schema": 1,
  "sources": {
-  "@mdn/browser-compat-data": "8.1.4",
-  "@webref/css": "8.7.5",
-  "@webref/elements": "2.9.0",
-  "@webref/events": "1.27.0",
-  "@webref/idl": "3.85.0",
+  "@mdn/browser-compat-data": "8.1.5",
+  "@webref/css": "8.7.7",
+  "@webref/elements": "2.9.2",
+  "@webref/events": "1.27.1",
+  "@webref/idl": "3.85.2",
   "parse5": "8.0.1",
   "webidl2": "24.5.0",
-  "webref/dfns": "686e05e58f761ce5832baf4d9403575827fd8aca",
+  "webref/dfns": "fe954a991e86c3dae5b0a85205edd7d06d8bdff2",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
-  "w3c/aria": "a4af4eb449462c00f673f264956ef9c63f0e9e06"
+  "w3c/aria": "79cd9d0ee032933c692d91e8f4b3db953524e28e"
  },
  "engines": [
   "chrome",
@@ -23195,7 +23195,7 @@
       },
       {
        "name": "options",
-       "type": "ParseHTMLUnsafeOptions",
+       "type": "(ParseHTMLUnsafeOptions or TrustedHTMLParserOptions)",
        "optional": true
       }
      ],
@@ -26915,7 +26915,7 @@
     {
      "kind": "operation",
      "name": "scrollIntoView",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "arg",
@@ -26934,7 +26934,7 @@
     {
      "kind": "operation",
      "name": "scroll",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -26965,7 +26965,7 @@
     {
      "kind": "operation",
      "name": "scrollTo",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -26996,7 +26996,7 @@
     {
      "kind": "operation",
      "name": "scrollBy",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -27809,7 +27809,7 @@
       },
       {
        "name": "options",
-       "type": "SetHTMLUnsafeOptions",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
        "optional": true
       }
      ],
@@ -30676,6 +30676,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/EventTarget/when",
      "spec": "https://wicg.github.io/observable/#dom-eventtarget-when"
     }
    ],
@@ -47543,8 +47544,7 @@
     {
      "attr": "src",
      "property": "src",
-     "type": "USVString",
-     "url": true,
+     "type": "(TrustedScriptURL or USVString)",
      "support": {
       "chrome": "1",
       "firefox": "1",
@@ -47714,7 +47714,7 @@
     {
      "kind": "attribute",
      "name": "src",
-     "type": "USVString",
+     "type": "(TrustedScriptURL or USVString)",
      "support": {
       "chrome": "1",
       "firefox": "1",
@@ -47825,8 +47825,32 @@
     },
     {
      "kind": "attribute",
+     "name": "innerText",
+     "type": "(TrustedScript or DOMString)",
+     "support": {
+      "chrome": "1",
+      "firefox": "45",
+      "safari": "3"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/innerText",
+     "spec": "https://w3c.github.io/trusted-types/dist/spec/#dom-htmlscriptelement-innertext"
+    },
+    {
+     "kind": "attribute",
+     "name": "textContent",
+     "type": "(TrustedScript or DOMString)?",
+     "support": {
+      "chrome": "1",
+      "firefox": "1",
+      "safari": "3"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLScriptElement/textContent",
+     "spec": "https://w3c.github.io/trusted-types/dist/spec/#dom-htmlscriptelement-textcontent"
+    },
+    {
+     "kind": "attribute",
      "name": "text",
-     "type": "DOMString",
+     "type": "(TrustedScript or DOMString)",
      "support": {
       "chrome": "1",
       "firefox": "1",
@@ -49706,19 +49730,7 @@
       "firefox": "4",
       "safari": "6"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap",
-     "keywords": [
-      {
-       "value": "soft"
-      },
-      {
-       "value": "hard",
-       "support": {
-        "chrome": "16"
-       },
-       "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap-hard"
-      }
-     ]
+     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-textarea-wrap"
     },
     {
      "attr": "value",
@@ -53621,7 +53633,7 @@
      "support": {
       "chrome": "60",
       "firefox": "31",
-      "safari": "27"
+      "safari": "16.4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/InputEvent/isComposing",
      "spec": "https://w3c.github.io/uievents/#dom-inputevent-iscomposing"
@@ -54226,7 +54238,7 @@
      "support": {
       "chrome": "56",
       "firefox": "31",
-      "safari": "27"
+      "safari": "10.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/KeyboardEvent/isComposing",
      "spec": "https://w3c.github.io/uievents/#dom-keyboardevent-iscomposing"
@@ -54583,7 +54595,7 @@
     {
      "kind": "operation",
      "name": "prompt",
-     "returns": "Promise<DOMString>",
+     "returns": "Promise<(DOMString or sequence<LanguageModelMessageContent>)>",
      "args": [
       {
        "name": "input",
@@ -62670,8 +62682,8 @@
      "name": "navigate",
      "type": "USVString",
      "readonly": true,
-     "experimental": true,
      "support": {
+      "firefox": "158",
       "safari": "18.4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/Notification/navigate",
@@ -63053,6 +63065,7 @@
    "support": {
     "chrome": "135"
    },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Observable",
    "spec": "https://wicg.github.io/observable/#observable-api",
    "members": [
     {
@@ -63075,6 +63088,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/subscribe",
      "spec": "https://wicg.github.io/observable/#dom-observable-subscribe"
     },
     {
@@ -63091,6 +63105,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/takeUntil",
      "spec": "https://wicg.github.io/observable/#dom-observable-takeuntil"
     },
     {
@@ -63107,6 +63122,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/map",
      "spec": "https://wicg.github.io/observable/#dom-observable-map"
     },
     {
@@ -63123,6 +63139,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/filter",
      "spec": "https://wicg.github.io/observable/#dom-observable-filter"
     },
     {
@@ -63139,6 +63156,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/take",
      "spec": "https://wicg.github.io/observable/#dom-observable-take"
     },
     {
@@ -63155,6 +63173,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/drop",
      "spec": "https://wicg.github.io/observable/#dom-observable-drop"
     },
     {
@@ -63171,6 +63190,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/flatMap",
      "spec": "https://wicg.github.io/observable/#dom-observable-flatmap"
     },
     {
@@ -63187,6 +63207,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/switchMap",
      "spec": "https://wicg.github.io/observable/#dom-observable-switchmap"
     },
     {
@@ -63204,6 +63225,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/inspect",
      "spec": "https://wicg.github.io/observable/#dom-observable-inspect"
     },
     {
@@ -63220,6 +63242,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/catch",
      "spec": "https://wicg.github.io/observable/#dom-observable-catch"
     },
     {
@@ -63236,6 +63259,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/finally",
      "spec": "https://wicg.github.io/observable/#dom-observable-finally"
     },
     {
@@ -63253,6 +63277,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/toArray",
      "spec": "https://wicg.github.io/observable/#dom-observable-toarray"
     },
     {
@@ -63274,6 +63299,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/forEach",
      "spec": "https://wicg.github.io/observable/#dom-observable-foreach"
     },
     {
@@ -63295,6 +63321,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/every",
      "spec": "https://wicg.github.io/observable/#dom-observable-every"
     },
     {
@@ -63312,6 +63339,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/first",
      "spec": "https://wicg.github.io/observable/#dom-observable-first"
     },
     {
@@ -63329,6 +63357,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/last",
      "spec": "https://wicg.github.io/observable/#dom-observable-last"
     },
     {
@@ -63350,6 +63379,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/find",
      "spec": "https://wicg.github.io/observable/#dom-observable-find"
     },
     {
@@ -63371,6 +63401,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/some",
      "spec": "https://wicg.github.io/observable/#dom-observable-some"
     },
     {
@@ -63397,6 +63428,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/reduce",
      "spec": "https://wicg.github.io/observable/#dom-observable-reduce"
     }
    ],
@@ -63412,6 +63444,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/Observable",
      "spec": "https://wicg.github.io/observable/#dom-observable-observable"
     }
    ],
@@ -63430,6 +63463,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Observable/from_static",
      "spec": "https://wicg.github.io/observable/#dom-observable-from"
     }
    ]
@@ -68699,6 +68733,7 @@
      "readonly": true,
      "support": {
       "chrome": "117",
+      "firefox": "158",
       "safari": "26.4"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/PerformanceResourceTiming/deliveryType",
@@ -76640,6 +76675,22 @@
     },
     {
      "kind": "operation",
+     "name": "setJavascriptURLs",
+     "returns": "boolean",
+     "args": [
+      {
+       "name": "allow",
+       "type": "boolean"
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "firefox": "158"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-sanitizer-setjavascripturls"
+    },
+    {
+     "kind": "operation",
      "name": "removeUnsafe",
      "returns": "boolean",
      "args": [],
@@ -78717,7 +78768,7 @@
       },
       {
        "name": "options",
-       "type": "SetHTMLUnsafeOptions",
+       "type": "(SetHTMLUnsafeOptions or TrustedHTMLParserOptions)",
        "optional": true
       }
      ],
@@ -81366,6 +81417,7 @@
    "support": {
     "chrome": "135"
    },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber",
    "spec": "https://wicg.github.io/observable/#subscriber-api",
    "members": [
     {
@@ -81382,6 +81434,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/next",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-next"
     },
     {
@@ -81398,6 +81451,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/error",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-error"
     },
     {
@@ -81409,6 +81463,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/complete",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-complete"
     },
     {
@@ -81425,6 +81480,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/addTeardown",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-addteardown"
     },
     {
@@ -81436,6 +81492,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/active",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-active"
     },
     {
@@ -81447,6 +81504,7 @@
      "support": {
       "chrome": "135"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/Subscriber/signal",
      "spec": "https://wicg.github.io/observable/#dom-subscriber-signal"
     }
    ]
@@ -93354,7 +93412,14 @@
      "attr": "method",
      "property": "method",
      "type": "SVGAnimatedEnumeration",
-     "readonly": true
+     "readonly": true,
+     "support": {
+      "chrome": "1",
+      "firefox": "2",
+      "safari": "3.1"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/method",
+     "spec": "https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementMethodAttribute"
     },
     {
      "attr": "spacing",
@@ -112979,8 +113044,8 @@
      "type": "boolean",
      "readonly": true,
      "secure": true,
-     "experimental": true,
      "support": {
+      "firefox": "158",
       "safari": "26.4"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-supportsreliableonly"
@@ -113737,7 +113802,7 @@
     {
      "kind": "operation",
      "name": "scroll",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -113768,7 +113833,7 @@
     {
      "kind": "operation",
      "name": "scrollTo",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -113799,7 +113864,7 @@
     {
      "kind": "operation",
      "name": "scrollBy",
-     "returns": "Promise<undefined>",
+     "returns": "Promise<ScrollResult>",
      "args": [
       {
        "name": "options",
@@ -126727,7 +126792,7 @@
     },
     {
      "name": "tools",
-     "type": "sequence<LanguageModelTool>"
+     "type": "sequence<LanguageModelToolDeclaration>"
     }
    ]
   },
@@ -126788,7 +126853,7 @@
     },
     {
      "name": "value",
-     "type": "((((HTMLImageElement or SVGImageElement) or HTMLVideoElement or HTMLCanvasElement or ImageBitmap or OffscreenCanvas or VideoFrame) or Blob or ImageData) or AudioBuffer or (ArrayBuffer or (Int8Array or Int16Array or Int32Array or Uint8Array or Uint16Array or Uint32Array or Uint8ClampedArray or BigInt64Array or BigUint64Array or Float16Array or Float32Array or Float64Array or DataView)) or DOMString)",
+     "type": "((((HTMLImageElement or SVGImageElement) or HTMLVideoElement or HTMLCanvasElement or ImageBitmap or OffscreenCanvas or VideoFrame) or Blob or ImageData) or AudioBuffer or (ArrayBuffer or (Int8Array or Int16Array or Int32Array or Uint8Array or Uint16Array or Uint32Array or Uint8ClampedArray or BigInt64Array or BigUint64Array or Float16Array or Float32Array or Float64Array or DataView)) or DOMString or LanguageModelToolCall or (LanguageModelToolSuccess or LanguageModelToolError))",
      "required": true
     }
    ]
@@ -126809,7 +126874,7 @@
     }
    ]
   },
-  "LanguageModelTool": {
+  "LanguageModelToolDeclaration": {
    "members": [
     {
      "name": "name",
@@ -126824,11 +126889,6 @@
     {
      "name": "inputSchema",
      "type": "object",
-     "required": true
-    },
-    {
-     "name": "execute",
-     "type": "LanguageModelToolFunction",
      "required": true
     }
    ]
@@ -129871,7 +129931,19 @@
     },
     {
      "name": "keys",
-     "type": "record<DOMString, USVString>"
+     "type": "PushSubscriptionKeys"
+    }
+   ]
+  },
+  "PushSubscriptionKeys": {
+   "members": [
+    {
+     "name": "p256dh",
+     "type": "USVString"
+    },
+    {
+     "name": "auth",
+     "type": "USVString"
     }
    ]
   },
@@ -130960,6 +131032,15 @@
     }
    ]
   },
+  "ScrollResult": {
+   "members": [
+    {
+     "name": "interrupted",
+     "type": "boolean",
+     "required": true
+    }
+   ]
+  },
   "ScrollTimelineOptions": {
    "members": [
     {
@@ -131938,6 +132019,10 @@
     {
      "name": "createScriptURL",
      "type": "CreateScriptURLCallback"
+    },
+    {
+     "name": "createParserOptions",
+     "type": "CreateParserOptionsCallback"
     }
    ]
   },
@@ -133631,6 +133716,20 @@
     }
    ]
   },
+  "CreateParserOptionsCallback": {
+   "returns": "SetHTMLUnsafeOptions?",
+   "args": [
+    {
+     "name": "options",
+     "type": "SetHTMLUnsafeOptions"
+    },
+    {
+     "name": "arguments",
+     "type": "any",
+     "variadic": true
+    }
+   ]
+  },
   "CreateScriptCallback": {
    "returns": "DOMString?",
    "args": [
@@ -133792,16 +133891,6 @@
     {
      "name": "observer",
      "type": "IntersectionObserver"
-    }
-   ]
-  },
-  "LanguageModelToolFunction": {
-   "returns": "Promise<DOMString>",
-   "args": [
-    {
-     "name": "arguments",
-     "type": "any",
-     "variadic": true
     }
    ]
   },
@@ -141057,7 +141146,7 @@
      "safari": "9"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/column-width",
-    "spec": "https://drafts.csswg.org/css-sizing-4/#column-sizing"
+    "spec": "https://drafts.csswg.org/css-sizing-3/#column-sizing"
    },
    {
     "name": "columns",
@@ -141248,10 +141337,16 @@
     "name": "content",
     "keywords": [
      "normal",
-     "none"
+     "none",
+     "contents",
+     "open-quote",
+     "close-quote",
+     "no-open-quote",
+     "no-close-quote"
     ],
     "accepts": [
-     "string"
+     "string",
+     "symbolic-counter-style"
     ],
     "support": {
      "chrome": "1",
@@ -145119,7 +145214,7 @@
     "keywords": [
      "auto",
      "none",
-     "match-parent"
+     "bikeshed-this"
     ],
     "accepts": [],
     "support": {
@@ -145738,8 +145833,7 @@
      "y",
      "block",
      "inline",
-     "both",
-     "pair"
+     "both"
     ],
     "accepts": [],
     "support": {

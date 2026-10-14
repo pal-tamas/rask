@@ -44,7 +44,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal const string CaddyContainer = "rask-caddy";
 
     /// <summary>A tiny, pinned curl image run as an ephemeral readiness probe joined to the target's netns.</summary>
-    internal const string CurlImage = "curlimages/curl:8.22.0";
+    internal const string CurlImage = "curlimages/curl:8.23.0";
 
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";

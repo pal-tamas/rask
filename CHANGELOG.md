@@ -136,6 +136,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: MDN's latest data moved a few generated names, taken as it came.** Before → after:
+  `Textarea.Wrap(TextareaWrap.Soft)` → `Textarea.Wrap("soft")` (the `TextareaWrap` enum is gone; MDN no longer lists
+  its keywords); `ElementRef<HTMLScriptElement>`'s `Src`, `Text` and `SetText` are gone;
+  `Css.QuotesKeywords.MatchParent` and `Css.ScrollSnapTypeKeywords.Pair` are gone;
+  `ElementRef<Element>`'s `Scroll`, `ScrollBy`, `ScrollIntoView` and `ScrollTo` keep their overloads and now return
+  `ValueTask<ScrollResult>` (`ScrollResult.Interrupted`) — `await` them as before; `PushSubscriptionJSON.Keys` is a typed
+  `PushSubscriptionKeys` (`.P256dh`, `.Auth`).
 - **Every pin Rask carries now follows its newest stable release by itself.** Before: Dependabot moved NuGet,
   the workflows' actions and the site's npm, and nothing moved the rest. After: Dependabot also covers the
   composite setup action, the template and devhost base images, the editor engine's and the devtools E2E's npm,
