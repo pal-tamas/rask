@@ -41,7 +41,9 @@ public sealed partial class UiTable : UiElement, IUiHost
         + "first:-mt-[var(--ui-bleed-top,0px)] first:rounded-t-[var(--ui-bleed-top-radius,0px)] "
         + "last:-mb-[var(--ui-bleed-bottom,0px)] last:rounded-b-[var(--ui-bleed-bottom-radius,0px)]";
 
-    private const string ScrollArea = "block overflow-auto";
+    // `relative` departs from Flux (owner, 2026-10-14): Flux's frame is static, so an absolutely placed child of a
+    // cell — a checkbox's hidden input, a hidden heading — escapes it and the whole page scrolls sideways on a phone.
+    private const string ScrollArea = "relative block overflow-auto";
 
     private static readonly UiPartMarker Marker = new("ui-table");
 
