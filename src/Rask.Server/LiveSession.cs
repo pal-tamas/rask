@@ -452,10 +452,38 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             ? Task.CompletedTask
             : RepaintMidFlightAsync();
 
+    // A CALL FOR THE BROWSER THAT A HANDLER WAITS ON LEAVES WHILE THE HANDLER WAITS. The dispatch's own render
+    // comes when the handler has ended, and a handler that awaits `element.Focus()` ends when the browser has
+    // answered — so the call cannot ride that render. It rides a repaint of the page as it stands: the one the
+    // handler's budget buys (Component.InvokeWithRenderingAsync), then one before and after each continuation
+    // that comes back through the handler's context (HandlerSyncContext).
+    //
+    // A continuation that left that context — every `ConfigureAwait(false)`, so all of the kit — is repainted by
+    // nobody. Its call sat in the queue, the handler waited on the call, and the dispatch waited on the handler:
+    // a pick that awaited two calls in a row wrote its text and then held its session for as long as the
+    // connection lasted (no handler is timed out unless the app asks). It was only ever seen when the browser's
+    // answer to the first call came back after the budget's repaint had returned — over a real line, every time.
+    //
+    //   * before the budget's repaint: nothing is sent here. That repaint is still to come and carries the
+    //     call, and until it does no state the handler only passes through is shown.
+    //   * after it, from code on the handler's context: nothing either. The repaint that follows that
+    //     continuation carries the call, with everything the continuation went on to change.
+    //   * after it, from code that left the context: the page as it stands, now, with the call.
+    private Task SendWhatTheHandlerWaitsOnAsync() =>
+        _repaintedMidFlight && JsInvokes.HasPending && SynchronizationContext.Current is not HandlerSyncContext
+            ? RenderInScopeCoreAsync()
+            : Task.CompletedTask;
+
+    // The page of the dispatch in hand has gone out once while its handler was still working. Until then the
+    // budget's repaint is still to come and carries whatever was queued before it.
+    private volatile bool _repaintedMidFlight;
+
     // A handler outlives its connection, and its session when a shutdown's drain gives up on it. Its repaint
     // then has nobody to reach, which is not the handler failing: it runs on, and nothing is thrown at it.
     private async Task RepaintMidFlightAsync()
     {
+        // Before the walk: a call queued while it runs may have missed its drain, and is sent after it.
+        _repaintedMidFlight = true;
         try
         {
             await RenderAndSendAsync(null, false, midFlight: true).ConfigureAwait(false);
@@ -577,6 +605,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // will not look at the flag again, so this request renders itself instead of being dropped.
             if (InHandlerScope)
             {
+                await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
                 return;
             }
         }
@@ -1480,6 +1509,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         string? historyUrl, bool replace, AuthInstruction? auth = null, bool arriving = false, bool settle = true)
     {
         _pendingRenderInScope = false;
+        _repaintedMidFlight = false;
         var addressed = await RenderAndSendAsync(
             historyUrl, replace, auth, arriving: arriving, settling: settle && auth is null && !arriving)
             .ConfigureAwait(false);
