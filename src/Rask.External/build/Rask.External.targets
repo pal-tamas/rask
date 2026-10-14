@@ -773,7 +773,7 @@
     -->
     <Error Condition="'$(_RaskExternalNodeComparable)' == 'true' AND $([MSBuild]::VersionLessThan('$(_RaskExternalNodeFound)', '$(RaskExternalMinimumNode)'))"
            Code="RASKISLAND001"
-           Text="Rask islands: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Vite asks for ^20.19.0 || >=22.12.0, so a 20.19.x or 21.x Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
+           Text="Rask islands: building the islands in $(MSBuildProjectName) needs Node.js $(RaskExternalMinimumNode) or newer, but 'node --version' reported $(_RaskExternalNodeFound). Rask builds on the Node LTS line, and an older Node fails inside the bundler instead. Install the current LTS (nvm install --lts, or https://nodejs.org), then build again. Set RaskExternalMinimumNode if you want a different bar."/>
   </Target>
 
   <!--
