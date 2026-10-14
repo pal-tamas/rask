@@ -485,7 +485,6 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         try
         {
-            BeginFrame();
             return await RunHandlerAsync(handlerId, root, copyFrame, deferRender: false).ConfigureAwait(false);
         }
         finally
@@ -515,7 +514,6 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return Array.Empty<byte>();
         }
 
-        BeginFrame();
         var submits = EventBatch.AnnounceSubmits(View, events);
         try
         {

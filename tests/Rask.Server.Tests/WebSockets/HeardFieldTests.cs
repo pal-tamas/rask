@@ -26,25 +26,29 @@ public class HeardFieldTests
             Change(html, "message", "hello"), Change(html, "notes", "two lines"), $$$"""{"id":"{{{Submit(html)}}}","type":"submit","form":{}}"""));
         var answer = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("sent=hello|two lines", StringComparison.Ordinal), "the submit's render"));
 
-        Assert.Matches("<input[^>]*id=\"message\"[^>]*value=\"\"[^>]*data-rask-heard=\"hello\"|<input[^>]*id=\"message\"[^>]*data-rask-heard=\"hello\"[^>]*value=\"\"", answer);
-        Assert.Matches("<textarea[^>]*id=\"notes\"[^>]*data-rask-heard=\"two lines\"[^>]*></textarea>", answer);
+        Assert.Matches("<input[^>]*id=\"message\"[^>]*value=\"\"[^>]*data-rask-heard=\"1:hello\"|<input[^>]*id=\"message\"[^>]*data-rask-heard=\"1:hello\"[^>]*value=\"\"", answer);
+        Assert.Matches("<textarea[^>]*id=\"notes\"[^>]*data-rask-heard=\"1:two lines\"[^>]*></textarea>", answer);
     }
 
     [Theory]
     [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
-    public async Task What_was_heard_is_gone_from_the_render_after_the_next_event(LiveTransportKind transport)
+    public async Task The_same_message_sent_again_is_a_new_word_and_the_next_event_does_not_take_it_back(LiveTransportKind transport)
     {
         using var host = RaskTestHost.Create<ChatBoxApp>(diffMode: LiveDiffMode.DisabledFull);
         var (html, sessionId) = await StartAsync(host);
         await using var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
-        await connection.SendRawAsync(Batch(Change(html, "message", "hello"), $$$"""{"id":"{{{Submit(html)}}}","type":"submit","form":{}}"""));
-        var answer = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("sent=hello|", StringComparison.Ordinal), "the submit's render"));
+        var submit = $$$"""{"id":"{{{Submit(html)}}}","type":"submit","form":{}}""";
+        await connection.SendRawAsync(Batch(Change(html, "message", "hello"), submit));
+        var first = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("sent=hello|", StringComparison.Ordinal), "the first submit's render"));
 
-        await connection.SendJsonAsync(new { id = Attr(answer, "tick", "data-rask-on-click"), type = "click" });
-        var next = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("ticks=1", StringComparison.Ordinal), "the tick's render"));
+        await connection.SendJsonAsync(new { id = Attr(first, "tick", "data-rask-on-click"), type = "click" });
+        var between = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("ticks=1", StringComparison.Ordinal), "the tick's render"));
+        await connection.SendRawAsync(Batch(Change(first, "message", "hello"), submit));
+        var again = HtmlOf(await connection.ReceiveUntilAsync(frame => frame.Contains("2:hello", StringComparison.Ordinal), "the second submit's render"));
 
-        Assert.Contains("data-rask-heard", answer, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-heard", next, StringComparison.Ordinal);
+        Assert.Contains("data-rask-heard=\"1:hello\"", first, StringComparison.Ordinal);
+        Assert.Contains("data-rask-heard=\"1:hello\"", between, StringComparison.Ordinal);
+        Assert.Contains("data-rask-heard=\"2:hello\"", again, StringComparison.Ordinal);
     }
 
     internal static async Task<(string Html, string SessionId)> StartAsync(RaskTestHost host)

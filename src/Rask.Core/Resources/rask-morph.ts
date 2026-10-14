@@ -174,17 +174,28 @@ export function raskShouldSuppressValue(el: Element | null, incoming: string): b
 
 // What the page heard. A bound field that waits for the next action is the reader's while they are in it, and a
 // render that knows nothing newer leaves it alone (the value sync in morph(), the focus guard in rask-dom.ts).
-// The render that answers the action the field went with does know: it carries what it heard beside the
-// field (data-rask-heard, Forms/HeardValues.cs). A field that still holds exactly that has nothing unsent, and
-// takes the value the page rendered for it, focused or not and whatever the guard above recorded — a submit
-// that empties a chat box empties it (#1245). A field the reader has typed on in since keeps what they typed.
+// The render that answers the action the field went with does know: it carries what it heard beside the field
+// (data-rask-heard="<count>:<text>", Forms/HeardValues.cs). A field that still holds exactly that has nothing
+// unsent, and takes the value the page rendered for it, focused or not and whatever the guard above recorded — a
+// submit that empties a chat box empties it (#1245). A field the reader has typed on in since keeps what they
+// typed. The word is acted on ONCE per count, when the page's value is no longer the one it heard: the page never
+// takes it back out (that would be a frame of its own), so a later render that still carries it is old news — and
+// the render between the change and the action, which still holds what was heard, is not the answer yet.
+const _raskHeardCounts = new WeakMap<Element, string>();
+
 export function raskAdoptHeard(el: Element): void {
-    const heard = el.getAttribute("data-rask-heard");
-    if (heard === null || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")) return;
+    const word = el.getAttribute("data-rask-heard");
+    if (word === null || (el.tagName !== "INPUT" && el.tagName !== "TEXTAREA")) return;
+    const at = word.indexOf(":");
+    const count = word.slice(0, at);
+    if (at < 0 || _raskHeardCounts.get(el) === count) return;
+    const heard = word.slice(at + 1);
     const field = el as HTMLInputElement | HTMLTextAreaElement;
     // An input's rendered value is its `value` attribute, a textarea's its text: both read as defaultValue.
     const rendered = field.defaultValue;
-    if (field.value !== heard || rendered === heard) return;
+    if (rendered === heard) return;
+    _raskHeardCounts.set(el, count);
+    if (field.value !== heard) return;
     _raskPendingValues().delete(el);
     field.value = rendered;
 }

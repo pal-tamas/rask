@@ -2690,7 +2690,6 @@ public static partial class RaskEndpointExtensions
             return acked;
         }
 
-        session.BeginFrame();
         var submits = EventBatch.AnnounceSubmits(session.View, events);
         session.WhoAnswered = WhoAnswer.OwedToBatch;
         try
@@ -2860,11 +2859,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token =>
-            {
-                session.BeginFrame();
-                return session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token);
-            },
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
             metrics,
             handlerTimeout,
             lockHeld: false,

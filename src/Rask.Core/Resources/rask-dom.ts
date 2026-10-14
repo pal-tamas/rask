@@ -248,6 +248,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                 while (template.content.firstChild) {
                     parent.insertBefore(template.content.firstChild, refNode);
                 }
+                if (parent.nodeName === "TEXTAREA") (fields ||= new Set()).add(parent as Element);
                 break;
             }
             case 5: { // RemoveSubtree [k, path, domCount]
@@ -261,6 +262,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     if (!victim) break;
                     rmParent.removeChild(victim);
                 }
+                if (rmParent.nodeName === "TEXTAREA") (fields ||= new Set()).add(rmParent as Element);
                 break;
             }
             case 6: { // MoveSubtree [k, path, sourceSlot]

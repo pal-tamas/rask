@@ -275,9 +275,6 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     Forms.HeardValues? IRenderHandle.HeardValues => _heard ??= new Forms.HeardValues();
 
-    /// <summary>A frame of events from the browser starts its dispatch, under the session's lock.</summary>
-    internal void BeginFrame() => _heard?.NextFrame();
-
     /// <summary>
     ///     Whether the last render actually mounted <paramref name="pageType" />.
     /// </summary>

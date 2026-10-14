@@ -26,7 +26,7 @@ public class HeardFieldDispatchTests() : ResettingTestBase(LiveDiffMode.Disabled
             new { id = change, type = "change", value = "hello" }, new { id = submit, type = "submit", form = new { } })));
 
         Assert.Contains("sent=hello;", answer, StringComparison.Ordinal);
-        Assert.Contains("data-rask-heard=\"hello\"", answer, StringComparison.Ordinal);
+        Assert.Contains("data-rask-heard=\"1:hello\"", answer, StringComparison.Ordinal);
         Assert.Contains("value=\"\"", answer, StringComparison.Ordinal);
     }
 

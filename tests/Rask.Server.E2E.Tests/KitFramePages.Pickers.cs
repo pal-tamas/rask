@@ -122,7 +122,7 @@ public sealed partial class KitOwnFramePage : KitFramePage
             Part("hover-gallery", Ui.HoverGallery[Div["One"], Div["Two"]]),
             Part("fab", Ui.Fab.AccessibleLabel("Compose").Icon(Ui.IconName.Plus)[Ui.Button.Sm.Key("photo")["Photo"]]),
             // Below the fold, so nothing loads it but the reader coming to it.
-            Part("lazy", Div.Style("height:2400px"), Lazy.Placeholder(Ui.Skeleton.Id("lazy-placeholder"))[Ui.Card[Ui.Heading["Sales"]]])
+            Part("lazy", Div.Style("height:2400px"), Lazy.Placeholder(Div.Id("lazy-placeholder")[Ui.Skeleton])[Ui.Card[Ui.Heading["Sales"]]])
         ];
 
     private sealed record Node(string Id, string Name, Node[] Children);

@@ -340,9 +340,10 @@ them until tagged releases begin.
   fresh with `RefetchInterval` ([Polling](docs/query.md#polling)).
 - **A field the submit empties is empty in the browser (#1245).** Before: a bound field that waits for the next
   action and is set to `""` by the handler of the submit it went with kept the typed text — the last render had it
-  empty too, so the diff said nothing — and a chat box could not clear itself. After: the render that answers the
-  action writes what it heard beside the field (`data-rask-heard`), and a field that still holds exactly that takes
-  the rendered value, focused or not, as Livewire's does. A field typed on since keeps what was typed, and a render
+  empty too, so the diff said nothing — and a chat box could not clear itself. After: the page writes what it last
+  heard beside the field (`data-rask-heard="<count>:<text>"`, counted per change so a message sent twice is a new
+  word), and a field that still holds exactly that, once the page renders another value, takes the rendered
+  value, focused or not, as Livewire's does. A field typed on since keeps what was typed, and a render
   that answers something else still leaves it alone. Server and WASM.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
