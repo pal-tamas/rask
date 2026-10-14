@@ -165,14 +165,15 @@ internal static class BlazorParameters
     //
     // Declared maps each name to what a hand-declared property is typed as: `Callback<T>?` and `Callback<T>` are
     // both fine, and the parameter writer has to reach the carrier the way the island's own declaration allows.
+    // The symbol, not its spelling: whether it is a non-nullable value type decides how the writer tests it (#1196).
     //
     // Inherited is everything reachable, static included. A generated property whose name matches an
     // inherited entry HIDES it, which is CS0108 and fatal here — so it has to say `new`, exactly as
     // Element does for its own Title.
-    private static (Dictionary<string, string?> Declared, HashSet<string> Inherited) IslandMemberNames(
+    private static (Dictionary<string, ITypeSymbol?> Declared, HashSet<string> Inherited) IslandMemberNames(
         INamedTypeSymbol island)
     {
-        var declared = new Dictionary<string, string?>(StringComparer.Ordinal);
+        var declared = new Dictionary<string, ITypeSymbol?>(StringComparer.Ordinal);
         var inherited = new HashSet<string>(StringComparer.Ordinal);
         for (var t = island; t is not null; t = t.BaseType)
         {
@@ -187,9 +188,7 @@ internal static class BlazorParameters
             {
                 if (isIsland && !m.IsStatic)
                 {
-                    declared[m.Name] = m is IPropertySymbol declaredProp
-                        ? declaredProp.Type.ToDisplayString(TypeFormat)
-                        : null;
+                    declared[m.Name] = (m as IPropertySymbol)?.Type;
                 }
 
                 if (!isIsland)
@@ -203,7 +202,7 @@ internal static class BlazorParameters
     }
 
     private static BlazorParam? ToParam(
-        IPropertySymbol prop, string name, Dictionary<string, string?> declared, HashSet<string> inherited)
+        IPropertySymbol prop, string name, Dictionary<string, ITypeSymbol?> declared, HashSet<string> inherited)
     {
         var typeFqn = prop.Type.ToDisplayString(TypeFormat);
 
@@ -240,12 +239,13 @@ internal static class BlazorParameters
         return new BlazorParam(
             prop.Name,
             name,
-            ownType ?? ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
+            ownType?.ToDisplayString(TypeFormat) ?? ChainType(prop.Type, typeFqn, isCallback, eventArg, isRequired),
             eventArg,
             isCallback,
             isRequired,
             NeedsNew: !declaredByUser && inherited.Contains(name),
-            DeclaredByUser: declaredByUser);
+            DeclaredByUser: declaredByUser,
+            AlwaysWritten: !isCallback && IsNonNullableValueType(ownType));
     }
 
     /// <summary>The type the generated property carries.</summary>
@@ -292,6 +292,18 @@ internal static class BlazorParameters
             ? typeFqn
             : typeFqn + "?";
     }
+
+    /// <summary>
+    ///     Whether a hand-declared property is a value type that cannot hold null — <c>int</c>, not <c>int?</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Such a property has no "unset" state to test for: <c>this.Count is not null</c> does not compile
+    ///     (CS0037), and comparing against <c>default</c> would drop a perfectly real <c>0</c>. Its value is always
+    ///     written, which is what declaring it non-nullable says — a <c>[RouteParam] int Count</c> always has one.
+    /// </remarks>
+    private static bool IsNonNullableValueType(ITypeSymbol? type) =>
+        type is { IsValueType: true }
+        && type.OriginalDefinition.SpecialType != SpecialType.System_Nullable_T;
 
     private static bool HasAttribute(ISymbol symbol, string fullName) =>
         symbol.GetAttributes().Any(a => string.Equals(a.AttributeClass?.ToDisplayString(), fullName, StringComparison.Ordinal));
