@@ -20,7 +20,8 @@ namespace Rask;
 /// The trigger is a button showing the choice, or — <see cref="Ui.TimePickerType.Input" /> — hour, minute and
 /// AM/PM fields to type into. The list is a <c>popover</c> the browser owns: the top layer, Escape, a click
 /// outside. The button is the <c>combobox</c> and keeps the focus; the arrows move a cursor through the list
-/// (<c>aria-activedescendant</c>) and Enter picks.
+/// (<c>aria-activedescendant</c>) and Enter picks. The cursor, the row under the pointer and the list opening
+/// are the browser's (<c>rask-time-list.ts</c>): only a pick reaches the page.
 /// </para>
 /// <para>
 /// <c>Label</c>, <c>Description</c>, <c>DescriptionTrailing</c> and <c>Badge</c> wrap it in a
@@ -30,9 +31,12 @@ namespace Rask;
 public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
 {
     private readonly int _instance = UiTimePickerLook.NextInstance();
-    private bool _open;
-    private int _cursor = -1;
     private string? _ownId;
+
+    // The binding as the last render resolved it, inside its form: a handler reads the value through it as it
+    // is when the handler runs.
+    private ExpressionAccessor.Accessor? _accessor;
+    private EditContext? _context;
 
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
@@ -127,7 +131,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
-    // Whether the list is open and where its cursor is are FIELDS, which the render cache cannot see.
+    // A pick the session holds for the next action is drawn from there, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -139,100 +143,92 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     private bool Typed => Type == Ui.TimePickerType.Input && !UiTimePickerValue.Several<T>();
 
+    // Whether a picked time is held for the next action. Several times are written as they are picked.
+    private bool PickDraws => !UiTimePickerValue.Several<T>() && UiDraws.Waits(this, Bind is not null);
+
     /// <inheritdoc />
     protected override Component? Render()
     {
         var field = UiWithField.For(this);
         var (accessor, context, current) = UiFormCommit.Resolve(this);
+        (_accessor, _context) = (accessor, context);
+        var chosen = UiTimePickerValue.Read(current);
         var times = UiTimePickerLook.Times(Min, Max, Interval ?? 30);
-        var view = new View(accessor, context, times, UiTimePickerValue.Read(current), field);
-        var cursor = Cursor(view);
-        var clears = Clearable == true && Disabled != true && view.Chosen.Count > 0 && UiTimePickerValue.Clears<T>();
+        var clears = Clearable == true && Disabled != true && chosen.Count > 0 && UiTimePickerValue.Clears<T>();
 
         return field.Wrap(
             Div.Class(UiClass.Compose(clears ? UiTimePickerLook.RootClearable : UiTimePickerLook.Root, Class))
                 .Data(UiTimePickerLook.RootMarks)[
                 // Keyed, so the clear button coming and going is an insert or a removal the live diff ships — and
                 // written after the list it is laid over, so the times keep the handlers they had.
-                Div.Key("trigger").Class("inline")[Typed ? TypedTrigger(view) : ButtonTrigger(view, cursor)],
-                Options(view, cursor),
-                clears ? UiPickerClear.Render(UiTimePickerLook.Height(Size ?? Ui.TimePickerSize.Base), () => CommitAsync(view, [])) : null
+                Div.Key("trigger").Class("inline")[Typed ? TypedTrigger(field, accessor, context, chosen) : ButtonTrigger(field, chosen)],
+                Options(times, chosen),
+                clears ? UiPickerClear.Render(UiTimePickerLook.Height(Size ?? Ui.TimePickerSize.Base), ClearAsync) : null
             ]);
     }
 
-    private Component ButtonTrigger(View view, int cursor)
+    private Component ButtonTrigger(UiWithField field, List<TimeOnly> chosen)
     {
-        var aria = new Dictionary<string, string?>(view.Field.Aria, StringComparer.Ordinal)
+        // Rendered as it is while the list is shut: the runtime writes it open, and the row the cursor is on, as
+        // the browser opens the list and the keys move.
+        var aria = new Dictionary<string, string?>(field.Aria, StringComparer.Ordinal)
         {
             ["controls"] = ListId,
             ["haspopup"] = "listbox",
-            ["expanded"] = _open ? "true" : "false",
+            ["expanded"] = "false",
         };
-        if (_open && cursor >= 0)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(ListId, cursor);
-        }
 
         return Button
-            .Id(view.Field.ControlId)
+            .Id(field.ControlId)
             .Type(ButtonType.Button)
             .Role("combobox")
             .Class(UiClass.Compose(UiTimePickerLook.Button, UiTimePickerLook.ButtonSize(Size ?? Ui.TimePickerSize.Base)))
             .Disabled(Disabled == true)
-            .Data(view.Field.Invalid ? UiTimePickerLook.InvalidButtonMarks : UiTimePickerLook.ButtonMarks)
+            .Data(field.Invalid ? UiTimePickerLook.InvalidButtonMarks : UiTimePickerLook.ButtonMarks)
             .Aria(aria)
-            // The browser opens and closes the list from the button; its toggle event below says which. Closed,
-            // Enter does not press it and the arrows do not scroll the page: Flux's button, not a native one.
-            .Attributes([("popovertarget", ListId), ("data-rask-listbox-button", null), ("style", "anchor-name:--" + ListId), .. UiDraws.Pairs(("keydown", PickDraws))])
-            .OnKeyDown(e => OnKeyAsync(e, view))[
+            // The browser opens and closes the list from the button. Closed, Enter does not press it and the
+            // arrows do not scroll the page: Flux's button, not a native one.
+            .Attributes(("popovertarget", ListId), ("data-rask-listbox-button", null), ("data-rask-open-mark", ListId), ("style", "anchor-name:--" + ListId))[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.ButtonIcon),
             Div.Class(UiTimePickerLook.Selected)[
-                view.Chosen.Count == 0
+                chosen.Count == 0
                     // One or the other, each under its key: a span against a div is no change the live diff can patch.
                     ? Span.Key("placeholder").Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? RaskStrings.Get(RaskString.TimePickerPlaceholder, "Select a time")]
-                    : Div.Key("chosen").Attributes(("dir", "auto"))[string.Join(", ", view.Chosen.Select(Written))]
+                    : Div.Key("chosen").Attributes(("dir", "auto"))[string.Join(", ", chosen.Select(Written))]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.ButtonChevron)
         ];
     }
 
-    private Component Options(View view, int cursor)
+    private Component Options(List<TimeOnly> times, List<TimeOnly> chosen)
     {
         // A typed trigger with its list taken away keeps the element, as Flux does, and nothing can open it.
         var listed = !Typed || Dropdown != false;
+        var start = Start(times, chosen);
         var list = Div
             .Key("list")
             .Id(ListId)
             .Popover(Popover.Auto)
             .TabIndex(-1)
             .Class(UiTimePickerLook.Options)
-            // The runtime shows or hides the list when C# changes its mind: ArrowDown on a closed picker, Enter
-            // on an open one, a press on the typed trigger.
-            // …and while it is open the page behind it neither scrolls nor takes the pointer, as on Flux.
-            .Data(_open ? UiTimePickerLook.ListOpen : UiTimePickerLook.ListClosed)
+            // While it is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+            .Data(UiTimePickerLook.ListMarks)
             .Attributes(
-                (UiDraws.Mark, "toggle"),
                 ("style", "position-anchor:--" + ListId
                           + ";inset:auto;top:calc(anchor(bottom) + 5px);inset-inline-start:anchor(start)"
-                          + ";width:anchor-size(width);position-try-fallbacks:flip-block"))
-            .OnToggle(e =>
-            {
-                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
-                _cursor = -1;
-            });
+                          + ";width:anchor-size(width);position-try-fallbacks:flip-block"));
 
         if (listed)
         {
             list = list.Role("listbox").Aria("multiselectable", UiTimePickerValue.Several<T>() ? "true" : "false");
         }
 
-        return list[view.Times.Select((time, index) => Option(view, time, index, index == cursor))];
+        return list[times.Select((time, index) => Option(time, index, chosen.Contains(time), index == start))];
     }
 
-    private Component Option(View view, TimeOnly time, int index, bool active)
+    private Component Option(TimeOnly time, int index, bool selected, bool start)
     {
         var off = Off(time);
-        var selected = view.Chosen.Contains(time);
         var data = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["time"] = time.ToString("HH:mm", CultureInfo.InvariantCulture),
@@ -242,9 +238,10 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             data["selected"] = null;
         }
 
-        if (active)
+        if (start)
         {
-            data["active"] = null;
+            // Where the list opens: the runtime lights it then, and brings it into view.
+            data["rask-time-start"] = null;
         }
 
         var option = Button
@@ -260,16 +257,12 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
         if (!off)
         {
-            option = option
-                .OnClick(() => PickAsync(view, time))
-                // One highlight for the pointer and the keyboard, as Flux has: the cursor goes where the pointer is.
-                .OnMouseEnter(() => _cursor = index);
-            (string, string?)[] draws = UiDraws.Pairs(("click", PickDraws), ("mouseenter", true));
+            option = option.OnClick(() => PickAsync(time));
 
             // A picked time closes the list on the same click; several stay open for the next.
-            option = option.Attributes(UiTimePickerValue.Several<T>()
-                ? draws
-                : [("popovertarget", ListId), ("popovertargetaction", "hide"), .. draws]);
+            option = UiTimePickerValue.Several<T>()
+                ? option
+                : option.Attributes([("popovertarget", ListId), ("popovertargetaction", "hide"), .. UiDraws.Pairs(("click", PickDraws))]);
         }
 
         return option[
@@ -284,93 +277,49 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     private bool Off(TimeOnly time) => Unavailable?.Any(stretch => stretch.Contains(time)) == true;
 
-    // Where the cursor is: where the keyboard or the pointer left it, else on the chosen time, else on
-    // OpenTo, else on the first time that can be picked.
-    private int Cursor(View view)
+    // Where the list opens: on the chosen time, else on OpenTo, else on the first time that can be picked.
+    private int Start(List<TimeOnly> times, List<TimeOnly> chosen)
     {
-        bool Pickable(int index) => index >= 0 && index < view.Times.Count && !Off(view.Times[index]);
-        if (Pickable(_cursor))
-        {
-            return _cursor;
-        }
-
-        var start = view.Chosen.Count > 0 ? view.Chosen[0] : OpenTo;
-        var seed = start is { } from ? view.Times.FindIndex(time => time >= from) : -1;
-        return Pickable(seed) ? seed : UiSelectNav.FirstEnabled(view.Times.Count, index => !Pickable(index));
+        bool Pickable(int index) => index >= 0 && index < times.Count && !Off(times[index]);
+        var from = chosen.Count > 0 ? chosen[0] : OpenTo;
+        var seed = from is { } at ? times.FindIndex(time => time >= at) : -1;
+        return Pickable(seed) ? seed : UiSelectNav.FirstEnabled(times.Count, index => !Pickable(index));
     }
 
-    // The combobox's keys. The runtime keeps them from scrolling the page while the list is open.
-    private async Task OnKeyAsync(KeyboardEvent e, View view)
-    {
-        bool Disabled(int index) => Off(view.Times[index]);
-        var count = view.Times.Count;
-        var cursor = Cursor(view);
+    // The binding and the times chosen as they are when a handler runs, not as they were drawn.
+    private Bound Latest() => _accessor is { } accessor && Bind is not null
+        ? new Bound(accessor, _context, UiTimePickerValue.Read(UiFormCommit.Shown(this, accessor)))
+        : new Bound(null, null, UiTimePickerValue.Read(Value));
 
-        if (!_open)
-        {
-            // Closed, an arrow opens the list where it would have opened by a press.
-            _open = e.Key is Keys.ArrowDown or Keys.ArrowUp;
-            return;
-        }
-
-        switch (e.Key)
-        {
-            case Keys.ArrowDown:
-                _cursor = UiSelectNav.Step(cursor, 1, count, Disabled);
-                break;
-            case Keys.ArrowUp:
-                _cursor = UiSelectNav.Step(cursor, -1, count, Disabled);
-                break;
-            case Keys.Home:
-                _cursor = UiSelectNav.FirstEnabled(count, Disabled);
-                break;
-            case Keys.End:
-                _cursor = UiSelectNav.LastEnabled(count, Disabled);
-                break;
-            case Keys.Enter when cursor >= 0:
-                _open = UiTimePickerValue.Several<T>();
-                await PickAsync(view, view.Times[cursor]).ConfigureAwait(false);
-                if (!_open)
-                {
-                    // Shut from here, the list raises no toggle for the page to hear.
-                    _cursor = -1;
-                }
-
-                break;
-            default:
-                break;
-        }
-    }
+    private Task ClearAsync() => CommitAsync(Latest(), []);
 
     // A press on a time: several toggle it, one replaces the choice — and a second press on the chosen time
     // takes it back where the value can be empty.
-    private Task PickAsync(View view, TimeOnly time)
+    private Task PickAsync(TimeOnly time)
     {
+        var bound = Latest();
         if (UiTimePickerValue.Several<T>())
         {
-            List<TimeOnly> picked = view.Chosen.Contains(time) ? [.. view.Chosen.Where(chosen => chosen != time)] : [.. view.Chosen, time];
+            List<TimeOnly> picked = bound.Chosen.Contains(time) ? [.. bound.Chosen.Where(chosen => chosen != time)] : [.. bound.Chosen, time];
             picked.Sort();
-            return CommitAsync(view, picked);
+            return CommitAsync(bound, picked);
         }
 
-        return view.Chosen.Contains(time) && UiTimePickerValue.Clears<T>() ? CommitAsync(view, []) : CommitAsync(view, [time]);
+        return bound.Chosen.Contains(time) && UiTimePickerValue.Clears<T>() ? CommitAsync(bound, []) : CommitAsync(bound, [time]);
     }
 
-    // Whether a picked time is held for the next action. Several times are written as they are picked.
-    private bool PickDraws => !UiTimePickerValue.Several<T>() && UiDraws.Waits(this, Bind is not null);
-
-    private async Task CommitAsync(View view, List<TimeOnly> picked)
+    private async Task CommitAsync(Bound bound, List<TimeOnly> picked)
     {
         if (!UiTimePickerValue.Several<T>())
         {
             var one = UiTimePickerValue.Single<T>(picked.Count > 0 ? picked[0] : null);
-            await UiFormCommit.CommitAsync(this, view.Accessor, view.Context, one).ConfigureAwait(false);
+            await UiFormCommit.CommitAsync(this, bound.Accessor, bound.Context, one).ConfigureAwait(false);
             return;
         }
 
         var self = (IFormControl<T>)this;
         ReaderEdits.Note(this);
-        if (view.Accessor is not { } accessor)
+        if (bound.Accessor is not { } accessor)
         {
             await self.InvokeOnChange((T)UiTimePickerValue.Shaped(typeof(T), picked)).ConfigureAwait(false);
             return;
@@ -378,15 +327,10 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
         if (UiTimePickerValue.TryWrite(accessor, picked))
         {
-            await BindingHelpers.NotifyAndValidateField(view.Context, accessor.Field).ConfigureAwait(false);
+            await BindingHelpers.NotifyAndValidateField(bound.Context, accessor.Field).ConfigureAwait(false);
             await self.InvokeAfterBind((T)accessor.Getter()!).ConfigureAwait(false);
         }
     }
 
-    private sealed record View(
-        ExpressionAccessor.Accessor? Accessor,
-        EditContext? Context,
-        List<TimeOnly> Times,
-        List<TimeOnly> Chosen,
-        UiWithField Field);
+    private sealed record Bound(ExpressionAccessor.Accessor? Accessor, EditContext? Context, List<TimeOnly> Chosen);
 }

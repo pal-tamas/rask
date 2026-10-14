@@ -7,8 +7,6 @@ namespace Rask.UiTests.Components;
 /// <summary>Flux UI's time picker: what it binds, what it lists, and what the keyboard and the pointer do to it.</summary>
 public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     [Fact]
     public void A_time_picker_is_a_combobox_button_over_a_listbox_of_times()
     {
@@ -194,35 +192,19 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_arrow_opens_the_list_and_the_arrows_move_a_cursor_the_button_names()
+    public void The_keys_the_pointer_and_the_list_opening_are_the_browsers_and_the_page_hears_only_a_pick()
     {
-        var page = Page.Render(() => Ui.TimePicker.Of<TimeOnly?>().Unavailable([new TimeOnly(0, 30)]));
+        var html = Page.Render(() => Ui.TimePicker.Of<TimeOnly?>()).Html;
 
-        await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
-        var opened = page.Html;
-        await page.On("[popover]").Raise("toggle", Opened);
-        await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"ArrowDown\"}");
+        var heard = Regex.Matches(html, "data-rask-on-([a-z]+)=").Select(match => match.Groups[1].Value).Distinct().ToList();
 
-        Assert.Contains("data-rask-popover-open=\"true\"", opened, StringComparison.Ordinal);
-        Assert.Contains("aria-expanded=\"true\"", page.Html, StringComparison.Ordinal);
-        Assert.Contains("aria-activedescendant=\"" + Cursor(page.Html) + "\"", page.Html, StringComparison.Ordinal);
-        Assert.Equal("01:00", ActiveTime(page.Html));
-    }
-
-    [Fact]
-    public async Task Enter_picks_the_time_under_the_cursor_and_closes_the_list()
-    {
-        var model = new Booking();
-        var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At));
-        await page.On("[popover]").Raise("toggle", Opened);
-
-        await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"End\"}");
-        await page.On("[role=\"combobox\"]").Raise("keydown", "{\"key\":\"Enter\"}");
-        await Acting.Act(page);
-
-        Assert.Equal(new TimeOnly(23, 30), model.At);
-        Assert.Contains("data-rask-popover-open=\"false\"", page.Html, StringComparison.Ordinal);
-        Assert.Contains("aria-expanded=\"false\"", page.Html, StringComparison.Ordinal);
+        // rask-time-list.ts walks the cursor and names it; rask-toggle.ts says the list is open.
+        Assert.Matches("<div[^>]*data-ui-time-picker[^>]*data-rask-time-list=\"\"", html);
+        Assert.Equal(["click"], heard);
+        Assert.DoesNotMatch("\\sdata-active[\\s=>]", html);
+        Assert.DoesNotContain("aria-activedescendant", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-popover-open", html, StringComparison.Ordinal);
+        Assert.Matches("<button[^>]*role=\"combobox\"[^>]*data-rask-open-mark=\"uitp-\\d+\"", html);
     }
 
     [Fact]
@@ -230,11 +212,23 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     {
         var chosen = Ui.TimePicker.Value<TimeOnly?>(new TimeOnly(14, 0)).OpenTo(new TimeOnly(10, 0)).ToHtml();
         var told = Ui.TimePicker.Of<TimeOnly?>().OpenTo(new TimeOnly(10, 0)).ToHtml();
-        var neither = Ui.TimePicker.Of<TimeOnly?>().ToHtml();
+        var neither = Ui.TimePicker.Of<TimeOnly?>().Unavailable([new TimeOnly(0, 0)]).ToHtml();
 
-        var cursors = new[] { chosen, told, neither }.Select(ActiveTime).ToList();
+        var starts = new[] { chosen, told, neither }.Select(StartTime).ToList();
 
-        Assert.Equal(["14:00", "10:00", "00:00"], cursors);
+        Assert.Equal(["14:00", "10:00", "00:30"], starts);
+    }
+
+    [Fact]
+    public void A_bound_typed_time_waits_for_the_next_action_and_a_live_one_does_not()
+    {
+        var model = new Booking();
+
+        var waits = Ui.TimePicker.Bind(() => model.At).Type(Ui.TimePickerType.Input).ToHtml();
+        var live = Ui.TimePicker.Bind(() => model.At).Live().Type(Ui.TimePickerType.Input).ToHtml();
+
+        Assert.Matches("<input[^>]*data-rask-bind-on=\"action\"[^>]*type=\"hidden\"", waits);
+        Assert.DoesNotContain("data-rask-bind-on", live, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -405,11 +399,8 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Pick a slot", placeholder);
     }
 
-    private static string ActiveTime(string html) =>
-        Regex.Match(html, "data-time=\"([0-9:]+)\"[^>]*data-active").Groups[1].Value;
-
-    private static string Cursor(string html) =>
-        Regex.Match(html, "<button id=\"([^\"]+)\"[^>]*data-active[ >]").Groups[1].Value;
+    private static string StartTime(string html) =>
+        Regex.Match(html, "data-time=\"([0-9:]+)\"[^>]*data-rask-time-start").Groups[1].Value;
 
     private sealed class Booking
     {

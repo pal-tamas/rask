@@ -11,7 +11,7 @@ public sealed partial class UiTimePicker<T>
     // The three fields are typed as ONE: the runtime (`data-rask-segments`) takes the digits, moves on from a
     // part that can take no more, steps a part on the vertical arrows and sets AM or PM on `a` and `p`, as
     // Flux's fields do. A whole time arrives through the one hidden field, as 24-hour `HH:mm`.
-    private Component TypedTrigger(View view)
+    private Component TypedTrigger(UiWithField field, ExpressionAccessor.Accessor? accessor, EditContext? context, List<TimeOnly> chosen)
     {
         var twelve = UiTimePickerLook.TwelveHour(Format, Culture);
         var opens = Dropdown != false && Disabled != true;
@@ -19,7 +19,7 @@ public sealed partial class UiTimePicker<T>
 
         var box = Div
             .Class(UiClass.Compose(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Size ?? Ui.TimePickerSize.Base)))
-            .Data(view.Field.Invalid ? UiTimePickerLook.InvalidBoxMarks : UiTimePickerLook.BoxMarks);
+            .Data(field.Invalid ? UiTimePickerLook.InvalidBoxMarks : UiTimePickerLook.BoxMarks);
 
         // Everything in the box but a field opens the list, and a second press closes it, as on Flux: the
         // runtime's toggle, which leaves a press in a field to the field.
@@ -30,13 +30,13 @@ public sealed partial class UiTimePicker<T>
         return box[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),
             Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark)
-                .Attributes([("dir", "ltr"), .. UiFormCommit.FirstEdit(view.Accessor, view.Context)])[
-                Segment("hour", hour, RaskStrings.Get(RaskString.TimePickerHourPlaceholder, "hh")).Id(view.Field.ControlId).Aria(Named(view, hour)).Attributes(UiTimePickerLook.Numeric),
+                .Attributes([("dir", "ltr"), .. UiFormCommit.FirstEdit(accessor, context)])[
+                Segment("hour", hour, RaskStrings.Get(RaskString.TimePickerHourPlaceholder, "hh")).Id(field.ControlId).Aria(Named(field, hour)).Attributes(UiTimePickerLook.Numeric),
                 ":",
                 Segment("minute", RaskStrings.Get(RaskString.PickerMinute, "Minute"), RaskStrings.Get(RaskString.TimePickerMinutePlaceholder, "mm")).Attributes(UiTimePickerLook.Numeric),
-                twelve ? "\u00A0" : null,
+                twelve ? " " : null,
                 twelve ? Segment("meridiem", RaskStrings.Get(RaskString.TimePickerMeridiem, "AM/PM"), UiTimePickerLook.Period(false, Culture)) : null,
-                Whole(view)
+                Whole(chosen)
             ],
             Span.Class("grow"),
             Dropdown != false ? Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.InputChevron) : null
@@ -57,30 +57,36 @@ public sealed partial class UiTimePicker<T>
     }
 
     // The hour, which the label points at, also says what the field says about the control.
-    private static Dictionary<string, string?> Named(View view, string label) =>
-        new(view.Field.Aria, StringComparer.Ordinal) { ["label"] = label };
+    private static Dictionary<string, string?> Named(UiWithField field, string label) =>
+        new(field.Aria, StringComparer.Ordinal) { ["label"] = label };
 
-    // The one field the parts are read and written through: the chosen time, or nothing.
-    private HTMLInputElement<string> Whole(View view) =>
-        Input
-            .Value(view.Chosen.Count > 0 ? view.Chosen[0].ToString(Clock, CultureInfo.InvariantCulture) : string.Empty)
-            .OnChange(text => TypedAsync(view, text))
+    // The one field the parts are read and written through: the chosen time, or nothing. Bound and waiting, it
+    // is the browser's to keep until the next action, which it goes ahead of — as a bound input's value does —
+    // so a time typed asks the page nothing until then.
+    private HTMLInputElement<string> Whole(List<TimeOnly> chosen)
+    {
+        var whole = Input
+            .Value(chosen.Count > 0 ? chosen[0].ToString(Clock, CultureInfo.InvariantCulture) : string.Empty)
+            .OnChange(TypedAsync)
             .Key("whole")
             .Type(InputType.Hidden);
+        return UiDraws.Waits(this, Bind is not null) ? whole.Attributes(UiTimePickerLook.WaitsForAction) : whole;
+    }
 
-    private static T Current(View view) => UiTimePickerValue.Single<T>(view.Chosen.Count > 0 ? view.Chosen[0] : null);
-
-    private Task TypedAsync(View view, string text)
+    private Task TypedAsync(string text)
     {
+        var bound = Latest();
         if (!TimeOnly.TryParseExact(text, Clock, CultureInfo.InvariantCulture, DateTimeStyles.None, out var time))
         {
             // No time: the parts were left half filled, which the frame says beside its empty value, or emptied —
             // nothing chosen, where the bound type can say so.
             return UnreadInput.Current is null && UiTimePickerValue.Clears<T>()
-                ? CommitAsync(view, [])
-                : UiFormCommit.UnreadAsync(this, view.Accessor, view.Context, Current(view), RaskString.ValidationTime);
+                ? CommitAsync(bound, [])
+                : UiFormCommit.UnreadAsync(this, bound.Accessor, bound.Context, Current(bound), RaskString.ValidationTime);
         }
 
-        return Off(time) ? Task.CompletedTask : CommitAsync(view, [time]);
+        return Off(time) ? Task.CompletedTask : CommitAsync(bound, [time]);
     }
+
+    private static T Current(Bound bound) => UiTimePickerValue.Single<T>(bound.Chosen.Count > 0 ? bound.Chosen[0] : null);
 }

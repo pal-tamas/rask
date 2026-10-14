@@ -9,7 +9,8 @@
 //     arrow keys — across a month boundary too — carry focus to the new day.
 //   * aria-activedescendant on a role="combobox" or role="listbox": when it changes, the option it names is
 //     brought into view inside its own scroller, by the least movement, and nothing else scrolls — not the
-//     page. (A tree's is rask-dom.ts's, which also knows about virtualized rows.)
+//     page. Not one the pointer is on: the pointer named it. (A tree's is rask-dom.ts's, which also knows
+//     about virtualized rows.)
 //   * data-rask-press-keeps-focus: a mouse press on it (or inside it) does not move focus. Flux UI's colour
 //     area is dragged with focus left wherever it was.
 
@@ -128,7 +129,9 @@ if (page) {
                 const role = box instanceof Element ? box.getAttribute("role") : null;
                 const id = role === "combobox" || role === "listbox" ? (box as Element).getAttribute("aria-activedescendant") : null;
                 const option = id ? doc.getElementById(id) : null;
-                if (option) {
+                // One the pointer is on is in sight already, and scrolled it would slide the next one under the
+                // pointer, which would be named in turn: Flux's lists never scroll for the pointer.
+                if (option && !option.matches(":hover")) {
                     reveal(option);
                 }
             }

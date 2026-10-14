@@ -41,12 +41,20 @@ internal static class UiFormCommit
         // rule when the consumer stops supplying one.
         control.RegisterValidator(accessor, context);
 
-        // What the reader chose and the session still holds is what the control draws (PendingBinds).
+        return (accessor, context, Shown(control, accessor));
+    }
+
+    /// <summary>
+    /// The value as it is NOW, for a handler: the model's, or what the reader chose and the session still holds
+    /// (<see cref="PendingBinds" />). What the render the handler was drawn in read may be older than the
+    /// reader's last pick.
+    /// </summary>
+    internal static T? Shown<T>(IFormControl<T> control, ExpressionAccessor.Accessor accessor)
+    {
         var shown = control is Component drawn && PendingBinds.TryPeek(drawn, accessor.Field, out var chosen)
             ? chosen
             : accessor.Getter();
-
-        return (accessor, context, shown is T value ? value : default);
+        return shown is T value ? value : default;
     }
 
     /// <summary>

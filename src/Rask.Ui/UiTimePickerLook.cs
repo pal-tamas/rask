@@ -55,16 +55,13 @@ internal static class UiTimePickerLook
         + "border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700";
 
     /// <summary>
-    ///     One time in the list. The cursor's is tinted, and only while the list is open: the markup names a
-    ///     cursor before the first press, so a list the browser opens with no round trip already shows one.
+    ///     One time in the list. The cursor's is tinted, and only while the list is open: the runtime lights it
+    ///     (<c>data-active</c>, rask-time-list.ts) in the task the list opens.
     /// </summary>
     internal const string Option =
         "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-base sm:text-sm tabular-nums cursor-default "
         + "text-zinc-800 dark:text-white disabled:text-zinc-400 dark:disabled:text-zinc-400 "
-        + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600 "
-        // The list opens scrolled to its cursor — the chosen time, or OpenTo — brought just into view from the
-        // top, as Flux's script does. The platform's own answer, so it needs no round trip and no script.
-        + "data-active:snap-end data-active:[scroll-initial-target:nearest]";
+        + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600";
 
     /// <summary>The check mark's column, kept whether or not the time is chosen so the times line up.</summary>
     internal const string Check = "w-6 shrink-0";
@@ -73,6 +70,8 @@ internal static class UiTimePickerLook
     {
         ["ui-control"] = null,
         ["ui-time-picker"] = null,
+        // The list's cursor, walked in the browser (rask-time-list.ts).
+        ["rask-time-list"] = "",
     };
 
     internal static readonly Dictionary<string, string?> ButtonMarks = new(StringComparer.Ordinal)
@@ -103,15 +102,17 @@ internal static class UiTimePickerLook
 
     internal static readonly (string, string?) Numeric = ("inputmode", "numeric");
 
-    internal static readonly Dictionary<string, string?> ListClosed = new(StringComparer.Ordinal)
+    internal static readonly Dictionary<string, string?> ListMarks = new(StringComparer.Ordinal)
     {
-        ["rask-popover-open"] = "false",
         ["rask-lock"] = "",
         // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this.
         ["rask-place"] = "bottom start 5 0",
+        // `data-open` while it shows, as Flux writes it.
+        ["rask-open-mark"] = "",
     };
 
-    internal static readonly Dictionary<string, string?> ListOpen = new(ListClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };
+    /// <summary>A bound field whose value waits for the reader's next action, and goes ahead of it.</summary>
+    internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
 
     internal static int NextInstance() => Interlocked.Increment(ref _instances);
 
