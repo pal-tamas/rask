@@ -114,6 +114,10 @@ them until tagged releases begin.
   in full, for a `RaskApp` and for a hand-wired host.
 
 ### Added
+- **`RaskServerOptions.SignInPath`** (`Rask:Server:SignInPath`) names a sign-in page served outside the app — a
+  JWT-bearer host beside an old front end that owns `/login`, which has no cookie scheme to say so. A page whose
+  user is gone loads it, and a reloading tab is redirected to it, with `returnUrl` the page's full address. The
+  app's own `/login` page and a cookie scheme's `LoginPath` win over it.
 
 - **`RaskValidation.RegisterOptionalFields` and `RaskValidation.IsRequired(bind)`: a form says "required" per
   place, not per type.** One nested model type can be held where it must be there and where it may be absent —
@@ -518,6 +522,13 @@ them until tagged releases begin.
 - **A computed get-only property of a struct or record type no longer stops the app at startup.** Before: `public SupplyKind Kind => …;` (a `record struct`) was mapped by EF Core as a complex property and the model failed with "No backing field could be found for property 'Supply.Kind' and the property does not have a setter", although `docs/data.md` says computed properties are dropped. After: a get-only property with no backing field is left out of the model, as the docs say.
 - **A key that points at its own table gets its join on the read face.** Before: `Supply.SumSupplyId` (an `int?` on `Supply` itself) stayed a plain column, so `s.SumSupply.Number` was not there and an app read the other row with a second query and could not sort by it. After: an id whose name ENDS in its own aggregate's name (`SumSupplyId`, `ParentCategoryId`) is a navigation to another row of the table (`.OrderBy(s => s.SumSupply!.Number)`). An id named exactly like its own type (`CategoryId` on `Category`) is still the row's own id, a column.
 - **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.
+- **A page whose user is gone reaches a sign-in page the app does not have.** An app with no page at `/login` —
+  one mounted with `MapRask<App>(pathBase: "/uj")` beside a site that owns `/login` — sent an open page there in
+  place, into its own router, which showed its not-found page. It now goes where the host's authentication names
+  the sign-in page — the default challenge scheme's cookie `LoginPath` — as a page load, with the page's full
+  address as the way back (`/login?ReturnUrl=%2Fuj%2Fdestinations…`); a reloading tab is redirected there too. With
+  no page of its own and no login path named, the open page stays where it is, drawn for nobody, and a reloading
+  tab is served its page, as before. An app with its own sign-in page still shows it in place.
 - **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
   `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
   has) wrote and filtered its own rows by that text, but a READ through the generated read face
