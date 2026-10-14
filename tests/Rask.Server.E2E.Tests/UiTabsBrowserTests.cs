@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Server.E2E.Tests.Infrastructure;
@@ -175,11 +176,26 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
         await using var watched = await Watched.OpenAsync(playwright);
         var page = watched.Session.Page;
 
+        var confirms = 0;
+        page.Dialog += (_, dialog) => { Interlocked.Increment(ref confirms); _ = dialog.DismissAsync(); };
+        await page.EvaluateAsync(CountsQuestions);
+
         await page.ClickAsync("#away");
 
-        await page.WaitForURLAsync("**/elsewhere");
-        await Expect(page.Locator("dialog[open]")).ToHaveCountAsync(0);
+        // The address is asked for until it is the destination: an event that is waited for can have gone by already.
+        await Expect(page).ToHaveURLAsync(new Regex("/elsewhere$"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__questions"));
+        Assert.Equal(0, Volatile.Read(ref confirms));
     }
+
+    // Counts every time a dialog of the page is opened as a question, so one that came and went is still seen.
+    private const string CountsQuestions = """
+        () => {
+            window.__questions = 0;
+            const show = HTMLDialogElement.prototype.showModal;
+            HTMLDialogElement.prototype.showModal = function () { window.__questions++; return show.call(this); };
+        }
+        """;
 
     // aria-selected of each tab, each tab's tabindex, and the tab that has focus.
     private const string Row = """
