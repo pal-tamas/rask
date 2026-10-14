@@ -1582,6 +1582,9 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
+  that learns of a drawn control's pick kept the form being written in a field of the render context, which every
+  render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click
