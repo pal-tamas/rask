@@ -21,6 +21,9 @@ public sealed class ButtonLoadingTests(PlaywrightFixture playwright) : IClassFix
 {
     private static readonly LocatorAssertionsToHaveTextOptions Settled = new() { Timeout = 15_000 };
 
+    // Bounds a hang, never the work.
+    private static readonly TimeSpan Hang = TimeSpan.FromSeconds(30);
+
     [Fact]
     public async Task A_slow_handler_marks_its_button_until_it_is_done_and_drops_a_second_press()
     {
@@ -51,15 +54,27 @@ public sealed class ButtonLoadingTests(PlaywrightFixture playwright) : IClassFix
         await Expect(page.Locator("#saves")).ToHaveTextAsync("saves=1");
     }
 
+    // "Fast" is page time, not the machine's: the page's clock is the test's and stopped (PageClock), so both
+    // presses are answered inside the 200 ms however long a loaded runner takes to carry them (#1208).
     [Fact]
     public async Task A_fast_handler_never_shows_the_mark()
     {
+        var acks = 0;
+        var bothAcked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await using var host = await LiveServerHost.StartAsync<SlowSavePage>(blockWebSockets: false);
         await using var context = await playwright.Browser.NewContextAsync();
         var page = await context.NewPageAsync();
+        page.WebSocket += (_, socket) => socket.FrameReceived += (_, frame) =>
+        {
+            if (frame.Text?.StartsWith("{\"type\":\"ack\"", StringComparison.Ordinal) == true
+                && Interlocked.Increment(ref acks) == 2)
+            {
+                bothAcked.TrySetResult();
+            }
+        };
+        await PageClock.Install(page);
         await page.GotoAsync(host.BaseUrl + "/");
         await Expect(page.Locator("#bumps")).ToHaveTextAsync("bumps=0", Settled);
-
         // Recorded by an observer rather than polled, so a mark that came and went between two polls still counts.
         await page.EvaluateAsync("""
             () => {
@@ -69,11 +84,14 @@ public sealed class ButtonLoadingTests(PlaywrightFixture playwright) : IClassFix
                 }).observe(document.body, { attributes: true, subtree: true, childList: true });
             }
             """);
+        await PageClock.StopAsync(page);
 
         await page.ClickAsync("#bump");
         await page.ClickAsync("#bump");
         await Expect(page.Locator("#bumps")).ToHaveTextAsync("bumps=2", Settled);
-        await page.WaitForTimeoutAsync(400);
+        await bothAcked.Task.WaitAsync(Hang, TestContext.Current.CancellationToken);
+        // Both presses are answered, so the second of page time that follows has no mark left to make.
+        await page.Clock.RunForAsync(1_000);
 
         Assert.False(await page.EvaluateAsync<bool>("() => window.__marked"), "a fast handler flashed the loading mark");
     }
