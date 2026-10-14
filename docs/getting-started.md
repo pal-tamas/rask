@@ -347,7 +347,9 @@ protected override Component Shell(Component head, Component body) =>
 ```
 
 The doctype is still emitted ahead of whatever `Shell` returns, and the runtime `<script>` still lands
-in `<body>` — neither is yours to add. `Shell` is evaluated once per render, *before* your `Render()`
+in `<body>` — neither is yours to add. The `body` parameter is the app's content, not the element: a shell
+that writes `Html[head, body]` gets a `<body>` put around everything after the head, and a warning naming
+the override, because without one the runtime and the session id have nowhere to go and the page never connects. `Shell` is evaluated once per render, *before* your `Render()`
 runs, so it can't observe state that render produces; keep anything reactive in the body or in `HeadAssets`.
 
 A page says what it is called, and the root's `Title` line above reads it — the same `route.Title` a layout
