@@ -126,6 +126,70 @@ public sealed class SignInOutsideTheAppTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
+    [Fact]
+    public async Task An_event_after_the_sign_in_ended_loads_the_configured_sign_in_path_when_no_scheme_names_one()
+    {
+        HideTheSignInPage();
+        using var host = CreateHost(loginPath: null, signInPath: "/login");
+        var page = await OpenAsync(host, "/uj/open?tab=2");
+        using var ws = await AttachAsync(host, page.SessionId);
+        host.Services.GetRequiredService<Directory>().SignedOut = true;
+
+        await ws.SendJsonAsync(new { id = page.Save }, TestContext.Current.CancellationToken);
+        var frame = await ws.ReceiveUntilAsync(IsLocation, "the frame that loads the sign-in page");
+
+        AssertLeavesFor(frame, "/login?returnUrl=%2Fuj%2Fopen%3Ftab%3D2");
+    }
+
+    [Fact]
+    public async Task A_tab_that_lost_its_user_reloads_into_the_configured_sign_in_path_when_no_scheme_names_one()
+    {
+        HideTheSignInPage();
+        using var host = CreateHost(loginPath: null, signInPath: "/login");
+
+        using var response = await ReloadAfterTheSignInEndedAsync(host, "/uj/open?tab=2");
+
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/login?returnUrl=%2Fuj%2Fopen%3Ftab%3D2", response.Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task The_app_s_own_sign_in_page_wins_over_the_configured_sign_in_path()
+    {
+        using var host = CreateHost(loginPath: null, signInPath: "/old/login");
+        var page = await OpenAsync(host, "/uj/open");
+        using var ws = await AttachAsync(host, page.SessionId);
+        host.Services.GetRequiredService<Directory>().SignedOut = true;
+
+        await ws.SendJsonAsync(new { id = page.Save }, TestContext.Current.CancellationToken);
+        var frame = await ws.ReceiveNavigationToAsync("/login?returnUrl=%2Fopen");
+
+        Assert.Contains("sign in here", frame, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_cookie_scheme_s_login_path_wins_over_the_configured_sign_in_path()
+    {
+        HideTheSignInPage();
+        using var host = CreateHost(loginPath: "/account/login", signInPath: "/old/login");
+
+        using var response = await ReloadAfterTheSignInEndedAsync(host, "/uj/open");
+
+        Assert.Equal("/account/login?ReturnUrl=%2Fuj%2Fopen", response.Headers.Location?.OriginalString);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("login")]
+    [InlineData("//evil.example/login")]
+    [InlineData("https://evil.example/login")]
+    public void A_sign_in_path_that_is_not_a_path_on_this_site_is_refused_at_start(string path)
+    {
+        var options = new RaskServerOptions { SignInPath = path };
+
+        Assert.Throws<InvalidOperationException>(options.Validate);
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────
 
     // This assembly's routes without its page at /login: the app the site's sign-in page is beside.
@@ -137,7 +201,7 @@ public sealed class SignInOutsideTheAppTests : IDisposable
 
     // A host whose default challenge scheme is a cookie scheme with that login path; with none, a host whose
     // authentication names no sign-in page.
-    private static RaskTestHost CreateHost(string? loginPath) =>
+    private static RaskTestHost CreateHost(string? loginPath, string? signInPath = null) =>
         RaskTestHost.Create<FollowApp>(
             services =>
             {
@@ -154,6 +218,7 @@ public sealed class SignInOutsideTheAppTests : IDisposable
             },
             app => app.Use(StampUserAsync),
             pathBase: "/uj",
+            configureServer: o => o.SignInPath = signInPath,
             diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull);
 
     private static Task StampUserAsync(HttpContext ctx, RequestDelegate next)

@@ -407,7 +407,17 @@ the `LoginPath` of the default challenge scheme, when that is a cookie scheme (`
 "/login")`). Its router has nothing there to show, so the page is *loaded* from there instead of navigated in
 place, the reloading tab is redirected there just the same, and the way back is the page's full address under the
 scheme's `ReturnUrlParameter`: `/login?ReturnUrl=%2Fuj%2Fdestinations%3Fpage%3D2`, which the host's sign-in can send
-the reader back to as it is. An app with neither has nowhere to send them: Rask cannot know who serves an address
+the reader back to as it is. A host that signs in with a JWT bearer token read from a cookie has no scheme that names a
+login page — it says where it is with `RaskServerOptions.SignInPath` (`Rask:Server:SignInPath`), the case of an old
+front end that serves `/login` beside the mounted app:
+
+```csharp
+builder.Services.AddRask(configureServer: o => o.SignInPath = "/login");
+```
+
+The way back there is `/login?returnUrl=%2Fuj%2Fdestinations%3Fpage%3D2`. The order is fixed: the app's own page at
+`/login` first, then the cookie scheme's `LoginPath` — which wins over `SignInPath` when both are set — then
+`SignInPath`. An app with none of them has nowhere to send them: Rask cannot know who serves an address
 outside its routes, so it does not guess — the open page is drawn again for nobody under its own guard, and the
 reloading tab is served the page it asked for.
 

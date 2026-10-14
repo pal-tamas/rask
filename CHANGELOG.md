@@ -84,6 +84,10 @@ them until tagged releases begin.
   in full, for a `RaskApp` and for a hand-wired host.
 
 ### Added
+- **`RaskServerOptions.SignInPath`** (`Rask:Server:SignInPath`) names a sign-in page served outside the app — a
+  JWT-bearer host beside an old front end that owns `/login`, which has no cookie scheme to say so. A page whose
+  user is gone loads it, and a reloading tab is redirected to it, with `returnUrl` the page's full address. The
+  app's own `/login` page and a cookie scheme's `LoginPath` win over it.
 
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app

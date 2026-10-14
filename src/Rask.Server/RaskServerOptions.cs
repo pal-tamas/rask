@@ -1,3 +1,5 @@
+using Rask.Core.Routing;
+
 namespace Rask.Server;
 
 /// <summary>
@@ -248,6 +250,25 @@ public sealed class RaskServerOptions
     public bool CompressPageHtml { get; set; } = true;
 
     /// <summary>
+    ///     Where the sign-in page is, for an app whose sign-in page is served <em>outside</em> it — a
+    ///     JWT-bearer host with an old front end that owns <c>/login</c>, mounted beside it with
+    ///     <c>MapRask&lt;App&gt;(pathBase: "/uj")</c>. <c>null</c> by default.
+    ///     <para>
+    ///         A page whose user is gone (the revalidator answered <c>null</c>, signed out elsewhere) is sent to the
+    ///         sign-in page. The app's own page at <c>/login</c> is shown in place; with none, Rask goes to this
+    ///         address as a page load, with the page's full address (<c>/uj/…</c>) as <c>returnUrl</c>, so the
+    ///         sign-in there can send the reader back. A reloading tab is redirected there too. Left unset, an app
+    ///         with no page of its own sends nobody anywhere: Rask cannot know who serves an address outside its
+    ///         routes.
+    ///     </para>
+    ///     <para>
+    ///         A cookie scheme's <c>LoginPath</c> (the default challenge scheme) wins over this when it names one.
+    ///         A site-relative path starting with a single <c>/</c>.
+    ///     </para>
+    /// </summary>
+    public string? SignInPath { get; set; }
+
+    /// <summary>
     ///     Throws <see cref="InvalidOperationException" /> if any value is out of range. Run by the
     ///     options validation <c>AddRask</c> registers — after <c>Rask:Server</c> is bound and the
     ///     caller's <c>configureServer</c> runs, and validated on start — so a bad value (a negative
@@ -278,6 +299,9 @@ public sealed class RaskServerOptions
             !SessionResume || ResumeTokenLifetime > TimeSpan.Zero,
             "ResumeTokenLifetime must be positive. Set SessionResume = false to disable resume.");
         Require(ShutdownDrainTimeout >= TimeSpan.Zero, "ShutdownDrainTimeout must be >= TimeSpan.Zero (Zero disables the drain).");
+        Require(
+            SignInPath is null || string.Equals(LocalUrl.Sanitize(SignInPath), SignInPath, StringComparison.Ordinal),
+            "SignInPath must be a path on this site, starting with a single '/' (\"/login\"), or null.");
 
         // CancellationTokenSource.CancelAfter throws above int.MaxValue milliseconds, and it would throw
         // from the shutdown path — the worst possible place to discover a bad value.
