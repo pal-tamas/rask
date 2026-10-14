@@ -241,9 +241,21 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // several — one task of the browser, and one request's worth of asking.
     internal WhoAnswer WhoAnswered { get; set; }
 
-    // When the user was last asked about (Environment.TickCount64). Every event asks; a render nobody asked for
-    // asks only when this is older than RaskEndpointExtensions.PushedRenderTrusts.
+    // When the user was last asked about, as a timestamp of the host's clock. Every event asks; a render nobody
+    // asked for asks only when this is older than RaskEndpointExtensions.PushedRenderTrusts.
     internal long LastUserCheck { get; set; }
+
+    internal void NoteUserChecked() => LastUserCheck = _clock.GetTimestamp();
+
+    internal bool UserCheckedWithin(TimeSpan span) => _clock.GetElapsedTime(LastUserCheck) < span;
+
+    // How many attaches have finished with this session: the principal asked about and adopted (or held behind a
+    // running dispatch), and what the attach owed the connection sent.
+    private int _attachesSettled;
+
+    internal int AttachesSettled => Volatile.Read(ref _attachesSettled);
+
+    internal void AttachSettled() => Interlocked.Increment(ref _attachesSettled);
 
     // The session had a user and the revalidator said their sign-in has ended. Set until the page has been sent
     // to the sign-in page, which is where such a session goes whether its page was guarded or not.
@@ -347,7 +359,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private long _batchWindowStart;
     private int _batchedEventsInWindow;
 
-    // The host's clock when it registered one, so the second the window measures is one a test can own.
+    // The host's clock when it registered one, so the seconds the batch window and the trust in the last answer
+    // about the user measure are ones a test can own.
     private readonly TimeProvider _clock;
 
     /// <summary>Whether <paramref name="count" /> more batched events fit this second's allowance.</summary>

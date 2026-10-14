@@ -61,13 +61,11 @@ public sealed partial class SessionStaysItsUsersTests
         var directory = host.Services.GetRequiredService<Directory>();
         var page = await OpenAsync(host, "/open", "alice");
         using var ws = await AttachAsync(host, page.SessionId, "alice");
-        // The attach asks too, a moment after the socket is in place: counted before the directory goes away.
-        await WaitFor.True(() => host.Store.Peek(page.SessionId)!.ConnectionUser is not null, "the attach has asked");
-        var asked = Volatile.Read(ref directory.Asked);
 
         directory.Unreachable = true;
         await ws.SendJsonAsync(new { id = page.Save }, TestContext.Current.CancellationToken);
-        await WaitFor.True(() => Volatile.Read(ref directory.Asked) > asked, "the refused event asks");
+        // Refused, not only asked: between the two the question still reads whether the store is reachable.
+        await WaitFor.True(() => Volatile.Read(ref directory.Refused) == 1, "the event's question is refused");
         directory.Unreachable = false;
         await ClickAsync(host, ws, page.Save);
 
@@ -98,7 +96,7 @@ public sealed partial class SessionStaysItsUsersTests
         var directory = host.Services.GetRequiredService<Directory>();
         var page = await OpenAsync(host, "/open", "alice");
         using var ws = await AttachAsync(host, page.SessionId, "alice");
-        host.Store.Peek(page.SessionId)!.LastUserCheck = Environment.TickCount64;
+        host.Store.Peek(page.SessionId)!.NoteUserChecked();
         var asked = Volatile.Read(ref directory.Asked);
 
         host.Services.GetRequiredService<Ticker>().Tick();

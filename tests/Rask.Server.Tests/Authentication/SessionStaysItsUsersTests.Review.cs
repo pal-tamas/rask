@@ -76,12 +76,8 @@ public sealed partial class SessionStaysItsUsersTests
         using var ws = await AttachAsync(host, page.SessionId, "alice");
         causes.Clear();
 
-        var session = host.Store.Peek(page.SessionId)!;
         await ClickAsync(host, ws, page.Save);
-        // The save has run, but its dispatch is still drawing: a tick now would join that dispatch's own render.
-        await WaitFor.True(() => session.PendingHandlers == 0, "the click's dispatch has finished");
-        await session.LastHandlerTask;
-        session.LastUserCheck = 0;
+        host.Store.Peek(page.SessionId)!.LastUserCheck = 0;
         host.Services.GetRequiredService<Ticker>().Tick();
         await WaitFor.True(() => causes.Count == 2, "the pushed render asks");
 
