@@ -69,6 +69,31 @@ public partial class ConfirmAttributeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_bare_entry_after_one_that_asked_carries_no_question_whatever_other_steps_it_had()
+    {
+        var host = new ConfirmedBareHost();
+        Render(host);
+
+        host.Asks = false;
+        var html = Render(host);
+
+        Assert.Equal("<div></div>", html);
+    }
+
+    [Fact]
+    public void A_question_dropped_beside_an_aria_step_goes_with_the_rest_of_the_reset()
+    {
+        var host = new ConfirmedAriaHost();
+        Render(host);
+
+        host.Asks = false;
+        var html = Render(host);
+
+        Assert.DoesNotContain("data-rask-confirm", html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"x\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_render_that_asks_something_else_writes_the_new_question()
     {
         var host = new ConfirmedClickHost();
@@ -93,6 +118,21 @@ public partial class ConfirmAttributeTests : global::Rask.Core.RaskMarkup
 internal sealed class ConfirmOrder
 {
     public string? Note { get; set; }
+}
+
+internal sealed partial class ConfirmedBareHost : Component
+{
+    internal bool Asks = true;
+
+    protected override Component? Render() => Asks ? Div.Confirm("Sure?") : Div;
+}
+
+internal sealed partial class ConfirmedAriaHost : Component
+{
+    internal bool Asks = true;
+
+    protected override Component? Render() =>
+        Asks ? Div.AriaLabel("x").Confirm("Sure?") : Div.AriaLabel("x");
 }
 
 internal sealed partial class ConfirmedClickHost : Component

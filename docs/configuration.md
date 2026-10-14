@@ -420,8 +420,8 @@ overlay handles the user-facing side automatically — nothing to configure:
 - **In the page's language.** Every word of it — the messages and the **Retry now** and **Reload** buttons —
   is a [`RaskStrings`](localization.md#translating-the-frameworks-own-text) key (`ConnectionReconnecting`,
   `ConnectionOffline`, `ConnectionStillTrying`, `ConnectionRetry`, `ConnectionReload`, `ConnectionUpdating`,
-  `ConnectionAuthenticating`, `ConnectionSessionTimedOut`). The server writes them on the runtime's own script
-  tag in the page's culture, so the overlay can say them with the server gone; the kit ships formal Hungarian.
+  `ConnectionAuthenticating`, `ConnectionSessionTimedOut`). The server writes them once, with the first response, in the page's
+  culture, so the overlay can say them with the server gone; the kit ships formal Hungarian.
 - **Styleable.** While the connection is down, or the browser reports itself offline, `<html>` carries
   `data-rask-offline` — Livewire's `wire:offline`. A page shows something only then with a variant:
   `Div.Class("hidden in-data-rask-offline:block")["You are offline — changes will be saved when you are back."]`.

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Server.Http;
 
 namespace Rask.Server.Tests.Endpoints;
@@ -30,5 +31,25 @@ public sealed class ConnectionTextsTests
         var second = ConnectionTexts.Json();
 
         Assert.Same(first, second);
+    }
+
+    [Fact]
+    public void The_first_response_gets_the_texts_as_the_last_thing_in_the_body()
+    {
+        using var services = new ServiceCollection().BuildServiceProvider();
+
+        var html = ConnectionTexts.AddTo("<html><body><p>hi</p></body></html>", services);
+
+        Assert.Matches("^<html><body><p>hi</p><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>\\[[^<]*\\]</script></body></html>$", html);
+    }
+
+    [Fact]
+    public void A_page_with_no_body_is_handed_back_as_it_was()
+    {
+        using var services = new ServiceCollection().BuildServiceProvider();
+
+        var html = ConnectionTexts.AddTo("just text", services);
+
+        Assert.Equal("just text", html);
     }
 }

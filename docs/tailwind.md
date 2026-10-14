@@ -186,7 +186,7 @@ compile, which is what lets a class library in the same solution ignore all of t
 
 | Property | Default | What it does |
 |---|---|---|
-| `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Bump it deliberately. |
+| `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Each Rask release carries Tailwind's newest at the time, digests included; set it to hold a version. |
 | `RaskTailwindEngine` | `auto` | `standalone` or `npm` to force one. On Windows on ARM, `npm` gets you a native engine instead of the x64 binary under emulation. |
 | `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one that imports Tailwind, on its own or through `rask-ui.css`. |
 | `RaskTailwindOutput` | `wwwroot/css/app.css` | Where the compiled CSS lands. |

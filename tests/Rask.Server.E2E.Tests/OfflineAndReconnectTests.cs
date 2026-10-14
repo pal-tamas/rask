@@ -65,7 +65,7 @@ public sealed class OfflineAndReconnectTests(PlaywrightFixture playwright) : ICl
         await using var session = await HookSession.OpenAsync<OfflinePage>(playwright);
         var page = session.Page;
 
-        var texts = await page.EvaluateAsync<string[]>("() => JSON.parse(document.querySelector('script[data-rask-texts]').getAttribute('data-rask-texts'))");
+        var texts = await page.EvaluateAsync<string[]>("() => JSON.parse(document.getElementById('rask-texts').textContent)");
 
         Assert.Equal("Reconnecting…", texts[0]);
         Assert.Equal("Your session timed out. Reload to continue.", texts[7]);

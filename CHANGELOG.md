@@ -103,10 +103,13 @@ them until tagged releases begin.
   reach its app (Livewire's `wire:offline`).** Before: "Reconnecting…", "You're offline — waiting to reconnect…",
   "Retry now" and "Your session timed out…" were English in `rask.js` whatever the page's language. After: they
   are eight `RaskString` keys (`ConnectionReconnecting` … `ConnectionSessionTimedOut`, formal Hungarian in the
-  kit), written on the runtime's `<script>` as `data-rask-texts` in the page's culture. And `<html>` carries
+  kit), written once, with the first response, as `<script type="application/json" id="rask-texts">` in the page's culture (not in the live tree, so no update builds it). And `<html>` carries
   `data-rask-offline` while the browser reports itself offline or the Server's socket is down, on both hosts, so a
-  page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. The runtime `<script>` now has the
-  attribute before its `src`. `docs/configuration.md#reconnect-ux`.
+  page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. `docs/configuration.md#reconnect-ux`.
+- **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
+  matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
+  it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
+  replaces Dependabot's weekly template pull requests.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -151,6 +154,36 @@ them until tagged releases begin.
   unchanged. A path change (`Go.To`) still pushes, and a query move after a path change in the same handler joins
   that push. Both hosts. A pager that should be a place to go Back to says `.Pushing()`, as the site's parcels
   pager does.
+- **Every pin Rask carries now follows its newest stable release by itself.** Before: Dependabot moved NuGet,
+  the workflows' actions and the site's npm, and nothing moved the rest. After: Dependabot also covers the
+  composite setup action, the template and devhost base images, the editor engine's and the devtools E2E's npm,
+  and `scripts/tools/RaskRename`; and `upstream.yml` runs a follower per pin it cannot read, each with a self-test
+  over saved answers (`scripts/tests/upstream-followers.test.sh`). Moved today:
+  - **tsgo is TypeScript 7.0.2, the stable native compiler** (was the dated preview 7.0.0-dev.20260707.2): the
+    scoped TypeScript compile downloads `@typescript/typescript-<os>-<arch>` and runs its `lib/tsc`.
+    `RaskTsgoVersion` keeps its name; an app that overrides it with a `native-preview` dev build must move to a
+    7.x release.
+  - **Litestream 0.5.17** (was 0.5.14), its SHA-256s computed from the downloads and checked against the
+    release's `checksums.txt`; the template images copy the same release (they were on 0.3.13).
+  - **`rask deploy`'s health probe runs `curlimages/curl:8.22.0`** (was 8.11.1) and **`rask db backup` runs
+    `alpine:3.24`** (was 3.21); the scaffolded deploy workflow uses `actions/checkout@v7` and
+    `actions/setup-dotnet@v6` (were v4); Rask's own CI runs on `ubuntu-26.04` with `setup-dotnet@v6`.
+  - The adapter fixtures test Preact 11.0.1, happy-dom 21.0.1, Vue 3.5.44, Solid 1.9.17, Svelte 5.57.2 and
+    Angular 22.2.2; the provider scripts start PostgreSQL 18.
+- **BREAKING: the Node build floor is the Active LTS line's first release, 24.11.0 (was 22.12.0).** An app with
+  islands or a front end no longer builds on Node 22: it fails with `RASKISLAND001` or `RASKSPA005`. Install the
+  current LTS (`nvm install --lts`), or set `RaskExternalMinimumNode` / `RaskSpaMinimumNode` to keep an older
+  one. `rask.sh` / `rask.ps1` now install the newest LTS release, 24.21.0, and `scripts/upstream/node-lts.sh`
+  follows both daily — the installers' line on every LTS release, the floor on a new major. The Angular
+  template's own 22.22.3 floor is gone; Angular's CLI reports its own.
+- **`rask new` writes the newest front-end versions that install together.** The templates and island fragments
+  name no versions (every package is `latest`) and ship no `package-lock.json`. At scaffold time `rask new` asks
+  npm for the newest stable releases whose peers agree and whose `engines.node` takes the newest Node LTS, and
+  writes them as `^x.y.z` — so when Vite ships a major its React plugin does not take yet, the app gets the newest
+  Vite the plugin does, and the next app gets both once it moves. The holds left are `tailwindcss` /
+  `@tailwindcss/*` (to the Tailwind the host downloads) and `@types/node` (the LTS major). The first build runs
+  `npm install` and writes the app's own lockfile; `npm ci` after that, and the template Dockerfiles do the same.
+  Offline, `latest` stays with one warning, and npm resolves it on the first build.
 
 - **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
   waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
@@ -355,6 +388,15 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
+  `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
+  has) wrote and filtered its own rows by that text, but a READ through the generated read face
+  (`Invoice.Where(…)`, `Invoice.Count()`) compared the column with a `Guid`: nothing was found on SQLite (the
+  Guid's upper-case text is not the stored lower-case), and on SQL Server the column was converted to
+  `uniqueidentifier` for every row, which scans and fails on any value that is not a Guid. After: the face takes
+  the declared column's name, type, length and conversion, so the filter binds the text the column holds. A
+  tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
+- A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
@@ -1613,6 +1655,50 @@ them until tagged releases begin.
 
 ### Performance
 
+- **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
+  keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
+  was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was
+  every arrow, every letter typed ahead or into a search, every open and every close. Flux's list is a custom
+  element whose script keeps all of that, and Livewire hears a value: measured on fluxui.dev, opening a select,
+  sweeping the pointer over every row, walking it with the arrows, typing ahead and pressing Escape send no
+  request at all. The runtime now does the same for the kit, on both hosts, in a hook module of its own
+  (`rask-list.ts`, in the on-demand `rask-hooks.js`), asked for by `data-rask-list` on the control's root. It
+  writes `data-active` and `aria-activedescendant` as the cursor moves, `data-open` and `aria-expanded` in the
+  task the list opens, and — where the browser filters — `data-hidden` on the rows a search leaves out, the
+  "no results" row, the create row and a group's heading, and holds every one of them against the next render.
+  The page renders the rows and hears a **pick**: the press on the row itself (Enter clicks the lit row), so the
+  picked row is named by the press and by no cursor of the page's. An autocomplete's pick is the browser writing
+  the item into the input, and the input tells the page as it tells it of anything typed.
+  **Measured on a live Server page over one journey** — open, the pointer over every row, eight keys, type-ahead
+  or a search, Escape, open again from the keyboard, the pointer over every row, Tab — frames sent before → now:
+  **listbox 33 → 0, pillbox 34 → 0, autocomplete 28 → 0**; the searchable listbox, the combobox and the pillbox's
+  combobox could not finish the journey at keyboard speed before (a late toggle shut the list a key had opened)
+  and send 0 now. A pick is the one frame of its press; an autocomplete bound to a member that waits sends 0 at
+  a pick and its text with the next action. `UiListHookTests` asserts each.
+  The rules are Flux's, re-measured for this (`scripts/flux/probe-list.mjs`, and the `--live` walks of
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`, which now also hold the row named to
+  assistive technology): a row the pointer lit goes dark when the pointer leaves the list and one the keys lit
+  stays (the kit used to keep the pointer's row lit everywhere but in a pillbox); with no row lit ArrowDown
+  lands on the first row and ArrowUp on the last; Enter with no row lit picks nothing; a row is lit by
+  `data-active` alone, never by `:hover`, so the keys' row is the one lit while the pointer rests on another.
+  **What changes for an app**: nothing in the chain. `aria-expanded="true"`, `data-open`, `data-active`,
+  `aria-activedescendant` and a browser-filtered `data-hidden` are no longer in any RENDER — a test that read
+  them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
+  search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
+  create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+  Per gesture on the kit's frame gate, before → after, for every list kind (listbox, searchable listbox,
+  combobox, pillbox, autocomplete): open by a press 1 → 0; the pointer over the open list 3–7 → 0; the cursor keys
+  3–9 → 0; Escape 1–3 → 0; a press outside 1–2 → 0; typing to filter 1–2 → 0; Tab in and out 3–5 → 0 (the
+  native select's 2 → 0). Owed and kept: a pick 1 (the value); a debounced search 1 at the pause; a search the
+  page heard, ended by Escape, a pick or a click elsewhere, 1 (`OnInput("")`). A bound select that waits still
+  sends its pick as one frame of drawing (`data-rask-draws`), where Flux sends none.
+  **Changed for an app**: `Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`,
+  `Ui.PillboxInput` and `Ui.Autocomplete` works as before, and the "the search is over" `OnInput("")` (or a
+  combobox's new answer's words) is now raised by the browser as it rewrites the field, once, and only when the
+  page had heard a search; a search it never heard is dropped unsaid. Escape on an autocomplete whose page holds
+  no text tells the page nothing. A press on an autocomplete's suggestion keeps the focus in the input, so the
+  text typed before it is never handed over by the blur. `OnToggle` on these controls was never public and
+  nothing of the open state is sent.
 - **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
   that learns of a drawn control's pick kept the form being written in a field of the render context, which every
   render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.

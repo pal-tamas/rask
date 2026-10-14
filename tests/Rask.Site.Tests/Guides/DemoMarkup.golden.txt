@@ -204,7 +204,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -212,7 +212,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -220,7 +220,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -246,7 +246,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -254,7 +254,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -262,7 +262,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -299,7 +299,7 @@ span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/sel
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -307,7 +307,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -315,7 +315,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -755,7 +755,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -763,7 +763,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -771,7 +771,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -1124,7 +1124,7 @@ div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -1132,7 +1132,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -1140,7 +1140,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -1148,7 +1148,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3615,7 +3615,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3623,7 +3623,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3631,7 +3631,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3685,7 +3685,7 @@ span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/sel
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3693,7 +3693,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3701,7 +3701,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3893,7 +3893,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3901,7 +3901,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3909,7 +3909,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3938,7 +3938,7 @@ div .[[data-ui-select-button]_&amp;]:truncate
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3946,7 +3946,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -3954,7 +3954,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -5834,7 +5834,7 @@ span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/sel
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -5842,7 +5842,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -5850,7 +5850,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -6622,7 +6622,7 @@ span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/sel
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -6630,7 +6630,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -6638,7 +6638,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -7099,7 +7099,7 @@ span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/sel
 svg .-me-1 .[:where(&amp;)]:size-5 .[[data-ui-select]:has(:popover-open)_&amp;]:text-zinc-400/75! .dark:[[data-ui-select]:has(:popover-open)_&amp;]:text-white/60! .dark:group-disabled/select-button:text-white/20! .dark:group-hover/select-button:text-white .dark:text-white/60 .group-disabled/select-button:text-zinc-200! .group-hover/select-button:text-zinc-800 .ms-2 .shrink-0 .text-zinc-400/75
 path
 div .[:where(&amp;)]:max-h-[20rem] .[:where(&amp;)]:min-w-48 .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-zinc-600 .overflow-y-auto .overscroll-y-none .p-[.3125rem] .rounded-lg .shadow-xs .text-start
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -7107,7 +7107,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6
@@ -7115,7 +7115,7 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
-div .[[data-ui-options]:has([data-ui-option]:hover,[data-ui-option-create]:hover)_&amp;:not(:hover)]:data-active:bg-transparent .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-100 .aria-disabled:hover:bg-transparent! .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:[[data-ui-options]:popover-open_&amp;]:hover:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
+div .[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-100 .aria-disabled:text-zinc-400 .cursor-default .dark:[[data-ui-options]:popover-open_&amp;]:data-active:bg-zinc-600 .dark:aria-disabled:text-zinc-400 .dark:text-white .data-hidden:hidden .flex .font-medium .group/option .items-start .outline-hidden .overflow-hidden .px-2 .py-1.5 .rounded-md .scroll-my-[.3125rem] .select-none .text-sm .text-start .text-zinc-800 .w-full
 div .flex .items-center .min-w-0
 div .flex .items-center
 div .[[data-ui-select-button]_&amp;]:hidden .flex .items-center .min-h-5 .shrink-0 .w-6

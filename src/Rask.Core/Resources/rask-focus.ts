@@ -39,7 +39,8 @@ function scrollerOf(el: Element): HTMLElement | null {
     return null;
 }
 
-function reveal(option: Element): void {
+/** Brings `option` into view inside its own scroller, by the least movement; nothing else scrolls. */
+export function reveal(option: Element): void {
     const scroller = scrollerOf(option);
     if (!scroller) {
         return;

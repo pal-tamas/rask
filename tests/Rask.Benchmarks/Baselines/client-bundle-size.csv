@@ -231,11 +231,9 @@
 # 2026-10-13, a tab asks whether the browser's credential changed and reopens its connection before it sends (rask-auth-watch.ts, the Server runtime only): rask.js +1,682, on main at 101,796: 103,478. rask.wasm.js and rask-hooks.js are unchanged.
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
-# 2026-10-14, `.Confirm("…")` asked before a click or a submit is sent (rask-confirm.ts, both runtimes: confirm() or prompt() matched exactly, in the handler click guard and each host's submit listener): rask.js 104,174 -> 104,481 (+307) and rask.wasm.js 90,985 -> 91,279 (+294). rask-hooks.js is unchanged.
-# 2026-10-14, the reconnect overlay's words read from the page (`data-rask-texts`, eight RaskString keys) and `data-rask-offline` on <html> (rask-offline.ts, both runtimes; the Server one also says it while its socket is down): rask.js 104,481 -> 105,203 (+722) and rask.wasm.js 91,279 -> 91,641 (+362). rask-hooks.js is unchanged.
-# 2026-10-14, a field whose input or change event was sent says `data-loading` until its answer (fieldTarget and the no-aria-busy ticket in rask-loading.ts; the Server host releases it with the ack, the WASM host with its dispatch promise): rask.js 105,203 -> 105,618 (+415) and rask.wasm.js 91,641 -> 92,039 (+398). rask-hooks.js is unchanged.
-# 2026-10-14, `data-rask-offline` written with setAttribute / removeAttribute (a stub document of the WASM fixtures has no toggleAttribute): rask.js 105,618 -> 105,674 (+56) and rask.wasm.js 92,039 -> 92,095 (+56) — this item's own bytes in all: +722/+362 measured, +56 once more. rask-hooks.js is unchanged.
+# 2026-10-14, a list of options kept in the browser (data-rask-list, rask-list.ts: cursor, keys, type-ahead, filter and open state of Ui.Select's listbox and combobox, Ui.Pillbox and Ui.Autocomplete), and a pause the list ends itself when it rewrites its field (rask-input.ts `seam.hear`), measured from a Release build of the merge on main 2890084c2: rask.js 104,174 -> 104,422 (+248), rask.wasm.js 90,985 -> 91,233 (+248), rask-hooks.js 58,415 -> 68,900 (+10,485).
+# 2026-10-14, the four Livewire behaviours together (`.Confirm` in rask-confirm.ts, the overlay's texts read from #rask-texts and `data-rask-offline` in rask-offline.ts, and a field that waited marked `data-loading` in rask-loading.ts), measured from a Release build on main at 104,422 / 91,233 / 68,900: rask.js +1,468 and rask.wasm.js +1,110. rask-hooks.js is unchanged.
 bundle,bytes
-rask.js,105674
-rask.wasm.js,92095
-rask-hooks.js,58415
+rask.js,105890
+rask.wasm.js,92343
+rask-hooks.js,68900

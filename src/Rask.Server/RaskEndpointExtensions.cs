@@ -803,6 +803,9 @@ public static partial class RaskEndpointExtensions
         // run straight after the runtime rather than a round trip later (HookBundleTag).
         var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
 
+        // The reconnect overlay's words in the page's language, once, with the first response (ConnectionTexts).
+        html = ConnectionTexts.AddTo(html, httpContext.RequestServices);
+
         // Rendered for somebody: the tab remembers, so that losing them later sends it to the sign-in page.
         if (session.Users.IsSignedIn)
         {
@@ -4317,9 +4320,7 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        // data-rask-texts: the reconnect overlay's words in the page's language (ConnectionTexts).
-        public Component Render() =>
-            Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash).Data("rask-texts", ConnectionTexts.Json());
+        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
     }
 
     internal sealed class RaskLiveMarker

@@ -245,16 +245,16 @@ import {
     window.addEventListener("pageshow", (e: PageTransitionEvent) => {
         if (e.persisted) authWatch.noticed();
     });
-    // The overlay's words, in the page's language: the server writes them on the runtime's own <script> as
-    // `data-rask-texts` (a JSON array, in the order below) — RaskStrings.Get, so an app's translation wins. Read
-    // when shown, because a language switch rewrites the attribute. The English is what a page without it says.
+    // The overlay's words, in the page's language: the first response carries them in a
+    // `<script type="application/json" id="rask-texts">` (a JSON array, in the order below) — RaskStrings.Get, so an
+    // app's translation wins. The English is what a page without it says.
     const CONNECTION_TEXTS = ["Reconnecting…", "You're offline — waiting to reconnect…", "Still trying to reconnect…",
         "Retry now", "Reload", "Updating…", "Authenticating…", "Your session timed out. Reload to continue."];
     const [T_RECONNECTING, T_OFFLINE, T_STILL_TRYING, T_RETRY, T_RELOAD, T_UPDATING, T_AUTHENTICATING, T_TIMED_OUT] =
         [0, 1, 2, 3, 4, 5, 6, 7];
     function connectionText(index: number): string {
         try {
-            const raw = document.querySelector("script[data-rask-texts]")?.getAttribute("data-rask-texts");
+            const raw = document.getElementById("rask-texts")?.textContent;
             const said = raw ? JSON.parse(raw) as unknown : null;
             if (Array.isArray(said) && typeof said[index] === "string") return said[index] as string;
         } catch (e) {

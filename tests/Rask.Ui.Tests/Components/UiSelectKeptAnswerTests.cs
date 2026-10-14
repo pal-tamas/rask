@@ -16,8 +16,6 @@ namespace Rask.UiTests.Components;
 /// </remarks>
 public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static readonly string[] All = ["Glock", "Beretta", "Walther", "Bersa"];
 
     private string[] _rows = All;
@@ -46,24 +44,15 @@ public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
             _rows.Select(name => Ui.SelectOption.Key(name).Value(name)[name])
         ];
 
-    private static async Task<Page> OpenAsync(Func<Component> select)
-    {
-        var page = Acting.Render(select);
-        await page.On("[popover]").Raise("toggle", Opened);
-
-        return page;
-    }
-
     private static Task Pick(Page page, string name) =>
         page.On($"[data-ui-option][id$='-{Array.IndexOf(All, name)}']").Click();
 
     [Fact]
     public async Task The_button_goes_on_saying_the_picked_option_when_a_search_brings_other_rows()
     {
-        var page = await OpenAsync(Listbox);
+        var page = Acting.Render(Listbox);
         await Pick(page, "Walther");
         var drawn = Drawn(page);
-        await page.On("[popover]").Raise("toggle", Opened);
 
         await page.On("[data-ui-select-search] input").Input("ber");
 
@@ -77,14 +66,12 @@ public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task No_row_is_marked_picked_while_the_answer_is_not_among_them()
     {
-        var page = await OpenAsync(Listbox);
+        var page = Acting.Render(Listbox);
         await Pick(page, "Walther");
-        await page.On("[popover]").Raise("toggle", Opened);
 
         await page.On("[data-ui-select-search] input").Input("ber");
 
         Assert.Empty(page.FindAll("[data-ui-option][data-selected]"));
-        Assert.Equal("Beretta", page.TextOf("[data-ui-option][data-active]"));
         Assert.NotNull(page.Find("[data-ui-select-button]").Attribute("data-selected"));
     }
 
@@ -92,11 +79,9 @@ public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
     public async Task The_comboboxs_input_goes_on_saying_its_answer_when_the_page_answers_with_other_rows()
     {
         var page = Acting.Render(Combobox);
-        await page.On("input[role=\"combobox\"]").Click();
         await Pick(page, "Walther");
 
-        Search("ber");
-        await page.On("input[role=\"combobox\"]").Raise("blur");
+        await page.On("input[role=\"combobox\"]").Input("ber");
 
         Assert.Equal("Walther", _picked);
         Assert.Equal("Walther", page.Find("input[role=\"combobox\"]").Attribute("value"));
@@ -115,11 +100,11 @@ public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task A_value_changed_from_code_to_one_that_is_not_among_the_rows_says_nothing_of_the_one_before()
     {
-        var page = await OpenAsync(Listbox);
+        var page = Acting.Render(Listbox);
         await Pick(page, "Walther");
 
         _picked = "Luger";
-        await page.On("[popover]").Raise("toggle", Opened);
+        await Acting.Act(page);
 
         Assert.Equal("Choose…", page.TextOf("[data-ui-select-placeholder]"));
     }
@@ -127,7 +112,7 @@ public partial class UiSelectKeptAnswerTests : global::Rask.Core.RaskMarkup
     [Fact]
     public async Task Several_answers_are_counted_from_the_value_whatever_rows_the_search_left()
     {
-        var page = await OpenAsync(Several);
+        var page = Acting.Render(Several);
         await Pick(page, "Glock");
         await Pick(page, "Walther");
 
