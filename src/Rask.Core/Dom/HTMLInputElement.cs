@@ -155,7 +155,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var resolvedType = ResolveType(acc);
         if (acc is not null && TakesAriaRequired(resolvedType))
         {
-            SayRequired(acc.Field, ref _saidRequired);
+            SayRequired(acc, ref _saidRequired);
         }
 
         base.WriteAttributes(sb);

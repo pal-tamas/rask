@@ -121,7 +121,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             bindCtx = BindingHelpers.ResolveBindingContext(acc.Target);
             _content = BindingHelpers.FormatValue(acc.Getter());
             SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
-            SayRequired(acc.Field, ref _saidRequired);
+            SayRequired(acc, ref _saidRequired);
         }
         else if (Value is not null)
         {

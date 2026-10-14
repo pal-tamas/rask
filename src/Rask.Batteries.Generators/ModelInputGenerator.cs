@@ -13,8 +13,8 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
-/// the writes that take it: <c>Product.Create(id, model)</c>, <c>Product.Create(model)</c> where a key
-/// can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
+/// the writes that take it: <c>Product.Create(id, model)</c> where the key is the caller's to give,
+/// <c>Product.Create(model)</c> where one can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
 /// and <c>Product.Delete(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
@@ -149,6 +149,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             AnnouncesFieldRules = seams.FieldRules,
             RequiredFromCatalog = seams.RequiredSentence,
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
+            AnnouncesOptionalFields = seams.OptionalFields,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
             AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
@@ -201,6 +202,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
         bool AnnouncesRequiredFields = false,
+        bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default)
     {
@@ -272,5 +274,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         ValueObjectShape? ValueObject,
         EquatableArray<string> Attributes,
         string ValueTypeName,
-        Write? Write);
+        Write? Write,
+        EquatableArray<string> Checks,
+        bool RequiredByType);
 }

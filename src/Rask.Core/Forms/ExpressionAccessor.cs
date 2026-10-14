@@ -127,7 +127,7 @@ public static class ExpressionAccessor
                      ?? throw new InvalidOperationException(
                          $"Bind({expression}) reached null before its last property. Create the object it walks through (e.g. `= new()` on the field) before the form renders.");
 
-        return new Accessor(target, prop) { Owner = FindRootConstant(me) };
+        return new Accessor(target, prop) { Owner = FindRootConstant(me), UnderOptional = RaskValidation.IsUnderOptional(me.Expression) };
     }
 
     // Evaluates the target sub-expression (everything left of the terminal property) with plain
@@ -297,5 +297,10 @@ public static class ExpressionAccessor
         // used to re-render the consumer on a two-way write so derived UI outside the control/Form
         // updates without any StateHasChanged. Null when the binding closed over a non-component root.
         public object? Owner { get; init; }
+
+        // Whether the expression walks through an object that may be left wholly empty
+        // (RaskValidation.RegisterOptionalFields): nothing under one is required, and its type's rules are asked
+        // only about a value that was filled in.
+        internal bool UnderOptional { get; init; }
     }
 }

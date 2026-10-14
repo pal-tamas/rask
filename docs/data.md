@@ -464,6 +464,30 @@ update just names the row first:
   are the only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not
   generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
   PostgreSQL's sequence behind.
+- **An integer key your application assigns** is a key you give, too. Say so in the aggregate's own `Configure`
+  — `b.Property(x => x.Id).ValueGeneratedNever();` — and the aggregate gets `Create(id, model)` and
+  `Create(id, x => …)` **instead of** the creates that take no key, which would insert the row under `0`:
+
+  ```csharp
+  public sealed class Destination : Aggregate<int>
+  {
+      public string Name { get; private set; } = "";
+
+      public static void Configure(EntityTypeBuilder<Destination> b) =>
+          b.Property(d => d.Id).ValueGeneratedNever();          // the table is numbered by the application
+  }
+
+  await Destination.Create(1000, model);                        // inserted under 1000
+  await Destination.Create(1001, d => d.Rename("Baja"));
+  await Destination.Create(model);                              // does not compile: there is no such create
+  ```
+
+  A key given as `0` is refused at the save, by name, like any key left at its default; a key that is taken is
+  the database's own duplicate-key error (`DbUpdateException`). The line is read from the source, so it has to
+  be written in the static `Configure` on the aggregate, as one chain from `Property(x => x.Id)` — or
+  `Property("Id")`, `Property(nameof(Id))`. Written in a helper method, an `IEntityTypeConfiguration` or
+  `OnModelCreating`, the key is still inserted as given, but the aggregate keeps the creates of a stored
+  identity.
 - **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
   `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
@@ -871,19 +895,86 @@ When a page shows the order between loading and changing it, the same rules run 
 
 ### How a form save writes
 
-A save writes **what the form holds**, property by property:
+**The model is the truth.** A save stores what the model holds, property by property, and reads nothing back
+from the row to fill a gap:
 
 | The model's value | The aggregate's property | What is saved |
 | --- | --- | --- |
 | a value | any | the value |
 | `null` | declared nullable (`string? Notes`) | `null`: the user emptied the field |
-| `null` | not nullable (`string Name`) | nothing: the property keeps its value |
-| a nested value-object model | a value object | merged over the value object the row holds, by the same rules |
+| `null` | not nullable (`string Name`) | nothing: the write is refused, *This field is required.* under `Name` |
+| a nested value-object model | a value object | the value object **built from the nested model alone**, by the same rules |
+| `null` | a value object declared nullable (`Address? Billing`) | `null`: every column of it |
+| a nested model **left wholly empty** | a value object declared nullable (`Address? Billing`) | the same `null`: it was not given, and nothing in it is asked for |
+| `null` | a value object that is not nullable (`Money Price`) | nothing: the write is refused, under `Price` |
 | `Version` is `null` | | no concurrency check |
 
-So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, and a model a
-command built with only some properties set leaves the non-nullable rest alone. To change a few properties from
-code, `Product.Update(id, p => p.Reprice(price))` says so directly.
+The rules are the same one level down, and at every level below that. `Address` holds `string Street`,
+`string? Floor` and `int? Door`; a reader who empties the floor has emptied it:
+
+```csharp
+var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+model.Address!.Floor = null;                  // what an emptied field binds
+model.Address.Door = null;
+
+await Customer.Update(id, model);             // Address_Floor NULL, Address_Door NULL, Address_Street untouched
+
+model.Address.Street = null;
+await Customer.Update(id, model);             // RaskValidationException: "Address.Street" — This field is required.
+```
+
+So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, an update that
+changes nothing writes nothing — text stored as `''` stays `''`, it is not turned into `NULL` — and a model is
+never a patch: one built in code with only some members set clears the nullable rest and is refused for the
+required rest. To change a few properties from code, `Product.Update(id, p => p.Reprice(price))` says so
+directly. A member that is text and cannot be empty is refused when it holds `''` or white space as well, as a
+root property is; declare it `string?` where the table really holds empty text.
+
+The same holds for a create, which builds the value object from the model and nothing else: a member the model
+leaves empty is not filled from the default the aggregate's initializer gave it.
+
+**An optional value object left empty was not given.** A form over `Address? Billing` has to hold a nested model
+to bind its fields to (`model.Billing ??= new()`), so a reader who fills none of them posts a model that is there
+and empty. That is stored as no address — every column `NULL` — and none of its fields is asked for. Fill one
+and it is an address: the rest of the rules apply, and a missing street is refused under `Billing.Street`.
+
+```csharp
+model.Billing = new();                                   // nothing typed
+await Customer.Update(id, model);                        // Billing is null: every Billing_ column NULL
+
+model.Billing = new() { City = "Szeged" };               // one field typed
+await Customer.Update(id, model);                        // refused — "Billing.Street": This field is required.
+```
+
+*Empty* means exactly this, for every member of the nested model, at every level:
+
+| The member's value | Counts as |
+| --- | --- |
+| `null` | empty |
+| text that is `""` or only white space | empty |
+| `false` | empty: a box nobody ticked says nothing |
+| a nested model that is `null`, or itself wholly empty | empty |
+| any other value — **including `0`** | filled |
+
+Every member of a model is nullable (`bool?`, `int?`), so each has an empty state. A control the reader never
+touched writes nothing and leaves `null`; a number field that is cleared goes back to `null`; a box that is
+ticked and unticked again writes `false`, which is why `false` is empty too. `0` is a number somebody typed. A
+value object that is **not** nullable is never read this way — its empty model is refused for each field it
+lacks — and so is a row of a list, which is there because somebody added it.
+
+**A save that changes nothing still writes nothing.** When the model is empty and what the row holds there is
+empty by the same rule — every column `NULL`, blank text or `false` — the row is left exactly as it is: text
+stored as `''` stays `''`. The columns are cleared only when something stored was a value.
+
+**A form says "required" per place, not per type.** `Address Shipping` and `Address? Billing` are one nested
+model type, and a control bound to `Shipping.Street` announces `aria-required` and refuses an empty street
+before anything is saved, as ever. One bound to `Billing.Street` announces nothing and lets an empty street
+through: a field's rule sees its own value and not the fields beside it, so it cannot tell an address nobody
+gave from one that lacks a street. The write can, and says *This field is required.* under `Billing.Street`,
+[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip.Validate`)
+is still asked there about a value that was typed. Nothing is written for this: the generated model registers
+which of its properties may be left empty
+([`RaskValidation.RegisterOptionalFields`](forms-validation.md#how-a-control-knows-a-field-is-required)).
 
 A form save writes properties through the aggregate's private setters, with generated `[UnsafeAccessor]`s and no
 reflection. **It does not call the aggregate's methods**, so a rule that must hold for form input belongs in a
@@ -967,7 +1058,12 @@ public static IEnumerable<string> Validate(string value)
 
 A control bound to a field that is required this way says `aria-required="true"`
 ([how a control knows](forms-validation.md#how-a-control-knows-a-field-is-required)): each generated model type
-— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled.
+— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled. A
+member of a value object of several values is such a field: `string Street` on `Address` is required under
+`Address.Street`, `string? Floor` is optional, and the validation attributes the value object's own properties
+carry are checked by the write under the same path. The exception is a field under a value object that
+[may be left wholly empty](#how-a-form-save-writes) — `Address? Billing` — which a form announces nothing
+about, while the same type held as `Address Shipping` is announced as ever.
 
 The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
 built-in translations — so it follows the reader's language, and
@@ -1219,7 +1315,9 @@ marks every other key never generated, so a `Guid` or a strongly-typed id is ass
 built: `Id = Guid.CreateVersion7()` in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
 the save, by name, rather than inserted with an empty key. A key you configured yourself
-(`ValueGeneratedOnAdd()`, a database default) is left as you set it.
+(`ValueGeneratedOnAdd()`, a database default) is left as you set it, and an integer key you marked
+`ValueGeneratedNever()` is yours to assign like the rest: `0` is refused, and the aggregate takes its key
+[in `Create(id, …)`](#writing-create-update-delete).
 
 **One aggregate refers to another by id.** `Order` holds a `Guid ProductId`, not a `Product`: each aggregate is
 loaded and saved on its own, and a change that spans two is [one context, saved once](#changing-two-aggregates-together-db).
@@ -1728,6 +1826,7 @@ public sealed class Destination : Aggregate<int>             // an int key is th
 | a `Version` concurrency token | none | `Checks = Concurrency.None` — a write then takes no version, and the last writer wins |
 | a hard delete | the same | nothing: `Deletes` defaults to `Deletion.Hard`, and there is no `DeletedAt` unless you ask |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
+| an integer key the database numbers | a key the application numbers | `b.Property(d => d.Id).ValueGeneratedNever()` in `Configure` — the aggregate then takes its key in [`Create(id, model)`](#writing-create-update-delete) |
 | a `Guid?` tenant column | an `int` one | declare `public int? TenantId { get; private set; }` — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
 | `TenantId` in front of every index | indexes in the order they were created | name `TenantId` in the index and it is [left exactly as written](multi-tenancy.md#indexes-are-prefixed-for-you) |
 

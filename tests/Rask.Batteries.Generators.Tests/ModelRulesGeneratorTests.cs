@@ -149,7 +149,9 @@ public class ModelRulesGeneratorTests
             source,
             StringComparison.Ordinal);
         Assert.Contains(
-            "if (model.Size is { } __held0)\n        {\n            failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Size.Code\", __Rule_SizeModel_Code(__held0.Code));\n        }",
+            "if (model.Size is { } __held1)\n        {\n            failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Size.Code\", __Rule_SizeModel_Code(__held1.Code));\n" +
+            "            failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Size.Units\", __Rule_SizeModel_Units(__held1.Units));\n        }\n" +
+            "        else\n        {\n            failures = global::Rask.Data.GeneratedModelRules.Told(failures, path, \"Size\", global::Rask.Data.GeneratedModelRules.Required(__RequiredText()));\n        }",
             source,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -232,7 +234,7 @@ public class ModelRulesGeneratorTests
         Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel), Root_IsRequired);", order, StringComparison.Ordinal);
         Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\" or \"Weight\";", order, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderModel.SizeModel), SizeModel_IsRequired);", order, StringComparison.Ordinal);
-        Assert.Contains("private static bool SizeModel_IsRequired(string property) =>\n        property is \"Code\";", order, StringComparison.Ordinal);
+        Assert.Contains("private static bool SizeModel_IsRequired(string property) =>\n        property is \"Code\" or \"Units\";", order, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterRequiredFields(typeof(global::Shop.OrderLineModel), Root_IsRequired);", line, StringComparison.Ordinal);
         Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Sku\";", line, StringComparison.Ordinal);
     }
@@ -410,7 +412,7 @@ public class ModelRulesGeneratorTests
             "RegisterFieldRules(typeof(global::Shop.ProductModel.SizeModel), SizeModel_RuleOf);",
             source,
             StringComparison.Ordinal);
-        Assert.Contains("\"Code\" => SizeModel_Code,\n            _ => null,", source, StringComparison.Ordinal);
+        Assert.Contains("\"Code\" => SizeModel_Code,\n            \"Units\" => SizeModel_Units,\n            _ => null,", source, StringComparison.Ordinal);
     }
 
     [Fact]
