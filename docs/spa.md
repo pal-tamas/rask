@@ -43,16 +43,13 @@ the same Tailwind utilities in each framework's own idiom. No component library 
 
 Lit's element renders into the light DOM, so the page's Tailwind sheet reaches it.
 
-**Angular is the one that is not a plain Vite project**, and its host says so in four places:
+**Angular is the one that is not a plain Vite project**, and its host says so in three places:
 
 - the dev server is `ng serve` on port 4200, started by `npm start` — the host's csproj sets
   `<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>`, which is what `rask dev` opens;
 - the proxy is `client/proxy.conf.json`, which `angular.json` points at, instead of a `server.proxy` block
   in `vite.config.ts`;
-- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it;
-- Angular's CLI wants a newer Node than Vite does (`^22.22.3 || ^24.15.0 || >=26.0.0`), so the csproj sets
-  `<RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>` and an older one fails with `RASKSPA005` instead of
-  inside `ng build`. One number cannot say the whole range: on Node 24.0–24.14 it is the CLI that refuses.
+- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it.
 
 In every template:
 
@@ -98,8 +95,9 @@ An app on `Rask.Server` already has `MapRaskSpa`, but not the build steps: refer
 ## Building and publishing
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
-lockfile), then `npm run build`. Both steps are incremental — an install re-runs when `package.json`
-or the lockfile changes, a build when a source file does. `dotnet publish` copies the bundle into
+lockfile), then `npm run build`. A new app has no lockfile, so its first build runs `npm install`
+and writes one — commit it, and every build after that is `npm ci`. Both steps are incremental — an
+install re-runs when `package.json` or the lockfile changes, a build when a source file does. `dotnet publish` copies the bundle into
 `wwwroot` next to the app, so a deployed container carries the front end rather than a path that only
 existed on the build machine.
 
@@ -107,13 +105,25 @@ existed on the build machine.
 serves a page saying there is nothing built yet. Use it on a machine with no node, or in a CI job that
 only cares about the C#.
 
+### Which versions a new app gets
+
+The templates name no versions: every package in their `package.json` is `latest`. `rask new` asks the
+npm registry for the newest stable releases that **install together** — peer dependencies that agree
+with each other, and an `engines.node` that accepts the newest Node LTS — and writes them as `^x.y.z`.
+So when Vite ships a major its React plugin does not accept yet, a new app gets the newest Vite the
+plugin does; once the plugin catches up, the next app gets both. The only ranges the templates keep are
+`tailwindcss` / `@tailwindcss/*`, which must match the Tailwind binary the host downloads, and
+`@types/node`, which follows the Node LTS major. Offline, `rask new` leaves `latest` in place with one
+warning line, and npm resolves it on the first build.
+
 ### Which Node
 
-Use the current LTS. The build's own floor is **22.12**, and it is enforced: an older Node fails with
-`RASKSPA005` naming the version it found, rather than reaching the bundler and failing there with an
-`engines` error. Set `RaskSpaMinimumNode` to move the bar — it is a real comparison, in both
-directions, so a front end on an older toolchain can lower it. The Angular template raises it to
-**22.22.3**, the lowest Node its CLI accepts.
+Use the current LTS. The build's own floor is **24.11.0**, the first release of the Active LTS line,
+and it moves with that line. It is enforced: an older Node fails with `RASKSPA005` naming the version
+it found, rather than reaching the bundler and failing there with an `engines` error. Set
+`RaskSpaMinimumNode` to move the bar — it is a real comparison, in both directions, so a front end on
+an older toolchain can lower it. A toolchain that wants more than the floor (Angular's CLI, say)
+reports its own requirement.
 
 ## Development
 
@@ -190,7 +200,7 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
-| `RaskSpaMinimumNode` | `22.12.0` (`22.22.3` in the Angular template) | The Node floor the build enforces, as `RASKSPA005`. |
+| `RaskSpaMinimumNode` | `24.11.0` | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
 | `RaskEmitTypeScript` | on | `false` generates nothing, whatever the host declares. |

@@ -2723,7 +2723,7 @@ switch and does not reach a build task:
 
 A project with islands and a `package.json` bundles them with Vite, which needs Node. The build probes
 `node --version` before `npm` runs and stops here when it did not run, or reported less than
-`RaskExternalMinimumNode` (22.12.0).
+`RaskExternalMinimumNode` (24.11.0, the first release of the Active LTS line).
 
 **Fix:** install the current LTS (`nvm install --lts`, `brew install node`, `winget install OpenJS.NodeJS.LTS`)
 and build again. `-p:RaskExternalMinimumNode=…` moves the bar if you have a reason to.

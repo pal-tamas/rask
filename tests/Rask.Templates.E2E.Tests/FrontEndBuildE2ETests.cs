@@ -53,8 +53,11 @@ public sealed partial class FrontEndBuildE2ETests
             var project = Path.Combine(work, name);
             var client = Path.Combine(project, "client");
             var published = Path.Combine(work, "published");
-            TemplateBuildE2ETests.Write(
-                TemplateBuildE2ETests.Scaffold(key, project, name, version, islands: []), project, feed);
+            // As `rask new` does: the newest versions that install together, chosen from the live registry.
+            var (scaffold, unchosen) = await FrontEndVersions.PinAsync(
+                TemplateBuildE2ETests.Scaffold(key, project, name, version, islands: []), NpmRegistry.Public, CancellationToken.None);
+            Assert.True(unchosen is null, $"--template {key}: {unchosen}");
+            TemplateBuildE2ETests.Write(scaffold, project, feed);
 
             var (publish, publishOutput) = await CliBuildE2E.RunDotnet(
                 $"publish \"{Path.Combine(project, name + ".csproj")}\" -c Release -warnaserror -m:1 -o \"{published}\"");
@@ -62,9 +65,9 @@ public sealed partial class FrontEndBuildE2ETests
             var (format, formatOutput) = await Npm("run format:check", client);
 
             Assert.True(publish == 0, $"--template {key} does not publish:\n{CliBuildE2E.Diagnostics(publishOutput)}");
-            // `npm ci`, never `npm install`: the committed lockfile is the tree that is tested, and a
-            // manifest that drifted from it fails here instead of being quietly re-resolved.
-            Assert.Contains("Rask.Spa.Hosting: npm ci in", publishOutput, StringComparison.Ordinal);
+            // The template ships no lockfile: the first build resolves the versions `rask new` chose, from the
+            // live registry, so this gate is what proves the newest set still installs, builds, lints and serves.
+            Assert.Contains("Rask.Spa.Hosting: npm install in", publishOutput, StringComparison.Ordinal);
             Assert.True(lint == 0, $"{key}: npm run lint failed\n{Tail(lintOutput)}");
             Assert.True(format == 0, $"{key}: npm run format:check failed\n{Tail(formatOutput)}");
             await AssertServesItsStarter(key, name, client, published);

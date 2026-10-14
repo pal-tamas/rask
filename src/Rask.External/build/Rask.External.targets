@@ -746,9 +746,8 @@
     property insisted on nothing, and an old Node reached `npm` and failed with vite's engines error,
     which is the message this exists to replace.
 
-    Why 22.12.0: vite asks for `^20.19.0 || >=22.12.0`, and a numeric floor cannot express a disjoint
-    range — a floor of 20.19.0 would ACCEPT 21.x, which vite refuses. 22.12.0 is the lowest version that
-    satisfies vite with no hole beneath it. NodeRequirementTests holds the CLI's BuildFloor to this number.
+    The floor is the first release of the Active LTS line (Rask.External.props), moved with the line by
+    scripts/upstream/node-lts.sh. NodeRequirementTests holds the CLI's BuildFloor to this number.
   -->
   <Target Name="_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''">

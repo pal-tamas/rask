@@ -44,11 +44,11 @@ RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotn
 RASK_INSTALL_PREFIX="${RASK_INSTALL_PREFIX:-$HOME/.local/share/rask}"
 RASK_INSTALL_DOTNET_SCRIPT_URL="${RASK_INSTALL_DOTNET_SCRIPT_URL:-https://dot.net/v1/dotnet-install.sh}"
 RASK_INSTALL_NODE_DIST="${RASK_INSTALL_NODE_DIST:-https://nodejs.org/dist}"
-# 24.15.0, not the islands' build floor (RaskExternalMinimumNode, 22.12.0). This decides whether an
+# 24.21.0, the newest Active LTS release, not the build floor (the line's first). This decides whether an
 # EXISTING Node is left alone, and the standing rule is the latest LTS: the island toolchains (Vite and
 # the framework plugins) track the Active LTS and raise their own floors whenever they like, so a box
 # left on an app's build floor is provisioned for today's islands and not for next month's (#886).
-RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-24.15.0}"
+RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-24.21.0}"
 RASK_INSTALL_PACKAGE="${RASK_INSTALL_PACKAGE:-Rask.Cli}"
 
 # Flag state. Declared up front because `set -u` makes an unset read fatal.
@@ -724,7 +724,7 @@ step_node() {
     if [ -z "${RASK_SHA256:-}" ] && [ -z "${RASK_SHASUM:-}" ]; then
         rask_warn \
             "no sha256 tool found, so a Node download could not be verified — skipping it." \
-            "Install Node.js 22.12 or newer yourself from https://nodejs.org."
+            "Install the current Node.js LTS ($RASK_INSTALL_NODE_MIN or newer) yourself from https://nodejs.org."
         return 0
     fi
 

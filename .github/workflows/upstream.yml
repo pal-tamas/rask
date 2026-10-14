@@ -10,6 +10,9 @@ name: upstream
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
 #            platform, or taken by measuring code that has changed since) re-measures every look and
 #            lands the lock instead of reporting them.
+#   front-ends  every front-end template scaffolded on the newest npm set `rask new` chooses, installed,
+#            built, linted and served — the templates pin nothing, so this is where a release that breaks
+#            a starter is caught.
 #   report   an issue, only when a person is needed: the gates refused what upstream shipped, or Flux
 #            moved (a look is matched by rewriting a component, which no script does).
 #
@@ -204,8 +207,43 @@ jobs:
           name: flux
           path: ${{ runner.temp }}/flux.log
 
+  # The templates name no version: `rask new` chooses the newest set that installs together, so what npm
+  # released overnight is what the next scaffold gets. This proves that set, on main as it is, every day —
+  # scaffolded, installed from the live registry, built, linted and served — rather than when a template changes.
+  front-end-keys:
+    runs-on: ubuntu-24.04
+    outputs:
+      keys: ${{ steps.list.outputs.keys }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: list
+        run: echo "keys=$(scripts/run-template-e2e.sh --list-front-ends | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+
+  front-ends:
+    needs: front-end-keys
+    name: front end ${{ matrix.key }} (newest npm)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false   # one template that no longer installs says nothing about the others
+      matrix:
+        key: ${{ fromJSON(needs.front-end-keys.outputs.keys) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # MinVer packs the local feed the scaffold restores from
+
+      - uses: ./.github/actions/setup
+        with:
+          workloads: wasm-tools
+
+      - name: front end ${{ matrix.key }}
+        env:
+          RASK_BUILD_SLOTS: 4
+        run: scripts/run-template-e2e.sh --front-end=${{ matrix.key }}
+
   report:
-    needs: [follow, gates, land, flux]
+    needs: [follow, gates, land, flux, front-ends]
     if: always() && (contains(needs.*.result, 'failure') || needs.flux.outputs.moved == 'true')
     runs-on: ubuntu-24.04
     permissions:
@@ -215,6 +253,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       BRANCH: ${{ needs.follow.outputs.branch }}
+      FRONT_ENDS: ${{ needs.front-ends.result }}
     steps:
       - uses: actions/checkout@v7
 
@@ -231,6 +270,13 @@ jobs:
           {
             echo "The daily upstream run could not land what moved: $RUN"
             echo
+            if [ "$FRONT_ENDS" = "failure" ]; then
+              echo "A front-end template no longer builds on the newest npm packages \`rask new\` chooses: a release"
+              echo "upstream broke the starter, and every scaffold from today gets it. Fix the starter for the new"
+              echo "release, or — only when that cannot be done yet — hold the package with a range in its template"
+              echo "(and in TemplateNodePinTests' holds), with the reason beside it."
+              echo
+            fi
             if [ -n "$BRANCH" ]; then
               echo "The regenerated tree is on \`$BRANCH\`. The red job names the gate script to run against it;"
               echo "fix forward on main, and the next run lands a fresh regeneration."

@@ -81,6 +81,10 @@ them until tagged releases begin.
 
 ### Added
 
+- **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
+  matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
+  it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
+  replaces Dependabot's weekly template pull requests.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -117,6 +121,21 @@ them until tagged releases begin.
   `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
 
 ### Changed
+
+- **BREAKING: the Node build floor is the Active LTS line's first release, 24.11.0 (was 22.12.0).** An app with
+  islands or a front end no longer builds on Node 22: it fails with `RASKISLAND001` or `RASKSPA005`. Install the
+  current LTS (`nvm install --lts`), or set `RaskExternalMinimumNode` / `RaskSpaMinimumNode` to keep an older
+  one. `rask.sh` / `rask.ps1` now install the newest LTS release, 24.21.0, and `scripts/upstream/node-lts.sh`
+  follows both daily — the installers' line on every LTS release, the floor on a new major. The Angular
+  template's own 22.22.3 floor is gone; Angular's CLI reports its own.
+- **`rask new` writes the newest front-end versions that install together.** The templates and island fragments
+  name no versions (every package is `latest`) and ship no `package-lock.json`. At scaffold time `rask new` asks
+  npm for the newest stable releases whose peers agree and whose `engines.node` takes the newest Node LTS, and
+  writes them as `^x.y.z` — so when Vite ships a major its React plugin does not take yet, the app gets the newest
+  Vite the plugin does, and the next app gets both once it moves. The holds left are `tailwindcss` /
+  `@tailwindcss/*` (to the Tailwind the host downloads) and `@types/node` (the LTS major). The first build runs
+  `npm install` and writes the app's own lockfile; `npm ci` after that, and the template Dockerfiles do the same.
+  Offline, `latest` stays with one warning, and npm resolves it on the first build.
 
 - **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
   waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
