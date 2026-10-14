@@ -240,7 +240,8 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
         if (start)
         {
-            // Where the list opens: the runtime lights it then, and brings it into view.
+            // Where the list opens, lit: the runtime lights it again at every opening, and brings it into view.
+            data["active"] = null;
             data["rask-time-start"] = null;
         }
 

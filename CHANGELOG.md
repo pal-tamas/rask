@@ -320,8 +320,27 @@ them until tagged releases begin.
   object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
   expected to be overwritten with the type's default — now sees the initializer.
 
+### Performance
+
+- **`Ui.TimePicker` asks the server nothing to be opened, walked or closed.** The list's cursor, the row under
+  the pointer and whether it is open were the component's state, a round trip each; they are the browser's now
+  (`rask-time-list.ts`, `data-rask-time-list`), with Flux UI's rules measured on its live page: opening lights
+  the chosen time (or `OpenTo`, or the first) and brings it into view, the arrows walk past a time that cannot
+  be picked and stop at the ends, Enter picks, Tab closes, Home and End do nothing. Frames sent on the kit's
+  frame gate, before → after: Tab through it 3 → 0, open 1 → 0, the pointer over the open list 12–38 → 0,
+  the cursor keys 9 → 0, Escape 2 → 0, a press outside 1 → 0, a pick 3 → 1 (the page's `OnChange`). The typed
+  trigger: an hour typed over a whole time 2 → 1 and a whole time 4 → 3, each the value as Flux's field says
+  it — a first hour digit that may still become 10 or 20 is no longer said as 01; and a BOUND typed time that
+  waits now goes with the next action (`data-rask-bind-on="action"` on its hidden field) instead of a frame a
+  value. `rask-hooks.js` +2,538 bytes.
+
 ### Fixed
 
+- **The pointer resting on a `Ui.TimePicker`'s open list no longer scrolls it.** A row the pointer lit was
+  named on the button and brought into view, which slid the next row under the resting pointer, which was lit
+  and brought into view in turn — the list crept on by itself. Flux's list never scrolls for the pointer
+  (measured), and neither does any list now: `aria-activedescendant` brings into view only an option the
+  pointer is not on.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

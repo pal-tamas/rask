@@ -55,13 +55,18 @@ internal static class UiTimePickerLook
         + "border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700";
 
     /// <summary>
-    ///     One time in the list. The cursor's is tinted, and only while the list is open: the runtime lights it
-    ///     (<c>data-active</c>, rask-time-list.ts) in the task the list opens.
+    ///     One time in the list. The cursor's is tinted, and only while the list is open: the markup names the row
+    ///     it starts on, so a list the browser opens before the runtime's hooks are there already shows one; from
+    ///     then on the runtime lights it (<c>data-active</c>, rask-time-list.ts).
     /// </summary>
     internal const string Option =
         "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-base sm:text-sm tabular-nums cursor-default "
         + "text-zinc-800 dark:text-white disabled:text-zinc-400 dark:disabled:text-zinc-400 "
-        + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600";
+        + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600 "
+        // The list opens scrolled to where it starts — the chosen time, or OpenTo — brought just into view, with
+        // no script: the platform's own answer, which the runtime then keeps to as Flux's script does. Keyed to
+        // the start and not to the lit row, which the pointer moves and which must never scroll the list.
+        + "data-[rask-time-start]:snap-end data-[rask-time-start]:[scroll-initial-target:nearest]";
 
     /// <summary>The check mark's column, kept whether or not the time is chosen so the times line up.</summary>
     internal const string Check = "w-6 shrink-0";

@@ -201,7 +201,7 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
         // rask-time-list.ts walks the cursor and names it; rask-toggle.ts says the list is open.
         Assert.Matches("<div[^>]*data-ui-time-picker[^>]*data-rask-time-list=\"\"", html);
         Assert.Equal(["click"], heard);
-        Assert.DoesNotMatch("\\sdata-active[\\s=>]", html);
+        Assert.Single(Regex.Matches(html, "\\sdata-active[\\s=>]"));
         Assert.DoesNotContain("aria-activedescendant", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-popover-open", html, StringComparison.Ordinal);
         Assert.Matches("<button[^>]*role=\"combobox\"[^>]*data-rask-open-mark=\"uitp-\\d+\"", html);
