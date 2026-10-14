@@ -448,31 +448,42 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
     }
 
     /// <summary>
-    ///     The head assets <see cref="RaskBlazorOptions.HeadAssets" /> declares, so a hosted component
-    ///     library's stylesheet reaches the page.
+    ///     Puts the head assets <see cref="RaskBlazorOptions.HeadAssets" /> declares in the page's
+    ///     <c>&lt;head&gt;</c>, so a hosted component library's stylesheet reaches the page.
     /// </summary>
     /// <remarks>
-    ///     Read from the options rather than declared per island, because the answer is the same for every
-    ///     island in the app — which is what the option is for, and what its documentation has promised
-    ///     since it was added. Nothing read it, so the documented way to style a hosted library did
-    ///     precisely nothing and the library rendered unstyled with a green build (#947).
-    ///
-    ///     Contributing from every island is safe: <c>HeadAssetRegistry</c> deduplicates by the rendered
-    ///     markup, so two islands asking for the same stylesheet emit one link.
+    ///     <para>
+    ///         Read from the options rather than declared per island, because the answer is the same for every
+    ///         island in the app — which is what the option is for (#947).
+    ///     </para>
+    ///     <para>
+    ///         Registered on its own rather than returned from <see cref="Component.HeadAssets" />, the way a JS
+    ///         island registers its runtime script. An island that is a whole page overrides <c>HeadAssets</c>
+    ///         for its <c>Title</c>, and while the stylesheets lived there an override that forgot
+    ///         <c>base.HeadAssets</c> silently rendered the library unstyled (#1196). Called from
+    ///         <see cref="Render" />, which runs on every walk (<see cref="BypassRenderCache" />), so the
+    ///         per-frame registry always hears from it; the registry deduplicates by the rendered markup, so
+    ///         two islands asking for the same stylesheet emit one link.
+    ///     </para>
     /// </remarks>
-    protected override Component? HeadAssets
+    private static void RegisterLibraryHeadAssets()
     {
-        get
+        if ((LiveRenderContext.Current ?? LiveRenderContext.CurrentSync) is not { Services: { } services } live)
         {
-            var assets = AppServices is { } services ? BlazorIslandServices.OptionsOf(services).HeadAssets : null;
+            return;
+        }
 
-            return assets is { Count: > 0 } ? Fragment[assets] : null;
+        foreach (var asset in BlazorIslandServices.OptionsOf(services).HeadAssets)
+        {
+            live.HeadAssets.Add(asset);
         }
     }
 
     /// <inheritdoc />
-    protected sealed override Component? Render() =>
-        BlazorHost
+    protected sealed override Component? Render()
+    {
+        RegisterLibraryHeadAssets();
+        return BlazorHost
             .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-blazor"] = ComponentName })
             .Attributes(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
@@ -481,6 +492,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             })[
             BindHandlers() is { } markup ? Raw.Value(markup) : null
         ];
+    }
 
     private BlazorIslandRenderer CreateRenderer()
     {
