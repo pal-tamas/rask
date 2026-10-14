@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
+using Rask.Cqrs;
 
 namespace Rask.Data;
 
@@ -14,8 +15,9 @@ namespace Rask.Data;
 ///         EF Core logs a failed save (<c>Microsoft.EntityFrameworkCore.Update[10000]</c>) and the command that
 ///         failed (<c>Microsoft.EntityFrameworkCore.Database.Command[20102]</c>) at Error BEFORE it tells any
 ///         interceptor, so no interceptor can take either back. The logger decides instead: the failed command
-///         is held until the save's own failure is logged, and both are dropped when the model has a sentence for
-///         that failure — or written, in their order, when it has not.
+///         is held until the save's own failure is logged, and the two are dropped only when the model has a
+///         sentence for that failure, and only for that very exception instance — the save's, and the command's
+///         inside it. Everything else is written, in its order, through the app's own logger, scopes and all.
 ///     </para>
 ///     <para>
 ///         Held only while <see cref="ViolationMessageInterceptor" /> is watching a save of this context: without
@@ -25,14 +27,20 @@ namespace Rask.Data;
 /// <param name="app">The factory EF Core would have logged through.</param>
 internal sealed partial class ViolationLogging(ILoggerFactory app) : ILoggerFactory
 {
-    private readonly List<Action> _held = [];
+    private readonly List<(Exception? Failure, Action Write)> _held = [];
     private DbContext? _saving;
+    private (Exception Failure, RaskValidationException Violation)? _translated;
 
     /// <inheritdoc />
     public ILogger CreateLogger(string categoryName)
     {
         var logger = app.CreateLogger(categoryName);
-        return categoryName is UpdateCategory or CommandCategory ? new ViolationLogger(logger, this) : logger;
+        return categoryName switch
+        {
+            UpdateCategory => new ViolationLogger(logger, this, ViolationLogger.Watches.FailedSave),
+            CommandCategory => new ViolationLogger(logger, this, ViolationLogger.Watches.FailedCommand),
+            _ => logger,
+        };
     }
 
     /// <inheritdoc />
@@ -49,51 +57,77 @@ internal sealed partial class ViolationLogging(ILoggerFactory app) : ILoggerFact
 
     internal void SaveStarting(DbContext context)
     {
-        Release();
+        SaveEnded(translated: null);
         _saving = context;
     }
 
-    internal void SaveEnded(bool translated)
+    /// <summary>
+    ///     Ends the save: the held entries about <paramref name="translated" /> — the very exception the model's
+    ///     sentence replaced — are dropped, every other one is written.
+    /// </summary>
+    internal void SaveEnded(Exception? translated)
     {
-        if (translated)
-        {
-            _held.Clear();
-        }
-
-        Release();
+        Release(except: translated?.InnerException);
         _saving = null;
+        _translated = null;
     }
 
-    /// <summary>Whether the entry is EF Core's error for a save the model words as a sentence.</summary>
-    internal bool Drops(EventId id, Exception? exception)
+    /// <summary>
+    ///     The sentence this save's <paramref name="failure" /> was already found to stand for, when it is the
+    ///     same exception instance the failed save was logged with.
+    /// </summary>
+    internal RaskValidationException? TranslationOf(Exception? failure) =>
+        _translated is var (logged, violation) && ReferenceEquals(logged, failure) ? violation : null;
+
+    /// <summary>Whether a failed save's entry is about a failure the model words as a sentence.</summary>
+    internal bool Drops(Exception? failure)
     {
-        if (id.Id != CoreEventId.SaveChangesFailed.Id || _saving is not { } context)
+        if (_saving is not { } context || failure is null ||
+            ViolationMessageInterceptor.Translation(context, failure) is not { } violation)
         {
+            SaveEnded(translated: null);
             return false;
         }
 
-        var translated = ViolationMessageInterceptor.Translation(context, exception) is not null;
-        SaveEnded(translated);
+        // Kept for the interceptor, which throws exactly this translation for exactly this exception.
+        Release(except: failure.InnerException);
+        _translated = (failure, violation);
 
         var rask = app.CreateLogger(typeof(ViolationLogging).Namespace!);
-        if (translated && rask.IsEnabled(LogLevel.Debug))
+        if (rask.IsEnabled(LogLevel.Debug))
         {
-            Refused(rask, context.GetType().Name, exception);
+            Refused(rask, context.GetType().Name, failure);
         }
 
-        return translated;
+        return true;
     }
 
-    /// <summary>Whether the entry is a failed command of a save, held until the save's failure says what it was.</summary>
-    internal bool Holds(EventId id) => id.Id == RelationalEventId.CommandError.Id && _saving is not null;
+    /// <summary>Whether a failed command is part of a save, held until the save's failure says what it was.</summary>
+    internal bool Holds => _saving is not null;
 
-    internal void Hold(Action write) => _held.Add(write);
+    internal void Hold(Action write) => _held.Add((null, write));
 
-    private void Release()
+    /// <summary>
+    ///     Names the exception of the failed command just held: EF Core logs it without one, and hands the instance
+    ///     to the command interceptors right after.
+    /// </summary>
+    internal void CommandFailed(Exception failure)
     {
-        foreach (var write in _held)
+        if (_held is [.., (null, var write)])
         {
-            write();
+            _held[^1] = (failure, write);
+        }
+    }
+
+    // Writes what was held, but for the failed command whose exception is the one the sentence replaced.
+    private void Release(Exception? except)
+    {
+        foreach (var (failure, write) in _held)
+        {
+            if (except is null || !ReferenceEquals(failure, except))
+            {
+                write();
+            }
         }
 
         _held.Clear();

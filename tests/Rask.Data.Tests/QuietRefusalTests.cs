@@ -115,6 +115,77 @@ public sealed class QuietRefusalTests : IDisposable
         Assert.Contains(_logs.Errors, static e => e.Id.Id == CoreEventId.SaveChangesFailed.Id);
     }
 
+    [Fact]
+    public async Task An_untranslated_failure_reaches_the_apps_logger_in_the_scope_it_was_logged_in()
+    {
+        await using var database = await StartDatabaseAsync();
+        var app = _loggerFactory.CreateLogger("App");
+
+        using (app.BeginScope("request-42"))
+        {
+            await Assert.ThrowsAsync<DbUpdateException>(() => Docket.For(404).Save(cancellationToken: Cancellation));
+        }
+
+        Assert.Equal(
+            [RelationalEventId.CommandError.Id, CoreEventId.SaveChangesFailed.Id],
+            _logs.Errors.Select(static e => e.Id.Id));
+        Assert.All(_logs.Errors, static e => Assert.Contains("request-42", e.Scopes));
+    }
+
+    [Fact]
+    public async Task The_rest_of_a_quiet_refusals_save_is_logged_in_its_scope()
+    {
+        await using var database = await StartDatabaseAsync();
+        var trailer = Trailer.Plated("ABC-123");
+        await trailer.Save(cancellationToken: Cancellation);
+        await Docket.For(trailer.Id).Save(cancellationToken: Cancellation);
+        var app = _loggerFactory.CreateLogger("App");
+
+        using (app.BeginScope("request-43"))
+        {
+            await Assert.ThrowsAsync<RaskValidationException>(
+                () => Trailer.Delete(trailer.Id, cancellationToken: Cancellation));
+        }
+
+        Assert.Empty(_logs.Errors);
+        Assert.Contains(
+            _logs.Entries,
+            static e => e.Category == "Microsoft.EntityFrameworkCore.Database.Command" && e.Scopes.Contains("request-43"));
+    }
+
+    [Fact]
+    public async Task A_failed_query_is_another_ef_error_and_is_still_logged()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        await Assert.ThrowsAnyAsync<Exception>(
+            () => database.Context.Database.SqlQueryRaw<int>("SELECT \"Nope\" FROM \"Missing\"").ToListAsync(Cancellation));
+
+        Assert.Contains(_logs.Errors, static e => e.Id.Id == RelationalEventId.CommandError.Id);
+        Assert.Contains(_logs.Errors, static e => e.Id.Id == CoreEventId.QueryIterationFailed.Id);
+    }
+
+    [Fact]
+    public async Task An_apps_own_error_in_ef_cores_categories_is_untouched()
+    {
+        await using var database = await StartDatabaseAsync();
+        var trailer = Trailer.Plated("ABC-123");
+        await trailer.Save(cancellationToken: Cancellation);
+        await Docket.For(trailer.Id).Save(cancellationToken: Cancellation);
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => Trailer.Delete(trailer.Id, cancellationToken: Cancellation));
+
+        var update = _loggerFactory.CreateLogger("Microsoft.EntityFrameworkCore.Update");
+        var command = _loggerFactory.CreateLogger("Microsoft.EntityFrameworkCore.Database.Command");
+#pragma warning disable CA1848, CA2254 // the test logs EF Core's own event ids by hand, as an app could
+        update.Log(LogLevel.Error, CoreEventId.SaveChangesFailed, refused.InnerException, "The app's own line.");
+        command.Log(LogLevel.Error, RelationalEventId.CommandError, refused.InnerException, "The app's own line.");
+#pragma warning restore CA1848, CA2254
+
+        Assert.Equal(2, _logs.Errors.Count);
+        Assert.All(_logs.Errors, e => Assert.Same(refused.InnerException, e.Exception));
+    }
+
     private static CancellationToken Cancellation => TestContext.Current.CancellationToken;
 
     private Task<TestDatabase> StartDatabaseAsync() =>
