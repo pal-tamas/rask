@@ -328,6 +328,13 @@ them until tagged releases begin.
 ### Fixed
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **A `Shell` override that forgets the `Body` element no longer renders a dead page** (#1234). `Html[head, body]`
+  reads right — the parameter is named `body` — and painted right, because the browser supplies a body itself,
+  but the runtime `<script>` and the session id are written on `<body>`, so no socket opened, a click or a form
+  submit did nothing, and nothing said why. Rask now wraps everything after the head in a `<body>` (what the
+  browser does anyway), so the page connects, and reports a warning naming the override (`Html[head,
+  Body[body]]`). A document that still ends without a body — a component of the app's own under `<html>` that
+  writes none — is reported as an error at its first render.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
