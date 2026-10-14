@@ -2357,6 +2357,10 @@ public static partial class RaskEndpointExtensions
             AbandonAttach(session, transport, store, limits);
             throw;
         }
+        finally
+        {
+            session.AttachSettled();
+        }
 
         return new AttachOutcome(AttachStatus.Attached, session);
     }
@@ -2543,6 +2547,10 @@ public static partial class RaskEndpointExtensions
         {
             AbandonAttach(session, transport, store, limits);
             throw;
+        }
+        finally
+        {
+            session.AttachSettled();
         }
 
         return new AttachOutcome(AttachStatus.Attached, session);
