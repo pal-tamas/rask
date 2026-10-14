@@ -5,8 +5,9 @@
 package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
 install, or a Tailwind configuration of its own.
 
-It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with one exception, the
-[rich text editor](#rich-text-editor), whose engine is a script a page loads only when it draws one. It runs on
+It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with two exceptions, the
+[rich text editor](#rich-text-editor) and the [phone](#phone) field, whose engines are scripts a page loads only when
+it draws one. It runs on
 the ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` —
 the console is deliberately server-only because its panels read a `DbContext`.
 
@@ -1221,18 +1222,69 @@ position on any country, territory or border. The drawings are
 `UN` and `CQ` are not in that set and draw the empty frame.
 
 **The 254 drawings are files, not part of the assembly** — 172 KB an app that shows three flags should not
-download. An app that draws flags says so, and the build copies them into `wwwroot/flags` with their notice
-(`wwwroot/flags/LICENSE.txt`):
+download. An app's build copies them into `wwwroot/flags` with their notice (`wwwroot/flags/LICENSE.txt`)
+together with the [phone](#phone) field's engine, whose list draws a flag a country; an app that turned that
+engine off, or a host that is not a Web SDK project, says it wants them:
 
 ```xml
 <PropertyGroup>
-  <RaskUiWriteFlags>true</RaskUiWriteFlags>
+  <RaskUiWriteFlags>true</RaskUiWriteFlags>   <!-- false: none, phone engine or not -->
 </PropertyGroup>
 ```
 
 Each `Ui.Flag` is then one `<img loading="lazy">` of `/flags/<CC>.svg`: a page fetches the flags it shows.
-In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without the
-switch every flag is a broken image, so set it in the project that serves the pages.
+In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without them
+every flag is a broken image.
+
+## Phone
+
+`Ui.Phone` is Flux UI's `flux:phone`: an international phone number, with the country picked from a searchable
+list of flags, formatted as it is typed and normalised to E.164.
+
+```csharp
+Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Telefonszám")        // +36301234567 once it is possible
+Ui.Phone.Bind(() => m.Office).Countries(["US", "CA", "GB", "AU"])       // only these in the list
+Ui.Phone.Bind(() => m.Mobile).CountryOrder(["US", "CA"]).Placeholder("(201) 555-0123")
+Ui.Phone.Bind(() => m.Mobile).Live()                                    // written as it changes, after a pause
+Ui.Phone.Value(number).OnChange(v => number = v).Sm.Filled              // the page keeps it
+```
+
+| | |
+| --- | --- |
+| `Country` | The country of an empty number, by its two-letter code. None when unset: a number then needs its calling code. |
+| `Countries` | The countries the list offers. It does not limit what can be typed — check that on the server. |
+| `CountryOrder` | The countries the list shows first; the rest follow alphabetically in the page's language. |
+| `Placeholder` | Shown while the number is empty. |
+| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
+| `Variant` | `Outline` or `Filled`. |
+| `Label`, `Description`, `DescriptionTrailing` | The field around it. |
+| `Disabled()`, `ReadOnly()`, `Invalid()`, `Name` | As every kit input. A read-only field's list does not open. |
+
+**The value is what Flux's is.** The bound `string` is the number in E.164 (`+12015550123`) once it is a
+possible one, and the text as typed until then (`201`, `abc`) — so it is not always E.164, and a possible
+number is not a checked one: validate it on the server. An extension typed after the number is dropped from
+the value. A number typed with its code (`+44 7400 123456`) picks its country; picking a country keeps the
+number and reads it again for that country.
+
+**Everything is in the browser.** The field runs [intl-tel-input](https://github.com/jackocnr/intl-tel-input)
+29.2.3 — the release fluxui.dev runs, so a formatting quirk of Flux's is this field's too — with its utils, Google's
+libphonenumber compiled. Typing, formatting, opening, searching and walking the list send the server nothing; the
+number goes with the next action, as Flux's `wire:model` does, or as it changes with `.Live()` / `.Debounce(…)`.
+The list names the countries in the page's language (`Intl.DisplayNames`).
+
+**The engine is two files, not part of any page that draws no phone field.** The runtime fetches
+`wwwroot/js/rask-ui-phone.js` (61 KB, 21 KB gzipped) the first time a page carries a phone field, and that fetches
+`rask-ui-phone-utils.js` (263 KB, 61 KB gzipped) when the field mounts. Every app's build writes both, with
+their notices (`rask-ui-phone.LICENSES.txt`: intl-tel-input is MIT, the utils Apache-2.0), and the flag
+drawings the list shows ([Flag](#flag)). An app that will never draw one keeps its `wwwroot` clean:
+
+```xml
+<PropertyGroup>
+  <RaskUiPhoneEngine>false</RaskUiPhoneEngine>
+</PropertyGroup>
+```
+
+Without script the field is a plain tel input beside the starting country, and a form posts the bound value.
 
 ## Buttons and links that go somewhere
 
@@ -1528,7 +1580,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Flag` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
