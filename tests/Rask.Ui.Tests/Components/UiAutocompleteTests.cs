@@ -7,7 +7,12 @@ namespace Rask.UiTests.Components;
 ///     Flux's <c>flux:autocomplete</c>: an input that suggests what to type and writes the picked suggestion into
 ///     itself.
 /// </summary>
-/// <remarks>As recorded on fluxui.dev, key by key; <c>scripts/flux/parity-autocomplete.mjs --record</c> replays the walk.</remarks>
+/// <remarks>
+///     The list is the browser's (<c>data-rask-list</c>): the lit row, the filter, whether it is open and the
+///     pick that writes an item into the input send the page nothing, and are held to fluxui.dev key by key in a
+///     browser (<c>scripts/flux/parity-autocomplete.mjs</c>, <c>UiListHookTests</c>). The page hears the input's
+///     text as it hears any input's. Here: what a render writes, and that text arriving.
+/// </remarks>
 public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
 {
     private static readonly string[] States = ["Alabama", "Arkansas", "California", "New Mexico", "Texas"];
@@ -19,15 +24,6 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
             States.Select(state => Ui.AutocompleteItem.Key(state)[state])
         ];
 
-    private static Task Key(Page page, string key) =>
-        page.On("input[role=\"combobox\"]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
-    private static bool IsOpen(Page page) =>
-        string.Equals(page.Find("[popover]").Attribute("data-rask-popover-open"), "true", StringComparison.Ordinal);
-
-    private static IEnumerable<string> Shown(Page page) =>
-        page.FindAll("[data-ui-autocomplete-item]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
-
     [Fact]
     public void The_field_sits_inside_the_root_beside_the_list_it_drops()
     {
@@ -35,7 +31,7 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(Autocomplete);
 
-        Assert.StartsWith("<div class=\"block\" data-ui-autocomplete><div", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"block\" data-ui-autocomplete data-rask-list=\"text filter\"><div", html, StringComparison.Ordinal);
         Assert.Equal("State of residence", page.TextOf("[data-ui-autocomplete] > [data-ui-field] > label"));
         Assert.NotNull(page.Find("[data-ui-autocomplete] > [data-ui-autocomplete-items][popover]"));
     }
@@ -68,180 +64,6 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task An_arrow_opens_the_list_on_its_first_item()
-    {
-        var page = Page.Render(Autocomplete);
-
-        await Key(page, Keys.ArrowDown);
-
-        Assert.True(IsOpen(page));
-        Assert.Equal("Alabama", page.TextOf("[data-active]"));
-        Assert.Equal(page.Find("[data-active]").Id, page.Find("input").Attribute("aria-activedescendant"));
-    }
-
-    [Fact]
-    public async Task The_arrows_stop_at_either_end()
-    {
-        var page = Page.Render(Autocomplete);
-        await Key(page, Keys.ArrowDown);
-
-        await Key(page, Keys.ArrowUp);
-        var top = page.TextOf("[data-active]");
-        for (var i = 0; i < States.Length + 2; i++)
-        {
-            await Key(page, Keys.ArrowDown);
-        }
-
-        Assert.Equal("Alabama", top);
-        Assert.Equal("Texas", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task Enter_writes_the_active_item_into_the_input_and_closes()
-    {
-        var page = Page.Render(Autocomplete);
-        await Key(page, Keys.ArrowDown);
-        await Key(page, Keys.ArrowDown);
-
-        await Key(page, Keys.Enter);
-
-        Assert.Equal("Arkansas", _state);
-        Assert.False(IsOpen(page));
-        Assert.Equal("true", page.Find("[data-ui-autocomplete-item]:has-text(\"Arkansas\")").Attribute("aria-selected"));
-    }
-
-    [Fact]
-    public async Task Typing_on_after_a_pick_opens_the_list_again_on_the_whole_text()
-    {
-        var page = Page.Render(Autocomplete);
-        await Key(page, Keys.ArrowDown);
-        await Key(page, Keys.Enter);
-
-        await page.On("input[role=\"combobox\"]").Input("Alabamax");
-
-        Assert.Equal("Alabama", _state);
-        Assert.True(IsOpen(page));
-        Assert.Empty(Shown(page));
-    }
-
-    [Fact]
-    public async Task Typing_opens_the_list_on_the_items_that_hold_the_text()
-    {
-        var page = Page.Render(Autocomplete);
-
-        await page.On("input[role=\"combobox\"]").Input("X");
-
-        Assert.True(IsOpen(page));
-        Assert.Equal(["New Mexico", "Texas"], Shown(page));
-        Assert.Equal("New Mexico", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task Enter_does_nothing_when_no_item_matches()
-    {
-        var page = Page.Render(Autocomplete);
-        await page.On("input[role=\"combobox\"]").Input("zz");
-
-        await Key(page, Keys.Enter);
-
-        Assert.Empty(Shown(page));
-        Assert.True(IsOpen(page));
-        Assert.Equal("", _state);
-    }
-
-    [Fact]
-    public async Task Escape_closes_the_list_and_empties_the_input()
-    {
-        _state = "Texas";
-        var page = Page.Render(Autocomplete);
-        await Key(page, Keys.ArrowDown);
-
-        await Key(page, Keys.Escape);
-
-        Assert.False(IsOpen(page));
-        Assert.Equal("", _state);
-    }
-
-    [Fact]
-    public async Task Tab_closes_the_list_and_keeps_what_was_typed()
-    {
-        var page = Page.Render(Autocomplete);
-        await page.On("input[role=\"combobox\"]").Input("Tex");
-
-        await Key(page, Keys.Tab);
-
-        Assert.False(IsOpen(page));
-        Assert.Equal(States, Shown(page));
-    }
-
-    // The input's own `change` comes a round trip behind the key. Until it did, the render Tab caused showed the
-    // text the page still held: on a slow page the field was seen empty after it was left.
-    [Fact]
-    public async Task Tab_hands_the_page_what_was_typed_without_waiting_for_the_inputs_change()
-    {
-        var page = Page.Render(Autocomplete);
-        await page.On("input[role=\"combobox\"]").Input("Atlantis");
-
-        await Key(page, Keys.Tab);
-
-        Assert.Equal("Atlantis", _state);
-        Assert.Equal("Atlantis", page.Find("input").Attribute("value"));
-    }
-
-    // A render opens the list and the browser says so afterwards. That late "open" used to open a list Tab had
-    // shut by then; its own toggle shut it again, and the two went on for as long as the page was up.
-    [Fact]
-    public async Task The_toggle_of_an_opening_that_arrives_after_the_list_was_shut_does_not_open_it_again()
-    {
-        var page = Page.Render(Autocomplete);
-        await page.On("input[role=\"combobox\"]").Input("Tex");
-        await Key(page, Keys.Tab);
-
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
-
-        Assert.False(IsOpen(page));
-        Assert.Equal("false", page.Find("input").Attribute("aria-expanded"));
-    }
-
-    // Emptied from the Escape handler, a round trip after the key, the input lost what was typed in between.
-    [Fact]
-    public void The_browser_empties_the_input_on_Escape_and_sends_only_the_keys_the_list_acts_on()
-    {
-        var page = Page.Render(Autocomplete);
-
-        var input = page.Find("input");
-
-        Assert.Equal("Escape", input.Attribute("data-rask-clear-keys"));
-        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab", input.Attribute("data-rask-keys"));
-    }
-
-    [Fact]
-    public async Task A_click_on_an_item_picks_it()
-    {
-        var page = Page.Render(Autocomplete);
-        await page.On("input[role=\"combobox\"]").Click();
-
-        await page.On("[data-ui-autocomplete-item]:has-text(\"California\")").Click();
-
-        Assert.Equal("California", _state);
-        Assert.False(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task A_disabled_item_is_shown_and_cannot_be_picked()
-    {
-        var page = Page.Render(() => Ui.Autocomplete.Value(_state).OnChange(text => _state = text)[
-            Ui.AutocompleteItem.Disabled()["Alabama"],
-            Ui.AutocompleteItem["Arkansas"]
-        ]);
-
-        await Key(page, Keys.ArrowDown);
-
-        Assert.Equal("true", page.Find("[data-ui-autocomplete-item]:has-text(\"Alabama\")").Attribute("aria-disabled"));
-        Assert.Equal("Arkansas", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
     public void The_inputs_props_reach_the_input()
     {
         var html = Ui.Autocomplete.Value("").Sm.Filled.Placeholder("Search states").Icon(Ui.IconName.MagnifyingGlass).Clearable()
@@ -254,5 +76,80 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
         Assert.Contains("font-mono", page.Find("input").Attribute("class"), StringComparison.Ordinal);
         Assert.Contains("max-h-80", page.Find("[popover]").Attribute("class"), StringComparison.Ordinal);
         Assert.Contains("data-ui-clear-button", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_list_is_the_browsers_to_keep_and_its_answer_is_the_inputs_text()
+    {
+        var page = Page.Render(Autocomplete);
+
+        var root = page.Find("[data-ui-autocomplete]");
+
+        Assert.Equal("text filter", root.Attribute("data-rask-list"));
+        Assert.False(page.Exists("[data-active]"));
+        Assert.Null(page.Find("input").Attribute("aria-activedescendant"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-popover-open"));
+        Assert.NotNull(page.Find("[data-ui-autocomplete-items] > [data-rask-list-empty][data-hidden]"));
+    }
+
+    // Every key, every letter, every row the pointer crossed and every pick were a round trip each. A pick is
+    // the browser writing the row's words into the input, so a row has nothing for the page to hear either.
+    [Theory]
+    [InlineData("input", "data-rask-on-keydown")]
+    [InlineData("input", "data-rask-on-input")]
+    [InlineData("input", "data-rask-on-click")]
+    [InlineData("[popover]", "data-rask-on-toggle")]
+    [InlineData("[data-ui-autocomplete-item]", "data-rask-on-mouseenter")]
+    [InlineData("[data-ui-autocomplete-item]", "data-rask-on-click")]
+    public void Moving_about_the_list_and_picking_from_it_have_no_handler_for_the_page_to_hear(string part, string handler)
+    {
+        var page = Page.Render(Autocomplete);
+
+        var hearing = page.FindAll(part).Select(element => element.Attribute(handler));
+
+        Assert.All(hearing, Assert.Null);
+    }
+
+    [Fact]
+    public async Task The_page_that_holds_the_text_hears_it_when_the_input_says_it_changed()
+    {
+        var page = Page.Render(Autocomplete);
+
+        // What the browser raises on a pick, on Escape, and when an input typed into is left.
+        await page.On("input[role=\"combobox\"]").Change("California");
+
+        Assert.Equal("California", _state);
+        Assert.Equal("California", page.Find("input").Attribute("value"));
+    }
+
+    [Fact]
+    public void A_bound_autocomplete_waits_for_the_next_action_and_a_live_one_does_not()
+    {
+        var model = new Address();
+
+        var waiting = Page.Render(() => Ui.Autocomplete.Bind(() => model.State)[Ui.AutocompleteItem["Texas"]]).Find("input");
+        var live = Page.Render(() => Ui.Autocomplete.Bind(() => model.State).Live()[Ui.AutocompleteItem["Texas"]]).Find("input");
+
+        Assert.Equal("action", waiting.Attribute("data-rask-bind-on"));
+        Assert.Null(live.Attribute("data-rask-bind-on"));
+    }
+
+    [Fact]
+    public void A_disabled_item_says_so()
+    {
+        var page = Page.Render(() => Ui.Autocomplete.Value(_state).OnChange(text => _state = text)[
+            Ui.AutocompleteItem.Disabled()["Alabama"],
+            Ui.AutocompleteItem["Arkansas"]
+        ]);
+
+        var rows = page.FindAll("[data-ui-autocomplete-item]");
+
+        Assert.Equal("true", rows[0].Attribute("aria-disabled"));
+        Assert.Null(rows[1].Attribute("aria-disabled"));
+    }
+
+    private sealed class Address
+    {
+        public string State { get; set; } = "";
     }
 }

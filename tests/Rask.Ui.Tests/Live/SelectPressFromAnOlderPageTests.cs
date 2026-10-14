@@ -9,9 +9,10 @@ using Rask.TestSupport;
 namespace Rask.UiTests.Live;
 
 /// <summary>
-///     A reader ahead of the line: a list is opened and its rows are pressed before the page has answered. Every
-///     event is read from the page as loaded, and each one the page hears is a render of the list — so the last
-///     press arrives several pages late, and still picks its row.
+///     A reader ahead of the line: the rows of an open list are pressed before the page has answered. Every
+///     press is read from the page as loaded, and each one the page hears is a render of the list — so the last
+///     press arrives several pages late, and still picks its row. (Opening the list and moving about it are the
+///     browser's now, and send nothing to be late.)
 /// </summary>
 /// <remarks>
 ///     An event from an older page reaches the handler that is the same as the one it was sent to, among the two
@@ -21,26 +22,22 @@ namespace Rask.UiTests.Live;
 /// </remarks>
 public sealed partial class SelectPressFromAnOlderPageTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\",\"v\":0}";
-
     private static readonly string[] Pistols = ["Glock", "Beretta", "Walther"];
 
     [Fact]
-    public async Task A_second_row_pressed_before_the_page_answered_the_opening_of_the_list_is_picked_too()
+    public async Task A_third_row_pressed_before_the_page_answered_the_first_two_presses_is_picked_too()
     {
         List<string> picked = [];
         var page = Listbox(() => picked, values => picked = [.. values]);
         using var cache = new SessionRenderCache();
-        var loaded = Render(cache, page);
-        var (presses, hovers) = (Ids(loaded, "click"), Ids(loaded, "mouseenter"));
+        var presses = Ids(Render(cache, page), "click");
 
-        await Hear(cache, page, Ids(loaded, "toggle")[0], Opened);
         await Hear(cache, page, presses[0], At(10));
-        await Hear(cache, page, hovers[1], At(40));
-        var heard = await Hear(cache, page, presses[1], At(40));
+        await Hear(cache, page, presses[1], At(40));
+        var heard = await Hear(cache, page, presses[2], At(70));
 
         Assert.True(heard);
-        Assert.Equal(["Glock", "Beretta"], picked);
+        Assert.Equal(["Glock", "Beretta", "Walther"], picked);
     }
 
     [Fact]

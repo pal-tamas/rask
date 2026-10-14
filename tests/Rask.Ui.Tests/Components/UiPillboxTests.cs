@@ -6,11 +6,14 @@ namespace Rask.UiTests.Components;
 /// <summary>
 ///     Flux's <c>flux:pillbox</c>: several answers out of a list, each shown as a pill that can be taken off again.
 /// </summary>
-/// <remarks>As recorded on fluxui.dev, key by key; <c>scripts/flux/parity-pillbox.mjs --record</c> replays the walks.</remarks>
+/// <remarks>
+///     The keys, the pointer, the search and whether the list is open are the browser's (<c>data-rask-list</c>),
+///     held to fluxui.dev key by key in a browser: <c>scripts/flux/parity-pillbox.mjs</c> replays the walks and
+///     <c>UiListHookTests</c> counts what they send. Here: what a render writes for the browser to read, and what
+///     the page hears — a row or a cross pressed.
+/// </remarks>
 public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static readonly string[] Tags = ["Design", "Development", "Marketing", "Sales", "Support"];
 
     private readonly List<(int Id, string Name)> _known = [(1, "Design"), (2, "Development")];
@@ -48,29 +51,11 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
         _search = "";
     }
 
-    private static Task Key(Page page, string key, string on = "[data-ui-pillbox-trigger]") =>
-        page.On(on).Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
-    private static bool IsOpen(Page page) =>
-        string.Equals(page.Find("[popover]").Attribute("data-rask-popover-open"), "true", StringComparison.Ordinal);
-
     private static IEnumerable<string> Pills(Page page) =>
         page.FindAll("[data-ui-pillbox-trigger] [data-value]").Select(pill => pill.TextContent.Trim());
 
     private static IEnumerable<string> Shown(Page page) =>
         page.FindAll("[data-ui-listbox-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
-
-    // Emptied from the key's handler, a round trip after the key, the input lost what was typed in between.
-    [Fact]
-    public void The_comboboxs_input_sends_only_its_own_keys_and_is_emptied_in_the_browser_by_the_ones_that_close_it()
-    {
-        var page = Page.Render(Combobox);
-
-        var input = page.Find("[data-ui-pillbox-input]");
-
-        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab Backspace:empty", input.Attribute("data-rask-keys"));
-        Assert.Equal("Escape Tab", input.Attribute("data-rask-clear-keys"));
-    }
 
     [Fact]
     public void The_trigger_is_a_combobox_that_shows_the_placeholder_while_nothing_is_picked()
@@ -100,21 +85,6 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_input_among_the_pills_says_no_expanded_state_and_keeps_the_lists_keys_only_while_it_is_open()
-    {
-        var page = Page.Render(Combobox);
-        var closed = page.Find("[data-ui-pillbox-input]").Attribute("data-rask-contain-keys");
-
-        await Key(page, "ArrowDown", "[data-ui-pillbox-input]");
-        var input = page.Find("[data-ui-pillbox-input]");
-
-        Assert.Null(closed);
-        Assert.True(IsOpen(page));
-        Assert.Equal("Enter ArrowUp ArrowDown Home End PageUp PageDown", input.Attribute("data-rask-contain-keys"));
-        Assert.Null(input.Attribute("aria-expanded"));
-    }
-
-    [Fact]
     public void The_list_takes_several_answers()
     {
         var page = Page.Render(Pillbox);
@@ -139,109 +109,14 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_click_on_the_trigger_opens_the_list_and_another_closes_it()
-    {
-        var page = Page.Render(Pillbox);
-
-        await page.On("[data-ui-pillbox-trigger]").Click();
-        var opened = IsOpen(page);
-        await page.On("[data-ui-pillbox-trigger]").Click();
-
-        Assert.True(opened);
-        Assert.False(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task Space_opens_the_closed_list_and_Enter_does_not()
-    {
-        var page = Page.Render(Pillbox);
-
-        await Key(page, Keys.Enter);
-        var afterEnter = IsOpen(page);
-        await Key(page, " ");
-
-        Assert.False(afterEnter);
-        Assert.True(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task Enter_switches_the_active_row_and_leaves_the_list_open()
-    {
-        var page = Page.Render(Pillbox);
-        await Key(page, Keys.ArrowDown);
-        await page.On("[popover]").Raise("toggle", Opened);
-        await Key(page, Keys.ArrowDown);
-
-        await Key(page, Keys.Enter);
-        var once = _picked.ToList();
-        await Key(page, Keys.Enter);
-
-        Assert.Equal(["Development"], once);
-        Assert.Empty(_picked);
-        Assert.True(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task A_letter_typed_on_the_closed_trigger_picks_the_option_that_starts_with_it()
-    {
-        var page = Page.Render(Pillbox);
-
-        await Key(page, "s");
-
-        Assert.Equal(["Sales"], _picked);
-        Assert.False(IsOpen(page));
-    }
-
-    [Fact]
     public async Task The_cross_on_a_pill_takes_that_option_off()
     {
         _picked = ["Design", "Sales"];
         var page = Page.Render(Pillbox);
 
-        await page.On("[data-value=\"Design\"] > .shrink-0").Click();
+        await page.On("[data-value=\"Design\"] > [data-rask-list-remove]").Click();
 
         Assert.Equal(["Sales"], _picked);
-        Assert.False(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task The_pointer_leaving_the_list_leaves_no_row_lit()
-    {
-        var page = Page.Render(Pillbox);
-        await page.On("[data-ui-pillbox-trigger]").Click();
-        await page.On("[data-ui-listbox-option]:has-text(\"Sales\")").Raise("mouseenter", "{\"clientX\":10,\"clientY\":10}");
-        var hovered = page.TextOf("[data-active]");
-
-        await page.On("[role=\"listbox\"]").Raise("mouseleave");
-
-        Assert.Equal("Sales", hovered);
-        Assert.Empty(page.FindAll("[data-active]"));
-    }
-
-    [Fact]
-    public async Task A_row_that_comes_under_a_resting_pointer_after_a_pick_takes_the_cursor()
-    {
-        var page = Page.Render(Pillbox);
-        await page.On("[data-ui-pillbox-trigger]").Click();
-        await page.On("[data-ui-listbox-option]:has-text(\"Sales\")").Raise("click", "{\"clientX\":40,\"clientY\":90}");
-
-        await page.On("[data-ui-listbox-option]:has-text(\"Marketing\")").Raise("mouseenter", "{\"clientX\":40,\"clientY\":90}");
-
-        Assert.Equal(["Sales"], _picked);
-        Assert.Equal("Marketing", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task The_click_that_made_the_browser_shut_the_list_does_not_open_it_again()
-    {
-        var page = Page.Render(Pillbox);
-        await page.On("[data-ui-pillbox-trigger]").Click();
-        await page.On("[popover]").Raise("toggle", Opened);
-
-        await page.On("[popover]").Raise("toggle", "{\"oldState\":\"open\",\"newState\":\"closed\"}");
-        await page.On("[data-ui-pillbox-trigger]").Click();
-
-        Assert.False(IsOpen(page));
     }
 
     [Fact]
@@ -255,21 +130,6 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
         Assert.Null(trigger.Attribute("aria-controls"));
         Assert.Equal("Filter tags...", page.Find("[data-ui-options] > [data-ui-pillbox-search] > input[data-ui-pillbox-input]").Attribute("placeholder"));
         Assert.Equal("listbox", page.Find("[data-ui-options] > [role=\"listbox\"]").Attribute("role"));
-    }
-
-    [Fact]
-    public async Task A_pick_empties_the_search_and_sends_the_cursor_back_to_the_top()
-    {
-        var page = Page.Render(Searchable);
-        await page.On("[data-ui-pillbox-trigger]").Click();
-        await page.On("[data-ui-pillbox-search] input").Input("s");
-        await Key(page, Keys.ArrowDown, "[data-ui-pillbox-search] input");
-
-        await Key(page, Keys.Enter, "[data-ui-pillbox-search] input");
-
-        Assert.Single(_picked);
-        Assert.Equal(Tags, Shown(page));
-        Assert.Equal("Design", page.TextOf("[data-active]"));
     }
 
     [Fact]
@@ -289,45 +149,6 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Typing_in_the_combobox_opens_and_narrows_the_list()
-    {
-        var page = Page.Render(Combobox);
-
-        await page.On("[data-ui-pillbox-input]").Input("de");
-
-        Assert.True(IsOpen(page));
-        Assert.Equal(["Design", "Development"], Shown(page));
-        Assert.Equal("Design", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task Backspace_in_the_empty_input_takes_the_last_pill_off()
-    {
-        _picked = ["Design", "Sales"];
-        var page = Page.Render(Combobox);
-
-        await Key(page, Keys.Backspace, "[data-ui-pillbox-input]");
-
-        Assert.Equal(["Design"], _picked);
-    }
-
-    [Fact]
-    public async Task The_create_row_is_offered_once_what_was_typed_is_long_enough_and_names_no_option()
-    {
-        var page = Page.Render(Creating);
-
-        await page.On("[data-ui-pillbox-input]").Input("d");
-        var short_ = page.Find("[data-ui-option-create]").Attribute("data-hidden");
-        await page.On("[data-ui-pillbox-input]").Input("design");
-        var named = page.Find("[data-ui-option-create]").Attribute("data-hidden");
-        await page.On("[data-ui-pillbox-input]").Input("Research");
-
-        Assert.NotNull(short_);
-        Assert.NotNull(named);
-        Assert.Null(page.Find("[data-ui-option-create]").Attribute("data-hidden"));
-    }
-
-    [Fact]
     public async Task Picking_the_create_row_hands_the_page_what_was_typed()
     {
         var page = Page.Render(Creating);
@@ -337,19 +158,6 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal([9], _ids);
         Assert.Equal(["Research"], Pills(page));
-    }
-
-    [Fact]
-    public async Task An_option_that_is_not_filterable_stays_whatever_is_typed()
-    {
-        var page = Page.Render(() => Ui.Pillbox.Values(_picked).OnChange(picked => _picked = [.. picked]).Combobox[
-            Ui.PillboxOption["Design"],
-            Ui.PillboxOption.Filterable(false)["Something else"]
-        ]);
-
-        await page.On("[data-ui-pillbox-input]").Input("zz");
-
-        Assert.Equal(["Something else"], Shown(page));
     }
 
     [Fact]
@@ -384,5 +192,87 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
     private sealed class Post
     {
         public List<string> Tags { get; set; } = [];
+    }
+
+    [Theory]
+    [InlineData(false, false, "multiple top")]
+    [InlineData(true, false, "multiple filter top")]
+    [InlineData(false, true, "multiple filter top clears")]
+    public void The_list_is_the_browsers_to_keep_and_says_which_kind_it_is(bool searchable, bool combobox, string kind)
+    {
+        var page = Page.Render(searchable ? Searchable : combobox ? Combobox : Pillbox);
+
+        var root = page.Find("[data-ui-pillbox]");
+
+        Assert.Equal(kind, root.Attribute("data-rask-list"));
+        Assert.Equal("false", page.Find("[data-ui-pillbox-trigger]").Attribute("aria-expanded"));
+        Assert.False(page.Exists("[data-active]"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-popover-open"));
+    }
+
+    // The trigger's press and keys, the input's keys and every row the pointer crossed were a round trip each.
+    [Theory]
+    [InlineData("[data-ui-pillbox-trigger]", "data-rask-on-click")]
+    [InlineData("[data-ui-pillbox-trigger]", "data-rask-on-keydown")]
+    [InlineData("[data-ui-pillbox-input]", "data-rask-on-keydown")]
+    [InlineData("[data-ui-pillbox-input]", "data-rask-on-input")]
+    [InlineData("[role=\"listbox\"]", "data-rask-on-mouseleave")]
+    [InlineData("[popover]", "data-rask-on-toggle")]
+    [InlineData("[data-ui-listbox-option]", "data-rask-on-mouseenter")]
+    public void Moving_about_a_pillbox_has_no_handler_for_the_page_to_hear(string part, string handler)
+    {
+        var page = Page.Render(Combobox);
+
+        var hearing = page.FindAll(part).Select(element => element.Attribute(handler));
+
+        Assert.All(hearing, Assert.Null);
+    }
+
+    [Fact]
+    public async Task A_press_on_a_row_switches_it_on_and_another_switches_it_off()
+    {
+        var page = Page.Render(Pillbox);
+
+        await page.On("[data-ui-listbox-option]:has-text(\"Development\")").Click();
+        var once = _picked.ToList();
+        await page.On("[data-ui-listbox-option]:has-text(\"Development\")").Click();
+
+        Assert.Equal(["Development"], once);
+        Assert.Empty(_picked);
+    }
+
+    [Fact]
+    public void Every_cross_is_one_Backspace_in_the_empty_input_can_press()
+    {
+        _picked = ["Design", "Sales"];
+
+        var page = Page.Render(Combobox);
+
+        Assert.Equal(2, page.FindAll("[data-ui-pillbox-trigger] [data-value] > [data-rask-list-remove][data-rask-on-click]").Count);
+    }
+
+    [Fact]
+    public void The_create_row_of_a_pillbox_typed_into_is_rendered_hidden_and_says_how_many_letters_it_waits_for()
+    {
+        var page = Page.Render(Creating);
+
+        var row = page.Find("[data-ui-option-create]");
+
+        Assert.Equal("2", row.Attribute("data-rask-list-create"));
+        Assert.NotNull(row.Attribute("data-hidden"));
+    }
+
+    [Fact]
+    public void An_option_that_is_not_filterable_says_no_search_hides_it()
+    {
+        var page = Page.Render(() => Ui.Pillbox.Values(_picked).OnChange(picked => _picked = [.. picked]).Combobox[
+            Ui.PillboxOption["Design"],
+            Ui.PillboxOption.Filterable(false)["Something else"]
+        ]);
+
+        var rows = page.FindAll("[data-ui-listbox-option]");
+
+        Assert.Null(rows[0].Attribute("data-rask-list-keep"));
+        Assert.NotNull(rows[1].Attribute("data-rask-list-keep"));
     }
 }
