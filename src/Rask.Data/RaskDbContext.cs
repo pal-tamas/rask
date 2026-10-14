@@ -87,6 +87,11 @@ public class RaskDbContext : DbContext, ITenantScoped
     ///         <c>ConfigureWarnings</c> so an app that genuinely wants the check back can still
     ///         <c>Throw</c> or <c>Log</c> it — a later call wins.
     ///     </para>
+    ///     <para>
+    ///         Also keeps EF Core's Error entries for a save it refused out of the log, when the model words that
+    ///         refusal as a sentence (<c>IsUnique("…")</c>, <c>WhenReferenced("…")</c>). Every other failure is
+    ///         logged as it always was.
+    ///     </para>
     /// </remarks>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -104,7 +109,8 @@ public class RaskDbContext : DbContext, ITenantScoped
     }
 
     /// <summary>
-    ///     The warnings a Rask context configures for itself, for the places that build its options to say up front.
+    ///     The warnings a Rask context configures for itself, and the logging that keeps a refusal the model words as a
+    ///     sentence out of the log, for the places that build its options to say up front.
     /// </summary>
     /// <param name="optionsBuilder">The options being built.</param>
     /// <returns>The same builder.</returns>
@@ -114,8 +120,14 @@ public class RaskDbContext : DbContext, ITenantScoped
     ///     that builds more than twenty. Options that already say this are left the same by <see cref="OnConfiguring" />,
     ///     so the context shares one set.
     /// </remarks>
-    internal static DbContextOptionsBuilder WithSharedWarnings(DbContextOptionsBuilder optionsBuilder) =>
+    internal static DbContextOptionsBuilder WithSharedWarnings(DbContextOptionsBuilder optionsBuilder)
+    {
         optionsBuilder.ConfigureWarnings(static warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
+
+        // A refusal the model words as a sentence is the app's answer, not a database error to log.
+        ViolationLoggingOptionsExtension.Add(optionsBuilder);
+        return optionsBuilder;
+    }
 
     /// <inheritdoc />
     /// <remarks>
