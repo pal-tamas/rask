@@ -99,6 +99,14 @@ them until tagged releases begin.
   matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
   it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
   replaces Dependabot's weekly template pull requests.
+- **RASK104: a static member that keeps a component built from a chain entry is flagged (#1201).**
+  `private static readonly Component Empty = Div;` compiled and corrupted pages at random: an entry built during
+  a render is a positional slot of that render, so the static kept one page's slot and shared it with every page
+  after it, and the next entry built at that position stamped its own attributes on it — whether it showed
+  depended on request order. The build now warns at the initializer of a static field or static auto-property
+  (in any type) whose type holds a component and whose initializer builds a chain, and the lightbulb turns it
+  into `static Component Empty => Div;`, which builds a fresh entry per render. A static method, an
+  expression-bodied property and an entry inside a stored lambda are not reported.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -387,8 +395,72 @@ them until tagged releases begin.
   tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
 - A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
+- **A word in a `Rask.Ui` comment no longer becomes a rule in every app's stylesheet** (#1214). The kit's sheet,
+  and the class list an app's Tailwind build compiles from, came from a scan that read the kit's comments too,
+  so prose such as "a magnifying glass" shipped daisyUI's `.glass`. Tailwind now scans a copy of the kit's C#
+  with the comments taken out (`RaskTailwindSourceRoot`, `WriteTailwindScanSourcesTask`): every class the kit's
+  code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
+  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`, and the chart frame's `aspect-3/1`) are named in `ui.precompiled.css` instead. A change under
+  `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
+- **A scaffolded app published in Release starts (#1226).** Before: `dotnet publish -c Release` of a fresh `rask new`
+  app died before it listened, with `Could not load file or assembly 'Rask.DevTools'` from `AddMvcCore` (reached
+  through `AddRaskApi`): the publish removed the devtools, but the Web SDK had compiled an MVC
+  `[ApplicationPart("Rask.DevTools")]` into the app's own assembly, and MVC loads every application part at
+  startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
+  devtools also fails if the app assembly still names it. The template gate now publishes the server template in
+  Release and starts it.
+- **An upload or download that races its session's removal answers 404, not 500** (#1207). A request whose session
+  was found and then reclaimed on another thread before its owner was checked — a never-connected page's grace
+  period ending at that moment — failed with an `ObjectDisposedException` from the session's disposed services.
+  It now gets the answer the session being gone always gave.
+- **`Rask.Spa.Hosting` rebuilds a yarn or pnpm client, and one at the repository root, when its sources change
+  (#1237).** Before: the install's up-to-date check compared against npm's `node_modules/.package-lock.json`,
+  which yarn never writes, so the install ran on every build; a `yarn.lock` did not count as a lockfile, so the
+  first install was `npm install`; and the build's inputs were fixed to `src/**` and `public/**`, so a client
+  whose sources live in `apps/` or `libs/` was built once and its stale bundle served for ever. After: any
+  lockfile counts and the default install follows it (`yarn install --frozen-lockfile`, `pnpm install
+  --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
+  and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
+  dist directory are never counted, so a glob that covers the host does not rebuild every time.
+- **`MapRask(pathBase:)` reaches the browser runtime without a `<base href>`** (#1235). The Server host's runtime
+  `<script>` tag now carries the prefix (`data-rask-base="/new/"`) and the runtime reads it before any `<base>`, so
+  its connection, pushed history and route paths are right under a path base the app never repeated. No `<base>` is
+  written for it: one would re-resolve every relative URL on the page. `docs/spa.md` also says which `wwwroot`
+  address a hand-wired host under a prefix should link.
+
+- **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
+  build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
+  `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
+  `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
+
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
+  so a `Circle` or `SvgPath` appended to an `Svg` (or inserted by key among its children) arrived as an
+  `HTMLUnknownElement` and never rendered. An insert under an SVG or MathML parent is now parsed in that
+  parent's own namespace, the way a scoped morph already was (#1242).
+- **A `Shell` override that forgets the `Body` element no longer renders a dead page** (#1234). `Html[head, body]`
+  reads right — the parameter is named `body` — and painted right, because the browser supplies a body itself,
+  but the runtime `<script>` and the session id are written on `<body>`, so no socket opened, a click or a form
+  submit did nothing, and nothing said why. Rask now wraps everything after the head in a `<body>` (what the
+  browser does anyway), so the page connects, and reports a warning naming the override (`Html[head,
+  Body[body]]`). A document that still ends without a body — a component of the app's own under `<html>` that
+  writes none — is reported as an error at its first render.
+- **A Blazor island compiles with a non-nullable value-type property of its own, and a title override keeps the
+  library's stylesheets** (#1196). Before: declaring a property that feeds a hosted `[Parameter]` as a plain value
+  type — `[RouteParam] public int Count { get; set; }` — failed with CS0037, because the generated parameter
+  writer tested it with `is not null`; the workaround was `int?`. After: a non-nullable value type has no unset
+  state, so it is always passed on (`int?` still omits the parameter while null). And the stylesheets in
+  `RaskBlazorOptions.HeadAssets` are registered on their own, as a JavaScript island's runtime script is, so an
+  island that overrides `HeadAssets` for its `Title` no longer drops them by leaving out `base.HeadAssets` —
+  `BlazorComponent<T>` no longer overrides `HeadAssets`, and an existing `[base.HeadAssets, …]` keeps compiling.
+- **Toasts whose countdowns end in the same frame all leave** (#1202). The runtime pressed every
+  `data-rask-dismiss-after` toast's `[data-rask-dismiss]` control the moment its time was up, so toasts shown
+  together with one duration were all pressed before the page had answered any of them, each carrying a handler
+  id read from the page as it was before the others' renders — a toast whose id one of those renders retired
+  stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
+  the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
+  press that never takes its toast away holds the rest back for 2 s at most.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

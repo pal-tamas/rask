@@ -182,6 +182,10 @@ public sealed class LiveRenderContext : IDisposable
     /// </summary>
     internal int HeadSentinelIndex { get; set; } = -1;
 
+    // Whether the document being serialized has written its <body> yet: reset at <html>, set at </body>, read at
+    // </html> (HtmlSerializer.CloseShellElement, #1234).
+    internal bool BodyWritten { get; set; }
+
     /// <summary>
     ///     Hands a development-only error to the session, to paint <em>over</em> the app. Called during
     ///     the render walk by <see cref="RootErrorBoundary" /> when a handler or async lifecycle hook threw.
