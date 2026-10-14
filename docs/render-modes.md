@@ -105,9 +105,9 @@ Blowing the budget is not an error. The page is served as it stands, and the loa
 connection. It does mean a slow page holds a request open for up to that long, so size it together with
 `MaxSessions` — the two multiply.
 
-**A page reached later, in place, is waited for the same way** — a link, Back, `Go()` — under a budget of its
-own, `NavigationQuiescenceTimeout` (150 ms): see
-[the page is sent when its first reads are back](routing.md#the-page-is-sent-when-its-first-reads-are-back).
+**A page reached later, in place, is not waited for** — a link, Back, `Go()` sends the new page at once, and
+its data follow in the next frame: see
+[a page reached in place is sent at once](routing.md#a-page-reached-in-place-is-sent-at-once).
 
 **Work you deliberately detach is not waited on.** A polling loop started with `_ = Loop()` returns
 immediately from the hook, so the response goes out and the loop keeps pushing over the connection.

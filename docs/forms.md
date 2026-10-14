@@ -604,23 +604,28 @@ draws the form only once the record is there:
 public sealed partial class TrailerEditPage : Component
 {
     private TrailerModel? _trailer;
+    private bool _read;
 
     [RouteParam] public int Id { get; set; }
 
-    protected override async Task OnUpdated() => _trailer = await Trailer.Model(Id);
+    protected override async Task OnUpdated()
+    {
+        _trailer = await Trailer.Model(Id);
+        _read = true;
+    }
 
     protected override Component? Render() =>
-        _trailer is null
-            ? Ui.Callout["No such trailer"]
-            : TrailerForm.Key(Id).Model(_trailer);
+        _trailer is not null ? TrailerForm.Key(Id).Model(_trailer)
+        : _read ? Ui.Callout["No such trailer"]
+        : Ui.Text["Loading…"];
 }
 ```
 
-No "read yet?" flag is needed beside the `null` check. The first `GET` and a navigation in place both
-[wait for the read](routing.md#the-page-is-sent-when-its-first-reads-are-back), so a read that is back within
-the budget is sent as **one** frame — the form with its record — and "No such trailer" is only ever seen for a
-trailer that does not exist. A read that outlasts the budget is painted as the `null` branch first and as the
-form when it lands; the page is drawn again when its hook's `await` completes, with nothing to call.
+The first `GET` waits for the read, so its document is the form with its record. A navigation in place
+[sends the page at once](routing.md#a-page-reached-in-place-is-sent-at-once), so the reader sees the
+loading branch first and the form when the read lands — the page is drawn again when its hook's `await`
+completes, with nothing to call. The `_read` flag is what keeps "No such trailer" for a trailer that does not
+exist: without it, every edit page reached by a link would say so until its record arrived.
 
 A read that **throws** shows the [built-in error page](lifecycle.md#gotcha-a-faulted-async-hook-takes-the-page-not-the-component)
 in place of the page (the first `GET` answers 500). To say a sentence of your own instead, wrap the read in

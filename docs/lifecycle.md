@@ -96,13 +96,12 @@ forecasts rather than the placeholder — which is what a crawler, a cache and t
 all see. If the fetch outlives the budget the placeholder is what is served, and the page finishes loading
 over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
 
-**A page reached in place is waited for too**, on both hosts: a link, Back, `Go()` from a handler or a
-redirect sends the new page once its `OnMount` and `OnUpdated` are back, within a navigation budget of 150 ms
-(`Rask:Server:NavigationQuiescenceTimeout`; `RaskWasmOptions.NavigationQuiescenceTimeout` in the browser).
-Until then the reader keeps the page they are on, under the usual busy marks. A fetch that takes longer is
-painted as the placeholder at the budget and as the data when it lands, so the placeholder is still worth
-writing — it is what a slow load looks like. See
-[the page is sent when its first reads are back](routing.md#the-page-is-sent-when-its-first-reads-are-back).
+**A page reached in place is sent at once**, on both hosts — in WebAssembly the first page the app renders
+too: a link, Back, `Go()` from a handler or a redirect shows the new page as soon as it is mounted, its
+placeholder where the data will be, and the data in the frame that follows when the fetch lands. So the
+placeholder is worth writing: it is what every navigation shows until its data are back. To keep the rows the
+reader already sees, keep them in the component (or use `KeepPreviousData` on a query) instead of emptying
+them. See [a page reached in place is sent at once](routing.md#a-page-reached-in-place-is-sent-at-once).
 
 An edit page is the same page with a form where the table was: read the record in the page's hook, draw the
 form once it is there, and let a form component of your own read its model prop in `Render` — a copy taken in
@@ -267,8 +266,8 @@ What the reader gets, on both hosts:
 
 | The hook faults | The reader sees | The first `GET` answers |
 |---|---|---|
-| before the page is sent — on the first request, or within the [navigation's wait](routing.md#the-page-is-sent-when-its-first-reads-are-back) | the error page, never the placeholder | **500** |
-| after the page was painted on its placeholder (a read that outlasted the wait, an `OnRendered`) | the placeholder, then the error page in the frame that follows | 200 — it was already sent |
+| before the page is sent — on the first request, or before the first `await` of a page reached in place | the error page, never the placeholder | **500** |
+| after the page was painted on its placeholder (an `await` of a page [reached in place](routing.md#a-page-reached-in-place-is-sent-at-once), a first request's read that outlasted its wait, an `OnRendered`) | the placeholder, then the error page in the frame that follows | 200 — it was already sent |
 | inside an `ErrorBoundary` you wrote | your fallback, the rest of the page as it was | 200 |
 | after its component left the page | nothing: leaving cancels the load, and what that throws is recorded at Information | — |
 

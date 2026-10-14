@@ -17,7 +17,6 @@ namespace Rask.Wasm.Tests.Session;
 [Collection("WasmSession")]
 public sealed class DisposedSessionTests : ResettingTestBase, IDisposable
 {
-    private const string ToTheList = """{"type":"navigate","path":"/list","query":""}""";
 
     private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan Brief = TimeSpan.FromMilliseconds(40);
@@ -114,25 +113,6 @@ public sealed class DisposedSessionTests : ResettingTestBase, IDisposable
         session.Dispose();
         var answer = await dispatch.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
         app.Release();
-
-        Assert.Empty(answer);
-        Assert.Equal(0, Painted());
-    }
-
-    [Fact]
-    public async Task The_page_a_navigation_goes_to_is_no_longer_waited_for_once_its_session_is_disposed()
-    {
-        HeldListStubApp.Hold();
-        var (session, _) = NewSession<HeldListStubApp>(diffMode: DiffMode, navigationBudget: Patient);
-        await session.InitialRenderAsync();
-        _painted.Clear();
-        var navigating = session.DispatchAsync(Utf8(ToTheList));
-        await HeldListStubApp.ReadStarted();
-
-        // The read is still held, and the budget is longer than this test may run.
-        session.Dispose();
-        var answer = await navigating.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
-        HeldListStubApp.Release();
 
         Assert.Empty(answer);
         Assert.Equal(0, Painted());

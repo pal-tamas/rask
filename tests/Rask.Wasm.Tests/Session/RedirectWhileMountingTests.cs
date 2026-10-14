@@ -146,64 +146,22 @@ public sealed class RedirectWhileMountingTests : ResettingTestBase, IDisposable
         Assert.Equal(("/rs/home", "replace"), History(landed));
     }
 
-    // With a navigation budget the page that loads is waited for, so the reader never sees it: its destination
-    // is shown in its place, under the address and the history step of the navigation that led there.
-    [Fact]
-    public async Task A_link_to_a_page_that_loads_and_then_redirects_within_the_budget_shows_only_its_destination()
-    {
-        var session = await OpenAt("/rs/start", Patient);
-
-        var landed = await Navigate(session, "/rs/late");
-
-        Assert.Equal(("/rs/home", "push"), History(landed));
-        Assert.Contains("home-content", Html(landed), StringComparison.Ordinal);
-        Assert.Null(FirstPushed(static f => f.Contains("late-content", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public async Task A_handler_that_goes_to_a_page_that_loads_and_then_redirects_within_the_budget_shows_only_its_destination()
-    {
-        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode, navigationBudget: Patient);
-        services.GetRequiredService<RouteState>().Path = "/rs/start";
-        var handler = Regex.Match(
-            Html(await session.InitialRenderAsync()), "id=\"to-late\"[^>]*data-rask-on-click=\"([^\"]+)\"",
-            RegexOptions.None, TimeSpan.FromSeconds(1));
-
-        var landed = await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
-
-        Assert.Equal(("/rs/home", "push"), History(landed));
-        Assert.Null(FirstPushed(static f => f.Contains("late-content", StringComparison.Ordinal)));
-    }
-
     // The handler's await ends beside the repaint its page gets for the wait. Whichever comes first, the
-    // destination is not mounted by that repaint: only the navigation's own render waits for it.
+    // destination is not mounted by that repaint: only the navigation's own render mounts it.
     [Fact]
-    public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_once_on_the_destination()
+    public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_on_the_destination()
     {
-        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode, navigationBudget: Patient);
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
         services.GetRequiredService<RouteState>().Path = "/rs/start";
         var handler = Regex.Match(
             Html(await session.InitialRenderAsync()), "id=\"late-under-repaint\"[^>]*data-rask-on-click=\"([^\"]+)\"",
             RegexOptions.None, TimeSpan.FromSeconds(1));
 
-        var landed = await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
+        await session.DispatchAsync(Utf8($$"""{"id":"{{handler.Groups[1].Value}}","type":"click"}"""));
+        var landed = await Landed();
 
-        Assert.Equal(("/rs/home", "push"), History(landed));
+        Assert.Equal(("/rs/home", "replace"), History(landed));
         Assert.Contains("home-content", Html(landed), StringComparison.Ordinal);
-        Assert.Null(FirstPushed(static f => f.Contains("late-content", StringComparison.Ordinal)));
-    }
-
-    [Fact]
-    public async Task A_first_load_of_a_page_that_loads_and_then_redirects_within_the_budget_opens_on_its_destination()
-    {
-        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode, navigationBudget: Patient);
-        services.GetRequiredService<RouteState>().Path = "/rs/late";
-
-        var first = await session.InitialRenderAsync();
-
-        Assert.Equal(("/rs/home", "replace"), History(first));
-        Assert.Contains("home-content", Html(first), StringComparison.Ordinal);
-        Assert.DoesNotContain("late-content", Html(first), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -277,12 +235,9 @@ public sealed class RedirectWhileMountingTests : ResettingTestBase, IDisposable
         return null;
     }
 
-    // Longer than a test may run: the page is waited for until it has sent the reader on.
-    private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
-
-    private async Task<WasmLiveSession> OpenAt(string path, TimeSpan navigationBudget = default)
+    private async Task<WasmLiveSession> OpenAt(string path)
     {
-        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode, navigationBudget: navigationBudget);
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
         services.GetRequiredService<RouteState>().Path = path;
         await session.InitialRenderAsync();
         return session;

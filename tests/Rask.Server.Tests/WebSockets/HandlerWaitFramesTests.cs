@@ -27,11 +27,11 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
 
     // Longer than any wait here may last: a frame is sent because the work came back, never because time ran out.
     private static void Patient(RaskServerOptions o) =>
-        o.HandlerQuiescenceTimeout = o.NavigationQuiescenceTimeout = TimeSpan.FromMinutes(5);
+        o.HandlerQuiescenceTimeout = TimeSpan.FromMinutes(5);
 
     // Over while the test still holds the read.
     private static void Brief(RaskServerOptions o) =>
-        o.HandlerQuiescenceTimeout = o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
+        o.HandlerQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
 
     private static void Off(RaskServerOptions o) => o.HandlerQuiescenceTimeout = TimeSpan.Zero;
 
@@ -160,20 +160,20 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task A_sort_that_changes_the_address_is_acked_only_after_the_rows_its_page_was_sent_without()
+    public async Task A_sort_that_changes_the_address_sends_its_page_at_once_and_the_sorted_rows_follow()
     {
-        await using var page = await Page.Open("/w/sorted", output, Brief);
+        await using var page = await Page.Open("/w/sorted", output, Patient);
         page.Store.Hold();
 
         await page.Press("sort", seq: 9);
-        var atTheBudget = await page.NextOfAny();
+        var atOnce = await page.Next();
         page.Store.Release();
-        var rest = await page.UntilAck(9);
+        var sorted = await page.Until("row name-3");
 
-        // The busy mark and the bar are the ack's to end: sent at the budget, they never showed for a slow read.
-        Assert.Equal("/w/sorted?sort=name", LiveFrames.HistoryUrl(atTheBudget));
-        Assert.Contains("row unsorted-3", atTheBudget, StringComparison.Ordinal);
-        Assert.Contains("row name-3", Assert.Single(rest), StringComparison.Ordinal);
+        // A handler that navigates is a navigation: its page is not waited for, however long the handler budget.
+        Assert.Equal("/w/sorted?sort=name", LiveFrames.HistoryUrl(atOnce));
+        Assert.Contains("row unsorted-3", atOnce, StringComparison.Ordinal);
+        Assert.Null(LiveFrames.HistoryUrl(sorted));
     }
 
     [Fact]

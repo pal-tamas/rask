@@ -324,6 +324,22 @@ them until tagged releases begin.
   object comes back as that same object, not a copy. A page that relied on the reset — an initializer it
   expected to be overwritten with the type's default — now sees the initializer.
 
+### Removed
+
+- **BREAKING (behaviour): `NavigationQuiescenceTimeout` — a navigation sends its page at once; its loads follow
+  in a later frame.** `RaskServerOptions.NavigationQuiescenceTimeout` and `RaskWasmOptions.NavigationQuiescenceTimeout`
+  are gone, and a `Rask:Server:NavigationQuiescenceTimeout` key left in appsettings is ignored. A link, Back, a
+  handler's `Go()`, a redirect, a sign-in's return page — and the first page a WebAssembly app renders — show the
+  new page with its address as soon as it is mounted, and what its `OnMount` / `OnUpdated` read arrives in the
+  frame that follows. Measured in production at the old 150 ms default, every menu click showed nothing for
+  250–480 ms (peaks 1.2 s); sent at once, the new page is on screen in 110–160 ms. What an app sees: a list
+  shows its loading state and then its rows, so give a page a placeholder and say "no such record" only once
+  the read has answered; keep the rows the reader already sees by keeping them in the component (the pager's
+  dim, `data-rask-loading`) or with `KeepPreviousData`, and a `Rask.Query` query already cached is shown at once.
+  A page that calls `Go()` after an `await` is now shown while it loads, and its destination replaces its
+  address. The first `GET` (`QuiescenceTimeout`) and a handler's wait (`HandlerQuiescenceTimeout`) are
+  unchanged. See [a page reached in place is sent at once](docs/routing.md#a-page-reached-in-place-is-sent-at-once).
+
 ### Fixed
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
