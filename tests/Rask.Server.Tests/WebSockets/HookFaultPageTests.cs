@@ -255,13 +255,14 @@ public sealed class HookFaultPageTests
         using var host = Host(Patient);
         using var ws = await Connect(host);
         await ws.SendJsonAsync(new { type = "navigate", path, query = "" }, TestContext.Current.CancellationToken);
-        var faulted = (await Through(ws, Heading))[^1];
+        var faulted = await ErrorPageSettled(ws);
         Store(host).Mended = true;
 
         await ws.SendJsonAsync(new { id = TryAgain(faulted) }, TestContext.Current.CancellationToken);
-        var again = (await ws.SettledAsync())[^1];
+        // A diff writes the text bare, a whole page between tags: either way, the row.
+        var again = (await Through(ws, "the row"))[^1];
 
-        Assert.Contains(">the row<", again, StringComparison.Ordinal);
+        Assert.Contains("the row", again, StringComparison.Ordinal);
         Assert.DoesNotContain(Heading, again, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", again, StringComparison.Ordinal);
     }
@@ -272,13 +273,20 @@ public sealed class HookFaultPageTests
         using var host = Host(Patient);
         using var ws = await Connect(host);
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/mount", query = "" }, TestContext.Current.CancellationToken);
-        var faulted = (await Through(ws, Heading))[^1];
+        var faulted = await ErrorPageSettled(ws);
 
         await ws.SendJsonAsync(new { id = TryAgain(faulted) }, TestContext.Current.CancellationToken);
         var again = (await ws.SettledAsync())[^1];
 
         Assert.Contains(Heading, again, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", again, StringComparison.Ordinal);
+    }
+
+    // The error page as it stands once the navigation has finished: its handlers are the ones a click reaches.
+    private static async Task<string> ErrorPageSettled(WebSocket ws)
+    {
+        var shown = (await Through(ws, Heading))[^1];
+        return (await ws.SettledAsync()).LastOrDefault(static f => f.Contains("Try again", StringComparison.Ordinal)) ?? shown;
     }
 
     // Every frame up to and with the first that shows the text.
