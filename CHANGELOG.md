@@ -346,6 +346,13 @@ them until tagged releases begin.
 
 ### Fixed
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
+- **A word in a `Rask.Ui` comment no longer becomes a rule in every app's stylesheet** (#1214). The kit's sheet,
+  and the class list an app's Tailwind build compiles from, came from a scan that read the kit's comments too,
+  so prose such as "a magnifying glass" shipped daisyUI's `.glass`. Tailwind now scans a copy of the kit's C#
+  with the comments taken out (`RaskTailwindSourceRoot`, `WriteTailwindScanSourcesTask`): every class the kit's
+  code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
+  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`) are named in `ui.precompiled.css` instead. A change under
+  `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a

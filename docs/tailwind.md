@@ -194,6 +194,7 @@ compile, which is what lets a class library in the same solution ignore all of t
 | `RaskTailwindOffline` | `false` | Never reach the network. A missing binary fails the build naming the file to place and the exact path it goes at, instead of downloading it. For builds that must be hermetic. |
 | `RaskTailwindCacheRoot` | `~/.rask/tailwind` | Where fetched binaries are cached. |
 | `RaskTailwindClassList` | unset | For a component **library** that compiles a sheet of its own: a path to write every class that sheet defines, one per line, for an app's Tailwind build to read with `@source`. It is how `Rask.Ui` hands its classes over. |
+| `RaskTailwindSourceRoot` | the project | The folder Tailwind runs in, and so where its source detection starts. `Rask.Ui` points it at a copy of its C# with the comments taken out, so a word of prose is never compiled as a class. |
 | `RaskUiTailwind` | follows the stylesheet | Whether the build writes the kit's Tailwind sources into `Styles/vendor/`: on when the stylesheet imports `rask-ui.css` (or `rask-ui.kit.css`), off otherwise. `true`/`false` decides it regardless. |
 | `RaskUiTailwindDirectory` | `vendor/` beside the stylesheet | Where those sources land. |
 
