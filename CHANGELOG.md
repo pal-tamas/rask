@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
+  model's password changed, the typed text came back over the live connection as an attribute write. After: an
+  `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private
+  `Ui.Otp`'s hidden field) never has its text written by the server, not in the first page, a live update or a
+  whole-page reply, on either transport and in the browser host. The typed text still reaches the server with the
+  event; a server-side set to `""` clears the field, and a set to anything else leaves what the reader typed. The
+  field now carries `data-rask-secret`.
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
