@@ -24,7 +24,7 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
 
         // The switch's input is out of sight inside the label that draws it: its words are what a reader presses.
         await devTools.Panel.GetByText("Flash on the page").ClickAsync();
-        await Expect(devTools.Panel.GetByRole(AriaRole.Switch, new() { Name = "Flash on the page" })).ToBeCheckedAsync();
+        await DevToolsPage.Step("panel.GetByRole(AriaRole.Switch, new() { Name = 'Flash on the page' })", () => Expect(devTools.Panel.GetByRole(AriaRole.Switch, new() { Name = "Flash on the page" })).ToBeCheckedAsync());
         await devTools.Page.WaitForFunctionAsync("() => localStorage.getItem('rask.devtools.flash') === 'on'");
         await devTools.Page.ClickAsync("#add-task");
 
@@ -39,8 +39,8 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
             """,
             null,
             new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds, PollingInterval = 16 });
-        await Expect(devTools.Panel.GetByRole(AriaRole.Cell, new() { Name = "Board", Exact = true }).First)
-            .ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel cell 'Board'", () => Expect(devTools.Panel.GetByRole(AriaRole.Cell, new() { Name = "Board", Exact = true }).First)
+            .ToBeVisibleAsync(DevToolsPage.Visible));
     }
 
     [Fact]

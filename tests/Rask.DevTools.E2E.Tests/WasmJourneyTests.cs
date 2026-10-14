@@ -21,8 +21,8 @@ public sealed class WasmJourneyTests(PlaywrightFixture playwright, WasmFixtureHo
 
         await devTools.Page.ClickAsync("#fixture-click");
         await Expect(devTools.Page.Locator("#fixture-counter p")).ToHaveTextAsync("clicks=1", DevToolsPage.Text);
-        await Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible);
-        await Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "frame" }).First).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.Locator('tbody tr', new() { HasText = 'click' }).First", () => Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible));
+        await DevToolsPage.Step("panel.Locator('tbody tr', new() { HasText = 'frame' }).First", () => Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "frame" }).First).ToBeVisibleAsync(DevToolsPage.Visible));
 
         // The shortcut pressed with the focus inside the panel's own frame still reaches the page's dock.
         await devTools.Tab("Wire").FocusAsync();
