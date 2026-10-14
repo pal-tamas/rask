@@ -56,8 +56,10 @@ internal static class HostBootstrap
     /// <summary>
     /// Bumped whenever the rules inside the block change, so an existing block is recognised as stale
     /// even when it allows the same ports. It's the first half of the signature the probe reads back.
+    /// v2: the block declares <c>ufw-user-forward</c> itself — a v1 block jumped to it before ufw had made it,
+    /// so every later <c>ufw reload</c>, and ufw's start at boot, failed.
     /// </summary>
-    internal const string RulesVersion = "v1";
+    internal const string RulesVersion = "v2";
 
     /// <summary>
     /// Build the plan. Order within <see cref="BootstrapPlan.Preparation"/> and
@@ -389,6 +391,8 @@ internal static class HostBootstrap
         set -e
         [ -f {{AfterRules}} ] || { echo "rask: {{AfterRules}} is missing, so there is no ufw to put Docker's published ports behind" >&2; exit 1; }
         cp {{AfterRules}} {{AfterRules}}.rask-bak
+        was_enabled=no
+        if grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then was_enabled=yes; fi
         awk '/^{{BlockBegin}}/{skip=1} skip!=1{print} /^{{BlockEnd}}/{skip=0}' {{AfterRules}}.rask-bak > {{AfterRules}}.rask-new
         cat >> {{AfterRules}}.rask-new <<'RASK_RULES'
         {{BlockBegin}} {{signature}} managed by rask deploy; this block is rewritten whenever it goes stale
@@ -398,6 +402,10 @@ internal static class HostBootstrap
         *filter
         :DOCKER-USER - [0:0]
         :{{DockerChain}} - [0:0]
+        # ufw loads before.rules, then after.rules, and only then makes its user chains and loads user.rules
+        # into them, so the jump below would name a chain that does not exist yet and fail the whole load:
+        # every reload, and ufw's start at boot. Declared here it exists, empty; user.rules fills it next.
+        :ufw-user-forward - [0:0]
         -F DOCKER-USER
         -F {{DockerChain}}
         # ufw's own forward rules first, so `ufw route allow ...` is how you open another container port.
@@ -420,10 +428,14 @@ internal static class HostBootstrap
         RASK_RULES
         chmod 640 {{AfterRules}}.rask-new
         mv {{AfterRules}}.rask-new {{AfterRules}}
-        if ! ufw reload >/dev/null 2>&1; then
+        if ! out="$(ufw reload 2>&1)"; then
           mv {{AfterRules}}.rask-bak {{AfterRules}}
-          ufw reload >/dev/null 2>&1 || true
-          echo "rask: ufw wouldn't load the Docker rules — {{AfterRules}} has been put back as it was" >&2
+          # A start ufw could not finish leaves it marked disabled (ENABLED=no), and a disabled ufw skips a
+          # reload. So a ufw that was on before this step is enabled again, which loads the restored file AND
+          # keeps the firewall on at the next boot; one that was off stays off.
+          if [ "$was_enabled" = yes ]; then ufw --force enable >/dev/null 2>&1 || true; else ufw reload >/dev/null 2>&1 || true; fi
+          echo "rask: ufw wouldn't load the Docker rules — {{AfterRules}} has been put back as it was. ufw said:" >&2
+          echo "$out" >&2
           exit 1
         fi
         rm -f {{AfterRules}}.rask-bak

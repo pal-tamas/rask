@@ -18,6 +18,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the
+  `DOCKER-USER` block in `/etc/ufw/after.rules` jumped to `ufw-user-forward`, which ufw only makes after it has
+  loaded `after.rules`, so every `ufw reload` and ufw's start at boot failed ("Chain 'ufw-user-forward' does not
+  exist", Ubuntu 26.04). The step then failed, ufw was left marked disabled (`ENABLED=no`) with no firewall
+  after the next boot, and the CLI reported nothing had been rolled back, hiding ufw's own error. After: the
+  block declares the chain itself (rules version `v2`, so a host carrying the old block gets it rewritten), a
+  ufw that was enabled before the step is enabled again if the load is refused, and ufw's message is printed.
 - **`rask deploy` hardens SSH on hosts whose provider ships its own sshd drop-in.** Before: the settings went to
   `/etc/ssh/sshd_config.d/99-rask.conf`, which sshd reads after the provider's files and so ignores where one of
   them sets the same keyword first — on Rackhost (`00-apiv3.conf`: password and root login on) the step failed

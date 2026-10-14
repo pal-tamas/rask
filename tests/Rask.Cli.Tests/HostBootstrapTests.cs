@@ -26,7 +26,7 @@ public class HostBootstrapPlanTests
         User: "deploy", IsRoot: false, HasSystemd: true,
         DockerInstalled: true, DockerUsable: true, InDockerGroup: true, CanSudo: true,
         HasApt: true,
-        UfwInstalled: true, UfwActive: true, DockerFirewall: "v1:80,443", SshPorts: [22],
+        UfwInstalled: true, UfwActive: true, DockerFirewall: "v2:80,443", SshPorts: [22],
         SshConfigInclude: true, SshdReadable: true,
         SshRootLoginPermitted: false, SshPasswordAuthEnabled: false, SshKbdAuthEnabled: false,
         Complete: true);
@@ -317,7 +317,7 @@ public class HostBootstrapPlanTests
 
         var plan = HostBootstrap.Plan(facts, FullSetup());
 
-        Assert.DoesNotContain("ufw --force enable", AllScripts(plan), StringComparison.Ordinal);
+        Assert.DoesNotContain(plan.AllSteps, s => s.Description.StartsWith("Enable the firewall", StringComparison.Ordinal));
         Assert.Contains("-A DOCKER-USER -j RASK-DOCKER", DockerFirewall(plan), StringComparison.Ordinal);
     }
 
@@ -336,7 +336,7 @@ public class HostBootstrapPlanTests
     {
         // The stale-allow-list trap: the box carries rules for 80/443 while the app has moved to a
         // published port. Skipping on "a block exists" would black-hole the new port.
-        var facts = Ready() with { DockerFirewall = "v1:80,443" };
+        var facts = Ready() with { DockerFirewall = "v2:80,443" };
 
         var plan = HostBootstrap.Plan(facts, FullSetup(port: 9000) with { ContainerPort = 8080 });
 
@@ -346,11 +346,38 @@ public class HostBootstrapPlanTests
     [Fact]
     public void A_block_from_an_older_rask_is_refreshed_even_when_the_ports_match()
     {
-        var facts = Ready() with { DockerFirewall = "v0:80,443" };
+        // v1 is the block that broke every ufw reload: a box carrying it must get the fixed one.
+        var facts = Ready() with { DockerFirewall = "v1:80,443" };
 
         var plan = HostBootstrap.Plan(facts, FullSetup());
 
-        Assert.Contains("v1:80,443", DockerFirewall(plan), StringComparison.Ordinal);
+        Assert.Contains("v2:80,443", DockerFirewall(plan), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_block_declares_ufws_forward_chain_before_jumping_to_it()
+    {
+        // ufw loads after.rules BEFORE it makes ufw-user-forward (that comes with user.rules), so a jump to an
+        // undeclared chain fails the load: "Chain 'ufw-user-forward' does not exist", seen on Ubuntu 26.04.
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        var declare = script.IndexOf(":ufw-user-forward - [0:0]", StringComparison.Ordinal);
+        var jump = script.IndexOf("-A DOCKER-USER -j ufw-user-forward", StringComparison.Ordinal);
+        Assert.True(declare >= 0 && declare < jump, "the chain must be declared before the jump in the same table");
+    }
+
+    [Fact]
+    public void A_reload_ufw_refuses_keeps_the_firewall_enabled_and_says_why()
+    {
+        // A failed start marks ufw disabled, and a disabled ufw skips `ufw reload`: restoring with a reload
+        // would leave the box unfirewalled after its next boot while reporting that nothing was rolled back.
+        var script = DockerFirewall(HostBootstrap.Plan(BareRoot(), FullSetup()));
+
+        var restore = script.IndexOf("mv /etc/ufw/after.rules.rask-bak /etc/ufw/after.rules", StringComparison.Ordinal);
+        var reenable = restore < 0 ? -1 : script.IndexOf("then ufw --force enable", restore, StringComparison.Ordinal);
+        Assert.True(restore >= 0 && reenable > restore, "the failure path must re-enable ufw after putting the file back");
+        Assert.Contains("if [ \"$was_enabled\" = yes ]; then ufw --force enable", script, StringComparison.Ordinal); // only one that was on
+        Assert.Contains("echo \"$out\" >&2", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -447,10 +474,11 @@ public class HostBootstrapPlanTests
         // Docker isn't behind it at all: see A_box_that_already_runs_ufw_still_gets_its_docker_ports_covered.)
         var plan = HostBootstrap.Plan(BareRoot() with { UfwInstalled = true, UfwActive = true }, FullSetup());
 
+        // (The Docker step's failure path may enable ufw again, but only one that was enabled before it ran.)
         var scripts = AllScripts(plan);
         Assert.DoesNotContain("ufw allow", scripts, StringComparison.Ordinal);
         Assert.DoesNotContain("ufw default", scripts, StringComparison.Ordinal);
-        Assert.DoesNotContain("ufw --force", scripts, StringComparison.Ordinal);
+        Assert.DoesNotContain(plan.AllSteps, s => s.Description.StartsWith("Enable the firewall", StringComparison.Ordinal));
     }
 
     [Fact]

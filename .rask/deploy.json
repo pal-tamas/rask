@@ -1,0 +1,10 @@
+{
+  "host": "deploy@rackhost",
+  "domain": "vps.ppta.hu",
+  "name": "ta",
+  "project": "/Users/tamas_pal/RiderProjects/Ta/.claude/worktrees/vps-deploy",
+  "healthPath": "/version",
+  "envKeys": [
+    "TA_DATABASE_URL"
+  ]
+}
