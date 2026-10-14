@@ -42,6 +42,16 @@
 @source not "../UiIconPaths.g.cs";
 
 /*
+  Nor the phone engine: intl-tel-input and Google's libphonenumber compiled, 330 KB of minified script whose
+  identifiers and metadata read to Tailwind as `toast`, `stat`, `collapse` — daisyUI's components, back in the
+  sheet with nothing writing them. Its sources and the table of countries generated from it neither.
+*/
+@source not "../Resources/ui-phone.js";
+@source not "../Resources/ui-phone-utils.js";
+@source not "../Resources/phone";
+@source not "../UiPhoneCountries.g.cs";
+
+/*
   Nor is prose. Tailwind reads every text file in the project, so a comment in the csproj or the build
   targets that mentions `card-body` or `dark:bg-zinc-800` put that rule in the sheet — and in the class
   list an app compiles from — with no component writing it.

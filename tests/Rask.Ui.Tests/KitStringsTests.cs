@@ -323,6 +323,9 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         from path in Directory.EnumerateFiles(Kit, "*.cs", SearchOption.TopDirectoryOnly)
         let file = Path.GetFileName(path)
         where !file.StartsWith("UiIconPaths", StringComparison.Ordinal)
+        // Unicode CLDR's names of the countries, data and not the kit's words: the phone engine names them in
+        // the page's own language once it runs, as the library it drives does.
+        where file != "UiPhoneCountries.g.cs"
         let code = Comment().Replace(File.ReadAllText(path), string.Empty)
         select (file, code, CallSite().Replace(WithoutExceptions(code), "RaskStrings.Get("));
 

@@ -10,8 +10,8 @@ namespace Rask;
 /// </remarks>
 internal static class UiPhoneLook
 {
-    /// <summary>Flux's <c>ui-phone</c>.</summary>
-    internal const string Root = "block w-full min-w-0";
+    /// <summary>Flux's <c>ui-phone</c>: as wide as its column, unless the call site says otherwise.</summary>
+    internal const string Root = "block [:where(&)]:w-full min-w-0";
 
     /// <summary>Flux's input group, which holds the two halves.</summary>
     internal const string Group = "flex w-full";
