@@ -35,6 +35,9 @@ internal static class TenantColumn
     private static readonly MethodInfo StoredInt64 =
         Call((Expression<Func<object, long?>>)(e => EF.Property<long?>(e, Columns.TenantId)));
 
+    private static readonly MethodInfo InlinedBool =
+        Call((Expression<Func<bool, bool>>)(flag => EF.Constant(flag)));
+
     private static readonly MethodInfo UnrestrictedReader =
         Call((Expression<Func<ITenantScoped, bool>>)(scope => Unrestricted(scope)));
 
@@ -84,7 +87,9 @@ internal static class TenantColumn
             Expression.NotEqual(stored, Expression.Constant(null, column)),
             Expression.Equal(stored, current));
 
-        return Expression.Lambda(Expression.OrElse(Expression.Call(UnrestrictedReader, scope), owned), entity);
+        var unrestricted = Expression.Call(InlinedBool, Expression.Call(UnrestrictedReader, scope));
+
+        return Expression.Lambda(Expression.OrElse(unrestricted, owned), entity);
     }
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>

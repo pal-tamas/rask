@@ -326,6 +326,7 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
