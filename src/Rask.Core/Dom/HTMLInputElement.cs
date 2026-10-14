@@ -186,7 +186,8 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var files = OnFiles.Handler;
         if (files is not null)
         {
-            AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+            AppendAttr(sb, "data-rask-on-files",
+                ctx.RegisterHandler(ArgumentIgnoringHandler<IReadOnlyList<RaskFileType>>.Fed(files)));
         }
     }
 
