@@ -9,9 +9,8 @@
 // path data the toolbar's icons are drawn from in C# (UiEditorIcons.cs) — and the content hash
 // UiEditorEngine.Version carries, which UiEditorTests holds to the committed bundle.
 //
-// notices/ holds the two licence texts npm does not deliver: Tiptap's packages ship none (the text is the
-// LICENSE.md of ueberdosis/tiptap at the pinned tag), and Lucide is not a dependency of this bundle at all
-// (lucide-icons/lucide at 0.300.0). Refresh them when a pin moves.
+// notices/ holds the one licence text npm does not deliver: Lucide's, which is not a dependency of this
+// bundle at all (lucide-icons/lucide at 0.300.0). Refresh it when that pin moves.
 import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -51,9 +50,6 @@ for (const [name, directory] of [...packages].sort(([a], [b]) => a.localeCompare
     text = await readFile(join(directory, file), 'utf8').catch(() => '');
     if (text) break;
   }
-
-  // Tiptap publishes its packages without the licence file its repository carries.
-  if (!text && name.startsWith('@tiptap/')) text = await kept('tiptap.LICENSE.md');
   if (!text) throw new Error(`${name} ${manifest.version} (${manifest.license}) ships no licence file: add its text to notices/ and name it here.`);
   notices += section(`${name} ${manifest.version} — ${manifest.license}`, text);
 }

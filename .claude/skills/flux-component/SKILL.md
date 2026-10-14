@@ -534,7 +534,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   the LOOK of the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint —
   what each DOES is in the transcript, by a control of that name made on both pages), the
   look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
-  Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Tiptap's and Lucide's texts are
+  Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Lucide's text, which npm does not deliver, is
   kept in `Resources/editor/notices/`) ship in the package and are written beside the script in `wwwroot/js`.
   On the Server host it is pinned by `tests/Rask.Server.E2E.Tests/EditorOnServerTests.cs`. The `code` item is INLINE code:
   observed on Flux's live `<ui-editor>` (a control named `data-editor="code"` runs `toggleCode` and shows
