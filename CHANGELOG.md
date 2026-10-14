@@ -99,6 +99,14 @@ them until tagged releases begin.
   matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
   it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
   replaces Dependabot's weekly template pull requests.
+- **RASK104: a static member that keeps a component built from a chain entry is flagged (#1201).**
+  `private static readonly Component Empty = Div;` compiled and corrupted pages at random: an entry built during
+  a render is a positional slot of that render, so the static kept one page's slot and shared it with every page
+  after it, and the next entry built at that position stamped its own attributes on it — whether it showed
+  depended on request order. The build now warns at the initializer of a static field or static auto-property
+  (in any type) whose type holds a component and whose initializer builds a chain, and the lightbulb turns it
+  into `static Component Empty => Div;`, which builds a fresh entry per render. A static method, an
+  expression-bodied property and an entry inside a stored lambda are not reported.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
