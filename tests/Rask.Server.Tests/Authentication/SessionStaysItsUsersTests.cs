@@ -264,11 +264,21 @@ public sealed partial class SessionStaysItsUsersTests
         return host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
     }
 
+    // Returns once the attach has adopted what the connection carries, not only once its socket is in place: the
+    // revalidator is asked a moment after that, and what these tests count, watch or replace follows from its answer.
     private static async Task<WebSocket> AttachAsync(RaskTestHost host, string sessionId, string? user)
     {
+        var session = host.Store.Peek(sessionId);
+        var before = session?.ConnectionUser;
         var ws = await ConnectAsync(host, user);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);
+        if (session is not null)
+        {
+            // Every request is signed in afresh, so the adopted principal is never the one a connection before it brought.
+            await WaitFor.True(() => !ReferenceEquals(session.ConnectionUser, before), "the attach adopts the connection's user");
+        }
+
         return ws;
     }
 

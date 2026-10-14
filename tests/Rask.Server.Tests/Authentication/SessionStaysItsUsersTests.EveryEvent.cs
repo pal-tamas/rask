@@ -61,8 +61,6 @@ public sealed partial class SessionStaysItsUsersTests
         var directory = host.Services.GetRequiredService<Directory>();
         var page = await OpenAsync(host, "/open", "alice");
         using var ws = await AttachAsync(host, page.SessionId, "alice");
-        // The attach asks too, a moment after the socket is in place: counted before the directory goes away.
-        await WaitFor.True(() => host.Store.Peek(page.SessionId)!.ConnectionUser is not null, "the attach has asked");
         var asked = Volatile.Read(ref directory.Asked);
 
         directory.Unreachable = true;
