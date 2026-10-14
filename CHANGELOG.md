@@ -351,7 +351,7 @@ them until tagged releases begin.
   so prose such as "a magnifying glass" shipped daisyUI's `.glass`. Tailwind now scans a copy of the kit's C#
   with the comments taken out (`RaskTailwindSourceRoot`, `WriteTailwindScanSourcesTask`): every class the kit's
   code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
-  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`) are named in `ui.precompiled.css` instead. A change under
+  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`, and the chart frame's `aspect-3/1`) are named in `ui.precompiled.css` instead. A change under
   `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
