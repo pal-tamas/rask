@@ -52,7 +52,7 @@ public sealed class RuntimeHookLoadingTests(PlaywrightFixture playwright) : ICla
         var firstResponse = await (await page.APIRequest.GetAsync(session.BaseUrl + "/")).TextAsync();
         await session.HooksLoadedAsync();
 
-        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=([0-9a-f]{16})\"></script><script src=\"/rask/rask-hooks\\.js\\?v=\\1\" data-rask-hooks data-rask-managed></script></body>", firstResponse);
+        Assert.Matches("<script data-rask-texts=\"[^\"]*\" src=\"/rask/rask\\.js\\?v=([0-9a-f]{16})\"></script><script src=\"/rask/rask-hooks\\.js\\?v=\\1\" data-rask-hooks data-rask-managed></script></body>", firstResponse);
         Assert.Equal(1, await session.HookBundleRequestsAsync());
         Assert.Equal(1, await page.Locator("script[data-rask-hooks]").CountAsync());
     }

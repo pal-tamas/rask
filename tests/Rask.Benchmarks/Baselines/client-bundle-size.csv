@@ -232,7 +232,8 @@
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
 # 2026-10-14, `.Confirm("…")` asked before a click or a submit is sent (rask-confirm.ts, both runtimes: confirm() or prompt() matched exactly, in the handler click guard and each host's submit listener): rask.js 104,174 -> 104,481 (+307) and rask.wasm.js 90,985 -> 91,279 (+294). rask-hooks.js is unchanged.
+# 2026-10-14, the reconnect overlay's words read from the page (`data-rask-texts`, eight RaskString keys) and `data-rask-offline` on <html> (rask-offline.ts, both runtimes; the Server one also says it while its socket is down): rask.js 104,481 -> 105,203 (+722) and rask.wasm.js 91,279 -> 91,641 (+362). rask-hooks.js is unchanged.
 bundle,bytes
-rask.js,104481
-rask.wasm.js,91279
+rask.js,105203
+rask.wasm.js,91641
 rask-hooks.js,58415

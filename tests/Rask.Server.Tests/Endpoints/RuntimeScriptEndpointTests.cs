@@ -25,7 +25,7 @@ public class RuntimeScriptEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
         var page = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
-        var src = Regex.Match(page, "<script src=\"(/rask/rask\\.js\\?v=[0-9a-f]+)\"></script></body>").Groups[1].Value;
+        var src = Regex.Match(page, "<script data-rask-texts=\"[^\"]*\" src=\"(/rask/rask\\.js\\?v=[0-9a-f]+)\"></script></body>").Groups[1].Value;
 
         var response = await host.Http.GetAsync(src, TestContext.Current.CancellationToken);
 

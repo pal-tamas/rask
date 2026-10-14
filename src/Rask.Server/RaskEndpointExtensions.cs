@@ -4317,7 +4317,9 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
+        // data-rask-texts: the reconnect overlay's words in the page's language (ConnectionTexts).
+        public Component Render() =>
+            Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash).Data("rask-texts", ConnectionTexts.Json());
     }
 
     internal sealed class RaskLiveMarker

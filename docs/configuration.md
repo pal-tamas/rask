@@ -417,6 +417,15 @@ overlay handles the user-facing side automatically — nothing to configure:
   `SessionGracePeriod` if your users routinely background the tab longer than the 30 s default.
 - **Deploy aware.** A drop caused by the server shutting down is *not* reported as a timeout — see
   [Shutdown and redeploy](#shutdown-and-redeploy).
+- **In the page's language.** Every word of it — the messages and the **Retry now** and **Reload** buttons —
+  is a [`RaskStrings`](localization.md#translating-the-frameworks-own-text) key (`ConnectionReconnecting`,
+  `ConnectionOffline`, `ConnectionStillTrying`, `ConnectionRetry`, `ConnectionReload`, `ConnectionUpdating`,
+  `ConnectionAuthenticating`, `ConnectionSessionTimedOut`). The server writes them on the runtime's own script
+  tag in the page's culture, so the overlay can say them with the server gone; the kit ships formal Hungarian.
+- **Styleable.** While the connection is down, or the browser reports itself offline, `<html>` carries
+  `data-rask-offline` — Livewire's `wire:offline`. A page shows something only then with a variant:
+  `Div.Class("hidden in-data-rask-offline:block")["You are offline — changes will be saved when you are back."]`.
+  On WebAssembly, which has no socket, it follows the browser's online state alone.
 
 > **Using `HandlerTimeout`:** thread `Component.CancellationToken` into the cancellable async work your
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token

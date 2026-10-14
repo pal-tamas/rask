@@ -207,5 +207,14 @@
   "CarouselPrevious": "Előző dia",
   "CarouselNext": "Következő dia",
   "CarouselIndicators": "Válassza ki a megjelenítendő diát",
-  "CarouselShowSlide": "{0}. dia megjelenítése"
+  "CarouselShowSlide": "{0}. dia megjelenítése",
+
+  "ConnectionReconnecting": "Újracsatlakozás…",
+  "ConnectionOffline": "Nincs internetkapcsolat — várakozás az újracsatlakozásra…",
+  "ConnectionStillTrying": "Az újracsatlakozás még folyamatban van…",
+  "ConnectionRetry": "Újrapróbálás most",
+  "ConnectionReload": "Újratöltés",
+  "ConnectionUpdating": "Frissítés…",
+  "ConnectionAuthenticating": "Hitelesítés…",
+  "ConnectionSessionTimedOut": "A munkamenet lejárt. A folytatáshoz töltse újra az oldalt."
 }

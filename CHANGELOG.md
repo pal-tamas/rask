@@ -92,6 +92,14 @@ them until tagged releases begin.
   (Livewire's `.prompt`) lets the action go only when the reader types the name exactly. On a `Form` it asks before
   the submit, on a submit button before the submit it makes. Refused, nothing leaves the browser — not the event,
   and not the fields waiting to go with it. Both hosts (`rask-confirm.ts`); `docs/forms.md#asking-before-an-action`.
+- **The reconnect overlay speaks the page's language, and `<html>` says `data-rask-offline` while the page cannot
+  reach its app (Livewire's `wire:offline`).** Before: "Reconnecting…", "You're offline — waiting to reconnect…",
+  "Retry now" and "Your session timed out…" were English in `rask.js` whatever the page's language. After: they
+  are eight `RaskString` keys (`ConnectionReconnecting` … `ConnectionSessionTimedOut`, formal Hungarian in the
+  kit), written on the runtime's `<script>` as `data-rask-texts` in the page's culture. And `<html>` carries
+  `data-rask-offline` while the browser reports itself offline or the Server's socket is down, on both hosts, so a
+  page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. The runtime `<script>` now has the
+  attribute before its `src`. `docs/configuration.md#reconnect-ux`.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only

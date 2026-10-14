@@ -54,6 +54,7 @@ import { answered, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
+import { connectionIs } from "../../Rask.Core/Resources/rask-offline.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -243,6 +244,23 @@ import {
     window.addEventListener("pageshow", (e: PageTransitionEvent) => {
         if (e.persisted) authWatch.noticed();
     });
+    // The overlay's words, in the page's language: the server writes them on the runtime's own <script> as
+    // `data-rask-texts` (a JSON array, in the order below) — RaskStrings.Get, so an app's translation wins. Read
+    // when shown, because a language switch rewrites the attribute. The English is what a page without it says.
+    const CONNECTION_TEXTS = ["Reconnecting…", "You're offline — waiting to reconnect…", "Still trying to reconnect…",
+        "Retry now", "Reload", "Updating…", "Authenticating…", "Your session timed out. Reload to continue."];
+    const [T_RECONNECTING, T_OFFLINE, T_STILL_TRYING, T_RETRY, T_RELOAD, T_UPDATING, T_AUTHENTICATING, T_TIMED_OUT] =
+        [0, 1, 2, 3, 4, 5, 6, 7];
+    function connectionText(index: number): string {
+        try {
+            const raw = document.querySelector("script[data-rask-texts]")?.getAttribute("data-rask-texts");
+            const said = raw ? JSON.parse(raw) as unknown : null;
+            if (Array.isArray(said) && typeof said[index] === "string") return said[index] as string;
+        } catch (e) {
+            // A page that says nothing legible says it in English.
+        }
+        return CONNECTION_TEXTS[index];
+    }
     const overlay = installOverlay();
     // The reconnect overlay doubles as the auth-handshake indicator. During a sign-in/out the
     // socket is deliberately closed and reconnected to pick up the new cookie; that reconnect is
@@ -250,8 +268,6 @@ import {
     // instead of "Reconnecting…" for its duration.
     const overlayMsg = overlay.querySelector(".rask-overlay__msg");
     let authInProgress = false;
-    const RECONNECT_MSG = "Reconnecting…";
-    const AUTH_MSG = "Authenticating…";
     // Wait this long after a drop before showing the full-screen overlay, so a sub-second network blip
     // that reconnects fast never flashes the blur + inert freeze over the whole app.
     const OVERLAY_GRACE_MS = 700;
@@ -267,7 +283,6 @@ import {
     // a blue-green swap moves the proxy to the replacement BEFORE stopping this one, so the replacement
     // is already serving by the time we get here.
     const SHUTDOWN_RELOAD_MS = 250;
-    const UPDATING_MSG = "Updating…";
     // Where the pre-reload scroll/focus snapshot lives. Keyed by path so a reload that lands somewhere
     // else (a redirect, a changed route) never restores a position from an unrelated page.
     const RESTORE_KEY = "rask:restore";
@@ -355,6 +370,7 @@ import {
     // an HTTP stream names its session in the request that opened it, so there is no hello to send.
     function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
         open = true;
+        connectionIs(false);
         attempt = 0;
         suppressEvents = false;
         if (sendHello) {
@@ -380,7 +396,7 @@ import {
         // Auth reconnect completed — restore the default message for any future drop.
         if (authInProgress) {
             authInProgress = false;
-            setOverlayMessage(RECONNECT_MSG);
+            setOverlayMessage(connectionText(T_RECONNECTING));
         }
         hideOverlay();
     }
@@ -548,7 +564,7 @@ import {
                 overlayTimer = null;
             }
             showOverlay();
-            setOverlayMessage(UPDATING_MSG);
+            setOverlayMessage(connectionText(T_UPDATING));
             setRetryButton(null);
             return;
         }
@@ -627,7 +643,7 @@ import {
                 overlayTimer = null;
             }
             showOverlay();
-            setOverlayMessage(UPDATING_MSG);
+            setOverlayMessage(connectionText(T_UPDATING));
             setRetryButton(null);
             attempt = 0;
             connect();
@@ -635,6 +651,8 @@ import {
         }
         open = false;
         resetPending();
+        // The page cannot reach its app: `data-rask-offline` on <html> (rask-offline.ts) until the socket is back.
+        connectionIs(true);
         // Freeze interaction immediately (inert) so events during the outage can't queue up and replay
         // as duplicate submits on reconnect. The *visible* blur overlay, by contrast, is debounced: an
         // auth handshake is deliberate (show at once), but an unexpected drop waits OVERLAY_GRACE_MS so a
@@ -689,14 +707,14 @@ import {
         // appears once the replacement is clearly not coming — a deploy CAN fail, and leaving the user on
         // a frozen "Updating…" with nothing to click would be worse than the reconnect state it replaced.
         if (serverShuttingDown) {
-            setOverlayMessage(UPDATING_MSG);
-            setRetryButton(escalated ? "Retry now" : null);
+            setOverlayMessage(connectionText(T_UPDATING));
+            setRetryButton(escalated ? connectionText(T_RETRY) : null);
             return;
         }
         setOverlayMessage(escalated
-            ? (offline ? "You're offline — waiting to reconnect…" : "Still trying to reconnect…")
-            : RECONNECT_MSG);
-        setRetryButton(escalated ? "Retry now" : null);
+            ? connectionText(offline ? T_OFFLINE : T_STILL_TRYING)
+            : connectionText(T_RECONNECTING));
+        setRetryButton(escalated ? connectionText(T_RETRY) : null);
     }
 
     // Retry immediately: cancel the backoff wait, reset the attempt counter, and reconnect now.
@@ -738,8 +756,8 @@ import {
         saveRestoreFields();
         setInert(true);
         showOverlay();
-        setOverlayMessage(UPDATING_MSG);
-        setRetryButton("Reload");
+        setOverlayMessage(connectionText(T_UPDATING));
+        setRetryButton(connectionText(T_RELOAD));
         setTimeout(function () { location.reload(); },
             devMode ? DEV_RESTART_RELOAD_MS : SHUTDOWN_RELOAD_MS);
     }
@@ -1068,8 +1086,8 @@ import {
         // reload), just sooner. Production keeps the 4s grace and the accurate wording.
         setOverlayMessage(devMode
             ? "Server restarted — reloading…"
-            : "Your session timed out. Reload to continue.");
-        setRetryButton("Reload");
+            : connectionText(T_TIMED_OUT));
+        setRetryButton(connectionText(T_RELOAD));
         setTimeout(function () { location.reload(); },
             devMode ? DEV_RESTART_RELOAD_MS : SESSION_EXPIRED_RELOAD_MS);
     }
@@ -1128,7 +1146,7 @@ import {
         spinner.setAttribute("aria-hidden", "true");
         const msg = document.createElement("span");
         msg.className = "rask-overlay__msg";
-        msg.textContent = "Reconnecting…";
+        msg.textContent = connectionText(T_RECONNECTING);
         // Manual action button — hidden until the reconnect escalates (Retry now) or the session
         // expires (Reload). One handler routes both via retryNow().
         const retry = document.createElement("button");
@@ -1671,7 +1689,7 @@ import {
         // The imminent socket close + reconnect is an auth step — show "Authenticating…" up front
         // so the user never sees "Reconnecting…" for a deliberate sign-in/out.
         authInProgress = true;
-        setOverlayMessage(AUTH_MSG);
+        setOverlayMessage(connectionText(T_AUTHENTICATING));
         showOverlay();
         fetch(prependBase("/_rask/auth/redeem"), {
             method: "POST",
