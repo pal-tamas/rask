@@ -24,7 +24,7 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // item's stand-in for its count carried the word as a marker's value — which this guard read as written.
     // The stand-in is Flux's navlist count now, so the word is what it always was: prose.
     // "fieldset", "footer" and "textarea" joined when the daisy components that wrote them were deleted
-    // (UiFormField, UiFooter): the words are Flux's own prose (a card's footer, the fieldset, the textarea),
+    // (the daisy form field and footer): the words are Flux's own prose (a card's footer, the fieldset, the textarea),
     // the scaffolded templates still draw daisyUI's, and the rules go with the plugin.
     private static readonly string[] _knownFromProse =
         ["badge", "card", "collapse", "fieldset", "footer", "skeleton", "stat", "textarea", "toast"];
