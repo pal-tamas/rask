@@ -2327,7 +2327,7 @@ public static partial class RaskEndpointExtensions
             var rebuilt = await ResumeAttachAsync(
                 resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
-            ReportRefusedAttach(sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
+            ReportRefusedAttach(store, sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
             return rebuilt;
         }
 
@@ -2369,7 +2369,8 @@ public static partial class RaskEndpointExtensions
     // a fingerprint of the id, never the id — that is the secret a holder drives a session with — and nobody: no
     // claim and no token. An id this host never had whose page was rebuilt from a resume record is every tab after
     // a deploy, and is not reported.
-    private static void ReportRefusedAttach(string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
+    private static void ReportRefusedAttach(
+        LiveSessionStore store, string sessionId, LiveSession? existing, ClaimsPrincipal user, bool rebuilt)
     {
         if (existing is null && rebuilt)
         {
@@ -2384,7 +2385,7 @@ public static partial class RaskEndpointExtensions
         };
         // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time;
         // the line in the log is not.
-        if (!RefusedAttachLines.Admit())
+        if (!store.RefusedAttachLines.Admit())
         {
             return;
         }
