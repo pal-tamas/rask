@@ -76,12 +76,8 @@ public sealed partial class SessionStaysItsUsersTests
         using var ws = await AttachAsync(host, page.SessionId, "alice");
         causes.Clear();
 
-        var session = host.Store.Peek(page.SessionId)!;
         await ClickAsync(host, ws, page.Save);
-        // The save has run, but its dispatch is still drawing: a tick now would join that dispatch's own render.
-        await WaitFor.True(() => session.PendingHandlers == 0, "the click's dispatch has finished");
-        await session.LastHandlerTask;
-        session.LastUserCheck = 0;
+        host.Store.Peek(page.SessionId)!.LastUserCheck = 0;
         host.Services.GetRequiredService<Ticker>().Tick();
         await WaitFor.True(() => causes.Count == 2, "the pushed render asks");
 
@@ -162,13 +158,17 @@ public sealed partial class SessionStaysItsUsersTests
     }
 
     [Fact]
-    public void Only_the_first_few_refused_attaches_of_a_window_are_written_to_the_log()
+    public void Only_the_first_few_refused_attaches_of_a_window_are_written_to_the_log_and_the_next_window_starts_afresh()
     {
-        RefusedAttachLines.ResetForTests();
+        var clock = new StoppedClock();
+        var lines = new RefusedAttachLines(() => clock);
 
-        var written = Enumerable.Range(0, RefusedAttachLines.PerWindow + 30).Count(static _ => RefusedAttachLines.Admit());
+        var first = Enumerable.Range(0, RefusedAttachLines.PerWindow + 30).Count(_ => lines.Admit());
+        clock.Advance(TimeSpan.FromSeconds(10));
+        var next = Enumerable.Range(0, 5).Count(_ => lines.Admit());
 
-        Assert.Equal(RefusedAttachLines.PerWindow, written);
+        Assert.Equal(RefusedAttachLines.PerWindow, first);
+        Assert.Equal(5, next);
     }
 
     // Over https a neighbouring subdomain can plant a plain cookie for the whole site. Only the name the browser
