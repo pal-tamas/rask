@@ -49,6 +49,9 @@ them. On SQLite you will still usually run one, because SQLite is single-writer,
 work by polling and writing sequentially. Need a job to commit atomically with a business change? Raise a domain event and deliver it with
 [Rask.Outbox](https://www.nuget.org/packages/Rask.Outbox) instead — the two pillars are complementary.
 
+**Lanes.** `Jobs.Enqueue(job).InLane(pump.Id)`: jobs of one lane run one at a time, different lanes side by side - a
+ten-minute job holds up its own lane only. Adds the `Lane` column: `rask db add AddJobLane && rask db update`.
+
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the

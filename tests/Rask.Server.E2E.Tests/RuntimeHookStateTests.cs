@@ -177,8 +177,8 @@ public sealed partial class StateHookPage : Component
             .Style("position:fixed;left:0;bottom:0;width:300px;padding:20px")[
             _toasts.Select(height => (Component)Div.Key(height.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Role("status")
-                // Not the same instant: two presses in one frame would race each other's handler ids.
-                .Attributes(("data-rask-dismiss-after", height == 40 ? "1000" : "1300"), ("data-rask-dismiss-hold", "pointer"))
+                // The same instant, on purpose: the two presses must not race each other's handler ids (#1202).
+                .Attributes(("data-rask-dismiss-after", "1000"), ("data-rask-dismiss-hold", "pointer"))
                 .Style($"height:{height}px;box-sizing:border-box")[
                 Button.Attributes(("data-rask-dismiss", null)).OnClick(() => { _toasts.Remove(height); _dismissed++; })["Dismiss"]
             ]).ToArray()

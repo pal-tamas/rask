@@ -86,12 +86,16 @@ check "garbage >= 22.12.0"                     no  "$(ge 'not-a-version' 22.12.0
 
 # --- the SHIPPED Node floor ------------------------------------------------------------------
 # Against the real default rather than a literal, so this pins what the installer actually does. The
-# floor decides whether an existing Node is LEFT ALONE, and it is the Active LTS line the island
-# toolchains track. 24.14.0 is the exact machine that installed cleanly and then could not scaffold (#886).
+# floor decides whether an existing Node is LEFT ALONE, and it is the newest Active LTS release, which
+# scripts/upstream/node-lts.sh moves — so the checks are relative to it. 24.14.0 is the exact machine that
+# installed cleanly and then could not scaffold (#886).
 echo "==> the shipped RASK_INSTALL_NODE_MIN"
+_min_major="${RASK_INSTALL_NODE_MIN%%.*}"
+_min_minor="$(printf '%s' "$RASK_INSTALL_NODE_MIN" | cut -d. -f2)"
 check "24.14.0 is refused (the #886 machine)"  no  "$(ge v24.14.0 "$RASK_INSTALL_NODE_MIN")"
-check "24.15.0 satisfies it"                   yes "$(ge v24.15.0 "$RASK_INSTALL_NODE_MIN")"
-check "the current LTS satisfies it"           yes "$(ge v24.20.0 "$RASK_INSTALL_NODE_MIN")"
+check "the shipped LTS release satisfies it"   yes "$(ge "v$RASK_INSTALL_NODE_MIN" "$RASK_INSTALL_NODE_MIN")"
+check "a later release on the line does too"   yes "$(ge "v$_min_major.$((_min_minor + 1)).0" "$RASK_INSTALL_NODE_MIN")"
+check "an earlier release on the line does not" no "$(ge "v$_min_major.$((_min_minor - 1)).0" "$RASK_INSTALL_NODE_MIN")"
 check "22.12.0 no longer satisfies it"         no  "$(ge v22.12.0 "$RASK_INSTALL_NODE_MIN")"
 
 # --- rask_dotnet_ok --------------------------------------------------------------------------

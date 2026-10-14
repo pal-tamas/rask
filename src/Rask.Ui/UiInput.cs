@@ -255,9 +255,9 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             ? Input.Bind(bind).Validate(Validate).AfterBind(Committed).Live(Live).Blur(Blur).Debounce(Debounce)
             : Input.Value(Masked(Value)).OnChange(Changed);
 
-        if (Host is { } host)
+        if (Host is not null)
         {
-            input = input.Role("combobox").Autocomplete("off").OnKeyDown(e => host.OnKeyDown(e)).OnClick(() => host.OnClick());
+            input = input.Role("combobox").Autocomplete("off");
         }
 
         if (Mask is { } mask)

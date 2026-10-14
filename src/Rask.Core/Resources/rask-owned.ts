@@ -34,6 +34,10 @@ interface Seam {
     acting?: Element | null;
     /** How many things the runtime is doing right now that no reader asked for (`unasked`). */
     unasked?: number;
+    /** What each field that waits for a pause last told its handler (`data-rask-on-pause`, rask-input.ts). */
+    told?: WeakMap<Element, string>;
+    /** Ends the pause a field is counting: its handler hears the field now (`now`), or nothing. Set by rask-input.ts. */
+    hear?: (el: Element, now: boolean) => void;
 }
 
 /**
@@ -66,6 +70,7 @@ export const seam: Seam = scope.__raskHookSeam
 seam.said ||= new WeakMap<Element, Word>();
 seam.waiting ||= new Set<Element>();
 seam.ours ||= new WeakMap<Element, Ours>();
+seam.told ||= new WeakMap<Element, string>();
 
 const owned = seam.owned;
 

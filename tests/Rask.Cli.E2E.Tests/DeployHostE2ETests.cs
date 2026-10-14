@@ -123,7 +123,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     private async Task<string> SqlAsync(string sql)
     {
         var (exit, output) = await host.DockerAsync(
-            "run", "--rm", "-v", "backupapp-data:/data", "alpine:3.21",
+            "run", "--rm", "-v", "backupapp-data:/data", "alpine:3.24",
             "sh", "-c", $"apk add --no-cache sqlite >/dev/null && sqlite3 /data/app.db \"{sql}\"");
         Assert.True(exit == 0, $"sqlite in the volume failed: {output}");
         return output.Trim();
@@ -178,7 +178,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         File.WriteAllText(
             Path.Combine(project, "Dockerfile"),
             """
-            FROM docker.io/library/alpine:3.20
+            FROM docker.io/library/alpine:3.24
             EXPOSE 8080
             CMD ["sleep", "600"]
             """);

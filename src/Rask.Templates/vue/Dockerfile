@@ -15,8 +15,9 @@ RUN apt-get update \
 # them, so code edits reuse the cache.
 COPY ["Company.RaskServer.csproj", "./"]
 RUN dotnet restore
-COPY ["client/package.json", "client/package-lock.json", "client/"]
-RUN cd client && npm ci --no-audit --no-fund
+# The lockfile is the one the first build wrote: the template ships none, its versions are chosen at `rask new`.
+COPY ["client/package*.json", "client/"]
+RUN cd client && if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 COPY . .
 RUN dotnet publish "Company.RaskServer.csproj" -c Release -o /app --no-restore
 
@@ -26,7 +27,7 @@ COPY --from=build /app .
 
 # rask:if cqrs data
 # The replicator binary Program.cs drives when Rask__Litestream__ReplicaUrl is set (see docs/sqlite.md).
-COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=litestream/litestream:0.5.17 /usr/local/bin/litestream /usr/local/bin/litestream
 
 
 # rask:end

@@ -391,8 +391,8 @@ public sealed class SpaTemplateTests
         var dockerfile = Content(Generate(new ServerBatteries { Docker = true }), "/Dockerfile");
 
         Assert.Contains("COPY [\"Shop.csproj\", \"./\"]", dockerfile, StringComparison.Ordinal);
-        Assert.Contains("COPY [\"client/package.json\", \"client/package-lock.json\", \"client/\"]", dockerfile, StringComparison.Ordinal);
-        Assert.Contains("npm ci", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("COPY [\"client/package*.json\", \"client/\"]", dockerfile, StringComparison.Ordinal);
+        Assert.Contains("if [ -f package-lock.json ]; then npm ci", dockerfile, StringComparison.Ordinal);
         Assert.DoesNotContain("Shop/", dockerfile, StringComparison.Ordinal);
     }
 

@@ -15,7 +15,8 @@ public sealed class MissingLeaseColumnTests
     {
         var path = Path.Combine(Path.GetTempPath(), $"rask-nolease-{Guid.NewGuid():N}.db");
         await using var h = new JobsHarness(dbPath: path);
-        // Recreate the Jobs table as it looked before this change — no ClaimToken, no ClaimedUntil.
+        // Recreate the Jobs table as it looked before this change — no ClaimToken, no ClaimedUntil (and every later column in place,
+        // so it is the lease columns the processor trips over first).
         await using (var db = h.NewContext())
         {
             await db.Database.ExecuteSqlRawAsync("DROP TABLE Job;", cancellationToken: TestContext.Current.CancellationToken);
@@ -29,7 +30,10 @@ public sealed class MissingLeaseColumnTests
                     ProcessedAt TEXT NULL,
                     Attempts INTEGER NOT NULL,
                     Error TEXT NULL,
-                    CreatedAt TEXT NOT NULL);
+                    CreatedAt TEXT NOT NULL,
+                    UserId TEXT NULL,
+                    TenantId TEXT NULL,
+                    Lane TEXT NULL);
                 """, cancellationToken: TestContext.Current.CancellationToken);
         }
 
