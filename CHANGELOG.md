@@ -326,6 +326,17 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A refusal Rask.Data words as a sentence is no longer logged as a database error.** A delete refused through
+  `WhenReferenced("…")` or a relationship's `OnDelete(…, "…")`, and a unique violation of an `IsUnique("…")`
+  index, reach the app as the model's sentence — yet EF Core still wrote two Error lines for each,
+  `Microsoft.EntityFrameworkCore.Update[10000]` ("An exception occurred in the database while saving changes…")
+  and `Database.Command[20102]` ("Failed executing DbCommand"), so every refused delete was an error in
+  production. EF Core logs both before any interceptor hears of the failure, so no interceptor can take them
+  back: a `RaskDbContext` now logs through a factory that holds the failed command until the save's failure is
+  known, drops both when the model has a sentence for it, and writes one Debug line on `Rask.Data` instead. A
+  failure with no sentence is logged exactly as before, in the same order; a context of your own that does not
+  derive from `RaskDbContext` is unchanged.
+
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
@@ -787,6 +798,11 @@ them until tagged releases begin.
   what says it. The value-object sentence for a number, date or id now comes from the catalog too.
 
 ### Docs
+
+- **The data guide says when a unique rule is asked.** "When a bound field is committed" read as "on blur": with
+  the default binding a field is committed with the reader's next action — a click, a submit — and a `.Blur()`
+  field on leaving it. A unique-ruled field keeps the default binding, so a taken name is told at Save
+  ([data.md](docs/data.md#what-a-form-over-the-model-asks-by-itself), `llms.txt`).
 
 - **The guides lead with Flux's controls and the conventions an app is written by.** The tutorial's pages declare
   `PageTitle` and its grid gives every column but one a width; the data grid guide has

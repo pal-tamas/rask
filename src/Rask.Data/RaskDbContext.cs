@@ -86,6 +86,11 @@ public class RaskDbContext : DbContext, ITenantScoped
     ///         <c>ConfigureWarnings</c> so an app that genuinely wants the check back can still
     ///         <c>Throw</c> or <c>Log</c> it — a later call wins.
     ///     </para>
+    ///     <para>
+    ///         Also keeps EF Core's Error entries for a save it refused out of the log, when the model words that
+    ///         refusal as a sentence (<c>IsUnique("…")</c>, <c>WhenReferenced("…")</c>). Every other failure is
+    ///         logged as it always was.
+    ///     </para>
     /// </remarks>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -94,6 +99,9 @@ public class RaskDbContext : DbContext, ITenantScoped
         base.OnConfiguring(optionsBuilder);
         optionsBuilder.ConfigureWarnings(warnings =>
             warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
+
+        // A refusal the model words as a sentence is the app's answer, not a database error to log.
+        ViolationLoggingOptionsExtension.Add(optionsBuilder);
     }
 
     /// <inheritdoc />
