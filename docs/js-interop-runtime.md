@@ -535,6 +535,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | `data-rask-switch` | a `<button role="switch">` with no handler | A press flips `aria-checked` and `data-checked` in the browser, both held against the morph; nothing is sent. Enter and Space are the button's own; a `disabled` one takes no press. |
+| `data-rask-submit-keys="Mod+Enter"` / `="Enter"` | an element around a `<textarea>` or an editable area — a message box | A keydown typed into it that names the key submits the field's form, as its submit button would (validation first, then `submit`), and the key is kept from the field: `Mod+Enter` is Ctrl+Enter or Cmd+Enter, `Enter` is any Enter but Shift+Enter. Outside a form the key is left alone. |
 | `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
 
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's

@@ -2263,3 +2263,25 @@
     }
   }
 }
+
+/*
+  Composer (Flux's flux:composer). Flux's script sets the textarea's height from its text, between `rows` and
+  `max-rows` lines, and turns `overflow-y` from hidden to auto once the text passes the last of them. Here the
+  box sizes itself to its content between the lines its style names (`lh`, so a phone's 16px text keeps the
+  count), and a scroll-driven animation is the switch: it runs only while the box can scroll, which is when the
+  text is taller than the most lines it may show.
+*/
+@layer rask {
+  @keyframes ui-composer-scrolls {
+    from, to { overflow-y: auto; }
+  }
+
+  [data-ui-composer] > div > textarea {
+    field-sizing: content;
+    min-height: calc(var(--ui-composer-rows, 2) * 1lh + 0.75rem);
+    max-height: calc(var(--ui-composer-max-rows, 10) * 1lh + 0.75rem);
+    overflow-y: hidden;
+    animation: ui-composer-scrolls linear both;
+    animation-timeline: scroll(self y);
+  }
+}
