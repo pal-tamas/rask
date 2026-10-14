@@ -160,6 +160,8 @@ const NATIVE = {
   'ui-tab-group': 'div', 'ui-tabs': 'div', 'ui-tabs-scroll-area': 'div',
   // The carousel: plain boxes around a native scroller, which the runtime's hook reports on (rask-carousel.ts).
   'ui-carousel': 'div', 'ui-carousel-slide': 'div', 'ui-carousel-button': 'div', 'ui-carousel-indicators': 'div',
+  // The phone field: a box around a native tel input and the select's elements, which the phone engine drives.
+  'ui-phone': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
@@ -336,7 +338,8 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   // A <template> is never drawn — Flux keeps a prototype of every chart node in one, and inside an <svg> a
   // template's children are ordinary DOM children — so it is no child on either side. Nor is an EXTRA node.
   // Nor is a <path> outside an <svg>: Flux's editor leaves one beside the link panel's check icon, and no browser draws it.
-  const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
+  // Nor is a <script>: Flux's phone carries its list of countries in one, data its script reads, never drawn.
+  const stray = (c, n) => c.tag === 'template' || c.tag === 'script' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
   const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input') && !boundField(b, c));

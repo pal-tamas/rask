@@ -4000,6 +4000,7 @@ Rask.Core.Globalization.RaskString.OtpCharacter = 99 -> Rask.Core.Globalization.
 Rask.Core.Globalization.RaskString.PaginationNext = 14 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PaginationPrevious = 13 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PaginationSummary = 12 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PhoneChangeCountry = 189 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerClear = 5 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerHour = 2 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerMinute = 3 -> Rask.Core.Globalization.RaskString

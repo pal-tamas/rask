@@ -236,6 +236,22 @@
   </ItemGroup>
 
   <!--
+    THE PHONE ENGINE: Resources/ui-phone.js (intl-tel-input with the kit's picker, built by
+    Resources/phone/build.mjs and committed) and Resources/ui-phone-utils.js (the library's own libphonenumber
+    build), packed beside the targets for the editor engine's reason. Their notices (MIT and Apache-2.0)
+    travel with them: at the package's root, and beside the targets, which write them next to the scripts.
+  -->
+  <ItemGroup>
+    <None Include="Resources\ui-phone.js" Pack="true" PackagePath="build\rask-ui-phone.js" Visible="false"/>
+    <None Include="Resources\ui-phone.js" Pack="true" PackagePath="buildTransitive\rask-ui-phone.js" Visible="false"/>
+    <None Include="Resources\ui-phone-utils.js" Pack="true" PackagePath="build\rask-ui-phone-utils.js" Visible="false"/>
+    <None Include="Resources\ui-phone-utils.js" Pack="true" PackagePath="buildTransitive\rask-ui-phone-utils.js" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="rask-ui-phone.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="build\rask-ui-phone.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="buildTransitive\rask-ui-phone.LICENSES.txt" Visible="false"/>
+  </ItemGroup>
+
+  <!--
     UI.FLAG'S DRAWINGS: Flags/*.svg, country-flag-icons' 3:2 set (MIT), vendored by scripts/flux/flags.mjs.
     Packed beside the targets and NOT embedded, for the editor engine's reason: a browser-WASM app downloads
     this assembly whole, and 172 KB of flags is too much for an app that shows three. An app that sets

@@ -176,6 +176,10 @@ src/Rask.Wasm/Browser/rask-sw.js
 # …and the editor's engine, for a project that sets RaskUiEditor=true (build/Rask.Ui.targets).
 **/wwwroot/js/rask-ui-editor.js
 **/wwwroot/js/rask-ui-editor.LICENSES.txt
+# …and the phone engine, its utils and their notices, for an app that gets the engine (RaskUiPhoneEngine).
+**/wwwroot/js/rask-ui-phone.js
+**/wwwroot/js/rask-ui-phone-utils.js
+**/wwwroot/js/rask-ui-phone.LICENSES.txt
 # …and Ui.Flag's drawings, for a project that sets RaskUiWriteFlags=true: copied from src/Rask.Ui/Flags.
 **/wwwroot/flags/
 # And the kit's Tailwind sources beside an app's own stylesheet, for an app that compiles the kit into

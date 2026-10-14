@@ -233,6 +233,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("CarouselNext", 0),
         ("CarouselIndicators", 0),
         ("CarouselShowSlide", 1),
+        ("PhoneChangeCountry", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

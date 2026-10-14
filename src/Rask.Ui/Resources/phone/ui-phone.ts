@@ -118,6 +118,10 @@ export function mount(root: HTMLElement, kit: Kit): void {
     });
     button.closest("[data-ui-phone-country]")?.setAttribute("data-ui-phone-ready", "");
     own(field, button.closest("[data-ui-phone-country]"), "data-ui-phone-ready");
+    // A list the reader opened before the engine was here is filled now.
+    if (panel.matches(":popover-open")) {
+        opened(field);
+    }
 }
 
 /** The value the field's bound input should hold now. */
@@ -190,23 +194,40 @@ function paint(field: Field): void {
     const label = field.button.getAttribute("data-country-label") || "";
     field.button.setAttribute("aria-label", country ? label + ": " + country.name + " (+" + country.dialCode + ")" : label);
     own(field, field.button, "aria-label");
-    // The button holds the picked country's copy and, for no country, Flux's globe: one of the two is shown.
-    const picked = field.button.querySelector<HTMLElement>("[data-ui-phone-selected] [data-value]");
-    const globe = field.button.querySelector<HTMLElement>("[data-ui-phone-selected] [data-ui-select-placeholder]");
-    if (picked && globe) {
-        picked.hidden = !country;
-        globe.hidden = !!country;
-        picked.setAttribute("data-value", country ? country.iso2 : "");
-        if (country) {
-            fill(picked, country);
-        }
-    }
+    showIn(field.button.querySelector("[data-rask-opaque]"), country);
     if (field.rows) {
         for (const row of field.rows) {
             mark(field, row, "data-selected", !!country && countryOf.get(row)!.iso2 === country.iso2);
             row.setAttribute("aria-selected", country && countryOf.get(row)!.iso2 === country.iso2 ? "true" : "false");
             own(field, row, "aria-selected");
         }
+    }
+}
+
+// The button shows the picked country's copy or, for no country, Flux's globe: one of the two, swapped for the
+// other from the template the render keeps beside it.
+function showIn(shown: Element | null, country: Country | null): void {
+    if (!shown) {
+        return;
+    }
+    const now = Array.prototype.find.call(shown.children, (el: Element) =>
+        el.hasAttribute("data-value") || el.hasAttribute("data-ui-select-placeholder")) as HTMLElement | undefined;
+    let current = now || null;
+    if (!now || now.hasAttribute("data-value") !== !!country) {
+        const template = shown.querySelector<HTMLTemplateElement>("template[name=" + (country ? "option" : "placeholder") + "]");
+        const copy = template && (template.content.firstElementChild || template.firstElementChild);
+        if (copy) {
+            current = copy.cloneNode(true) as HTMLElement;
+            if (now) {
+                now.replaceWith(current);
+            } else {
+                shown.appendChild(current);
+            }
+        }
+    }
+    if (country && current) {
+        current.setAttribute("data-value", country.iso2);
+        fill(current, country);
     }
 }
 
@@ -250,15 +271,26 @@ function build(field: Field): void {
     if (!template) {
         return;
     }
-    const prototype = template.content.firstElementChild!;
+    // Parsed, a template's row is in its content; built node by node, it is its child.
+    const prototype = template.content.firstElementChild || template.firstElementChild;
+    if (!prototype) {
+        return;
+    }
     const rows: HTMLElement[] = [];
     const fragment = document.createDocumentFragment();
+    // The chosen country's row is the render's (Flux draws it before its list opens): it is taken in where it
+    // falls among the others, and stays the render's. Every other row is the engine's.
+    const drawn = Array.prototype.find.call(field.list.children, (el: Element) =>
+        el.getAttribute("role") === "option" && !el.hasAttribute("data-rask-managed")) as HTMLElement | undefined;
     for (const country of countries(field)) {
-        const row = prototype.cloneNode(true) as HTMLElement;
-        // Not the render's: the runtime's morph and its frame walk pass a node marked so (rask-morph.ts).
-        row.setAttribute("data-rask-managed", "");
-        row.id = field.list.id + "-" + country.iso2;
-        row.setAttribute("value", country.iso2);
+        const taken = !!drawn && drawn.getAttribute("value") === country.iso2;
+        const row = taken ? drawn! : prototype.cloneNode(true) as HTMLElement;
+        if (!taken) {
+            // Not the render's: the runtime's morph and its frame walk pass a node marked so (rask-morph.ts).
+            row.setAttribute("data-rask-managed", "");
+            row.id = field.list.id + "-" + country.iso2;
+            row.setAttribute("value", country.iso2);
+        }
         fill(row, country);
         countryOf.set(row, country);
         rows.push(row);
@@ -409,6 +441,11 @@ export function handle(e: Event): void {
             const row = target.closest<HTMLElement>("[role=option]");
             if (row && countryOf.has(row)) {
                 pick(field, row);
+            } else if (target.closest("[data-ui-select-search] button")) {
+                // The search field's own clear button: the list again, whole, and the field to type into.
+                field.search.value = "";
+                filter(field);
+                field.search.focus();
             }
             break;
         }

@@ -45,13 +45,33 @@ public sealed partial class UiFlag : Component
     /// <summary>Classes for the call site, added to the flag's own.</summary>
     public string? Class { get; set; }
 
+    // A second marker the flag carries for the control it is drawn in: Flux's phone marks its flags.
+    private string? _alsoMarked;
+
+    /// <summary>Marks the flag for the control it is drawn in as well (<c>data-ui-phone-country-flag</c>). The kit's own chain step.</summary>
+    /// <param name="marker">The marker's name, without <c>data-</c>.</param>
+    internal UiFlag AlsoMarked(string marker)
+    {
+        _alsoMarked = marker;
+        // What a generated step does when it writes a new value: the flag is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
+
     /// <inheritdoc />
     protected override Component? Render()
     {
         var source = Src ?? Drawing();
+        var marks = Src is null && Country is { } country ? Marker.With(null, "country", country.ToUpperInvariant()) : Marker.With(null);
+        if (_alsoMarked is { } also)
+        {
+            marks = new Dictionary<string, string?>(marks, StringComparer.Ordinal) { ["data-" + also] = null };
+        }
+
         var frame = Span
             .Class(UiClass.Compose(Frame, Width(), Circle == true ? "aspect-square rounded-full" : "aspect-3/2 rounded-[2px]", Class))
-            .Data(Src is null && Country is { } country ? Marker.With(null, "country", country.ToUpperInvariant()) : Marker.With(null));
+            .Data(marks);
 
         return source is null
             ? frame

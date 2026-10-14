@@ -16,7 +16,7 @@ internal static class UiPhoneEngine
     public const string Path = "/js/rask-ui-phone.js";
 
     /// <summary>The first eight hex digits of the engine's SHA-256: the URL changes when the bytes do.</summary>
-    public const string Version = "f90d8c05";
+    public const string Version = "4918b6c3";
 
     /// <summary>The same for the utils, which the engine asks for beside itself.</summary>
     public const string UtilsVersion = "12d617d0";
