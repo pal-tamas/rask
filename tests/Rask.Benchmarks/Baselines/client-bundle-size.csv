@@ -232,7 +232,8 @@
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
 # 2026-10-14, a list of options kept in the browser (data-rask-list, rask-list.ts: cursor, keys, type-ahead, filter and open state of Ui.Select's listbox and combobox, Ui.Pillbox and Ui.Autocomplete), and a pause the list ends itself when it rewrites its field (rask-input.ts `seam.hear`), measured from a Release build of the merge on main 2890084c2: rask.js 104,174 -> 104,422 (+248), rask.wasm.js 90,985 -> 91,233 (+248), rask-hooks.js 58,415 -> 68,900 (+10,485).
+# 2026-10-14, a form that is submitting takes no second submit, as Livewire's wire:submit (rask-submitting.ts, both runtimes: its submit buttons disabled and its fields readonly at the press, held against the morph, released by the ack or the dispatch), measured from Release builds of main fe1e09f0a and of the merge: rask.js 105,209 -> 106,683 (+1,474) and rask.wasm.js 91,839 -> 93,151 (+1,312). rask-hooks.js is unchanged.
 bundle,bytes
-rask.js,104422
-rask.wasm.js,91233
+rask.js,106683
+rask.wasm.js,93151
 rask-hooks.js,68900
