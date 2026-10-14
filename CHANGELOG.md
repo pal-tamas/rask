@@ -9,6 +9,10 @@ them until tagged releases begin.
 
 ### Security
 
+- **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
+  After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
+  is rebuilt and its URL's version changes with it. Nothing an app sees changes: the same HTML comes out, and
+  Tiptap 3's kit additions (list keys, a trailing paragraph) stay off as Flux's editor has them.
 - **A live page asks who its user is at every event.** Before: `ISessionRevalidator` was asked "at most every 30
   seconds" per session, so a sign-out elsewhere, an expired token or a removed right could be acted under for half
   a minute, and a page that only listened was never asked at all. After: it is asked as a connection attaches,
