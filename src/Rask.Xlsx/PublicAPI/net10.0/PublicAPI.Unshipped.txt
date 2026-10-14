@@ -1,0 +1,88 @@
+#nullable enable
+Rask.Workbooks.Xlsx
+Rask.Workbooks.Xlsx.Day
+Rask.Workbooks.Xlsx.Day.Day() -> void
+Rask.Workbooks.Xlsx.Day.Day(System.DateTime WallClock) -> void
+Rask.Workbooks.Xlsx.Day.Deconstruct(out System.DateTime WallClock) -> void
+Rask.Workbooks.Xlsx.Day.Equals(Rask.Workbooks.Xlsx.Day other) -> bool
+override Rask.Workbooks.Xlsx.Day.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Day.WallClock.get -> System.DateTime
+Rask.Workbooks.Xlsx.Day.WallClock.init -> void
+static Rask.Workbooks.Xlsx.Day.operator !=(Rask.Workbooks.Xlsx.Day left, Rask.Workbooks.Xlsx.Day right) -> bool
+static Rask.Workbooks.Xlsx.Day.operator ==(Rask.Workbooks.Xlsx.Day left, Rask.Workbooks.Xlsx.Day right) -> bool
+Rask.Workbooks.Xlsx.Folded
+Rask.Workbooks.Xlsx.Folded.Count.get -> int
+Rask.Workbooks.Xlsx.Folded.Folded(System.Collections.Generic.IReadOnlyList<object?>! cells) -> void
+Rask.Workbooks.Xlsx.Folded.GetEnumerator() -> System.Collections.Generic.IEnumerator<object?>!
+Rask.Workbooks.Xlsx.Folded.this[int index].get -> object?
+Rask.Workbooks.Xlsx.Formula
+Rask.Workbooks.Xlsx.Formula.Deconstruct(out string! Text, out decimal Now, out bool Whole) -> void
+Rask.Workbooks.Xlsx.Formula.Equals(Rask.Workbooks.Xlsx.Formula other) -> bool
+Rask.Workbooks.Xlsx.Formula.Formula() -> void
+Rask.Workbooks.Xlsx.Formula.Formula(string! Text, decimal Now, bool Whole = false) -> void
+override Rask.Workbooks.Xlsx.Formula.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Formula.Now.get -> decimal
+Rask.Workbooks.Xlsx.Formula.Now.init -> void
+Rask.Workbooks.Xlsx.Formula.Text.get -> string!
+Rask.Workbooks.Xlsx.Formula.Text.init -> void
+Rask.Workbooks.Xlsx.Formula.Whole.get -> bool
+Rask.Workbooks.Xlsx.Formula.Whole.init -> void
+static Rask.Workbooks.Xlsx.Formula.operator !=(Rask.Workbooks.Xlsx.Formula left, Rask.Workbooks.Xlsx.Formula right) -> bool
+static Rask.Workbooks.Xlsx.Formula.operator ==(Rask.Workbooks.Xlsx.Formula left, Rask.Workbooks.Xlsx.Formula right) -> bool
+Rask.Workbooks.Xlsx.Moment
+Rask.Workbooks.Xlsx.Moment.Deconstruct(out System.DateTime WallClock) -> void
+Rask.Workbooks.Xlsx.Moment.Equals(Rask.Workbooks.Xlsx.Moment other) -> bool
+override Rask.Workbooks.Xlsx.Moment.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Moment.Moment() -> void
+Rask.Workbooks.Xlsx.Moment.Moment(System.DateTime WallClock) -> void
+Rask.Workbooks.Xlsx.Moment.WallClock.get -> System.DateTime
+Rask.Workbooks.Xlsx.Moment.WallClock.init -> void
+static Rask.Workbooks.Xlsx.Moment.operator !=(Rask.Workbooks.Xlsx.Moment left, Rask.Workbooks.Xlsx.Moment right) -> bool
+static Rask.Workbooks.Xlsx.Moment.operator ==(Rask.Workbooks.Xlsx.Moment left, Rask.Workbooks.Xlsx.Moment right) -> bool
+Rask.Workbooks.Xlsx.Sheet
+Rask.Workbooks.Xlsx.Sheet.<Clone>$() -> Rask.Workbooks.Xlsx.Sheet!
+Rask.Workbooks.Xlsx.Sheet.Deconstruct(out string! Name, out System.Collections.Generic.IReadOnlyList<string!>! Headings, out System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! Rows, out System.Collections.Generic.IReadOnlyList<object?>? Total) -> void
+Rask.Workbooks.Xlsx.Sheet.Equals(Rask.Workbooks.Xlsx.Sheet? other) -> bool
+override Rask.Workbooks.Xlsx.Sheet.Equals(object? obj) -> bool
+override Rask.Workbooks.Xlsx.Sheet.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Sheet.Headings.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Workbooks.Xlsx.Sheet.Headings.init -> void
+Rask.Workbooks.Xlsx.Sheet.Name.get -> string!
+Rask.Workbooks.Xlsx.Sheet.Name.init -> void
+Rask.Workbooks.Xlsx.Sheet.Rows.get -> System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>!
+Rask.Workbooks.Xlsx.Sheet.Rows.init -> void
+Rask.Workbooks.Xlsx.Sheet.Sheet(string! Name, System.Collections.Generic.IReadOnlyList<string!>! Headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! Rows, System.Collections.Generic.IReadOnlyList<object?>? Total = null) -> void
+override Rask.Workbooks.Xlsx.Sheet.ToString() -> string!
+Rask.Workbooks.Xlsx.Sheet.Total.get -> System.Collections.Generic.IReadOnlyList<object?>?
+Rask.Workbooks.Xlsx.Sheet.Total.init -> void
+static Rask.Workbooks.Xlsx.Sheet.operator !=(Rask.Workbooks.Xlsx.Sheet? left, Rask.Workbooks.Xlsx.Sheet? right) -> bool
+static Rask.Workbooks.Xlsx.Sheet.operator ==(Rask.Workbooks.Xlsx.Sheet? left, Rask.Workbooks.Xlsx.Sheet? right) -> bool
+Rask.Workbooks.Xlsx.Strong
+Rask.Workbooks.Xlsx.Strong.Deconstruct(out object? Value) -> void
+Rask.Workbooks.Xlsx.Strong.Equals(Rask.Workbooks.Xlsx.Strong other) -> bool
+override Rask.Workbooks.Xlsx.Strong.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Strong.Strong() -> void
+Rask.Workbooks.Xlsx.Strong.Strong(object? Value) -> void
+Rask.Workbooks.Xlsx.Strong.Value.get -> object?
+Rask.Workbooks.Xlsx.Strong.Value.init -> void
+static Rask.Workbooks.Xlsx.Strong.operator !=(Rask.Workbooks.Xlsx.Strong left, Rask.Workbooks.Xlsx.Strong right) -> bool
+static Rask.Workbooks.Xlsx.Strong.operator ==(Rask.Workbooks.Xlsx.Strong left, Rask.Workbooks.Xlsx.Strong right) -> bool
+Rask.Workbooks.Xlsx.Sum
+Rask.Workbooks.Xlsx.Sum.Equals(Rask.Workbooks.Xlsx.Sum other) -> bool
+override Rask.Workbooks.Xlsx.Sum.GetHashCode() -> int
+Rask.Workbooks.Xlsx.Sum.Sum() -> void
+static Rask.Workbooks.Xlsx.Sum.operator !=(Rask.Workbooks.Xlsx.Sum left, Rask.Workbooks.Xlsx.Sum right) -> bool
+static Rask.Workbooks.Xlsx.Sum.operator ==(Rask.Workbooks.Xlsx.Sum left, Rask.Workbooks.Xlsx.Sum right) -> bool
+static Rask.Workbooks.Xlsx.Write(params Rask.Workbooks.Xlsx.Sheet![]! sheets) -> byte[]!
+static Rask.Workbooks.Xlsx.Write(string! sheet, System.Collections.Generic.IReadOnlyList<string!>! headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! rows, System.Collections.Generic.IReadOnlyList<object?>? total = null) -> byte[]!
+const Rask.Workbooks.Xlsx.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> string!
+~override Rask.Workbooks.Xlsx.Day.Equals(object obj) -> bool
+~override Rask.Workbooks.Xlsx.Day.ToString() -> string
+~override Rask.Workbooks.Xlsx.Formula.Equals(object obj) -> bool
+~override Rask.Workbooks.Xlsx.Formula.ToString() -> string
+~override Rask.Workbooks.Xlsx.Moment.Equals(object obj) -> bool
+~override Rask.Workbooks.Xlsx.Moment.ToString() -> string
+~override Rask.Workbooks.Xlsx.Strong.Equals(object obj) -> bool
+~override Rask.Workbooks.Xlsx.Strong.ToString() -> string
+~override Rask.Workbooks.Xlsx.Sum.Equals(object obj) -> bool
+~override Rask.Workbooks.Xlsx.Sum.ToString() -> string

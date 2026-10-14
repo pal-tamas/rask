@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
+  returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
+  Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with
+  Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
+  moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
+  `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+
 ### Security
 
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
