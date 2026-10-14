@@ -183,6 +183,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["carousel"] = On<KitOwnFramePage>("carousel"),
         ["hover-gallery"] = On<KitOwnFramePage>("hover-gallery"),
         ["fab"] = On<KitOwnFramePage>("fab"),
+        ["lazy"] = On<KitOwnFramePage>("lazy",
+            new KitGesture("scroll it into view", page => page.Locator("#lazy-placeholder").ScrollIntoViewIfNeededAsync())),
     };
 
     // A modal's own: opened by its trigger, walked, and closed each of the ways a reader closes one.

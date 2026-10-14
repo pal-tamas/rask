@@ -120,7 +120,9 @@ public sealed partial class KitOwnFramePage : KitFramePage
             Part("toggle-heard", Ui.Toggle.Icon(Ui.IconName.SpeakerWave).Label("Mute").Checked(_muted).OnChange(v => _muted = v)),
             Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]]),
             Part("hover-gallery", Ui.HoverGallery[Div["One"], Div["Two"]]),
-            Part("fab", Ui.Fab.AccessibleLabel("Compose").Icon(Ui.IconName.Plus)[Ui.Button.Sm.Key("photo")["Photo"]])
+            Part("fab", Ui.Fab.AccessibleLabel("Compose").Icon(Ui.IconName.Plus)[Ui.Button.Sm.Key("photo")["Photo"]]),
+            // Below the fold, so nothing loads it but the reader coming to it.
+            Part("lazy", Div.Style("height:2400px"), Lazy.Placeholder(Ui.Skeleton.Id("lazy-placeholder"))[Ui.Card[Ui.Heading["Sales"]]])
         ];
 
     private sealed record Node(string Id, string Name, Node[] Children);

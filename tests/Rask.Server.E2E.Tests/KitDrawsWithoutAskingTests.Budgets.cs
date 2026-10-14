@@ -33,6 +33,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
         ["toast: raise one from the page's handler"] = (1, "the page's OnClick"),
         ["toast: dismiss it by its button"] = (1, "the toast leaves the queue the server keeps"),
+        ["lazy: scroll it into view"] = (1, "the browser says the placeholder is in view, and the page mounts what it stands for"),
     };
 
     /// <summary>

@@ -30,6 +30,7 @@ import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
 import "./rask-scroll.js";   // data-rask-scroll-to
 import "./rask-switch.js";   // data-rask-switch
+import "./rask-lazy.js";     // data-rask-lazy
 import "./rask-tabs.js";     // role="tablist": the arrow keys
 import "./rask-menu-keys.js"; // role="menu": the keys, the pick, focus following the cursor
 
