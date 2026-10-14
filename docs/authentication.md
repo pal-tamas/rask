@@ -398,7 +398,14 @@ what is needed. An open page is navigated there in place. A tab whose connection
 and is redirected there by that request: the tab marks the reload with a cookie that lasts thirty seconds and
 names the app it is for — `__Host-rask-ended` over https, which a browser takes from this host alone, so a
 neighbouring subdomain cannot plant it — and the server believes it once, for an anonymous request to that app,
-and removes it. An app with no page at `/login` has nowhere to send them, and serves the page it was asked for.
+and removes it.
+
+The sign-in page need not be the app's. An app with no page at `/login` — one mounted with
+`MapRask<App>(pathBase: "/uj")` beside a site that signs its users in at `/login` — has nothing there its router
+could show, so the page is *loaded* from the site instead of navigated in place, the reloading tab is redirected
+there just the same, and the way back is the page's full address: `/login?returnUrl=%2Fuj%2Fdestinations%3Fpage%3D2`,
+which the site's sign-in can send the reader back to as it is. With a page of its own at `/login` the app shows it
+in place, at `/uj/login`, and the way back is the page's address inside the app (`returnUrl=%2Fdestinations…`).
 
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.

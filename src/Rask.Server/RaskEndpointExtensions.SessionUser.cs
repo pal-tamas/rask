@@ -438,6 +438,11 @@ public static partial class RaskEndpointExtensions
 
     // Where a session whose sign-in ended goes instead of the page it is on, guarded or not: the sign-in page,
     // with the way back. Null once it is there.
+    //
+    // The app's own sign-in page is reached in place, and another application's on this mapping is loaded as a page.
+    // With none, the sign-in page is the site's the app is mounted beside, which no router here can show: the page
+    // is left for it with its full address as the way back, and the session stays one whose sign-in ended until
+    // the browser has gone.
     private static GuardRedirect? SignInAgain(LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         if (!session.SignInEnded)
@@ -445,13 +450,27 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
+        var pageUrl = Rask.Core.Routing.QueryString.Build(path, query);
+        var signInRoutes = session.SignInRoutes?.Invoke() ?? session.Services.GetRequiredService<RouteState>().CurrentTable;
+        if (!HasSignInPage(signInRoutes))
+        {
+            return new GuardRedirect(SignInOutside(LiveOptions.PathBase, pageUrl), string.Empty, AsPage: true, Outside: true);
+        }
+
         session.SignInEnded = false;
-        return string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
-            ? null
-            : new GuardRedirect(
-                RouteAuthorizationGuard.ChallengePath,
-                "?returnUrl=" + Uri.EscapeDataString(Rask.Core.Routing.QueryString.Build(path, query)));
+        if (string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var anotherApplications = session.OwnsPath is { } owns && !owns(RouteAuthorizationGuard.ChallengePath);
+        return new GuardRedirect(
+            RouteAuthorizationGuard.ChallengePath, "?returnUrl=" + Uri.EscapeDataString(pageUrl), AsPage: anotherApplications);
     }
+
+    // The host's sign-in page, with the way back to a page of the app as the browser addresses it.
+    private static string SignInOutside(string pathBase, string pageUrl) =>
+        RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(pathBase + pageUrl);
 
     // Said once, as the app's live endpoints are mapped: with sign-in and nothing to ask, an open page keeps whatever its connection
     // carried for as long as that connection lasts.
@@ -587,17 +606,18 @@ public static partial class RaskEndpointExtensions
 
         ForgetEnded(ctx, name);
 
-        // Nowhere to send them when the app has no sign-in page: the page is served, as to any anonymous visitor.
         if (PrincipalRights.IsSignedIn(user)
-            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
-            || !HasSignInPage(selector))
+            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
+        // The app's own sign-in page, or else the host's, as an open page goes to them (SignInAgain).
+        var pageUrl = path + ctx.Request.QueryString.Value;
         ctx.Response.StatusCode = StatusCodes.Status302Found;
-        ctx.Response.Headers.Location = pathBase + RouteAuthorizationGuard.ChallengePath
-            + "?returnUrl=" + Uri.EscapeDataString(path + ctx.Request.QueryString.Value);
+        ctx.Response.Headers.Location = HasSignInPage(selector)
+            ? pathBase + RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(pageUrl)
+            : SignInOutside(pathBase, pageUrl);
         ctx.Response.Headers.CacheControl = "no-store";
         return true;
     }

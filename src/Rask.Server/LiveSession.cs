@@ -145,6 +145,10 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // owns every path, as before (#1094).
     internal Func<string, bool>? OwnsPath { get; set; }
 
+    // The route table of the application on this host that owns the sign-in address — whether a session whose
+    // sign-in ended has a page of this mapping to go to. Null as OwnsPath is: the session's own table answers.
+    internal Func<IReadOnlyList<Rask.Core.Routing.Route>>? SignInRoutes { get; set; }
+
     // The route the session's path last resolved to, which the guard asks for twice per event.
     internal SessionRouteMemo Routes { get; } = new();
 
