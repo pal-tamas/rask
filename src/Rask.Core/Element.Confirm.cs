@@ -14,28 +14,29 @@ public abstract partial class Element
             || !string.Equals(current.Text, text, StringComparison.Ordinal)
             || !string.Equals(current.Expect, expect, StringComparison.Ordinal))
         {
-            globals.Confirm = new ConfirmAsk(text, expect);
+            globals.Confirm = current = new ConfirmAsk(text, expect);
             MarkEntryPropsChangedInternal();
         }
 
-        globals.ConfirmWritten = true;
+        current.Written = true;
     }
 
     // Called with the rest of the end-of-render reset (ResetUnwrittenSteps): a question no step wrote this render goes.
     internal void ResetUnwrittenConfirm()
     {
-        if (GlobalAttrsInternal is not { } globals)
+        if (GlobalAttrsInternal?.Confirm is not { } ask)
         {
             return;
         }
 
-        if (!globals.ConfirmWritten && globals.Confirm is not null)
+        if (ask.Written)
         {
-            globals.Confirm = null;
-            MarkEntryPropsChangedInternal();
+            ask.Written = false;
+            return;
         }
 
-        globals.ConfirmWritten = false;
+        GlobalAttrsInternal.Confirm = null;
+        MarkEntryPropsChangedInternal();
     }
 
     // data-rask-confirm, and data-rask-confirm-expect for the prompt form: read by rask-confirm.ts before the

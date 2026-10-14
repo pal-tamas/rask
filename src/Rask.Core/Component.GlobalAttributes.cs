@@ -103,9 +103,9 @@ public abstract partial class Component
         public bool? Spellcheck;
         public bool? Translate;
 
-        // What `.Confirm(…)` asks, and whether a step wrote it since the entry (Element.Ask).
+        // What `.Confirm(…)` asks (Element.Ask): one reference, because this object is allocated per element that names a
+        // global and a second field (a written flag) padded it by 16 B on every one — the allocation gate saw 192 B.
         public ConfirmAsk? Confirm;
-        public bool ConfirmWritten;
     }
 
     // The whole side object in one read, for the writer's single null check.
