@@ -25,24 +25,27 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     private static string Day(int day) =>
         "button[aria-label=\"" + new DateOnly(2026, 1, day).ToString("D", CultureInfo.GetCultureInfo("en-US")) + "\"]";
 
+    // The list itself is the browser's (`data-rask-list`, rask-list.ts): opening it, its cursor, its keys and
+    // its search have no handler to name. What is left to say of is the press that commits.
     [Fact]
-    public void A_listbox_that_waits_draws_itself_on_every_event_it_hears()
+    public void A_listbox_that_waits_draws_a_pick_and_hears_nothing_else_of_its_list()
     {
         var a = new Answers();
 
         var page = Page.Render(() => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Options()]);
 
-        Assert.Equal("toggle", Draws(page, "[popover]"));
-        Assert.Equal("click mouseenter", Draws(page, "[data-ui-option]"));
-        Assert.Equal("input keydown", Draws(page, "[data-ui-select-search] input"));
-        Assert.Equal("click", Draws(page, "[data-ui-select-search] button"));
-        Assert.Equal("keydown", Draws(page, "[data-ui-select-button]"));
+        Assert.Equal("click", Draws(page, "[data-ui-option]"));
+        Assert.Null(page.Find("[popover]").Attribute("data-rask-on-toggle"));
+        Assert.Null(page.FindAll("[data-ui-option]")[0].Attribute("data-rask-on-mouseenter"));
+        Assert.Null(page.Find("[data-ui-select-search] input").Attribute("data-rask-on-input"));
+        Assert.Null(page.Find("[data-ui-select-search] button").Attribute("data-rask-on-click"));
+        Assert.Null(page.Find("[data-ui-select-button]").Attribute("data-rask-on-keydown"));
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void A_pick_that_is_written_or_told_at_once_is_an_action_and_the_rest_still_only_draws(bool bound)
+    public void A_pick_that_is_written_or_told_at_once_is_an_action(bool bound)
     {
         var a = new Answers();
 
@@ -50,49 +53,53 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
             ? Ui.Select.Bind(() => a.One).Live().Listbox.Searchable()[Options()]
             : Ui.Select.Value(a.One).OnChange(one => a.One = one).Listbox.Searchable()[Options()]);
 
-        Assert.Equal("toggle", Draws(page, "[popover]"));
-        Assert.Equal("mouseenter", Draws(page, "[data-ui-option]"));
-        Assert.Equal("input", Draws(page, "[data-ui-select-search] input"));
-        Assert.Null(Draws(page, "[data-ui-select-button]"));
+        Assert.NotNull(page.FindAll("[data-ui-option]")[0].Attribute("data-rask-on-click"));
+        Assert.Null(Draws(page, "[data-ui-option]"));
+        Assert.Empty(page.FindAll("[" + Mark + "]"));
     }
 
     [Fact]
-    public void A_search_the_page_listens_to_is_an_action_at_every_key_and_so_is_its_clear_button()
+    public void A_search_the_page_listens_to_is_an_action_at_every_key_and_its_clear_button_is_the_browsers()
     {
         var a = new Answers();
 
         var page = Page.Render(() => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Ui.SelectSearch.OnInput(_ => { }), Options()]);
 
-        Assert.Equal("keydown", Draws(page, "[data-ui-select-search] input"));
-        Assert.Null(Draws(page, "[data-ui-select-search] button"));
+        Assert.NotNull(page.Find("[data-ui-select-search] input").Attribute("data-rask-on-input"));
+        Assert.Null(Draws(page, "[data-ui-select-search] input"));
+        Assert.NotNull(page.Find("[data-ui-select-search] button").Attribute("data-rask-clear"));
+        Assert.Null(page.Find("[data-ui-select-search] button").Attribute("data-rask-on-click"));
     }
 
     [Fact]
-    public void A_list_with_a_row_that_creates_keeps_its_keys_as_actions_because_enter_may_run_the_pages_code()
+    public void A_row_that_creates_is_an_action_and_the_text_it_is_about_goes_ahead_of_its_press()
     {
         var a = new Answers();
 
         var page = Page.Render(() => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Options(), Ui.SelectOptionCreate.OnClick(_ => { })["Create"]]);
 
-        Assert.Equal("input", Draws(page, "[data-ui-select-search] input"));
-        Assert.Equal("mouseenter", Draws(page, "[data-ui-option-create]"));
-        Assert.Null(Draws(page, "[data-ui-select-button]"));
+        Assert.NotNull(page.Find("[data-ui-option-create]").Attribute("data-rask-on-click"));
+        Assert.Null(Draws(page, "[data-ui-option-create]"));
+        Assert.Equal("action", page.Find("[data-ui-select-search] input").Attribute("data-rask-bind-on"));
+        Assert.Null(Draws(page, "[data-ui-select-search] input"));
     }
 
     [Fact]
-    public void A_combobox_and_a_pillbox_that_wait_draw_themselves_too()
+    public void A_combobox_and_a_pillbox_that_wait_draw_their_picks_their_crosses_and_their_clear_button()
     {
-        var a = new Answers { Many = ["Alpha"] };
+        var a = new Answers { Picked = "Alpha", Many = ["Alpha"] };
 
         var page = Page.Render(() => Fragment[
-            Div.Id("combo")[Ui.Select.Bind(() => a.One).Combobox.Clearable()[Options()]],
+            Div.Id("combo")[Ui.Select.Bind(() => a.Picked).Combobox.Clearable()[Options()]],
             Div.Id("pills")[Ui.Pillbox.Bind(() => a.Many).Combobox[Words.Select(word => Ui.PillboxOption.Key(word)[word])]]
         ]);
 
-        Assert.Equal("click blur input keydown", Draws(page, "#combo input[role=\"combobox\"]"));
-        Assert.Equal("input keydown", Draws(page, "#pills input"));
+        Assert.Equal("click", Draws(page, "#combo [data-ui-option]"));
+        Assert.Equal("click", Draws(page, "#combo button[aria-label=\"Clear selected\"]"));
+        Assert.Null(Draws(page, "#combo input[role=\"combobox\"]"));
         Assert.Equal("click", Draws(page, "#pills [data-value=\"Alpha\"] [data-rask-on-click]"));
-        Assert.Equal("click mouseenter", Draws(page, "#pills [data-ui-listbox-option]"));
+        Assert.Equal("click", Draws(page, "#pills [data-ui-listbox-option]"));
+        Assert.Null(Draws(page, "#pills input"));
     }
 
     [Fact]
@@ -149,6 +156,8 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     private sealed class Answers
     {
         public string? One { get; set; }
+
+        public string? Picked { get; set; }
 
         public List<string> Many { get; set; } = [];
 

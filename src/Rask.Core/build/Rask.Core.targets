@@ -130,8 +130,9 @@
 
   <PropertyGroup>
     <!--
-      The pinned TypeScript toolchain. tsgo (the Go build of the TypeScript compiler) emits scoped
-      assets; esbuild bundles the framework's own runtime, where a bundle is the point.
+      The pinned TypeScript toolchain. tsgo (TypeScript 7, the native build of the compiler, from the
+      stable `typescript` release's @typescript/typescript-<os>-<arch> packages) emits scoped assets;
+      esbuild bundles the framework's own runtime, where a bundle is the point.
 
       It has to be tsgo here and not esbuild, and the reason is not a preference. esbuild always
       hoists declarations into a trailing `export { … }` clause — with an esm format, with no
@@ -141,10 +142,10 @@
       that does nothing. tsgo's emit preserves the inline form. Both behaviours are pinned by tests
       in Rask.TypeScript.Tasks.Tests.
 
-      Pinned rather than floating for reproducibility, and because @typescript/native-preview
-      publishes dated development builds to its `latest` tag.
+      Pinned rather than floating for reproducibility: scripts/upstream/tools.py moves both to the newest
+      stable release every day, with the digests in TypeScriptToolPins.cs.
     -->
-    <RaskTsgoVersion Condition="'$(RaskTsgoVersion)' == ''">7.0.0-dev.20260707.2</RaskTsgoVersion>
+    <RaskTsgoVersion Condition="'$(RaskTsgoVersion)' == ''">7.0.2</RaskTsgoVersion>
     <RaskEsbuildVersion Condition="'$(RaskEsbuildVersion)' == ''">0.28.2</RaskEsbuildVersion>
 
     <RaskTypeScriptRegistry Condition="'$(RaskTypeScriptRegistry)' == ''">https://registry.npmjs.org</RaskTypeScriptRegistry>

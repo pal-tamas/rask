@@ -5,5 +5,6 @@ namespace Rask.Background;
 /// <param name="Job">The job itself, to assert on its own properties.</param>
 /// <param name="Delay">What <c>.In(…)</c> asked for, or <c>null</c>.</param>
 /// <param name="Moment">What <c>.At(…)</c> asked for, or <c>null</c>.</param>
-public sealed record EnqueuedJob<TJob>(TJob Job, TimeSpan? Delay, DateTimeOffset? Moment)
+/// <param name="Lane">What <c>.InLane(…)</c> asked for, or <c>null</c>.</param>
+public sealed record EnqueuedJob<TJob>(TJob Job, TimeSpan? Delay, DateTimeOffset? Moment, string? Lane = null)
     where TJob : IJob;

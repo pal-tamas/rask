@@ -54,9 +54,9 @@ internal static class GitHubActionsWorkflow
           deploy:
             runs-on: ubuntu-latest
             steps:
-              - uses: actions/checkout@v4
+              - uses: actions/checkout@v7
 
-              - uses: actions/setup-dotnet@v4
+              - uses: actions/setup-dotnet@v6
                 with:
                   dotnet-version: '10.0.x'
 

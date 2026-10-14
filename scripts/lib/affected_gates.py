@@ -21,7 +21,8 @@ gates, for the gates whose subject is not a test project's references:
     sqlite     the browser SQLite journeys or their fixture
     datademo   the data demo app or its journeys
     bench      what the byte and allocation budgets measure
-    packaging  the CLI, the templates, or how a project is built and packed (by FILE, see below)
+    packaging  the CLI, the templates, the kit and its Tailwind build, or how a project is built and
+               packed (by FILE, see below)
                                                  -> the CLI build and the templates
     frontend-<key>  that front-end template, or what builds and serves every one (by FILE, see below)
                                                  -> its "front end <key>" job
@@ -58,8 +59,12 @@ PROJECT_GATES = {
 # which is broken by the CLI, the templates, or how a project is built and packed — the paths below.
 # A package broken by an ordinary .cs change is found by the next whole run (full.yml), not this push;
 # TemplatesCompileTests, in the unit gate, compiles the templates against the assemblies on every one.
+# The kit and the Tailwind build are on the list because a scaffold COMPILES them: an app's one sheet
+# is Tailwind over the kit's class list, which is Tailwind's scan of src/Rask.Ui. A word in a kit
+# comment once shipped daisyUI's `.glass` that way, and only the CLI build's Tailwind test saw it (#1214).
 PACKAGING_FILES = re.compile(
     r"^(src/Rask\.Cli/|src/Rask\.Templates/|tests/Rask\.Cli\.E2E\.Tests/|tests/Rask\.Templates\.E2E\.Tests/"
+    r"|src/Rask\.Ui/|src/Rask\.Tailwind/|src/Rask\.Tailwind\.Tasks/"
     r"|tests/Rask\.Cli\.Tests/(CliBuildE2E|RepoPins|DeployE2E|DeployHostFixture|TestDoubles)\.cs$"
     r"|src/.*\.(csproj|props|targets)$)"
 )

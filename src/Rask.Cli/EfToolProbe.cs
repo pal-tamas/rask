@@ -27,7 +27,7 @@ internal static class EfToolProbe
     ///         so it is carried out rather than recited.
     ///     </para>
     /// </remarks>
-    public static readonly Version Floor = new(10, 0, 12);
+    public static readonly Version Floor = new(10, 0, 13);
 
     public static async Task<bool> IsInstalledAsync(IProcessRunner process, CancellationToken cancellationToken)
         => await InstalledVersionAsync(process, cancellationToken).ConfigureAwait(false) is not null;

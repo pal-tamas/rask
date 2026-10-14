@@ -14,7 +14,7 @@ public sealed class BrowserPushSubscriptionsTests
         {
             Endpoint = "https://push.example/phone",
             ExpirationTime = 1_700_000_000_000,
-            Keys = new() { ["p256dh"] = "BKey", ["auth"] = "secret" },
+            Keys = new() { P256dh = "BKey", Auth = "secret" },
         };
 
         await Push.Subscribe(json, TestContext.Current.CancellationToken);

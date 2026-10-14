@@ -228,26 +228,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
 
         // A form that asks before it is left says so to the walk: what is drawn in it tells it of the
         // reader's changes the browser raises no event for (ReaderEdits).
-        return ConfirmLeave is not null && LiveRenderContext.CurrentSync is { } live ? new GuardScope(live, this, bound) : bound;
-    }
-
-    private sealed class GuardScope : IDisposable
-    {
-        private readonly LiveRenderContext _live;
-        private readonly IDisposable? _bound;
-
-        internal GuardScope(LiveRenderContext live, IGuardedForm form, IDisposable? bound)
-        {
-            _live = live;
-            _bound = bound;
-            live.GuardedForm = form;
-        }
-
-        public void Dispose()
-        {
-            _live.GuardedForm = null;
-            _bound?.Dispose();
-        }
+        return ConfirmLeave is not null && LiveRenderContext.CurrentSync is { } live ? ReaderEdits.Write(live, this, bound) : bound;
     }
 
     internal EditContext ResolveContext()

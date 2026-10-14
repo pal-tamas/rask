@@ -207,6 +207,16 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_private_code_is_not_written_into_the_page_and_a_visible_one_is()
+    {
+        var hidden = Ui.Otp.Value("1234").Length(4).Private().ToHtml();
+        var shown = Ui.Otp.Value("1234").Length(4).ToHtml();
+
+        Assert.DoesNotContain("1234", hidden, StringComparison.Ordinal);
+        Assert.Contains("value=\"1234\"", Hidden(shown), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Cells_placed_by_hand_are_counted_through_their_groups()
     {
         var html = Ui.Otp.Value("12345")[

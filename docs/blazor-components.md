@@ -200,13 +200,15 @@ public sealed partial class TickerPage : BlazorComponent<Ticker>
 {
     [RouteParam] public string Symbol { get; set; } = "";
 
-    protected override Component? HeadAssets => [base.HeadAssets, Title[$"{Symbol} — quotes"]];
+    protected override Component? HeadAssets => Title[$"{Symbol} — quotes"];
 }
 ```
 
-Keep `base.HeadAssets` in an override: it is how the stylesheets in `RaskBlazorOptions.HeadAssets` reach
-the page, and leaving it out drops them. A route parameter that feeds a value-typed `[Parameter]` is
-declared nullable (`int? Id`), like any other optional step you declare yourself.
+Overriding `HeadAssets` keeps the stylesheets in `RaskBlazorOptions.HeadAssets`: they are registered on
+their own, as a JavaScript island's runtime script is, so there is no `base.HeadAssets` to remember. A
+route parameter that feeds a value-typed `[Parameter]` can be declared as it is (`[RouteParam] public int
+Id { get; set; }`): a non-nullable value type has no "unset" state, so it is always passed on. Declare it
+nullable (`int? Id`) only when the hosted component should keep its own default until a value is set.
 
 URL attributes in that markup get the treatment a Rask element gives them: `javascript:` and `data:`
 become `about:blank`, and an inline `data:image/…` survives only where it can do nothing but draw —

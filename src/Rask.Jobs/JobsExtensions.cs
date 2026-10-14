@@ -8,7 +8,7 @@ public static class JobsExtensions
         /// <summary>Runs <paramref name="job" /> in the background, as soon as the processor next polls.</summary>
         public Enqueuing Enqueue(IJob job, CancellationToken cancellationToken = default) =>
 #pragma warning disable CA2208 // CA2208 cannot see a C# 14 extension receiver
-            new(jobs ?? throw new ArgumentNullException(nameof(jobs)), job, null, null, cancellationToken);
+            new(jobs ?? throw new ArgumentNullException(nameof(jobs)), job, null, null, null, cancellationToken);
 #pragma warning restore CA2208
     }
 }

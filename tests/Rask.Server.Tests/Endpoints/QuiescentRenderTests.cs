@@ -94,14 +94,40 @@ public class QuiescentRenderTests
     [Fact]
     public async Task With_the_timeout_disabled_the_first_response_keeps_the_synchronous_render()
     {
-        using var host = RaskTestHost.Create<AsyncDataApp>(
+        using var host = RaskTestHost.Create<HeldDataApp>(
             configureServer: o => o.QuiescenceTimeout = TimeSpan.Zero);
 
-        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        string body;
+        try
+        {
+            body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            HeldDataApp.Release.TrySetResult();
+        }
 
-        // Zero is the documented opt-out, and it must genuinely opt out — not merely wait less.
+        // Zero is the documented opt-out, and it must genuinely opt out — not merely wait less. The data is held
+        // until the response is in: a delay of its own could land first on a loaded machine and prove nothing.
         Assert.Contains("still-loading", body);
     }
+}
+
+public sealed partial class HeldDataApp : Component
+{
+    internal static readonly TaskCompletionSource Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private string? _forecast;
+
+    protected override Component? HeadAssets => Title["held-data"];
+
+    protected override async Task OnMount()
+    {
+        await Release.Task;
+        _forecast = "forecast-loaded";
+    }
+
+    protected override Component? Render() => Div[_forecast ?? "still-loading"];
 }
 
 public sealed partial class AsyncDataApp : Component

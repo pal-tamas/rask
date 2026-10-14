@@ -23,12 +23,12 @@ public class TypeScriptToolsTests
         TypeScriptTool.Tsgo,
         ToolOs.MacOs,
         Architecture.Arm64,
-        "@typescript/native-preview-darwin-arm64")]
+        "@typescript/typescript-darwin-arm64")]
     [InlineData(
         TypeScriptTool.Tsgo,
         ToolOs.Windows,
         Architecture.X64,
-        "@typescript/native-preview-win32-x64")]
+        "@typescript/typescript-win32-x64")]
     public void The_package_name_names_the_published_package(
         TypeScriptTool tool,
         ToolOs os,
@@ -51,7 +51,7 @@ public class TypeScriptToolsTests
             "@esbuild/win32-arm64",
             TypeScriptTools.PackageName(TypeScriptTool.Esbuild, ToolOs.Windows, Architecture.Arm64));
         Assert.Equal(
-            "@typescript/native-preview-win32-arm64",
+            "@typescript/typescript-win32-arm64",
             TypeScriptTools.PackageName(TypeScriptTool.Tsgo, ToolOs.Windows, Architecture.Arm64));
     }
 
@@ -102,8 +102,8 @@ public class TypeScriptToolsTests
     [InlineData(TypeScriptTool.Esbuild, ToolOs.MacOs, "bin/esbuild")]
     [InlineData(TypeScriptTool.Esbuild, ToolOs.Linux, "bin/esbuild")]
     [InlineData(TypeScriptTool.Esbuild, ToolOs.Windows, "esbuild.exe")]
-    [InlineData(TypeScriptTool.Tsgo, ToolOs.MacOs, "lib/tsgo")]
-    [InlineData(TypeScriptTool.Tsgo, ToolOs.Windows, "lib/tsgo.exe")]
+    [InlineData(TypeScriptTool.Tsgo, ToolOs.MacOs, "lib/tsc")]
+    [InlineData(TypeScriptTool.Tsgo, ToolOs.Windows, "lib/tsc.exe")]
     [InlineData(TypeScriptTool.TypeScript, ToolOs.MacOs, "lib/typescript.js")]
     [InlineData(TypeScriptTool.TypeScript, ToolOs.Windows, "lib/typescript.js")]
     public void The_executable_path_matches_the_published_layout(TypeScriptTool tool, ToolOs os, string expected) =>
@@ -159,9 +159,9 @@ public class TypeScriptToolsTests
         "0.28.2",
         "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz")]
     [InlineData(
-        "@typescript/native-preview-win32-x64",
-        "7.0.0-dev.20260707.2",
-        "https://registry.npmjs.org/@typescript/native-preview-win32-x64/-/native-preview-win32-x64-7.0.0-dev.20260707.2.tgz")]
+        "@typescript/typescript-win32-x64",
+        "7.0.2",
+        "https://registry.npmjs.org/@typescript/typescript-win32-x64/-/typescript-win32-x64-7.0.2.tgz")]
     public void The_tarball_URL_drops_the_scope_from_the_filename_only(string package, string version, string expected) =>
         Assert.Equal(expected, TypeScriptTools.TarballUrl(TypeScriptTools.DefaultRegistry, package, version));
 
