@@ -1081,10 +1081,8 @@ from. Its entry module imports the package itself — there is no file of yours 
 
 A project that *does* have both is checked before `npm` runs: too old a Node fails with
 **`RASKISLAND001`** naming the version it found, rather than failing later inside vite with an engines
-error nobody reads. The floor is `RaskExternalMinimumNode`, **22.12.0**, because vite asks for
-`^20.19.0 || >=22.12.0`. That
-range has a hole (21.x satisfies neither arm) and a numeric floor cannot express it, so 22.12.0 is the
-lowest version with nothing unsupported beneath it. A Node whose version is not exactly `X.Y.Z` — a
+error nobody reads. The floor is `RaskExternalMinimumNode`, **24.11.0**: the first release of the
+Active LTS line, the same floor a [front end](spa.md#which-node) takes, and it follows that line. A Node whose version is not exactly `X.Y.Z` — a
 nightly, a release candidate — is allowed through rather than refused. Override the bar with
 `-p:RaskExternalMinimumNode=…` if you have a reason to.
 
@@ -1117,7 +1115,9 @@ npm install -D @analogjs/vite-plugin-angular @angular/compiler-cli @angular/buil
     @angular/core @angular/common @angular/compiler @angular/platform-browser rxjs   # Angular
 ```
 
-These are the packages `rask new --islands` writes for each runtime. Then extend the generated
+These are the packages `rask new --islands` writes for each runtime. It picks their versions the way it
+does for a [front end](spa.md#which-versions-a-new-app-gets): the newest releases that install together,
+written as `^x.y.z`. Then extend the generated
 tsconfig fragment ([above](#c-owns-the-props)) so `@rask/<Name>.props` resolves, and reference
 `Rask.External`.
 

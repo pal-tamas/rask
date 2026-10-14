@@ -108,23 +108,23 @@ internal static class IslandAssembly
     /// </remarks>
     private static readonly (string Package, string Version)[] LintBase =
     [
-        ("eslint", "^10.10.0"),
-        ("@eslint/js", "^10.0.1"),
-        ("typescript-eslint", "^8.70.0"),
-        ("prettier", "^3.9.6"),
-        ("eslint-config-prettier", "^10.1.8"),
-        ("globals", "^17.12.0"),
+        ("eslint", FrontEndVersions.Latest),
+        ("@eslint/js", FrontEndVersions.Latest),
+        ("typescript-eslint", FrontEndVersions.Latest),
+        ("prettier", FrontEndVersions.Latest),
+        ("eslint-config-prettier", FrontEndVersions.Latest),
+        ("globals", FrontEndVersions.Latest),
     ];
 
     private static readonly FrozenDictionary<string, (string Package, string Version)> LintPlugin =
         new Dictionary<string, (string, string)>(StringComparer.Ordinal)
         {
-            ["react"] = ("eslint-plugin-react-hooks", "^7.1.1"),
-            ["preact"] = ("eslint-plugin-react-hooks", "^7.1.1"),
-            ["vue"] = ("eslint-plugin-vue", "^10.11.0"),
-            ["svelte"] = ("eslint-plugin-svelte", "^3.23.0"),
-            ["solid"] = ("eslint-plugin-solid", "^0.18.0"),
-            ["lit"] = ("eslint-plugin-lit", "^2.3.1"),
+            ["react"] = ("eslint-plugin-react-hooks", FrontEndVersions.Latest),
+            ["preact"] = ("eslint-plugin-react-hooks", FrontEndVersions.Latest),
+            ["vue"] = ("eslint-plugin-vue", FrontEndVersions.Latest),
+            ["svelte"] = ("eslint-plugin-svelte", FrontEndVersions.Latest),
+            ["solid"] = ("eslint-plugin-solid", FrontEndVersions.Latest),
+            ["lit"] = ("eslint-plugin-lit", FrontEndVersions.Latest),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
     private const string PrettierRc = """

@@ -22,9 +22,8 @@ namespace Rask.Spa.Tasks.Tests;
 ///         working. <c>RASK_TSC</c> overrides it with a compiler already on disk.
 ///     </para>
 ///     <para>
-///         The version is PINNED. <c>@typescript/native-preview</c> publishes dated dev builds to
-///         <c>latest</c>, and this runs from a pre-commit hook: an unpinned fetch would let somebody
-///         else's release turn a commit red for a reason that has nothing to do with the change.
+///         The version is PINNED (<c>RaskTsgoVersion</c>): an unpinned fetch would let somebody else's
+///         release turn a commit red for a reason that has nothing to do with the change.
 ///     </para>
 ///     <para>
 ///         It does NOT quietly pass when there is no compiler to run — a type-check gate that

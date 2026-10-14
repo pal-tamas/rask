@@ -9,8 +9,6 @@ namespace Rask.UiTests.Live;
 /// </summary>
 public partial class SelectPickIsADiffTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static readonly string[] Pistols = ["Glock", "Beretta", "Walther"];
 
     private List<string> _picked = [];
@@ -29,7 +27,6 @@ public partial class SelectPickIsADiffTests : global::Rask.Core.RaskMarkup
     public async Task Every_pick_from_none_to_two_and_back_is_answered_with_a_diff(bool clearable, string? name)
     {
         var page = Page.Render(() => Select(clearable, name));
-        await page.On("[popover]").Raise("toggle", Opened);
 
         var said = new List<string>();
         foreach (var pistol in new[] { "Glock", "Beretta", "Beretta", "Glock" })
@@ -46,7 +43,6 @@ public partial class SelectPickIsADiffTests : global::Rask.Core.RaskMarkup
     public async Task The_clear_button_arriving_leaves_every_option_wired_to_the_handler_it_had()
     {
         var page = Page.Render(() => Select(clearable: true, name: null));
-        await page.On("[popover]").Raise("toggle", Opened);
         var before = page.FindAll("[data-ui-option]").Select(option => option.Attribute("data-rask-on-click")).ToList();
 
         await Pick(page, "Glock");

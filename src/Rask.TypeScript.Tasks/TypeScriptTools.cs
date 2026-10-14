@@ -66,7 +66,7 @@ internal static class TypeScriptTools
         return tool switch
         {
             TypeScriptTool.Esbuild => "@esbuild/" + slug,
-            TypeScriptTool.Tsgo => "@typescript/native-preview-" + slug,
+            TypeScriptTool.Tsgo => "@typescript/typescript-" + slug,
             _ => null,
         };
     }
@@ -117,7 +117,7 @@ internal static class TypeScriptTools
         return tool switch
         {
             TypeScriptTool.Esbuild => windows ? "esbuild.exe" : Path.Combine("bin", "esbuild"),
-            TypeScriptTool.Tsgo => windows ? Path.Combine("lib", "tsgo.exe") : Path.Combine("lib", "tsgo"),
+            TypeScriptTool.Tsgo => windows ? Path.Combine("lib", "tsc.exe") : Path.Combine("lib", "tsc"),
             TypeScriptTool.TypeScript => Path.Combine("lib", "typescript.js"),
             _ => throw new ArgumentOutOfRangeException(nameof(tool)),
         };
@@ -128,7 +128,7 @@ internal static class TypeScriptTools
     /// </summary>
     /// <remarks>
     ///     tsgo ships <c>lib/lib.dom.d.ts</c> and its ~110 siblings beside the binary and resolves
-    ///     <c>"lib"</c> from its own location, so extracting only <c>lib/tsgo</c> yields a compiler that
+    ///     <c>"lib"</c> from its own location, so extracting only <c>lib/tsc</c> yields a compiler that
     ///     reports every DOM type as undefined. The compiler library resolves the same <c>lib.*.d.ts</c> files
     ///     from beside <c>typescript.js</c>, for the same reason. esbuild genuinely is one file. All are
     ///     extracted whole; this exists to say why that is not incidental.

@@ -12,8 +12,6 @@ namespace Rask.UiTests.Live;
 /// </summary>
 public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private static Page Draw()
     {
         var services = new ServiceCollection().AddSingleton<IToaster, Toaster>().BuildServiceProvider();
@@ -46,7 +44,6 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
                 Enumerable.Range(1, 3).Select(n => Ui.SelectOption.Key("o" + n).Value("o" + n)["option " + n])
             ]
         ]);
-        await page.On("[popover][data-ui-options]").Raise("toggle", Opened);
 
         var said = new List<string>();
         foreach (var option in new[] { "option 1", "option 2", "option 2", "option 1" })
@@ -66,7 +63,6 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
     public async Task Every_pick_in_the_reported_form_is_answered_with_a_diff()
     {
         var page = Draw();
-        await page.On("[popover][data-ui-options]").Raise("toggle", Opened);
 
         var said = new List<string>();
         foreach (var pistol in new[] { "Glock", "Beretta", "Beretta", "Glock" })

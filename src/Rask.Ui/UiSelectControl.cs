@@ -17,9 +17,10 @@ namespace Rask;
 ///     <c>Listbox</c> is a button over a drawn list and <c>Combobox</c> a text input that filters one.
 ///     </para>
 ///     <para>
-///     The drawn list ships no script. It is a native <c>popover</c> placed by CSS anchor positioning, so a
-///     click opens it, Escape and a click elsewhere close it and focus returns to the button with no handler
-///     at all; the cursor, type-ahead, the search and the picking are C#.
+///     The drawn list ships no script. It is a native <c>popover</c> placed by CSS anchor positioning, and
+///     where the reader is in it is the browser's, kept by the runtime (<c>data-rask-list</c>): the lit row,
+///     the keys, type-ahead, whether it is open and the rows a search leaves send the page nothing. The page
+///     renders the rows and hears a pick.
 ///     </para>
 /// </remarks>
 public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind
@@ -107,9 +108,6 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
 
     /// <summary>The name the answer is posted under in a form.</summary>
     public string? Name { get; set; }
-
-    /// <summary>The clock type-ahead forgets by. A test's own, to make time pass.</summary>
-    internal TimeProvider Clock { get; set; } = TimeProvider.System;
 
     /// <inheritdoc />
     // A select nothing names — no Id, no bound member, no label — has an id of its own, not one they all share.

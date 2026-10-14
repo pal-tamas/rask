@@ -40,14 +40,12 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     internal static IReadOnlyList<string> Strays()
     {
         var counted = Families.SelectMany(family => family.Value.Gestures.Select(gesture => family.Key + ": " + gesture)).ToHashSet(StringComparer.Ordinal);
-        return [.. Sends.Keys.Concat(Known.Keys).Concat(Unsteady.Keys).Concat(Elsewhere.Keys).Where(key => !counted.Contains(key))];
+        return [.. Sends.Keys.Concat(Known.Keys).Concat(Unsteady.Keys).Where(key => !counted.Contains(key))];
     }
 
     /// <summary>The gestures that are in more than one of the lists.</summary>
     internal static IReadOnlyList<string> Doubles() =>
-        [.. Sends.Keys.Intersect(Known.Keys)
-            .Concat(Elsewhere.Keys.Intersect(Known.Keys.Concat(Sends.Keys)))
-            .Concat(Unsteady.Keys.Intersect(Known.Keys.Concat(Sends.Keys).Concat(Elsewhere.Keys)))];
+        [.. Sends.Keys.Intersect(Known.Keys).Concat(Unsteady.Keys.Intersect(Known.Keys.Concat(Sends.Keys)))];
 
     /// <summary>The pages a family is drawn on, for the check that each has a class that walks it.</summary>
     internal static IReadOnlySet<Type> Pages() => Families.Values.Select(family => family.Page).ToHashSet();
@@ -56,11 +54,6 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     // row is exact: more is a gesture that began to send, fewer is a row to lower — or to take out, at none.
     private static string? Judge(string key, KitFrames frames)
     {
-        if (Elsewhere.TryGetValue(key, out var ceiling))
-        {
-            return frames.Sent > ceiling ? $"{key} — sent {frames.Sent}, over the {ceiling} it cost when it was counted." : null;
-        }
-
         if (Unsteady.TryGetValue(key, out var unsteady))
         {
             return frames.Sent > unsteady.AtMost ? $"{key} — sent {frames.Sent}, over the {unsteady.AtMost} it can cost: {unsteady.Why}."

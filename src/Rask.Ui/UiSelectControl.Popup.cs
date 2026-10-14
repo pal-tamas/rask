@@ -1,4 +1,4 @@
-using Rask.Core.Forms;
+using System.Globalization;
 
 namespace Rask;
 
@@ -16,56 +16,31 @@ public abstract partial class UiSelectControl<T>
                 HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls,
                 PillPopupLook(),
                 OptionsClass))
-            .Attributes(UiDraws.With(PopupMarks(), ("toggle", true), ("mouseleave", !HasSearchField)))
-            .OnToggle(OnPopupToggleAsync);
+            .Attributes(PopupMarks());
 
         return HasSearchField
             ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiClass.Compose(UiSelectLook.SearchedList, PillListLook())))[Rows(view)]]
             : ListRole(popup)[Rows(view)];
     }
 
-    private HTMLDivElement ListRole(HTMLDivElement list)
+    // On every list, one answer or several: Flux's listbox says so whatever it holds.
+    private static HTMLDivElement ListRole(HTMLDivElement list) =>
+        list.Role("listbox").TabIndex(-1).Aria("multiselectable", "true");
+
+    // Opened and shut in the browser, by the trigger and the keys (rask-list.ts): the page says nothing of it,
+    // and hears nothing.
+    private Dictionary<string, string?> PopupMarks() => new(StringComparer.Ordinal)
     {
-        list = list.Role("listbox").TabIndex(-1);
-        if (Pills is not null)
-        {
-            // Flux's pillbox lights no row once the pointer has left its list.
-            list = list.OnMouseLeave(() => _cursor = None);
-            if (HasSearchField)
-            {
-                // Under a search field the list is a box of its own, and says so itself; without one it is the popup.
-                list = list.Attributes(UiDraws.Marks(("mouseleave", true)));
-            }
-        }
-
-        // On every list, one answer or several: Flux's listbox says so whatever it holds.
-        return list.Aria("multiselectable", "true");
-    }
-
-    // `data-rask-popover-open` is how C# opens and closes a popover: the runtime shows or hides it when the
-    // value changes. A click on the button and Escape are the browser's, and reach here as the toggle event.
-    private Dictionary<string, string?> PopupMarks()
-    {
-        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
-            ["data-rask-popover-open"] = _open ? "true" : "false",
-            // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
-            ["data-rask-lock"] = null,
-            ["style"] = UiAnchor.Under(Prefixed, Position, Align),
-            ["data-rask-place"] = UiAnchor.Place(Position, Align),
-        };
-        if (_open)
-        {
-            marks["data-open"] = null;
-        }
-
-        return marks;
-    }
+        [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
+        // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+        ["data-rask-lock"] = null,
+        ["style"] = UiAnchor.Under(Prefixed, Position, Align),
+        ["data-rask-place"] = UiAnchor.Place(Position, Align),
+    };
 
     // Every row the control writes is keyed — the options by their own key or their place, the rest by name — so
-    // an option created while the list is open, or a heading whose group empties, is a keyed change the live diff
-    // ships. Only a list that holds something of the page's own (a separator) is still walked by position.
+    // an option created while the list is open is a keyed change the live diff ships. Only a list that holds
+    // something of the page's own (a separator) is still walked by position.
     private IEnumerable<Component?> Rows(View view)
     {
         if (Searches)
@@ -87,9 +62,9 @@ public abstract partial class UiSelectControl<T>
                 continue;
             }
 
-            if (block.Group is { } group && block.Rows.Any(row => view.Shown[row.Index]))
+            if (block.Group is { } group && block.Rows.Count > 0)
             {
-                yield return Div.Key("ui:group:" + block.Rows[0].Index.ToString(System.Globalization.CultureInfo.InvariantCulture)).Class(UiListboxLook.GroupHeading).Role("presentation")[group.Label];
+                yield return GroupHeading(group, block);
             }
 
             foreach (var row in block.Rows)
@@ -104,30 +79,33 @@ public abstract partial class UiSelectControl<T>
         }
     }
 
+    // A heading says how many rows it is over: the browser hides it with the last of them a search leaves out.
+    private static Component GroupHeading(UiSelectGroup group, Block block) =>
+        Div.Key("ui:group:" + block.Rows[0].Index.ToString(CultureInfo.InvariantCulture))
+            .Class(UiListboxLook.GroupHeading)
+            .Role("presentation")
+            .Data("rask-list-group", block.Rows.Count.ToString(CultureInfo.InvariantCulture))[group.Label];
+
     private Component OptionRow(View view, Row row)
     {
         var off = row.Option.Disabled == true;
         var picked = view.IsPicked(row);
         var item = Div
-            .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(CultureInfo.InvariantCulture))
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
             .Role("option")
             .Class(UiClass.Compose(RowLook(row.Option), row.Option.Class))
             .Aria(UiOptionAria.For(off, picked))
-            .Attributes(UiDraws.With(
-                RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, view.Cursor == row.Index, !view.Shown[row.Index]),
-                ("click", !off && PickDraws),
-                ("mouseenter", !off)));
+            .Attributes(UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
         return (off ? item : Wired(item, row.Index, row.Value))[
             RowContent(row.Option)
         ];
     }
 
-    // A row's handlers close over its place and its value and nothing else: not the row, whose option the page
+    // A row's handler closes over its place and its value and nothing else: not the row, whose option the page
     // writes again in every render of its own, and not the view (Latest).
-    private HTMLDivElement Wired(HTMLDivElement item, int index, T value) =>
-        item.OnClick(e => ClickedAsync(e, index, value)).OnMouseEnter(e => Hovered(e, index));
+    private HTMLDivElement Wired(HTMLDivElement item, int index, T value) => item.OnClick(() => PickedAsync(index, value));
 
     private string RowLook(UiSelectOption option)
     {
@@ -139,17 +117,40 @@ public abstract partial class UiSelectControl<T>
         return UiClass.Compose(UiListboxLook.Option, option.Description is null ? null : UiListboxLook.OptionTall);
     }
 
-    private static Dictionary<string, string?> RowMarks(string marker, bool picked, bool active, bool hidden)
+    // What the browser reads a row by (rask-list.ts). Its words are its text unless the row draws more than
+    // them — a description, an avatar's initials, content of the page's own — and then they are said.
+    private Dictionary<string, string?> OptionMarks(UiSelectOption option, bool picked)
+    {
+        var marks = RowMarks(Pills is null ? "data-ui-option" : "data-ui-listbox-option", picked, hidden: false);
+        if (option.Description is not null || option.Avatar is not null || option.HasCustomContent)
+        {
+            marks["data-rask-list-text"] = option.Text;
+        }
+
+        if (option.Keywords is { } keywords)
+        {
+            marks["data-rask-list-keywords"] = keywords;
+        }
+
+        if (option.Filterable == false)
+        {
+            marks["data-rask-list-keep"] = null;
+        }
+
+        if (IsCombobox && option.SelectedLabel is { } says)
+        {
+            marks["data-rask-list-says"] = says;
+        }
+
+        return marks;
+    }
+
+    private static Dictionary<string, string?> RowMarks(string marker, bool picked, bool hidden)
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { [marker] = null };
         if (picked)
         {
             marks["data-selected"] = null;
-        }
-
-        if (active)
-        {
-            marks["data-active"] = null;
         }
 
         if (hidden)
@@ -161,20 +162,27 @@ public abstract partial class UiSelectControl<T>
     }
 
     // There all along and hidden while anything else is: the list never jumps a round trip behind the search.
+    // Where the browser hides the rows it shows this one too, once a search has left none; what is rendered is
+    // the list before anything is typed.
     private Component EmptyRow(View view)
     {
         var slot = view.Parts.Empty;
-        var marks = RowMarks("data-ui-listbox-empty", picked: false, active: false, hidden: view.AnyShown || view.CreateShown);
+        var others = view.Parts.Rows.Count > 0 || (view.Parts.Create is not null && !HidesRows && view.CreateShown);
+        var marks = RowMarks("data-ui-listbox-empty", picked: false, hidden: others);
+        marks["data-rask-list-empty"] = null;
 
         return Div.Key("ui:empty").Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
             _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
 
+    // Offered by the browser, at every key, once what is typed is long enough and names no option; a list with
+    // nothing to type into always has it. A list the page filters is told by the page.
     private Component CreateRow(View view, UiSelectOptionCreate create)
     {
         var index = view.CreateIndex;
-        var marks = RowMarks("data-ui-option-create", picked: false, view.Cursor == index, !view.CreateShown);
+        var marks = RowMarks("data-ui-option-create", picked: false, hidden: Searches && (HidesRows || !view.CreateShown));
+        marks["data-rask-list-create"] = Searches ? Math.Max(create.MinLength ?? 1, 1).ToString(CultureInfo.InvariantCulture) : string.Empty;
         if (_busy)
         {
             marks["data-loading"] = "true";
@@ -184,10 +192,9 @@ public abstract partial class UiSelectControl<T>
             .Key("ui:create")
             .Id(UiSelectNav.OptId(Prefixed, index))
             .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
-            // The press runs the page's own code; the pointer over it only moves the cursor.
-            .Attributes(UiDraws.With(marks, ("mouseenter", true)))
-            .OnClick(e => PressedAsync(e, index, Latest))
-            .OnMouseEnter(e => Hovered(e, index))[
+            .Attributes(marks)
+            // The press runs the page's own code.
+            .OnClick(CreateAsync)[
             Div.Class(UiListboxLook.CreateLead)[Ui.Icon.Name(Ui.IconName.Plus).Mini],
             Span.Class(Pills is null ? UiListboxLook.CreateWords : null)[create.Children ?? []],
             Ui.Icon.Name(Ui.IconName.Loading).Class(UiListboxLook.CreateBusy)
@@ -207,47 +214,43 @@ public abstract partial class UiSelectControl<T>
             aria["controls"] = ListId;
         }
 
-        if (_open && view.Cursor >= 0)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
-        }
+        var marks = HearingMarks(Pills is null ? UiSelectLook.SearchMarks : UiPillboxLook.InputMarks(null), view.Parts.Create is not null);
 
         return Div.Class(UiClass.Compose(UiSelectLook.Search, slot?.Class)).Data(Pills is null ? "ui-select-search" : "ui-pillbox-search", "")[
             Div.Class(UiSelectLook.SearchIcon)[Ui.Icon.Name(slot?.Icon ?? Ui.IconName.MagnifyingGlass).Micro],
             Input
-                .Value(view.Search)
+                // Only what the page itself holds: what is typed is the reader's, and a render says nothing of it.
+                .Value(slot?.Value ?? string.Empty)
+                .Id(SearchId)
                 .Type(InputType.Text)
                 // A space when there is none of its own: the clear button reads :placeholder-shown.
                 .Placeholder(slot?.Placeholder ?? RaskStrings.Get(RaskString.SelectSearchPlaceholder, "Search..."))
                 .Role("combobox")
                 .Autocomplete("off")
                 .Autofocus()
-                .Ref(_searchInput)
-                .Attributes(UiDraws.With(
-                    UiSearchPause.Over(Pills is null ? UiSelectLook.SearchMarks : UiPillboxLook.SearchMarks, _pause, PausedAsync),
-                    ("input", TypingDraws),
-                    ("keydown", KeysDraw(view))))
+                .Attributes(marks)
                 // The list's keys are the field's while it is typed into: Enter picks instead of submitting a
                 // form around the select, and the arrows walk the rows instead of the caret.
                 .Data("rask-contain-keys", UiListboxLook.ListKeys)
                 .Class(UiSelectLook.SearchInput)
-                .Aria(aria)
-                .OnInput(AtEveryKey(opens: false))
-                .OnKeyDown(e => OnListKeyAsync(e, Latest)),
-            slot?.Clearable == false
-                ? null
-                : Div.Class(UiSelectLook.SearchClear)[
-                    Button
-                        .Type(ButtonType.Button)
-                        .TabIndex(-1)
-                        .Class(UiSelectLook.SearchClearButton)
-                        .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
-                        .Data("ui-button", "")
-                        .Attributes(UiDraws.Marks(("click", !_hears.HasValue)))
-                        .OnClick(ClearSearchAsync)[
-                        Ui.Icon.Name(Ui.IconName.XMark).Micro
-                    ]
-                ]
+                .Aria(aria),
+            slot?.Clearable == false ? null : Div.Class(UiSelectLook.SearchClear)[SearchClear()]
+        ];
+    }
+
+    // Emptied in the browser (`data-rask-clear`), which tells the list — and the page, where it asked to hear
+    // every key. A page that waits for a pause is told by the press itself: clearing is no typing to wait out.
+    private Component SearchClear()
+    {
+        var button = Button
+            .Type(ButtonType.Button)
+            .TabIndex(-1)
+            .Class(UiSelectLook.SearchClearButton)
+            .Aria("label", RaskStrings.Get(RaskString.SelectSearchClear, "Clear command input"))
+            .Attributes(("data-ui-button", null), ("data-rask-clear", SearchId));
+
+        return (_pause > 0 ? button.OnClick(() => HearAsync(string.Empty)) : button)[
+            Ui.Icon.Name(Ui.IconName.XMark).Micro
         ];
     }
 }

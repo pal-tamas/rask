@@ -15,7 +15,7 @@ internal sealed record KitCount(string Gesture, KitFrames Frames, string? Error)
 /// </summary>
 /// <remarks>
 ///     Nothing counted here depends on how fast the machine is. While a gesture is made the page's clock stands
-///     still, and the gesture itself gives the page an animation frame after each key, press and step of the
+///     still, and the gesture itself gives the page two animation frames after each key, press and step of the
 ///     pointer and waits for the server's answer to it (<see cref="KitGestures.BeatAsync" />): a field that sends
 ///     once a frame sends once a key, however many keys a fast machine fits into a frame. Afterwards the clock
 ///     is run on by two seconds, so a debounce, a hover delay or a timer that would send something has fired,

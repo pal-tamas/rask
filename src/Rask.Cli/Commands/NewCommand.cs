@@ -214,6 +214,12 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
     internal PackageFeed? Feed { get; init; }
 
     /// <summary>
+    ///     The registry the client's <c>"latest"</c> versions are chosen from (<see cref="FrontEndVersions" />), or
+    ///     <c>null</c> to leave them for npm. Set by <c>CliApplication</c>; left unset in tests.
+    /// </summary>
+    internal NpmRegistry? Npm { get; init; }
+
+    /// <summary>
     /// The version to pin generated <c>PackageReference</c>s at.
     ///
     /// <para>A released CLI stamps a stable version and pins itself — the CLI and the packages ship under

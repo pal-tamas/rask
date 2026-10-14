@@ -276,14 +276,17 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
-  (`scripts/public-api/record.py`) and moves the stated Node line to the Active LTS; the result is
-  gated and THEN landed on `main`, with nobody watching. It opens an issue only when it needs a
-  person: the gates refused what upstream shipped, or Flux UI moved. The Flux lock
+  (`scripts/public-api/record.py`), moves the stated Node line to the Active LTS, and moves every pin
+  Dependabot cannot read to its newest stable release (the followers listed under *What updates
+  itself*); the result is gated and THEN landed on `main`, with nobody watching. Its `front-ends` matrix scaffolds every
+  front-end template on the newest npm set `rask new` chooses and runs
+  `scripts/run-template-e2e.sh --front-end=<key>` on it. It opens an issue only when it needs a
+  person: the gates refused what upstream shipped, a template no longer builds on the newest npm
+  packages, or Flux UI moved. The Flux lock
   (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
   `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
-  move on its own is in `.github/dependabot.yml`'s ignore lists. A bump to a front-end template's
-  client is held to that template's `front end <key>` job as well as the `deps` set.
+  move on its own is in `.github/dependabot.yml`'s ignore lists.
 
 ### The gate scripts
 
@@ -391,7 +394,7 @@ True of the scripts wherever they run — a CI job or your terminal.
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
 - **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, one job per template:
   `front end react`, `front end vue`, …). Scaffolds that template with every battery on and runs the one
-  command a deploy runs, `dotnet publish`: `npm ci` from the committed lockfile, the typed client written
+  command a deploy runs, `dotnet publish`: `npm install` (a template ships no lockfile), the typed client written
   into `client/src/rask/` from the host's message records, and the bundle. Then `npm run lint` and
   `npm run format:check`, and the **published** app is started and asked for `/` (the bundle's
   `index.html`, and the script it loads) and for the starter's query, by the wire name the generated
@@ -464,26 +467,41 @@ The standing rule is **the latest LTS** — Node, .NET, and the front-end toolch
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
 stopped getting security patches.
 
-**What updates itself.** `.github/dependabot.yml` covers NuGet, GitHub Actions, the site's npm
-front end and the seven front-end templates' clients (`src/Rask.Templates/*/client`) weekly. The
-templates arrive as one pull request for all seven — and a second for majors — and
-`dependabot-merge.yml` lands one only when the `front end <key>` job of every template it changes has
-passed: that job installs the new lockfile with `npm ci`, builds, lints and serves the scaffold. An
-update inside a `package.json` range moves the lockfile alone (`versioning-strategy:
-increase-if-necessary`); the ranges are drawn by hand. Families
+**What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
+and `scripts/tools/RaskRename`'s own), GitHub Actions (the workflows and the shared
+`.github/actions/setup`), the npm lockfiles (the site, the rich text editor's engine in
+`src/Rask.Ui/Resources/editor`, the devtools E2E island bundler) and the base images of every template
+`Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
+moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
+self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`):
+
+| Follower | Pins | Upstream |
+| --- | --- | --- |
+| `node-lts.sh` | `ScaffoldLine`, the build floors, `setup_NN.x`, `@types/node`, Angular's `packageManager` npm | nodejs.org's index |
+| `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the scripts' `postgres:NN-alpine` — each to the newest tag of the same shape | Docker Hub |
+| `litestream.py` | `RaskLitestreamVersion`, its seven SHA-256s (downloaded and checked against `checksums.txt`), the templates' `litestream/litestream` image | GitHub releases |
+| `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskExternalTypeScriptVersion` (newest 6.x — the JS API), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download; a new Tailwind major moves the templates' ranges | npm, GitHub releases |
+| `fixtures.py` | the adapter fixtures in `Rask.External.Tests.csproj` (rxjs: the newest Angular's peer range takes) | npm |
+| `actions.py` | the action majors in the deploy workflow `rask deploy` scaffolds | GitHub releases |
+
+Not followed, on purpose: Roslyn (held to the SDK's compiler), daisyUI (leaving with the Flux rebuild).
+The runner image (`runs-on: ubuntu-26.04`) is moved by hand: the workflow token may not push a change
+to `.github/workflows`.
+
+The front-end templates are not in it, because they name no versions: every package
+in a template client and in `_islands/*/island.json` is `latest`, and `rask new` resolves them against
+the registry to the newest set that installs together — peers that agree, an `engines.node` that takes
+the newest LTS — written as `^x.y.z`. No template ships a lockfile; the app writes its own on the first
+build. The holds are `tailwindcss` / `@tailwindcss/*` (to `RaskTailwindVersion`) and `@types/node` (the
+LTS major). `upstream.yml`'s daily `front-ends` matrix proves that newest set builds. Families
 that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
 `sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
 for every downstream consumer.
 
-**What does not.** Several pins are invisible to Dependabot because they are not `PackageReference`s:
-`RaskEsbuildVersion` and `RaskTsgoVersion` (`Rask.Core.targets`), `RaskTailwindVersion`
-(`Rask.Tailwind.props`), the two Node build floors (`RaskExternalMinimumNode` for islands and
-`RaskSpaMinimumNode` for front ends — one number, in two props files), the Angular template's own higher
-`RaskSpaMinimumNode` in its csproj, the Node scaffold line (`NodeRequirement.ScaffoldLine`) with the
-NodeSource line (`setup_NN.x`) in each front-end template's `Dockerfile`, and the npm ranges `rask new --islands` writes, which live in
-`src/Rask.Templates/_islands/*/island.json` — not a `package.json`, so Dependabot cannot read them.
-The `check-dependency-updates` skill walks all of them.
+**What does not.** The runner image, by hand (above); the holds named in `.github/dependabot.yml`'s
+ignore lists; and anything new. A pin added outside both is a pin nobody moves, so give it a follower
+(or a Dependabot entry) in the same change — the `check-dependency-updates` skill lists what exists.
 
 **What keeps the copies honest.** A version stated twice is a version that can drift, so the pairs that
 matter most are asserted by an offline unit test rather than by a comment:
@@ -491,7 +509,7 @@ matter most are asserted by an offline unit test rather than by a comment:
 | Test | Holds together |
 | --- | --- |
 | `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); the CLI's build floor vs. `RaskExternalMinimumNode` and `RaskSpaMinimumNode` |
-| `TemplateNodePinTests` | each front-end template's `Dockerfile` vs. `ScaffoldLine`'s major; a client's `engines.node` vs. the build floor; the Angular template's `RaskSpaMinimumNode` vs. the lowest Node the `@angular/cli` in its lockfile accepts; a lockfile beside every client manifest |
+| `TemplateNodePinTests` | no template ships a lockfile; every template package is `latest` except the declared holds; `@types/node` vs. the LTS major; no template lowers the Node floor; each front-end template's `Dockerfile` `setup_NN.x` vs. `ScaffoldLine`'s major |
 | `TailwindVersionPinTests` | the `tailwindcss` range in every template client vs. `RaskTailwindVersion` |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
@@ -501,16 +519,17 @@ They need no network and run in the ordinary unit gate — CI's `unit` jobs, on 
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
-line elsewhere — the `22.12` build-floor figures quoted in `docs/islands.md`, and the codename in `NodeRequirement`'s own doc comment — are
-still only prose. `scripts/upstream/node-lts.sh` rewrites the stated line and the codename when the Active
-LTS moves — the templates' `setup_NN.x` lines with it — and `upstream.yml` lands it; the build floor is
-deliberately left alone.
+line elsewhere — the build-floor figures quoted in `docs/islands.md`, `docs/spa.md` and
+`docs/diagnostics.md`, and the codename in `NodeRequirement`'s own doc comment — are still only prose.
+`scripts/upstream/node-lts.sh`, run daily by `upstream.yml`, moves `ScaffoldLine` on every new LTS
+release; on a new major it also moves the build floor to that line's first LTS release, the templates'
+`setup_NN.x` lines and `@types/node`.
 
 **Re-importing a front-end template is done by hand.** `scripts/refresh-templates.sh` used to re-run each
 framework's creator and print the diff against the committed tree. It is not coming back: every file in a
 client now carries Rask's own layer (the Tailwind starter, the lint and format configs, the dev proxy,
 the battery markers), so that diff is the same wall on every run and a real change in the creator's
-output is one line lost in it. Versions are Dependabot's now. For the shape — a new `tsconfig` option, a
+output is one line lost in it. Versions are chosen at `rask new`. For the shape — a new `tsconfig` option, a
 creator that changed its linter — run the creator into a scratch directory and read it beside the tree:
 
 ```bash
@@ -520,11 +539,11 @@ npx --yes @angular/cli@latest new client --directory client --style css --ssr fa
 diff -ru --exclude=src --exclude=public --exclude=package-lock.json <repo>/src/Rask.Templates/preact/client client
 ```
 
-Take what matters into `src/Rask.Templates/<key>/client` by hand, re-lock it there
-(`npm install --package-lock-only`), and run `dotnet test tests/Rask.Cli.Tests` and
+Take what matters into `src/Rask.Templates/<key>/client` by hand — a new package as `latest`, no
+lockfile — and run `dotnet test tests/Rask.Cli.Tests` and
 `scripts/run-template-e2e.sh --front-end=<key>`.
 
-**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates, and the `front end <key>` job of a template whose client it changes — the browser suites run on `main` after the merge), but `main` has no
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it
 locally, not from the web UI — check the branch out and push it.
 
