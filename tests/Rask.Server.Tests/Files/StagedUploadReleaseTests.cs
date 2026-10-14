@@ -74,6 +74,33 @@ public partial class StagedUploadReleaseTests
     }
 
     [Fact]
+    public async Task A_files_handler_that_takes_no_argument_runs_and_its_file_is_released()
+    {
+        await using var tab = await Tab.OpenAsync();
+        var (_, file) = await tab.UploadAsync("counted.csv");
+
+        var frames = await tab.HandAsync(tab.Counts, file!.Value);
+
+        Assert.Contains(frames, f => f.Contains("batches=1", StringComparison.Ordinal));
+        Assert.False(tab.IsStaged(file.Value));
+    }
+
+    [Fact]
+    public async Task A_queued_batch_whose_socket_closed_before_it_ran_releases_its_file_while_the_session_lives()
+    {
+        await using var tab = await Tab.OpenAsync();
+        var (_, file) = await tab.UploadAsync("queued.csv");
+        await tab.HoldTheLockAsync();
+        await tab.QueueBatchAsync(tab.Reads, file!.Value);
+
+        await tab.CloseSocketAsync();
+        tab.Gate.Open.TrySetResult();
+        await Rask.TestSupport.WaitFor.True(() => !tab.IsStaged(file.Value), "the queued batch hands its file back");
+
+        Assert.True(tab.SessionLives);
+    }
+
+    [Fact]
     public async Task A_file_whose_handler_threw_is_released()
     {
         await using var tab = await Tab.OpenAsync();
@@ -144,34 +171,43 @@ public partial class StagedUploadReleaseTests
         private readonly RaskTestHost _host;
         private readonly WebSocket _ws;
         private readonly string _loader;
+        private readonly string _hold;
 
-        private Tab(RaskTestHost host, WebSocket ws, string sessionId, string html)
+        private Tab(RaskTestHost host, WebSocket ws, string sessionId, string html, FileReceivingGate gate)
         {
             _host = host;
             _ws = ws;
+            Gate = gate;
             SessionId = sessionId;
             Reads = HandlerFor(html, "reads");
             Ignores = HandlerFor(html, "ignores");
+            Counts = HandlerFor(html, "counts");
             Throws = HandlerFor(html, "throws");
             _loader = LoaderHandler().Match(html).Groups["handler"].Value;
+            _hold = HoldHandler().Match(html).Groups["handler"].Value;
         }
 
+        public FileReceivingGate Gate { get; }
         public string SessionId { get; }
         public string Reads { get; }
         public string Ignores { get; }
+        public string Counts { get; }
         public string Throws { get; }
         public SessionUploadStore Store => _host.Server.Services.GetRequiredService<SessionUploadStore>();
+        public bool SessionLives => _host.Store.Peek(SessionId) is not null;
 
         public static async Task<Tab> OpenAsync()
         {
-            var host = RaskTestHost.Create<FileReceivingApp>(diffMode: LiveDiffMode.DisabledFull);
+            var gate = new FileReceivingGate();
+            var host = RaskTestHost.Create<FileReceivingApp>(
+                configureServices: s => s.AddSingleton(gate), diffMode: LiveDiffMode.DisabledFull);
             host.Server.Services.GetRequiredService<RaskUploadOptions>().MaxBytesPerSession = Cap;
             var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
             var sessionId = MarkupAssert.SessionId(html);
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             await ws.SendJsonAsync(new { type = "hello", session = sessionId });
             await ws.AttachedAsync(host, sessionId);
-            return new Tab(host, ws, sessionId, html);
+            return new Tab(host, ws, sessionId, html, gate);
         }
 
         public static string TokenOf(JsonElement file) => file.GetProperty("token").GetString()!;
@@ -217,8 +253,26 @@ public partial class StagedUploadReleaseTests
             return await _ws.SettledAsync();
         }
 
+        // Parks the hold button's handler on the gate, so whatever is sent next waits for the session's lock.
+        public async Task HoldTheLockAsync()
+        {
+            await _ws.SendJsonAsync(new { id = _hold, type = "click" });
+            await Gate.Parked.Task.WaitAsync(LiveFrames.HangCeiling);
+        }
+
+        public Task QueueBatchAsync(string handler, JsonElement file) =>
+            _ws.SendJsonAsync(new
+            {
+                type = "batch",
+                events = new[] { new { id = handler, type = "files", files = new[] { file } } }
+            });
+
+        public Task CloseSocketAsync() =>
+            _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "tab hidden", CancellationToken.None);
+
         public async ValueTask DisposeAsync()
         {
+            Gate.Open.TrySetResult();
             if (_ws.State == WebSocketState.Open)
             {
                 await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
@@ -240,5 +294,8 @@ public partial class StagedUploadReleaseTests
 
         [GeneratedRegex("<form[^>]*data-rask-on-submit=\"(?<handler>[^\"]+)\"")]
         private static partial Regex LoaderHandler();
+
+        [GeneratedRegex("<button[^>]*data-rask-on-click=\"(?<handler>[^\"]+)\"[^>]*>hold<")]
+        private static partial Regex HoldHandler();
     }
 }

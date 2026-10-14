@@ -2793,6 +2793,8 @@ public static partial class RaskEndpointExtensions
         TimeSpan handlerTimeout,
         CancellationToken ct)
     {
+        // Taken now, while the session is certainly alive: this much runs as the frame is queued.
+        var uploads = DispatchedUploads.StoreFor(session, root);
         try
         {
             try
@@ -2830,6 +2832,7 @@ public static partial class RaskEndpointExtensions
             session.DecrementPendingHandlers();
             store.HandlerDequeued();
             session.SubtractPendingHandlerBytes(payloadBytes);
+            ReleaseUploads(uploads, session, root);
         }
     }
 
@@ -2847,6 +2850,7 @@ public static partial class RaskEndpointExtensions
         TimeSpan handlerTimeout,
         CancellationToken ct)
     {
+        var uploads = DispatchedUploads.StoreFor(session, events);
         try
         {
             await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -2867,6 +2871,19 @@ public static partial class RaskEndpointExtensions
             session.DecrementPendingHandlers();
             store.HandlerDequeued();
             session.SubtractPendingHandlerBytes(payloadBytes);
+            ReleaseUploads(uploads, session, events);
+        }
+    }
+
+    // The one release point for staged uploads, which both chain links pass on the way out: after the handler the
+    // files were handed to returned, threw or timed out — or when it was never reached (a stale id, a revoked
+    // route, a lock wait the closing socket cancelled, an event a sign-in dropped). Readable only inside that
+    // handler, a file kept past it would hold the session's upload budget until the tab closed.
+    private static void ReleaseUploads(SessionUploadStore? uploads, LiveSession session, JsonElement frame)
+    {
+        if (uploads is not null)
+        {
+            DispatchedUploads.Release(uploads, session.Id, frame);
         }
     }
 
@@ -2947,7 +2964,6 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            root,
             token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
@@ -3056,7 +3072,6 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            root,
             token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
@@ -3068,45 +3083,9 @@ public static partial class RaskEndpointExtensions
     /// <summary>
     ///     The body every dispatch into a session shares: take the session's lock, hold the handler scope so state changes
     ///     coalesce into one render, re-check the route's authorization, run <paramref name="invoke" />, and render with
-    ///     whatever navigation or sign-in it asked for — and, once that is over, hand back the uploads
-    ///     <paramref name="frame" /> carried.
+    ///     whatever navigation or sign-in it asked for.
     /// </summary>
-    private static Task RunInSessionAsync(
-        LiveSession session,
-        string activityName,
-        string? handlerId,
-        JsonElement frame,
-        Func<CancellationToken, ValueTask<bool>> invoke,
-        RaskMetrics? metrics,
-        TimeSpan handlerTimeout,
-        bool lockHeld,
-        bool deferRender,
-        long seq,
-        CancellationToken ct)
-    {
-        // A frame with no files — nearly every one — runs straight through, with no wrapper to allocate.
-        var uploads = DispatchedUploads.StoreFor(session, frame);
-        var run = RunInSessionCoreAsync(
-            session, activityName, handlerId, invoke, metrics, handlerTimeout, lockHeld, deferRender, seq, ct);
-        return uploads is null ? run : ReleasingUploadsAsync(run, uploads, session.Id, frame);
-    }
-
-    // The one release point for staged uploads: after the handler they were handed to has returned, thrown or
-    // timed out — or was never reached (a stale id, a revoked route, a socket that closed in the queue).
-    private static async Task ReleasingUploadsAsync(
-        Task run, SessionUploadStore uploads, string sessionId, JsonElement frame)
-    {
-        try
-        {
-            await run.ConfigureAwait(false);
-        }
-        finally
-        {
-            DispatchedUploads.Release(uploads, sessionId, frame);
-        }
-    }
-
-    private static async Task RunInSessionCoreAsync(
+    private static async Task RunInSessionAsync(
         LiveSession session,
         string activityName,
         string? handlerId,
