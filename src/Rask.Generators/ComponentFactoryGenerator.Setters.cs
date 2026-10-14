@@ -400,6 +400,9 @@ public sealed partial class ComponentFactoryGenerator
             sb.Append("        if ((__p & ").Append(MaskLiteral(new[] { group })).AppendLine(") != 0UL)");
             sb.AppendLine("        {");
             sb.AppendLine("            __c.ResetUnwrittenAria();");
+            // `.Confirm(…)` is a hand-written step over internal state (BuilderRuntime.Confirm), so it rides the same
+            // always-pending bit: what no step wrote this render goes.
+            sb.AppendLine("            __c.ResetUnwrittenConfirm();");
             sb.AppendLine("        }");
         }
 

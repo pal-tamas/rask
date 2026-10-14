@@ -68,6 +68,18 @@ public partial class ConfirmAttributeTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("data-rask-confirm", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_render_that_asks_something_else_writes_the_new_question()
+    {
+        var host = new ConfirmedClickHost();
+        Render(host);
+
+        host.Question = "Really sure?";
+        var html = Render(host);
+
+        Assert.Contains("data-rask-confirm=\"Really sure?\"", html, StringComparison.Ordinal);
+    }
+
     private static string Render(Component host)
     {
         var sp = RenderHarness.EmptyServices();
@@ -86,9 +98,10 @@ internal sealed class ConfirmOrder
 internal sealed partial class ConfirmedClickHost : Component
 {
     internal bool Asks = true;
+    internal string Question = "Sure?";
 
     protected override Component? Render() =>
         Asks
-            ? Button.Data("x", "1").OnClick(() => { }).Confirm("Sure?")["Go"]
+            ? Button.Data("x", "1").OnClick(() => { }).Confirm(Question)["Go"]
             : Button.Data("x", "1").OnClick(() => { })["Go"];
 }
