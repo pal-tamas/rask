@@ -101,11 +101,11 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
     {
         if (page <= 1)
         {
-            Go.Without("page");
+            Go.Without("page").Pushing();
         }
         else
         {
-            Go.With("page", page.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Go.With("page", page.ToString(System.Globalization.CultureInfo.InvariantCulture)).Pushing();
         }
     }
 }

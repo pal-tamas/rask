@@ -129,6 +129,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A move that changes only the query string replaces the current history entry (Livewire's `#[Url]`).** Before:
+  `Go.With(...)` and `Go.Without(...)` pushed a new entry, so every pause of a live search added a Back stop. After:
+  they take the current entry's place; `Go.With("page", "2").Pushing()` opts back into a new entry. `Go.With` and
+  `Go.Without` now return the `GoTo` step (they returned `void`), so a call site that ignored the result compiles
+  unchanged. A path change (`Go.To`) still pushes, and a query move after a path change in the same handler joins
+  that push. Both hosts. A pager that should be a place to go Back to says `.Pushing()`, as the site's parcels
+  pager does.
+
 - **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
   waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
   drawn by the page, so opening one, moving in it and picking in it are round trips. **Before:** each of

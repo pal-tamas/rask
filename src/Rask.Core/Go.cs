@@ -4,7 +4,8 @@ namespace Rask.Core;
 
 /// <summary>
 ///     Where the user goes next, from an event handler: <c>Go.To("/products/42")</c>, or the current page with a
-///     changed query, <c>Go.With("page", "2")</c>. A typed route goes on its own: <c>Routes.ProductPage(42).Go()</c>.
+///     changed query, <c>Go.With("page", "2")</c>, which takes the current history entry's place. A typed route goes on
+///     its own: <c>Routes.ProductPage(42).Go()</c>.
 /// </summary>
 /// <remarks>
 ///     It works while a handler runs — the URL is pushed into the browser's history after the handler returns —
@@ -64,22 +65,53 @@ public static class Go
     public static void Out(string path) => Navigator.RequireCurrent().NavigateOut(path);
 
     /// <summary>Stays on this page with <paramref name="key" /> set in its query; a <c>null</c> value removes it.</summary>
+    /// <remarks>
+    ///     A move that changes only the query replaces the current history entry, as Livewire's <c>#[Url]</c> does, so a
+    ///     live search does not leave a Back stop at every pause; <c>.Pushing()</c> adds one instead.
+    /// </remarks>
     /// <param name="key">The query parameter, matched without regard to case.</param>
     /// <param name="value">Its new value.</param>
+    /// <returns>The step that makes it add a history entry: <c>Go.With("page", "2").Pushing()</c>.</returns>
     /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
-    public static void With(string key, string? value) => Navigator.RequireCurrent().SetQuery(key, value);
+    public static GoTo With(string key, string? value)
+    {
+        var navigator = Navigator.RequireCurrent();
+        navigator.SetQuery(key, value);
+        return new GoTo(navigator);
+    }
 
     /// <summary>Stays on this page with each of <paramref name="values" /> set in its query, in one step.</summary>
+    /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
     /// <param name="values">The parameters; one whose value is <c>null</c> is removed.</param>
+    /// <returns>The step that makes it add a history entry.</returns>
     /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
-    public static void With(params KeyValuePair<string, string?>[] values) => Navigator.RequireCurrent().SetQuery(values);
+    public static GoTo With(params KeyValuePair<string, string?>[] values)
+    {
+        var navigator = Navigator.RequireCurrent();
+        navigator.SetQuery(values);
+        return new GoTo(navigator);
+    }
 
     /// <summary>Stays on this page without <paramref name="key" /> in its query.</summary>
+    /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
     /// <param name="key">The query parameter, matched without regard to case.</param>
+    /// <returns>The step that makes it add a history entry.</returns>
     /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
-    public static void Without(string key) => Navigator.RequireCurrent().RemoveQuery(key);
+    public static GoTo Without(string key)
+    {
+        var navigator = Navigator.RequireCurrent();
+        navigator.RemoveQuery(key);
+        return new GoTo(navigator);
+    }
 
     /// <summary>Stays on this page without any query.</summary>
+    /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
+    /// <returns>The step that makes it add a history entry.</returns>
     /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
-    public static void Without() => Navigator.RequireCurrent().ClearQuery();
+    public static GoTo Without()
+    {
+        var navigator = Navigator.RequireCurrent();
+        navigator.ClearQuery();
+        return new GoTo(navigator);
+    }
 }

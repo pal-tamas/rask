@@ -183,6 +183,77 @@ public class NavigatorTests
     }
 
     [Fact]
+    public void A_move_of_the_query_alone_replaces_the_current_history_entry()
+    {
+        var (nav, _) = Build("/p");
+
+        using (nav.EnterHandler())
+        {
+            nav.SetQuery("q", "ab");
+        }
+
+        Assert.True(nav.TryConsumeHistory(out var url, out var replace));
+        Assert.Equal("/p?q=ab", url);
+        Assert.True(replace);
+    }
+
+    [Fact]
+    public void Every_way_of_moving_the_query_alone_replaces_the_entry()
+    {
+        var (nav, _) = Build("/p", new Dictionary<string, StringValues> { ["a"] = "1", ["b"] = "2" });
+
+        var replaced = new List<bool>();
+        foreach (var move in new Action<Navigator>[]
+                 {
+                     n => n.SetQuery(KeyValuePair.Create<string, string?>("a", "9")),
+                     n => n.RemoveQuery("a"),
+                     n => n.ClearQuery(),
+                 })
+        {
+            using (nav.EnterHandler())
+            {
+                move(nav);
+            }
+
+            nav.TryConsumeHistory(out _, out var replace);
+            replaced.Add(replace);
+        }
+
+        Assert.Equal([true, true, true], replaced);
+    }
+
+    [Fact]
+    public void Pushing_makes_a_query_move_add_an_entry()
+    {
+        var (nav, _) = Build("/p");
+
+        using (nav.EnterHandler())
+        {
+            nav.SetQuery("page", "2");
+            nav.Push();
+        }
+
+        Assert.True(nav.TryConsumeHistory(out _, out var replace));
+        Assert.False(replace);
+    }
+
+    [Fact]
+    public void A_path_change_still_adds_an_entry_and_a_query_move_after_it_does_not_take_that_back()
+    {
+        var (nav, _) = Build("/p");
+
+        using (nav.EnterHandler())
+        {
+            nav.NavigateTo("/other");
+            nav.SetQuery("q", "x");
+        }
+
+        Assert.True(nav.TryConsumeHistory(out var url, out var replace));
+        Assert.Equal("/other?q=x", url);
+        Assert.False(replace);
+    }
+
+    [Fact]
     public void Replace_stays_sticky_across_later_query_mutations()
     {
         var (nav, _) = Build();

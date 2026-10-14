@@ -4039,6 +4039,7 @@ Rask.Core.Globalization.SessionCulture.Set(System.Globalization.CultureInfo! cul
 Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
+Rask.Core.GoTo.Pushing() -> void
 Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
 Rask.Core.HTMLInputElement<T>.Blur.set -> void
 Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
@@ -7216,6 +7217,10 @@ static Rask.Core.Globalization.RaskStrings.Get<T0, T1>(Rask.Core.Globalization.R
 static Rask.Core.Globalization.RaskStrings.Get<T0>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0) -> string!
 static Rask.Core.Globalization.RaskStrings.UseLibrarySource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
+static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> Rask.Core.GoTo!
+static Rask.Core.Go.With(string! key, string? value) -> Rask.Core.GoTo!
+static Rask.Core.Go.Without() -> Rask.Core.GoTo!
+static Rask.Core.Go.Without(string! key) -> Rask.Core.GoTo!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Core.Live.DevErrorInfo.From(System.Exception! ex, string! kind) -> Rask.Core.Live.DevErrorInfo?
 static Rask.Core.Live.DevErrorInfo.operator !=(Rask.Core.Live.DevErrorInfo? left, Rask.Core.Live.DevErrorInfo? right) -> bool
@@ -17902,10 +17907,6 @@ static Rask.Core.Go.Out(string! path) -> void
 static Rask.Core.Go.To(Rask.Core.Routing.RouteUrl url) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query) -> Rask.Core.GoTo!
-static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> void
-static Rask.Core.Go.With(string! key, string? value) -> void
-static Rask.Core.Go.Without() -> void
-static Rask.Core.Go.Without(string! key) -> void
 Rask.Core.Auth
 static Rask.Core.Auth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Core.Auth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

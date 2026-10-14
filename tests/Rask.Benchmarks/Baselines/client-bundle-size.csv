@@ -231,7 +231,8 @@
 # 2026-10-13, a tab asks whether the browser's credential changed and reopens its connection before it sends (rask-auth-watch.ts, the Server runtime only): rask.js +1,682, on main at 101,796: 103,478. rask.wasm.js and rask-hooks.js are unchanged.
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
+# 2026-10-14, `.Confirm("…")` asked before a click or a submit is sent (rask-confirm.ts, both runtimes: confirm() or prompt() matched exactly, in the handler click guard and each host's submit listener): rask.js 104,174 -> 104,481 (+307) and rask.wasm.js 90,985 -> 91,279 (+294). rask-hooks.js is unchanged.
 bundle,bytes
-rask.js,104174
-rask.wasm.js,90985
+rask.js,104481
+rask.wasm.js,91279
 rask-hooks.js,58415
