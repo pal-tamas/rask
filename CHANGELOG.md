@@ -16,6 +16,11 @@ them until tagged releases begin.
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
 
+- **`Rask.Print` — print a page from the browser, with no server engine.** `Print.Only(...)` / `Print.Hide(...)` show a part
+  of a page on paper only or never on paper, `Print.Styles(PrintPage.Size("A4").Landscape().Margins("15mm"))` writes the
+  `@page` rule (paper names and CSS lengths only), and `Button.Print()` opens the browser's print dialog, whose "Save as
+  PDF" makes the PDF. No Chromium or PDF library; see `docs/printing.md`.
+
 ### Security
 
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).

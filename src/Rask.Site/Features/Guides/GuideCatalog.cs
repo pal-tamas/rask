@@ -200,6 +200,11 @@ public static class GuideCatalog
             SearchTitle = "Export an Excel .xlsx file from C# with no library",
             Description = "Write an Excel .xlsx workbook from .NET with nothing but System.IO.Compression: bold frozen headings, filters, fitted columns, folded rows and a SUBTOTAL row.",
         },
+        new("printing", "Printing", "Print a page you laid out yourself, from the browser, to paper or PDF.", "Backend services")
+        {
+            SearchTitle = "Print a web page to paper or PDF from C#",
+            Description = "Print a C# page from the browser with no server engine: print-only and print-hidden parts, the @page rule as PrintPage, and a print button for Save as PDF.",
+        },
         new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "Backend services")
         {
             SearchTitle = "ASP.NET Core APIs with a generated typed client",
