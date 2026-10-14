@@ -210,9 +210,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs`, `parity-phone.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -942,6 +942,22 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
   draws the `Label` in place of its children, so the flag page's two selects are written without it.
 
+- Phone (2026-10-14): `Ui.Phone` runs intl-tel-input 29.2.3 — the release fluxui.dev's `phone.min.js` says it is —
+  with that release's own libphonenumber utils (Flux's `phone-utils.js` answered the same on every country's
+  examples and as-you-type), as an ENGINE like the editor's: `Resources/phone/` (pinned, locked, `npm ci && node
+  build.mjs`) writes `Resources/ui-phone.js`, `ui-phone-utils.js`, their notices (MIT + Apache-2.0),
+  `UiPhoneEngine`'s two versions and `UiPhoneCountries.g.cs`; the targets copy them to `wwwroot/js` of every app
+  (`RaskUiPhoneEngine=false` opts out) and `RaskUiWriteFlags` unset follows that switch. The runtime's
+  `rask-phone.ts` hook fetches the engine; the engine owns the tel input (iti's wrapper is taken back off), the ONE
+  hidden bound field (rask-bound.ts) and the whole picker: rows built from the library's countries
+  (`data-rask-managed`, named by `Intl.DisplayNames` in the page's language), cursor, search, pick — 0 frames, held by
+  the frame gate's `phone` rows. Measured on Flux and kept: the value is `iti.getNumber()` (E.164 once possible,
+  the text as typed until then); picking a country KEEPS the number and reads it again; a read-only field says
+  `aria-readonly` and its list never opens; the placeholder is the prop alone (Flux's first example states one);
+  Home/End/Page keys in the search do not move the cursor; the list opens with the chosen row lit and unscrolled.
+  `parity-phone.mjs` serves the parity page with the engine and the hook and compares the OPEN list (all rows).
+  To move onto the select family's `rask-list.ts` when it lands: the picker's cursor/search/pick would be that
+  hook's, and the engine keeps the number and the countries.
 - Toggle (2026-10-13): `Ui.Toggle` is a real `<button role="switch">` where Flux writes a `<ui-switch>` — the
   element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
   press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides
