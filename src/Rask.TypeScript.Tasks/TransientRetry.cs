@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Rask.TypeScript.Tasks;
@@ -16,10 +14,6 @@ internal static class TransientRetry
 {
     /// <summary>The waits between attempts: three attempts in all, about seven seconds at worst.</summary>
     internal static readonly IReadOnlyList<TimeSpan> Waits = [TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5)];
-
-    // netstandard2.0's HttpRequestException carries no status code; EnsureSuccessStatusCode writes it into the
-    // message: "Response status code does not indicate success: 404 (Not Found)."
-    private static readonly Regex StatusInMessage = new(@"\b(?<status>\d{3}) \(", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, TimeSpan.FromSeconds(1));
 
     /// <summary>Runs <paramref name="attempt" />, again after each wait while it fails transiently.</summary>
     /// <param name="attempt">The network call.</param>
@@ -52,15 +46,10 @@ internal static class TransientRetry
     /// <summary>Whether asking again could get a different answer.</summary>
     internal static bool IsTransient(Exception ex) => ex switch
     {
-        HttpRequestException answered when StatusOf(answered) is { } status => status >= 500 || status is 408 or 429,
+        RegistryAnswerException { Status: var status } => status >= 500 || status is 408 or 429,
         HttpRequestException => true, // no answer at all: DNS, a refused or reset connection
         TaskCanceledException => true, // HttpClient's timeout
         IOException { InnerException: not null } => true, // the connection broke mid-download
         _ => false,
     };
-
-    private static int? StatusOf(HttpRequestException ex) =>
-        StatusInMessage.Match(ex.Message) is { Success: true } match
-            ? int.Parse(match.Groups["status"].Value, CultureInfo.InvariantCulture)
-            : null;
 }

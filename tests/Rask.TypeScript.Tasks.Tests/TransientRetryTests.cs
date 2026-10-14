@@ -35,13 +35,13 @@ public class TransientRetryTests
             () =>
             {
                 attempts++;
-                throw new HttpRequestException("Response status code does not indicate success: 404 (Not Found).");
+                throw new RegistryAnswerException(404, "https://registry.npmjs.org/x.tgz");
             },
             TwoWaits,
             (_, _) => { },
             _ => { }));
 
-        Assert.IsType<HttpRequestException>(failure);
+        Assert.IsType<RegistryAnswerException>(failure);
         Assert.Equal(1, attempts);
     }
 
@@ -65,16 +65,16 @@ public class TransientRetryTests
     }
 
     [Theory]
-    [InlineData("500 (Internal Server Error)", true)]
-    [InlineData("502 (Bad Gateway)", true)]
-    [InlineData("503 (Service Unavailable)", true)]
-    [InlineData("408 (Request Timeout)", true)]
-    [InlineData("429 (Too Many Requests)", true)]
-    [InlineData("404 (Not Found)", false)]
-    [InlineData("403 (Forbidden)", false)]
-    public void A_registry_answer_is_asked_again_only_when_it_could_change(string answer, bool asksAgain)
+    [InlineData(500, true)]
+    [InlineData(502, true)]
+    [InlineData(503, true)]
+    [InlineData(408, true)]
+    [InlineData(429, true)]
+    [InlineData(404, false)]
+    [InlineData(403, false)]
+    public void A_registry_answer_is_asked_again_only_when_it_could_change(int status, bool asksAgain)
     {
-        var failure = new HttpRequestException($"Response status code does not indicate success: {answer}.");
+        var failure = new RegistryAnswerException(status, "https://registry.npmjs.org/x.tgz");
 
         var transient = TransientRetry.IsTransient(failure);
 

@@ -200,7 +200,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         // Verified rather than trusted: these bytes are about to be executed by the build.
         var expected = RecordedIntegrity(packageName) ?? PublishedIntegrity(http, packageName);
 
-        var bytes = Ask(() => http.GetByteArrayAsync(tarballUrl).GetAwaiter().GetResult(), packageName);
+        var bytes = Ask(() => Get(http, tarballUrl).ReadAsByteArrayAsync().GetAwaiter().GetResult(), packageName);
         var actual = Sha512Integrity(bytes);
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
@@ -210,6 +210,20 @@ public sealed class ResolveTypeScriptToolTask : Task
         }
 
         return bytes;
+    }
+
+    // The body of a successful answer; any other answer is thrown with its status as a number, never parsed from text.
+    private static HttpContent Get(HttpClient http, string url)
+    {
+        var response = http.GetAsync(url).GetAwaiter().GetResult();
+        if (!response.IsSuccessStatusCode)
+        {
+            var status = (int)response.StatusCode;
+            response.Dispose();
+            throw new RegistryAnswerException(status, url);
+        }
+
+        return response.Content;
     }
 
     // A registry or a runner's network that fails for a moment is asked again; an answer that will not change is not.
@@ -237,7 +251,7 @@ public sealed class ResolveTypeScriptToolTask : Task
             + $"against the integrity its own registry publishes. {HowToPin()}");
 
         var metadata = Ask(
-            () => http.GetStringAsync(TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version)).GetAwaiter().GetResult(),
+            () => Get(http, TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version)).ReadAsStringAsync().GetAwaiter().GetResult(),
             packageName);
 
         // A metadata document that carries no SHA-512 is a failure, not "nothing to check".
