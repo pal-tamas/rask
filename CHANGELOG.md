@@ -328,6 +328,13 @@ them until tagged releases begin.
 ### Fixed
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **Toasts whose countdowns end in the same frame all leave** (#1202). The runtime pressed every
+  `data-rask-dismiss-after` toast's `[data-rask-dismiss]` control the moment its time was up, so toasts shown
+  together with one duration were all pressed before the page had answered any of them, each carrying a handler
+  id read from the page as it was before the others' renders — a toast whose id one of those renders retired
+  stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
+  the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
+  press that never takes its toast away holds the rest back for 2 s at most.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
