@@ -373,7 +373,7 @@ public abstract partial class UiSelectControl<T>
         await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
         if (Waits)
         {
-            await UiInputReach.SayAsync(_searchInput, string.Empty).ConfigureAwait(false);
+            UiInputReach.Tell(_searchInput, string.Empty);
         }
     }
 
@@ -467,7 +467,7 @@ public abstract partial class UiSelectControl<T>
 
             if (IsCombobox)
             {
-                await UiInputReach.SayAsync(_input, words).ConfigureAwait(false);
+                UiInputReach.Tell(_input, words);
             }
 
             return;
@@ -493,7 +493,9 @@ public abstract partial class UiSelectControl<T>
         }
 
         await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
-        await UiInputReach.SayAsync(TypedInto, string.Empty).ConfigureAwait(false);
+        // Not awaited: the page's code has run, and a page that went elsewhere sends no frame until the
+        // dispatch ends — a browser call waited for here would hold the pick, and the navigation, until it timed out.
+        UiInputReach.Tell(TypedInto, string.Empty);
 
         return true;
     }
