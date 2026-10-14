@@ -14,6 +14,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["filter: filter"] = (1, "the value"),
         ["input-clearable: clear"] = (1, "the value, emptied"),
         ["input: typing, then leaving the field"] = (1, "the value, on change"),
+        ["composer: send by Ctrl+Enter"] = (1, "the page's OnSubmit, with what was typed"),
         ["dropdown-heard: open by a press"] = (1, "the page's OnToggle"),
         ["dropdown-heard: close by Escape"] = (1, "the page's OnToggle"),
         ["dropdown-heard: close by a press outside"] = (1, "the page's OnToggle"),

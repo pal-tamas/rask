@@ -15,11 +15,16 @@ function px(value: string): number {
     return parseFloat(value) || 0;
 }
 
-/** The height a textarea of `content` px of text (padding included) takes, and whether it scrolls. Exported for the fixture. */
-export function grown(content: number, line: number, most: number, padding: number, border: number): [number, boolean] {
+/**
+ * The `height` a textarea whose text is `content` px tall (its scrollHeight, padding included) is given, and
+ * whether it scrolls: padding and border are part of that height under `border-box` and not otherwise.
+ * Exported for the fixture.
+ */
+export function grown(content: number, line: number, most: number, padding: number, border: number, borderBox: boolean): [number, boolean] {
     const cap = most * line + padding + border;
     const want = content + border;
-    return want > cap ? [cap, true] : [want, false];
+    const outer = Math.min(want, cap);
+    return [borderBox ? outer : outer - padding - border, want > cap];
 }
 
 /** Fits `t` to its text. */
@@ -32,7 +37,7 @@ export function fit(t: HTMLTextAreaElement): void {
     own(t, "style");
     t.style.height = "auto";
     const [height, scrolls] = grown(t.scrollHeight, px(cs.lineHeight), most,
-        px(cs.paddingTop) + px(cs.paddingBottom), px(cs.borderTopWidth) + px(cs.borderBottomWidth));
+        px(cs.paddingTop) + px(cs.paddingBottom), px(cs.borderTopWidth) + px(cs.borderBottomWidth), cs.boxSizing === "border-box");
     t.style.height = height + "px";
     t.style.overflowY = scrolls ? "auto" : "hidden";
 }
