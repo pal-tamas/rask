@@ -30,9 +30,9 @@ import { eventBatch, isHandlerEvent, pageApplied } from "../../Rask.Core/Resourc
 import {
     beginLoading,
     endLoading,
-    isVisiblyLoading,
     loadingTarget,
 } from "../../Rask.Core/Resources/rask-loading.js";
+import { holdForm, releaseForm } from "../../Rask.Core/Resources/rask-submitting.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -751,9 +751,11 @@ document.addEventListener("submit", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
-    // The form's own button waits, not the form. Mirrors rask.ts.
+    // A form already submitting takes no second submit, and this one is held until .NET is done with it
+    // (rask-submitting.ts). The form's own button shows the wait. Mirrors rask.ts.
+    const hold = holdForm(t);
+    if (!hold) return;
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
-    if (isVisiblyLoading(submitter)) return;
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
     for (const input of fileInputs) {
@@ -772,7 +774,10 @@ document.addEventListener("submit", (e) => {
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
     const sent = send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
-    if (ticket) sent.then(settled).finally(() => endLoading(ticket));
+    sent.then(settled).finally(() => {
+        endLoading(ticket);
+        releaseForm(hold);
+    });
 });
 
 // ----- IJSRuntime bridge -----------------------------------------------------
