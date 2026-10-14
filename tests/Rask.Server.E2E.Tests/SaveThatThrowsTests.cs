@@ -1,5 +1,4 @@
 using Rask.Core;
-using Rask.Core.Live;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -28,8 +27,6 @@ public sealed class SaveThatThrowsTests(PlaywrightFixture playwright) : IClassFi
                 frames = SocketFrames.Of(page);
                 return Task.CompletedTask;
             },
-            // The flag is the process's and the first host to map claims it: this host says so itself.
-            beside: static _ => LiveOptions.IsDevelopment = false,
             environment: "Production",
             cultures: static c =>
             {
