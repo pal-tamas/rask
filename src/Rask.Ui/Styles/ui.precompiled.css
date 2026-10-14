@@ -48,5 +48,8 @@
   devtools panel widens a badge around a long token with `whitespace-normal!` (and a table cell with
   `whitespace-normal`), and a vertical separator is shortened with `my-2`. They used to reach this sheet
   because a doc comment named them, which is the scan #1214 ended — so they are named here, on purpose.
+  `aspect-3/1` is the chart's: Ui.Chart draws at the size its caller gives it and its remarks say to give it
+  one, so a surface with no Tailwind build (the kit frames the browser suites draw) sizes it with that class —
+  without it the plot has no height and nothing in it can be hovered.
 */
-@source inline("my-2 whitespace-normal whitespace-normal!");
+@source inline("my-2 whitespace-normal whitespace-normal! aspect-3/1");
