@@ -23,7 +23,7 @@ public partial class TextareaTests : global::Rask.Core.RaskMarkup
                 .ReadOnly(true)
                 .MaxLength(100)
                 .MinLength(1)
-                .Wrap(TextareaWrap.Soft)
+                .Wrap("soft")
                 .Autofocus(true)
                 .Autocomplete("off")
                 .Form("f")

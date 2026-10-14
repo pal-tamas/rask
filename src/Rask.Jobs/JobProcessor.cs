@@ -33,7 +33,25 @@ public sealed partial class JobProcessor<TContext>(
     private readonly Guid _instanceId = Guid.NewGuid();
 
     /// <summary>The token on the batch currently in flight, so shutdown can hand it back.</summary>
-    private Guid _lease;
+    // The claims this instance still holds: StopAsync gives back what a shutdown cut short.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, byte> _leases = new();
+
+    // The lanes at work: each is one task, and the poll loop goes on while they run.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> _running = new();
+
+    private CancellationTokenSource _grace = new();
+
+    // Whether this instance has a batch of jobs without a lane at work: it takes one at a time.
+    private int _defaultLaneRunning;
+
+    private sealed class ClaimRun(Guid token, int lanes)
+    {
+        public Guid Token { get; } = token;
+
+        public int Open = lanes;
+
+        public bool Cut;
+    }
 
     /// <summary>
     /// Atomically takes a batch of due jobs for this instance, so a second processor cannot run them too.
@@ -53,17 +71,8 @@ public sealed partial class JobProcessor<TContext>(
     {
         ArgumentNullException.ThrowIfNull(db);
 
-        var ids = await db.Set<Job>()
-            .Where(j => j.ProcessedAt == null
-                && j.Attempts < options.MaxAttempts
-                && j.RunAt <= now
-                && (j.ClaimedUntil == null || j.ClaimedUntil <= now))
-            .OrderBy(j => j.RunAt)
-            .ThenBy(j => j.Id)
-            .Take(options.BatchSize)
-            .Select(j => j.Id)
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var includeDefault = Volatile.Read(ref _defaultLaneRunning) == 0;
+        var ids = await DueIdsAsync(db, now, includeDefault, cancellationToken).ConfigureAwait(false);
 
         if (ids.Count == 0)
         {
@@ -98,7 +107,7 @@ public sealed partial class JobProcessor<TContext>(
             return [];
         }
 
-        _lease = token;
+        _leases[token] = 0;
 
         // Filtered on the id list as well as the token, so this rides the primary key — which is why no
         // index on ClaimToken is needed.
@@ -110,9 +119,70 @@ public sealed partial class JobProcessor<TContext>(
             .ConfigureAwait(false);
     }
 
+    // Ids of what may be claimed now: the default lane's due jobs, and the first due job of each other lane.
+    private async Task<List<long>> DueIdsAsync(TContext db, DateTime now, bool includeDefault, CancellationToken cancellationToken)
+    {
+        // A named lane with a job in flight (here or on another instance) is busy: nothing of it is claimed
+        // until that job has let go of its lease.
+        var busy = await db.Set<Job>()
+            .Where(j => j.Lane != null && j.ProcessedAt == null && j.ClaimedUntil > now)
+            .Select(j => j.Lane)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        // Jobs without a lane are a batch, one after the other, as they always were - and a batch of this
+        // instance at a time. Other instances take their own: without a lane nothing is held back.
+        var ids = !includeDefault
+            ? new List<long>()
+            : await Due(db, now)
+                .Where(j => j.Lane == null)
+                .Select(j => j.Id)
+                .Take(options.BatchSize)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+        // A named lane offers one job: the first one due. The rest wait their turn behind it.
+        var heads = await Due(db, now)
+            .Where(j => j.Lane != null
+                && !busy.Contains(j.Lane)
+                && !db.Set<Job>().Any(earlier => earlier.Lane == j.Lane
+                    && earlier.ProcessedAt == null
+                    && earlier.Attempts < options.MaxAttempts
+                    && (earlier.RunAt < j.RunAt || (earlier.RunAt == j.RunAt && earlier.Id < j.Id))))
+            .Select(j => j.Id)
+            .Take(options.BatchSize)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        ids.AddRange(heads);
+
+        return ids;
+    }
+
+    private IQueryable<Job> Due(TContext db, DateTime now) =>
+        db.Set<Job>()
+            .Where(j => j.ProcessedAt == null
+                && j.Attempts < options.MaxAttempts
+                && j.RunAt <= now
+                && (j.ClaimedUntil == null || j.ClaimedUntil <= now))
+            .OrderBy(j => j.RunAt)
+            .ThenBy(j => j.Id);
+
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // The lanes at work get a bounded grace after SIGTERM instead of being cancelled mid-call. The host
+        // token ARMS a deadline on this source rather than cancelling it, so user code keeps a live token
+        // for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream executor's graceful
+        // stop.) The loop refuses to START anything new the moment the host token fires, so the extra
+        // shutdown time is one grace period, not one per lane.
+        //
+        // Declaration order is load-bearing: `_grace` is replaced before the registration exists, and the
+        // registration is disposed first. The reverse order lets the callback call CancelAfter on an
+        // already-disposed source and throw during shutdown.
+        _grace = new CancellationTokenSource();
+        using var grace = _grace;
+        using var registration = stoppingToken.Register(() => grace.CancelAfter(options.ShutdownGracePeriod));
         using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
@@ -125,6 +195,11 @@ public sealed partial class JobProcessor<TContext>(
         catch (OperationCanceledException)
         {
             // Normal shutdown.
+        }
+        finally
+        {
+            // Stopping waits for the lanes at work: they finish, or the grace cancels them.
+            await Task.WhenAll(_running.Keys).ConfigureAwait(false);
         }
     }
 
@@ -162,6 +237,12 @@ public sealed partial class JobProcessor<TContext>(
                 return;
             }
 
+            if (IsMissingColumn(ex, nameof(Job.Lane)))
+            {
+                LaneColumnMissing(logger, ex);
+                return;
+            }
+
             CycleFailed(logger, ex);
         }
     }
@@ -179,37 +260,88 @@ public sealed partial class JobProcessor<TContext>(
             return;
         }
 
-        // The in-flight job gets a bounded grace after SIGTERM instead of being cancelled mid-call. The
-        // host token ARMS a deadline on this source rather than cancelling it, so user code keeps a live
-        // token for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream executor's
-        // graceful stop.) One CTS per batch, not per job: the loop's pre-check below refuses to START
-        // anything new the moment the host token fires, so at most ONE job is ever behind this deadline —
-        // the extra shutdown time is bounded by a single grace period, not one per remaining job.
-        //
-        // Declaration order is load-bearing: `graceCts` must be declared before `registration` so
-        // disposal runs registration-first. The reverse order lets the callback call CancelAfter on an
-        // already-disposed source and throw during shutdown.
-        using var graceCts = new CancellationTokenSource();
-        using var registration = cancellationToken.Register(() => graceCts.CancelAfter(options.ShutdownGracePeriod));
-        var graceToken = graceCts.Token;
+        // Each lane goes its own way, so a long job holds up its own lane and no other. The jobs leave this
+        // context for the lane's own, which writes their outcomes as they come.
+        db.ChangeTracker.Clear();
+        var lanes = batch.GroupBy(job => job.Lane, StringComparer.Ordinal).Select(lane => lane.ToList()).ToList();
+        var claim = new ClaimRun(batch[0].ClaimToken!.Value, lanes.Count);
 
-        foreach (var job in batch)
+        foreach (var lane in lanes)
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-
-            if (!await RunAsync(job, graceToken, cancellationToken).ConfigureAwait(false))
-            {
-                break; // leave this and the rest for the next run
-            }
-
-            await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+            StartLane(lane, claim, cancellationToken);
         }
     }
 
-    /// <summary>Runs one claimed job, recording its outcome on the row. False when shutdown cut it off.</summary>
+    private void StartLane(List<Job> jobs, ClaimRun claim, CancellationToken cancellationToken)
+    {
+        var withoutLane = jobs[0].Lane is null;
+        if (withoutLane)
+        {
+            Volatile.Write(ref _defaultLaneRunning, 1);
+        }
+
+        var task = RunLaneAsync(jobs, _grace.Token, cancellationToken);
+        _running[task] = 0;
+        _ = task.ContinueWith(
+            finished =>
+            {
+                _running.TryRemove(finished, out _);
+                if (withoutLane)
+                {
+                    Volatile.Write(ref _defaultLaneRunning, 0);
+                }
+
+                // A lane cut short leaves jobs claimed: they stay on the list StopAsync gives back.
+                claim.Cut |= !finished.Result;
+                if (Interlocked.Decrement(ref claim.Open) == 0 && !claim.Cut)
+                {
+                    _leases.TryRemove(claim.Token, out _);
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    // One lane's jobs, one after the other. Nothing leaves here: a lane's failure is its own and the others go on.
+    private async Task<bool> RunLaneAsync(List<Job> jobs, CancellationToken graceToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+            db.AttachRange(jobs);
+
+            foreach (var job in jobs)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return false;
+                }
+
+                if (!await RunAsync(job, graceToken, cancellationToken).ConfigureAwait(false))
+                {
+                    return false; // leave this and the rest for the next run
+                }
+
+                await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+            }
+
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return false; // shutting down
+        }
+#pragma warning disable CA1031 // A failing lane must not stop the others or crash the app - its rows are claimed until the lease runs out.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            CycleFailed(logger, ex);
+            return false;
+        }
+    }
+
     private async Task<bool> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
     {
         var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
@@ -336,7 +468,8 @@ public sealed partial class JobProcessor<TContext>(
     {
         await base.StopAsync(cancellationToken).ConfigureAwait(false);
 
-        if (_lease == Guid.Empty)
+        var held = _leases.Keys.Select(lease => (Guid?)lease).ToList();
+        if (held.Count == 0)
         {
             return;
         }
@@ -353,7 +486,7 @@ public sealed partial class JobProcessor<TContext>(
             // ten unlucky redeploys dead-letter a job that never once failed, with nothing connecting the
             // two. A job that genuinely failed already released its own lease, so it is not in this set.
             await db.Set<Job>()
-                .Where(j => j.ClaimToken == _lease && j.ProcessedAt == null)
+                .Where(j => held.Contains(j.ClaimToken) && j.ProcessedAt == null)
                 .ExecuteUpdateAsync(
                     s => s
                         .SetProperty(j => j.ClaimToken, (Guid?)null)
@@ -562,6 +695,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added a UserId column (the user a job runs for) that this database does not have. "
             + "Run: rask db add AddJobUser && rask db update.")]
     private static partial void UserColumnMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added a Lane column (what lets jobs of different lanes run side by side) that this database does not have. "
+            + "Run: rask db add AddJobLane && rask db update.")]
+    private static partial void LaneColumnMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

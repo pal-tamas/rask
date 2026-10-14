@@ -228,6 +228,13 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             valueString = BindingHelpers.FormatValue(acc.Getter());
         }
 
+        // A secret's value is the browser's: the server writes a clear and never the text (SecretField).
+        var secret = SecretField.Is(resolvedType, Autocomplete);
+        if (secret)
+        {
+            valueString = SecretField.Writable(valueString);
+        }
+
         if (resolvedType is not null)
         {
             AppendAttr(sb, "type", resolvedType);
@@ -241,6 +248,11 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         if (valueString is not null)
         {
             AppendAttr(sb, "value", valueString);
+        }
+
+        if (secret)
+        {
+            AppendAttr(sb, SecretField.Marker, null);
         }
 
         if (checkedState is true)

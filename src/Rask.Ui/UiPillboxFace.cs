@@ -10,9 +10,6 @@ namespace Rask;
 /// </remarks>
 internal sealed class UiPillboxFace
 {
-    /// <summary>How long after the browser shut the list a click on the trigger is still the click that shut it.</summary>
-    internal static readonly TimeSpan DismissedBy = TimeSpan.FromMilliseconds(250);
-
     /// <summary>True for Flux's <c>variant="combobox"</c>: an input among the pills, typed into to narrow the list.</summary>
     internal bool Combobox { get; init; }
 

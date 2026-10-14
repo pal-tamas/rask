@@ -144,6 +144,58 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_search_finds_its_words_anywhere_in_a_row_whatever_the_case_or_the_accents_and_in_its_keywords()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var list = root.GetProperty("list");
+        var search = list.GetProperty("search").EnumerateArray().Select(Words).ToArray();
+
+        Assert.Equal(["osterreich", "cafe au lait"], Words(list.GetProperty("fold")));
+        Assert.Equal(["Accounting", "Consulting"], search[0]);
+        Assert.Equal(["Design services", "Web development", "Legal services", "Other"], search[1]);
+        Assert.Equal(7, search[2].Length);
+        Assert.Empty(search[3]);
+        Assert.Equal(["Fruit"], Words(list.GetProperty("keywords")));
+        Assert.Equal(["Something else"], Words(list.GetProperty("kept")));
+    }
+
+    [Fact]
+    public void The_create_row_is_offered_once_what_is_typed_is_long_enough_and_names_no_option()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var offered = root.GetProperty("list").GetProperty("create").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
+
+        // "n", "ne", "security", "Sécurity", nothing typed; a list that always offers it; a list with no create row.
+        Assert.Equal([false, true, false, false, false, true, false], offered);
+    }
+
+    [Fact]
+    public void The_arrows_step_over_a_row_that_is_off_and_stop_at_either_end_and_letters_jump_to_the_row_that_starts_with_them()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var list = root.GetProperty("list");
+
+        Assert.Equal([2, 2, 0, 1, 1], list.GetProperty("step").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+        // "l" from no row: Legal services. "le" from there: still it. "d" from Design services: itself again, the
+        // only one. "dd": the same letter twice. "zz": nobody's. "a" with Accounting off: nobody's.
+        Assert.Equal([4, 4, 1, 1, -1, -1], list.GetProperty("ahead").EnumerateArray().Select(e => e.GetInt32()).ToArray());
+    }
+
+    private static string[] Words(JsonElement array) => [.. array.EnumerateArray().Select(e => e.GetString()!)];
+
+    [Fact]
     public void A_pointer_becomes_a_fraction_of_the_track_inside_the_inset_and_never_leaves_zero_to_one()
     {
         if (Run() is not { } root)

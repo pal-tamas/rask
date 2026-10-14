@@ -15,14 +15,14 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
     where TContext : DbContext
 {
     /// <inheritdoc/>
-    public async Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken = default)
+    public async Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(job);
         var due = (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;
         var (type, payload) = JobSerializerRegistry.Serialize(job);
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
-        db.Set<Job>().Add(Job.For(type, payload, due));
+        db.Set<Job>().Add(Job.For(type, payload, due, lane));
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

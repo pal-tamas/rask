@@ -34,7 +34,7 @@ jobs:
   # already cut from it. Empty publishes nothing.
   pick:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: read    # the last green whole run
       contents: read   # the release the last nightly left
@@ -75,7 +75,7 @@ jobs:
   publish-nightly:
     needs: pick
     if: needs.pick.outputs.sha != ''
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 180   # a publish that hangs must end, or `nightly` (one at a time) never runs again
     env:
       SHA: ${{ needs.pick.outputs.sha }}   # the commit the whole run passed

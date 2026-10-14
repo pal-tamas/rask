@@ -133,6 +133,8 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
                     // A code typed into a field that waits is held for the next action: its `input` only draws it.
                     .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
                     .Type(InputType.Hidden)
+                    // A private code is a secret like a password: the page never writes it back to the field.
+                    .Autocomplete(Private == true ? "one-time-code" : null)
                     .Name(Name)
                     .Disabled(Disabled == true),
                 Context.Provide(scope)[cells]

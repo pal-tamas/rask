@@ -67,7 +67,8 @@ public sealed partial class Home : Component
 ```
 
 `RaskApp` wraps `WebApplicationBuilder` rather than replacing it: `app.Services` is the same collection, and
-`AddRask()` / `MapRask<App>()` stay public for a host assembled by hand.
+`AddRask()` / `MapRask<App>()` stay public for a host assembled by hand — the package imports `Rask.Server`
+for the project, so they need no `using`; a page file adds `using Rask.Core.Routing;` for `[Route]`.
 
 Guides: [getting started](https://rask.sh/docs/guides/getting-started) ·
 [live pages](https://rask.sh/docs/guides/render-modes) · [routing](https://rask.sh/docs/guides/routing) ·

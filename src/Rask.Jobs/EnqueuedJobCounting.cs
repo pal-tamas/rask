@@ -16,6 +16,10 @@ public static class EnqueuedJobCounting
         public Counting<EnqueuedJob<TJob>> At(DateTimeOffset moment) =>
             enqueued.Where(e => e.Moment == moment, $"at {moment:u}");
 
+        /// <summary>Only the jobs enqueued <c>.InLane(<paramref name="lane" />)</c>.</summary>
+        public Counting<EnqueuedJob<TJob>> InLane(string lane) =>
+            enqueued.Where(e => string.Equals(e.Lane, lane, StringComparison.Ordinal), $"in lane {lane}");
+
         /// <summary>Only the jobs the <paramref name="matches" /> predicate accepts.</summary>
         /// <param name="matches">What to keep.</param>
         /// <param name="said">How the step reads in a failure message, e.g. <c>for order 7</c>.</param>

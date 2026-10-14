@@ -72,6 +72,27 @@ function relevantChildSkipping(parent: Node | null, index: number, skip: Node): 
     return null;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+
+// Parse an InsertSubtree's markup in the namespace of the parent it lands in. A <template> parses in
+// HTML, so a <circle> or <path> inserted on its own under an <svg> came out an HTMLUnknownElement that
+// never drew (#1242). Under an SVG or MathML parent the markup is parsed in a shallow clone of that
+// parent instead — the same context-correct parse MorphSubtree does — and a <foreignObject> parent,
+// being an HTML integration point, still yields HTML children. An HTML parent keeps the <template>,
+// whose parser takes any child as written (a <tr> straight under a <table>, with no implied <tbody>).
+function parseInsert(parent: Node, html: string): ParentNode {
+    const ns = isElement(parent) ? parent.namespaceURI : null;
+    if (ns === SVG_NS || ns === MATHML_NS) {
+        const model = (parent as Element).cloneNode(false) as Element;
+        model.innerHTML = html;
+        return model;
+    }
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    return template.content;
+}
+
 // Relocate `node` before `ref` under `parent`. Prefer the Atomic Move API
 // (moveBefore, Chromium 133+): it moves the node WITHOUT disconnecting it, so a
 // focused descendant keeps its focus, selection, and caret across a keyed reorder.
@@ -113,7 +134,12 @@ export function syncFormProperty(el: Element | null, name: string, value: string
     // carry the IDL property being mirrored, which is the whole point of the function.
     if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
         if (document.activeElement === el) return;
-        if (raskShouldSuppressValue(el, value)) return;
+        // A secret field's value is the reader's: the server never writes it, so its attribute going away is
+        // the server not saying it, and not a clear. What does arrive is value="" and is always a clear: the
+        // lagging-frame guard below stands for echoes of typing, and a secret has none.
+        const secret = el.hasAttribute("data-rask-secret");
+        if (secret && !isPresent) return;
+        if (!secret && raskShouldSuppressValue(el, value)) return;
         (el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value = value;
     } else if (name === "checked" && tag === "INPUT") {
         if (raskShouldSuppressChecked(el, !!isPresent)) return;
@@ -225,20 +251,19 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                 const slot = path[path.length - 1];
                 const parent = resolvePath(parentPath);
                 if (!parent) break;
-                const template = document.createElement("template");
-                template.innerHTML = insertHtml;
+                const parsed = parseInsert(parent, insertHtml);
                 // Scripts parsed via innerHTML carry the "already started" flag and will
                 // NOT execute when inserted into the live document. Rebuild them via
                 // reviveScript so a scoped <script src="/_rask/a/{hash}.js"> (or a user
                 // Head <script>) delivered through a keyed InsertSubtree diff actually
                 // runs — otherwise its window.Rask.{Type}/global never appears. Mirrors
                 // the full-HTML morph path, which already revives inserted scripts.
-                for (const oldScript of template.content.querySelectorAll("script")) {
+                for (const oldScript of parsed.querySelectorAll("script")) {
                     oldScript.parentNode?.replaceChild(reviveScript(oldScript), oldScript);
                 }
                 const refNode = parent.childNodes[slot] || null;
-                while (template.content.firstChild) {
-                    parent.insertBefore(template.content.firstChild, refNode);
+                while (parsed.firstChild) {
+                    parent.insertBefore(parsed.firstChild, refNode);
                 }
                 break;
             }
@@ -993,13 +1018,54 @@ export function applyFrameInvokes(
     // message is re-rendered every second would otherwise never expire.
     const armed = new WeakMap<Element, {left: number; since: number; timer: number}>();
 
+    // ONE DISMISSAL AT A TIME. Two countdowns that end in the same frame would otherwise press both controls
+    // before the page has answered either, and the second press carries a handler id read from the page as it
+    // was: the render the first press causes can retire that id, and the second toast then never leaves
+    // (#1202). So a toast whose time is up waits in `due` while another's press is unanswered, and its control
+    // — with the handler id on it — is read only when its turn comes, from the page that answer left.
+    const due: Element[] = [];
+    let pressed: Element | null = null;
+    let giveUp = 0;
+
+    // How long a pressed toast's answer is waited for before the next toast due is pressed anyway: a page whose
+    // handler keeps its toast up, or an answer that never comes, holds the rest back no longer than this.
+    const ANSWER_MS = 2000;
+
     function dismiss(el: Element): void {
-        const control = el.hasAttribute("data-rask-dismiss")
-            ? el
-            : el.querySelector("[data-rask-dismiss]");
-        if (control instanceof HTMLElement) {
-            // The toast's time is up, and nobody pressed anything: what the reader is typing elsewhere stays theirs.
-            unasked(function () { control.click(); });
+        if (pressed !== el && due.indexOf(el) < 0) {
+            due.push(el);
+        }
+        if (!pressed) {
+            pressNext();
+        }
+    }
+
+    function pressNext(): void {
+        while (due.length > 0) {
+            const el = due.shift()!;
+            const control = el.hasAttribute("data-rask-dismiss") ? el : el.querySelector("[data-rask-dismiss]");
+            if (el.isConnected && control instanceof HTMLElement) {
+                pressed = el;
+                giveUp = window.setTimeout(answered, ANSWER_MS);
+                // The toast's time is up, and nobody pressed anything: what the reader is typing elsewhere stays theirs.
+                unasked(function () { control.click(); });
+                return;
+            }
+        }
+    }
+
+    function answered(): void {
+        window.clearTimeout(giveUp);
+        pressed = null;
+        pressNext();
+    }
+
+    // After every batch of mutations: the toast that was pressed has left the page, so the render that answered
+    // the press is on it. The next toast is read in a task of its own, after whatever else that frame applies.
+    function settle(): void {
+        if (pressed && !pressed.isConnected) {
+            window.clearTimeout(giveUp);
+            giveUp = window.setTimeout(answered, 0);
         }
     }
 
@@ -1081,6 +1147,7 @@ export function applyFrameInvokes(
                 scan(node);
             }
         }
+        settle();
     }).observe(document.documentElement, {
         subtree: true,
         childList: true,

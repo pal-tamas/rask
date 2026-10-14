@@ -1,15 +1,15 @@
 {
   "devDependencies": {
-    "@analogjs/vite-plugin-angular": "^2.7.2",
-    "@angular/build": "^22.1.8",
-    "@angular/common": "^22.1.0",
-    "@angular/compiler": "^22.1.0",
-    "@angular/compiler-cli": "^22.1.0",
-    "@angular/core": "^22.1.0",
-    "@angular/platform-browser": "^22.1.0",
-    "rxjs": "~7.8.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "@analogjs/vite-plugin-angular": "latest",
+    "@angular/build": "latest",
+    "@angular/common": "latest",
+    "@angular/compiler": "latest",
+    "@angular/compiler-cli": "latest",
+    "@angular/core": "latest",
+    "@angular/platform-browser": "latest",
+    "rxjs": "latest",
+    "typescript": "latest",
+    "vite": "latest"
   },
   "runtime": "angular"
 }

@@ -43,16 +43,13 @@ the same Tailwind utilities in each framework's own idiom. No component library 
 
 Lit's element renders into the light DOM, so the page's Tailwind sheet reaches it.
 
-**Angular is the one that is not a plain Vite project**, and its host says so in four places:
+**Angular is the one that is not a plain Vite project**, and its host says so in three places:
 
 - the dev server is `ng serve` on port 4200, started by `npm start` — the host's csproj sets
   `<RaskSpaDevServerUrl>http://localhost:4200</RaskSpaDevServerUrl>`, which is what `rask dev` opens;
 - the proxy is `client/proxy.conf.json`, which `angular.json` points at, instead of a `server.proxy` block
   in `vite.config.ts`;
-- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it;
-- Angular's CLI wants a newer Node than Vite does (`^22.22.3 || ^24.15.0 || >=26.0.0`), so the csproj sets
-  `<RaskSpaMinimumNode>22.22.3</RaskSpaMinimumNode>` and an older one fails with `RASKSPA005` instead of
-  inside `ng build`. One number cannot say the whole range: on Node 24.0–24.14 it is the CLI that refuses.
+- the bundle lands in `dist/<app>-client/browser`, so the csproj sets `RaskSpaDistDir` to it.
 
 In every template:
 
@@ -92,14 +89,32 @@ else is named:
 </PropertyGroup>
 ```
 
+A source file is one matched by `RaskSpaClientInputs`, globs relative to the client: by default
+`*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*`. A client whose sources live elsewhere names them,
+or its bundle is built once and never again — a repository-root package with its apps under `apps/`,
+served by a host in `apps/web/host`:
+
+```xml
+<PropertyGroup>
+  <RaskSpaClientDir>../../..</RaskSpaClientDir>
+  <RaskSpaClientInputs>*.json;*.js;apps/**/*;libs/**/*</RaskSpaClientInputs>
+</PropertyGroup>
+```
+
+`node_modules`, every `bin/` and `obj/`, and the dist directory are never counted, so a glob that
+covers the host project itself does not rebuild the bundle on every build.
+
 An app on `Rask.Server` already has `MapRaskSpa`, but not the build steps: reference
 `Rask.Spa.Hosting` directly to get them.
 
 ## Building and publishing
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
-lockfile), then `npm run build`. Both steps are incremental — an install re-runs when `package.json`
-or the lockfile changes, a build when a source file does. `dotnet publish` copies the bundle into
+lockfile), then `npm run build`. A new app has no lockfile, so its first build runs `npm install`
+and writes one — commit it, and every build after that is `npm ci`. A `yarn.lock` or `pnpm-lock.yaml`
+counts as the lockfile too, and the default install follows it: `yarn install --frozen-lockfile` or
+`pnpm install --frozen-lockfile`. Both steps are incremental — an install re-runs when `package.json`
+or the lockfile changes (or `node_modules` is gone), a build when a source file does. `dotnet publish` copies the bundle into
 `wwwroot` next to the app, so a deployed container carries the front end rather than a path that only
 existed on the build machine.
 
@@ -107,13 +122,25 @@ existed on the build machine.
 serves a page saying there is nothing built yet. Use it on a machine with no node, or in a CI job that
 only cares about the C#.
 
+### Which versions a new app gets
+
+The templates name no versions: every package in their `package.json` is `latest`. `rask new` asks the
+npm registry for the newest stable releases that **install together** — peer dependencies that agree
+with each other, and an `engines.node` that accepts the newest Node LTS — and writes them as `^x.y.z`.
+So when Vite ships a major its React plugin does not accept yet, a new app gets the newest Vite the
+plugin does; once the plugin catches up, the next app gets both. The only ranges the templates keep are
+`tailwindcss` / `@tailwindcss/*`, which must match the Tailwind binary the host downloads, and
+`@types/node`, which follows the Node LTS major. Offline, `rask new` leaves `latest` in place with one
+warning line, and npm resolves it on the first build.
+
 ### Which Node
 
-Use the current LTS. The build's own floor is **22.12**, and it is enforced: an older Node fails with
-`RASKSPA005` naming the version it found, rather than reaching the bundler and failing there with an
-`engines` error. Set `RaskSpaMinimumNode` to move the bar — it is a real comparison, in both
-directions, so a front end on an older toolchain can lower it. The Angular template raises it to
-**22.22.3**, the lowest Node its CLI accepts.
+Use the current LTS. The build's own floor is **24.11.0**, the first release of the Active LTS line,
+and it moves with that line. It is enforced: an older Node fails with `RASKSPA005` naming the version
+it found, rather than reaching the bundler and failing there with an `engines` error. Set
+`RaskSpaMinimumNode` to move the bar — it is a real comparison, in both directions, so a front end on
+an older toolchain can lower it. A toolchain that wants more than the floor (Angular's CLI, say)
+reports its own requirement.
 
 ## Development
 
@@ -187,10 +214,11 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaClientDir` | a `client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |
-| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
+| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists; left at `npm ci`, a `yarn.lock` or `pnpm-lock.yaml` runs that manager's frozen install instead. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
-| `RaskSpaMinimumNode` | `22.12.0` (`22.22.3` in the Angular template) | The Node floor the build enforces, as `RASKSPA005`. |
+| `RaskSpaClientInputs` | `*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*` | The client sources, relative to it, whose change rebuilds the bundle. |
+| `RaskSpaMinimumNode` | `24.11.0` | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
 | `RaskEmitTypeScript` | on | `false` generates nothing, whatever the host declares. |
@@ -358,6 +386,39 @@ app.MapControllers();                    // the API, unchanged
 app.MapRask<App>(pathBase: "/new");      // pages that have moved
 app.MapRaskSpa();                        // every other path: the old front end
 ```
+
+`AddRask()` and `MapRask<App>()` need no `using`: referencing `Rask.Server` imports its namespace for the
+project. A page file imports routing itself, because `[Route]` lives in `Rask.Core.Routing`:
+
+```csharp
+using Rask.Core.Routing;
+
+[Route("/orders")]
+public sealed partial class OrdersPage : Component { … }
+```
+
+Without that line the Web SDK's own `Microsoft.AspNetCore.Routing.Route` class answers to `[Route]`, and
+the build stops with `CS0616: 'Route' is not an attribute class`. Rask does not import the namespace for
+the whole project, because the app's controllers already use `[Route]` from `Microsoft.AspNetCore.Mvc`, and
+two `RouteAttribute`s in scope break every one of them (CS0104).
+
+**The prefix reaches the browser by itself.** The runtime's `<script>` tag carries it
+(`data-rask-base="/new/"`), and the runtime builds its connection, the addresses it pushes to history and the
+paths it routes from that, so the app writes no `<base href>`. Rask leaves `<base>` alone on purpose: one would
+re-resolve every relative URL of the page — `href="#reviews"` would lead to `/new/#reviews`. An app that writes
+its own `<base href>` keeps it; the runtime still takes the prefix from its tag.
+
+**Files under `wwwroot` are the host's to serve.** `MapRask` serves its own runtime and scoped assets under the
+prefix, never a `wwwroot` file, so a stylesheet linked as `LiveOptions.PathBase + "/css/app.css"`
+(`/new/css/app.css`) falls through to Rask's page catch-all and answers with a page. Link the address the host
+already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `UseStaticFiles()`:
+
+```csharp
+protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
+```
+
+To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
+BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.
 
 Each answers only its own paths — a route the old front end owns still gets its `index.html`, a page
 under `/new` is rendered by Rask, and the Rask runtime is served under the prefix and nowhere else. The
