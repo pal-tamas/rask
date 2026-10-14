@@ -226,6 +226,19 @@ function ask(el: ValueElement, composing: boolean): void {
     }, Number(el.getAttribute(PAUSE))));
 }
 
+// A field the runtime itself rewrote (rask-list.ts): the pause it was counting ends, and its handler hears
+// what it says now — or nothing, when what was typed is simply gone.
+seam.hear = function (el: Element, now: boolean): void {
+    const field = el as ValueElement;
+    clearTimeout(asking.get(field));
+    asking.delete(field);
+    const id = field.getAttribute(ON_PAUSE);
+    if (now && id && field.isConnected) {
+        seam.told!.set(field, field.value);
+        sendOwn(function () { send({ id, type: "input", value: field.value }); });
+    }
+};
+
 function flushInputs(): void {
     inputRaf = 0;
     const typed = Array.from(inputPending);

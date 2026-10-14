@@ -355,22 +355,10 @@ function rest(root: Element, input: HTMLInputElement, text: string, anew: boolea
     const waits = input.hasAttribute(ON_PAUSE);
     const tells = (anew || state.searched) && text !== state.heard && (waits || input.hasAttribute("data-rask-on-input"));
     state.searched = false;
-    if (tells) {
-        if (!waits) {
-            state.heard = text;
-        }
-        say(input, text, "input");
-        return;
-    }
-    const was = input.value;
-    say(input, text, "");
-    if (waits && was !== text && typeof InputEvent === "function") {
-        saying = true;
-        try {
-            input.dispatchEvent(new InputEvent("input", {bubbles: true, isComposing: true}));
-        } finally {
-            saying = false;
-        }
+    state.heard = tells ? text : state.heard;
+    say(input, text, tells && !waits ? "input" : "");
+    if (waits && seam.hear) {
+        seam.hear(input, tells);
     }
 }
 
@@ -711,6 +699,16 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
+    // A press on a row of a list whose answer is the input's text leaves the focus in the input, as Flux's does:
+    // a blur would hand the page what was typed, before the pick says what it is now.
+    listen("mousedown", function (e) {
+        const root = near(e.target, ROOT);
+        const popup = root ? popupOf(root) : null;
+        if (root && popup && has(root, "text") && e.target instanceof Node && popup.contains(e.target)) {
+            e.preventDefault();
+        }
+    }, true);
+
     listen("pointerdown", function (e) {
         const root = near(e.target, ROOT);
         const popup = root ? popupOf(root) : null;
@@ -802,10 +800,13 @@ if (page) {
         }
         if (input && (key === "Escape" || key === "Tab") && !popup.contains(input)) {
             if (has(root, "text") && key === "Escape") {
-                // Escape closes the list and empties the input, open or not.
+                // Escape closes the list and empties the input, open or not. The page is told when it held
+                // something (the `value` it rendered); what was typed and never handed over just goes.
                 state.typing = false;
-                if (input.value !== "") {
-                    say(input, "", "change");
+                const held = (input.getAttribute("value") || "") !== "";
+                say(input, "", held ? "change" : "");
+                if (!held && seam.hear) {
+                    seam.hear(input, false);
                 }
             } else if (has(root, "clears")) {
                 // Emptied at the key, whatever the list is doing: a closed pillbox keeps nothing typed.

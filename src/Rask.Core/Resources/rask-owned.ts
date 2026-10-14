@@ -36,6 +36,8 @@ interface Seam {
     unasked?: number;
     /** What each field that waits for a pause last told its handler (`data-rask-on-pause`, rask-input.ts). */
     told?: WeakMap<Element, string>;
+    /** Ends the pause a field is counting: its handler hears the field now (`now`), or nothing. Set by rask-input.ts. */
+    hear?: (el: Element, now: boolean) => void;
 }
 
 /**
