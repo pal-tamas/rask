@@ -35,17 +35,18 @@
 @import "./ui.css";
 
 /*
-  Not sources: the icon tables are half a megabyte of SVG path data, in which `h-4.5` and `m-3.75` are
-  relative line and move commands and, to Tailwind, a height and a margin. Scanned, every such run became
-  a utility in the sheet that nothing uses. (ui.css keeps the plugin bundle out the same way.)
+  NO SOURCE IS NAMED HERE, and none is left out: Tailwind does not run over this project. It runs in
+  obj/<tfm>/tailwind-scan, a copy of the project's C# with the comments taken out (RaskTailwindSourceRoot
+  and WriteRaskUiScanSources in Rask.Ui.csproj), and detects its sources there. Prose is words, and a word
+  that is a class name was a rule in this sheet — and in the class list an app compiles from — with no
+  component writing it: daisyUI's `.glass`, from "a magnifying glass" in a doc comment (#1214). The icon
+  tables, whose path data reads as `h-4.5` and `m-3.75`, are left out of that copy.
 */
-@source not "../UiIconPaths.g.cs";
 
 /*
-  Nor is prose. Tailwind reads every text file in the project, so a comment in the csproj or the build
-  targets that mentions `card-body` or `dark:bg-zinc-800` put that rule in the sheet — and in the class
-  list an app compiles from — with no component writing it.
+  What the kit tells a CALL SITE to write, for a surface that has no Tailwind build to compile it: the
+  devtools panel widens a badge around a long token with `whitespace-normal!` (and a table cell with
+  `whitespace-normal`), and a vertical separator is shortened with `my-2`. They used to reach this sheet
+  because a doc comment named them, which is the scan #1214 ended — so they are named here, on purpose.
 */
-@source not "../*.csproj";
-@source not "../*.md";
-@source not "../build";
+@source inline("my-2 whitespace-normal whitespace-normal!");
