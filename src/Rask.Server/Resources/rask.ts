@@ -33,6 +33,7 @@ import {
     beginLoading,
     endAllLoading,
     endLoading,
+    fieldTarget,
     isVisiblyLoading,
     loadingTarget,
     type LoadingTicket,
@@ -1400,6 +1401,13 @@ import {
         if (ticket) loadingBySeq.set(payload.seq, ticket);
     }
 
+    // Marks the field a typed or chosen value came from, until the ack of the event that carries it.
+    function trackField(payload: Record<string, unknown>): void {
+        if (typeof payload.seq !== "number") return;
+        const ticket = beginLoading(fieldTarget(payload), null, false);
+        if (ticket) loadingBySeq.set(payload.seq, ticket);
+    }
+
     function settleLoading(upTo: number): void {
         for (const [seq, ticket] of loadingBySeq) {
             if (seq > upTo) continue;
@@ -1655,6 +1663,8 @@ import {
         sendTypedFirst(payload);
         // Stamped now, not when the frame leaves: the caller reads the seq as soon as this returns.
         stampSeq(payload as Record<string, unknown>);
+        // A field whose value just left waits on its answer as a pressed button does (rask-loading.ts).
+        trackField(payload as Record<string, unknown>);
         if (isHandlerEvent(payload)) {
             void events.add(payload);
             return;

@@ -30,6 +30,7 @@ import { eventBatch, isHandlerEvent, pageApplied } from "../../Rask.Core/Resourc
 import {
     beginLoading,
     endLoading,
+    fieldTarget,
     isVisiblyLoading,
     loadingTarget,
 } from "../../Rask.Core/Resources/rask-loading.js";
@@ -601,6 +602,14 @@ function send(payload: unknown): Promise<void> {
     // a key, a navigation, an event a behaviour hook raised (rask-input.ts). It joins the call this event
     // crosses into .NET in, ahead of it.
     sendTypedFirst(payload);
+    // A field whose value is leaving waits on its answer as a pressed button does (rask-loading.ts).
+    const ticket = beginLoading(fieldTarget(payload), null, false);
+    const answered = leave(payload);
+    if (ticket) answered.then(settled).finally(() => endLoading(ticket));
+    return answered;
+}
+
+function leave(payload: unknown): Promise<void> {
     if (isHandlerEvent(payload)) {
         // An event from before .NET exists is dropped NOW, not held for a task in which it might arrive:
         // its id is the prerendered page's, and the live page's may name another handler (#973).

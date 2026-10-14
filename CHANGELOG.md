@@ -92,6 +92,13 @@ them until tagged releases begin.
   (Livewire's `.prompt`) lets the action go only when the reader types the name exactly. On a `Form` it asks before
   the submit, on a submit button before the submit it makes. Refused, nothing leaves the browser — not the event,
   and not the fields waiting to go with it. Both hosts (`rask-confirm.ts`); `docs/forms.md#asking-before-an-action`.
+- **A field whose event was sent says `data-loading` until its answer (Livewire's `data-loading` on a
+  `wire:model.live` input).** Before: the runtime marked only buttons, submits and `data-rask-loading` elements, so
+  an input searching as it was typed showed nothing. After: a field whose `input` or `change` event left —
+  `.Live()`, `.Debounce(…)`, a server `OnInput` — carries `data-loading` (not `aria-busy`) from 200 ms after it was
+  sent until that event's ack (Server) or dispatch promise (WASM), and `data-rask-loading="off"` opts out. The kit
+  draws nothing for it: Flux's input has no automatic loading state, so `Ui.Input` shows no spinner of its own;
+  `in-data-loading:` is there for an app's own.
 - **The reconnect overlay speaks the page's language, and `<html>` says `data-rask-offline` while the page cannot
   reach its app (Livewire's `wire:offline`).** Before: "Reconnecting…", "You're offline — waiting to reconnect…",
   "Retry now" and "Your session timed out…" were English in `rask.js` whatever the page's language. After: they
