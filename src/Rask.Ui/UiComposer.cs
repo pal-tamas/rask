@@ -159,7 +159,9 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
         var box = Input is UiEditor editor
             ? editor.HostedBy(new UiEditorHost(EditorBind(), EditorValue(), EditorChange(), Placeholder, rows, maxRows, disabled))
             : Input ?? Text(field.ControlId, rows, maxRows, disabled);
-        var buttons = Variant == Ui.ComposerVariant.Input ? null : UiComposerLook.RoundButtons;
+        var buttons = UiClass.Compose(
+            Variant == Ui.ComposerVariant.Input ? null : UiComposerLook.RoundButtons,
+            disabled ? UiComposerLook.LockedButtons : null);
 
         var root = Div.Class(UiClass.Compose(
                 UiComposerLook.Root,
@@ -173,18 +175,18 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
 
         return field.Wrap(
             root[
-                Div.Class(UiComposerLook.Header)[Header],
+                Div.Class(Header is null ? UiComposerLook.NoHeader : UiComposerLook.Header)[Header],
                 Div.Class(inline ? UiComposerLook.InlineBox : UiComposerLook.Box)[box],
                 Div.Class(UiClass.Compose(inline ? UiComposerLook.InlineLeading : UiComposerLook.Leading, buttons))[ActionsLeading],
                 Div.Class(UiClass.Compose(inline ? UiComposerLook.InlineTrailing : UiComposerLook.Trailing, buttons))[ActionsTrailing],
-                Div.Class(UiComposerLook.Footer)[Footer]
+                Div.Class(Footer is null ? UiComposerLook.NoFooter : UiComposerLook.Footer)[Footer]
             ],
             labelSrOnly: LabelSrOnly == true,
             descriptionSrOnly: DescriptionSrOnly == true);
     }
 
-    // The <textarea>: Core's, bound or given its value, sized by lines in the stylesheet.
-    private Component Text(string id, int rows, int maxRows, bool disabled)
+    // The <textarea>: Core's, bound or given its value; `rows` lines tall, grown by the runtime to `maxRows`.
+    private HTMLTextAreaElement<T> Text(string id, int rows, int maxRows, bool disabled)
     {
         // Bind and Value are the two openings of Core's textarea, and both hand back the same element.
         var textarea = Bind is { } bind
@@ -197,7 +199,7 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
             .Placeholder(Placeholder)
             .Rows(rows)
             .Disabled(disabled)
-            .Style(string.Create(CultureInfo.InvariantCulture, $"--ui-composer-rows:{rows};--ui-composer-max-rows:{maxRows}"))
+            .Data("rask-grow", maxRows.ToString(CultureInfo.InvariantCulture))
             .Class(UiComposerLook.Text);
     }
 

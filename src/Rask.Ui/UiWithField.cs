@@ -120,10 +120,10 @@ internal sealed class UiWithField
             return control;
         }
 
-        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge).Class(labelSrOnly ? SrOnly : null)[_label];
+        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge).Class(Hidden(labelSrOnly))[_label];
         var description = _description is null
             ? null
-            : Ui.Description.Id(UiFieldId.Description(ControlId)).Class(descriptionSrOnly ? SrOnly : null)[_description];
+            : Ui.Description.Id(UiFieldId.Description(ControlId)).Class(Hidden(descriptionSrOnly))[_description];
         var trailing = _descriptionTrailing is null ? null : Ui.Description.Id(TrailingId)[_descriptionTrailing];
         var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error) : null;
         var field = Ui.Field.Variant(variant);
@@ -132,6 +132,8 @@ internal sealed class UiWithField
             ? field[control, label, description, error, trailing]
             : field[label, description, control, error, trailing];
     }
+
+    private static string? Hidden(bool srOnly) => srOnly ? SrOnly : null;
 
     private Dictionary<string, string?> BuildAria()
     {

@@ -160,6 +160,8 @@ const NATIVE = {
   'ui-tab-group': 'div', 'ui-tabs': 'div', 'ui-tabs-scroll-area': 'div',
   // The carousel: plain boxes around a native scroller, which the runtime's hook reports on (rask-carousel.ts).
   'ui-carousel': 'div', 'ui-carousel-slide': 'div', 'ui-carousel-button': 'div', 'ui-carousel-indicators': 'div',
+  // The composer: a role="group" box; its submit keys and its growing textarea are the runtime's (rask-submit.ts, rask-grow.ts).
+  'ui-composer': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.

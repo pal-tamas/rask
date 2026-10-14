@@ -179,7 +179,8 @@ public sealed partial class UiButton : UiElement, IUiHost
 
     // Flux's rule — a button bound to an action, or a form's submit — and any button whose Loading the
     // caller set, either way: a flag that flips between renders must not change what the button is made of.
-    private bool Loads => IsButton && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
+    // A disabled one never loads, and Flux draws it with no indicator (measured on its composer page).
+    private bool Loads => IsButton && Disabled != true && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
 
     // A trailing icon or trailing content. Nothing handed to the step (a null component) is neither.
     private bool Trails => IconTrailing is { Name: not null } or { Content: not null };
@@ -322,7 +323,7 @@ public sealed partial class UiButton : UiElement, IUiHost
         var loads = Loads;
         return
         [
-            loads ? Indicator() : null,
+            loads ? Indicator(IsSquare && Sized != Ui.ButtonSize.Xs) : null,
             Icon is { } icon ? Glyph(icon, loads) : null,
             .. Label(loads),
             Kbd is { } kbd ? Div.Class("text-xs text-zinc-400")[kbd] : null,
@@ -339,11 +340,12 @@ public sealed partial class UiButton : UiElement, IUiHost
         _ => null,
     };
 
-    // Over the whole button and invisible until the runtime — or Loading(true) — marks it.
-    private static Component Indicator() =>
+    // Over the whole button and invisible until the runtime — or Loading(true) — marks it. As large as the
+    // icon it stands in for: 20px alone in a square (measured on Flux's composer page), 16px otherwise.
+    private static Component Indicator(bool large) =>
         Div.Class("absolute inset-0 flex items-center justify-center opacity-0 transition-opacity [[data-loading]>&]:opacity-100")
             .Attributes(IndicatorMark)[
-            Ui.Icon.Name(Ui.IconName.Loading).Micro
+            Ui.Icon.Name(Ui.IconName.Loading).Variant(large ? Ui.IconVariant.Mini : Ui.IconVariant.Micro)
         ];
 
     // 20px alone in a square, 16px beside a label — and in the smallest button either way.

@@ -26,10 +26,14 @@ internal static class UiComposerLook
     /// <summary>The message box rounds its buttons a step more than a small button's own corners.</summary>
     internal const string RoundButtons = "**:data-ui-button:rounded-lg";
 
-    /// <summary>
-    ///     Above the box, three columns wide as Flux has it (the fourth is empty unless inline), gone when empty.
-    /// </summary>
-    internal const string Header = "col-span-3 flex items-center gap-1 mb-2 empty:hidden";
+    /// <summary>A disabled composer's buttons: fainter than a disabled button alone, and flat.</summary>
+    internal const string LockedButtons = "**:data-ui-button:opacity-50 **:data-ui-button:shadow-none";
+
+    /// <summary>Above the box, three columns wide as Flux has it (the fourth is empty unless inline).</summary>
+    internal const string Header = "col-span-3 flex items-center gap-1 mb-2";
+
+    /// <summary>The header's place when there is nothing to put in it.</summary>
+    internal const string NoHeader = "col-span-3 hidden";
 
     /// <summary>The box, the whole width.</summary>
     internal const string Box = "col-span-4";
@@ -49,15 +53,18 @@ internal static class UiComposerLook
     /// <summary>The trailing buttons, inline: after the box.</summary>
     internal const string InlineTrailing = "flex items-start justify-end gap-1";
 
-    /// <summary>Under the buttons, the whole width, gone when empty.</summary>
-    internal const string Footer = "col-span-4 empty:hidden";
+    /// <summary>Under the buttons, the whole width. No example of Flux's shows one, so it has no spacing of its own.</summary>
+    internal const string Footer = "col-span-4";
+
+    /// <summary>The footer's place when there is nothing to put in it.</summary>
+    internal const string NoFooter = "col-span-4 hidden";
 
     /// <summary>
-    ///     The <c>&lt;textarea&gt;</c>: no box of its own, the input's ink. It grows with its text between the
-    ///     lines its style names, by the rule <c>ui.css</c> keys on the composer.
+    ///     The <c>&lt;textarea&gt;</c>: no box of its own, the input's ink, no scrollbar until the runtime has grown
+    ///     it to its last line (<c>data-rask-grow</c>).
     /// </summary>
     internal const string Text =
-        "block w-full resize-none px-2 py-1.5 outline-none text-base sm:text-sm "
+        "block w-full resize-none overflow-y-hidden px-2 py-1.5 outline-none text-base sm:text-sm "
         + "text-zinc-700 dark:text-zinc-300 disabled:text-zinc-500 dark:disabled:text-zinc-400 "
         + "placeholder:text-zinc-400 disabled:placeholder:text-zinc-400/70 dark:disabled:placeholder:text-zinc-500";
 
