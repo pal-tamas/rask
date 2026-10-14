@@ -104,20 +104,24 @@ export function mount(root: HTMLElement, kit: Kit): void {
     });
     tel.addEventListener("countrychange", () => paint(field));
 
-    iti.promise.then(() => {
+    // Ready once the utils are in: a number that was there is shown in its country's way, and one the reader
+    // typed while they were on their way is formatted and told, as if it had been typed now.
+    const ready = (): void => {
         field.ready = true;
         const bound = root.querySelector<HTMLInputElement>("input[type=hidden]");
         if (bound && bound.value) {
             iti.setNumber(bound.value);
+        } else if (tel.value) {
+            iti.setNumber(tel.value);
+            tell(field);
         }
         paint(field);
-    }, () => {
-        // The utils could not be fetched: the field is a plain one, and the value is what is typed.
-        field.ready = true;
-        paint(field);
-    });
-    button.closest("[data-ui-phone-country]")?.setAttribute("data-ui-phone-ready", "");
-    own(field, button.closest("[data-ui-phone-country]"), "data-ui-phone-ready");
+        const country = button.closest("[data-ui-phone-country]");
+        country?.setAttribute("data-ui-phone-ready", "");
+        own(field, country, "data-ui-phone-ready");
+    };
+    // The utils could not be fetched: the field is a plain one, and the value is what is typed.
+    iti.promise.then(ready, ready);
     // A list the reader opened before the engine was here is filled now.
     if (panel.matches(":popover-open")) {
         opened(field);

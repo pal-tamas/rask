@@ -80,7 +80,7 @@ public sealed class UiPhoneTests(PlaywrightFixture playwright) : IClassFixture<P
         var page = await context.NewPageAsync();
         await page.GotoAsync(host.BaseUrl + "/");
         var field = page.Locator("#typed [data-ui-phone]");
-        await Expect(field.Locator("input[type=tel]")).ToHaveAttributeAsync("data-intl-tel-input-id", new System.Text.RegularExpressions.Regex(".+"), new() { Timeout = 15_000 });
+        await Expect(page.Locator("#typed [data-ui-phone-ready]")).ToHaveCountAsync(1, new() { Timeout = 15_000 });
         var rows = Rows(expected);
         await field.Locator("input[type=tel]").ClickAsync();
         var seen = new List<string>();
@@ -106,7 +106,7 @@ public sealed class UiPhoneTests(PlaywrightFixture playwright) : IClassFixture<P
         await page.GotoAsync(host.BaseUrl + "/");
         var field = page.Locator("#typed [data-ui-phone]");
         var button = field.Locator("button[role=combobox]");
-        await Expect(field.Locator("input[type=tel]")).ToHaveAttributeAsync("data-intl-tel-input-id", new System.Text.RegularExpressions.Regex(".+"), new() { Timeout = 15_000 });
+        await Expect(page.Locator("#typed [data-ui-phone-ready]")).ToHaveCountAsync(1, new() { Timeout = 15_000 });
 
         await field.Locator("input[type=tel]").ClickAsync();
         await page.Keyboard.TypeAsync("+4");
@@ -129,7 +129,7 @@ public sealed class UiPhoneTests(PlaywrightFixture playwright) : IClassFixture<P
         var field = page.Locator("#typed [data-ui-phone]");
         var tel = field.Locator("input[type=tel]");
         var button = field.Locator("button[role=combobox]");
-        await Expect(tel).ToHaveAttributeAsync("data-intl-tel-input-id", new System.Text.RegularExpressions.Regex(".+"), new() { Timeout = 15_000 });
+        await Expect(page.Locator("#typed [data-ui-phone-ready]")).ToHaveCountAsync(1, new() { Timeout = 15_000 });
         await tel.ClickAsync();
         await page.Keyboard.TypeAsync("2015550123");
 
