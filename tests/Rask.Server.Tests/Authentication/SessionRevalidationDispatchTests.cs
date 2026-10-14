@@ -35,9 +35,8 @@ public class SessionRevalidationDispatchTests
 
         Assert.Equal(1, counter.Count);
 
-        // The session row is deleted on another device. Force the next dispatch to check rather than wait out the window.
+        // The session row is deleted on another device.
         revalidator.Ended = true;
-        host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         var afterEnd = await ws.ReceiveTextAsync();
@@ -57,7 +56,6 @@ public class SessionRevalidationDispatchTests
         var (ws, sessionId, _) = await AttachAsync(host);
         using var socket = ws;
         revalidator.Ended = true;
-        host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
         await ws.SendJsonAsync(
             new { type = "navigate", path = "/m2/protected" }, ct: TestContext.Current.CancellationToken);
@@ -68,23 +66,22 @@ public class SessionRevalidationDispatchTests
             .Current.Identity?.IsAuthenticated);
     }
 
+    // As a request through the app's auth middleware would be: no window in which an event is taken on trust.
     [Fact]
-    public async Task A_live_page_is_not_rechecked_on_every_dispatch()
+    public async Task Two_events_a_millisecond_apart_both_ask_the_revalidator()
     {
         var revalidator = new SwitchableRevalidator();
         using var host = CreateHost(revalidator);
-
         var (ws, _, handlerId) = await AttachAsync(host);
         using var socket = ws;
+        var attached = revalidator.Checks;
 
-        for (var i = 0; i < 5; i++)
-        {
-            await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
-            await ws.SettledAsync();
-        }
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
+        await Task.Delay(1, TestContext.Current.CancellationToken);
+        await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
+        await WaitFor.True(() => host.Server.Services.GetRequiredService<M2Counter>().Count == 2, "both handlers run");
 
-        // The first dispatch checks; the rest fall inside the 30-second window.
-        Assert.Equal(1, revalidator.Checks);
+        Assert.Equal(2, revalidator.Checks - attached);
     }
 
     [Fact]
@@ -97,7 +94,6 @@ public class SessionRevalidationDispatchTests
         using var socket = ws;
 
         revalidator.ExtraRole = "editor";
-        host.Store.Get(sessionId)!.LastUserRevalidation = 0;
 
         await ws.SendJsonAsync(new { id = handlerId }, ct: TestContext.Current.CancellationToken);
         await ws.SettledAsync();

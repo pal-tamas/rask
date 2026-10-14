@@ -99,7 +99,6 @@ public sealed partial class SessionStaysItsUsersTests
         using var ws = await AttachAsync(host, sessionId, "alice");
 
         host.Services.GetRequiredService<Directory>().Admins.Clear();
-        host.Store.Peek(sessionId)!.LastUserRevalidation = 0;
         await ClickAsync(host, ws, save);
 
         Assert.Equal("alice:user", Saves(host).Single().Now);
@@ -295,16 +294,24 @@ public sealed partial class SessionStaysItsUsersTests
     }
 
     private static RaskTestHost CreateHost(bool revalidate = false, bool stampUser = true, string pathBase = "") =>
-        RaskTestHost.Create<OwnedPageApp>(
+        CreateHost<OwnedPageApp>(revalidate, stampUser, pathBase);
+
+    private static RaskTestHost CreateHost<TApp>(
+        bool revalidate = false, bool stampUser = true, string pathBase = "", Action<IServiceCollection>? more = null)
+        where TApp : Component =>
+        RaskTestHost.Create<TApp>(
             services =>
             {
                 services.AddSingleton<Directory>();
                 services.AddSingleton<Ledger>();
+                services.AddSingleton<Ticker>();
                 services.AddHttpContextAccessor();
                 if (revalidate)
                 {
                     services.AddSingleton<ISessionRevalidator, DirectoryRevalidator>();
                 }
+
+                more?.Invoke(services);
             },
             app =>
             {
@@ -312,7 +319,7 @@ public sealed partial class SessionStaysItsUsersTests
                 {
                     app.Use((ctx, next) => StampUserAsync(ctx, next, pathBase));
                 }
-            }, pathBase: pathBase);
+            }, pathBase: pathBase, diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull);
 
     // Signs the request in as whoever the header names, with the rights the directory holds for them at that moment.
     private static Task StampUserAsync(HttpContext ctx, RequestDelegate next, string pathBase)
@@ -320,7 +327,7 @@ public sealed partial class SessionStaysItsUsersTests
         if (ctx.Request.Path.StartsWithSegments(pathBase) && ctx.Request.Headers.TryGetValue(UserHeader, out var name) && !string.IsNullOrEmpty(name))
         {
             var directory = ctx.RequestServices.GetRequiredService<Directory>();
-            ctx.User = Directory.Principal(name!, directory.Admins.Contains(name!));
+            ctx.User = directory.PrincipalNow(name!);
         }
 
         return next(ctx);
@@ -331,6 +338,11 @@ public sealed partial class SessionStaysItsUsersTests
     internal sealed class Ledger
     {
         public ConcurrentQueue<Save> Saves { get; } = new();
+
+        public int Mounts;
+
+        // Run by the page's save handler, for a test that has to do something while a handler runs.
+        public Action? WhileSaving { get; set; }
     }
 
     // The app's user store: who is an administrator, whose sign-in has ended, and whose right was taken away after
@@ -343,9 +355,35 @@ public sealed partial class SessionStaysItsUsersTests
 
         public HashSet<string> Admins { get; } = ["alice"];
 
+        // Counted, so a test can wait for the question it is about to change the answer to.
+        public int Asked;
+
+        // The store cannot be reached: asking throws.
+        public bool Unreachable { get; set; }
+
+        // When the token a request carries lapses, as its `exp` claim, and what time it is — for a host whose
+        // revalidator reads the one against the other.
+        public long? TokenExpires { get; set; }
+
+        public long Now { get; set; }
+
+        public ClaimsPrincipal PrincipalNow(string name)
+        {
+            var principal = Principal(name, Admins.Contains(name));
+            if (TokenExpires is { } expires)
+            {
+                ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("exp", expires.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
+
+            return principal;
+        }
+
         public static ClaimsPrincipal Principal(string name, bool admin) =>
             new(new ClaimsIdentity(
-                [new Claim(ClaimTypes.NameIdentifier, name), new Claim(ClaimTypes.Name, name), new Claim("isAdmin", admin ? "true" : "false")],
+                [
+                    new Claim(ClaimTypes.NameIdentifier, name), new Claim(ClaimTypes.Name, name),
+                    new Claim("isAdmin", admin ? "true" : "false"), new Claim(ClaimTypes.Role, admin ? "admin" : "user"),
+                ],
                 "Test"));
     }
 
@@ -353,6 +391,12 @@ public sealed partial class SessionStaysItsUsersTests
     {
         public ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
         {
+            Interlocked.Increment(ref directory.Asked);
+            if (directory.Unreachable)
+            {
+                throw new InvalidOperationException("the user store is unreachable");
+            }
+
             var name = principal.Identity!.Name!;
             return ValueTask.FromResult(
                 directory.SignedOut.Contains(name)

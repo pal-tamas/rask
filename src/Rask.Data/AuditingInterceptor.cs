@@ -43,6 +43,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         RefuseTenantWritesForNobody(context);
         RefuseUnassignedKeys(context);
         TouchRootsOfChangedChildren(context);
+        RefuseRowsOfAnotherTenant(context);
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
@@ -99,6 +100,81 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             }
         }
     }
+
+    // A row is written in the tenant it was loaded in. The filter stops a read from reaching another tenant's
+    // row, and says nothing about a row read EARLIER: an aggregate a page holds, or one a context still tracks,
+    // saved after the tenant in flight became another. So every row about to be written that already has a
+    // tenant — modified, deleted, or added with its TenantId set — must have the one in flight. Tenant.Across()
+    // is the one deliberate way round, as it is for a read.
+    private static void RefuseRowsOfAnotherTenant(DbContext context)
+    {
+        if (Tenant.IsAcrossTenants)
+        {
+            return;
+        }
+
+        foreach (var entry in context.ChangeTracker.Entries<IEntity>())
+        {
+            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+                OwnerWithATenant(context, entry) is { } owner)
+            {
+                RefuseUnlessInFlight(entry, owner);
+            }
+        }
+    }
+
+    // The row whose tenant says where `entry` belongs: itself, or — for a child added to an aggregate that was
+    // loaded, which has no tenant of its own until it is stamped — its root. Null when nothing has one yet.
+    private static EntityEntry? OwnerWithATenant(DbContext context, EntityEntry entry)
+    {
+        if (!IsPartitioned(entry))
+        {
+            return null;
+        }
+
+        if (entry.State != EntityState.Added || HasTenant(entry))
+        {
+            return entry;
+        }
+
+        return entry.Entity is not IAggregate && RootOf(context, entry) is { State: not EntityState.Added } root && IsPartitioned(root)
+            ? root
+            : null;
+    }
+
+    private static void RefuseUnlessInFlight(EntityEntry entry, EntityEntry owner)
+    {
+        var column = owner.Property(Columns.TenantId);
+        var rows = owner.State == EntityState.Added ? column.CurrentValue : column.OriginalValue;
+        var table = entry.Metadata.ClrType.Name;
+
+        // In the column's own type, as the stamp is: a numbered tenant is compared as the number.
+        if (Current.Tenant is not { } tenant)
+        {
+            throw new InvalidOperationException(
+                $"'{table}' belongs to tenant {rows ?? "none"} and is being saved with no tenant in flight. A row " +
+                "belongs to the tenant it was loaded in; save it inside Tenant.Use(id), or inside Tenant.Across() " +
+                "when crossing tenants is the point.");
+        }
+
+        var inFlight = TenantColumn.ValueFor(tenant, column.Metadata.ClrType, table);
+
+        if (!Equals(rows, inFlight))
+        {
+            throw new InvalidOperationException(
+                $"'{table}' belongs to tenant {rows ?? "none"} and is being saved in tenant {inFlight}. A row " +
+                "belongs to the tenant it was loaded in; save it there, or inside Tenant.Across() when crossing " +
+                "tenants is the point.");
+        }
+    }
+
+    // The REGISTRY decides, as it does for the stamp: a table that is not partitioned may keep a TenantId of its own.
+    private static bool IsPartitioned(EntityEntry entry) =>
+        ConventionRegistry.ScopeFor(entry.Metadata.ClrType) == Tenancy.PerTenant &&
+        entry.Metadata.FindProperty(Columns.TenantId) is not null;
+
+    private static bool HasTenant(EntityEntry entry) =>
+        entry.Property(Columns.TenantId).CurrentValue is { } tenant && !Equals(tenant, Guid.Empty);
 
     // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it.
     //

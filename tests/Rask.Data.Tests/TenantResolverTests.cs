@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 
 /// <summary>
 /// <c>services.AddRaskTenant(sp =&gt; …)</c>: the application says where the tenant of a request or a live
-/// session comes from, and every filter and stamp uses that — asked once per scope and kept.
+/// session comes from, and every filter and stamp uses that — asked once per request, and by a live session at each event.
 /// </summary>
 /// <remarks>
 /// The rule most worth pinning is what happens when the resolver names NO tenant: a tenant-scoped table reads
@@ -436,6 +436,61 @@ public sealed class TenantResolverTests : IDisposable
         var refused = Assert.Throws<InvalidOperationException>(() => services.AddRaskTenant(_ => Guid.NewGuid()));
 
         Assert.Contains("already registered", refused.Message, StringComparison.Ordinal);
+    }
+
+    // A live session asks again at each event it takes: its tenant is the one its user has now.
+    [Fact]
+    public async Task A_scope_asked_again_works_in_the_tenant_the_resolver_names_now()
+    {
+        int? named = Acme;
+        await using var app = App(_ => named);
+        await using var session = app.CreateAsyncScope();
+        var holder = ResolvedTenant.For(session.ServiceProvider)!;
+        var opened = holder.Tenant;
+
+        named = Globex;
+        var changed = holder.AskAgain(sameReader: true);
+
+        Assert.Equal(TenantNumber.ToGuid(Acme), opened);
+        Assert.True(changed);
+        Assert.Equal(TenantNumber.ToGuid(Globex), holder.Tenant);
+    }
+
+    // A header or a route value the page's request carried and the socket's does not. Reading nothing would look
+    // exactly like an empty table.
+    [Fact]
+    public async Task A_resolver_that_stops_naming_a_tenant_for_the_same_reader_makes_the_next_read_throw_and_say_why()
+    {
+        int? named = Acme;
+        await using var app = App(_ => named);
+        await using var session = app.CreateAsyncScope();
+        var holder = ResolvedTenant.For(session.ServiceProvider)!;
+        _ = holder.Tenant;
+
+        named = null;
+        holder.AskAgain(sameReader: true);
+        holder.AskAgain(sameReader: true);
+        var refused = Assert.Throws<MissingTenantException>(() => holder.Tenant);
+
+        Assert.Contains("AddRaskTenant", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("only the page's own request carried", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("RouteState", refused.Message, StringComparison.Ordinal);
+    }
+
+    // Signed out, or moved to a page with no tenant in its address: no tenant is the answer, not a mistake.
+    [Fact]
+    public async Task A_resolver_that_names_no_tenant_for_another_reader_is_taken_at_its_word()
+    {
+        int? named = Acme;
+        await using var app = App(_ => named);
+        await using var session = app.CreateAsyncScope();
+        var holder = ResolvedTenant.For(session.ServiceProvider)!;
+        _ = holder.Tenant;
+
+        named = null;
+        holder.AskAgain(sameReader: false);
+
+        Assert.Null(holder.Tenant);
     }
 
     private static ServiceProvider App(Func<IServiceProvider, int?>? resolve, Action<IServiceCollection>? configure = null)

@@ -1,9 +1,10 @@
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -12,20 +13,17 @@ namespace Rask.Auth;
 
 /// <inheritdoc cref="IAuthSessions" />
 /// <remarks>
-/// A resumed session is cached for up to 30 seconds per process, so a busy page costs one read every half minute rather
-/// than one per request. Ending a session removes it from this process's cache at once; another replica stops honouring it
-/// within that window.
+/// Every resume reads the session's row and its user's: no answer is remembered between two of them. A live page asks
+/// before each event it takes, so a session ended, a user removed or a role changed on any replica is what the very next
+/// event on every other one sees — which a per-process cache, however short, would stand in the way of.
 /// </remarks>
 internal sealed class AuthSessions<TContext, TUser>(
     IDbContextFactory<TContext> contexts,
-    IMemoryCache cache,
     TimeProvider clock,
-    AuthOptions options) : IAuthSessions
+    AuthOptions options) : IAuthSessions, IAsyncDisposable
     where TContext : DbContext
     where TUser : Authenticatable
 {
-    private static TimeSpan CacheFor => TimeSpan.FromSeconds(30);
-
     public async Task<Guid> StartAsync(
         Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default)
     {
@@ -42,64 +40,110 @@ internal sealed class AuthSessions<TContext, TUser>(
         }
     }
 
-    public async Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    // Compiled once: a live page resumes before every event, and translating the same LINQ each time was most of
+    // what a resume cost. Both query filters apply: an ended (soft-deleted) session and a deleted user are not found.
+    private static readonly Func<TContext, Guid, CancellationToken, Task<Row?>> FindRow =
+        EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
+            (from s in db.Set<Session>().AsNoTracking()
+             join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
+             where s.Id == sessionId
+             select new Row(u, s.ExpiresAt, s.LastSeenAt)).FirstOrDefault());
+
+    // What each principal handed out was built from, for as long as somebody holds it: a live page asks about the
+    // one it holds, and is handed that same one back while its user's row still says what it said. Not a cache —
+    // the row is read every time, and this only saves building an identical principal from it.
+    private readonly ConditionalWeakTable<ClaimsPrincipal, Issued> _issued = [];
+
+    public async Task<ClaimsPrincipal?> ResumeAsync(Guid sessionId, CancellationToken cancellationToken = default) =>
+        await ReadAsync(sessionId, used: true, cancellationToken).ConfigureAwait(false) is { } row ? Issue(row, sessionId) : null;
+
+    public async ValueTask<ClaimsPrincipal?> RevalidateAsync(
+        Guid sessionId, ClaimsPrincipal held, bool used, CancellationToken cancellationToken = default)
+    {
+        if (await ReadAsync(sessionId, used, cancellationToken).ConfigureAwait(false) is not { } row)
+        {
+            return null;
+        }
+
+        return _issued.TryGetValue(held, out var issued) && issued.StillSays(row.User) ? held : Issue(row, sessionId);
+    }
+
+    // The session's row and its user's, or null when the session has ended, expired, or its user is gone.
+    // used: a request or a reader's action is behind the read, so the session is seen and its expiry slides.
+    private async Task<Row?> ReadAsync(Guid sessionId, bool used, CancellationToken cancellationToken)
     {
         var now = clock.GetUtcNow().UtcDateTime;
-
-        if (cache.TryGetValue(CacheKey(sessionId), out Snapshot? cached) && cached is not null)
+        var db = _readers.TryTake(out var kept) ? kept : await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var sound = false;
+        try
         {
-            if (cached.ExpiresAt > now)
+            var found = await FindRow(db, sessionId, cancellationToken).ConfigureAwait(false);
+            if (used && found is not null && found.ExpiresAt > now && now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
             {
-                return AuthPrincipal.For(cached.UserId, cached.Email, cached.Roles, sessionId, cached.TenantId, cached.OwnClaims);
+                await TouchAsync(db, sessionId, now, found.ExpiresAt, cancellationToken).ConfigureAwait(false);
             }
 
-            cache.Remove(CacheKey(sessionId));
+            sound = true;
+            return found is null || found.ExpiresAt <= now ? null : found;
+        }
+        finally
+        {
+            await KeepOrDisposeAsync(db, sound).ConfigureAwait(false);
+        }
+    }
+
+    // At most once a minute: a write per request would make every page view a database write.
+    private Task<int> TouchAsync(TContext db, Guid sessionId, DateTime now, DateTime expires, CancellationToken cancellationToken)
+    {
+        var expiresAt = options.SlidingExpiration ? now + options.ExpireTimeSpan : expires;
+        return db.Set<Session>()
+            .Where(s => s.Id == sessionId)
+            .ExecuteUpdateAsync(
+                set => set.SetProperty(s => s.LastSeenAt, now).SetProperty(s => s.ExpiresAt, expiresAt),
+                cancellationToken);
+    }
+
+    // The contexts these reads run on are kept and used again: building one allocated three times what the read
+    // itself does, and a read tracks nothing, so one that finished cleanly holds nothing of the call before. One
+    // whose read threw is not trusted with another.
+    private readonly ConcurrentBag<TContext> _readers = [];
+    private const int ReadersKept = 8;
+    private volatile bool _disposed;
+
+    private ValueTask KeepOrDisposeAsync(TContext db, bool sound)
+    {
+        if (!sound || _disposed || _readers.Count >= ReadersKept)
+        {
+            return db.DisposeAsync();
         }
 
-        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        await using (db.ConfigureAwait(false))
+        _readers.Add(db);
+        return ValueTask.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        while (_readers.TryTake(out var db))
         {
-            // Both query filters apply: an ended (soft-deleted) session and a deleted user are not found.
-            var found = await (
-                    from s in db.Set<Session>().AsNoTracking()
-                    join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
-                    where s.Id == sessionId
-                    select new { s.UserId, User = u, s.ExpiresAt, s.LastSeenAt })
-                .FirstOrDefaultAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (found is null || found.ExpiresAt <= now)
-            {
-                return null;
-            }
-
-            var expiresAt = found.ExpiresAt;
-
-            // At most once a minute: a write per request would make every page view a database write.
-            if (now - found.LastSeenAt >= TimeSpan.FromMinutes(1))
-            {
-                expiresAt = options.SlidingExpiration ? now + options.ExpireTimeSpan : found.ExpiresAt;
-                await db.Set<Session>()
-                    .Where(s => s.Id == sessionId)
-                    .ExecuteUpdateAsync(
-                        set => set.SetProperty(s => s.LastSeenAt, now).SetProperty(s => s.ExpiresAt, expiresAt),
-                        cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            var snapshot = new Snapshot(
-                found.UserId, found.User.Email, [.. found.User.Roles], expiresAt, found.User.TenantId, found.User.OwnClaims());
-            cache.Set(CacheKey(sessionId), snapshot, CacheFor);
-
-            return AuthPrincipal.For(
-                snapshot.UserId, snapshot.Email, snapshot.Roles, sessionId, snapshot.TenantId, snapshot.OwnClaims);
+            await db.DisposeAsync().ConfigureAwait(false);
         }
+    }
+
+    // TenantId rides along so a restored session filters for the same tenant the sign-in did, and the account's
+    // own claims so it is the principal the sign-in issued.
+    private ClaimsPrincipal Issue(Row row, Guid sessionId)
+    {
+        var issued = Issued.From(row.User);
+        var principal = AuthPrincipal.For(
+            row.User.Id, issued.Email, issued.Roles, sessionId, issued.TenantId, issued.OwnClaims);
+        _issued.Add(principal, issued);
+
+        return principal;
     }
 
     public async Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
-        cache.Remove(CacheKey(sessionId));
-
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
@@ -128,7 +172,6 @@ internal sealed class AuthSessions<TContext, TUser>(
             var now = clock.GetUtcNow().UtcDateTime;
             foreach (var session in sessions)
             {
-                cache.Remove(CacheKey(session.Id));
                 session.End(now);
                 db.Remove(session);
             }
@@ -138,12 +181,17 @@ internal sealed class AuthSessions<TContext, TUser>(
         }
     }
 
-    private static string CacheKey(Guid sessionId) => "Rask.Auth.Session:" + sessionId.ToString("N");
+    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt);
 
-    // TenantId rides along so a restored session filters for the same tenant the sign-in did. Without it a
-    // reconnect would come back with no tenant claim and every tenant-scoped read would throw.
-    // The account's own claims ride along for the same reason: a session loaded again must be the principal the
-    // sign-in issued, or a claim would be there until the first reconnect and gone after it.
-    private sealed record Snapshot(
-        Guid UserId, string Email, string[] Roles, DateTime ExpiresAt, Guid? TenantId, OwnClaim[] OwnClaims);
+    // Everything of a user's row that reaches their principal.
+    private sealed record Issued(string Email, string[] Roles, Guid? TenantId, OwnClaim[] OwnClaims)
+    {
+        internal static Issued From(TUser user) => new(user.Email, [.. user.Roles], user.TenantId, user.OwnClaims());
+
+        internal bool StillSays(TUser user) =>
+            string.Equals(Email, user.Email, StringComparison.Ordinal)
+            && TenantId == user.TenantId
+            && Roles.AsSpan().SequenceEqual([.. user.Roles])
+            && OwnClaims.AsSpan().SequenceEqual(user.OwnClaims());
+    }
 }

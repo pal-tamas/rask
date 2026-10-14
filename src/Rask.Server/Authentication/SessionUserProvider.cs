@@ -25,6 +25,10 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
     // has no user any more used to belong to (RaskEndpointExtensions.MayDrive).
     internal ClaimsPrincipal? LastSignedIn { get; private set; }
 
+    // Whether Current is somebody, worked out as it is set: every event asks, and asking the principal walks its
+    // identities.
+    internal bool IsSignedIn { get; private set; }
+
     /// <summary>
     ///     Raised when <see cref="Current" /> is replaced by a different principal, so UI that depends on
     ///     who is signed in re-renders. Setting the same instance again raises nothing.
@@ -43,7 +47,8 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
         ArgumentNullException.ThrowIfNull(user);
         var prev = Current;
         Current = user;
-        if (user.Identity?.IsAuthenticated == true)
+        IsSignedIn = user.Identity?.IsAuthenticated == true;
+        if (IsSignedIn)
         {
             LastSignedIn = user;
         }
@@ -54,6 +59,18 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
         }
     }
 
+    // Takes a principal that says what Current says — the same user, the same rights, issued again — and tells
+    // nobody: nothing a listener would act on has changed.
+    internal void Keep(ClaimsPrincipal same)
+    {
+        Current = same;
+        IsSignedIn = same.Identity?.IsAuthenticated == true;
+        if (IsSignedIn)
+        {
+            LastSignedIn = same;
+        }
+    }
+
     /// <summary>
     ///     Reset to an unauthenticated principal — explicit session invalidation on sign-out. Raises
     ///     <see cref="Changed" /> (via <see cref="Set" />) only when the session was actually
@@ -61,7 +78,7 @@ public sealed class SessionUserProvider : IUserProvider, ISettableUserProvider
     /// </summary>
     public void Clear()
     {
-        if (Current.Identity?.IsAuthenticated == true)
+        if (IsSignedIn)
         {
             Set(new ClaimsPrincipal(new ClaimsIdentity()));
         }

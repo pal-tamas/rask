@@ -596,10 +596,11 @@ public sealed partial class FormAutomaticRulesTests : IDisposable
         return await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
     }
 
-    // The socket carries no tenant: the session keeps the one it was opened with.
+    // The socket carries the tenant as the page's request did: each event asks the resolver again.
     private static async Task<WebSocket> AttachAsync(RaskTestHost host, string page)
     {
         var sessionId = MarkupAssert.SessionId(page);
+        host.WebSockets.ConfigureRequest = request => request.Headers[CurrentCustomer.Header] = "7";
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);

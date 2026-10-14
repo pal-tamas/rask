@@ -67,6 +67,7 @@ internal sealed class HookSession : IAsyncDisposable
         var page = await context.NewPageAsync();
         var pageErrors = new ConcurrentQueue<string>();
         page.PageError += (_, error) => pageErrors.Enqueue(error);
+        await SlowMachine.ApplyAsync(page);
         if (beforeLoad is not null)
         {
             await beforeLoad(page);

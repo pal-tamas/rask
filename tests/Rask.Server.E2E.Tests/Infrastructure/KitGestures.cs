@@ -9,8 +9,19 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 internal sealed record KitGesture(string Name, Func<IPage, Task> Do, Func<IPage, Task>? Arrange = null);
 
 /// <summary>The gestures every component is put through, and the few steps they are made of.</summary>
+/// <remarks>
+///     A gesture is made of steps — a key, a press, the pointer moved on a little — and after each the page is
+///     given a <see cref="BeatAsync">beat</see>. The page's clock stands still meanwhile (<see cref="KitFrameCount" />),
+///     so a step costs what it costs a reader, who is slower than a frame: never less because a fast machine made
+///     two steps inside one frame, never more because a slow one let a timer run out between them.
+/// </remarks>
 internal static class KitGestures
 {
+    // One animation frame of the page's time, and a little: what is sent once a frame has been sent.
+    private const int FrameMs = 20;
+
+    private const int DragSteps = 12;
+
     /// <summary>Where a component under test is drawn.</summary>
     public const string Stage = "#stage";
 
@@ -50,14 +61,14 @@ internal static class KitGestures
         var stops = 0;
         do
         {
-            await page.Keyboard.PressAsync("Tab");
+            await StrikeAsync(page, "Tab");
             stops++;
         }
         while (stops < 12 && await page.EvaluateAsync<bool>("s => document.querySelector(s).contains(document.activeElement)", root));
 
         for (; stops > 0; stops--)
         {
-            await page.Keyboard.PressAsync("Shift+Tab");
+            await StrikeAsync(page, "Shift+Tab");
         }
     }, arrange);
 
@@ -72,18 +83,14 @@ internal static class KitGestures
     ];
 
     /// <summary>Text typed into <paramref name="selector" />, the focus left in it.</summary>
-    public static KitGesture Typing(string selector, string text, string name = "typing", Func<IPage, Task>? arrange = null) => new(name, async page =>
-    {
-        await page.Locator(selector).First.FocusAsync();
-        await page.Keyboard.TypeAsync(text);
-    }, arrange);
+    public static KitGesture Typing(string selector, string text, string name = "typing", Func<IPage, Task>? arrange = null) =>
+        new(name, page => TypeAsync(page, selector, text), arrange);
 
     /// <summary>Typing, and then Tab out of the field: what a value that is sent on change waits for.</summary>
     public static KitGesture TypingThenLeaving(string selector, string text) => new("typing, then leaving the field", async page =>
     {
-        await page.Locator(selector).First.FocusAsync();
-        await page.Keyboard.TypeAsync(text);
-        await page.Keyboard.PressAsync("Tab");
+        await TypeAsync(page, selector, text);
+        await StrikeAsync(page, "Tab");
     });
 
     /// <summary>The pointer across <paramref name="selector" /> from side to side, a few pixels at a time.</summary>
@@ -91,9 +98,9 @@ internal static class KitGestures
     {
         var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
         var y = box.Y + (box.Height / 2);
-        await page.Mouse.MoveAsync(box.X + 2, y);
-        await page.Mouse.MoveAsync(box.X + box.Width - 2, y, new MouseMoveOptions { Steps = 25 });
-        await page.Mouse.MoveAsync(AwayX, AwayY, new MouseMoveOptions { Steps = 3 });
+        await GlideAsync(page, (AwayX, AwayY), (box.X + 2, y), 1);
+        await GlideAsync(page, (box.X + 2, y), (box.X + box.Width - 2, y), 25);
+        await GlideAsync(page, (box.X + box.Width - 2, y), (AwayX, AwayY), 3);
     });
 
     /// <summary>A drag along <paramref name="selector" />, the button held at the end or let go.</summary>
@@ -107,19 +114,14 @@ internal static class KitGestures
         await page.Locator(selector).First.ScrollIntoViewIfNeededAsync();
         var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
         var (x, y) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
-        await page.Mouse.MoveAsync(x, y);
-        await page.Mouse.DownAsync();
-        await page.Mouse.MoveAsync(x + by, y, new MouseMoveOptions { Steps = 12 });
-        if (release)
-        {
-            await page.Mouse.UpAsync();
-        }
+        await HoldAndGlideAsync(page, (x, y), (x + by, y), release);
     });
 
     /// <summary>A press on one part and then on another (the same one when only one is named).</summary>
     public static KitGesture Twice(string name, string first, string? second = null, Func<IPage, Task>? arrange = null) => new(name, async page =>
     {
         await page.Locator(first).First.ClickAsync();
+        await BeatAsync(page);
         await page.Locator(second ?? first).First.ClickAsync();
     }, arrange);
 
@@ -141,7 +143,7 @@ internal static class KitGestures
     {
         foreach (var key in keys)
         {
-            await page.Keyboard.PressAsync(key);
+            await StrikeAsync(page, key);
         }
     }, arrange);
 
@@ -164,11 +166,14 @@ internal static class KitGestures
     /// <summary>A press on <paramref name="selector" />, as an arrangement.</summary>
     public static Func<IPage, Task> Pressing(string selector) => page => page.Locator(selector).First.ClickAsync();
 
-    /// <summary>The pointer onto the middle of <paramref name="selector" />, in steps.</summary>
-    public static async Task OverAsync(IPage page, string selector)
+    /// <summary>
+    ///     One animation frame of the page's time, and the server's answer to whatever the page sent in it: what
+    ///     follows each step of a gesture, so the next step is made on a page that has heard the one before.
+    /// </summary>
+    public static async Task BeatAsync(IPage page)
     {
-        var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
-        await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2), new MouseMoveOptions { Steps = 4 });
+        await page.Clock.RunForAsync(FrameMs);
+        await KitSocket.AnsweredAsync(page);
     }
 
     /// <summary>A drag from one end of <paramref name="selector" /> towards the other, without letting go.</summary>
@@ -176,23 +181,58 @@ internal static class KitGestures
     {
         var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
         var y = box.Y + (box.Height / 2);
-        await page.Mouse.MoveAsync(box.X + (box.Width * 0.2f), y);
+        await HoldAndGlideAsync(page, (box.X + (box.Width * 0.2f), y), (box.X + (box.Width * 0.8f), y), release);
+    }
+
+    // Text typed a key at a time into the field, the focus left in it.
+    private static async Task TypeAsync(IPage page, string selector, string text)
+    {
+        await page.Locator(selector).First.FocusAsync();
+        foreach (var character in text)
+        {
+            await page.Keyboard.TypeAsync(character.ToString());
+            await BeatAsync(page);
+        }
+    }
+
+    private static async Task StrikeAsync(IPage page, string key)
+    {
+        await page.Keyboard.PressAsync(key);
+        await BeatAsync(page);
+    }
+
+    // The button goes down at one place and the pointer is taken to another in twelve steps, a beat after each.
+    private static async Task HoldAndGlideAsync(IPage page, (float X, float Y) from, (float X, float Y) to, bool release)
+    {
+        await page.Mouse.MoveAsync(from.X, from.Y);
         await page.Mouse.DownAsync();
-        await page.Mouse.MoveAsync(box.X + (box.Width * 0.8f), y, new MouseMoveOptions { Steps = 12 });
+        await GlideAsync(page, from, to, DragSteps);
         if (release)
         {
             await page.Mouse.UpAsync();
         }
     }
 
+    // The pointer from one place to another in even steps, a beat after each: a move a frame, as a hand makes them.
+    private static async Task GlideAsync(IPage page, (float X, float Y) from, (float X, float Y) to, int steps)
+    {
+        for (var step = 1; step <= steps; step++)
+        {
+            await page.Mouse.MoveAsync(from.X + ((to.X - from.X) * step / steps), from.Y + ((to.Y - from.Y) * step / steps));
+            await BeatAsync(page);
+        }
+    }
+
     private static async Task SweepAsync(IPage page, string root)
     {
         var parts = await page.EvaluateAsync<float[][]>(Parts, root);
+        (float X, float Y) at = (AwayX, AwayY);
         foreach (var part in parts)
         {
-            await page.Mouse.MoveAsync(part[0], part[1], new MouseMoveOptions { Steps = 3 });
+            await GlideAsync(page, at, (part[0], part[1]), 3);
+            at = (part[0], part[1]);
         }
 
-        await page.Mouse.MoveAsync(AwayX, AwayY, new MouseMoveOptions { Steps = 3 });
+        await GlideAsync(page, at, (AwayX, AwayY), 3);
     }
 }

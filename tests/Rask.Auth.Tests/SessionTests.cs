@@ -93,7 +93,7 @@ public sealed class SessionTests
         for (var i = 0; i < 4; i++)
         {
             clock.Advance(TimeSpan.FromMinutes(50));
-            Assert.NotNull(await ResumeUncachedAsync(harness, sessionId));
+            Assert.NotNull(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
         }
     }
 
@@ -110,7 +110,7 @@ public sealed class SessionTests
             await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        Assert.Null(await ResumeUncachedAsync(harness, sessionId));
+        Assert.Null(await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -133,18 +133,137 @@ public sealed class SessionTests
         Assert.False(await RowExistsAsync(harness, sessionId));
     }
 
+    // The row is read; only building an identical principal from it is saved, and the page's own check then costs nothing.
+    [Fact]
+    public async Task A_live_page_is_handed_back_the_principal_it_holds_while_its_user_s_row_says_the_same()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
+
+        Assert.Same(held, asked);
+    }
+
+    [Fact]
+    public async Task A_live_page_is_handed_another_principal_at_once_when_a_role_was_taken_away()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        await using (var db = harness.NewContext())
+        {
+            var user = await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id, TestContext.Current.CancellationToken);
+            foreach (var role in user.Roles.ToArray())
+            {
+                user.RevokeRole(role);
+            }
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
+
+        Assert.NotSame(held, asked);
+        Assert.Empty(asked!.FindAll(ClaimTypes.Role));
+    }
+
+    [Fact]
+    public async Task A_live_page_is_told_nobody_at_once_when_its_session_was_ended()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+
+        await Sessions(harness).EndAllAsync(owner.Id, cancellationToken: TestContext.Current.CancellationToken);
+        var asked = await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
+
+        Assert.Null(asked);
+    }
+
+    // A page with a clock on it repaints for ever. That is not its user using it.
+    [Fact]
+    public async Task A_question_nobody_s_action_is_behind_does_not_slide_the_session_and_a_reader_s_does()
+    {
+        var clock = new MutableClock(new DateTimeOffset(2026, 9, 15, 12, 0, 0, TimeSpan.Zero));
+        await using var harness = await ClaimedAsync(o => o.ExpireTimeSpan = TimeSpan.FromHours(1), clock);
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var held = (await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken))!;
+        var started = await ExpiresAsync(harness, sessionId);
+
+        clock.Advance(TimeSpan.FromMinutes(30));
+        await Sessions(harness).RevalidateAsync(sessionId, held, used: false, TestContext.Current.CancellationToken);
+        var afterAPush = await ExpiresAsync(harness, sessionId);
+        await Sessions(harness).RevalidateAsync(sessionId, held, used: true, TestContext.Current.CancellationToken);
+        var afterAnAction = await ExpiresAsync(harness, sessionId);
+
+        Assert.Equal(started, afterAPush);
+        Assert.Equal(started + TimeSpan.FromMinutes(30), afterAnAction);
+    }
+
+    private static async Task<DateTime> ExpiresAsync(AuthHarness harness, Guid sessionId)
+    {
+        await using var db = harness.NewContext();
+        return await db.Set<Session>().Where(s => s.Id == sessionId).Select(s => s.ExpiresAt).SingleAsync(TestContext.Current.CancellationToken);
+    }
+
     private static async Task<bool> RowExistsAsync(AuthHarness harness, Guid sessionId)
     {
         await using var db = harness.NewContext();
         return await db.Set<Session>().IgnoreQueryFilters().AnyAsync(s => s.Id == sessionId);
     }
 
-    // The resume cache would otherwise answer from the first read for 30 seconds of wall-clock time.
-    private static Task<ClaimsPrincipal?> ResumeUncachedAsync(AuthHarness harness, Guid sessionId)
+    // Nothing is remembered between two resumes: a live page asks before every event, and what it is told is the row.
+    [Fact]
+    public async Task A_role_taken_away_is_gone_from_the_very_next_resume()
     {
-        harness.Services.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()
-            .Remove("Rask.Auth.Session:" + sessionId.ToString("N"));
-        return Sessions(harness).ResumeAsync(sessionId);
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var before = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        await using (var db = harness.NewContext())
+        {
+            var user = await db.Set<TestUser>().SingleAsync(u => u.Id == owner.Id, TestContext.Current.CancellationToken);
+            foreach (var role in user.Roles.ToArray())
+            {
+                user.RevokeRole(role);
+            }
+
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var after = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(before!.FindAll(ClaimTypes.Role));
+        Assert.Empty(after!.FindAll(ClaimTypes.Role));
+    }
+
+    [Fact]
+    public async Task A_session_ended_through_another_replica_s_store_is_not_resumed_by_the_next_call()
+    {
+        await using var harness = await ClaimedAsync();
+        var owner = (await harness.UserAsync(Owner))!;
+        var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, false, TestContext.Current.CancellationToken);
+        var before = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        // Another replica ended it: the row is gone from the table, and this process was told nothing.
+        await using (var db = harness.NewContext())
+        {
+            db.Remove(await db.Set<Session>().SingleAsync(s => s.Id == sessionId, TestContext.Current.CancellationToken));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var after = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(before);
+        Assert.Null(after);
     }
 
     [Fact]
@@ -169,10 +288,10 @@ public sealed class SessionTests
         var sessionId = await Sessions(harness).StartAsync(owner.Id, null, null, persistent: false, cancellationToken: TestContext.Current.CancellationToken);
 
         var loaded = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
-        var fromTheCache = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
+        var again = await Sessions(harness).ResumeAsync(sessionId, TestContext.Current.CancellationToken);
 
         Assert.Equal("42", loaded!.FindFirstValue("legacy_id"));
-        Assert.Equal("42", fromTheCache!.FindFirstValue("legacy_id"));
+        Assert.Equal("42", again!.FindFirstValue("legacy_id"));
     }
 
     [Fact]
