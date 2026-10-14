@@ -90,11 +90,32 @@ public static class ModelBuilderExtensions
         }
 #pragma warning restore S3267
 
+        IgnoreComputedProperties(modelBuilder, entityTypes);
         MapValueCollections(modelBuilder, entityTypes);
         ApplyTenancy(modelBuilder, entityTypes, context);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    // `public SupplyKind Kind => …;` is a value computed from other columns, not a column of its own. A scalar
+    // like it EF Core leaves alone, but a struct or record it takes for a complex property — and then fails at
+    // startup because there is no field to set. A property with a setter, or the compiler's own backing field
+    // (`{ get; }`), is stored; one with neither can only be computed.
+    private static void IgnoreComputedProperties(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
+    {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
+        foreach (var entityType in entityTypes)
+        {
+            foreach (var complex in entityType.GetComplexProperties().ToList())
+            {
+                if (complex.FieldInfo is null && complex.PropertyInfo is { SetMethod: null })
+                {
+                    modelBuilder.Entity(entityType.ClrType).Ignore(complex.Name);
+                }
+            }
+        }
+#pragma warning restore S3267
     }
 
     private static void ApplyEntityConventions(
