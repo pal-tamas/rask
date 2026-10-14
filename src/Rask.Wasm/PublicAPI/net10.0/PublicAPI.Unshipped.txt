@@ -1,8 +1,6 @@
 #nullable enable
 Rask.RaskWasmOptions.HandlerQuiescenceTimeout.get -> System.TimeSpan
 Rask.RaskWasmOptions.HandlerQuiescenceTimeout.set -> void
-Rask.RaskWasmOptions.NavigationQuiescenceTimeout.get -> System.TimeSpan
-Rask.RaskWasmOptions.NavigationQuiescenceTimeout.set -> void
 Rask.Wasm.Authentication.WasmAuthSignIn
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.get -> string!
 Rask.Wasm.Authentication.WasmAuthSignIn.LogoutPath.init -> void

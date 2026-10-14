@@ -292,7 +292,6 @@ public sealed class WasmHostBuilder
             root,
             provider,
             _diffMode,
-            WasmHostBuilderExtensions.NavigationBudget(this),
             WasmHostBuilderExtensions.HandlerBudget(this));
         JSInterop.Init(session);
 

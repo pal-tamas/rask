@@ -58,18 +58,13 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // invokes still need to reach the client (where they run after applyDiff).
     private bool _lastBuildHadJsInvokes;
 
-    // How long a frame that carries a navigation waits for the page it goes to. Zero sends at once.
-    private readonly TimeSpan _navigationBudget;
-
     public WasmLiveSession(
         Component view,
         IServiceProvider services,
         LiveDiffMode diffMode,
-        TimeSpan navigationBudget = default,
         TimeSpan handlerBudget = default)
         : base(view, services, diffMode)
     {
-        _navigationBudget = navigationBudget;
         HandlerBudget = handlerBudget;
         _goneToken = _gone.Token;
 
@@ -119,9 +114,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _htmlBuffers.Dispose();
         }
 
-        // Last, with _disposed already set: these end the waits of a navigation and of a handler's render,
-        // and what they wake may run on from here.
-        _arrivals.Dispose();
+        // Last, with _disposed already set: this ends the wait of a handler's render, and what it wakes may
+        // run on from here.
         _gone.Cancel();
         _gone.Dispose();
     }
@@ -280,14 +274,6 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
     protected override bool TryNavigateCore(Action navigate)
     {
-        // The dispatch that mounted the asking page is still waiting for it: it makes the navigation itself,
-        // in that page's place, so the page is never shown.
-        if (_arriving)
-        {
-            _handedOver ??= navigate;
-            return true;
-        }
-
         _ = NavigateFromHookAsync(navigate);
         return true;
     }
@@ -355,9 +341,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // lands after the walk materialised the HTML (OnRendered onwards) — the spinner then
             // stayed on screen forever. Every other render path already coalesces; this one was
             // the exception (#972).
-            // The first page may send the reader on as it mounts; the address then changes in place.
-            // And it is waited for like any page reached in place: what the browser shows meanwhile is the
-            // document it loaded, which a baked page already fills.
+            // The first page may send the reader on as it mounts; the address then changes in place. Like any
+            // page reached in place it is shown at once, and its loads follow.
             using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
             if (!await BuildPayloadCoalescingRerendersAsync(null, true, arriving: true).ConfigureAwait(false)
                 || !await TryEmitFrameAsync(true).ConfigureAwait(false))
@@ -720,8 +705,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    // arriving: the payload carries a navigation, so each build waits for the page it goes to (RenderArrivedAsync).
-    // False when a newer navigation ended that wait: nothing was built, and nothing is to be sent.
+    // arriving: the payload carries a navigation, so its page is built at once and its loads follow.
+    // False when nothing was built, and nothing is to be sent.
     // settle: a build that carries no navigation waits for the reads it starts — a handler's render does.
     private async Task<bool> BuildPayloadCoalescingRerendersAsync(string? historyUrl,
         bool replace, bool publishOnly = false, bool arriving = false, bool settle = false)
@@ -751,7 +736,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         _pendingRenderInScope = false;
         var budget = 2;
         FollowRedirect(ref historyUrl, ref replace, ref budget);
-        if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving, settle && !arriving)
+        if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, settle && !arriving)
                 .ConfigureAwait(false))
         {
             _pendingRenderInScope = false;
@@ -761,7 +746,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         while (FollowRedirect(ref historyUrl, ref replace, ref budget) || (_pendingRenderInScope && budget-- > 0))
         {
             _pendingRenderInScope = false;
-            if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, arriving).ConfigureAwait(false))
+            if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false).ConfigureAwait(false))
             {
                 _pendingRenderInScope = false;
                 return false;
@@ -792,7 +777,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))
         {
-            return FollowHandedNavigation(ref historyUrl, ref replace, ref budget);
+            return false;
         }
 
         replace = replace || (historyUrl is null && redirectReplace);
@@ -801,76 +786,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return true;
     }
 
-    // A hook of the page being waited for navigated after an await: the dispatch makes that navigation in the
-    // page's place. The page never had an address, so the one the reader came by is kept or replaced as their
-    // own navigation said — and replaced when they made none.
-    private bool FollowHandedNavigation(ref string? historyUrl, ref bool replace, ref int budget)
-    {
-        if (_handedOver is not { } navigate)
-        {
-            return false;
-        }
-
-        _handedOver = null;
-        navigate();
-        if (_navigator!.TryConsumeExit(out var exit))
-        {
-            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
-        }
-
-        if (!_navigator.TryConsumeHistory(out var url, out _))
-        {
-            return false;
-        }
-
-        replace = replace || historyUrl is null;
-        historyUrl = url;
-        budget = 2;
-        return true;
-    }
-
     private Navigator? _navigator;
 
-    // The navigate calls made and not yet started, and the wait a newer one ends.
+    // The navigate calls made and not yet started.
     private readonly NavigationArrivals _arrivals = new();
 
-    // The browser has one thread, so plain fields: nothing here is read while something else writes it.
-    private bool _arriving;
-    private Action? _handedOver;
-
-    /// <summary>
-    ///     Renders the page a navigation goes to, and renders it again as the lifecycle work that render
-    ///     started comes back, until none is pending or the navigation budget is spent — the server host's
-    ///     <c>RenderArrivedAsync</c>, over the same waves. Null when a newer navigation ended the wait.
-    /// </summary>
-    private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderArrivedAsync(bool publishOnly)
-    {
-        _navigator ??= Services.GetRequiredService<Navigator>();
-        var superseded = _arrivals.Superseded;
-        if (_arrivals.AnyQueued)
-        {
-            return null;
-        }
-
-        _arriving = true;
-        _handedOver = null;
-        try
-        {
-            return await RenderInWavesAsync(publishOnly, _navigationBudget, arriving: true, superseded)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (superseded.IsCancellationRequested)
-        {
-            return null;
-        }
-        finally
-        {
-            _arriving = false;
-        }
-    }
-
-    protected override bool LeavingThePage(bool arriving) =>
-        (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending || (arriving && _handedOver is not null);
+    protected override bool LeavingThePage() => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
 
     // midFlight: the repaint of a page whose handler is still working. The walk takes its turn with that
     // handler's navigation: made first, the page is the dispatch's to build and nothing is walked here — a walk
@@ -888,16 +809,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    // One render, of the kind its payload calls for. Null when a newer navigation replaced the one it carries,
-    // or the handler behind a mid-flight repaint has navigated.
+    // One render, of the kind its payload calls for. Null when the handler behind a mid-flight repaint has navigated.
     private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderForAsync(
-        bool publishOnly, bool arriving, bool settling, bool midFlight)
+        bool publishOnly, bool settling, bool midFlight)
     {
-        if (arriving && _navigationBudget > TimeSpan.Zero)
-        {
-            return await RenderArrivedAsync(publishOnly).ConfigureAwait(false);
-        }
-
         return settling && HandlerBudget > TimeSpan.Zero
             ? await RenderSettlingAsync(publishOnly).ConfigureAwait(false)
             : RenderOnce(publishOnly, midFlight);
@@ -908,7 +823,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         try
         {
-            return await RenderInWavesAsync(publishOnly, HandlerBudget, arriving: false, _goneToken)
+            return await RenderInWavesAsync(publishOnly, HandlerBudget, _goneToken)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (_disposed)
@@ -955,12 +870,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         return RouteAuthorizationGuard.ChallengePath + returnUrl;
     }
 
-    // False when the payload carried a navigation a newer one replaced while its page was awaited, or when the
-    // handler behind a mid-flight repaint navigated before the page was walked: nothing was built.
+    // False when the session has gone, or when the handler behind a mid-flight repaint navigated before the page
+    // was walked: nothing was built.
     // settling: the payload ends a handler's dispatch, so it waits for the reads the handler started.
     // midFlight: that handler is still working, and may navigate at any await here.
     internal async Task<bool> BuildPayloadAsync(string? historyUrl, bool replace,
-        bool publishOnly = false, bool commitCache = true, bool arriving = false, bool settling = false, bool midFlight = false)
+        bool publishOnly = false, bool commitCache = true, bool settling = false, bool midFlight = false)
     {
         await Task.Yield();
 
@@ -985,19 +900,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // Render + decide diff-vs-full + write the frame — shared with the Server host
         // (LiveSessionBase). WASM has no AuthInstruction in the diff codec (the route-auth guard
         // above already redirected), so auth is null; the data-rask-root id is the constant "wasm".
-        var rendered = await RenderForAsync(publishOnly, arriving, settling, midFlight).ConfigureAwait(false);
+        var rendered = await RenderForAsync(publishOnly, settling, midFlight).ConfigureAwait(false);
 
         // Disposed while its page was waited for: what was rendered is of a tree that has gone.
         if (_disposed || rendered is not var (html, frameWriter))
         {
             return false;
-        }
-
-        // A page that sent the reader on while it was awaited is not written: the caller builds its destination.
-        if (arriving && _handedOver is not null)
-        {
-            _writeBuffer.ResetWrittenCount();
-            return true;
         }
 
         var download = ConsumeDownload();
