@@ -15,6 +15,8 @@ namespace Rask.Server.Tests.Infrastructure;
 internal sealed class StallingWebSocket : WebSocket
 {
     private readonly TaskCompletionSource _released = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _sending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _delivered = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public int Aborted { get; private set; }
 
@@ -23,15 +25,28 @@ internal sealed class StallingWebSocket : WebSocket
     public override string? CloseStatusDescription => null;
     public override string? SubProtocol => null;
 
+    /// <summary>Completes once a send has reached this socket, whether or not it has finished.</summary>
+    public Task Sending => _sending.Task;
+
+    /// <summary>Completes once a send has finished on this socket — the frame was delivered.</summary>
+    public Task Delivered => _delivered.Task;
+
     public void Release() => _released.TrySetResult();
 
-    public override async Task SendAsync(
+    public override Task SendAsync(
         ArraySegment<byte> buffer, WebSocketMessageType type, bool end, CancellationToken ct) =>
-        await _released.Task.WaitAsync(ct);
+        SendCoreAsync(ct);
 
     public override async ValueTask SendAsync(
         ReadOnlyMemory<byte> buffer, WebSocketMessageType type, bool end, CancellationToken ct) =>
+        await SendCoreAsync(ct);
+
+    private async Task SendCoreAsync(CancellationToken ct)
+    {
+        _sending.TrySetResult();
         await _released.Task.WaitAsync(ct);
+        _delivered.TrySetResult();
+    }
 
     public override void Abort()
     {
