@@ -73,6 +73,12 @@ internal static class TenantColumn
     ///         <c>IS NULL</c>, so without it a read that names no tenant would return exactly the rows that
     ///         belong to none — and a table that already existed may well hold some.
     ///     </para>
+    ///     <para>
+    ///         The <c>unrestricted</c> arm is read through <see cref="EF.Constant{T}" />, so EF Core folds it into
+    ///         the query when it is built (and caches one plan for <c>Across</c>, one without) instead of binding
+    ///         a parameter: <c>@flag = 1 OR TenantId = @t</c> is a catch-all SQL Server cannot seek an index with.
+    ///         The tenant itself stays a parameter, or one tenant's id would be cached for every other.
+    ///     </para>
     /// </remarks>
     internal static LambdaExpression BuildFilter(Type clrType, Type column, DbContext context)
     {
