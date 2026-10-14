@@ -39,11 +39,6 @@ internal static class UiColorPickerLook
         "relative flex shrink-0 items-center justify-center gap-2 size-8 ms-1 rounded-md text-sm font-medium whitespace-nowrap cursor-default "
         + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
 
-    /// <summary>The clear button while there is nothing to clear.</summary>
-    internal const string ClearHidden =
-        "relative hidden shrink-0 items-center justify-center gap-2 size-8 ms-1 rounded-md text-sm font-medium whitespace-nowrap cursor-default "
-        + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
-
     /// <summary>The button trigger's words: the value, or the placeholder while there is none.</summary>
     internal const string Display = "block flex-1 truncate text-start text-zinc-700 dark:text-zinc-300";
 

@@ -18,22 +18,15 @@ public sealed partial class UiColorPicker
 
     private const string SwatchKeys = "Arrows Home End PageUp PageDown Space Enter";
 
-    // The probe's box: one pixel wide under a pointer, two on the sheet.
-    private static readonly string[] SheetBox = ["2 1", "1 1"];
-
-    private static readonly Dictionary<string, string?> DialogShut = new(StringComparer.Ordinal)
-    {
-        ["rask-modal"] = "any",
-        ["rask-modal-open"] = "false",
-    };
-
-    private static readonly Dictionary<string, string?> DialogOpen = new(DialogShut, StringComparer.Ordinal) { ["rask-modal-open"] = "true" };
+    // Escape and a press outside close it, and `data-open` says it shows: the runtime's (rask-overlay.ts).
+    private static readonly Dictionary<string, string?> DialogMarks = new(StringComparer.Ordinal) { ["rask-modal"] = "any" };
 
     private static readonly Dictionary<string, string?> AreaMarks = new(StringComparer.Ordinal)
     {
         ["ui-color-picker-area"] = string.Empty,
         ["rask-drag"] = "x y",
         ["rask-press-keeps-focus"] = string.Empty,
+        ["rask-color-part"] = "area",
     };
 
     private static readonly Dictionary<string, string?> AreaOff = new(StringComparer.Ordinal) { ["ui-color-picker-area"] = string.Empty };
@@ -49,21 +42,14 @@ public sealed partial class UiColorPicker
     {
         ["ui-color-picker-swatches"] = string.Empty,
         ["rask-contain-keys"] = SwatchKeys,
+        ["rask-color-part"] = "swatches",
     };
 
     private static readonly Dictionary<string, string?> ProbeMarks = new(StringComparer.Ordinal)
     {
         ["ui-color-picker-sheet"] = string.Empty,
-        ["rask-measure"] = string.Empty,
+        ["rask-color-part"] = "sheet",
     };
-
-    private readonly ElementRef<HTMLInputElement> _popoverInput = new();
-
-    private readonly ElementRef<HTMLInputElement> _hueRange = new();
-
-    private readonly ElementRef<HTMLInputElement> _alphaRange = new();
-
-    private readonly List<ElementRef<HTMLButtonElement>> _swatchRefs = [];
 
     private IReadOnlyList<UiColorSwatch>? _paletteOf;
 
@@ -98,15 +84,14 @@ public sealed partial class UiColorPicker
         var scope = new UiColorPickerScope(this, ++_renders);
         var layout = Children?.Any() == true ? Children : [DefaultLayout()];
 
-        // The runtime shows and closes the dialog as the render says (a key opened it, a swatch closed the
-        // sheet), lets Escape and a press outside dismiss it, and marks it `data-open` while it shows.
-        return Dialog.Id(DialogId).Class(UiColorPickerLook.Dialog).Data(_open ? DialogOpen : DialogShut).OnToggle(Toggled)[
+        // The browser opens it (the trigger's command, ArrowDown in the trigger) and closes it (Escape, a press
+        // outside, the sheet's buttons, a swatch picked on the sheet), and nothing of that is the page's.
+        return Dialog.Id(DialogId).Class(UiColorPickerLook.Dialog).Data(DialogMarks)[
             Div.Class(UiColorPickerLook.FocusPlaceholder).Data("ui-focus-placeholder", string.Empty).TabIndex(0),
             Context.Provide(scope)[layout],
-            // Flux asks the window how wide it is; the kit asks the stylesheet, through a box only it sizes.
-            Span.Class(UiColorPickerLook.SheetProbe).Data(ProbeMarks).Aria("hidden", "true")[
-                Input.Value(SheetBox[_sheet ? 0 : 1]).OnInput(Measured).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData)
-            ]
+            // Flux asks the window how wide it is; the kit asks the stylesheet, through a box only it sizes:
+            // two pixels wide on the sheet. The browser reads it as a choice is made.
+            Span.Class(UiColorPickerLook.SheetProbe).Data(ProbeMarks).Aria("hidden", "true")
         ];
     }
 
@@ -124,10 +109,11 @@ public sealed partial class UiColorPicker
             ],
             palette.Swatches.Count > 0 ? DrawSwatches(palette, null) : null,
             // Cancel and Select are the sheet's. Each closes the dialog by command; Select's press is heard on
-            // the box around it, where Flux hears it too, and the page takes what the sheet shows.
+            // the box around it, where Flux hears it too, and the colour the sheet shows is taken.
             Div.Class(UiColorPickerLook.Footer)[
                 Div.Class("inline")[Footer(Ui.Button.Ghost, RaskStrings.Get(RaskString.ColorPickerCancel, "Cancel"))],
-                Div.Class("inline").Role("button").TabIndex(0).OnClick(KeepAsync)[Footer(Ui.Button.Primary, RaskStrings.Get(RaskString.ColorPickerSelect, "Select"))]
+                Div.Class("inline").Role("button").TabIndex(0).Attributes(UiColorPickerMarks.Named("select"))[
+                    Footer(Ui.Button.Primary, RaskStrings.Get(RaskString.ColorPickerSelect, "Select"))]
             ]
         ];
     }
@@ -140,11 +126,12 @@ public sealed partial class UiColorPicker
     /// <summary>Flux's <c>flux:color-picker.area</c>: saturation across, brightness up.</summary>
     internal Component DrawArea(string? @class)
     {
-        var color = _shown.Color;
+        var color = _kept.Color;
         var (across, down) = (Fraction(color.Saturation / 100), Fraction(1 - (color.Brightness / 100)));
 
         return Div.Class(UiClass.Compose(UiColorPickerLook.Area, @class)).Data(Off ? AreaOff : AreaMarks)[
-            Div.Class(UiColorPickerLook.AreaLayer).Style("background-color:" + color.HueCss).Data("ui-color-picker-area-hue", string.Empty),
+            Div.Class(UiColorPickerLook.AreaLayer).Style("background-color:" + color.HueCss)
+                .Attributes(("data-ui-color-picker-area-hue", null), UiColorPickerMarks.Named("hue-layer")),
             Div.Class(UiColorPickerLook.AreaWhite).Data("ui-color-picker-area-gradient", string.Empty),
             Div.Class(UiColorPickerLook.AreaBlack),
             // The thumb stands where the runtime last put it, and where the colour says until it has.
@@ -155,9 +142,8 @@ public sealed partial class UiColorPicker
                 .TabIndex(0)
                 // The dialog focuses it as it opens: Flux's initial focus.
                 .Autofocus()
-                .Aria(AreaAria(color))
-                .OnKeyDown(AreaKeyAsync),
-            Input.Value(across + " " + down).OnInput(AreaDraggedAsync).Type(InputType.Hidden)
+                .Aria(AreaAria(color)),
+            Input.Value(across + " " + down).Type(InputType.Hidden)
         ];
     }
 
@@ -204,20 +190,19 @@ public sealed partial class UiColorPicker
                         : Div.Class(UiColorPickerLook.SliderPaint).Style(Hues),
                     alpha
                         ? Div.Class(UiColorPickerLook.SliderPaint)
-                            .Style("background:linear-gradient(to right, transparent, " + _shown.Color.OpaqueCss + ")")
-                            .Data("ui-color-picker-slider-track", string.Empty)
+                            .Style("background:linear-gradient(to right, transparent, " + _kept.Color.OpaqueCss + ")")
+                            .Attributes(("data-ui-color-picker-slider-track", null), UiColorPickerMarks.Named("fade"))
                         : null,
                     Div.Class(UiColorPickerLook.SliderFill)[
                         Div.Class(UiColorPickerLook.SliderIndicator).Style("inset-inline:0 calc(100% - " + at + ")").Data("ui-slider-indicator", string.Empty)
                     ],
                     Div.Class(UiColorPickerLook.SliderThumb).Style("inset-inline-start:" + at).Data("ui-slider-thumb", string.Empty)[
-                        // Bound on change, not on input: a render then moves the thumb's own input while it
-                        // has focus, which is where a press on the track leaves it.
+                        // The browser's: its arrows are kept from it and stepped by the runtime, its other
+                        // keys are its own.
                         Input
                             .Value(value.ToString(CultureInfo.InvariantCulture))
                             .Type(InputType.Range)
                             .Id(rangeId)
-                            .Ref(alpha ? _alphaRange : _hueRange)
                             .Min("0")
                             .Max(max.ToString(CultureInfo.InvariantCulture))
                             .Step("1")
@@ -225,12 +210,10 @@ public sealed partial class UiColorPicker
                             .Class("sr-only")
                             .Aria(aria)
                             .Data("rask-contain-keys", "Arrows")
-                            .OnChange(text => ChannelTypedAsync(channel, text))
-                            .OnKeyDown(e => ChannelKeyAsync(channel, e))
                     ]
                 ]
             ],
-            Off ? null : Input.Value(along).OnInput(at => ChannelDraggedAsync(channel, at)).Type(InputType.Hidden)
+            Off ? null : Input.Value(along).Type(InputType.Hidden)
         ];
     }
 
@@ -246,8 +229,10 @@ public sealed partial class UiColorPicker
         if (!Off)
         {
             marks["rask-drag"] = "x";
-            marks["rask-drag-inset"] = _sheet ? "10" : "8";
+            // Half the thumb, which is larger on the sheet: the stylesheet's, read by the runtime as it drags.
+            marks["rask-drag-inset"] = "8";
             marks["rask-focus"] = rangeId;
+            marks["rask-color-part"] = alpha ? "alpha" : "hue";
         }
 
         return marks;
@@ -258,17 +243,13 @@ public sealed partial class UiColorPicker
     /// <param name="class">Classes added to the input's own.</param>
     internal Component DrawInput(string? placeholder, string? @class = null) =>
         Input
-            .Value(Said(_popoverInput))
+            .Value(_kept.Text(Written))
             .Type(InputType.Text)
-            .Ref(_popoverInput)
             .Placeholder(placeholder ?? Hint)
             .Disabled(Off)
             .Class(UiClass.Compose(UiColorPickerLook.PopoverInput, @class))
             .Aria("label", RaskStrings.Get(RaskString.ColorPickerValue, "Color value"))
-            .Data("ui-color-picker-popover-input", string.Empty)
-            .OnInput(text => Typing(text, _popoverInput))
-            .OnChange(text => TypedAsync(text, _popoverInput))
-            .OnKeyDown(e => TypingKey(e, _popoverInput, opens: false));
+            .Attributes(("data-ui-color-picker-popover-input", null), UiColorPickerMarks.Named("popover-text"));
 
     /// <summary>Flux's <c>flux:color-picker.dropper</c>: picks a colour from the screen, in the click's own gesture.</summary>
     /// <remarks>
@@ -300,13 +281,8 @@ public sealed partial class UiColorPicker
 
     private Component DrawSwatches(UiColorPalette palette, string? @class)
     {
-        while (_swatchRefs.Count < palette.Swatches.Count)
-        {
-            _swatchRefs.Add(new ElementRef<HTMLButtonElement>());
-        }
-
-        var picked = _shown.Empty ? -1 : palette.IndexOf(Matched(_shown));
-        var stop = TabStop(palette);
+        var picked = _kept.Empty ? -1 : palette.IndexOf(Matched(_kept));
+        var stop = Math.Max(picked, 0);
 
         return Div.Class(UiClass.Compose(UiColorPickerLook.Swatches, @class))
             .Data(SwatchesMarks)
@@ -332,16 +308,13 @@ public sealed partial class UiColorPicker
         return Button
             .Key(index)
             .Type(ButtonType.Button)
-            .Ref(_swatchRefs[index])
             .Class(UiColorPickerLook.Swatch)
             .Style("background-color:" + swatch.Value)
             .Disabled(Off)
             .Data(marks)
             .Role("option")
             .TabIndex(stop ? 0 : -1)
-            .Aria(SwatchAria(picked, swatch.Named))
-            .OnClick(() => PickedAsync(palette, index))
-            .OnKeyDown(e => SwatchKeyAsync(palette, index, e));
+            .Aria(SwatchAria(picked, swatch.Named));
     }
 
     private static Dictionary<string, string?> SwatchAria(bool picked, string label) => new(StringComparer.Ordinal)
@@ -352,10 +325,17 @@ public sealed partial class UiColorPicker
 
     private int ChannelValue(Ui.ColorPickerChannel channel)
     {
-        var value = channel == Ui.ColorPickerChannel.Alpha ? _shown.Color.Alpha * 100 : _shown.Color.Hue;
+        var value = channel == Ui.ColorPickerChannel.Alpha ? _kept.Color.Alpha * 100 : _kept.Color.Hue;
 
         return double.IsNaN(value) ? 0 : (int)Math.Floor(value + 0.5);
     }
+
+    private static int Max(Ui.ColorPickerChannel channel) => channel == Ui.ColorPickerChannel.Alpha ? 100 : 360;
+
+    // The swatch a colour is told from, by what the picker writes: a colour between two of an 8-bit format's
+    // steps is the swatch it is written as, which is how Flux's label reads.
+    private string Matched(Pick pick) =>
+        UiColorValue.TryParse(pick.Text(Written), out var written) ? written.Hex : pick.Color.Hex;
 
     private static string Whole(double value) =>
         (double.IsNaN(value) ? 0 : (int)Math.Floor(value + 0.5)).ToString(CultureInfo.InvariantCulture);
