@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -38,6 +39,22 @@ public sealed class DemoMarkupGoldenTests
     // change every midnight. The kit's clock is pinned to the day the golden was taken.
     static DemoMarkupGoldenTests() => UiCalendarOptions.Clock = new GoldenDay();
 
+    // A calendar lays its month out from the culture's first day of the week, so a machine whose weeks start on
+    // Monday shifts every grid by a day. The skeleton is taken in the culture the golden was.
+    private static string InGoldenCulture(Func<string> render)
+    {
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        try
+        {
+            return render();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
     private sealed class GoldenDay : TimeProvider
     {
         public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
@@ -65,7 +82,7 @@ public sealed class DemoMarkupGoldenTests
     [Fact]
     public void Every_demo_renders_to_its_golden_markup_skeleton()
     {
-        var actual = RenderAll();
+        var actual = InGoldenCulture(RenderAll);
         var path = GoldenPath();
 
         if (Environment.GetEnvironmentVariable("RASK_UPDATE_GOLDEN") == "1")

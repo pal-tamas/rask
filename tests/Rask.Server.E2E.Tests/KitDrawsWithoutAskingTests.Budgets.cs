@@ -36,6 +36,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["select-searched: close by Escape after a search the page heard"] = (1, "the page's OnInput: the search is over"),
         ["select: pick a row"] = (1, "the value"),
         ["slider: arrow keys"] = (5, "the value, as it moves: a frame a key"),
+        ["slider: drag and release"] = (12, "the value, as it moves: a frame a step of the pointer, and nothing on letting go"),
+        ["slider: drag, still held"] = (12, "the value, as it moves: a frame a step of the pointer"),
         ["toggle-heard: press"] = (1, "the value"),
         ["switch: flip"] = (1, "the value"),
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
