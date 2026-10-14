@@ -330,6 +330,8 @@ them until tagged releases begin.
   handed back once the event that carried it is dispatched — a form submit's and an unreached handler's too.
 - **`.OnFiles(() => …)` runs.** A files handler written without its argument was refused every frame as a stale
   id and silently never ran; it is now fed the files frame like `.OnFiles(files => …)`.
+- **A queued event batch whose socket closed before it ran hands its uploads back.** Its files stayed staged
+  until the session ended; they are now released where every dispatched event's are.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

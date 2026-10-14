@@ -15,15 +15,32 @@ namespace Rask.Server.Files;
 internal static class DispatchedUploads
 {
     /// <summary>
-    ///     The store to hand <paramref name="frame" />'s files back to, or null for the frame that carries none —
-    ///     every click and keystroke, which pays two property lookups and no service resolution.
+    ///     The store to hand <paramref name="frame" />'s files back to — one event, or a batch's array of them —
+    ///     or null for a frame that carries none: every click and keystroke, which pays two property lookups and
+    ///     no service resolution.
     /// </summary>
     public static SessionUploadStore? StoreFor(LiveSession session, JsonElement frame) =>
         !session.IsDisposed && Carries(frame) ? session.Services.GetService<SessionUploadStore>() : null;
 
-    // An OnFiles frame carries {"files":[{token,…}]}; a form submit carries {"form":{"__files":{field:[{token,…}]}}}.
+    // An OnFiles frame names its tokens under `files`, a form submit under `form.__files` per field; a batch is an
+    // array of either.
     public static void Release(SessionUploadStore store, string sessionId, JsonElement frame)
     {
+        if (frame.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var e in frame.EnumerateArray())
+            {
+                Release(store, sessionId, e);
+            }
+
+            return;
+        }
+
+        if (frame.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
         if (frame.TryGetProperty("files", out var files))
         {
             ReleaseEach(store, sessionId, files);
@@ -41,7 +58,28 @@ internal static class DispatchedUploads
         }
     }
 
-    private static bool Carries(JsonElement frame) =>
+    private static bool Carries(JsonElement frame)
+    {
+        if (frame.ValueKind != JsonValueKind.Array)
+        {
+            return CarriesOwn(frame);
+        }
+
+        // A plain loop over the struct enumerator: a batch arrives with every keystroke-then-action.
+#pragma warning disable S3267 // hot path: no enumerator box or closure allocation
+        foreach (var e in frame.EnumerateArray())
+#pragma warning restore S3267
+        {
+            if (CarriesOwn(e))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CarriesOwn(JsonElement frame) =>
         frame.ValueKind == JsonValueKind.Object
         && (frame.TryGetProperty("files", out _)
             || (frame.TryGetProperty("form", out var form)
