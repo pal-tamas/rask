@@ -409,7 +409,7 @@ export function handle(e: Event): void {
             break;
         case "keydown": {
             const key = (e as KeyboardEvent).key;
-            if (target === field.button && (key === "ArrowDown" || key === "ArrowUp")) {
+            if (target === field.button && (key === "ArrowDown" || key === "ArrowUp") && !field.button.hasAttribute("aria-readonly")) {
                 e.preventDefault();
                 field.panel.showPopover();
             } else if (target === field.search) {

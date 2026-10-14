@@ -44,7 +44,7 @@ public sealed partial class PhoneParity : FluxParity
             Ui.Phone.Value("+12015550123").Country("US").ReadOnly().Label("Readonly phone"))));
 
         yield return ("invalid", In(
-            Ui.Phone.Value("201").Country("US").Invalid().Label("Phone number").DescriptionTrailing("Enter a complete phone number.")));
+            Ui.Phone.Value("201").Country("US").Invalid().Label("Phone number").Id("invalid-phone").DescriptionTrailing("Enter a complete phone number.")));
     }
 
     private static Component In(Component example) => Div.Style(Column)[Div.Style("width:100%;max-width:384px")[example]];

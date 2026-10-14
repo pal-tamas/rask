@@ -76,7 +76,7 @@ Rask.RaskSeed_UiOtp.Bind(System.Linq.Expressions.Expression<System.Func<string!>
 Rask.RaskSeed_UiOtp.Value(string? Value) -> Rask.UiOtp!
 Rask.RaskSeed_UiPagination.Paginator(Rask.UiPaginator! Paginator) -> Rask.UiPagination!
 Rask.RaskSeed_UiPhone
-Rask.RaskSeed_UiPhone.Bind(System.Linq.Expressions.Expression<System.Func<string!>!>! Bind) -> Rask.UiPhone!
+Rask.RaskSeed_UiPhone.Bind(System.Linq.Expressions.Expression<System.Func<string?>!>! Bind) -> Rask.UiPhone!
 Rask.RaskSeed_UiPhone.RaskSeed_UiPhone() -> void
 Rask.RaskSeed_UiPhone.Value(string? Value) -> Rask.UiPhone!
 Rask.RaskSeed_UiPillbox
@@ -2367,9 +2367,9 @@ Rask.UiPaginator.Total.get -> int?
 Rask.UiPaginator.Total.init -> void
 Rask.UiPaginator.UiPaginator() -> void
 Rask.UiPhone
-Rask.UiPhone.AfterBind.get -> Rask.Core.Callback<string!>
+Rask.UiPhone.AfterBind.get -> Rask.Core.Callback<string?>
 Rask.UiPhone.AfterBind.set -> void
-Rask.UiPhone.Bind.get -> System.Linq.Expressions.Expression<System.Func<string!>!>?
+Rask.UiPhone.Bind.get -> System.Linq.Expressions.Expression<System.Func<string?>!>?
 Rask.UiPhone.Bind.set -> void
 Rask.UiPhone.Class.get -> string?
 Rask.UiPhone.Class.set -> void
@@ -2397,7 +2397,7 @@ Rask.UiPhone.Live.get -> bool?
 Rask.UiPhone.Live.set -> void
 Rask.UiPhone.Name.get -> string?
 Rask.UiPhone.Name.set -> void
-Rask.UiPhone.OnChange.get -> Rask.Core.Callback<string!>
+Rask.UiPhone.OnChange.get -> Rask.Core.Callback<string?>
 Rask.UiPhone.OnChange.set -> void
 Rask.UiPhone.Placeholder.get -> string?
 Rask.UiPhone.Placeholder.set -> void
@@ -2408,7 +2408,7 @@ Rask.UiPhone.ShowValidation.set -> void
 Rask.UiPhone.Size.get -> Rask.Ui.PhoneSize?
 Rask.UiPhone.Size.set -> void
 Rask.UiPhone.UiPhone() -> void
-Rask.UiPhone.Validate.get -> Rask.Core.Validator<string!>?
+Rask.UiPhone.Validate.get -> Rask.Core.Validator<string?>?
 Rask.UiPhone.Validate.set -> void
 Rask.UiPhone.Value.get -> string?
 Rask.UiPhone.Value.set -> void
@@ -4254,11 +4254,11 @@ static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiColorPicker! __b, System.
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiColorPicker! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiColorPicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiColorPicker! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiColorPicker!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiColorPicker! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiColorPicker!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, Rask.Core.Callback<string!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Action<string!>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, Rask.Core.Callback<string?>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Action<string?>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Action? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<string?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiPhone! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSlider<T>! __b, Rask.Core.Callback<T>? value) -> Rask.UiSlider<T>!
@@ -5586,11 +5586,11 @@ static RaskBuilderSettersRask_Ui.OffIcon(this Rask.UiToggle! __b, Rask.Ui.IconNa
 static RaskBuilderSettersRask_Ui.OffLabel(this Rask.UiToggle! __b, string? value) -> Rask.UiToggle!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiContext! __b, (int X, int Y)? value) -> Rask.UiContext!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, Rask.Core.Callback<string!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Action<string!>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, Rask.Core.Callback<string?>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Action<string?>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Action? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<string?, System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<string?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiPhone! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiToggle! __b, Rask.Core.Callback<bool>? value) -> Rask.UiToggle!
@@ -6007,9 +6007,9 @@ static RaskBuilderSettersRask_Ui.Unavailable<T>(this Rask.UiTimePicker<T>! __b, 
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiColorPicker! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiColorPicker!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiColorPicker! __b, Rask.Core.Validator<string!>? value) -> Rask.UiColorPicker!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiColorPicker! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiColorPicker!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, Rask.Core.Forms.Validate<string!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, Rask.Core.Validator<string!>? value) -> Rask.UiPhone!
-static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, System.Func<string!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, Rask.Core.Forms.Validate<string?>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, Rask.Core.Validator<string?>? value) -> Rask.UiPhone!
+static RaskBuilderSettersRask_Ui.Validate(this Rask.UiPhone! __b, System.Func<string?, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSlider<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiSlider<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSlider<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiSlider<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSlider<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiSlider<T>!

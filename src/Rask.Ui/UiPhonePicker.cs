@@ -22,7 +22,7 @@ namespace Rask;
 internal static class UiPhonePicker
 {
     /// <summary>The picker for the field whose control is <paramref name="id" />, showing <paramref name="country" />.</summary>
-    internal static Component Draw(string id, UiPhoneCountry? country, Ui.PhoneSize size, Ui.PhoneVariant variant, bool disabled)
+    internal static Component Draw(string id, UiPhoneCountry? country, Ui.PhoneSize size, Ui.PhoneVariant variant, bool disabled, bool readOnly)
     {
         var anchor = id + "-country";
         var panel = id + "-countries";
@@ -34,21 +34,8 @@ internal static class UiPhonePicker
                 .Type(ButtonType.Button)
                 .Role("combobox")
                 .Disabled(disabled)
-                .Aria(new Dictionary<string, string?>(StringComparer.Ordinal)
-                {
-                    ["label"] = country is null ? label : $"{label}: {country.Name} (+{country.DialCode})",
-                    ["controls"] = list,
-                    ["haspopup"] = "listbox",
-                    ["expanded"] = "false",
-                })
-                .Attributes(new Dictionary<string, string?>(StringComparer.Ordinal)
-                {
-                    ["data-country-label"] = label,
-                    ["data-ui-group-target"] = null,
-                    ["data-ui-select-button"] = null,
-                    ["popovertarget"] = panel,
-                    ["style"] = "anchor-name:--" + anchor,
-                })
+                .Aria(Aria(country, label, list, readOnly))
+                .Attributes(Marks(label, panel, anchor, readOnly))
                 .Class(UiPhoneLook.Button(size, variant))[
                 Initial(country, size, variant),
                 // The engine's from the moment it runs: it swaps the one shown for the other from its template.
@@ -61,6 +48,41 @@ internal static class UiPhonePicker
             ],
             Popup(panel, list, anchor, country, disabled)
         ];
+    }
+
+    // Read-only, the button says so and opens nothing (measured: Flux's stays shut to a press and to the arrows).
+    private static Dictionary<string, string?> Aria(UiPhoneCountry? country, string label, string list, bool readOnly)
+    {
+        var aria = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["label"] = country is null ? label : $"{label}: {country.Name} (+{country.DialCode})",
+            ["controls"] = list,
+            ["haspopup"] = "listbox",
+            ["expanded"] = "false",
+        };
+        if (readOnly)
+        {
+            aria["readonly"] = "true";
+        }
+
+        return aria;
+    }
+
+    private static Dictionary<string, string?> Marks(string label, string panel, string anchor, bool readOnly)
+    {
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["data-country-label"] = label,
+            ["data-ui-group-target"] = null,
+            ["data-ui-select-button"] = null,
+            ["style"] = "anchor-name:--" + anchor,
+        };
+        if (!readOnly)
+        {
+            marks["popovertarget"] = panel;
+        }
+
+        return marks;
     }
 
     private static Component Globe() =>

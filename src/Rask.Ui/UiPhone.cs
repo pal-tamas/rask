@@ -22,7 +22,7 @@ namespace Rask;
 /// Flux's <c>wire:model</c> — or as it changes with <see cref="Live" />.
 /// </para>
 /// </remarks>
-public sealed partial class UiPhone : Component, IFormControl<string>, IUiFormControl
+public sealed partial class UiPhone : Component, IFormControl<string?>, IUiFormControl
 {
     private BindTiming _timing;
     private string? _ownId;
@@ -79,16 +79,16 @@ public sealed partial class UiPhone : Component, IFormControl<string>, IUiFormCo
     public string? Value { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.OnChange" />
-    public Callback<string> OnChange { get; set; }
+    public Callback<string?> OnChange { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.Bind" />
-    public Expression<Func<string>>? Bind { get; set; }
+    public Expression<Func<string?>>? Bind { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.Validate" />
-    public Validator<string>? Validate { get; set; }
+    public Validator<string?>? Validate { get; set; }
 
     /// <inheritdoc cref="IFormControl{T}.AfterBind" />
-    public Callback<string> AfterBind { get; set; }
+    public Callback<string?> AfterBind { get; set; }
 
     /// <summary>
     ///     Writes the model as the number changes, after a 150 ms pause, and validates then:
@@ -153,7 +153,7 @@ public sealed partial class UiPhone : Component, IFormControl<string>, IUiFormCo
         return field.Wrap(
             Div.Class(UiClass.Compose(UiPhoneLook.Root, Class)).Attributes(marks)[
                 Div.Class(UiPhoneLook.Group).Data("ui-input-group", "")[
-                    UiPhonePicker.Draw(id, country, size, variant, Disabled == true),
+                    UiPhonePicker.Draw(id, country, size, variant, Disabled == true, ReadOnly == true),
                     Div.Class(UiPhoneLook.NumberHalf).Data("ui-input", "")[
                         Div[Number(field, size, variant)]
                     ]
@@ -193,11 +193,11 @@ public sealed partial class UiPhone : Component, IFormControl<string>, IUiFormCo
     }
 
     // The ONE bound field: what the engine reads off the number, written into it and announced (rask-phone.ts).
-    private HTMLInputElement<string> Bound()
+    private HTMLInputElement<string?> Bound()
     {
         var input = Bind is { } bind
             ? Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce)
-            : Input.Value(Value ?? string.Empty).OnChange(OnChange);
+            : Input.Value<string?>(Value).OnChange(OnChange);
 
         return input.Type(InputType.Hidden).Name(Name).Disabled(Disabled == true);
     }
