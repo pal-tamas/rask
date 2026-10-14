@@ -2947,6 +2947,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
+            root,
             token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
@@ -3055,6 +3056,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
+            root,
             token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
@@ -3066,9 +3068,45 @@ public static partial class RaskEndpointExtensions
     /// <summary>
     ///     The body every dispatch into a session shares: take the session's lock, hold the handler scope so state changes
     ///     coalesce into one render, re-check the route's authorization, run <paramref name="invoke" />, and render with
-    ///     whatever navigation or sign-in it asked for.
+    ///     whatever navigation or sign-in it asked for — and, once that is over, hand back the uploads
+    ///     <paramref name="frame" /> carried.
     /// </summary>
-    private static async Task RunInSessionAsync(
+    private static Task RunInSessionAsync(
+        LiveSession session,
+        string activityName,
+        string? handlerId,
+        JsonElement frame,
+        Func<CancellationToken, ValueTask<bool>> invoke,
+        RaskMetrics? metrics,
+        TimeSpan handlerTimeout,
+        bool lockHeld,
+        bool deferRender,
+        long seq,
+        CancellationToken ct)
+    {
+        // A frame with no files — nearly every one — runs straight through, with no wrapper to allocate.
+        var uploads = DispatchedUploads.StoreFor(session, frame);
+        var run = RunInSessionCoreAsync(
+            session, activityName, handlerId, invoke, metrics, handlerTimeout, lockHeld, deferRender, seq, ct);
+        return uploads is null ? run : ReleasingUploadsAsync(run, uploads, session.Id, frame);
+    }
+
+    // The one release point for staged uploads: after the handler they were handed to has returned, thrown or
+    // timed out — or was never reached (a stale id, a revoked route, a socket that closed in the queue).
+    private static async Task ReleasingUploadsAsync(
+        Task run, SessionUploadStore uploads, string sessionId, JsonElement frame)
+    {
+        try
+        {
+            await run.ConfigureAwait(false);
+        }
+        finally
+        {
+            DispatchedUploads.Release(uploads, sessionId, frame);
+        }
+    }
+
+    private static async Task RunInSessionCoreAsync(
         LiveSession session,
         string activityName,
         string? handlerId,

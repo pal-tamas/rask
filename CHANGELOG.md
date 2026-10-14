@@ -2380,6 +2380,8 @@ them until tagged releases begin.
 - **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
   Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — as every `Rask.Ui`
   handler awaits its calls — was never sent, and the session waited on it for good.
+- **A tab that uploads files one after another no longer runs out of its upload budget.** A staged file is
+  handed back once the event that carried it is dispatched — a form submit's and an unreached handler's too.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
