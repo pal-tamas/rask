@@ -12,7 +12,7 @@ public sealed class ConnectionTextsTests
     [Fact]
     public void With_no_language_configured_the_words_are_the_english_the_runtime_falls_back_to()
     {
-        var json = ConnectionTexts.Json();
+        var json = ConnectionTexts.Attribute()["rask-texts"]!;
 
         var texts = JsonSerializer.Deserialize<string[]>(json)!;
 
@@ -23,11 +23,11 @@ public sealed class ConnectionTextsTests
     }
 
     [Fact]
-    public void The_array_is_written_once_and_handed_back_as_it_was()
+    public void The_attribute_is_built_once_and_handed_back_as_it_was()
     {
-        var first = ConnectionTexts.Json();
+        var first = ConnectionTexts.Attribute();
 
-        var second = ConnectionTexts.Json();
+        var second = ConnectionTexts.Attribute();
 
         Assert.Same(first, second);
     }

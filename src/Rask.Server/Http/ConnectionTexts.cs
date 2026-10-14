@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Rask.Core;
 using Rask.Core.Globalization;
 
 namespace Rask.Server.Http;
@@ -15,15 +16,16 @@ namespace Rask.Server.Http;
 /// </remarks>
 internal static class ConnectionTexts
 {
-    private static readonly ConcurrentDictionary<string, string> _byLanguage = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, AttrBag> _byLanguage = new(StringComparer.Ordinal);
 
-    /// <summary>The array for the page being rendered.</summary>
-    public static string Json()
+    /// <summary>The <c>data-rask-texts</c> attribute for the page being rendered, one shared bag per language.</summary>
+    /// <remarks>Built once: the runtime script renders with every live update, and a bag made per render was 200 B each.</remarks>
+    public static AttrBag Attribute()
     {
         // Without languages configured nothing translates, and the culture is not asked for — which would also mark
         // the component being rendered as depending on it.
         var language = RaskCulture.IsEnabled ? RaskCulture.CurrentUI.Name : string.Empty;
-        return _byLanguage.GetOrAdd(language, static _ => JsonSerializer.Serialize(Read()));
+        return _byLanguage.GetOrAdd(language, static _ => new AttrBag("rask-texts", JsonSerializer.Serialize(Read())));
     }
 
     private static string[] Read() =>

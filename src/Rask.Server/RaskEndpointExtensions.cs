@@ -4319,7 +4319,7 @@ public static partial class RaskEndpointExtensions
     {
         // data-rask-texts: the reconnect overlay's words in the page's language (ConnectionTexts).
         public Component Render() =>
-            Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash).Data("rask-texts", ConnectionTexts.Json());
+            Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash).Data(ConnectionTexts.Attribute());
     }
 
     internal sealed class RaskLiveMarker
