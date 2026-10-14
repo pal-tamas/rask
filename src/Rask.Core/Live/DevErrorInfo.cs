@@ -14,8 +14,9 @@ namespace Rask.Core.Live;
 /// <remarks>
 ///     <para>
 ///         <b>Development only.</b> It carries a stack trace, so it must never be built on a host that
-///         reports Production — the call sites gate on <see cref="LiveOptions.IsDevelopment" />, which
-///         since #605 reflects the host's real environment rather than only an environment variable.
+///         reports Production — <see cref="From" /> gates on the session's own host's environment
+///         (<see cref="HostDevelopment" />), not on whichever host in the process last claimed
+///         <see cref="LiveOptions.IsDevelopment" />.
 ///     </para>
 ///     <para>
 ///         Deliberately four strings rather than the exception: the payload is JSON on a wire, the client
@@ -39,7 +40,7 @@ public sealed record DevErrorInfo(string Kind, string Title, string Message, str
         // The same decision the development error page makes, from the same resolver, so the two can
         // never disagree about whether this host is in development (#605).
         if (!Components.DefaultErrorPage.ResolveIsDevelopment(
-                LiveOptions.IsDevelopment,
+                HostDevelopment.Answer,
                 Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
                 Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")))
         {

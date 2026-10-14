@@ -321,7 +321,7 @@ public sealed class DefaultErrorPage : Component
 
     private static bool IsDevelopmentEnvironment() =>
         ResolveIsDevelopment(
-            LiveOptions.IsDevelopment,
+            HostDevelopment.Answer,
             Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
             Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
 

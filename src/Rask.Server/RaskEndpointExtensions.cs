@@ -161,6 +161,12 @@ public static partial class RaskEndpointExtensions
         return services;
     }
 
+    // This host's own environment, read by what decides how much of an exception a reader is shown (a toast, the
+    // error page). Per host, like the limits: the process-wide LiveOptions.IsDevelopment belongs to the first host
+    // that mapped, and a Production host beside a Development one used to show its readers the exception's message.
+    private static void AddDevelopmentHost(IServiceCollection services) =>
+        services.TryAddSingleton(static sp => new DevelopmentHost(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
+
     private static void AddOptionsAndKeyRing(
         IServiceCollection services,
         Action<RaskLiveOptions>? configure,
@@ -187,6 +193,7 @@ public static partial class RaskEndpointExtensions
         services.AddRaskOptions<RaskServerOptions>("Rask:Server", static (section, o) => section.Bind(o), configureServer,
             static o => o.Validate());
         services.TryAddSingleton(static sp => RaskServerLimits.From(sp.GetRequiredService<RaskServerOptions>()));
+        AddDevelopmentHost(services);
 
         // The in-page devtools, when this is a Debug build that carries Rask.DevTools. Found by name, so the
         // app writes nothing; inert without the package, folded away entirely in a trimmed Release publish.

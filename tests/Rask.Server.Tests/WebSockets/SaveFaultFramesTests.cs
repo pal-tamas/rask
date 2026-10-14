@@ -39,6 +39,23 @@ public sealed class SaveFaultFramesTests(ITestOutputHelper output)
         Assert.Contains($"{SaveFailed} MissingTenantException: No tenant is selected for partner 4114", toast, StringComparison.Ordinal);
     }
 
+    // Two hosts in one process, the Production one mapped first: whether a toast names the exception is each
+    // host's own answer, not whichever host last claimed a process-wide flag.
+    [Fact]
+    public async Task A_production_host_says_no_word_of_the_exception_while_a_development_host_runs_beside_it()
+    {
+        await using var production = await Open("Production");
+        await using var development = await Open("Development");
+
+        var told = Told(await production.Save("tenant"));
+        var toldInDevelopment = Told(await development.Save("tenant"));
+
+        Assert.Contains(SaveFailed, told, StringComparison.Ordinal);
+        Assert.DoesNotContain("Exception", told, StringComparison.Ordinal);
+        Assert.DoesNotContain("4114", told, StringComparison.Ordinal);
+        Assert.Contains($"{SaveFailed} MissingTenantException: No tenant is selected for partner 4114", toldInDevelopment, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("Production")]
     [InlineData("Development")]
