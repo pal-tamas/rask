@@ -26,6 +26,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
+    <!-- Lifts Microsoft.Data.SqlClient's System.Security.Cryptography.Pkcs 9.0.11 to the patched 10.0.13
+         (GHSA-846f-f764-76mx); see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 
   <!-- UseRaskSqlServer(services) binds Rask:SqlServer and reads Rask:ConnectionStrings:App. The configuration binding

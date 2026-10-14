@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **`Rask.Mail` and `Rask.SqlServer` lift `System.Security.Cryptography.Pkcs` to 10.0.13.** Before: MimeKit
+  brought in 10.0.0 and Microsoft.Data.SqlClient 9.0.11, both inside GHSA-846f-f764-76mx (high) and
+  GHSA-2fmv-rv2c-59x7 (moderate), two .NET denial-of-service advisories, and with warnings as errors restore
+  failed on NU1903/NU1902 for them and the 26 projects above them (Rask.Server, Rask.Auth, Rask.Dashboard, the
+  tests). After: both packages reference the patched 10.0.13 directly, so it reaches every app that restores
+  them, scaffolded ones included. Nothing changes in the API.
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
   is rebuilt and its URL's version changes with it. Nothing an app sees changes: the same HTML comes out, and

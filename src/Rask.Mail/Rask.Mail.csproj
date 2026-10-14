@@ -30,6 +30,9 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="MailKit"/>
+    <!-- Lifts MimeKit's System.Security.Cryptography.Pkcs 10.0.0 to the patched 10.0.13 (GHSA-846f-f764-76mx);
+         see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 
   <!-- MailOptions binds Rask:Mail. The configuration binding source generator writes that bind at compile time,
