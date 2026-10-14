@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
+  returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
+  Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with
+  Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
+  moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
+  `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+
 ### Security
 
 - **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
