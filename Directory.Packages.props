@@ -48,7 +48,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="10.0.13" />
     <PackageVersion Include="Microsoft.JSInterop" Version="10.0.13" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
     <!-- Rask.Postgres. Npgsql versions on its own line (10.0.x tracks EF Core 10 but not its patch numbers), so it
@@ -95,9 +95,9 @@
       transitive package (see SQLitePCLRaw above). Drop both references once those packages ask for 10.0.13+.
     -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-    <PackageVersion Include="xunit.v3" Version="4.0.1" />
-    <PackageVersion Include="xunit.v3.assert" Version="4.0.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 
 </Project>
