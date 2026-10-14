@@ -325,6 +325,13 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A checkbox or switch bound to a generated model's `bool?` renders and asks its rule.** An aggregate's
+  `bool Paid` becomes `bool? Paid` on its form model with a required rule over `bool?`, and
+  `Ui.Checkbox.Bind(() => m.Paid)` (or `Ui.Switch`, or a plain `Input` lifted to `bool`) threw "The rule
+  registered for InvoiceModel.Paid is a Validate`1, and the field is bound as Boolean" at render. A control over
+  a value type now asks a rule over the nullable type about what the property holds; a `Validate` step written
+  over `bool` runs after it, and is not asked about a null. An unticked box is `false`, which the rule accepts,
+  and a generated `bool` is no longer announced `aria-required` — on a checkbox that says it must be ticked.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a

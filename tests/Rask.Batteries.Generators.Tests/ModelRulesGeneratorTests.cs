@@ -238,6 +238,25 @@ public class ModelRulesGeneratorTests
     }
 
     [Fact]
+    public void A_bool_is_required_by_its_rule_and_never_announced_as_required_since_unticked_is_a_value()
+    {
+        var run = RunWithForms("""
+            public sealed class Invoice : Aggregate<Guid>
+            {
+                private Invoice() { }
+                public int Total { get; private set; }
+                public bool Paid { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.InvoiceModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("__Rule_Root_Paid(bool? value) =>\n        value is null ? ", source, StringComparison.Ordinal);
+        Assert.Contains("private static bool Root_IsRequired(string property) =>\n        property is \"Total\";", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_model_whose_rules_refuse_nothing_unfilled_announces_no_required_field()
     {
         var run = RunWithForms("""

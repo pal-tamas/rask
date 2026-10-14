@@ -296,7 +296,12 @@ public sealed partial class ModelInputGenerator
     }
 
     private static bool AnnouncesRequired(Entity entity, RuledModel model) =>
-        entity.AnnouncesRequiredFields && model.Rules.Exists(static rule => rule.Required);
+        entity.AnnouncesRequiredFields && model.Rules.Exists(IsAnnouncedRequired);
+
+    // A bool is refused only when it holds nothing, which a checkbox never leaves it: unticked is false, a value.
+    // Announcing it would tell assistive tech the box must be ticked, which is what aria-required means on one.
+    private static bool IsAnnouncedRequired(FieldRule rule) =>
+        rule.Required && !string.Equals(rule.ModelType, "bool?", System.StringComparison.Ordinal);
 
     // What a control asks to say aria-required: exactly the fields whose rule refuses them unfilled, so a field
     // is announced as required where a write would enforce it and nowhere else. A switch over constants.
@@ -305,7 +310,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
         s.Append("    private static bool ").Append(model.Key).AppendLine("IsRequired(string property) =>");
         s.Append("        property is ")
-            .Append(string.Join(" or ", model.Rules.Where(static rule => rule.Required).Select(static rule => "\"" + rule.Property + "\"")))
+            .Append(string.Join(" or ", model.Rules.Where(IsAnnouncedRequired).Select(static rule => "\"" + rule.Property + "\"")))
             .AppendLine(";");
     }
 
