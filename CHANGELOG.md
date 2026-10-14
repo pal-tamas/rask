@@ -322,6 +322,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A Blazor island compiles with a non-nullable value-type property of its own, and a title override keeps the
+  library's stylesheets** (#1196). Before: declaring a property that feeds a hosted `[Parameter]` as a plain value
+  type — `[RouteParam] public int Count { get; set; }` — failed with CS0037, because the generated parameter
+  writer tested it with `is not null`; the workaround was `int?`. After: a non-nullable value type has no unset
+  state, so it is always passed on (`int?` still omits the parameter while null). And the stylesheets in
+  `RaskBlazorOptions.HeadAssets` are registered on their own, as a JavaScript island's runtime script is, so an
+  island that overrides `HeadAssets` for its `Title` no longer drops them by leaving out `base.HeadAssets` —
+  `BlazorComponent<T>` no longer overrides `HeadAssets`, and an existing `[base.HeadAssets, …]` keeps compiling.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
