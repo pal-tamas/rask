@@ -1,6 +1,11 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# Refreshed 2026-10-14 with the composer's two hooks (Ui.Composer): the keys that submit a form from a message box
+# (rask-submit.ts, data-rask-submit-keys) and a textarea that grows with its text (rask-grow.ts, data-rask-grow).
+# rask-hooks.js +1,057 for the two modules; rask.js and rask.wasm.js +17 each, the two names in the loader's list.
+# This change's own delta only, measured on main at 104,174 / 90,985 / 58,415: 104,191 / 91,002 / 59,472.
+#
 # Refreshed 2026-10-12 with whose doing an event is (`unasked` in rask-owned.ts, the module both bundles carry:
 # what the runtime does by itself carries no waiting value ahead of it and says so on the wire — asked by
 # rask-input.ts's one flush, taken by the toast's timed press and a render's focus in rask-dom.ts, the table's
@@ -232,6 +237,6 @@
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
 bundle,bytes
-rask.js,104174
-rask.wasm.js,90985
-rask-hooks.js,58415
+rask.js,104191
+rask.wasm.js,91002
+rask-hooks.js,59472

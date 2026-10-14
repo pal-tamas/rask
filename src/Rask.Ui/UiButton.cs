@@ -130,6 +130,9 @@ public sealed partial class UiButton : UiElement, IUiHost
     /// </summary>
     internal bool InTooltip { get; set; }
 
+    /// <summary>Set by a disabled <see cref="UiComposer{T}" /> on the buttons in its slots, which it disables.</summary>
+    internal bool LockedByComposer { get; set; }
+
     /// <summary>
     ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c>.
     /// </summary>
@@ -179,8 +182,8 @@ public sealed partial class UiButton : UiElement, IUiHost
 
     // Flux's rule — a button bound to an action, or a form's submit — and any button whose Loading the
     // caller set, either way: a flag that flips between renders must not change what the button is made of.
-    // A disabled one never loads, and Flux draws it with no indicator (measured on its composer page).
-    private bool Loads => IsButton && Disabled != true && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
+    // One a disabled composer locked never loads: Flux draws it with no indicator (measured on its composer page).
+    private bool Loads => IsButton && !LockedByComposer && (Loading is not null || OnClick.HasValue || Type == Ui.ButtonType.Submit);
 
     // A trailing icon or trailing content. Nothing handed to the step (a null component) is neither.
     private bool Trails => IconTrailing is { Name: not null } or { Content: not null };

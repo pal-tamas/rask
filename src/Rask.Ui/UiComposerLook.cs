@@ -91,6 +91,7 @@ internal static class UiComposerLook
         if (slot is UiButton button)
         {
             button.Disabled = true;
+            button.LockedByComposer = true;
             BuilderRuntime.MarkChanged(button);
             return;
         }
