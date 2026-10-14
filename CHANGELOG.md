@@ -9,6 +9,9 @@ them until tagged releases begin.
 
 ### Security
 
+- **`Rask.Mail` and `Rask.SqlServer` carry the fixed `System.Security.Cryptography.Pkcs` (10.0.13).** MailKit asked
+  for 10.0.0 and SqlClient for 9.0.11, both open to CVE-2026-84008 / CVE-2026-70162 (.NET denial of service); both
+  packages now reference 10.0.13 directly, so an app taking them gets the fix. The .NET 10 packages move to 10.0.13 too.
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
   is rebuilt and its URL's version changes with it. Nothing an app sees changes: the same HTML comes out, and

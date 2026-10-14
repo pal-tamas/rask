@@ -30,6 +30,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Options"/>
     <PackageReference Include="MailKit"/>
+    <!-- MimeKit asks for a vulnerable 10.0.0 (CVE-2026-84008); see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs"/>
   </ItemGroup>
 
   <!-- MailOptions binds Rask:Mail. The configuration binding source generator writes that bind at compile time,
