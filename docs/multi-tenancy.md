@@ -81,6 +81,32 @@ so a real identifier is never taken for a number. Two consequences:
   for an `int` column, which would otherwise truncate into another tenant's.
 - Tenant `0` is `Guid.Empty`, which the batteries read as "no tenant". Number tenants from one.
 
+### Tenants kept as text
+
+A table made by another tool may keep its tenant — still a `Guid` — as TEXT, in a column of its own name. Declare
+the `Guid?` and say how it is stored; Rask filters and stamps in the column's own text, on the entity and on its
+read face alike:
+
+```csharp
+public sealed class Company : Aggregate<string>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public Guid? TenantId { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Company> builder)
+    {
+        builder.ToTable("Company");
+        builder.Property(c => c.TenantId).HasColumnName("tenantId").HasMaxLength(1000).HasConversion<string>();
+    }
+}
+```
+
+The text is the `Guid`'s lower-case form (`0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11`). A column that already holds
+upper-case text is found only where text compares without regard to case — SQL Server's default collation does;
+on SQLite or PostgreSQL either make the column's collation say so or store the lower-case form. The filter binds
+the text as a parameter, so an index on the column is used.
+
 ## Where the tenant comes from
 
 **The signed-in user's.** The tenant is an outcome of authentication rather than an input to routing: signing

@@ -105,7 +105,37 @@
          where no scan finds them, and this list is how they reach an app's ONE stylesheet. -->
     <RaskTailwindClassList>obj/$(TargetFramework)/rask-ui.classes.txt</RaskTailwindClassList>
     <RaskTailwindMinify>true</RaskTailwindMinify>
+    <!-- What Tailwind scans: this project's C# with the comments taken out (WriteRaskUiScanSources). -->
+    <RaskTailwindSourceRoot>$(MSBuildProjectDirectory)/obj/$(TargetFramework)/tailwind-scan</RaskTailwindSourceRoot>
   </PropertyGroup>
+
+  <!--
+    THE SCAN READS CODE, NOT PROSE. Tailwind takes every word of a file it scans as a candidate class,
+    and a doc comment is words: "A magnifying glass when unset." on two search fields put daisyUI's
+    `.glass` into this sheet, into the class list, and so into every app compiled from it (#1214). Nothing
+    caught it but the CLI build's Tailwind test, a push later.
+
+    So Tailwind does not run over this project. It runs in obj/<tfm>/tailwind-scan, a copy of the
+    project's C# with every comment taken out and every line of code left as it was
+    (RaskTailwindSourceRoot, above), and detects its sources there. Per face, like the sheet: the two
+    inner builds run at once and would otherwise write one folder.
+
+    Not copied: the icon tables, half a megabyte of SVG path data in which `h-4.5` and `m-3.75` are
+    relative line and move commands and, to Tailwind, a height and a margin. Nor anything that is not
+    C#: the csproj, the build targets and NUGET.md are prose, the flag drawings and the editor's bundle
+    write none of the kit's classes, and the stylesheets are Tailwind's input, not its sources.
+  -->
+  <Target Name="WriteRaskUiScanSources"
+          BeforeTargets="_RaskTailwindBuild"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(TargetFramework)' != '' AND '$(DesignTimeBuild)' != 'true' ">
+    <ItemGroup>
+      <_RaskUiScanSource Include="**/*.cs" Exclude="obj/**;bin/**;UiIconPaths.g.cs"/>
+    </ItemGroup>
+    <WriteTailwindScanSourcesTask Sources="@(_RaskUiScanSource)"
+                                  SourceRoot="$(MSBuildProjectDirectory)"
+                                  Output="$(RaskTailwindSourceRoot)"/>
+  </Target>
 
   <!--
     Added from a TARGET rather than a static ItemGroup. A static item's Condition is evaluated when the

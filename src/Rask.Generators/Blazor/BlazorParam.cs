@@ -22,6 +22,10 @@ namespace Rask.Generators.Blazor;
 ///     plain hand-written property. It is still WRITTEN to the parameter dictionary; it just must not
 ///     be declared a second time.
 /// </param>
+/// <param name="AlwaysWritten">
+///     Whether the island declares it as a non-nullable value type (<c>int</c>, not <c>int?</c>), which has no
+///     unset state: the writer passes it on unconditionally rather than testing it against null (#1196).
+/// </param>
 internal readonly record struct BlazorParam(
     string Parameter,
     string Name,
@@ -30,4 +34,5 @@ internal readonly record struct BlazorParam(
     bool IsEventCallback,
     bool IsRequired,
     bool NeedsNew,
-    bool DeclaredByUser);
+    bool DeclaredByUser,
+    bool AlwaysWritten);

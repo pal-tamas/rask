@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Security
 
+- **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
+  model's password changed, the typed text came back over the live connection as an attribute write. After: an
+  `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private
+  `Ui.Otp`'s hidden field) never has its text written by the server, not in the first page, a live update or a
+  whole-page reply, on either transport and in the browser host. The typed text still reaches the server with the
+  event; a server-side set to `""` clears the field, and a set to anything else leaves what the reader typed. The
+  field now carries `data-rask-secret`.
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
@@ -97,6 +104,27 @@ them until tagged releases begin.
   a `Ui.Editor` in `Input` stands in for the box. Two runtime hooks come with it, `data-rask-submit-keys` and
   `data-rask-grow`.
 
+- **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
+  job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
+  status question to every other pump. After: jobs of one lane run one at a time, in the order they are due, and
+  different lanes run side by side; a job with no lane runs as it always did. A lane is data, not setup - a
+  new pump needs no queue. The first due job of a lane is all a poll offers, so one long lane cannot crowd the
+  others out of a batch, and a lane busy on another instance is left alone there too. `Job` gets a nullable
+  `Lane` column: `rask db add AddJobLane && rask db update` (until then the processor logs exactly that).
+  `IJobs.Add` takes the lane; `jobs.Enqueued<T>().InLane("x")` asks about it in a test.
+
+- **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
+  matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
+  it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
+  replaces Dependabot's weekly template pull requests.
+- **RASK104: a static member that keeps a component built from a chain entry is flagged (#1201).**
+  `private static readonly Component Empty = Div;` compiled and corrupted pages at random: an entry built during
+  a render is a positional slot of that render, so the static kept one page's slot and shared it with every page
+  after it, and the next entry built at that position stamped its own attributes on it — whether it showed
+  depended on request order. The build now warns at the initializer of a static field or static auto-property
+  (in any type) whose type holds a component and whose initializer builds a chain, and the lightbulb turns it
+  into `static Component Empty => Div;`, which builds a fresh entry per render. A static method, an
+  expression-bodied property and an entry inside a stored lambda are not reported.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -133,6 +161,44 @@ them until tagged releases begin.
   `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
 
 ### Changed
+
+- **BREAKING: MDN's latest data moved a few generated names, taken as it came.** Before → after:
+  `Textarea.Wrap(TextareaWrap.Soft)` → `Textarea.Wrap("soft")` (the `TextareaWrap` enum is gone; MDN no longer lists
+  its keywords); `ElementRef<HTMLScriptElement>`'s `Src`, `Text` and `SetText` are gone;
+  `Css.QuotesKeywords.MatchParent` and `Css.ScrollSnapTypeKeywords.Pair` are gone;
+  `ElementRef<Element>`'s `Scroll`, `ScrollBy`, `ScrollIntoView` and `ScrollTo` keep their overloads and now return
+  `ValueTask<ScrollResult>` (`ScrollResult.Interrupted`) — `await` them as before; `PushSubscriptionJSON.Keys` is a typed
+  `PushSubscriptionKeys` (`.P256dh`, `.Auth`).
+- **Every pin Rask carries now follows its newest stable release by itself.** Before: Dependabot moved NuGet,
+  the workflows' actions and the site's npm, and nothing moved the rest. After: Dependabot also covers the
+  composite setup action, the template and devhost base images, the editor engine's and the devtools E2E's npm,
+  and `scripts/tools/RaskRename`; and `upstream.yml` runs a follower per pin it cannot read, each with a self-test
+  over saved answers (`scripts/tests/upstream-followers.test.sh`). Moved today:
+  - **tsgo is TypeScript 7.0.2, the stable native compiler** (was the dated preview 7.0.0-dev.20260707.2): the
+    scoped TypeScript compile downloads `@typescript/typescript-<os>-<arch>` and runs its `lib/tsc`.
+    `RaskTsgoVersion` keeps its name; an app that overrides it with a `native-preview` dev build must move to a
+    7.x release.
+  - **Litestream 0.5.17** (was 0.5.14), its SHA-256s computed from the downloads and checked against the
+    release's `checksums.txt`; the template images copy the same release (they were on 0.3.13).
+  - **`rask deploy`'s health probe runs `curlimages/curl:8.22.0`** (was 8.11.1) and **`rask db backup` runs
+    `alpine:3.24`** (was 3.21); the scaffolded deploy workflow uses `actions/checkout@v7` and
+    `actions/setup-dotnet@v6` (were v4); Rask's own CI runs on `ubuntu-26.04` with `setup-dotnet@v6`.
+  - The adapter fixtures test Preact 11.0.1, happy-dom 21.0.1, Vue 3.5.44, Solid 1.9.17, Svelte 5.57.2 and
+    Angular 22.2.2; the provider scripts start PostgreSQL 18.
+- **BREAKING: the Node build floor is the Active LTS line's first release, 24.11.0 (was 22.12.0).** An app with
+  islands or a front end no longer builds on Node 22: it fails with `RASKISLAND001` or `RASKSPA005`. Install the
+  current LTS (`nvm install --lts`), or set `RaskExternalMinimumNode` / `RaskSpaMinimumNode` to keep an older
+  one. `rask.sh` / `rask.ps1` now install the newest LTS release, 24.21.0, and `scripts/upstream/node-lts.sh`
+  follows both daily — the installers' line on every LTS release, the floor on a new major. The Angular
+  template's own 22.22.3 floor is gone; Angular's CLI reports its own.
+- **`rask new` writes the newest front-end versions that install together.** The templates and island fragments
+  name no versions (every package is `latest`) and ship no `package-lock.json`. At scaffold time `rask new` asks
+  npm for the newest stable releases whose peers agree and whose `engines.node` takes the newest Node LTS, and
+  writes them as `^x.y.z` — so when Vite ships a major its React plugin does not take yet, the app gets the newest
+  Vite the plugin does, and the next app gets both once it moves. The holds left are `tailwindcss` /
+  `@tailwindcss/*` (to the Tailwind the host downloads) and `@types/node` (the LTS major). The first build runs
+  `npm install` and writes the app's own lockfile; `npm ci` after that, and the template Dockerfiles do the same.
+  Offline, `latest` stays with one warning, and npm resolves it on the first build.
 
 - **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
   waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
@@ -337,9 +403,82 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
+  `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
+  has) wrote and filtered its own rows by that text, but a READ through the generated read face
+  (`Invoice.Where(…)`, `Invoice.Count()`) compared the column with a `Guid`: nothing was found on SQLite (the
+  Guid's upper-case text is not the stored lower-case), and on SQL Server the column was converted to
+  `uniqueidentifier` for every row, which scans and fails on any value that is not a Guid. After: the face takes
+  the declared column's name, type, length and conversion, so the filter binds the text the column holds. A
+  tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
+- A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
+- **A word in a `Rask.Ui` comment no longer becomes a rule in every app's stylesheet** (#1214). The kit's sheet,
+  and the class list an app's Tailwind build compiles from, came from a scan that read the kit's comments too,
+  so prose such as "a magnifying glass" shipped daisyUI's `.glass`. Tailwind now scans a copy of the kit's C#
+  with the comments taken out (`RaskTailwindSourceRoot`, `WriteTailwindScanSourcesTask`): every class the kit's
+  code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
+  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`, and the chart frame's `aspect-3/1`) are named in `ui.precompiled.css` instead. A change under
+  `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
+- **A scaffolded app published in Release starts (#1226).** Before: `dotnet publish -c Release` of a fresh `rask new`
+  app died before it listened, with `Could not load file or assembly 'Rask.DevTools'` from `AddMvcCore` (reached
+  through `AddRaskApi`): the publish removed the devtools, but the Web SDK had compiled an MVC
+  `[ApplicationPart("Rask.DevTools")]` into the app's own assembly, and MVC loads every application part at
+  startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
+  devtools also fails if the app assembly still names it. The template gate now publishes the server template in
+  Release and starts it.
+- **An upload or download that races its session's removal answers 404, not 500** (#1207). A request whose session
+  was found and then reclaimed on another thread before its owner was checked — a never-connected page's grace
+  period ending at that moment — failed with an `ObjectDisposedException` from the session's disposed services.
+  It now gets the answer the session being gone always gave.
+- **`Rask.Spa.Hosting` rebuilds a yarn or pnpm client, and one at the repository root, when its sources change
+  (#1237).** Before: the install's up-to-date check compared against npm's `node_modules/.package-lock.json`,
+  which yarn never writes, so the install ran on every build; a `yarn.lock` did not count as a lockfile, so the
+  first install was `npm install`; and the build's inputs were fixed to `src/**` and `public/**`, so a client
+  whose sources live in `apps/` or `libs/` was built once and its stale bundle served for ever. After: any
+  lockfile counts and the default install follows it (`yarn install --frozen-lockfile`, `pnpm install
+  --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
+  and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
+  dist directory are never counted, so a glob that covers the host does not rebuild every time.
+- **`MapRask(pathBase:)` reaches the browser runtime without a `<base href>`** (#1235). The Server host's runtime
+  `<script>` tag now carries the prefix (`data-rask-base="/new/"`) and the runtime reads it before any `<base>`, so
+  its connection, pushed history and route paths are right under a path base the app never repeated. No `<base>` is
+  written for it: one would re-resolve every relative URL on the page. `docs/spa.md` also says which `wwwroot`
+  address a hand-wired host under a prefix should link.
+
+- **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
+  build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
+  `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
+  `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
+
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
+  so a `Circle` or `SvgPath` appended to an `Svg` (or inserted by key among its children) arrived as an
+  `HTMLUnknownElement` and never rendered. An insert under an SVG or MathML parent is now parsed in that
+  parent's own namespace, the way a scoped morph already was (#1242).
+- **A `Shell` override that forgets the `Body` element no longer renders a dead page** (#1234). `Html[head, body]`
+  reads right — the parameter is named `body` — and painted right, because the browser supplies a body itself,
+  but the runtime `<script>` and the session id are written on `<body>`, so no socket opened, a click or a form
+  submit did nothing, and nothing said why. Rask now wraps everything after the head in a `<body>` (what the
+  browser does anyway), so the page connects, and reports a warning naming the override (`Html[head,
+  Body[body]]`). A document that still ends without a body — a component of the app's own under `<html>` that
+  writes none — is reported as an error at its first render.
+- **A Blazor island compiles with a non-nullable value-type property of its own, and a title override keeps the
+  library's stylesheets** (#1196). Before: declaring a property that feeds a hosted `[Parameter]` as a plain value
+  type — `[RouteParam] public int Count { get; set; }` — failed with CS0037, because the generated parameter
+  writer tested it with `is not null`; the workaround was `int?`. After: a non-nullable value type has no unset
+  state, so it is always passed on (`int?` still omits the parameter while null). And the stylesheets in
+  `RaskBlazorOptions.HeadAssets` are registered on their own, as a JavaScript island's runtime script is, so an
+  island that overrides `HeadAssets` for its `Title` no longer drops them by leaving out `base.HeadAssets` —
+  `BlazorComponent<T>` no longer overrides `HeadAssets`, and an existing `[base.HeadAssets, …]` keeps compiling.
+- **Toasts whose countdowns end in the same frame all leave** (#1202). The runtime pressed every
+  `data-rask-dismiss-after` toast's `[data-rask-dismiss]` control the moment its time was up, so toasts shown
+  together with one duration were all pressed before the page had answered any of them, each carrying a handler
+  id read from the page as it was before the others' renders — a toast whose id one of those renders retired
+  stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
+  the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
+  press that never takes its toast away holds the rest back for 2 s at most.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
@@ -1595,6 +1734,50 @@ them until tagged releases begin.
 
 ### Performance
 
+- **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
+  keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
+  was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was
+  every arrow, every letter typed ahead or into a search, every open and every close. Flux's list is a custom
+  element whose script keeps all of that, and Livewire hears a value: measured on fluxui.dev, opening a select,
+  sweeping the pointer over every row, walking it with the arrows, typing ahead and pressing Escape send no
+  request at all. The runtime now does the same for the kit, on both hosts, in a hook module of its own
+  (`rask-list.ts`, in the on-demand `rask-hooks.js`), asked for by `data-rask-list` on the control's root. It
+  writes `data-active` and `aria-activedescendant` as the cursor moves, `data-open` and `aria-expanded` in the
+  task the list opens, and — where the browser filters — `data-hidden` on the rows a search leaves out, the
+  "no results" row, the create row and a group's heading, and holds every one of them against the next render.
+  The page renders the rows and hears a **pick**: the press on the row itself (Enter clicks the lit row), so the
+  picked row is named by the press and by no cursor of the page's. An autocomplete's pick is the browser writing
+  the item into the input, and the input tells the page as it tells it of anything typed.
+  **Measured on a live Server page over one journey** — open, the pointer over every row, eight keys, type-ahead
+  or a search, Escape, open again from the keyboard, the pointer over every row, Tab — frames sent before → now:
+  **listbox 33 → 0, pillbox 34 → 0, autocomplete 28 → 0**; the searchable listbox, the combobox and the pillbox's
+  combobox could not finish the journey at keyboard speed before (a late toggle shut the list a key had opened)
+  and send 0 now. A pick is the one frame of its press; an autocomplete bound to a member that waits sends 0 at
+  a pick and its text with the next action. `UiListHookTests` asserts each.
+  The rules are Flux's, re-measured for this (`scripts/flux/probe-list.mjs`, and the `--live` walks of
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`, which now also hold the row named to
+  assistive technology): a row the pointer lit goes dark when the pointer leaves the list and one the keys lit
+  stays (the kit used to keep the pointer's row lit everywhere but in a pillbox); with no row lit ArrowDown
+  lands on the first row and ArrowUp on the last; Enter with no row lit picks nothing; a row is lit by
+  `data-active` alone, never by `:hover`, so the keys' row is the one lit while the pointer rests on another.
+  **What changes for an app**: nothing in the chain. `aria-expanded="true"`, `data-open`, `data-active`,
+  `aria-activedescendant` and a browser-filtered `data-hidden` are no longer in any RENDER — a test that read
+  them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
+  search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
+  create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+  Per gesture on the kit's frame gate, before → after, for every list kind (listbox, searchable listbox,
+  combobox, pillbox, autocomplete): open by a press 1 → 0; the pointer over the open list 3–7 → 0; the cursor keys
+  3–9 → 0; Escape 1–3 → 0; a press outside 1–2 → 0; typing to filter 1–2 → 0; Tab in and out 3–5 → 0 (the
+  native select's 2 → 0). Owed and kept: a pick 1 (the value); a debounced search 1 at the pause; a search the
+  page heard, ended by Escape, a pick or a click elsewhere, 1 (`OnInput("")`). A bound select that waits still
+  sends its pick as one frame of drawing (`data-rask-draws`), where Flux sends none.
+  **Changed for an app**: `Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`,
+  `Ui.PillboxInput` and `Ui.Autocomplete` works as before, and the "the search is over" `OnInput("")` (or a
+  combobox's new answer's words) is now raised by the browser as it rewrites the field, once, and only when the
+  page had heard a search; a search it never heard is dropped unsaid. Escape on an autocomplete whose page holds
+  no text tells the page nothing. A press on an autocomplete's suggestion keeps the focus in the input, so the
+  text typed before it is never handed over by the blur. `OnToggle` on these controls was never public and
+  nothing of the open state is sent.
 - **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
   that learns of a drawn control's pick kept the form being written in a field of the render context, which every
   render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.

@@ -54,7 +54,7 @@ jobs:
   # Where a scoped run measures the change from. Empty means "run the whole set", which is what a
   # ci/** branch, a manual run and a Dependabot pull request get.
   base:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: read    # the last green run
       contents: read

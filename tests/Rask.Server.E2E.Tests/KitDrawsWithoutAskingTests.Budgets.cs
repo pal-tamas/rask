@@ -5,6 +5,7 @@ public abstract partial class KitDrawsWithoutAskingTests
     /// <summary>Frames a gesture owes: a value that changed, or a callback the page gave the component.</summary>
     private static readonly Dictionary<string, (int Frames, string Why)> Sends = new(StringComparer.Ordinal)
     {
+        ["autocomplete: pick an item"] = (1, "the value, on change"),
         ["calendar: pick a day"] = (1, "the value"),
         ["checkbox-group: tick one"] = (1, "the value, bound live"),
         ["checkbox: tick"] = (1, "the value"),
@@ -24,11 +25,20 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["otp: typing half the code"] = (2, "the value, as it is typed: a frame a key"),
         ["otp: typing the whole code"] = (4, "the value, as it is typed: a frame a key"),
         ["pagination: go to another page"] = (1, "the page's OnPage"),
+        ["pillbox: pick a row"] = (1, "the value"),
+        ["pillbox: take a pill off"] = (1, "the value"),
         ["radio-segmented: choose"] = (1, "the value"),
         ["radio: choose"] = (1, "the value"),
         ["radio: choose by the arrows"] = (2, "the value, once per radio chosen"),
         ["rating: rate"] = (1, "the value"),
+        ["select-combobox: pick a row"] = (1, "the value"),
+        ["select-searchable: pick a row"] = (1, "the value"),
+        ["select-searched: typing to search"] = (1, "the page's OnInput, once typing has paused"),
+        ["select-searched: close by Escape after a search the page heard"] = (1, "the page's OnInput: the search is over"),
+        ["select: pick a row"] = (1, "the value"),
         ["slider: arrow keys"] = (5, "the value, as it moves: a frame a key"),
+        ["slider: drag and release"] = (12, "the value, as it moves: a frame a step of the pointer, and nothing on letting go"),
+        ["slider: drag, still held"] = (12, "the value, as it moves: a frame a step of the pointer"),
         ["toggle-heard: press"] = (1, "the value"),
         ["switch: flip"] = (1, "the value"),
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
@@ -54,8 +64,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["color-picker: cursor keys"] = 9,
         ["color-picker: close by Escape"] = 2,
         ["color-picker: close by a press outside"] = 1,
-        ["color-picker: drag, still held"] = 12,
-        ["color-picker: drag and release"] = 12,
         ["color-picker: typing part of a colour"] = 6,
         ["command: open by a press"] = 1,
         ["command: typing to filter"] = 6,
@@ -70,6 +78,9 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["date-picker: close by a press outside"] = 1,
         ["date-picker: page the month"] = 2,
         ["date-picker: pick a day"] = 2,
+        // A select that waits holds its pick for the next action, and the press that makes it is still sent —
+        // alone, as drawing (data-rask-draws). Flux draws the picked option itself and sends nothing.
+        ["select-bound: pick a row"] = 1,
         ["tabs-segmented: switch by a press"] = 1,
         ["tabs-segmented: switch by the arrows"] = 3,
         ["tabs: switch by a press"] = 1,
@@ -97,47 +108,12 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker: pointer over the open popup"] = (96,
             "the list snaps to the row it lit, in a frame of the browser's own, which moves another row under the resting "
             + "pointer, which is lit in turn: as many rows as the browser gets through, and the list has 96"),
+        // Counted 11 or 12 of the drag's 12 steps, on the same page and build, the machine alone deciding. The surface tells
+        // the page in one animation frame and the runtime sends what that told it in the next, and Chromium hands the page
+        // its pointer moves in frames of its own, which the page's stopped clock does not govern: two steps can reach the
+        // socket as one. Waiting for the page to hear each move and giving each step two frames did not make it exact.
+        ["color-picker: drag, still held"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
+        ["color-picker: drag and release"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
     };
 
-    /// <summary>
-    ///     The select family, which is being moved into the browser on a branch of its own: counted so the table
-    ///     is whole, held to what it cost when counted, and not asked to shrink from here.
-    /// </summary>
-    private static readonly Dictionary<string, int> Elsewhere = new(StringComparer.Ordinal)
-    {
-        ["autocomplete: focus and blur by Tab"] = 4,
-        ["autocomplete: open by a press"] = 1,
-        ["autocomplete: pointer over the open popup"] = 3,
-        ["autocomplete: cursor keys"] = 3,
-        ["autocomplete: close by Escape"] = 2,
-        ["autocomplete: close by a press outside"] = 1,
-        ["autocomplete: typing to filter"] = 2,
-        ["pillbox: focus and blur by Tab"] = 3,
-        ["pillbox: open by a press"] = 1,
-        ["pillbox: pointer over the open popup"] = 4,
-        ["pillbox: cursor keys"] = 9,
-        ["pillbox: close by Escape"] = 2,
-        ["pillbox: close by a press outside"] = 1,
-        ["select-combobox: focus and blur by Tab"] = 5,
-        ["select-combobox: open by a press"] = 1,
-        ["select-combobox: pointer over the open popup"] = 4,
-        ["select-combobox: cursor keys"] = 3,
-        ["select-combobox: close by Escape"] = 3,
-        ["select-combobox: close by a press outside"] = 2,
-        ["select-combobox: typing to filter"] = 2,
-        ["select-native: focus and blur by Tab"] = 2,
-        ["select-searchable: focus and blur by Tab"] = 5,
-        ["select-searchable: open by a press"] = 1,
-        ["select-searchable: pointer over the open popup"] = 7,
-        ["select-searchable: cursor keys"] = 3,
-        ["select-searchable: close by Escape"] = 1,
-        ["select-searchable: close by a press outside"] = 1,
-        ["select-searchable: typing to filter"] = 2,
-        ["select: focus and blur by Tab"] = 5,
-        ["select: open by a press"] = 1,
-        ["select: pointer over the open popup"] = 4,
-        ["select: cursor keys"] = 9,
-        ["select: close by Escape"] = 2,
-        ["select: close by a press outside"] = 1,
-    };
 }

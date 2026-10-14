@@ -1,8 +1,8 @@
 namespace Rask.Core.Tests.Resources;
 
 /// <summary>
-///     Source-level contract for the two places the client turns text from a frame into something the browser
-///     acts on. Structural for the reason <see cref="BuildStatusClientContractTests" /> gives: <c>rask.ts</c> boots a
+///     Source-level contract for the places the client turns text from a frame or the page into an address the
+///     browser acts on. Structural for the reason <see cref="BuildStatusClientContractTests" /> gives: <c>rask.ts</c> boots a
 ///     socket against a live document and cannot be loaded in Node.
 /// </summary>
 public class ClientUrlSafetyContractTests
@@ -23,6 +23,21 @@ public class ClientUrlSafetyContractTests
         Assert.True(check >= 0, "the location frame no longer checks the target's origin");
         Assert.True(check < branch.IndexOf("location.assign(", StringComparison.Ordinal));
         Assert.True(check < branch.IndexOf("location.replace(", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_path_base_on_the_runtime_s_own_tag_is_read_before_any_base_element()
+    {
+        // A Server host mapped under a path base writes no <base>; it puts the prefix on the runtime's tag (#1235).
+        // Read second, a <base> the app never wrote would leave the socket and the pushed history at "/".
+        var js = Read("src", "Rask.Server", "Resources", "rask.ts");
+
+        var body = js[js.IndexOf("function getBasePath()", StringComparison.Ordinal)..];
+        body = body[..body.IndexOf("\n    }\n", StringComparison.Ordinal)];
+
+        var declared = body.IndexOf("script[data-rask-base]", StringComparison.Ordinal);
+        Assert.True(declared >= 0, "getBasePath no longer reads the runtime tag's data-rask-base");
+        Assert.True(declared < body.IndexOf("base[href]", StringComparison.Ordinal));
     }
 
     [Fact]

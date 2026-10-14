@@ -53,6 +53,7 @@ internal static class HookBundleTag
         "data-rask-switch",
         "data-rask-submit-keys",
         "data-rask-grow",
+        "data-rask-list",
     ];
 
     // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and

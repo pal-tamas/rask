@@ -153,7 +153,7 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
                 {
                     invocations++;
                     throw new SqliteTransactionRolledBackException("COMMIT;", 1);
-                }, cancellationToken: TestContext.Current.CancellationToken));
+                }, timeProvider: new SteppingTime(), cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.True(invocations > 1, $"expected more than one attempt, got {invocations}");
 
@@ -262,5 +262,16 @@ public sealed class SqliteRolledBackCommitTests : IDisposable
                 File.Delete(path);
             }
         }
+    }
+
+    // A clock that moves by itself a fixed step each time it is read, so "50 ms" is a count of looks at the clock and
+    // not a wait on a loaded machine: the first attempt can no longer use up the whole budget.
+    private sealed class SteppingTime : TimeProvider
+    {
+        private long _ticks;
+
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+
+        public override long GetTimestamp() => _ticks += TimeSpan.FromMilliseconds(10).Ticks;
     }
 }

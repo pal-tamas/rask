@@ -42,7 +42,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
     private static async Task<ILocator> OpenListAsync(IPage page, string control, string press, string field)
     {
         await page.ClickAsync($"#{control} {press}");
-        await Expect(page.Locator($"#{control} [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        await Expect(page.Locator($"#{control} [popover]")).ToBeVisibleAsync();
         await Expect(page.Locator($"#{control} {field}")).ToBeFocusedAsync();
         await PageClock.StopAsync(page);
         // What the open list still owed the page — its place, the lock behind it — is a frame or a timer of none.
@@ -106,7 +106,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await page.Locator("#combo input[role=combobox]").FocusAsync();
 
         await page.Keyboard.TypeAsync("ber");
-        await Expect(page.Locator("#combo [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        await Expect(page.Locator("#combo [popover]")).ToBeVisibleAsync();
         await Expect(page.Locator("#combo-searches")).ToHaveTextAsync("[ber]");
 
         await Expect(page.Locator("#combo [role=option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
@@ -127,7 +127,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         // The input says its answer, and the page's search follows the input, as Flux's does.
         await Expect(searches).ToHaveTextAsync("[Walther]");
         await Expect(field).ToHaveValueAsync("Walther");
-        await Expect(page.Locator("#combo [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "false");
+        await Expect(page.Locator("#combo [popover]")).ToBeHiddenAsync();
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await field.PressSequentiallyAsync("ber");
 
         await page.Keyboard.PressAsync("Escape");
-        await Expect(page.Locator("#combo [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "false");
+        await Expect(page.Locator("#combo [popover]")).ToBeHiddenAsync();
         var searches = await SearchesAfterAsync(page, "combo");
 
         await Expect(searches).ToHaveTextAsync(string.Empty);
@@ -218,7 +218,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await Expect(page.Locator("#pills-searches")).ToHaveTextAsync("[ber][]");
         await field.PressSequentiallyAsync("col");
         await page.Keyboard.PressAsync("Escape");
-        await Expect(page.Locator("#pills [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "false");
+        await Expect(page.Locator("#pills [popover]")).ToBeHiddenAsync();
         var searches = await SearchesAfterAsync(page, "pills");
 
         await Expect(searches).ToHaveTextAsync("[ber][]");
@@ -294,7 +294,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await field.PressSequentiallyAsync("ber");
 
         await page.Keyboard.PressAsync("Escape");
-        await Expect(page.Locator("#typed [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "false");
+        await Expect(page.Locator("#typed [popover]")).ToBeHiddenAsync();
         var searches = await SearchesAfterAsync(page, "typed");
 
         await Expect(searches).ToHaveTextAsync(string.Empty);

@@ -34,9 +34,9 @@ public sealed class PillboxKeptAnswersTests(PlaywrightFixture playwright) : ICla
         // Back in the input, as a reader who goes on to type is: the presses on the rows left focus in the list,
         // and focus leaving it shuts it — the page hears of that before the first letter, not across it.
         await page.Keyboard.PressAsync("Escape");
-        await Expect(page.Locator("#tags [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "false");
+        await Expect(page.Locator("#tags [popover]")).ToBeHiddenAsync();
         await input.ClickAsync();
-        await Expect(page.Locator("#tags [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        await Expect(page.Locator("#tags [popover]")).ToBeVisibleAsync();
         await input.PressSequentiallyAsync("sal");
         await Expect(Rows(page)).ToHaveTextAsync(["Sales"]);
         var throughTheSearch = await Pills(page).AllTextContentsAsync();

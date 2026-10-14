@@ -107,17 +107,22 @@ import {
     // CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
     // preloadNewHeadStylesheets) come from rask-scoped, imported at the top of this file.
 
-    // Read once from an explicit <base href> element so the runtime can host
-    // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
-    // seeing the prefix. Resolves to the directory portion of the base href.
-    // When no <base> element is present we default to "/" — server-rendered
-    // pages carry no <base>, and document.baseURI would otherwise fall back to
-    // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
-    // base that breaks the WS/asset URLs on every deep route.
+    // Read once. A host mapped under a path base (MapRask(pathBase: "/appA")) says so on this
+    // script's own tag, data-rask-base="/appA/", so the app never writes a <base> for the runtime
+    // (#1235). Failing that, an explicit <base href> element, for a prefix only a reverse proxy
+    // knows; it resolves to the directory portion of the base href.
+    // When neither is present we default to "/" — server-rendered pages carry no <base>, and
+    // document.baseURI would otherwise fall back to the current route URL (e.g. /realtime/BTC),
+    // yielding a bogus "/realtime/" base that breaks the WS/asset URLs on every deep route.
     let basePath: string | null = null;
 
     function getBasePath() {
         if (basePath !== null) return basePath;
+        const declared = document.querySelector("script[data-rask-base]")?.getAttribute("data-rask-base");
+        if (declared && declared.charAt(0) === "/") {
+            basePath = declared.charAt(declared.length - 1) === "/" ? declared : declared + "/";
+            return basePath;
+        }
         const baseEl = document.querySelector("base[href]");
         if (!baseEl) {
             basePath = "/";

@@ -4,6 +4,6 @@
   "type": "module",
   "description": "The island bundler for the devtools E2E journeys: a Lit-runtime island written as a plain custom element needs vite and nothing else.",
   "devDependencies": {
-    "vite": "^8.2.2"
+    "vite": "^8.3.4"
   }
 }

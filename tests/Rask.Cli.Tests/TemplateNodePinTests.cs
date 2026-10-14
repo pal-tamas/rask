@@ -56,39 +56,75 @@ public sealed class TemplateNodePinTests
         Assert.True(offenders.Length == 0, string.Join("\n  ", offenders));
     }
 
-    // Angular's CLI enforces a Node range of its own, above the build's floor. The template's csproj raises
-    // RASKSPA005's bar to that range's lowest version, so a lockfile bump that moves the range must move the bar.
+    // The floor is the Node LTS line; a template that sets a bar of its own may only raise it.
     [Fact]
-    public void The_Angular_template_refuses_a_Node_below_the_one_its_own_cli_accepts()
+    public void No_template_lowers_the_Node_floor()
     {
-        using var lockfile = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "angular", "client", "package-lock.json")));
-        var csproj = File.ReadAllText(Path.Combine(Root, "angular", "Company.RaskServer.csproj"));
+        var lowered = Directory.EnumerateFiles(Root, "*.csproj", SearchOption.AllDirectories)
+            .Select(csproj => (File: Relative(csproj), Bar: Regex.Match(File.ReadAllText(csproj), "<RaskSpaMinimumNode>([0-9.]+)</RaskSpaMinimumNode>")))
+            .Where(t => t.Bar.Success && Version.Parse(t.Bar.Groups[1].Value) < NodeRequirement.BuildFloor)
+            .Select(t => $"{t.File}: RaskSpaMinimumNode {t.Bar.Groups[1].Value} is below {NodeRequirement.BuildFloor}")
+            .ToArray();
 
-        var range = lockfile.RootElement.GetProperty("packages").GetProperty("node_modules/@angular/cli")
-            .GetProperty("engines").GetProperty("node").GetString() ?? "";
-        var lowest = Regex.Matches(range, @"\d+\.\d+\.\d+").Select(arm => Version.Parse(arm.Value)).Min();
-        var stated = Regex.Match(csproj, "<RaskSpaMinimumNode>([0-9.]+)</RaskSpaMinimumNode>");
-
-        Assert.True(stated.Success, "the Angular template's csproj no longer sets RaskSpaMinimumNode.");
-        Assert.True(
-            lowest == Version.Parse(stated.Groups[1].Value),
-            $"@angular/cli asks for Node '{range}', and the template's RaskSpaMinimumNode is {stated.Groups[1].Value}.");
+        Assert.True(lowered.Length == 0, string.Join("\n  ", lowered));
     }
 
-    // The lockfile is what lets the scaffolded app's build run `npm ci` and resolve the same tree on every machine.
+    // `rask new` chooses the client's versions (FrontEndVersions) and the first build writes the app's own lockfile:
+    // a committed one is a tree that goes stale the day it lands, and a pull request a week to move it.
     [Fact]
-    public void Every_client_ships_a_lockfile()
+    public void No_client_ships_a_lockfile()
     {
-        var missing = Directory
-            .EnumerateFiles(Root, "package.json", SearchOption.AllDirectories)
-            .Where(m => !File.Exists(Path.Combine(Path.GetDirectoryName(m)!, "package-lock.json")))
+        var shipped = Directory
+            .EnumerateFiles(Root, "package-lock.json", SearchOption.AllDirectories)
             .Select(Relative)
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.True(
-            missing.Length == 0,
-            "These client manifests have no package-lock.json beside them:\n  " + string.Join("\n  ", missing));
+        Assert.True(shipped.Length == 0, "These templates ship a lockfile:\n  " + string.Join("\n  ", shipped));
+    }
+
+    // A version in a template is a hold, and only these have one: Tailwind is the binary the C# hosts download
+    // (TailwindVersionPinTests), @types/node is the Node LTS line. Everything else floats to the newest that installs.
+    [Fact]
+    public void Every_template_package_floats_except_the_declared_holds()
+    {
+        string[] holds = ["tailwindcss", "@tailwindcss/vite", "@tailwindcss/postcss", "@types/node"];
+        var manifests = Directory.EnumerateFiles(Root, "package.json", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(Root, "island.json", SearchOption.AllDirectories));
+
+        var pinned = manifests
+            .SelectMany(manifest => Dependencies(manifest).Select(d => (File: Relative(manifest), d.Name, d.Version)))
+            .Where(d => !holds.Contains(d.Name, StringComparer.Ordinal) && d.Version != "latest")
+            .Select(d => $"{d.File}: {d.Name} {d.Version}")
+            .ToArray();
+
+        Assert.True(pinned.Length == 0, "These template packages name a version instead of \"latest\":\n  " + string.Join("\n  ", pinned));
+    }
+
+    [Fact]
+    public void Types_node_follows_the_Node_LTS_line()
+    {
+        var expected = $"^{NodeRequirement.ScaffoldLine.Major.ToString(CultureInfo.InvariantCulture)}.";
+
+        var off = Directory.EnumerateFiles(Root, "package.json", SearchOption.AllDirectories)
+            .SelectMany(manifest => Dependencies(manifest).Select(d => (File: Relative(manifest), d.Name, d.Version)))
+            .Where(d => d.Name == "@types/node" && !d.Version.StartsWith(expected, StringComparison.Ordinal))
+            .Select(d => $"{d.File}: @types/node {d.Version}")
+            .ToArray();
+
+        Assert.True(off.Length == 0, $"@types/node is not on the {expected}x line NodeRequirement states:\n  " + string.Join("\n  ", off));
+    }
+
+    private static IEnumerable<(string Name, string Version)> Dependencies(string manifest)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(manifest));
+        return
+        [
+            .. new[] { "dependencies", "devDependencies" }
+                .Where(section => document.RootElement.TryGetProperty(section, out _))
+                .SelectMany(section => document.RootElement.GetProperty(section).EnumerateObject())
+                .Select(p => (p.Name, p.Value.GetString() ?? "")),
+        ];
     }
 
     // Rask builds these with npm, and a second manager's lockfile is a tree that resolves differently by who builds it.

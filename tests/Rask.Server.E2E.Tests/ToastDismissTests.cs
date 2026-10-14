@@ -66,6 +66,23 @@ public sealed class ToastDismissTests(PlaywrightFixture playwright) : IClassFixt
     }
 
     [Fact]
+    public async Task Toasts_whose_countdowns_end_in_the_same_frame_all_leave()
+    {
+        await using var host = await LiveServerHost.StartAsync<ToastPage>(blockWebSockets: false);
+        await using var context = await playwright.Browser.NewContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(host.BaseUrl + "/");
+
+        // One render, one duration: every countdown ends together, and every press is the runtime's (#1202).
+        await page.Locator("#show-several").ClickAsync();
+        await Expect(page.Locator("[role=\"status\"]")).ToHaveCountAsync(5, new() { Timeout = 5_000 });
+
+        // None is left behind: a later press must not carry a handler id an earlier one's render retired.
+        await Expect(page.Locator("#dismissed")).ToHaveTextAsync("dismissed=5", new() { Timeout = 10_000 });
+        await Expect(page.Locator("[role=\"status\"]")).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public async Task A_toast_with_no_duration_stays_until_it_is_acknowledged()
     {
         await using var host = await LiveServerHost.StartAsync<ToastPage>(blockWebSockets: false);
@@ -94,7 +111,7 @@ public sealed class ToastDismissTests(PlaywrightFixture playwright) : IClassFixt
 /// </remarks>
 public sealed partial class ToastPage : Component
 {
-    private bool _up;
+    private readonly List<string> _up = [];
     private bool _sticky;
     private int _dismissed;
 
@@ -105,26 +122,32 @@ public sealed partial class ToastPage : Component
     protected override Component? Render() =>
     [
         P.Id("dismissed")[$"dismissed={_dismissed}"],
-        Button.Id("show").OnClick(() => { _up = true; _sticky = false; })["show"],
-        Button.Id("show-sticky").OnClick(() => { _up = true; _sticky = true; })["show sticky"],
-        _up
-            ? Notice()
-            : null
+        Button.Id("show").OnClick(() => Show(false, "saved"))["show"],
+        Button.Id("show-sticky").OnClick(() => Show(true, "saved"))["show sticky"],
+        Button.Id("show-several").OnClick(() => Show(false, "saved", "sent", "copied", "moved", "archived"))["show several"],
+        Div.Id("toasts")[_up.Select(Notice).ToArray()]
     ];
 
-    private Component Notice()
+    private void Show(bool sticky, params string[] notices)
     {
-        var notice = Div.Role("status").Class("notice");
+        _up.Clear();
+        _up.AddRange(notices);
+        _sticky = sticky;
+    }
+
+    private Component Notice(string text)
+    {
+        var notice = Div.Key(text).Role("status").Class("notice");
         if (!_sticky)
         {
             notice = notice.Data("rask-dismiss-after", "1000");
         }
 
         return notice[
-            Span["Saved"],
+            Span[text],
             Button
                 .Attributes(("data-rask-dismiss", null))
-                .OnClick(() => { _up = false; _dismissed++; })["Dismiss"]
+                .OnClick(() => { _up.Remove(text); _dismissed++; })["Dismiss"]
         ];
     }
 }

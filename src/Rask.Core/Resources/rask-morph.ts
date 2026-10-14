@@ -616,7 +616,10 @@ export function morph(fromNode: Node, toNode: Node): void {
             // it was entered, so leaving it raises no `change`: nothing is ever sent. A value the server DID
             // change (newVal !== valueBefore) still wins, as before.
             const untold = document.activeElement === from && newVal === valueBefore;
-            if (newVal !== null && !raskShouldSuppressValue(from, newVal) && !untold && fromField.value !== newVal) {
+            // A secret has no echo to tell a lagging frame by: a value the server did not just change is not a clear.
+            const stale = newVal !== null
+                && (from.hasAttribute("data-rask-secret") ? newVal === valueBefore : raskShouldSuppressValue(from, newVal));
+            if (newVal !== null && !stale && !untold && fromField.value !== newVal) {
                 fromField.value = newVal;
             }
             // raskShouldSuppressChecked runs first (like the value guard) so a confirmed echo can

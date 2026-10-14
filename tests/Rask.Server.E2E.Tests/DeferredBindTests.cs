@@ -436,7 +436,7 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
     private static async Task OpenListAsync(IPage page, string select)
     {
         await page.ClickAsync(select + " [data-ui-select-button]");
-        await Expect(page.Locator(select + " [data-rask-popover-open]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        await Expect(page.Locator(select + " [popover]")).ToBeVisibleAsync();
     }
 
     // What the page said over the socket, counted in the page: Playwright's own frame events arrive on its own

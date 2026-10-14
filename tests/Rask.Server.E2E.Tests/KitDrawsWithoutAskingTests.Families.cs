@@ -148,17 +148,59 @@ public abstract partial class KitDrawsWithoutAskingTests
         ]),
 
         ["select-native"] = On<KitSelectFramePage>("select-native"),
-        ["select"] = On<KitSelectFramePage>("select", Popup("#listbox", "[data-c='select'] [popover]")),
+        ["select"] = On<KitSelectFramePage>("select",
+        [
+            .. Popup("#listbox", "[data-c='select'] [popover]"),
+            Keys("type ahead", Pressing("#listbox"), "g", "a"),
+            Press("pick a row", "[data-c='select'] [role=option] >> nth=2", Pressing("#listbox")),
+        ]),
+        ["select-bound"] = On<KitSelectFramePage>("select-bound",
+        [
+            .. Popup("#bound", "[data-c='select-bound'] [popover]"),
+            Press("pick a row", "[data-c='select-bound'] [role=option] >> nth=2", Pressing("#bound")),
+        ]),
         ["select-searchable"] = On<KitSelectFramePage>("select-searchable",
         [
             .. Popup("#searchable", "[data-c='select-searchable'] [popover]"),
             Typing("[data-c='select-searchable'] [popover] input", "al", "typing to filter", Pressing("#searchable")),
+            Press("pick a row", "[data-c='select-searchable'] [role=option] >> nth=2", Pressing("#searchable")),
+        ]),
+        ["select-searched"] = On<KitSelectFramePage>("select-searched",
+        [
+            .. Popup("#searched", "[data-c='select-searched'] [popover]"),
+            Typing("[data-c='select-searched'] [popover] input", "al", "typing to search", Pressing("#searched")),
+            Escape(SearchingFor("#searched", "[data-c='select-searched'] [popover] input", "al"), "close by Escape after a search the page heard"),
         ]),
         ["select-combobox"] = On<KitSelectFramePage>("select-combobox",
-            [.. Popup("#combobox", "[data-c='select-combobox'] [popover]"), Typing("#combobox", "al", "typing to filter")]),
+        [
+            .. Popup("#combobox", "[data-c='select-combobox'] [popover]"),
+            Typing("#combobox", "al", "typing to filter"),
+            Press("pick a row", "[data-c='select-combobox'] [role=option] >> nth=2", Pressing("#combobox")),
+        ]),
         ["autocomplete"] = On<KitSelectFramePage>("autocomplete",
-            [.. Popup("#autocomplete", "[data-c='autocomplete'] [popover]"), Typing("#autocomplete", "al", "typing to filter")]),
-        ["pillbox"] = On<KitSelectFramePage>("pillbox", Popup("#pillbox", "[data-c='pillbox'] [popover]")),
+        [
+            .. Popup("#autocomplete", "[data-c='autocomplete'] [popover]"),
+            Typing("#autocomplete", "al", "typing to filter"),
+            Press("pick an item", "[data-c='autocomplete'] [role=option] >> nth=1", Pressing("#autocomplete")),
+        ]),
+        ["autocomplete-bound"] = On<KitSelectFramePage>("autocomplete-bound",
+        [
+            .. Popup("#autocomplete-bound", "[data-c='autocomplete-bound'] [popover]"),
+            Typing("#autocomplete-bound", "al", "typing to filter"),
+            Press("pick an item", "[data-c='autocomplete-bound'] [role=option] >> nth=1", Pressing("#autocomplete-bound")),
+        ]),
+        ["pillbox"] = On<KitSelectFramePage>("pillbox",
+        [
+            .. Popup("#pillbox", "[data-c='pillbox'] [popover]"),
+            Press("pick a row", "[data-c='pillbox'] [role=option] >> nth=1", Pressing("#pillbox")),
+            Press("take a pill off", "[data-c='pillbox'] [data-rask-list-remove]"),
+        ]),
+        ["pillbox-combobox"] = On<KitSelectFramePage>("pillbox-combobox",
+        [
+            .. Popup("#pillbox-combobox", "[data-c='pillbox-combobox'] [popover]"),
+            Typing("#pillbox-combobox", "be", "typing to filter"),
+            Keys("Backspace over what was typed", TypingInto("#pillbox-combobox", "be"), "Backspace", "Backspace"),
+        ]),
 
         ["chart"] = On<KitChartFramePage>("chart", Across("[data-c='chart'] svg", "pointer across the plot")),
         ["editor"] = On<KitEditorFramePage>("editor",
