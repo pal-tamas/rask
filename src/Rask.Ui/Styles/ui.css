@@ -74,7 +74,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap, carousel;
+  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap, carousel, aura, chat, countdown, diff, dock, fab, filter, hover3d, hovergallery, indicator, join, mask, rating, stack, steps, textrotate, validator;
 }
 
 @theme {

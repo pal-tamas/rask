@@ -14,7 +14,7 @@ public sealed partial class UiKitDataInputPage : Component
         PageMeta.For(
             "daisyUI form inputs as typed C# components — Rask",
             "daisyUI data input components in C#, each with a required label: input, textarea, select, "
-            + "checkbox, radio, switch, range, rating, one-time code and calendar.",
+            + "checkbox, radio, switch, range, one-time code and calendar.",
             Routes.UiKitDataInputPage());
 
     /// <inheritdoc />

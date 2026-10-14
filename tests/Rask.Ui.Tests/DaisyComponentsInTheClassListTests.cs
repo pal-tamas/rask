@@ -23,8 +23,11 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // The reverse happened to the "badge" component: it was in the sheet from prose all along, and a sidebar
     // item's stand-in for its count carried the word as a marker's value — which this guard read as written.
     // The stand-in is Flux's navlist count now, so the word is what it always was: prose.
+    // "fieldset", "footer" and "textarea" joined when the daisy components that wrote them were deleted
+    // (UiFormField, UiFooter): the words are Flux's own prose (a card's footer, the fieldset, the textarea),
+    // the scaffolded templates still draw daisyUI's, and the rules go with the plugin.
     private static readonly string[] _knownFromProse =
-        ["badge", "card", "collapse", "skeleton", "stat", "toast", "typography"];
+        ["badge", "card", "collapse", "fieldset", "footer", "skeleton", "stat", "textarea", "toast"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()
@@ -58,7 +61,8 @@ public sealed partial class DaisyComponentsInTheClassListTests
         Assert.Contains("button", names);
         Assert.Contains("glass", names);
         Assert.Contains("btn", components.Single(c => c.Name == "button").Classes);
-        Assert.Contains("btn", WrittenInStringLiterals());
+        Assert.Contains("loading", components.Single(c => c.Name == "loading").Classes);
+        Assert.Contains("loading", WrittenInStringLiterals());
     }
 
     // The bundle keeps each component's rules under a comment naming the file they came from.

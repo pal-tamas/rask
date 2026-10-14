@@ -12,9 +12,9 @@ public sealed partial class UiKitNavigationPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Tabs, nav lists, steps and breadcrumbs in C# — Rask",
+            "Tabs, nav lists and breadcrumbs in C# — Rask",
             "Navigation components in C#: Flux-style tabs with panels, segmented and pill variants, a nav list, "
-            + "steps, breadcrumbs and Flux UI's pagination.",
+            + "breadcrumbs and Flux UI's pagination.",
             Routes.UiKitNavigationPage());
 
     /// <inheritdoc />

@@ -3,12 +3,8 @@ using Rask.Core.Routing;
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's Layout and Mockup components, live.
+///     The kit's Layout components and the code mockup, live.
 /// </summary>
-/// <remarks>
-///     One page for two daisyUI categories, because the mockups are four frames with no state and no
-///     options between them — a page of their own would be a page with four pictures on it.
-/// </remarks>
 [Route("ui/layout")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitLayoutPage : Component
@@ -16,9 +12,9 @@ public sealed partial class UiKitLayoutPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Header and sidebar layouts, flyout and mockups in C# — Rask",
+            "Header and sidebar layouts and flyouts in C# — Rask",
             "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script, plus a "
-            + "flyout panel, separator, join, mask and mockups.",
+            + "flyout panel, separator and a code mockup.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />
@@ -37,9 +33,8 @@ public sealed partial class UiKitLayoutPage : Component
         ],
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])
-            .Notes("The mockups are frames with no state. The code block is the only one carrying text, "
-                + "and it encodes it: a snippet containing markup has to read as that markup rather "
-                + "than becoming it.")
+            .Notes("The code mockup is a frame with no state, and it encodes its text: a snippet containing "
+                + "markup has to read as that markup rather than becoming it.")
             .Result(UiKitLayoutDemo)
     ];
 }

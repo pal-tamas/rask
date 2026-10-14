@@ -13,8 +13,8 @@ public sealed partial class UiKitDataDisplayPage : Component
     protected override Component? HeadAssets =>
         PageMeta.For(
             "Badge, accordion and card components in C# — Rask",
-            "Data display components in C#: a Flux UI badge, a Flux-style accordion on native details, card, kbd, "
-            + "status, countdown, chat bubble, aura and hover effects.",
+            "Data display components in C#: a Flux UI badge, a Flux-style accordion on native details, card, "
+            + "kanban, table, chart, timeline, carousel and flag.",
             Routes.UiKitDataDisplayPage());
 
     /// <inheritdoc />
@@ -34,9 +34,8 @@ public sealed partial class UiKitDataDisplayPage : Component
         ],
         CodeSample
             .Files(["UiKitDataDisplayDemo.cs", "UiKitDataDisplayDemo.Kanban.cs", "UiKitDataDisplayDemo.Table.cs", "UiKitDataDisplayDemo.StableColumns.cs", "UiKitDataDisplayDemo.PagingThatWaits.cs", "UiKitTimelineDemo.cs", "UiKitCarouselDemo.cs", "UiKitFlagDemo.cs"])
-            .Notes("Only the accordion the page owns keeps a field; the rest hold no state. Aura, hover 3D "
-                + "and hover gallery are decoration — they carry no role and no label, because a reader "
-                + "who cannot see them loses nothing. The table is Flux's: the page keeps the sorted column "
+            .Notes("Only the accordion the page owns keeps a field; the rest hold no state. "
+                + "The table is Flux's: the page keeps the sorted column "
                 + "and the page number, and says so with Sorted, Direction and Paginate. Its columns stay put "
                 + "across pages once the table has a width (w-full) and each column but one has its own. "
                 + "A page change shows nothing until its rows are back; a slow one dims the rows it replaces, "

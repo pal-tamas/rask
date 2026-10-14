@@ -3255,7 +3255,8 @@ them until tagged releases begin.
   `Ui.Hero`, `Ui.Hover3d`, `Ui.HoverGallery`, `Ui.Indicator`, `Ui.Join`, `Ui.Kbd`, `Ui.Mask` (and
   `Ui.MaskShape`), `Ui.MockupBrowser`, `Ui.MockupPhone`, `Ui.MockupWindow`, `Ui.Rating`, `Ui.Stack`
   (`UiStackLayout`), `Ui.Steps` and `Ui.Step`, `Ui.TextRotate`, `Ui.Validator`, the `UiFormField<T>` base and
-  `Ui.Variant`. The framework strings only they used went with them: `RaskString.DiffHandle`, `FilterReset`,
+  `Ui.Variant`. daisyUI's rules for them are no longer compiled into the kit's sheet (they join the plugin's
+  `exclude`), and the framework strings only they used went with them: `RaskString.DiffHandle`, `FilterReset`,
   `FieldValidating`, `RatingNone` and `RatingValue` (a `RaskStrings.{culture}.json` that still names one is
   now refused by the build — delete the line). Draw what you used them for with Flux's parts or with
   Tailwind: a shortcut is a `<kbd>` element (or a button's own `Kbd`), a choice of tags a segmented
