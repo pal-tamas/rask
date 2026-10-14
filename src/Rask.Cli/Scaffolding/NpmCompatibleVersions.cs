@@ -28,9 +28,7 @@ internal static class NpmCompatibleVersions
     /// <summary>The chosen version of every package, or the conflict that made a choice impossible.</summary>
     internal sealed record Resolution(IReadOnlyDictionary<string, SemVersion> Versions, string? Conflict);
 
-    /// <summary>
-    /// 
-    /// </summary>
+    /// <summary>Chooses one release of every package, the newest the others' peer ranges allow.</summary>
     /// <param name="releases">Each package's installable releases, newest first (<see cref="NpmRegistry" />).</param>
     /// <param name="node">The Node LTS the app runs on: a release whose <c>engines.node</c> refuses it is never chosen.</param>
     internal static Resolution Choose(IReadOnlyDictionary<string, IReadOnlyList<NpmRelease>> releases, SemVersion node)

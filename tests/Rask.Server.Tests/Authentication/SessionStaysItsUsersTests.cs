@@ -264,20 +264,38 @@ public sealed partial class SessionStaysItsUsersTests
         return host.WebSockets.ConnectAsync(host.WebSocketUri, TestContext.Current.CancellationToken);
     }
 
+    // Returns once the attach has finished, not once its socket is in place: the attach asks about the principal
+    // it carried and adopts the answer after that, and a test that counts questions or changes the answer next
+    // would otherwise be raced by it.
     private static async Task<WebSocket> AttachAsync(RaskTestHost host, string sessionId, string? user)
     {
+        var session = host.Store.Peek(sessionId);
+        var settled = session?.AttachesSettled ?? 0;
         var ws = await ConnectAsync(host, user);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId }, TestContext.Current.CancellationToken);
         await ws.AttachedAsync(host, sessionId);
+        if (session is not null)
+        {
+            await WaitFor.True(() => session.AttachesSettled > settled, "the attach has asked about its user and adopted the answer");
+            await session.LastHandlerTask;
+        }
+
         return ws;
     }
 
+    // Returns once the click's dispatch has finished — its render sent — not once the save handler ran: a render
+    // the test starts next would otherwise join the dispatch's own.
     private static async Task ClickAsync(RaskTestHost host, WebSocket ws, string handler)
     {
         var ledger = host.Services.GetRequiredService<Ledger>();
         var before = ledger.Saves.Count;
         await ws.SendJsonAsync(new { id = handler }, TestContext.Current.CancellationToken);
         await WaitFor.True(() => ledger.Saves.Count > before, "the save handler runs");
+        foreach (var session in host.Store.Snapshot())
+        {
+            await WaitFor.True(() => session.PendingHandlers == 0, "the click's dispatch has finished");
+            await session.LastHandlerTask;
+        }
     }
 
     private static async Task<HttpResponseMessage> FileRequestAsync(
@@ -306,6 +324,8 @@ public sealed partial class SessionStaysItsUsersTests
                 services.AddSingleton<Ledger>();
                 services.AddSingleton<Ticker>();
                 services.AddHttpContextAccessor();
+                // How long an answer about the user is trusted is the test's to say, not the runner's speed.
+                services.AddSingleton<TimeProvider>(new StoppedClock());
                 if (revalidate)
                 {
                     services.AddSingleton<ISessionRevalidator, DirectoryRevalidator>();
@@ -319,7 +339,10 @@ public sealed partial class SessionStaysItsUsersTests
                 {
                     app.Use((ctx, next) => StampUserAsync(ctx, next, pathBase));
                 }
-            }, pathBase: pathBase, diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull);
+            }, pathBase: pathBase, diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull,
+            // A page is opened, then connected, then reconnected: the session must still be there however slowly
+            // the runner gets round to each. Nothing here is about how long a session waits.
+            configureServer: o => (o.UnconnectedSessionGracePeriod, o.SessionGracePeriod) = (TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10)));
 
     // Signs the request in as whoever the header names, with the rights the directory holds for them at that moment.
     private static Task StampUserAsync(HttpContext ctx, RequestDelegate next, string pathBase)
@@ -361,6 +384,9 @@ public sealed partial class SessionStaysItsUsersTests
         // The store cannot be reached: asking throws.
         public bool Unreachable { get; set; }
 
+        // Questions that threw because the store could not be reached.
+        public int Refused;
+
         // When the token a request carries lapses, as its `exp` claim, and what time it is — for a host whose
         // revalidator reads the one against the other.
         public long? TokenExpires { get; set; }
@@ -394,6 +420,7 @@ public sealed partial class SessionStaysItsUsersTests
             Interlocked.Increment(ref directory.Asked);
             if (directory.Unreachable)
             {
+                Interlocked.Increment(ref directory.Refused);
                 throw new InvalidOperationException("the user store is unreachable");
             }
 

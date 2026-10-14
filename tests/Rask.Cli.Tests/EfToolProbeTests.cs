@@ -31,7 +31,7 @@ public sealed class EfToolProbeTests
     [Theory]
     // The real shape: a banner line, then the version.
     [InlineData("Entity Framework Core .NET Command-line Tools\n10.0.5\n", "10.0.5")]
-    [InlineData("10.0.12", "10.0.12")]
+    [InlineData("10.0.13", "10.0.13")]
     // A prerelease tool is compared on its release part, so 11.0.0-rc.1 is not read as older than 11.0.0.
     [InlineData("11.0.0-rc.1.25451.107\n", "11.0.0")]
     [InlineData("  10.0.5  \n\n", "10.0.5")]

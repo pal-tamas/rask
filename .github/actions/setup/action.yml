@@ -34,6 +34,12 @@ runs:
       with:
         dotnet-version: 10.0.x
 
+    # The newest Node LTS release, as the installers put on a machine: the build floor is the LTS line's
+    # first release (RASKSPA005 / RASKISLAND001), and the runner image's own Node lags behind it.
+    - uses: actions/setup-node@v7
+      with:
+        node-version: lts/*
+
     - name: Cache NuGet packages
       if: inputs.nuget-cache == 'true'
       uses: actions/cache@v6

@@ -71,7 +71,7 @@ public static partial class RaskEndpointExtensions
     // render nobody asked for and the later events of a long batch go by.
     private static void Asked(LiveSession session, bool tenantToo)
     {
-        session.LastUserCheck = Environment.TickCount64;
+        session.NoteUserChecked();
         if (tenantToo)
         {
             session.AskTenantAgain();
@@ -304,7 +304,7 @@ public static partial class RaskEndpointExtensions
         var users = session.Users;
         var before = users.Current;
         session.ConnectionUser = carried;
-        session.LastUserCheck = Environment.TickCount64;
+        session.NoteUserChecked();
 
         var changed = answer is null ? users.IsSignedIn : !PrincipalRights.Same(before, answer);
         if (answer is null)
@@ -404,8 +404,7 @@ public static partial class RaskEndpointExtensions
         return false;
     }
 
-    private static bool AskedLongAgo(LiveSession session) =>
-        Environment.TickCount64 - session.LastUserCheck >= (long)PushedRenderTrusts.TotalMilliseconds;
+    private static bool AskedLongAgo(LiveSession session) => !session.UserCheckedWithin(PushedRenderTrusts);
 
     private static async ValueTask<bool> AskUnattendedAsync(LiveSession session, string what)
     {

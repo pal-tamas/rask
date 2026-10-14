@@ -21,7 +21,7 @@
     reference, and the same components build for both hosts this way.
   -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12"/>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.13"/>
   </ItemGroup>
 
 </Project>

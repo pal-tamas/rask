@@ -7,7 +7,12 @@ namespace Rask.UiTests.Components;
 ///     Flux's <c>variant="combobox"</c>: a text input that filters the list under it, shows its answer when it is
 ///     not being typed into, and offers to create the option that is not there.
 /// </summary>
-/// <remarks>As recorded on fluxui.dev, key by key; see the walk in <c>docs/ui-kit.md</c>.</remarks>
+/// <remarks>
+///     What is typed, the rows it leaves, the lit row and whether the list is open are the browser's
+///     (<c>data-rask-list</c>), held to Flux key by key in a browser (<c>UiListHookTests</c>,
+///     <c>scripts/flux/parity-select.mjs</c>). Here: what a render writes for the browser to read, and what the
+///     page hears — a pick, and the text where it asked for it.
+/// </remarks>
 public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
 {
     private static readonly string[] Industries =
@@ -38,27 +43,7 @@ public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
         _project = 9;
     }
 
-    private static Task Key(Page page, string key) =>
-        page.On("input[role=\"combobox\"]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
     private static string? Text(Page page) => page.Find("input[role=\"combobox\"]").Attribute("value");
-
-    private static bool IsOpen(Page page) =>
-        string.Equals(page.Find("[popover]").Attribute("data-rask-popover-open"), "true", StringComparison.Ordinal);
-
-    private static IEnumerable<string> Shown(Page page) =>
-        page.FindAll("[data-ui-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
-
-    // Every key used to be sent: a letter typed was two round trips and two renders, the key's changing nothing.
-    [Fact]
-    public void The_input_sends_only_the_keys_the_list_acts_on()
-    {
-        var page = Page.Render(Combobox);
-
-        var input = page.Find("input[role=\"combobox\"]");
-
-        Assert.Equal("ArrowDown ArrowUp Enter Escape Tab", input.Attribute("data-rask-keys"));
-    }
 
     [Fact]
     public void The_trigger_is_a_text_input_in_the_inputs_own_box()
@@ -73,121 +58,6 @@ public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Choose industry...", input.Attribute("placeholder"));
         Assert.Equal(page.Find("[role=\"listbox\"]").Id, input.Attribute("aria-controls"));
         Assert.Equal("-1", page.Find("[data-ui-input] button").Attribute("tabindex"));
-    }
-
-    [Fact]
-    public async Task A_click_in_the_input_opens_the_list_on_its_first_option()
-    {
-        var page = Page.Render(Combobox);
-
-        await page.On("input[role=\"combobox\"]").Click();
-
-        Assert.True(IsOpen(page));
-        Assert.Equal("Photography", page.TextOf("[data-active]"));
-        Assert.Equal(page.Find("[data-active]").Id, page.Find("input[role=\"combobox\"]").Attribute("aria-activedescendant"));
-    }
-
-    [Fact]
-    public async Task Typing_opens_the_list_and_leaves_what_matches()
-    {
-        var page = Page.Render(Combobox);
-
-        await page.On("input[role=\"combobox\"]").Input("de");
-
-        Assert.True(IsOpen(page));
-        Assert.Equal(["Design services", "Web development"], Shown(page));
-        Assert.Equal("Design services", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task Enter_picks_the_active_match_and_the_input_shows_it()
-    {
-        var page = Page.Render(Combobox);
-        await page.On("input[role=\"combobox\"]").Input("de");
-        await Key(page, "ArrowDown");
-
-        await Key(page, "Enter");
-
-        Assert.Equal("Web development", _picked);
-        Assert.Equal("Web development", Text(page));
-        Assert.False(IsOpen(page));
-    }
-
-    [Fact]
-    public async Task An_arrow_reopens_on_the_answer_with_every_option_back()
-    {
-        _picked = "Web development";
-        var page = Page.Render(Combobox);
-
-        await Key(page, "ArrowDown");
-
-        Assert.True(IsOpen(page));
-        Assert.Equal(7, Shown(page).Count());
-        Assert.Equal("Web development", page.TextOf("[data-active]"));
-    }
-
-    [Fact]
-    public async Task Escape_closes_the_list_and_then_empties_the_words_but_not_the_answer()
-    {
-        _picked = "Web development";
-        var page = Page.Render(Combobox);
-        await Key(page, "ArrowDown");
-
-        await Key(page, "Escape");
-        var closed = (IsOpen(page), Text(page));
-        await Key(page, "Escape");
-
-        Assert.Equal((false, "Web development"), closed);
-        Assert.Equal(string.Empty, Text(page) ?? string.Empty);
-        Assert.Equal("Web development", _picked);
-    }
-
-    [Fact]
-    public async Task Leaving_with_words_that_name_nothing_puts_the_answer_back()
-    {
-        _picked = "Design services";
-        var page = Page.Render(Combobox);
-        await page.On("input[role=\"combobox\"]").Input("Design servicesxyz");
-        var typed = page.Find("[data-ui-listbox-empty]").Attribute("data-hidden");
-
-        await Key(page, "Tab");
-
-        Assert.Null(typed);
-        Assert.False(IsOpen(page));
-        Assert.Equal("Design services", Text(page));
-        Assert.Equal("Design services", _picked);
-    }
-
-    [Fact]
-    public async Task The_create_row_waits_for_enough_letters_that_name_no_option()
-    {
-        var page = Page.Render(Creating);
-        var hidden = new List<bool>();
-
-        foreach (var typed in new[] { "n", "ne", "security" })
-        {
-            await page.On("input[role=\"combobox\"]").Input(typed);
-            hidden.Add(page.Find("[data-ui-option-create]").Attribute("data-hidden") is not null);
-        }
-
-        Assert.Equal([true, false, true], hidden);
-    }
-
-    [Fact]
-    public async Task The_create_row_is_the_active_one_when_nothing_else_matches_and_hands_over_what_was_typed()
-    {
-        var page = Page.Render(Creating);
-        await page.On("input[role=\"combobox\"]").Input("new");
-        var active = page.Find("[data-active]").Attribute("data-ui-option-create");
-        var empty = page.Find("[data-ui-listbox-empty]").Attribute("data-hidden");
-
-        await Key(page, "Enter");
-
-        Assert.NotNull(active);
-        Assert.NotNull(empty);
-        Assert.Equal("new", _created);
-        Assert.Equal("new", Text(page));
-        Assert.False(IsOpen(page));
     }
 
     [Fact]
@@ -206,6 +76,8 @@ public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
         Assert.Equal("sec", heard);
         Assert.Equal(["Security"], page.FindAll("[data-ui-option]").Select(row => row.TextContent.Trim()));
         Assert.Equal(2, page.FindAll("[data-ui-input] svg").Count);
+        // The page filters, so the browser hides no row.
+        Assert.Equal("strict", page.Find("[data-ui-select]").Attribute("data-rask-list"));
     }
 
     [Fact]
@@ -219,6 +91,97 @@ public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup
         var row = Page.Render(select).Find("[data-ui-option-create]");
 
         Assert.Null(row.Attribute("data-hidden"));
+        Assert.Equal(string.Empty, row.Attribute("data-rask-list-create"));
         Assert.Equal("Create new", row.TextContent.Trim());
+    }
+
+    [Fact]
+    public void The_browser_hides_the_rows_a_search_leaves_out_and_puts_the_answer_back_when_the_list_shuts()
+    {
+        var page = Page.Render(Combobox);
+
+        var kind = page.Find("[data-ui-select]").Attribute("data-rask-list");
+
+        Assert.Equal("filter strict", kind);
+    }
+
+    // A letter typed used to be two round trips and two renders: the key, and the input.
+    [Theory]
+    [InlineData("data-rask-on-input")]
+    [InlineData("data-rask-on-keydown")]
+    [InlineData("data-rask-on-click")]
+    [InlineData("data-rask-on-blur")]
+    [InlineData("data-rask-on-change")]
+    public void Typing_into_a_combobox_the_page_did_not_ask_to_hear_has_no_handler(string handler)
+    {
+        var page = Page.Render(Combobox);
+
+        var input = page.Find("input[role=\"combobox\"]");
+
+        Assert.Null(input.Attribute(handler));
+    }
+
+    [Fact]
+    public void The_input_is_rendered_shut_saying_its_answer()
+    {
+        _picked = "Web development";
+
+        var page = Page.Render(Combobox);
+
+        Assert.Equal("Web development", Text(page));
+        Assert.Equal("false", page.Find("input[role=\"combobox\"]").Attribute("aria-expanded"));
+        Assert.Null(page.Find("input[role=\"combobox\"]").Attribute("aria-activedescendant"));
+    }
+
+    [Fact]
+    public async Task A_press_on_a_row_picks_it_and_the_input_says_it()
+    {
+        var page = Page.Render(Combobox);
+
+        await page.On("[data-ui-option]:has-text(\"Web development\")").Click();
+
+        Assert.Equal("Web development", _picked);
+        Assert.Equal("Web development", Text(page));
+    }
+
+    [Fact]
+    public void An_option_with_words_of_its_own_for_the_input_says_them_to_the_browser()
+    {
+        var page = Page.Render(() => Ui.Select.Of<string>().Combobox[
+            Ui.SelectOption.Value("gb").Label("United Kingdom").SelectedLabel("UK")
+        ]);
+
+        var row = page.Find("[data-ui-option]");
+
+        Assert.Equal("UK", row.Attribute("data-rask-list-says"));
+    }
+
+    [Fact]
+    public void The_create_row_is_rendered_hidden_and_says_how_many_letters_it_waits_for()
+    {
+        var page = Page.Render(Creating);
+
+        var row = page.Find("[data-ui-option-create]");
+
+        Assert.Equal("2", row.Attribute("data-rask-list-create"));
+        Assert.NotNull(row.Attribute("data-hidden"));
+        Assert.NotNull(page.Find("[data-ui-listbox-empty]").Attribute("data-hidden"));
+    }
+
+    [Fact]
+    public async Task What_was_typed_travels_with_the_press_on_the_create_row_and_with_nothing_before_it()
+    {
+        var page = Page.Render(Creating);
+        var input = page.Find("input[role=\"combobox\"]");
+
+        // The browser sends a field that waits ahead of the next action: here, the press on the row.
+        await page.On("input[role=\"combobox\"]").Change("new");
+        await page.On("[data-ui-option-create]").Click();
+
+        Assert.Equal("action", input.Attribute("data-rask-bind-on"));
+        Assert.Null(input.Attribute("data-rask-on-input"));
+        Assert.Equal("new", _created);
+        Assert.Equal(9, _project);
+        Assert.Equal("new", Text(page));
     }
 }

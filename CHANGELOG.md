@@ -9,6 +9,7 @@ them until tagged releases begin.
 
 ### Security
 
+- The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
   is rebuilt and its URL's version changes with it. Nothing an app sees changes: the same HTML comes out, and
@@ -360,6 +361,8 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
+- `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
@@ -1616,6 +1619,53 @@ them until tagged releases begin.
 
 ### Performance
 
+- **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
+  keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
+  was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was
+  every arrow, every letter typed ahead or into a search, every open and every close. Flux's list is a custom
+  element whose script keeps all of that, and Livewire hears a value: measured on fluxui.dev, opening a select,
+  sweeping the pointer over every row, walking it with the arrows, typing ahead and pressing Escape send no
+  request at all. The runtime now does the same for the kit, on both hosts, in a hook module of its own
+  (`rask-list.ts`, in the on-demand `rask-hooks.js`), asked for by `data-rask-list` on the control's root. It
+  writes `data-active` and `aria-activedescendant` as the cursor moves, `data-open` and `aria-expanded` in the
+  task the list opens, and — where the browser filters — `data-hidden` on the rows a search leaves out, the
+  "no results" row, the create row and a group's heading, and holds every one of them against the next render.
+  The page renders the rows and hears a **pick**: the press on the row itself (Enter clicks the lit row), so the
+  picked row is named by the press and by no cursor of the page's. An autocomplete's pick is the browser writing
+  the item into the input, and the input tells the page as it tells it of anything typed.
+  **Measured on a live Server page over one journey** — open, the pointer over every row, eight keys, type-ahead
+  or a search, Escape, open again from the keyboard, the pointer over every row, Tab — frames sent before → now:
+  **listbox 33 → 0, pillbox 34 → 0, autocomplete 28 → 0**; the searchable listbox, the combobox and the pillbox's
+  combobox could not finish the journey at keyboard speed before (a late toggle shut the list a key had opened)
+  and send 0 now. A pick is the one frame of its press; an autocomplete bound to a member that waits sends 0 at
+  a pick and its text with the next action. `UiListHookTests` asserts each.
+  The rules are Flux's, re-measured for this (`scripts/flux/probe-list.mjs`, and the `--live` walks of
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`, which now also hold the row named to
+  assistive technology): a row the pointer lit goes dark when the pointer leaves the list and one the keys lit
+  stays (the kit used to keep the pointer's row lit everywhere but in a pillbox); with no row lit ArrowDown
+  lands on the first row and ArrowUp on the last; Enter with no row lit picks nothing; a row is lit by
+  `data-active` alone, never by `:hover`, so the keys' row is the one lit while the pointer rests on another.
+  **What changes for an app**: nothing in the chain. `aria-expanded="true"`, `data-open`, `data-active`,
+  `aria-activedescendant` and a browser-filtered `data-hidden` are no longer in any RENDER — a test that read
+  them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
+  search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
+  create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+  Per gesture on the kit's frame gate, before → after, for every list kind (listbox, searchable listbox,
+  combobox, pillbox, autocomplete): open by a press 1 → 0; the pointer over the open list 3–7 → 0; the cursor keys
+  3–9 → 0; Escape 1–3 → 0; a press outside 1–2 → 0; typing to filter 1–2 → 0; Tab in and out 3–5 → 0 (the
+  native select's 2 → 0). Owed and kept: a pick 1 (the value); a debounced search 1 at the pause; a search the
+  page heard, ended by Escape, a pick or a click elsewhere, 1 (`OnInput("")`). A bound select that waits still
+  sends its pick as one frame of drawing (`data-rask-draws`), where Flux sends none.
+  **Changed for an app**: `Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`,
+  `Ui.PillboxInput` and `Ui.Autocomplete` works as before, and the "the search is over" `OnInput("")` (or a
+  combobox's new answer's words) is now raised by the browser as it rewrites the field, once, and only when the
+  page had heard a search; a search it never heard is dropped unsaid. Escape on an autocomplete whose page holds
+  no text tells the page nothing. A press on an autocomplete's suggestion keeps the focus in the input, so the
+  text typed before it is never handed over by the blur. `OnToggle` on these controls was never public and
+  nothing of the open state is sent.
+- **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
+  that learns of a drawn control's pick kept the form being written in a field of the render context, which every
+  render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click
