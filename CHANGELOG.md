@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Security
 
+- The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
+- **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
+  After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
+  is rebuilt and its URL's version changes with it. Nothing an app sees changes: the same HTML comes out, and
+  Tiptap 3's kit additions (list keys, a trailing paragraph) stay off as Flux's editor has them.
 - **A live page asks who its user is at every event.** Before: `ISessionRevalidator` was asked "at most every 30
   seconds" per session, so a sign-out elsewhere, an expired token or a removed right could be acted under for half
   a minute, and a page that only listened was never asked at all. After: it is asked as a connection attaches,
@@ -321,6 +326,7 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
@@ -1577,6 +1583,9 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
+  that learns of a drawn control's pick kept the form being written in a field of the render context, which every
+  render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.
 - **Showing a password sends the server nothing.** `Ui.Input.Viewable()`'s button kept whether the field was
   shown in a C# field, so each press was a frame and a render (2 → 0 for show and hide) — and a render of a
   field the reader had typed into since. The runtime turns the field to text and back in the click
