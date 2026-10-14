@@ -398,6 +398,11 @@ them until tagged releases begin.
   --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
   and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
   dist directory are never counted, so a glob that covers the host does not rebuild every time.
+- **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
+  build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
+  `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
+  `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
+
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,

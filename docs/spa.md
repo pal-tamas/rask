@@ -387,6 +387,21 @@ app.MapRask<App>(pathBase: "/new");      // pages that have moved
 app.MapRaskSpa();                        // every other path: the old front end
 ```
 
+`AddRask()` and `MapRask<App>()` need no `using`: referencing `Rask.Server` imports its namespace for the
+project. A page file imports routing itself, because `[Route]` lives in `Rask.Core.Routing`:
+
+```csharp
+using Rask.Core.Routing;
+
+[Route("/orders")]
+public sealed partial class OrdersPage : Component { … }
+```
+
+Without that line the Web SDK's own `Microsoft.AspNetCore.Routing.Route` class answers to `[Route]`, and
+the build stops with `CS0616: 'Route' is not an attribute class`. Rask does not import the namespace for
+the whole project, because the app's controllers already use `[Route]` from `Microsoft.AspNetCore.Mvc`, and
+two `RouteAttribute`s in scope break every one of them (CS0104).
+
 Each answers only its own paths — a route the old front end owns still gets its `index.html`, a page
 under `/new` is rendered by Rask, and the Rask runtime is served under the prefix and nowhere else. The
 old front end links to a moved page with an ordinary `<a href="/new/…">`, a full page load.
