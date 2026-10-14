@@ -78,10 +78,17 @@ public sealed class Job : Entity<long>
     /// </remarks>
     public Guid? TenantId { get; private set; }
 
+    /// <summary>
+    ///     The lane the job runs in: jobs of one lane run one at a time, in the order they are due, while
+    ///     different lanes run side by side. Null is the default lane, which every job without one shares.
+    /// </summary>
+    public string? Lane { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
     /// <param name="runAt">The earliest time (UTC) it may run.</param>
+    /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
     /// <remarks>
     ///     <para>The key is the store's, and is the tiebreak for run order, so nothing assigns one here.</para>
     ///     <para>
@@ -90,9 +97,9 @@ public sealed class Job : Entity<long>
     ///         belongs to nobody.
     ///     </para>
     /// </remarks>
-    public static Job For(string type, string payload, DateTime runAt)
+    public static Job For(string type, string payload, DateTime runAt, string? lane = null)
     {
-        return new Job { Type = type, Payload = payload, RunAt = runAt, UserId = Current.UserId, TenantId = Current.Tenant };
+        return new Job { Type = type, Payload = payload, RunAt = runAt, Lane = lane, UserId = Current.UserId, TenantId = Current.Tenant };
     }
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>

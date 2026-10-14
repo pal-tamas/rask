@@ -86,6 +86,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
+  job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
+  status question to every other pump. After: jobs of one lane run one at a time, in the order they are due, and
+  different lanes run side by side; a job with no lane runs as it always did. A lane is data, not setup - a
+  new pump needs no queue. The first due job of a lane is all a poll offers, so one long lane cannot crowd the
+  others out of a batch, and a lane busy on another instance is left alone there too. `Job` gets a nullable
+  `Lane` column: `rask db add AddJobLane && rask db update` (until then the processor logs exactly that).
+  `IJobs.Add` takes the lane; `jobs.Enqueued<T>().InLane("x")` asks about it in a test.
+
 - **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
   matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
   it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It

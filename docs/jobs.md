@@ -82,6 +82,26 @@ await Jobs.Enqueue(new SendReminder(order.Id)).In(24.Hours);       // tomorrow
 await Jobs.Enqueue(new CloseBooks()).At(monthEnd);                 // at a moment you name
 ```
 
+## Lanes
+
+A job normally waits its turn behind the others. Name a **lane** and it waits only behind its own:
+
+```csharp
+await Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id);   // ten minutes at the pump
+await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id);   // waits for the chips - this pump only
+await Jobs.Enqueue(new AskStatus(other.Id)).InLane(other.Id); // runs now, beside them
+```
+
+- Jobs of **one lane** run one at a time, in the order they are due (a retry goes by its new `RunAt`). Across
+  instances too: a lane with a job in flight anywhere is not claimed again until that job lets go.
+- **Different lanes** run side by side, and the poll goes on while they do.
+- A lane is a name on the row, not something to set up: one per pump, per customer, per mailbox.
+- A job with **no lane** runs as before - a batch, one after the other, one batch at a time per instance.
+- The lease is what keeps a lane's place, so `LeaseDuration` must be longer than its longest job.
+
+A recurring job has no lane of its own; let it enqueue the laned jobs (`foreach pump -> InLane(pump.Id)`).
+Upgrading adds the `Lane` column: `rask db add AddJobLane && rask db update`.
+
 ## How it works
 
 - **`IJobs`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
@@ -132,8 +152,8 @@ immediately, but the job already inside your handler gets `JobsOptions.ShutdownG
 finish rather than being cancelled mid-call. A job halfway through a `SaveChangesAsync` completes instead of
 being torn in two.
 
-Only one job is ever in that window: because no new job starts once the stop signal arrives, shutdown is
-extended by at most a single grace period, never one per remaining job.
+Only the jobs already running are in that window - one per lane at work: because no new job starts once the
+stop signal arrives, shutdown is extended by at most a single grace period, never one per remaining job.
 
 A job that outlives its grace **is** cancelled, and re-runs from the top on the next boot. It does **not**
 count a failed attempt — a redeploy is not a failure, and counting it would march never-failing work toward
