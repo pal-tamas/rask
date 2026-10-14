@@ -21,6 +21,8 @@ public sealed class UiInputViewTests(PlaywrightFixture playwright) : IClassFixtu
         var page = session.Page;
         await session.HooksLoadedAsync();
         var toggle = page.GetByLabel("Toggle password visibility");
+        // The reader types it: a page never starts a password field with one.
+        await page.Locator("#secret").PressSequentiallyAsync("hunter2");
 
         await toggle.ClickAsync();
         await Expect(page.Locator("#secret")).ToHaveAttributeAsync("type", "text");
@@ -44,7 +46,7 @@ public sealed class UiInputViewTests(PlaywrightFixture playwright) : IClassFixtu
 public sealed partial class InputViewPage : Component
 {
     private int _drawn;
-    private string _secret = "hunter2";
+    private string _secret = "";
 
     protected override Component? HeadAssets => [Markup.Title["input view"], Markup.Style[Raw.Value(UiStylesheet.Css)]];
 

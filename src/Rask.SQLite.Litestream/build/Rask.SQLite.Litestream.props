@@ -12,7 +12,7 @@
     <!-- The litestream release to fetch (no leading 'v'). Change this AND supply the matching SHA-256
          via RaskLitestreamSha256 to pin a different version; otherwise the checksum verification for the
          default version below is used. -->
-    <RaskLitestreamVersion Condition="'$(RaskLitestreamVersion)' == ''">0.5.14</RaskLitestreamVersion>
+    <RaskLitestreamVersion Condition="'$(RaskLitestreamVersion)' == ''">0.5.17</RaskLitestreamVersion>
 
     <!-- Where releases are downloaded from (override for a mirror). -->
     <RaskLitestreamReleaseBaseUrl Condition="'$(RaskLitestreamReleaseBaseUrl)' == ''">https://github.com/benbjohnson/litestream/releases/download</RaskLitestreamReleaseBaseUrl>

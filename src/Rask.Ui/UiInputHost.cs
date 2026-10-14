@@ -21,50 +21,18 @@ internal sealed class UiInputHost
     /// <summary>The combobox's ARIA: which list, whether it is open, which row the cursor is on.</summary>
     internal required IReadOnlyDictionary<string, string?> Aria { get; init; }
 
-    /// <summary>What a key pressed in the input does to the list.</summary>
-    internal required Func<KeyboardEvent, Task> OnKeyDown { get; init; }
-
-    /// <summary>
-    ///     The keys <see cref="OnKeyDown" /> acts on, by <c>KeyboardEvent.key</c> with a space between. The
-    ///     runtime sends no other: a letter typed is the input's <c>input</c>, not a second round trip.
-    /// </summary>
-    internal required string Keys { get; init; }
-
-    /// <summary>
-    ///     The keys that empty the input, in the browser and at the key: emptied from the handler a round trip
-    ///     later, it would lose what was typed since.
-    /// </summary>
-    internal string? ClearKeys { get; init; }
-
-    /// <summary>What a click in the input does to the list.</summary>
-    internal required Action OnClick { get; init; }
-
-    /// <summary>The events of the input whose handlers only draw the list (<see cref="UiDraws" />), or none.</summary>
-    internal (string, string?)[] Draws { get; init; } = [];
-
     /// <summary>How long typing pauses before <see cref="AtPause" /> hears the text, in milliseconds. 0 for no pause.</summary>
     internal int Pause { get; init; }
 
     /// <summary>What hears the input's text once typing has paused.</summary>
     internal Func<string, Task>? AtPause { get; init; }
 
-    /// <summary>The input's marks with what the runtime is asked for over them: which keys to send, which empty it.</summary>
+    /// <summary>The input's marks with what asks the runtime for the pause over them, when there is one.</summary>
     /// <param name="input">What marks the input as Flux's.</param>
-    internal Dictionary<string, string?> MarksOver(IReadOnlyDictionary<string, string?> input)
-    {
-        var marks = new Dictionary<string, string?>(input, StringComparer.Ordinal) { ["data-rask-keys"] = Keys };
-        foreach (var (name, value) in Draws)
-        {
-            marks[name] = value;
-        }
-
-        if (ClearKeys is not null)
-        {
-            marks["data-rask-clear-keys"] = ClearKeys;
-        }
-
-        return AtPause is null ? marks : UiSearchPause.Over(marks, Pause, AtPause);
-    }
+    internal IReadOnlyDictionary<string, string?> MarksOver(IReadOnlyDictionary<string, string?> input) =>
+        AtPause is null || Pause == 0
+            ? input
+            : UiSearchPause.Over(new Dictionary<string, string?>(input, StringComparer.Ordinal), Pause, AtPause);
 
     /// <summary>The field's ARIA with the combobox's over it.</summary>
     /// <param name="field">What the field says of the input: invalid, described by.</param>

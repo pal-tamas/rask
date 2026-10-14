@@ -235,7 +235,8 @@ internal sealed class RootErrorBoundary : Component
         ctx.DocumentAttributes = Defaults?.HtmlAttributes;
         try
         {
-            return inner.ShellInternal(head, boundary);
+            // A shell that forgot its Body element gets one, or the page paints and never connects (#1234).
+            return ShellBodyRepair.Ensure(inner.ShellInternal(head, boundary), head, boundary, inner.GetType());
         }
         catch (Exception ex)
         {

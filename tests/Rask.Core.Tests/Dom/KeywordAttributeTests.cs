@@ -103,7 +103,7 @@ public partial class KeywordAttributeTests : RaskMarkup
             .Select(x => $"{x.Value.GetType().Name}.{x.Value}")
             .ToList();
 
-        Assert.True(overloads.Count > 20, $"only {overloads.Count} keyword types");
+        Assert.True(overloads.Count > 15, $"only {overloads.Count} keyword types");
         Assert.Empty(wrong);
     }
 

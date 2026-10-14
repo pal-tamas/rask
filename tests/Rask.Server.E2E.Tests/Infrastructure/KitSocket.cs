@@ -19,7 +19,37 @@ internal static class KitSocket
     /// <summary>Starts the watch, before the page loads anything.</summary>
     public static Task Install(IPage page) => page.AddInitScriptAsync(
         """
-        window.__kit = { sent: 0, received: 0, asked: 0, acked: 0 };
+        window.__kit = { sent: 0, received: 0, asked: 0, acked: 0, moves: 0, x: -1, y: -1, asking: 0 };
+        // A move reaches the page in a frame of the browser's own, after the call that made it has returned
+        // (a passive listener does not hold it up): counted here, so a gesture can wait for it to arrive.
+        window.addEventListener('pointermove', e => {
+            const kit = window.__kit;
+            kit.moves++;
+            kit.x = e.clientX;
+            kit.y = e.clientY;
+        }, { capture: true, passive: true });
+        // The runtime asks whether the browser's credential changed before the first frame after a pause
+        // (rask-auth-watch.ts) and holds what the page sends until the answer is back: counted until the frames it
+        // held have left, which is a task after the answer was read.
+        const fetch0 = window.fetch;
+        window.fetch = function (input, init) {
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            if (url.indexOf('/_rask/auth/who/') < 0) {
+                return fetch0.call(this, input, init);
+            }
+            const kit = window.__kit;
+            kit.asking++;
+            const done = () => {
+                const after = new MessageChannel();
+                after.port1.onmessage = () => { kit.asking--; };
+                after.port2.postMessage(0);
+            };
+            return fetch0.call(this, input, init).then(response => {
+                const json = response.json.bind(response);
+                response.json = () => json().finally(done);
+                return response;
+            }, failure => { done(); throw failure; });
+        };
         window.WebSocket = class extends WebSocket {
             constructor(...args) {
                 super(...args);
@@ -51,6 +81,33 @@ internal static class KitSocket
     public static Task OpenAsync(IPage page) =>
         page.WaitForFunctionAsync("() => window.__raskOpen === true", null, new() { Timeout = AnswerMs, PollingInterval = 20 });
 
+    /// <summary>
+    ///     Moves the pointer to (<paramref name="x" />, <paramref name="y" />) and resolves once the page has heard
+    ///     the move. Chromium hands a move to the page in its next frame of the real clock, after the call that made
+    ///     it has returned: a step given its beat before then would be heard in the next step's frame, the two
+    ///     taken as one, and the count would depend on how fast the machine is.
+    /// </summary>
+    public static async Task MoveAsync(IPage page, float x, float y)
+    {
+        var heard = await page.EvaluateAsync<double[]>("() => [window.__kit.moves, window.__kit.x, window.__kit.y]");
+        await page.Mouse.MoveAsync(x, y);
+        // A pointer already there (to the pixel the page is told) moves nowhere, and one taken off the page is
+        // over nothing of it: neither is told.
+        if ((Math.Abs(heard[1] - x) < 1 && Math.Abs(heard[2] - y) < 1) || !OnPage(page, x, y))
+        {
+            return;
+        }
+
+        // At the place it was taken to: the browser also sends a move of its own where the pointer already is
+        // when what is under it changes, and that one says nothing about this.
+        await page.WaitForFunctionAsync(
+            "([n, x, y]) => window.__kit.moves > n && Math.abs(window.__kit.x - x) < 1 && Math.abs(window.__kit.y - y) < 1",
+            new[] { heard[0], x, y }, new() { Timeout = AnswerMs, PollingInterval = 20 });
+    }
+
+    private static bool OnPage(IPage page, float x, float y) =>
+        page.ViewportSize is not { } viewport || (x >= 0 && y >= 0 && x < viewport.Width && y < viewport.Height);
+
     /// <summary>The frames this document has put on the socket and taken off it so far.</summary>
     public static async Task<KitFrames> CountAsync(IPage page)
     {
@@ -64,5 +121,6 @@ internal static class KitSocket
     /// </summary>
     public static Task AnsweredAsync(IPage page) =>
         page.WaitForFunctionAsync(
-            "() => window.__kit.acked >= window.__kit.asked", null, new() { Timeout = AnswerMs, PollingInterval = 20 });
+            "() => window.__kit.asking === 0 && window.__kit.acked >= window.__kit.asked", null,
+            new() { Timeout = AnswerMs, PollingInterval = 20 });
 }

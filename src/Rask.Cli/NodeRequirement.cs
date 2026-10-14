@@ -10,14 +10,14 @@ namespace Rask.Cli;
 ///     <para>
 ///         <see cref="BuildFloor" /> is the <b>minimum an app with islands builds on</b>: the
 ///         <c>RaskExternalMinimumNode</c> that <c>Rask.External.props</c> declares and its targets enforce
-///         as RASKISLAND001. It is deliberately a floor and not a recommendation — Vite asks for
-///         <c>^20.19.0 || &gt;=22.12.0</c>, and 22.12.0 is the lowest version satisfying that with no
-///         hole. Raising it would break apps that build fine today, so it is mirrored here, never led
-///         from here; <c>NodeRequirementTests</c> fails if the two ever disagree.
+///         as RASKISLAND001. It is the <b>first release of the Active LTS line</b>: Rask builds on the latest
+///         LTS and nothing older, and <c>scripts/upstream/node-lts.sh</c> moves it with the line every day.
+///         It is mirrored here, never led from here; <c>NodeRequirementTests</c> fails if the two ever disagree.
 ///     </para>
 ///     <para>
-///         <see cref="ScaffoldLine" /> is the <b>current Active LTS</b>: what <c>rask.sh</c> and
-///         <c>rask.ps1</c> install and what the docs recommend.
+///         <see cref="ScaffoldLine" /> is the <b>newest Active LTS release</b>: what <c>rask.sh</c> and
+///         <c>rask.ps1</c> install, what the docs recommend, and what every front-end version <c>rask new</c>
+///         chooses has to run on.
 ///     </para>
 /// </remarks>
 internal static class NodeRequirement
@@ -27,12 +27,12 @@ internal static class NodeRequirement
     ///     <c>src/Rask.External/build/Rask.External.props</c>, which is the enforcing copy — and
     ///     <c>RaskSpaMinimumNode</c> in <c>Rask.Spa.Hosting.props</c> (RASKSPA005), for a front-end template.
     /// </summary>
-    public static readonly Version BuildFloor = new(22, 12, 0);
+    public static readonly Version BuildFloor = new(24, 11, 0);
 
     /// <summary>
     ///     The Node LTS line the installers put on a machine. 24 is "Krypton", Active LTS since 2025-10.
     /// </summary>
-    public static readonly Version ScaffoldLine = new(24, 15, 0);
+    public static readonly Version ScaffoldLine = new(24, 21, 0);
 
     /// <summary>How to get it, phrased the same way everywhere the CLI has to say it.</summary>
     public const string InstallHint =

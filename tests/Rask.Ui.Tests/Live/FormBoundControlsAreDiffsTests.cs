@@ -144,7 +144,6 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
             var select = Ui.Select.Bind(() => a.Many).Listbox.Multiple().Placeholder("Choose…").Name(named ? "many" : null);
             return (ruled ? select.ShowValidation(false).Validate(many => many.Count == 1 ? [] : ["Pick exactly one"]) : select)[Options()];
         });
-        await page.On("[popover][data-ui-options]").Raise("toggle", "{\"oldState\":\"closed\",\"newState\":\"open\"}");
 
         var said = new List<string>();
         foreach (var word in new[] { "Alpha", "Beta", "Beta", "Alpha" })

@@ -29,7 +29,7 @@ jobs:
   # than end green: a green run is what the publishing workflows wait for, and an unchanged main has
   # nothing new to publish.
   moved:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       actions: write   # read the last green run, cancel this one
       contents: read

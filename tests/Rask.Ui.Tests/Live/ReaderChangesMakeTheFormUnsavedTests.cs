@@ -17,8 +17,6 @@ namespace Rask.UiTests.Live;
 /// </remarks>
 public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-
     private const string Edited = "data-rask-edited";
 
     private static readonly DateOnly Today = new(2026, 1, 15);
@@ -35,7 +33,6 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["multiple listbox"] = (typeof(UiSelectMultiple<>), a => Ui.Select.Bind(() => a.Many).Listbox.Multiple()[Options()], PickOption),
         ["pillbox"] = (typeof(UiPillbox<>), a => Ui.Pillbox.Bind(() => a.Many)[Words.Select(word => Ui.PillboxOption.Key(word)[word])], page => First(page, "[data-ui-listbox-option]", "click")),
         ["pillbox, a pill removed"] = (typeof(UiPillbox<>), a => Ui.Pillbox.Bind(() => a.Chosen)[Words.Select(word => Ui.PillboxOption.Key(word)[word])], page => page.On("[data-value=\"Alpha\"] [data-rask-on-click]").Click()),
-        ["autocomplete"] = (typeof(UiAutocomplete), a => Ui.Autocomplete.Bind(() => a.Text)[Words.Select(word => Ui.AutocompleteItem.Key(word)[word])], page => First(page, "[role=\"option\"]", "click")),
         ["calendar"] = (typeof(UiCalendar), a => Ui.Calendar.Bind(() => a.Day).Locale("en-US").On(Today), page => page.On(Day(20)).Click()),
         ["calendar, multiple"] = (typeof(UiCalendarMultiple), a => Ui.Calendar.Multiple.Bind(() => a.Days).Locale("en-US").On(Today), page => page.On(Day(20)).Click()),
         ["date picker"] = (typeof(UiDatePicker), a => Ui.DatePicker.Bind(() => a.Day).Locale("en-US").On(Today), page => page.On(Day(20)).Click()),
@@ -59,6 +56,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     private static readonly Dictionary<Type, string> HeardElsewhere = new()
     {
         [typeof(UiCheckbox)] = "a native checkbox: the browser's own change",
+        [typeof(UiAutocomplete)] = "the kit's text input: a pick is written into it in the browser, which raises its input and change",
         [typeof(UiSwitch)] = "a native checkbox: the browser's own change",
         [typeof(UiRadio)] = "a native radio: the browser's own change",
         [typeof(UiMenuRadio)] = "a part of UiMenuRadioGroup, which commits",
@@ -76,11 +74,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
 
     private static IEnumerable<Component> Options() => Words.Select(word => Ui.SelectOption.Key(word).Value(word)[word]);
 
-    private static async Task PickOption(Page page)
-    {
-        await page.On("[popover]").Raise("toggle", Opened);
-        await First(page, "[data-ui-option]", "click");
-    }
+    private static Task PickOption(Page page) => First(page, "[data-ui-option]", "click");
 
     // The first (or last) element a selector finds that hears `domEvent`, told `value` when there is one.
     private static Task First(Page page, string selector, string domEvent, string? value = null) =>
@@ -167,14 +161,14 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     }
 
     [Fact]
-    public async Task Opening_a_list_and_searching_it_marks_nothing()
+    public async Task Searching_a_list_marks_nothing_and_its_field_says_it_holds_none_of_the_forms_data()
     {
-        var page = Draw(new Answers(), a => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Options()]);
+        var page = Draw(new Answers(), a => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Ui.SelectSearch.OnInput(_ => { }), Options()]);
 
-        await page.On("[popover]").Raise("toggle", Opened);
         await page.On("[data-ui-select-search] input").Input("Ga");
 
         Assert.Null(page.Find("form").Attribute(Edited));
+        Assert.NotNull(page.Find("[data-ui-select-search] input").Attribute("data-rask-unguarded"));
     }
 
     [Fact]

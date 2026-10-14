@@ -357,7 +357,9 @@ public abstract partial class Component : RaskMarkup
     ///         render output. Place both; dropping <paramref name="head" /> loses every head asset on the
     ///         page, and dropping <paramref name="body" /> renders nothing. The doctype is emitted by the
     ///         framework ahead of whatever this returns, and the runtime <c>&lt;script&gt;</c> is appended
-    ///         inside <c>&lt;body&gt;</c> automatically.
+    ///         inside <c>&lt;body&gt;</c> automatically. <paramref name="body" /> is the content, not the
+    ///         element: a document that places it under <c>&lt;html&gt;</c> without a <c>Body</c> gets one
+    ///         around everything after the head, and a warning naming this override.
     ///     </para>
     ///     <para>
     ///         Evaluated once per render, <b>before</b> the app's own <see cref="Render" /> runs, so it
