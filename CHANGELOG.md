@@ -327,10 +327,11 @@ them until tagged releases begin.
 ### Fixed
 - **A page whose user is gone reaches a sign-in page the app does not have.** An app with no page at `/login` —
   one mounted with `MapRask<App>(pathBase: "/uj")` beside a site that owns `/login` — sent an open page there in
-  place, into its own router, which showed its not-found page. The page is now loaded from the site:
-  `/login?returnUrl=%2Fuj%2Fdestinations…`, the way back being the page's full address so the site's sign-in returns
-  to it; a reloading tab is redirected there too, where it used to be served its page. An app with its own sign-in
-  page still shows it in place, with the way back inside the app.
+  place, into its own router, which showed its not-found page. It now goes where the host's authentication names
+  the sign-in page — the default challenge scheme's cookie `LoginPath` — as a page load, with the page's full
+  address as the way back (`/login?ReturnUrl=%2Fuj%2Fdestinations…`); a reloading tab is redirected there too. With
+  no page of its own and no login path named, the open page stays where it is, drawn for nobody, and a reloading
+  tab is served its page, as before. An app with its own sign-in page still shows it in place.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a

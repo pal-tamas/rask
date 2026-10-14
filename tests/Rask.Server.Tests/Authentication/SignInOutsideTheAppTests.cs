@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,8 +16,9 @@ namespace Rask.Server.Tests.Authentication;
 
 /// <summary>
 ///     An app mounted under a path base beside a site that owns the sign-in page — no page of its own at
-///     <c>/login</c>. A session whose sign-in ended is sent to the site's sign-in page as a page load, with the full
-///     address of the page as the way back, because the app's router has nothing there to show.
+///     <c>/login</c>. A session whose sign-in ended is sent to the sign-in page the host's authentication names, as a
+///     page load with the full address of the page as the way back, because the app's router has nothing there to
+///     show; with none named it is sent nowhere, as Rask cannot know who serves an address outside its routes.
 /// </summary>
 /// <remarks>
 ///     In the route-registry collection: hiding the sign-in page means replacing this assembly's routes, which every
@@ -30,10 +32,10 @@ public sealed class SignInOutsideTheAppTests : IDisposable
     public void Dispose() => __RaskRoutesRegistry.RefreshAll();
 
     [Fact]
-    public async Task An_event_after_the_sign_in_ended_loads_the_site_s_sign_in_page_with_the_page_s_full_address()
+    public async Task An_event_after_the_sign_in_ended_loads_the_cookie_scheme_s_login_page_with_the_page_s_full_address()
     {
         HideTheSignInPage();
-        using var host = CreateHost();
+        using var host = CreateHost(loginPath: "/login");
         var page = await OpenAsync(host, "/uj/open?tab=2");
         using var ws = await AttachAsync(host, page.SessionId);
         host.Services.GetRequiredService<Directory>().SignedOut = true;
@@ -41,15 +43,15 @@ public sealed class SignInOutsideTheAppTests : IDisposable
         await ws.SendJsonAsync(new { id = page.Save }, TestContext.Current.CancellationToken);
         var frame = await ws.ReceiveUntilAsync(IsLocation, "the frame that loads the sign-in page");
 
-        AssertLocation(frame, "/login?returnUrl=%2Fuj%2Fopen%3Ftab%3D2", outside: true);
+        AssertLeavesFor(frame, "/login?ReturnUrl=%2Fuj%2Fopen%3Ftab%3D2");
         Assert.Empty(host.Services.GetRequiredService<SessionStaysItsUsersTests.Ledger>().Saves);
     }
 
     [Fact]
-    public async Task A_navigation_after_the_sign_in_ended_loads_the_site_s_sign_in_page_with_where_it_was_going()
+    public async Task A_navigation_after_the_sign_in_ended_loads_the_cookie_scheme_s_login_page_with_where_it_was_going()
     {
         HideTheSignInPage();
-        using var host = CreateHost();
+        using var host = CreateHost(loginPath: "/login");
         var page = await OpenAsync(host, "/uj/open");
         using var ws = await AttachAsync(host, page.SessionId);
         host.Services.GetRequiredService<Directory>().SignedOut = true;
@@ -57,13 +59,13 @@ public sealed class SignInOutsideTheAppTests : IDisposable
         await ws.SendJsonAsync(new { type = "navigate", path = "/kept" }, TestContext.Current.CancellationToken);
         var frame = await ws.ReceiveUntilAsync(IsLocation, "the frame that loads the sign-in page");
 
-        AssertLocation(frame, "/login?returnUrl=%2Fuj%2Fkept", outside: true);
+        AssertLeavesFor(frame, "/login?ReturnUrl=%2Fuj%2Fkept");
     }
 
     [Fact]
     public async Task An_app_with_its_own_sign_in_page_still_shows_it_in_place_with_the_way_back_inside_the_app()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(loginPath: "/login");
         var page = await OpenAsync(host, "/uj/open");
         using var ws = await AttachAsync(host, page.SessionId);
         host.Services.GetRequiredService<Directory>().SignedOut = true;
@@ -75,26 +77,53 @@ public sealed class SignInOutsideTheAppTests : IDisposable
     }
 
     [Fact]
-    public async Task A_tab_that_lost_its_user_reloads_into_the_site_s_sign_in_page_with_the_page_s_full_address()
+    public async Task An_app_with_no_sign_in_page_anywhere_leaves_the_page_where_it_is_drawn_for_nobody()
     {
         HideTheSignInPage();
-        using var host = CreateHost();
+        using var host = CreateHost(loginPath: null);
+        var page = await OpenAsync(host, "/uj/open");
+        using var ws = await AttachAsync(host, page.SessionId);
+        host.Services.GetRequiredService<Directory>().SignedOut = true;
+
+        await ws.SendJsonAsync(new { id = page.Save }, TestContext.Current.CancellationToken);
+        var frame = await ws.ReceiveUntilAsync(static f => f.Contains("who=anon", StringComparison.Ordinal), "the page drawn for nobody");
+
+        Assert.DoesNotContain("/login", frame, StringComparison.Ordinal);
+        Assert.False(IsLocation(frame));
+    }
+
+    [Fact]
+    public async Task A_tab_that_lost_its_user_reloads_into_the_cookie_scheme_s_login_page_with_the_page_s_full_address()
+    {
+        HideTheSignInPage();
+        using var host = CreateHost(loginPath: "/login");
 
         using var response = await ReloadAfterTheSignInEndedAsync(host, "/uj/open?tab=2");
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
-        Assert.Equal("/login?returnUrl=%2Fuj%2Fopen%3Ftab%3D2", response.Headers.Location?.OriginalString);
+        Assert.Equal("/login?ReturnUrl=%2Fuj%2Fopen%3Ftab%3D2", response.Headers.Location?.OriginalString);
     }
 
     [Fact]
     public async Task A_tab_that_lost_its_user_reloads_into_the_app_s_own_sign_in_page_under_its_path_base()
     {
-        using var host = CreateHost();
+        using var host = CreateHost(loginPath: "/login");
 
         using var response = await ReloadAfterTheSignInEndedAsync(host, "/uj/open?tab=2");
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.Equal("/uj/login?returnUrl=%2Fopen%3Ftab%3D2", response.Headers.Location?.OriginalString);
+    }
+
+    [Fact]
+    public async Task A_tab_that_lost_its_user_with_no_sign_in_page_anywhere_gets_its_page()
+    {
+        HideTheSignInPage();
+        using var host = CreateHost(loginPath: null);
+
+        using var response = await ReloadAfterTheSignInEndedAsync(host, "/uj/open?tab=2");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────
@@ -106,10 +135,18 @@ public sealed class SignInOutsideTheAppTests : IDisposable
             new RouteRegistration(typeof(FollowKeptPage), "/kept", null),
         ]);
 
-    private static RaskTestHost CreateHost() =>
+    // A host whose default challenge scheme is a cookie scheme with that login path; with none, a host whose
+    // authentication names no sign-in page.
+    private static RaskTestHost CreateHost(string? loginPath) =>
         RaskTestHost.Create<FollowApp>(
             services =>
             {
+                if (loginPath is not null)
+                {
+                    services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                        .AddCookie(o => o.LoginPath = loginPath);
+                }
+
                 services.AddSingleton<Directory>();
                 services.AddSingleton<SessionStaysItsUsersTests.Ledger>();
                 services.AddSingleton<SessionStaysItsUsersTests.Ticker>();
@@ -164,13 +201,14 @@ public sealed class SignInOutsideTheAppTests : IDisposable
 
     private static bool IsLocation(string frame) => frame.StartsWith("{\"type\":\"location\"", StringComparison.Ordinal);
 
-    private static void AssertLocation(string frame, string url, bool outside)
+    // A page load of an address used as written, replacing the page the reader is on.
+    private static void AssertLeavesFor(string frame, string url)
     {
         using var doc = JsonDocument.Parse(frame);
         var root = doc.RootElement;
         Assert.Equal(url, root.GetProperty("url").GetString());
         Assert.True(root.GetProperty("replace").GetBoolean());
-        Assert.Equal(outside, root.TryGetProperty("outside", out var o) && o.GetBoolean());
+        Assert.True(root.GetProperty("outside").GetBoolean());
     }
 
     // The app's user store, as far as these tests need it: whether the sign-in has ended.

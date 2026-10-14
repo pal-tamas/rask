@@ -604,7 +604,7 @@ public static partial class RaskEndpointExtensions
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-        if (SentToSignIn(httpContext, path, user, pathBaseNormalized, selector))
+        if (await SentToSignInAsync(httpContext, path, user, pathBaseNormalized, selector).ConfigureAwait(false))
         {
             return;
         }
@@ -3674,13 +3674,13 @@ public static partial class RaskEndpointExtensions
     // Where the guard sends the session's principal instead of a route; null when it may see the page (or the
     // path resolves to nothing — a NotFound page has nothing to gate). Moves nothing: moving the route asks
     // for a render, so a caller has to know the answer before it moves it. A session whose sign-in ended is sent
-    // to the sign-in page whatever the page, once (SignInAgain).
+    // to the sign-in page whatever the page, once (SignInAgainAsync).
     private static async Task<GuardRedirect?> GuardRouteAsync(
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
-        if (session.SignInEnded)
+        if (session.SignInEnded && await SignInAgainAsync(session, path, query).ConfigureAwait(false) is { } signIn)
         {
-            return SignInAgain(session, path, query);
+            return signIn;
         }
 
         var routeState = session.Services.GetRequiredService<RouteState>();

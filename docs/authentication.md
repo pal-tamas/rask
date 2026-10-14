@@ -400,12 +400,16 @@ names the app it is for — `__Host-rask-ended` over https, which a browser take
 neighbouring subdomain cannot plant it — and the server believes it once, for an anonymous request to that app,
 and removes it.
 
-The sign-in page need not be the app's. An app with no page at `/login` — one mounted with
-`MapRask<App>(pathBase: "/uj")` beside a site that signs its users in at `/login` — has nothing there its router
-could show, so the page is *loaded* from the site instead of navigated in place, the reloading tab is redirected
-there just the same, and the way back is the page's full address: `/login?returnUrl=%2Fuj%2Fdestinations%3Fpage%3D2`,
-which the site's sign-in can send the reader back to as it is. With a page of its own at `/login` the app shows it
-in place, at `/uj/login`, and the way back is the page's address inside the app (`returnUrl=%2Fdestinations…`).
+The sign-in page need not be the app's. With a page of its own at `/login` the app shows it in place — at
+`/uj/login` under `MapRask<App>(pathBase: "/uj")` — and the way back is the page's address inside the app
+(`returnUrl=%2Fdestinations…`). Without one, Rask goes where the host's authentication says its sign-in page is:
+the `LoginPath` of the default challenge scheme, when that is a cookie scheme (`.AddCookie(o => o.LoginPath =
+"/login")`). Its router has nothing there to show, so the page is *loaded* from there instead of navigated in
+place, the reloading tab is redirected there just the same, and the way back is the page's full address under the
+scheme's `ReturnUrlParameter`: `/login?ReturnUrl=%2Fuj%2Fdestinations%3Fpage%3D2`, which the host's sign-in can send
+the reader back to as it is. An app with neither has nowhere to send them: Rask cannot know who serves an address
+outside its routes, so it does not guess — the open page is drawn again for nobody under its own guard, and the
+reloading tab is served the page it asked for.
 
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.
