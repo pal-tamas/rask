@@ -20,8 +20,16 @@ internal static class HostBootstrap
     /// <summary>The sentinel whose presence tells the guard the client got back in. On tmpfs — a reboot clears it.</summary>
     internal const string GuardSentinel = "/run/rask-setup-ok";
 
-    /// <summary>Our sshd drop-in. A separate file so the guard can undo hardening with a single <c>rm</c>.</summary>
-    internal const string SshDropIn = "/etc/ssh/sshd_config.d/99-rask.conf";
+    /// <summary>
+    /// Our sshd drop-in. A separate file so the guard can undo hardening with a single <c>rm</c>. sshd keeps
+    /// the FIRST value it reads for a keyword and reads the directory in byte order, so the name has to sort
+    /// ahead of the providers' own files — Rackhost ships <c>00-apiv3.conf</c> with password and root login
+    /// on, cloud-init <c>50-cloud-init.conf</c>. <c>-</c> sorts before every digit, so <c>0-</c> goes first.
+    /// </summary>
+    internal const string SshDropIn = "/etc/ssh/sshd_config.d/0-rask.conf";
+
+    /// <summary>Where the drop-in used to live, sorted last and so overridden by any provider file. Removed once ours applies.</summary>
+    internal const string LegacySshDropIn = "/etc/ssh/sshd_config.d/99-rask.conf";
 
     /// <summary>How long the guard waits before assuming we're locked out and reverting.</summary>
     internal const string GuardDelay = "5min";
@@ -463,8 +471,7 @@ internal static class HostBootstrap
     private static string HardenScript(IReadOnlyList<string> settings)
     {
         var lines = string.Concat(settings.Select(s => s + "\\n"));
-        var checks = string.Join('\n', settings.Select(s =>
-            $"sshd -T | grep -qix '{s}' || {{ echo \"rask: sshd didn't apply '{s}'\" >&2; exit 1; }}"));
+        var checks = string.Join('\n', settings.Select(CheckApplied));
 
         return $$"""
             set -e
@@ -474,7 +481,19 @@ internal static class HostBootstrap
             sshd -t || { rm -f {{SshDropIn}}; echo "rask: refusing to reload sshd with a config it rejects" >&2; exit 1; }
             systemctl reload ssh 2>/dev/null || systemctl reload sshd
             {{checks}}
+            rm -f {{LegacySshDropIn}}
             """;
+    }
+
+    /// <summary>
+    /// Prove sshd took <paramref name="setting"/>; when it didn't, name the files that set the keyword, so the
+    /// person can see which one wins instead of being told only that something did.
+    /// </summary>
+    private static string CheckApplied(string setting)
+    {
+        var keyword = setting.Split(' ')[0];
+        return $"sshd -T | grep -qix '{setting}' || {{ echo \"rask: sshd didn't apply '{setting}'; '{keyword}' is also set in: "
+            + $"$(grep -ilE '^[[:space:]]*{keyword}[[:space:]]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | grep -v {SshDropIn} | tr '\\n' ' ')\" >&2; exit 1; }}";
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────────────

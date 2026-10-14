@@ -500,7 +500,7 @@ public class HostBootstrapPlanTests
         // Without the Include line our file changes nothing. Writing it and reporting success is a lie.
         var plan = HostBootstrap.Plan(BareRoot() with { SshConfigInclude = false }, FullSetup());
 
-        Assert.DoesNotContain("sshd_config.d/99-rask.conf", AllScripts(plan), StringComparison.Ordinal);
+        Assert.DoesNotContain(HostBootstrap.SshDropIn, AllScripts(plan), StringComparison.Ordinal);
         Assert.Contains(plan.Warnings, w => w.Contains("SSH hardening skipped", StringComparison.Ordinal) && w.Contains("Include", StringComparison.Ordinal));
     }
 
@@ -516,6 +516,40 @@ public class HostBootstrapPlanTests
         Assert.True(reload < verify, "the effective config is only meaningful after the reload");
         // grep -i matters: sshd -T prints its keywords lower-cased.
         Assert.Contains("grep -qix 'PermitRootLogin no'", harden, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("00-apiv3.conf")]       // Rackhost: PasswordAuthentication yes, PermitRootLogin yes
+    [InlineData("50-cloud-init.conf")]  // cloud-init images
+    [InlineData("01-permitrootlogin.conf")]
+    [InlineData("99-rask.conf")]        // our own old name
+    public void The_drop_in_sorts_ahead_of_the_providers_own_files(string provider)
+    {
+        // sshd keeps the first value it reads and reads the directory in byte order, so a file that sorts
+        // after a provider's is read and then ignored — the hardening would never take effect.
+        var ours = Path.GetFileName(HostBootstrap.SshDropIn);
+
+        Assert.True(string.CompareOrdinal(ours, provider) < 0, $"{ours} must sort before {provider}");
+    }
+
+    [Fact]
+    public void The_old_drop_in_is_removed_only_after_the_new_one_is_proven_applied()
+    {
+        var harden = HostBootstrap.Plan(BareRoot(), FullSetup()).Risky[^1].Script;
+
+        var verify = harden.LastIndexOf("sshd -T | grep", StringComparison.Ordinal);
+        var removeLegacy = harden.IndexOf($"rm -f {HostBootstrap.LegacySshDropIn}", StringComparison.Ordinal);
+        Assert.True(verify >= 0 && verify < removeLegacy, "a failed check must leave the old file in place");
+    }
+
+    [Fact]
+    public void A_setting_that_did_not_apply_names_the_files_that_set_it()
+    {
+        // "didn't apply" alone leaves the person hunting through sshd_config.d for whatever wins.
+        var harden = HostBootstrap.Plan(BareRoot(), FullSetup()).Risky[^1].Script;
+
+        Assert.Contains("'PasswordAuthentication' is also set in:", harden, StringComparison.Ordinal);
+        Assert.Contains("grep -ilE '^[[:space:]]*PasswordAuthentication[[:space:]]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf", harden, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -591,7 +625,7 @@ public class HostBootstrapGuardTests
         Assert.Contains("systemd-run --unit=rask-rollback --on-active=5min", arm, StringComparison.Ordinal);
         Assert.Contains("[ -f /run/rask-setup-ok ]", arm, StringComparison.Ordinal);
         Assert.Contains("ufw --force disable", arm, StringComparison.Ordinal);
-        Assert.Contains("rm -f /etc/ssh/sshd_config.d/99-rask.conf", arm, StringComparison.Ordinal);
+        Assert.Contains($"rm -f {HostBootstrap.SshDropIn}", arm, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -608,7 +642,7 @@ public class HostBootstrapGuardTests
         // turn it off — that is the one action that would leave the box more exposed than it started.
         Assert.DoesNotContain("ufw --force disable", arm, StringComparison.Ordinal);
         Assert.DoesNotContain("ufw disable", arm, StringComparison.Ordinal);
-        Assert.Contains("rm -f /etc/ssh/sshd_config.d/99-rask.conf", arm, StringComparison.Ordinal); // still reverts what it DID do
+        Assert.Contains($"rm -f {HostBootstrap.SshDropIn}", arm, StringComparison.Ordinal); // still reverts what it DID do
     }
 
     [Fact]
@@ -633,7 +667,7 @@ public class HostBootstrapGuardTests
 
         var arm = HostBootstrap.ArmGuardScript(plan, isRoot: true);
 
-        Assert.DoesNotContain("99-rask.conf", arm, StringComparison.Ordinal);
+        Assert.DoesNotContain(HostBootstrap.SshDropIn, arm, StringComparison.Ordinal);
         Assert.DoesNotContain("reload ssh", arm, StringComparison.Ordinal);
         Assert.Contains("ufw --force disable", arm, StringComparison.Ordinal);
     }
