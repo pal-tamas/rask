@@ -398,6 +398,12 @@ them until tagged releases begin.
   --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
   and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
   dist directory are never counted, so a glob that covers the host does not rebuild every time.
+- **`MapRask(pathBase:)` reaches the browser runtime without a `<base href>`** (#1235). The Server host's runtime
+  `<script>` tag now carries the prefix (`data-rask-base="/new/"`) and the runtime reads it before any `<base>`, so
+  its connection, pushed history and route paths are right under a path base the app never repeated. No `<base>` is
+  written for it: one would re-resolve every relative URL on the page. `docs/spa.md` also says which `wwwroot`
+  address a hand-wired host under a prefix should link.
+
 - **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
   build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
   `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC

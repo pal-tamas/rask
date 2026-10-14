@@ -4332,7 +4332,14 @@ public static partial class RaskEndpointExtensions
 
     private sealed partial class ServerRuntimeScript : IRaskRuntimeScript
     {
-        public Component Render() => Script.Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
+        // Under a path base the tag also carries the prefix, which the runtime reads for its socket URL, the
+        // history it pushes and the paths it strips (#1235). An attribute rather than a <base href>: a <base>
+        // re-resolves every relative URL in the page — `#section` becomes `/prefix/#section` — and the app may
+        // already have one. Omitted without a path base, so that page is byte-for-byte what it was.
+        public Component Render() => LiveOptions.PathBase.Length == 0
+            ? Script.Src(RuntimePath + "?v=" + Runtime.Value.Hash)
+            : Script.Data("rask-base", LiveOptions.PathBase + "/")
+                .Src(LiveOptions.PathBase + RuntimePath + "?v=" + Runtime.Value.Hash);
     }
 
     internal sealed class RaskLiveMarker

@@ -378,7 +378,8 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 sends, and the 15-second heartbeat stays inside its default 60-second `proxy_read_timeout` — but a proxy that
 ignores both must not buffer that path, and must not compress `text/event-stream`. Serve over HTTP/2 where you
 can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.MapRask<App>(pathBase:
-"/myapp")` and route `/myapp/*` to the container.
+"/myapp")` and route `/myapp/*` to the container; the page tells the browser runtime the prefix on its own
+`<script>` tag, so no `<base href>` is needed ([details](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
 
 **Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
 private`, because every page is [live](render-modes.md) and its document carries a session id that

@@ -402,6 +402,24 @@ the build stops with `CS0616: 'Route' is not an attribute class`. Rask does not 
 the whole project, because the app's controllers already use `[Route]` from `Microsoft.AspNetCore.Mvc`, and
 two `RouteAttribute`s in scope break every one of them (CS0104).
 
+**The prefix reaches the browser by itself.** The runtime's `<script>` tag carries it
+(`data-rask-base="/new/"`), and the runtime builds its connection, the addresses it pushes to history and the
+paths it routes from that, so the app writes no `<base href>`. Rask leaves `<base>` alone on purpose: one would
+re-resolve every relative URL of the page — `href="#reviews"` would lead to `/new/#reviews`. An app that writes
+its own `<base href>` keeps it; the runtime still takes the prefix from its tag.
+
+**Files under `wwwroot` are the host's to serve.** `MapRask` serves its own runtime and scoped assets under the
+prefix, never a `wwwroot` file, so a stylesheet linked as `LiveOptions.PathBase + "/css/app.css"`
+(`/new/css/app.css`) falls through to Rask's page catch-all and answers with a page. Link the address the host
+already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `UseStaticFiles()`:
+
+```csharp
+protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
+```
+
+To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
+BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.
+
 Each answers only its own paths — a route the old front end owns still gets its `index.html`, a page
 under `/new` is rendered by Rask, and the Rask runtime is served under the prefix and nowhere else. The
 old front end links to a moved page with an ordinary `<a href="/new/…">`, a full page load.
