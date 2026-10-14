@@ -45,10 +45,28 @@
 
       Chosen up front rather than as a `npm ci || npm install` shell fallback, which does work but
       prints a wall of "npm error" to stderr on every first build and reads exactly like a failure.
+
+      A yarn.lock or pnpm-lock.yaml counts as a lockfile too. Left at `npm ci`, the install command then
+      follows the lockfile: a frozen-lockfile `yarn install` or `pnpm install`, the same reproducible
+      install `npm ci` is. Any other value is run as written.
     -->
     <RaskSpaInstallCommand Condition="'$(RaskSpaInstallCommand)' == ''">npm ci</RaskSpaInstallCommand>
     <RaskSpaFirstInstallCommand Condition="'$(RaskSpaFirstInstallCommand)' == ''">npm install</RaskSpaFirstInstallCommand>
     <RaskSpaBuildCommand Condition="'$(RaskSpaBuildCommand)' == ''">npm run build</RaskSpaBuildCommand>
+
+    <!--
+      The client sources the bundler's output depends on, as globs relative to the client directory. A
+      change to any matching file rebuilds the bundle; nothing else does.
+
+      Name them when the sources live somewhere else — a repository-root package whose apps and libraries
+      sit under apps/ and libs/, say:
+
+          <RaskSpaClientInputs>*.json;*.js;apps/**/*;libs/**/*</RaskSpaClientInputs>
+
+      node_modules, any bin/ or obj/, and RaskSpaDistDir are always left out, so a glob over the whole
+      repository does not count this host's own build output, or the bundle, as a source.
+    -->
+    <RaskSpaClientInputs Condition="'$(RaskSpaClientInputs)' == ''">*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*</RaskSpaClientInputs>
 
     <!-- Where the bundler writes, relative to the client. Vite and Vue use dist; Angular nests its
          output under the app name (dist/<app>/browser). -->
