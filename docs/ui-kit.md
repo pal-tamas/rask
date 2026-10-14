@@ -953,6 +953,44 @@ Not measured, because no example on Flux's page shows these buttons: the icons o
 `superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
 icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
 
+## Composer
+
+`Ui.Composer` is Flux UI's composer ([fluxui.dev/components/composer](https://fluxui.dev/components/composer)):
+a message box with buttons around it, for a chat or a prompt. It sends the form it is in from the keyboard, and
+what was typed travels with that submit — typing sends nothing.
+
+```csharp
+Form.Model(chat).OnSubmit(Send)[
+    Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly().Placeholder("How can I help you today?")
+        .ActionsLeading([Ui.Button.Sm.Subtle.Icon(Ui.IconName.PaperClip), Ui.Button.Sm.Subtle.Icon(Ui.IconName.Slash)])
+        .ActionsTrailing([
+            Ui.Button.Sm.Filled.Icon(Ui.IconName.Microphone),
+            Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane),
+        ])
+]
+
+Ui.Composer.Bind(() => chat.Prompt).Rows(1).Inline()                 // the buttons in one row with the box
+Ui.Composer.Bind(() => chat.Prompt).Enter                            // Enter sends, Shift+Enter is a new line
+Ui.Composer.Bind(() => chat.Prompt).Rows(4).MaxRows(8)               // starts at 4 lines, grows to 8, then scrolls
+Ui.Composer.Bind(() => chat.Prompt).Variant(Ui.ComposerVariant.Input) // the corners of the other inputs
+Ui.Composer.Bind(() => chat.Prompt).Input(Ui.Editor.Toolbar("bold italic bullet ordered | link | align"))
+```
+
+- **Keys.** Ctrl+Enter or Cmd+Enter sends the form (Flux's `cmd+enter`); `.Enter` makes Enter alone send it and
+  leaves Shift+Enter for a new line. The keys are the runtime's (`data-rask-submit-keys`), in the keydown itself:
+  no newline lands first, and the form is submitted as its submit button would submit it. Outside a form the
+  keys do nothing. Neither key empties the box — the page does that in its submit handler.
+- **Height.** Two lines unless `Rows` says otherwise; the box grows a line at a time with its text up to
+  `MaxRows` (ten unless set) and scrolls from there (`data-rask-grow`). A box the page empties keeps its height,
+  as Flux's does.
+- **Slots.** `Header` (above the box: files about to be sent), `Footer`, `ActionsLeading` and `ActionsTrailing`
+  take any component; `Input` takes a `Ui.Editor`, which is then drawn without a box of its own, as tall as
+  `Rows` and `MaxRows` say, and bound to the composer's value (a `string` one).
+- **States.** `Disabled()` locks the box and every `Ui.Button` in its slots. `Invalid()` — or a bound member the
+  form calls invalid — draws the red border; the message is the field's `Ui.Error`.
+- **Field.** `Label` / `Description` wrap it in a `Ui.Field`; `LabelSrOnly()` / `DescriptionSrOnly()` keep them
+  for screen readers only. The composer is a `role="group"` named by its label and described by its description.
+
 ## Pagination
 
 `Ui.Pagination` is Flux UI's `flux:pagination`. Flux hands it a Laravel paginator; Rask hands it a
@@ -1528,7 +1566,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Flag` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |

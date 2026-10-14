@@ -85,6 +85,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Composer` — Flux UI's composer, a message box for a chat or a prompt.** Before: a chat box was a
+  `Ui.Textarea` and buttons laid out by hand, and sending it took a press on the button. After:
+  `Form.Model(chat).OnSubmit(Send)[Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly()
+  .ActionsLeading(…).ActionsTrailing(Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane))]`
+  — every prop and slot of Flux's (`Rows`, `MaxRows`, `Inline`, `Submit` (`.Enter`), `Variant`, `Disabled`,
+  `Invalid`, `Name`, `Header`, `Footer`, `Input`, `ActionsLeading`, `ActionsTrailing`, `LabelSrOnly`,
+  `DescriptionSrOnly`), held to fluxui.dev's nine examples in light and dark. Ctrl/Cmd+Enter (or Enter) sends the
+  form in the browser with what was typed, the box grows a line at a time to `MaxRows`, and typing sends nothing;
+  a `Ui.Editor` in `Input` stands in for the box. Two runtime hooks come with it, `data-rask-submit-keys` and
+  `data-rask-grow`.
+
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
