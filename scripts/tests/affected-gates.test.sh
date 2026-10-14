@@ -85,6 +85,9 @@ expect_has   "the feed's own fixture reaches the CLI gates"        packaging tes
 expect_has   "the CLI reaches the CLI gates"                       packaging src/Rask.Cli/Program.cs
 expect_has   "a template reaches the CLI gates"                    packaging src/Rask.Templates/server/Program.cs
 expect_has   "a shipped project file reaches the CLI gates"        packaging src/Rask.Mail/Rask.Mail.csproj
+expect_has   "a kit component reaches the CLI gates (#1214)"       packaging src/Rask.Ui/UiSelectSearch.cs
+expect_has   "the kit's Tailwind input reaches the CLI gates"      packaging src/Rask.Ui/Styles/ui.css
+expect_has   "the Tailwind build task reaches the CLI gates"       packaging src/Rask.Tailwind.Tasks/CssClassNames.cs
 
 # The front-end gates are one job per template, also selected by file: a template's tree reaches its
 # own job, and what installs, generates, bundles and serves every front end reaches all of them.
