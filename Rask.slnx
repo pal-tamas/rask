@@ -49,6 +49,7 @@
         <Project Path="src/Rask.Testing/Rask.Testing.csproj" />
         <Project Path="src/Rask.Web/Rask.Web.csproj" />
         <Project Path="src/Rask.WebPush/Rask.WebPush.csproj" />
+        <Project Path="src/Rask.Xlsx/Rask.Xlsx.csproj" />
         <Project Path="src/Rask.Wasm.Tasks/Rask.Wasm.Tasks.csproj" />
         <Project Path="src/Rask.Wasm/Rask.Wasm.csproj" />
         <Project Path="src/Rask.Wire/Rask.Wire.csproj" />
@@ -124,6 +125,7 @@
         <Project Path="tests/Rask.Testing.Fixture.App/Rask.Testing.Fixture.App.csproj" />
         <Project Path="tests/Rask.Web.Tests/Rask.Web.Tests.csproj" />
         <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj" />
+        <Project Path="tests/Rask.Xlsx.Tests/Rask.Xlsx.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj" />
         <Project Path="tests/Rask.Wire.Tests/Rask.Wire.Tests.csproj" />

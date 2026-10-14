@@ -343,6 +343,15 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_password_input_is_never_given_the_value_the_page_holds()
+    {
+        var html = Page.Render(Ui.Input.Value("hunter2").Type(InputType.Password).Viewable().Id("secret")).Html;
+
+        Assert.DoesNotContain("hunter2", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-secret", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_reveal_button_asks_the_runtime_to_show_the_password_and_sends_the_page_nothing()
     {
         var html = Page.Render(Ui.Input.Value("hunter2").Type(InputType.Password).Viewable().Id("secret")).Html;

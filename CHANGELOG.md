@@ -7,8 +7,24 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
+  returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
+  Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with
+  Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
+  moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
+  `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+
 ### Security
 
+- **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
+  model's password changed, the typed text came back over the live connection as an attribute write. After: an
+  `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private
+  `Ui.Otp`'s hidden field) never has its text written by the server, not in the first page, a live update or a
+  whole-page reply, on either transport and in the browser host. The typed text still reaches the server with the
+  event; a server-side set to `""` clears the field, and a set to anything else leaves what the reader typed. The
+  field now carries `data-rask-secret`.
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine

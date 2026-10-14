@@ -134,7 +134,12 @@ export function syncFormProperty(el: Element | null, name: string, value: string
     // carry the IDL property being mirrored, which is the whole point of the function.
     if (name === "value" && (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT")) {
         if (document.activeElement === el) return;
-        if (raskShouldSuppressValue(el, value)) return;
+        // A secret field's value is the reader's: the server never writes it, so its attribute going away is
+        // the server not saying it, and not a clear. What does arrive is value="" and is always a clear: the
+        // lagging-frame guard below stands for echoes of typing, and a secret has none.
+        const secret = el.hasAttribute("data-rask-secret");
+        if (secret && !isPresent) return;
+        if (!secret && raskShouldSuppressValue(el, value)) return;
         (el as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement).value = value;
     } else if (name === "checked" && tag === "INPUT") {
         if (raskShouldSuppressChecked(el, !!isPresent)) return;
