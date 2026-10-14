@@ -885,7 +885,7 @@ build writes the file and the server serves it from there, so the app's own `www
 Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
 strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
 
-**Third-party code.** The engine bundles Tiptap 2.11.7 and ProseMirror (47 packages, all MIT), and eleven
+**Third-party code.** The engine bundles Tiptap 3.32.0 and ProseMirror (39 packages, all MIT), and eleven
 of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
 Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
 in `wwwroot/js`, so they travel with the copy your app serves.

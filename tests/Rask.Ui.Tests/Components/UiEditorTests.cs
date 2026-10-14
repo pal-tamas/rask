@@ -249,7 +249,7 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
         var notices = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.LICENSES.txt"));
 
         var licences = Regex.Matches(notices, "^(\\S+) (\\S+) — (.+)$", RegexOptions.Multiline);
-        Assert.Contains(licences, licence => licence.Groups[1].Value == "@tiptap/core" && licence.Groups[2].Value == "2.11.7");
+        Assert.Contains(licences, licence => licence.Groups[1].Value == "@tiptap/core" && licence.Groups[2].Value == "3.32.0");
         Assert.Contains(licences, licence => licence.Groups[1].Value == "prosemirror-model" && licence.Groups[2].Value == "1.25.1");
         Assert.All(licences, licence => Assert.Equal(licence.Groups[1].Value == "lucide" ? "ISC" : "MIT", licence.Groups[3].Value.Trim()));
     }
