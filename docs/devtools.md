@@ -42,7 +42,8 @@ opened that page.
 ## Nothing of it ships
 
 `RaskDevTools` is `true` in a Debug build and `false` in every other. When it is `false`, a publish leaves out the
-devtools assembly, its scripts and its entry in the `.deps.json`. Then it checks the output, and **fails the
+devtools assembly, its scripts and its entry in the `.deps.json`, and the app's own assembly never names it as an
+MVC application part. Then it checks the output, and **fails the
 publish** if any of them is still there. Set the property yourself to decide otherwise, for example to turn the
 devtools off in a Debug build:
 
