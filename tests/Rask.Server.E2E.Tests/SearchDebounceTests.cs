@@ -23,6 +23,9 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
     // Long enough for a frame and a timer of none, and nowhere near the pause.
     private const int Settle = 20;
 
+    // A round trip over a line slower than this machine's loopback.
+    private const int OverALine = 250;
+
     private static ILocator Row(IPage page, string control, string name) =>
         page.Locator($"#{control} [role=option]:not([data-hidden])").Filter(new() { HasText = name });
 
@@ -31,6 +34,7 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         var session = await HookSession.OpenAsync<SearchDebouncePage>(playwright, beforeLoad: async page =>
         {
             await SentFrames.Count(page);
+            await HeldReplies.Install(page);
             await PageClock.Install(page);
         });
         await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
@@ -104,10 +108,16 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await using var session = await OpenAsync();
         var page = session.Page;
         await page.Locator("#combo input[role=combobox]").FocusAsync();
+        await PageClock.StopAsync(page);
 
         await page.Keyboard.TypeAsync("ber");
+        // The keys are heard a frame after they are typed, and open the list. The pause has not begun to end.
+        await page.Clock.RunForAsync(Settle);
         await Expect(page.Locator("#combo [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
+        var askedBeforeThePause = await page.Locator("#combo-searches").TextContentAsync();
+        await page.Clock.RunForAsync(Pause);
         await Expect(page.Locator("#combo-searches")).ToHaveTextAsync("[ber]");
+        Assert.Equal(string.Empty, askedBeforeThePause);
 
         await Expect(page.Locator("#combo [role=option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
         await Expect(page.Locator("#combo input[role=combobox]")).ToHaveValueAsync("ber");
@@ -339,6 +349,36 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
 
         await Expect(searches).ToHaveTextAsync("[Bersa]");
         await Expect(field).ToHaveValueAsync("Bersa");
+    }
+
+    // The pick writes its text into the input and then asks for focus: two calls into the browser, each awaited.
+    // On a line slower than the page — here the first call is held until it has certainly left the server — the
+    // second call was never sent, the handler waited on it for good, and the page never drew the text it held.
+    [Fact]
+    public async Task An_item_pressed_over_a_slow_line_is_the_text_once_the_browser_has_answered_both_of_the_picks_calls()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var field = page.Locator("#auto input[role=combobox]");
+        await field.FocusAsync();
+        await PageClock.StopAsync(page);
+        await field.PressSequentiallyAsync("ber");
+        await page.Clock.RunForAsync(Pause / 4);
+        // The pointer over the row first, and that heard: what is held from here is the press and what it asked for.
+        await Row(page, "auto", "Bersa").HoverAsync();
+        await RoundTripAsync(page);
+        await HeldReplies.HoldAsync(page);
+
+        await Row(page, "auto", "Bersa").ClickAsync();
+        await HeldReplies.ArrivedAsync(page, "jsInvokes");
+        // The answer leaves well after the repaint that asked for it has returned, as it does over a real line.
+        // Only the bug needs the wait: with the call sent, any answer is in time.
+        await Task.Delay(OverALine, TestContext.Current.CancellationToken);
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#auto-text")).ToHaveTextAsync("Bersa");
+        await Expect(field).ToHaveValueAsync("Bersa");
+        await Expect(field).ToBeFocusedAsync();
     }
 
     [Fact]

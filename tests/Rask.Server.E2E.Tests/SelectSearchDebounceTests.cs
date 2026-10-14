@@ -48,7 +48,8 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
     private static async Task OpenWhileTimeRunsAsync(IPage page, string select)
     {
         await page.ClickAsync($"#{select} [data-ui-select-button]");
-        await Expect(page.Locator($"#{select} [data-ui-select-button]")).ToHaveAttributeAsync("aria-expanded", "true");
+        // The page's answer, not the browser's: aria-expanded is written by the browser at the press.
+        await Expect(page.Locator($"#{select} [popover]")).ToHaveAttributeAsync("data-rask-popover-open", "true");
         await Expect(Field(page, select)).ToBeFocusedAsync();
     }
 

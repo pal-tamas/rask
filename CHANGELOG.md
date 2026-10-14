@@ -322,6 +322,9 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
+  Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — every `Rask.Ui`
+  handler, such as `Ui.Autocomplete`'s pick — was never sent, and the session waited on it for good.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

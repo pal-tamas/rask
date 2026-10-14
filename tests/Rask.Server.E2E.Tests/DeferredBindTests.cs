@@ -356,16 +356,16 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
     [Fact]
     public async Task Two_rows_pressed_before_the_page_answered_the_opening_of_the_list_are_both_picked()
     {
-        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright, beforeLoad: HoldReplies);
+        await using var session = await HookSession.OpenAsync<DeferredChosenPage>(playwright, beforeLoad: HeldReplies.Install);
         var page = session.Page;
         await Ready(page);
-        await page.EvaluateAsync("() => { window.__holding = true; }");
+        await HeldReplies.HoldAsync(page);
 
         await page.ClickAsync("#extras [data-ui-select-button]");
         await page.Locator("#extras [data-ui-option]").Filter(new() { HasText = "Breakfast" }).ClickAsync();
         await page.Locator("#extras [data-ui-option]").Filter(new() { HasText = "Parking" }).ClickAsync();
         var drawnWhileHeld = await page.Locator("#extras [data-ui-select-button]").TextContentAsync();
-        await page.EvaluateAsync("() => window.__release()");
+        await HeldReplies.ReleaseAsync(page);
 
         await Expect(page.Locator("#extras [data-ui-select-button]")).ToContainTextAsync("2 selected");
         Assert.Contains("Choose…", drawnWhileHeld, StringComparison.Ordinal);
@@ -452,25 +452,6 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
             window.__sent += frame.type === "batch" ? frame.events.length : 1;
             window.__frames++;
             return send.call(this, data);
-        };
-        """);
-
-    // The socket's replies wait in the page while the test says so, and land in order once it lets go: a line
-    // slower than the reader, with no clock in it.
-    private static Task HoldReplies(IPage page) => page.AddInitScriptAsync(
-        """
-        window.__holding = false;
-        const held = [];
-        window.__release = function () {
-            window.__holding = false;
-            for (const deliver of held.splice(0)) deliver();
-        };
-        const listen = WebSocket.prototype.addEventListener;
-        WebSocket.prototype.addEventListener = function (type, listener, options) {
-            if (type !== "message") return listen.call(this, type, listener, options);
-            return listen.call(this, type, function (e) {
-                if (window.__holding) held.push(() => listener(e)); else listener(e);
-            }, options);
         };
         """);
 
