@@ -322,6 +322,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A TypeScript tool fetched at build time asks again when the network fails for a moment.** The tsgo / esbuild /
+  compiler download (and its registry metadata) is retried twice, after 2 s and 5 s, on a dropped connection, a
+  timeout or a registry 5xx/408/429; a 404 or a download that fails its integrity check still fails at once, and
+  the final error says how many times it asked. A runner whose network blinked during `Rask.TypeScript` no longer
+  fails the build (seen on the angular front-end gate). The per-user cache is unchanged: a machine that fetched a
+  version once never asks the network for it again.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

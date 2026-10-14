@@ -153,12 +153,14 @@ public sealed class ResolveTypeScriptToolTask : Task
         {
             Fetch(packageName, directory, tarball, native ? entry : null);
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or WebException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or WebException or UnauthorizedAccessException
+                                       or System.Threading.Tasks.TaskCanceledException)
         {
             // Fatal, unlike the Tailwind resolver's equivalent. There it can still try npm; here there is
             // nothing else to try, and continuing would produce an app whose TypeScript silently never
             // compiled.
-            Log.LogError($"Rask.TypeScript: could not fetch {packageName}@{Version} — {ex.Message}");
+            var tried = TransientRetry.IsTransient(ex) ? $" (asked {TransientRetry.Waits.Count + 1} times)" : "";
+            Log.LogError($"Rask.TypeScript: could not fetch {packageName}@{Version}{tried} — {ex.Message}");
             return false;
         }
 
@@ -198,7 +200,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         // Verified rather than trusted: these bytes are about to be executed by the build.
         var expected = RecordedIntegrity(packageName) ?? PublishedIntegrity(http, packageName);
 
-        var bytes = http.GetByteArrayAsync(tarballUrl).GetAwaiter().GetResult();
+        var bytes = Ask(() => http.GetByteArrayAsync(tarballUrl).GetAwaiter().GetResult(), packageName);
         var actual = Sha512Integrity(bytes);
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
@@ -209,6 +211,15 @@ public sealed class ResolveTypeScriptToolTask : Task
 
         return bytes;
     }
+
+    // A registry or a runner's network that fails for a moment is asked again; an answer that will not change is not.
+    private T Ask<T>(Func<T> request, string packageName) =>
+        TransientRetry.Run(
+            request,
+            TransientRetry.Waits,
+            (ex, next) => Log.LogMessage(
+                MessageImportance.High,
+                $"Rask.TypeScript: fetching {packageName}@{Version} failed ({ex.Message}); asking again, attempt {next} of {TransientRetry.Waits.Count + 1}…"));
 
     // The integrity this build was told to expect, or the one recorded in the repository for a pinned
     // version. Null for a version nobody recorded one for.
@@ -225,9 +236,9 @@ public sealed class ResolveTypeScriptToolTask : Task
             $"Rask.TypeScript: Rask records no digest for {packageName}@{Version}, so it is checked only "
             + $"against the integrity its own registry publishes. {HowToPin()}");
 
-        var metadata = http
-            .GetStringAsync(TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version))
-            .GetAwaiter().GetResult();
+        var metadata = Ask(
+            () => http.GetStringAsync(TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version)).GetAwaiter().GetResult(),
+            packageName);
 
         // A metadata document that carries no SHA-512 is a failure, not "nothing to check".
         return TypeScriptTools.ExpectedIntegrity(metadata)
