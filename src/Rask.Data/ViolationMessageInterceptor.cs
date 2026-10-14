@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Rask.Cqrs;
@@ -12,15 +13,16 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         It also tells the context's <see cref="ViolationLogging" /> when a save starts and ends, which is what
-///         keeps EF Core's own error for a translated refusal out of the log.
+///         It also tells the context's <see cref="ViolationLogging" /> when a save starts and ends, and — as a
+///         command interceptor too, the same instance in both roles — which exception a failed command threw: that
+///         is what keeps EF Core's own errors for exactly the refusal it translated out of the log.
 ///     </para>
 ///     <para>
 ///         Registered LAST by <c>AddRaskData</c>: it replaces the exception by throwing, and an interceptor after it
 ///         would not be told the save failed.
 ///     </para>
 /// </remarks>
-internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
+internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor, IDbCommandInterceptor
 {
     /// <summary>
     ///     The validation failure <paramref name="failure" /> stands for, when the model has a sentence for it;
@@ -47,7 +49,7 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
     /// <inheritdoc />
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
-        Ended(eventData, translated: false);
+        Ended(eventData);
         return base.SavedChanges(eventData, result);
     }
 
@@ -55,14 +57,14 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
     public override ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
-        Ended(eventData, translated: false);
+        Ended(eventData);
         return base.SavedChangesAsync(eventData, result, cancellationToken);
     }
 
     /// <inheritdoc />
     public override void SaveChangesCanceled(DbContextEventData eventData)
     {
-        Ended(eventData, translated: false);
+        Ended(eventData);
         base.SaveChangesCanceled(eventData);
     }
 
@@ -70,7 +72,7 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
     public override Task SaveChangesCanceledAsync(
         DbContextEventData eventData, CancellationToken cancellationToken = default)
     {
-        Ended(eventData, translated: false);
+        Ended(eventData);
         return base.SaveChangesCanceledAsync(eventData, cancellationToken);
     }
 
@@ -89,6 +91,23 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
         return base.SaveChangesFailedAsync(eventData, cancellationToken);
     }
 
+    /// <inheritdoc />
+    public void CommandFailed(DbCommand command, CommandErrorEventData eventData) => Failed(eventData);
+
+    /// <inheritdoc />
+    public Task CommandFailedAsync(
+        DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        Failed(eventData);
+        return Task.CompletedTask;
+    }
+
+    private static void Failed(CommandErrorEventData eventData)
+    {
+        ArgumentNullException.ThrowIfNull(eventData);
+        ViolationLogging.Of(eventData.Context)?.CommandFailed(eventData.Exception);
+    }
+
     private static void Starting(DbContextEventData eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
@@ -99,18 +118,19 @@ internal sealed class ViolationMessageInterceptor : SaveChangesInterceptor
         }
     }
 
-    private static void Ended(DbContextEventData eventData, bool translated)
+    private static void Ended(DbContextEventData eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
-        ViolationLogging.Of(eventData.Context)?.SaveEnded(translated);
+        ViolationLogging.Of(eventData.Context)?.SaveEnded(translated: null);
     }
 
     private static void Translate(DbContextErrorEventData eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
 
-        var violation = Translation(eventData.Context, eventData.Exception);
-        Ended(eventData, violation is not null);
+        var logging = ViolationLogging.Of(eventData.Context);
+        var violation = logging?.TranslationOf(eventData.Exception) ?? Translation(eventData.Context, eventData.Exception);
+        logging?.SaveEnded(violation is null ? null : eventData.Exception);
 
         if (violation is not null)
         {

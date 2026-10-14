@@ -237,7 +237,7 @@ field and none on the form:
 
 ```csharp
 Form.Model(_destination).OnSubmit(Save)[
-    Ui.Input.Bind(() => _destination.Name).Debounce(300.Milliseconds),   // no unique step
+    Ui.Input.Bind(() => _destination.Name),   // no unique step
     Ui.Button.Submit["Save"]
 ]
 ```
@@ -248,6 +248,8 @@ field — and once more on submit, for
 the whole model. It is never asked about a value still being typed into a field that writes every
 keystroke, and never about a value one of the field's own rules rejects; on submit it is asked only once
 every rule on the form has passed, so a known duplicate does not reach the save.
+A field under a unique rule keeps the default binding, as above: the name it holds is asked with the
+reader's next action, and a taken one is told at Save.
 
 What it says is shown exactly as a refused save is: under each field the failure names, the `Marked`
 ones only turned invalid, gone from all of them at the first keystroke of a correction. A value the store

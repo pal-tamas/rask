@@ -333,7 +333,8 @@ them until tagged releases begin.
   and `Database.Command[20102]` ("Failed executing DbCommand"), so every refused delete was an error in
   production. EF Core logs both before any interceptor hears of the failure, so no interceptor can take them
   back: a `RaskDbContext` now logs through a factory that holds the failed command until the save's failure is
-  known, drops both when the model has a sentence for it, and writes one Debug line on `Rask.Data` instead. A
+  known, drops the two only for the very exception the model's sentence replaced, and writes one Debug line on
+  `Rask.Data` instead. Every other entry, the app's own in those categories included, passes through with its scopes. A
   failure with no sentence is logged exactly as before, in the same order; a context of your own that does not
   derive from `RaskDbContext` is unchanged.
 
@@ -802,7 +803,8 @@ them until tagged releases begin.
 - **The data guide says when a unique rule is asked.** "When a bound field is committed" read as "on blur": with
   the default binding a field is committed with the reader's next action — a click, a submit — and a `.Blur()`
   field on leaving it. A unique-ruled field keeps the default binding, so a taken name is told at Save
-  ([data.md](docs/data.md#what-a-form-over-the-model-asks-by-itself), `llms.txt`).
+  ([data.md](docs/data.md#what-a-form-over-the-model-asks-by-itself), `llms.txt`), and the forms guide's example
+  of a unique-ruled field no longer debounces it ([forms-validation.md](docs/forms-validation.md#the-database-said-no)).
 
 - **The guides lead with Flux's controls and the conventions an app is written by.** The tutorial's pages declare
   `PageTitle` and its grid gives every column but one a width; the data grid guide has
