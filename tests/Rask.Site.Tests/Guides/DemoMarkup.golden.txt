@@ -4458,7 +4458,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4473,7 +4473,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4488,7 +4488,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4503,7 +4503,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4518,7 +4518,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4533,7 +4533,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4548,7 +4548,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4563,7 +4563,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4578,7 +4578,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4593,7 +4593,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4608,7 +4608,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4623,7 +4623,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4638,7 +4638,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4653,7 +4653,7 @@ tr .md-row
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-transparent .dark:hover:bg-white/15 .dark:hover:text-white .dark:text-zinc-400 .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-800/5 .hover:text-zinc-800 .inline-flex .items-center .justify-center .no-underline .p-0 .relative .rounded-lg .text-sm .text-zinc-500 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4732,7 +4732,7 @@ input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zi
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .[--ui-hue-200:var(--color-red-200)] .[--ui-hue-300:var(--color-red-300)] .[--ui-hue-400:var(--color-red-400)] .[--ui-hue-500:var(--color-red-500)] .[--ui-hue-50:var(--color-red-50)] .[--ui-hue-600:var(--color-red-600)] .[--ui-hue-700:var(--color-red-700)] .[--ui-hue-950:var(--color-red-950)] .[--ui-hue-accent:var(--color-red-400)] .bg-white .border .border-[color:color-mix(in_oklab,var(--ui-hue-500)_18%,var(--color-zinc-200))] .border-b-[color:color-mix(in_oklab,color-mix(in_oklab,var(--ui-hue-500)_26%,var(--color-zinc-300))_80%,transparent)] .dark:bg-zinc-700 .dark:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_22%,var(--color-zinc-600))] .dark:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_30%,var(--color-zinc-600))] .dark:hover:bg-[color-mix(in_oklab,var(--ui-hue-accent)_10%,var(--color-zinc-700))] .dark:hover:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_32%,var(--color-zinc-600))] .dark:hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_40%,var(--color-zinc-600))] .dark:text-(color:--ui-hue-accent) .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-[color-mix(in_oklab,var(--ui-hue-400)_6%,var(--color-white))] .hover:border-[color:color-mix(in_oklab,var(--ui-hue-500)_28%,var(--color-zinc-200))] .hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-500)_36%,var(--color-zinc-200))] .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .relative .rounded-lg .shadow-xs .text-(color:--ui-hue-700) .text-sm .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4800,7 +4800,7 @@ input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zi
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .[--ui-hue-200:var(--color-red-200)] .[--ui-hue-300:var(--color-red-300)] .[--ui-hue-400:var(--color-red-400)] .[--ui-hue-500:var(--color-red-500)] .[--ui-hue-50:var(--color-red-50)] .[--ui-hue-600:var(--color-red-600)] .[--ui-hue-700:var(--color-red-700)] .[--ui-hue-950:var(--color-red-950)] .[--ui-hue-accent:var(--color-red-400)] .bg-white .border .border-[color:color-mix(in_oklab,var(--ui-hue-500)_18%,var(--color-zinc-200))] .border-b-[color:color-mix(in_oklab,color-mix(in_oklab,var(--ui-hue-500)_26%,var(--color-zinc-300))_80%,transparent)] .dark:bg-zinc-700 .dark:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_22%,var(--color-zinc-600))] .dark:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_30%,var(--color-zinc-600))] .dark:hover:bg-[color-mix(in_oklab,var(--ui-hue-accent)_10%,var(--color-zinc-700))] .dark:hover:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_32%,var(--color-zinc-600))] .dark:hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_40%,var(--color-zinc-600))] .dark:text-(color:--ui-hue-accent) .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-[color-mix(in_oklab,var(--ui-hue-400)_6%,var(--color-white))] .hover:border-[color:color-mix(in_oklab,var(--ui-hue-500)_28%,var(--color-zinc-200))] .hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-500)_36%,var(--color-zinc-200))] .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .relative .rounded-lg .shadow-xs .text-(color:--ui-hue-700) .text-sm .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
@@ -4871,14 +4871,14 @@ input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zi
 td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .me-1 .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
 path
 button .[--ui-hue-200:var(--color-red-200)] .[--ui-hue-300:var(--color-red-300)] .[--ui-hue-400:var(--color-red-400)] .[--ui-hue-500:var(--color-red-500)] .[--ui-hue-50:var(--color-red-50)] .[--ui-hue-600:var(--color-red-600)] .[--ui-hue-700:var(--color-red-700)] .[--ui-hue-950:var(--color-red-950)] .[--ui-hue-accent:var(--color-red-400)] .bg-white .border .border-[color:color-mix(in_oklab,var(--ui-hue-500)_18%,var(--color-zinc-200))] .border-b-[color:color-mix(in_oklab,color-mix(in_oklab,var(--ui-hue-500)_26%,var(--color-zinc-300))_80%,transparent)] .dark:bg-zinc-700 .dark:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_22%,var(--color-zinc-600))] .dark:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_30%,var(--color-zinc-600))] .dark:hover:bg-[color-mix(in_oklab,var(--ui-hue-accent)_10%,var(--color-zinc-700))] .dark:hover:border-[color:color-mix(in_oklab,var(--ui-hue-accent)_32%,var(--color-zinc-600))] .dark:hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-accent)_40%,var(--color-zinc-600))] .dark:text-(color:--ui-hue-accent) .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-[color-mix(in_oklab,var(--ui-hue-400)_6%,var(--color-white))] .hover:border-[color:color-mix(in_oklab,var(--ui-hue-500)_28%,var(--color-zinc-200))] .hover:border-b-[color:color-mix(in_oklab,var(--ui-hue-500)_36%,var(--color-zinc-200))] .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .relative .rounded-lg .shadow-xs .text-(color:--ui-hue-700) .text-sm .w-10 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
-svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+svg .[:where(&amp;)]:size-5 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 svg .[:where(&amp;)]:size-5 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-5 .transition-opacity
