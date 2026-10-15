@@ -600,26 +600,46 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         context.AddSource("__RaskConventions.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
-    // A child's tenancy is its root's, always. Declared on the root because that is where the aggregate
-    // boundary is; registered for the child because the child's own read face would otherwise be unfiltered.
+    // A child's tenancy is its root's, always — at any depth: a grandchild reaches the root through its parent.
+    // Declared on the root because that is where the aggregate boundary is; registered for every entity under it
+    // because each one's own read face would otherwise be unfiltered.
     private static Dictionary<string, int> ScopeByType(List<Candidate> distinct)
     {
         var scopeByType = new Dictionary<string, int>(StringComparer.Ordinal);
+        var byName = new Dictionary<string, Candidate>(StringComparer.Ordinal);
+
+        foreach (var candidate in distinct)
+        {
+            byName[candidate.FullyQualifiedName] = candidate;
+        }
 
         foreach (var entity in distinct.Where(static c => c.Scope is not null))
         {
             scopeByType[entity.FullyQualifiedName] = entity.Scope!.Value;
-
-            // A child of two roots is partitioned when either root is: the safe answer never depends on the order.
-            foreach (var child in entity.ChildTypeNames)
-            {
-                scopeByType[child] = scopeByType.TryGetValue(child, out var other)
-                    ? Math.Max(other, entity.Scope.Value)
-                    : entity.Scope.Value;
-            }
+            Descend(entity, entity.Scope.Value, depth: 0);
         }
 
         return scopeByType;
+
+        // A child of two roots is partitioned when either root is: the safe answer never depends on the order.
+        // The same ceiling the runtime walks with, which also makes a cycle impossible to loop on.
+        void Descend(Candidate parent, int scope, int depth)
+        {
+            if (depth >= 4)
+            {
+                return;
+            }
+
+            foreach (var child in parent.ChildTypeNames)
+            {
+                scopeByType[child] = scopeByType.TryGetValue(child, out var other) ? Math.Max(other, scope) : scope;
+
+                if (byName.TryGetValue(child, out var next))
+                {
+                    Descend(next, scope, depth + 1);
+                }
+            }
+        }
     }
 
     private static void DeclareConventions(StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType)

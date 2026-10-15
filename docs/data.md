@@ -1082,7 +1082,8 @@ and the message shows under the field, or under each field of an index over seve
 - for the **current tenant's rows only**: the tenant is the one in flight, never the form's to say, and with no
   tenant — or inside `Tenant.Across()` — the rule is left to the save. An index declared
   [`.AcrossTenants()`](multi-tenancy.md#a-key-that-is-unique-across-every-tenant) is asked about **every
-  tenant's rows**, with a tenant or without one
+  tenant's rows**, with a tenant or without one. A child [read through its parent](multi-tenancy.md#a-child-belongs-to-its-roots-tenant)
+  is asked through that parent, so within the tenant too
 - an edit form does not collide with **the row it was filled from**: the model remembers its key from
   `Destination.Model(id)` / `ToModel()`. It is not a field — nothing binds or posts it — and it only decides
   which row this courtesy check leaves out; the save takes its id beside the model and is checked on its own
@@ -1178,6 +1179,9 @@ and [at every event by a live page](multi-tenancy.md#from-the-request-a-resolver
 filters with nothing passed to it and a page follows its user into the tenant they chose; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
 crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.
+A child takes its root's answer: one that declares no `TenantId` has no column and is
+[read through its parent](multi-tenancy.md#a-child-belongs-to-its-roots-tenant) — an `EXISTS` on the parent's
+key and tenant, one per parent for a table two aggregates hold (`Driver.Chips`, `Vehicle.Chips`).
 `RaskAppDbContext` applies it; a context of your own calls `modelBuilder.ApplyRaskConventions(this)`.
 
 Where the tenant comes from, administrators, what it means for jobs, mail, the outbox, the cache, file storage

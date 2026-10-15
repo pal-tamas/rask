@@ -280,10 +280,20 @@ public static class ModelBuilderExtensions
         var clrType = entityType.ClrType;
         var builder = modelBuilder.Entity(clrType);
 
-        if (!typeof(IAggregate).IsAssignableFrom(clrType) &&
-            entityType.FindProperty(Columns.TenantId) is null &&
-            TenantParents.KeysOf(entityType, TenantParents.IsPartitioned) is { Count: > 0 } parents)
+        if (!typeof(IAggregate).IsAssignableFrom(clrType) && entityType.FindProperty(Columns.TenantId) is null)
         {
+            var parents = TenantParents.KeysOf(entityType, TenantParents.IsPartitioned);
+
+            // Never left unfiltered: a child with no column and no way up to its root would read every tenant.
+            if (parents.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"'{clrType.Name}' is part of a tenant-scoped aggregate, but the model has no relationship from " +
+                    "it up to a tenant-scoped parent, so its rows cannot be told apart by tenant. Hold it in a " +
+                    "collection of its aggregate (or of a child of it) — IReadOnlyList<" + clrType.Name + "> on the " +
+                    "parent — and map that relationship in the same context.");
+            }
+
             builder.HasAnnotation(TenantParents.Annotation, true);
             builder.HasQueryFilter(TenantFilter, TenantParents.BuildFilter(clrType, parents, context));
             return;

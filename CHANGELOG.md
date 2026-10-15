@@ -22,6 +22,18 @@ them until tagged releases begin.
   a bare `DbUpdateException`. After: the index is left exactly as written, and its unique rule is asked about every
   tenant's rows — by a form bound to the generated model and by the check before the save — so the name is
   refused at the field and at the save with the index's message. See `docs/multi-tenancy.md`.
+- **A child of a tenant-scoped aggregate with no tenant column of its own is read through its parent (#1251).**
+  A table another app made often keeps the tenant on the root only: `Chip` rows belong to a partner through their
+  `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
+  mapped. After: a child that declares no `TenantId` has no column, and its read face, an `Include` and a projection
+  are filtered by an `EXISTS` on each tenant-scoped parent's key and tenant (`OR`'d — one `Chip` type held by
+  `Driver.Chips` and `Vehicle.Chips`, both keys optional, a navigation back to each on `ChipRead`); `Tenant.Across()`
+  lifts it; a child added, moved, changed or deleted under another tenant's parent is refused, a parent the context
+  does not hold being looked up through the tenant filter; a chip taken out of its parent's collection is deleted
+  rather than left belonging to nobody; and a declared unique rule on it is asked within the tenant, through the
+  parent. A child that declares `TenantId` keeps the column, as before. **Read your next migration:** a child that
+  relied on the shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it
+  to keep it. See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Security
 
