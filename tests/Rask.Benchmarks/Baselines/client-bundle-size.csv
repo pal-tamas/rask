@@ -248,3 +248,12 @@ bundle,bytes
 rask.js,105232
 rask.wasm.js,91862
 rask-hooks.js,70877
+#
+# 2026-10-15, a submitted form held from the press until its submit is answered (rask-submitting.ts: submit buttons
+# disabled, text inputs readonly; Server releases at the ack, WASM at the dispatch settle): rask.js +1,474, rask.wasm.js
+# +1,312. Measured from a Release build of the merge on main fc7d0fc26: rask.js 106,706, rask.wasm.js 93,174,
+# rask-hooks.js 70,877.
+bundle,bytes
+rask.js,106706
+rask.wasm.js,93174
+rask-hooks.js,70877

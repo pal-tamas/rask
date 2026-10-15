@@ -589,6 +589,7 @@ them until tagged releases begin.
   `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
   `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
 
+- A form that is submitting takes no second submit, as Livewire's `wire:submit` does: its submit buttons are disabled and its fields made readonly at the press, until the server (or .NET in WebAssembly) is done with it, so a fast double click or a second Enter no longer runs a non-repeatable `OnSubmit` twice
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,

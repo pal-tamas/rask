@@ -412,6 +412,17 @@ Submit runs every rule, marks every registered field touched, then routes:
 (`Action<TModel>`) or an asynchronous (`Func<TModel, Task>`) handler — a bare lambda or a method group,
 no cast, no `…Async` twin.
 
+While a submit is in flight the form takes no second one, as Livewire's `wire:submit` does: at the press,
+before anything is sent, the runtime disables the form's submit buttons (a `<button form="…">` outside it
+too) and makes its text fields `readonly`, and it gives them back when the handler and the render it caused
+are done — on the Server host with that submit's ack, in a WebAssembly app when the dispatch returns. A
+double click, a second Enter or a script's `requestSubmit()` meanwhile is dropped in the browser and never
+sent, so a non-repeatable save (an upload, a payment) runs once. The fields stay in what is sent:
+`readonly`, unlike `disabled`, keeps a value in the form data. A render meanwhile does not hand the
+controls back early, and what it says of them (`.Disabled(submitting)` below) is what they are left with.
+The button's spinner still waits its 200 ms, so a fast save never flashes one. A plain button's `OnClick`
+is not held: Livewire disables nothing for `wire:click`.
+
 ### Children that follow the submit
 
 Children are normally a fixed list. Give the form a **function** instead and it is called on every
