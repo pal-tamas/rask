@@ -19,7 +19,7 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     private static readonly HashSet<string> NotText = new(StringComparer.Ordinal)
     {
         // Key caps and key lists.
-        "Ctrl", "Win", "Alt", "Shift", "Enter ArrowUp ArrowDown Home End PageUp PageDown", "Enter Space ArrowUp ArrowDown",
+        "Ctrl", "Win", "Alt", "Shift", "Enter", "Enter ArrowUp ArrowDown Home End PageUp PageDown", "Enter Space ArrowUp ArrowDown",
         "Space ArrowUp ArrowDown", "Arrows", "Arrows Home End PageUp PageDown", "Arrows Home End PageUp PageDown Space Enter",
         // A mode's name in a developer's exception message, and the shape of a link rather than a word.
         "Single", "https://...",

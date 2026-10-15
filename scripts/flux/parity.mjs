@@ -162,6 +162,8 @@ const NATIVE = {
   'ui-carousel': 'div', 'ui-carousel-slide': 'div', 'ui-carousel-button': 'div', 'ui-carousel-indicators': 'div',
   // The phone field: a box around a native tel input and the select's elements, which the phone engine drives.
   'ui-phone': 'div',
+  // The composer: a role="group" box; its submit keys and its growing textarea are the runtime's (rask-submit.ts, rask-grow.ts).
+  'ui-composer': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.

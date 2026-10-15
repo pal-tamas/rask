@@ -240,3 +240,11 @@ bundle,bytes
 rask.js,105215
 rask.wasm.js,91845
 rask-hooks.js,69820
+#
+# 2026-10-15, Ui.Composer's two hooks (rask-submit.ts, data-rask-submit-keys; rask-grow.ts, data-rask-grow) on top of
+# Ui.Phone — measured from a Release build of the merge on main 7b554f71f: rask.js 105,232, rask.wasm.js 91,862,
+# rask-hooks.js 70,877.
+bundle,bytes
+rask.js,105232
+rask.wasm.js,91862
+rask-hooks.js,70877

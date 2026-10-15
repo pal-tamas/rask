@@ -172,6 +172,17 @@ them until tagged releases begin.
   the phone engine gets `wwwroot/flags` too (172 KB on disk, a request per flag drawn). `true` still asks for them
   on a host without the engine, and `false` now says none.
 
+- **`Ui.Composer` — Flux UI's composer, a message box for a chat or a prompt.** Before: a chat box was a
+  `Ui.Textarea` and buttons laid out by hand, and sending it took a press on the button. After:
+  `Form.Model(chat).OnSubmit(Send)[Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly()
+  .ActionsLeading(…).ActionsTrailing(Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane))]`
+  — every prop and slot of Flux's (`Rows`, `MaxRows`, `Inline`, `Submit` (`.Enter`), `Variant`, `Disabled`,
+  `Invalid`, `Name`, `Header`, `Footer`, `Input`, `ActionsLeading`, `ActionsTrailing`, `LabelSrOnly`,
+  `DescriptionSrOnly`), held to fluxui.dev's nine examples in light and dark. Ctrl/Cmd+Enter (or Enter) sends the
+  form in the browser with what was typed, the box grows a line at a time to `MaxRows`, and typing sends nothing;
+  a `Ui.Editor` in `Input` stands in for the box. Two runtime hooks come with it, `data-rask-submit-keys` and
+  `data-rask-grow`.
+
 - **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
   job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
   status question to every other pump. After: jobs of one lane run one at a time, in the order they are due, and

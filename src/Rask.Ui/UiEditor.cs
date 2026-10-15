@@ -30,6 +30,11 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
 {
     private static readonly UiPartMarker Marker = new UiPartMarker("ui-editor").And("ui-control");
 
+    // Its own box. In a composer it has none: the composer's is around it.
+    private const string Boxed =
+        "block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
+        + "dark:border-white/10 dark:bg-white/10 aria-disabled:shadow-none aria-invalid:border-red-500 aria-invalid:border-b-red-500";
+
     private readonly ElementRef _root = ElementRef.New();
 
     private readonly int _instance = UiInstanceCounter.Next();
@@ -92,15 +97,34 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
     /// <summary>The id of the editor's box; derived from the binding or the label when unset.</summary>
     public string? Id { get; set; }
 
+    /// <summary>The composer this editor is the box of, when it is one's: its value, its lines, its state.</summary>
+    internal UiEditorHost? Host { get; private set; }
+
     // Named by its id, its binding or its label, as every field control is; and by itself when nothing names
     // it, because its toolbar points at the editable area by id and two editors must not share one.
-    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+    string IUiFieldControl.ControlId => Id is null && Bound is null && Label is null
         ? "ui-editor-" + _instance.ToString(CultureInfo.InvariantCulture)
-        : UiFieldId.Derive(Id, Bind, Label);
+        : UiFieldId.Derive(Id, Bound, Label);
 
-    LambdaExpression? IUiFieldControl.Bound => Bind;
+    LambdaExpression? IUiFieldControl.Bound => Bound;
 
-    private string? Current => Bind is { } bind ? Held(ExpressionAccessor.Parse(bind)) : Value;
+    // Its own binding, or the composer's it stands in.
+    private Expression<Func<string?>>? Bound => Bind ?? Host?.Bind;
+
+    private string? Current => Bound is { } bind ? Held(ExpressionAccessor.Parse(bind)) : Value ?? Host?.Value;
+
+    private bool Locked => Disabled == true || Host?.Disabled == true;
+
+    /// <summary>Makes this editor the box of a composer. The kit's own chain step.</summary>
+    /// <param name="host">What the composer hands the editor.</param>
+    internal UiEditor HostedBy(UiEditorHost host)
+    {
+        Host = host;
+        // What a generated step does when it writes a new value: the editor is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+
+        return this;
+    }
 
     // What was written in the editor and not yet in the model is what it holds (PendingBinds), then the model's.
     private string? Held(ExpressionAccessor.Accessor bound) =>
@@ -111,12 +135,9 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
     {
         var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge, Invalid == true);
         var composed = (Children ?? []).Where(child => child is not null).ToList();
-        var scope = new UiEditorScope(Disabled == true, Current, Placeholder, field.ControlId + "-input");
+        var scope = new UiEditorScope(Locked, Current, Placeholder ?? Host?.Placeholder, field.ControlId + "-input", Host);
         var box = Div.Id(field.ControlId)
-            .Class(UiClass.Compose(
-                "block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
-                + "dark:border-white/10 dark:bg-white/10 aria-disabled:shadow-none aria-invalid:border-red-500 aria-invalid:border-b-red-500",
-                Class))
+            .Class(UiClass.Compose(Host is null ? Boxed : "block w-full", Class))
             .Data(Marks())
             .Aria(Names(field))
             .Ref(_root);
@@ -186,7 +207,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
     {
         _shown = html;
         ReaderEdits.Note(this);
-        if (Bind is { } bind)
+        if (Bound is { } bind)
         {
             var bound = ExpressionAccessor.Parse(bind);
             var context = BindingHelpers.ResolveBindingContext(bound.Target);
@@ -210,6 +231,10 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
         }
 
         await OnChange.Invoke(html);
+        if (Host is { } host)
+        {
+            await host.OnChange.Invoke(html);
+        }
     }
 
     // The component whose render wrote the binding: its model just changed under it, from a callback that
@@ -229,7 +254,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
     private Dictionary<string, string?> Marks()
     {
         var marks = new Dictionary<string, string?>(Marker.With(null), StringComparer.Ordinal);
-        if (Placeholder is { } placeholder)
+        if ((Placeholder ?? Host?.Placeholder) is { } placeholder)
         {
             marks["placeholder"] = placeholder;
         }
@@ -246,7 +271,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
             names["labelledby"] = field.LabelId;
         }
 
-        if (Disabled == true)
+        if (Locked)
         {
             names["disabled"] = "true";
         }

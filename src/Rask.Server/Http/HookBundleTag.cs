@@ -52,6 +52,8 @@ internal static class HookBundleTag
         "data-rask-scroll-to",
         "data-rask-switch",
         "data-rask-phone",
+        "data-rask-submit-keys",
+        "data-rask-grow",
         "data-rask-list",
     ];
 

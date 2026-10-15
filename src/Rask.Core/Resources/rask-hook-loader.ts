@@ -52,6 +52,8 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " scroll-to"                                                // rask-scroll
     + " switch"                                                   // rask-switch
     + " phone"                                                    // rask-phone
+    + " submit-keys"                                              // rask-submit
+    + " grow"                                                     // rask-grow
     + " list"                                                     // rask-list
 ).split(" ").map(function (name) { return "data-rask-" + name; }).concat(
     // And the ones the platform named: any popover (rask-overlay closes it when focus leaves), an invoker

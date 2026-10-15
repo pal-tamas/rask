@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's form controls: Flux UI's input, textarea, checkbox, radio, switch, calendar, date picker and time
+///     The kit's form controls: Flux UI's input, textarea, composer, checkbox, radio, switch, calendar, date picker and time
 ///     picker, example by example, then the controls that are still daisyUI's until each is rebuilt.
 /// </summary>
 public sealed partial class UiKitDataInputDemo : Component
@@ -29,6 +29,7 @@ public sealed partial class UiKitDataInputDemo : Component
         InputSection(),
         InputGroupSection(),
         TextareaSection(),
+        ComposerSection(),
         SelectSection(),
         ListboxSection(),
         SearchableSection(),
