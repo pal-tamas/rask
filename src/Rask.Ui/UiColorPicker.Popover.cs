@@ -143,7 +143,8 @@ public sealed partial class UiColorPicker
                 // The dialog focuses it as it opens: Flux's initial focus.
                 .Autofocus()
                 .Aria(AreaAria(color)),
-            Input.Value(across + " " + down).Type(InputType.Hidden)
+            // The drag's own field, which the page never writes: what the thumb shows is the runtime's to say.
+            Input.Value(string.Empty).Type(InputType.Hidden)
         ];
     }
 
@@ -213,7 +214,7 @@ public sealed partial class UiColorPicker
                     ]
                 ]
             ],
-            Off ? null : Input.Value(along).Type(InputType.Hidden)
+            Off ? null : Input.Value(string.Empty).Type(InputType.Hidden)
         ];
     }
 

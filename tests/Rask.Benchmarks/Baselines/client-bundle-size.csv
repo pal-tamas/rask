@@ -267,3 +267,12 @@ bundle,bytes
 rask.js,106712
 rask.wasm.js,93180
 rask-hooks.js,81216
+#
+# 2026-10-15, Ui.Calendar and Ui.DatePicker drawn in the browser (rask-calendar.ts, data-rask-calendar: the months, the
+# keys, the range waiting for its end, the presets, the date picker's popup and the choice held for its button), and
+# the colour picker's reads of a colour kept once read (rask-color.ts): rask-hooks.js 81,216 -> 95,256 (+14,040), +9 in
+# each runtime (the loader's list). Measured from a Release build of the branch: rask.js 106,721, rask.wasm.js 93,189.
+bundle,bytes
+rask.js,106721
+rask.wasm.js,93189
+rask-hooks.js,95256

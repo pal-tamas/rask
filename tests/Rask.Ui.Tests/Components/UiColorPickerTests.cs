@@ -88,14 +88,14 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("x y", area.Attribute("data-rask-drag"));
         Assert.NotNull(area.Attribute("data-rask-press-keeps-focus"));
-        Assert.Equal("0.6101 0.1451", page.Find(AreaField).Attribute("value"));
+        Assert.Equal(string.Empty, page.Find(AreaField).Attribute("value"));
         Assert.Equal("inset-inline-start:calc(var(--rask-drag-x, 0.6101) * 100%);top:calc(var(--rask-drag-y, 0.1451) * 100%)", thumb.Attribute("style"));
         Assert.Equal("Arrows Home End PageUp PageDown", thumb.Attribute("data-rask-contain-keys"));
         Assert.Equal("x", hue.Attribute("data-rask-drag"));
         Assert.Equal("8", hue.Attribute("data-rask-drag-inset"));
         Assert.Equal(page.Find(Hue).Attribute("id"), hue.Attribute("data-rask-focus"));
         Assert.Equal("Arrows", page.Find(Hue).Attribute("data-rask-contain-keys"));
-        Assert.Equal("0.2056", page.Find(HueField).Attribute("value"));
+        Assert.Equal(string.Empty, page.Find(HueField).Attribute("value"));
         Assert.Equal("Arrows Home End PageUp PageDown Space Enter", page.Find("[data-ui-color-picker-swatches]").Attribute("data-rask-contain-keys"));
     }
 

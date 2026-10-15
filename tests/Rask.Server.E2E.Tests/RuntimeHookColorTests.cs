@@ -224,6 +224,27 @@ public sealed class RuntimeHookColorTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
+    public async Task On_the_sheet_a_drag_let_go_waits_for_Select_too()
+    {
+        await using var session = await OpenAsync(new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true });
+        var page = session.Page;
+        await page.ClickAsync(Opener);
+        var box = (await page.Locator("[data-ui-color-picker-area]").BoundingBoxAsync())!;
+
+        await page.Mouse.MoveAsync(box.X + (box.Width / 4), box.Y + (box.Height / 4));
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2), new() { Steps = 4 });
+        await page.Mouse.UpAsync();
+        await page.WaitForTimeoutAsync(300);
+        var held = (await page.TextContentAsync("#changes"), await page.InputValueAsync(Trigger), await page.InputValueAsync(Inside));
+        await page.ClickAsync("dialog [role=button]");
+
+        Assert.Equal(("0", "#bada55"), (held.Item1, held.Item2));
+        await Expect(page.Locator("#seen")).ToHaveTextAsync(held.Item3);
+        await Expect(page.Locator("#changes")).ToHaveTextAsync("1");
+    }
+
+    [Fact]
     public async Task On_the_sheet_a_swatch_is_taken_at_once_and_closes_it()
     {
         await using var session = await OpenAsync(new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true });

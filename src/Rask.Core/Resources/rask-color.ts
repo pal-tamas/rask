@@ -170,21 +170,29 @@ export function fromComputed(computed: string): Hsv {
 
 let probe: HTMLElement | null = null;
 
+// What the browser made of each text: a palette is read on every drawing, and asking the browser costs a style
+// recalculation each time.
+const read = new Map<string, Hsv | null>();
+
 /** The colour `text` names, read through the browser as Flux reads it; null for text that is no colour. */
 function parse(text: string): Hsv | null {
-    if (!page || !text.trim()) return null;
-    if (!probe) {
+    const key = text.trim();
+    if (!page || !key) return null;
+    const known = read.get(key);
+    if (known !== undefined) return known;
+    if (!probe || !probe.isConnected) {
         probe = page.createElement("span");
+        // The morph's mark for a node that is not the page's: it is left where it is.
         probe.setAttribute("data-rask-managed", "");
         probe.style.display = "none";
+        page.body.appendChild(probe);
     }
     probe.style.color = "";
-    probe.style.color = text.trim();
-    if (!probe.style.color) return null;
-    page.body.appendChild(probe);
-    const computed = getComputedStyle(probe).color;
-    probe.remove();
-    return fromComputed(computed);
+    probe.style.color = key;
+    const c = probe.style.color ? fromComputed(getComputedStyle(probe).color) : null;
+    if (read.size > 256) read.clear();
+    read.set(key, c);
+    return c;
 }
 
 // ----- What the picker holds ------------------------------------------------------------------------------
@@ -428,7 +436,7 @@ function areaKey(root: Element, e: KeyboardEvent): void {
 function channel(root: Element, alpha: boolean, value: number, settled: boolean): void {
     const c = stateOf(root).shown.c;
     if (value === channelValue(c, alpha)) {
-        if (settled) keep(root, true);
+        if (settled && !waits(root)) keep(root, true);
         return;
     }
     move(root, alpha ? {h: c.h, s: c.s, v: c.v, a: value / 100} : {h: value, s: c.s, v: c.v, a: c.a}, settled);
@@ -628,7 +636,8 @@ if (page) {
         const name = part.getAttribute(PART);
         if (name === "text" || name === "popover-text") {
             typed(root, t);
-        } else if (name === "area" || name === "hue" || name === "alpha") {
+        } else if ((name === "area" || name === "hue" || name === "alpha") && !waits(root)) {
+            // A drag let go: on the sheet it waits for Select like any other choice.
             keep(root, true);
         }
     }, true);
@@ -661,6 +670,4 @@ if (page) {
         const root = rootOf(dialog);
         if (root && dialogOf(root) === dialog) opened(root, dialog.open);
     }, true);
-
-    page.querySelectorAll(ROOT).forEach(draw);
 }

@@ -13,7 +13,7 @@
 // popup; its FIRST hidden input is the bound field: `yyyy-mm-dd` for a day, days joined by commas, a range as
 // `start/end` and a preset's key after a third slash, nothing for none. Parts, by `data-rask-calendar-part`:
 //   header    the bar with the steps and the selects, and months the grids: both the page's first paint only
-//             (`data-rask-opaque`), drawn from here on by this module
+//             (subtrees the page never diffs again), drawn from here on by this module
 //   previous next today month year   the steps, the shortcut and the header's selects
 //   narrow    a box the stylesheet makes two pixels wide on a phone, where one month is drawn
 //   text      a date picker button's words; presets the list of preset ranges, each `[role=radio]` row with its
