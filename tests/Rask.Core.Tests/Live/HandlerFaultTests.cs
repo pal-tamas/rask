@@ -105,6 +105,29 @@ public partial class HandlerFaultTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_production_host_says_nothing_of_the_exception_though_the_process_wide_flag_says_development()
+    {
+        var services = new ServiceCollection().AddSingleton(HostMode.For(false)).BuildServiceProvider();
+        var page = new TrailerApp(new InvalidOperationException(Secret), services: services);
+        using var toasts = Toast.Fake();
+        var previous = LiveOptions.IsDevelopment;
+        LiveOptions.IsDevelopment = true;
+
+        List<RaskDiagnosticEvent> reported;
+        try
+        {
+            reported = await Reported(page.Delete);
+        }
+        finally
+        {
+            LiveOptions.IsDevelopment = previous;
+        }
+
+        var reference = Assert.Single(reported).Message[^8..];
+        toasts.Shown($"{Failed} {Recorded}{reference}").Once();
+    }
+
+    [Fact]
     public async Task A_boundary_the_app_wrote_around_the_part_still_takes_the_fault_and_no_toast_is_raised()
     {
         var page = new TrailerApp(new InvalidOperationException(Secret), ownBoundary: true);

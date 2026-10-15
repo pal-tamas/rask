@@ -89,6 +89,21 @@ else is named:
 </PropertyGroup>
 ```
 
+A source file is one matched by `RaskSpaClientInputs`, globs relative to the client: by default
+`*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*`. A client whose sources live elsewhere names them,
+or its bundle is built once and never again — a repository-root package with its apps under `apps/`,
+served by a host in `apps/web/host`:
+
+```xml
+<PropertyGroup>
+  <RaskSpaClientDir>../../..</RaskSpaClientDir>
+  <RaskSpaClientInputs>*.json;*.js;apps/**/*;libs/**/*</RaskSpaClientInputs>
+</PropertyGroup>
+```
+
+`node_modules`, every `bin/` and `obj/`, and the dist directory are never counted, so a glob that
+covers the host project itself does not rebuild the bundle on every build.
+
 An app on `Rask.Server` already has `MapRaskSpa`, but not the build steps: reference
 `Rask.Spa.Hosting` directly to get them.
 
@@ -96,8 +111,10 @@ An app on `Rask.Server` already has `MapRaskSpa`, but not the build steps: refer
 
 `dotnet build` runs the client's own toolchain: `npm ci` (or `npm install` when there is no
 lockfile), then `npm run build`. A new app has no lockfile, so its first build runs `npm install`
-and writes one — commit it, and every build after that is `npm ci`. Both steps are incremental — an
-install re-runs when `package.json` or the lockfile changes, a build when a source file does. `dotnet publish` copies the bundle into
+and writes one — commit it, and every build after that is `npm ci`. A `yarn.lock` or `pnpm-lock.yaml`
+counts as the lockfile too, and the default install follows it: `yarn install --frozen-lockfile` or
+`pnpm install --frozen-lockfile`. Both steps are incremental — an install re-runs when `package.json`
+or the lockfile changes (or `node_modules` is gone), a build when a source file does. `dotnet publish` copies the bundle into
 `wwwroot` next to the app, so a deployed container carries the front end rather than a path that only
 existed on the build machine.
 
@@ -197,9 +214,10 @@ app.MapRaskSpa(configure: options => options.ImmutablePathPrefixes.Add("/static/
 | `RaskSpaClientDir` | a `client` folder in the host project | Where the front end lives. |
 | `RaskSpaDistDir` | `dist` | The bundler's output. Angular nests it: `dist/<app>/browser`. |
 | `RaskSpaBuild` | `true` | `false` skips node entirely. |
-| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists. |
+| `RaskSpaInstallCommand` | `npm ci` | Run when a lockfile exists; left at `npm ci`, a `yarn.lock` or `pnpm-lock.yaml` runs that manager's frozen install instead. |
 | `RaskSpaFirstInstallCommand` | `npm install` | Run when there is no lockfile yet. |
 | `RaskSpaBuildCommand` | `npm run build` | What produces the bundle. |
+| `RaskSpaClientInputs` | `*.json;*.ts;*.js;*.mjs;*.html;src/**/*;public/**/*` | The client sources, relative to it, whose change rebuilds the bundle. |
 | `RaskSpaMinimumNode` | `24.11.0` | The Node floor the build enforces, as `RASKSPA005`. |
 | `RaskSpaPublishDir` | `wwwroot` | Where publish puts the bundle. |
 | `RaskSpaDevServerUrl` | none | Named on the "nothing built yet" page in Development. |
@@ -368,6 +386,39 @@ app.MapControllers();                    // the API, unchanged
 app.MapRask<App>(pathBase: "/new");      // pages that have moved
 app.MapRaskSpa();                        // every other path: the old front end
 ```
+
+`AddRask()` and `MapRask<App>()` need no `using`: referencing `Rask.Server` imports its namespace for the
+project. A page file imports routing itself, because `[Route]` lives in `Rask.Core.Routing`:
+
+```csharp
+using Rask.Core.Routing;
+
+[Route("/orders")]
+public sealed partial class OrdersPage : Component { … }
+```
+
+Without that line the Web SDK's own `Microsoft.AspNetCore.Routing.Route` class answers to `[Route]`, and
+the build stops with `CS0616: 'Route' is not an attribute class`. Rask does not import the namespace for
+the whole project, because the app's controllers already use `[Route]` from `Microsoft.AspNetCore.Mvc`, and
+two `RouteAttribute`s in scope break every one of them (CS0104).
+
+**The prefix reaches the browser by itself.** The runtime's `<script>` tag carries it
+(`data-rask-base="/new/"`), and the runtime builds its connection, the addresses it pushes to history and the
+paths it routes from that, so the app writes no `<base href>`. Rask leaves `<base>` alone on purpose: one would
+re-resolve every relative URL of the page — `href="#reviews"` would lead to `/new/#reviews`. An app that writes
+its own `<base href>` keeps it; the runtime still takes the prefix from its tag.
+
+**Files under `wwwroot` are the host's to serve.** `MapRask` serves its own runtime and scoped assets under the
+prefix, never a `wwwroot` file, so a stylesheet linked as `LiveOptions.PathBase + "/css/app.css"`
+(`/new/css/app.css`) falls through to Rask's page catch-all and answers with a page. Link the address the host
+already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `UseStaticFiles()`:
+
+```csharp
+protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
+```
+
+To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
+BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.
 
 Each answers only its own paths — a route the old front end owns still gets its `index.html`, a page
 under `/new` is rendered by Rask, and the Rask runtime is served under the prefix and nowhere else. The

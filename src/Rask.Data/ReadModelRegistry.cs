@@ -81,7 +81,40 @@ public static class ReadModelRegistry
             MapRelationships(modelBuilder, mapping, writeModel);
         }
 
+        // And a child partitioned through its parent asks the parent's FACE, so its filter needs the relationships.
+        FilterThroughParents(modelBuilder, all, context);
+
         return modelBuilder;
+    }
+
+    private static void FilterThroughParents(ModelBuilder modelBuilder, List<ReadEntityMapping> all, DbContext? context)
+    {
+        var partitioned = all
+            .Where(static m => ConventionRegistry.ScopeFor(m.WriteType) == Tenancy.PerTenant)
+            .Select(static m => m.ReadType)
+            .ToHashSet();
+
+        foreach (var mapping in all)
+        {
+            var face = modelBuilder.Entity(mapping.ReadType).Metadata;
+            if (!TenantParents.IsThroughParent(face) || context is null)
+            {
+                continue;
+            }
+
+            var keys = TenantParents.KeysOf(face, partitioned.Contains);
+            if (keys.Count == 0)
+            {
+                // Never left unfiltered: a child face with no column and no parent to ask would read every tenant.
+                throw new InvalidOperationException(
+                    $"'{mapping.WriteType.Name}' belongs to its tenant through its parent, but its read face has no " +
+                    "relationship to a tenant-scoped parent to ask. Declare TenantId on it, or hold it in the " +
+                    "collection of a tenant-scoped aggregate.");
+            }
+
+            modelBuilder.Entity(mapping.ReadType).HasQueryFilter(
+                ModelBuilderExtensions.TenantFilter, TenantParents.BuildFilter(mapping.ReadType, keys, context));
+        }
     }
 
     private static void MapColumns(
@@ -207,6 +240,13 @@ public static class ReadModelRegistry
                     "declared ': DbContext, ITenantScoped'.");
             }
 
+            // A child with no column of its own asks its parent's face, once the relationships are mapped.
+            if (IsThroughParent(mapping, write))
+            {
+                builder.HasAnnotation(TenantParents.Annotation, true);
+                return;
+            }
+
             // In the write side's type, which is the column's: a face that compared an int column with a Guid
             // would match nothing on one provider and fail on another.
             var column = write is null ? TenantColumn.TypeFor(mapping.WriteType) : TenantColumn.TypeFor(write);
@@ -221,6 +261,12 @@ public static class ReadModelRegistry
                 TenantColumn.BuildFilter(mapping.ReadType, column, context));
         }
     }
+
+    // The write model's answer; with none to mirror, a child that declares no TenantId — the write side's own rule.
+    private static bool IsThroughParent(ReadEntityMapping mapping, IEntityType? write) =>
+        write is not null
+            ? TenantParents.IsThroughParent(write)
+            : !mapping.IsRoot && mapping.WriteType.GetProperty(Columns.TenantId) is null;
 
     // A tenant column the write side declares and configured — kept as TEXT through a conversion, named as an existing
     // table names it — is read the way it is written. Left as the face's own shadow column it would compare a Guid
@@ -244,14 +290,10 @@ public static class ReadModelRegistry
         }
 
         // Either a converter the author wrote, or only the type it is stored as (HasConversion<string>()), which EF
-        // Core keeps as the provider type and builds the converter from.
-        if (declared.GetValueConverter() is { } converter)
+        // Core builds the converter from: the write model's type mapping holds the one in force.
+        if ((declared.GetValueConverter() ?? declared.FindTypeMapping()?.Converter) is { } converter)
         {
             tenant.HasConversion(converter);
-        }
-        else if (declared.GetProviderClrType() is { } stored)
-        {
-            tenant.HasConversion(stored);
         }
 
         if (declared.GetMaxLength() is { } maxLength)
@@ -278,29 +320,31 @@ public static class ReadModelRegistry
 
         foreach (var child in mapping.Children)
         {
-            modelBuilder
+            var foreignKey = ChildForeignKey(writeModel, mapping.WriteType, child);
+
+            var relationship = modelBuilder
                 .Entity(child.ChildReadType)
                 .HasOne(mapping.ReadType, child.Inverse)
                 .WithMany(child.Collection)
-                .HasForeignKey(ChildForeignKey(writeModel, mapping.WriteType, child))
+                .HasForeignKey(foreignKey is null
+                    ? [mapping.WriteType.Name + nameof(Entity<int>.Id)]
+                    : [.. foreignKey.Properties.Select(static p => p.Name)])
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // Optional where the write side's is: a child of two parents holds a NULL in one of its keys.
+            if (foreignKey is { IsRequired: false })
+            {
+                relationship.IsRequired(false);
+            }
         }
     }
 
     // The child's foreign key is usually a shadow property the write model created, so its name is read from
     // there rather than guessed. The guess is the fallback for a model that has not been built to mirror.
-    private static string[] ChildForeignKey(IModel? writeModel, Type rootWriteType, ReadChildMapping child)
-    {
-        var childType = writeModel?.FindEntityType(child.ChildWriteType);
-
-        var foreignKey = childType?
+    private static IForeignKey? ChildForeignKey(IModel? writeModel, Type rootWriteType, ReadChildMapping child) =>
+        writeModel?.FindEntityType(child.ChildWriteType)?
             .GetForeignKeys()
             .FirstOrDefault(fk => fk.PrincipalEntityType.ClrType == rootWriteType);
-
-        return foreignKey is null
-            ? [rootWriteType.Name + nameof(Entity<int>.Id)]
-            : [.. foreignKey.Properties.Select(static p => p.Name)];
-    }
 
     // "Total.Amount" walks the complex properties a value object was mapped to; "Reference" is one step.
     private static IProperty? FindProperty(IEntityType entity, string path)

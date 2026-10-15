@@ -31,9 +31,9 @@ import {
     beginLoading,
     endLoading,
     fieldTarget,
-    isVisiblyLoading,
     loadingTarget,
 } from "../../Rask.Core/Resources/rask-loading.js";
+import { holdForm, isSubmitting, releaseForm } from "../../Rask.Core/Resources/rask-submitting.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -763,11 +763,14 @@ document.addEventListener("submit", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
-    // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent.
-    if (!submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
-    // The form's own button waits, not the form. Mirrors rask.ts.
+    // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent; a
+    // form already submitting drops the submit without asking.
+    if (isSubmitting(t) || !submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
+    // A form already submitting takes no second submit, and this one is held until .NET is done with it
+    // (rask-submitting.ts). The form's own button shows the wait. Mirrors rask.ts.
+    const hold = holdForm(t);
+    if (!hold) return;
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
-    if (isVisiblyLoading(submitter)) return;
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
     for (const input of fileInputs) {
@@ -786,7 +789,10 @@ document.addEventListener("submit", (e) => {
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
     const sent = send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
-    if (ticket) sent.then(settled).finally(() => endLoading(ticket));
+    sent.then(settled).finally(() => {
+        endLoading(ticket);
+        releaseForm(hold);
+    });
 });
 
 // ----- IJSRuntime bridge -----------------------------------------------------

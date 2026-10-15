@@ -16,10 +16,10 @@ public static class BrowserPushSubscriptions
         {
             ArgumentNullException.ThrowIfNull(subscription);
 
-            // MDN nests the two keys; a missing one arrives empty, and Push.Subscribe refuses it by name.
+            // MDN types the two keys; a missing one arrives empty, and Push.Subscribe refuses it by name.
             var keys = subscription.Keys;
             var kept = new Wire.PushSubscription(
-                subscription.Endpoint ?? "", keys?.GetValueOrDefault("p256dh") ?? "", keys?.GetValueOrDefault("auth") ?? "", subscription.ExpirationTime);
+                subscription.Endpoint ?? "", keys?.P256dh ?? "", keys?.Auth ?? "", subscription.ExpirationTime);
             return Push.Subscribe(kept, cancellationToken);
         }
     }

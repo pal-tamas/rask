@@ -595,6 +595,9 @@ public enum RaskString
     /// <summary>The accessible name of one indicator of a carousel: the slide it shows.</summary>
     CarouselShowSlide,
 
+    /// <summary>The accessible name of a phone field's country button, before the country it shows.</summary>
+    PhoneChangeCountry,
+
     /// <summary>The reconnect overlay's message while the page tries to reach its app again.</summary>
     ConnectionReconnecting,
 

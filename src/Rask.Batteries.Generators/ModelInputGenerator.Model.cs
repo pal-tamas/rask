@@ -55,7 +55,7 @@ public sealed partial class ModelInputGenerator
         var keyWrite = constructible && shape.Key is { } key && GeneratedModelShape.WriteKindOf(key) is { } kind
             ? WriteOf(key, kind, "__" + kind + "Key_" + key.Name, byRef: false)
             : null;
-        var (keySource, keyFactory) = KeySourceOf(shape.IdType);
+        var (keySource, keyFactory) = KeySourceOf(shape.IdType, ConfiguresKeyNeverGenerated(symbol, cancellationToken));
 
         return new Entity(
             name,
@@ -206,10 +206,11 @@ public sealed partial class ModelInputGenerator
     //  * A Guid: this code, as a version-7 Guid (time-ordered, so the primary-key index stays append-only), and
     //    the same inside a strongly-typed id over a Guid.
     //  * An integer: the store's identity column. Rask.Data's key convention leaves integer keys store-generated
-    //    and marks every other Entity<TId> key never-generated, so EF produces nothing else.
+    //    and marks every other Entity<TId> key never-generated, so EF produces nothing else — unless the
+    //    aggregate's own Configure says the key is never generated, and then it is the caller's like any other.
     //  * Anything else — a string, a strongly-typed id over an integer or a string — has no value the row could
     //    be keyed by that the caller did not choose, so only Create(id, model) is generated for it.
-    private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType)
+    private static (KeySource Source, string? Factory) KeySourceOf(ITypeSymbol? idType, bool neverGenerated)
     {
         if (idType is null)
         {
@@ -226,7 +227,7 @@ public sealed partial class ModelInputGenerator
             case SpecialType.System_UInt32:
             case SpecialType.System_Int64:
             case SpecialType.System_UInt64:
-                return (KeySource.Store, null);
+                return (neverGenerated ? KeySource.Caller : KeySource.Store, null);
         }
 
         if (idType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) is "global::System.Guid")
@@ -242,6 +243,63 @@ public sealed partial class ModelInputGenerator
         }
             ? (KeySource.Guid, "new " + typeName + "(global::System.Guid.CreateVersion7())")
             : (KeySource.Caller, null);
+    }
+
+    /// <summary>
+    ///     Whether the aggregate's own <c>Configure</c> says its key is assigned by the application:
+    ///     <c>builder.Property(x =&gt; x.Id).ValueGeneratedNever()</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Read from the source, as its unique rules are, because the writes are generated before any model is
+    ///     built. So it sees the one chain that starts at <c>Property(…Id)</c> in a static <c>Configure</c> on the
+    ///     aggregate — any of its partial declarations — and nothing else: not a helper that method calls, an
+    ///     <c>IEntityTypeConfiguration</c>, <c>OnModelCreating</c>, or a builder kept in a variable first. A key
+    ///     configured there is still inserted as given; the aggregate just keeps the creates of a stored identity.
+    /// </remarks>
+    private static bool ConfiguresKeyNeverGenerated(INamedTypeSymbol symbol, CancellationToken cancellationToken) =>
+        symbol.GetMembers("Configure").OfType<IMethodSymbol>()
+            .Where(static method => method.IsStatic)
+            .SelectMany(static method => method.DeclaringSyntaxReferences)
+            .SelectMany(reference => reference.GetSyntax(cancellationToken).DescendantNodes())
+            .OfType<InvocationExpressionSyntax>()
+            .Any(static call =>
+                call.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "ValueGeneratedNever" } never &&
+                IsOnTheKey(never.Expression));
+
+    // Walks the chain back from ValueGeneratedNever() to the Property(…) call it configures.
+    private static bool IsOnTheKey(ExpressionSyntax receiver)
+    {
+        while (receiver is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access } call)
+        {
+            if (string.Equals(access.Name.Identifier.ValueText, "Property", StringComparison.Ordinal))
+            {
+                return call.ArgumentList.Arguments.Count > 0 && NamesTheKey(call.ArgumentList.Arguments[0].Expression);
+            }
+
+            receiver = access.Expression;
+        }
+
+        return false;
+    }
+
+    // x => x.Id, "Id" or nameof(Order.Id).
+    private static bool NamesTheKey(ExpressionSyntax argument)
+    {
+        var named = argument switch
+        {
+            LambdaExpressionSyntax { Body: MemberAccessExpressionSyntax member } => member.Name.Identifier.ValueText,
+            LiteralExpressionSyntax literal when literal.IsKind(SyntaxKind.StringLiteralExpression) => literal.Token.ValueText,
+            InvocationExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.ValueText: "nameof" }, ArgumentList.Arguments: { Count: 1 } of } =>
+                of[0].Expression switch
+                {
+                    MemberAccessExpressionSyntax member => member.Name.Identifier.ValueText,
+                    IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+                    _ => null,
+                },
+            _ => null,
+        };
+
+        return string.Equals(named, "Id", StringComparison.Ordinal);
     }
 
     private static Member ToMember(ModelMember member, int index, Dictionary<ModelValueObject, ValueObjectShape> converted)
@@ -269,7 +327,12 @@ public sealed partial class ModelInputGenerator
     // no attribute is written. A value object that states its own rule says it in its own words instead, and a
     // property the app marked [Required] itself keeps that attribute and its message.
     private static bool IsRequiredByType(ModelMember member, ValueObjectShape? valueObject, IPropertySymbol property) =>
-        member.Role == ModelMemberRole.Value && member.Write is not null && !member.Nullable &&
+        member.Role == ModelMemberRole.Value && member.Write is not null &&
+        IsRequiredByType(member.Nullable, valueObject, property);
+
+    // The same for a member of a value object of several values, which is a field of its own on the nested model.
+    private static bool IsRequiredByType(bool nullable, ValueObjectShape? valueObject, IPropertySymbol property) =>
+        !nullable &&
         valueObject is null or { SingleValue: true, Rule: ValueRule.None } &&
         !property.GetAttributes().Any(static a =>
             string.Equals(a.AttributeClass?.ToDisplayString(), "System.ComponentModel.DataAnnotations.RequiredAttribute", StringComparison.Ordinal));
@@ -372,7 +435,9 @@ public sealed partial class ModelInputGenerator
                 m.Property.Type.ToDisplayString(TypeFormat),
                 m.Write is { } kind
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
-                    : null);
+                    : null,
+                new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
+                IsRequiredByType(m.Nullable, nested, m.Property));
         }).ToList();
 
         var shape = new ValueObjectShape(

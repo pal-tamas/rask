@@ -64,6 +64,55 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
             Input.Bind(() => model.Choice).Type(InputType.Radio).ToHtml());
     }
 
+    [Fact]
+    public void A_password_the_model_holds_is_not_written_into_the_markup()
+    {
+        var model = new SecretModel { Password = "hunter2" };
+
+        var html = Input.Bind(() => model.Password).Type(InputType.Password).ToHtml();
+
+        Assert.Equal("<input type=\"password\" name=\"Password\" data-rask-secret />", html);
+    }
+
+    [Fact]
+    public void An_empty_password_is_written_as_a_clear()
+    {
+        var model = new SecretModel();
+
+        var html = Input.Bind(() => model.Password).Type(InputType.Password).ToHtml();
+
+        Assert.Equal("<input type=\"password\" name=\"Password\" value=\"\" data-rask-secret />", html);
+    }
+
+    [Theory]
+    [InlineData("current-password")]
+    [InlineData("new-password")]
+    [InlineData("one-time-code")]
+    public void A_field_that_names_a_credential_autocomplete_is_a_secret_whatever_its_type(string autocomplete)
+    {
+        var model = new SecretModel { Password = "hunter2" };
+
+        var html = Input.Bind(() => model.Password).Autocomplete(autocomplete).ToHtml();
+
+        Assert.DoesNotContain("hunter2", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-secret", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_text_field_still_writes_its_value()
+    {
+        var model = new SecretModel { Password = "visible" };
+
+        var html = Input.Bind(() => model.Password).ToHtml();
+
+        Assert.Equal("<input type=\"text\" name=\"Password\" value=\"visible\" />", html);
+    }
+
+    private sealed class SecretModel
+    {
+        public string Password { get; set; } = "";
+    }
+
     private sealed class PriceModel
     {
         public decimal Price { get; set; }
@@ -94,7 +143,6 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
 
     [Theory]
     [InlineData(InputType.Email, "email")]
-    [InlineData(InputType.Password, "password")]
     [InlineData(InputType.Tel, "tel")]
     [InlineData(InputType.Url, "url")]
     [InlineData(InputType.Search, "search")]
@@ -117,7 +165,7 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         var password = Input.Of<string>().Password.ToHtml();
 
         Assert.Equal("<input type=\"email\" />", email);
-        Assert.Equal("<input type=\"password\" />", password);
+        Assert.Equal("<input type=\"password\" data-rask-secret />", password);
     }
 
     [Fact]

@@ -24,7 +24,7 @@
 
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
-    <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and no JavaScript but the rich text editor's, which a page loads only when it draws one. An app with a Tailwind build compiles the kit into its one stylesheet with a single import; a precompiled sheet is embedded for a surface without one.</Description>
+    <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and no JavaScript but the rich text editor's and the phone field's, which a page loads only when it draws one. An app with a Tailwind build compiles the kit into its one stylesheet with a single import; a precompiled sheet is embedded for a surface without one.</Description>
     <PackageTags>dotnet csharp aspnetcore webassembly net10 ui-kit components daisyui tailwind design-system mobile-first</PackageTags>
   </PropertyGroup>
 
@@ -105,7 +105,37 @@
          where no scan finds them, and this list is how they reach an app's ONE stylesheet. -->
     <RaskTailwindClassList>obj/$(TargetFramework)/rask-ui.classes.txt</RaskTailwindClassList>
     <RaskTailwindMinify>true</RaskTailwindMinify>
+    <!-- What Tailwind scans: this project's C# with the comments taken out (WriteRaskUiScanSources). -->
+    <RaskTailwindSourceRoot>$(MSBuildProjectDirectory)/obj/$(TargetFramework)/tailwind-scan</RaskTailwindSourceRoot>
   </PropertyGroup>
+
+  <!--
+    THE SCAN READS CODE, NOT PROSE. Tailwind takes every word of a file it scans as a candidate class,
+    and a doc comment is words: "A magnifying glass when unset." on two search fields put daisyUI's
+    `.glass` into this sheet, into the class list, and so into every app compiled from it (#1214). Nothing
+    caught it but the CLI build's Tailwind test, a push later.
+
+    So Tailwind does not run over this project. It runs in obj/<tfm>/tailwind-scan, a copy of the
+    project's C# with every comment taken out and every line of code left as it was
+    (RaskTailwindSourceRoot, above), and detects its sources there. Per face, like the sheet: the two
+    inner builds run at once and would otherwise write one folder.
+
+    Not copied: the icon tables, half a megabyte of SVG path data in which `h-4.5` and `m-3.75` are
+    relative line and move commands and, to Tailwind, a height and a margin. Nor anything that is not
+    C#: the csproj, the build targets and NUGET.md are prose, the flag drawings and the editor's bundle
+    write none of the kit's classes, and the stylesheets are Tailwind's input, not its sources.
+  -->
+  <Target Name="WriteRaskUiScanSources"
+          BeforeTargets="_RaskTailwindBuild"
+          DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(TargetFramework)' != '' AND '$(DesignTimeBuild)' != 'true' ">
+    <ItemGroup>
+      <_RaskUiScanSource Include="**/*.cs" Exclude="obj/**;bin/**;UiIconPaths.g.cs"/>
+    </ItemGroup>
+    <WriteTailwindScanSourcesTask Sources="@(_RaskUiScanSource)"
+                                  SourceRoot="$(MSBuildProjectDirectory)"
+                                  Output="$(RaskTailwindSourceRoot)"/>
+  </Target>
 
   <!--
     Added from a TARGET rather than a static ItemGroup. A static item's Condition is evaluated when the
@@ -233,6 +263,22 @@
     <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="rask-ui-editor.LICENSES.txt" Visible="false"/>
     <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="build\rask-ui-editor.LICENSES.txt" Visible="false"/>
     <None Include="Resources\ui-editor.LICENSES.txt" Pack="true" PackagePath="buildTransitive\rask-ui-editor.LICENSES.txt" Visible="false"/>
+  </ItemGroup>
+
+  <!--
+    THE PHONE ENGINE: Resources/ui-phone.js (intl-tel-input with the kit's picker, built by
+    Resources/phone/build.mjs and committed) and Resources/ui-phone-utils.js (the library's own libphonenumber
+    build), packed beside the targets for the editor engine's reason. Their notices (MIT and Apache-2.0)
+    travel with them: at the package's root, and beside the targets, which write them next to the scripts.
+  -->
+  <ItemGroup>
+    <None Include="Resources\ui-phone.js" Pack="true" PackagePath="build\rask-ui-phone.js" Visible="false"/>
+    <None Include="Resources\ui-phone.js" Pack="true" PackagePath="buildTransitive\rask-ui-phone.js" Visible="false"/>
+    <None Include="Resources\ui-phone-utils.js" Pack="true" PackagePath="build\rask-ui-phone-utils.js" Visible="false"/>
+    <None Include="Resources\ui-phone-utils.js" Pack="true" PackagePath="buildTransitive\rask-ui-phone-utils.js" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="rask-ui-phone.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="build\rask-ui-phone.LICENSES.txt" Visible="false"/>
+    <None Include="Resources\ui-phone.LICENSES.txt" Pack="true" PackagePath="buildTransitive\rask-ui-phone.LICENSES.txt" Visible="false"/>
   </ItemGroup>
 
   <!--

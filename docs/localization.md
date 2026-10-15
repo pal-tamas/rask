@@ -543,6 +543,7 @@ they say when you set nothing.
 | `CarouselNext` | Carousel | `Next slide` |
 | `CarouselIndicators` | Carousel | `Choose slide to display` |
 | `CarouselShowSlide` | Carousel | `Show slide {0}` |
+| `PhoneChangeCountry` | Phone | `Change country` |
 | `ConnectionReconnecting` | Reconnect overlay | `Reconnecting…` |
 | `ConnectionOffline` | Reconnect overlay | `You're offline — waiting to reconnect…` |
 | `ConnectionStillTrying` | Reconnect overlay | `Still trying to reconnect…` |

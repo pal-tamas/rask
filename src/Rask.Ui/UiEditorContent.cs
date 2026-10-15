@@ -17,12 +17,19 @@ public sealed partial class UiEditorContent : Component
         "min-h-[200px] max-h-[500px] overflow-y-auto p-4 text-sm whitespace-pre-wrap text-zinc-700 "
         + "dark:text-zinc-300 in-aria-disabled:text-zinc-500 dark:in-aria-disabled:text-zinc-400";
 
+    // In a composer: 8px around, and as tall as the composer's lines say (the style).
+    private const string InComposer =
+        "overflow-y-auto p-2 text-sm whitespace-pre-wrap text-zinc-700 "
+        + "dark:text-zinc-300 in-aria-disabled:text-zinc-500 dark:in-aria-disabled:text-zinc-400";
+
     /// <inheritdoc />
     protected override Component? Render()
     {
         var editor = Context.Get<UiEditorScope>();
         var composed = (Children ?? []).Where(child => child is not null).ToList();
-        var surface = Div.Class(Look).Data("slot", "content").Role("textbox");
+        var surface = editor?.Host is { } host
+            ? Div.Class(InComposer).Style(host.Height).Data("slot", "content").Role("textbox")
+            : Div.Class(Look).Data("slot", "content").Role("textbox");
         if (editor is not null)
         {
             surface = surface.Id(editor.InputId);

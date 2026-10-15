@@ -149,29 +149,35 @@ public sealed class SendTimeoutTests
     }
 
     /// <summary>
-    /// One stalled session must not hold up delivery to the rest. Sequentially this took the sum of every
-    /// session's timeout; concurrently it takes roughly one.
+    /// One stalled session must not hold up delivery to the rest. Proven by causality, not by the clock: no
+    /// timeout is armed, so a stalled send never finishes on its own. Every healthy session receiving its frame,
+    /// and every stalled send being in flight at the same moment, while the broadcast is still pending, can only
+    /// happen if the sends run side by side — sequentially, the first stalled session reached would block every
+    /// session behind it for good, whatever order the store enumerates them in.
     /// </summary>
     [Fact]
     public async Task A_broadcast_is_not_held_up_by_one_stalled_session()
     {
-        var store = NewStore(TimeSpan.FromMilliseconds(300));
-        var sockets = new List<StallingWebSocket>();
-        for (var i = 0; i < 6; i++)
-        {
-            var session = store.Create(_ => new Shell());
-            var socket = new StallingWebSocket();
-            session.AttachSocket(socket, CancellationToken.None);
-            sockets.Add(socket);
-        }
+        var store = NewStore(TimeSpan.Zero);
+        var stalled = Enumerable.Range(0, 3).Select(_ => Attach(store)).ToList();
+        var healthy = Enumerable.Range(0, 3).Select(_ => Attach(store)).ToList();
+        healthy.ForEach(s => s.Release());
 
-        var started = Stopwatch.GetTimestamp();
-        await store.Broadcast("hello"u8.ToArray());
-        var elapsed = Stopwatch.GetElapsedTime(started);
+        var broadcast = store.Broadcast("hello"u8.ToArray());
+        await Task.WhenAll(healthy.Select(s => s.Delivered).Concat(stalled.Select(s => s.Sending)))
+            .WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
 
-        // Six sessions × 300 ms is 1.8 s sequentially. Concurrently it is one timeout plus scheduling.
-        Assert.True(elapsed < TimeSpan.FromSeconds(1),
-            $"broadcast took {elapsed.TotalMilliseconds:F0} ms — it is serialising on the stalled sessions");
-        Assert.All(sockets, s => Assert.Equal(1, s.Aborted));
+        Assert.False(broadcast.IsCompleted, "the broadcast must still be waiting on the stalled sessions");
+        Assert.All(stalled, s => Assert.False(s.Delivered.IsCompleted));
+        stalled.ForEach(s => s.Release());
+        await broadcast.WaitAsync(LiveFrames.HangCeiling, TestContext.Current.CancellationToken);
+    }
+
+    private static StallingWebSocket Attach(LiveSessionStore store)
+    {
+        var session = store.Create(_ => new Shell());
+        var socket = new StallingWebSocket();
+        session.AttachSocket(socket, CancellationToken.None);
+        return socket;
     }
 }

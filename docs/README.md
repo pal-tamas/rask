@@ -72,7 +72,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | Guide | What it covers |
 |-------|----------------|
 | [Rask.Data](data.md) | Declare an `Aggregate<TId>` and nothing else: writes off the type (`Product.Create(model)`), reads off its generated read face (`Product.Where(…)`) whose navigations are inferred from the ids the aggregates hold, generated form models (`ProductModel`), value objects with no marker, collections of values as one column, audit stamps, opt-in soft delete (`Deletion.Soft`, or `Deletion.None` for a table nothing deletes), optimistic concurrency, domain events, the signed-in user with nothing injected (`Current.UserId`), multi-tenancy and ranked full-text search (`Product.Search(text)`). |
-| [Multi-tenancy](multi-tenancy.md) | One `const` partitions a table by tenant — a `TenantId`, a query filter no read composes away, tenant-prefixed indexes — with the tenant taken from the signed-in user; `Tenant.Use`/`Tenant.Across` for explicit work, and what jobs, mail, the outbox, the cache, file storage and accounts do with it. |
+| [Multi-tenancy](multi-tenancy.md) | One `const` partitions a table by tenant — a `TenantId` on the root, a query filter no read composes away, children read through their root — with the tenant taken from the signed-in user; `Tenant.Use`/`Tenant.Across` for explicit work, and what jobs, mail, the outbox, the cache, file storage and accounts do with it. |
 | [Data access (EF Core)](data-access.md) | Plain EF Core + SQLite with a `DbContext` of your own: `IDbContextFactory`, loading in the lifecycle, vertical slices, a DDD aggregate + value objects, and the SQLite decimal gotcha. |
 | [SQLite production pragmas](sqlite.md) | Production SQLite via `UseRaskSqlite` / `AddRaskSqlite` (standalone `Rask.SQLite`): WAL, `foreign_keys`, `busy_timeout` & friends applied on every connection open, STRICT tables, FTS5 full-text search and JSON path indexes through EF Core, the browser database (`Rask.SQLite.Browser`), plus Litestream backup. |
 | [Full-text search](full-text-search.md) | `HasFullTextSearch` + `Search(text)`: ranked, word-aware, diacritic-insensitive search from LINQ, with highlighted matches — on SQLite FTS5, in the browser and on PostgreSQL (`tsvector` + GIN). |
@@ -90,6 +90,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 | [File storage](file-storage.md) | Uploaded files kept on disk, in an S3-compatible bucket or in Azure Blob via `AddRaskStorage<Ctx>()` (standalone `Rask.Storage`) — a `StoredFile` row per file on the app's own database, content types sniffed from the bytes, public and temporary URLs, and downloads behind your own authorization check. |
 | [Outbox](outbox.md) | Durable, crash-safe domain-event delivery via `AddRaskOutbox<Ctx>()` (standalone `Rask.Outbox`) — events committed in the same transaction as your data, delivered post-commit with retries. |
 | [Web Push](webpush.md) | Server-sent Web Push from your backend via `AddRaskWebPush()` + `IWebPush` (standalone `Rask.WebPush`) — VAPID + aes128gcm, zero deps; the browser subscribes with MDN's `PushManager` from `Rask.Web`. |
+| [Excel export](xlsx.md) | An `.xlsx` workbook from headings and rows via `Xlsx.Write(...)` (standalone `Rask.Xlsx`, zero dependencies, server and browser) — bold frozen headings with a filter, fitted columns, amounts, days, folded rows, a `SUBTOTAL` total row. |
 | [Secrets](secrets.md) | Where an app's passwords and API keys live, how they reach the server, and what Rask deliberately doesn't do with them. |
 | [Dashboard](dashboard.md) | A built-in operator dashboard at `/_rask` via `AddRaskDashboard<Ctx>()` (standalone `Rask.Dashboard`) — queue depth and dead letters for the outbox/jobs/mail, cache contents, a live log tail (plus searchable history with `Rask.Logging`), SQLite pragmas; fail-closed behind an authorization policy. |
 | [UI kit](ui-kit.md) | Every daisyUI component as a typed Rask component (standalone `Rask.Ui`) — buttons, dialogs, menus, forms, calendars, mockups and the chrome the framework's own surfaces are drawn with. Mobile-first, ships no JavaScript, and brings its own compiled stylesheet with daisyUI inside it, so a consuming app needs no npm install and no Tailwind configuration. |
@@ -105,7 +106,7 @@ in the [Tutorial](tutorial/00-overview.md); the reference for each is here.
 
 | Reference | What it covers |
 |-----------|----------------|
-| [Diagnostics (RASK001–102, RASKISLAND001–018)](diagnostics.md) | Every analyzer/generator diagnostic and every islands build error, what triggers it, and how to fix it. |
+| [Diagnostics (RASK001–104, RASKISLAND001–018)](diagnostics.md) | Every analyzer/generator diagnostic and every islands build error, what triggers it, and how to fix it. |
 | [Code analysis](code-analysis.md) | Analyzers, warnings-as-errors, and the per-PR adoption procedure. |
 | [Public API style](api-style.md) | How every public name is chosen, and the gate that records the surface. |
 

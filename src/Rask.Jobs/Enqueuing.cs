@@ -14,14 +14,16 @@ public readonly struct Enqueuing
     private readonly IJob _job;
     private readonly DateTimeOffset? _runAt;
     private readonly TimeSpan? _delay;
+    private readonly string? _lane;
     private readonly CancellationToken _cancellationToken;
 
-    internal Enqueuing(IJobs? jobs, IJob job, DateTimeOffset? runAt, TimeSpan? delay, CancellationToken cancellationToken)
+    internal Enqueuing(IJobs? jobs, IJob job, DateTimeOffset? runAt, TimeSpan? delay, string? lane, CancellationToken cancellationToken)
     {
         _jobs = jobs;
         _job = job ?? throw new ArgumentNullException(nameof(job));
         _runAt = runAt;
         _delay = delay;
+        _lane = lane;
         _cancellationToken = cancellationToken;
     }
 
@@ -33,11 +35,21 @@ public readonly struct Enqueuing
             throw new ArgumentOutOfRangeException(nameof(delay), delay, "In cannot be negative — a job cannot run in the past.");
         }
 
-        return new Enqueuing(_jobs, _job, null, delay, _cancellationToken);
+        return new Enqueuing(_jobs, _job, null, delay, _lane, _cancellationToken);
     }
 
     /// <summary>Runs it no earlier than <paramref name="moment"/>: <c>.At(midnight)</c>.</summary>
-    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _cancellationToken);
+    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _lane, _cancellationToken);
+
+    /// <summary>
+    ///     Runs the job in a lane: jobs of one lane run one at a time, in the order they are due,
+    ///     while different lanes run side by side - a lane per pump, per customer, per mailbox.
+    /// </summary>
+    public Enqueuing InLane(string lane)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(lane);
+        return new Enqueuing(_jobs, _job, _runAt, _delay, lane, _cancellationToken);
+    }
 
     /// <summary>Runs it.</summary>
     public TaskAwaiter GetAwaiter() => AsTask().GetAwaiter();
@@ -50,6 +62,6 @@ public readonly struct Enqueuing
     public Task AsTask()
     {
         var jobs = _jobs ?? Jobs.Resolve();
-        return jobs.Add(_job, _runAt, _delay, Ambient.Or(_cancellationToken));
+        return jobs.Add(_job, _runAt, _delay, _lane, Ambient.Or(_cancellationToken));
     }
 }

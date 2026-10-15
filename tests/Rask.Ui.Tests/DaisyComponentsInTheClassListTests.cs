@@ -23,8 +23,10 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // The reverse happened to the "badge" component: it was in the sheet from prose all along, and a sidebar
     // item's stand-in for its count carried the word as a marker's value — which this guard read as written.
     // The stand-in is Flux's navlist count now, so the word is what it always was: prose.
+    // The kit's scan reads no comments since #1214, which took "collapse", "skeleton", "stat" and "toast" off:
+    // what is left is in the list from an identifier (`card`, `badge`) or a word inside another class (`max-w-prose`).
     private static readonly string[] _knownFromProse =
-        ["badge", "card", "collapse", "skeleton", "stat", "toast", "typography"];
+        ["badge", "card", "typography"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()

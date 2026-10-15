@@ -210,7 +210,7 @@ Button.Type(ButtonType.Submit)["Save"]
 
 The type is named after its step (`Loading`, `CrossOrigin`, `FetchPriority`, `Dir`, `Popover`, `InputMode`),
 after its tag where only one tag has the attribute or tags disagree on its keywords (`ButtonType`, `ThScope`,
-`TrackKind`, `TextareaWrap`, `DialogClosedBy`, `AreaShape`, `MetaHttpEquiv`), and after the IDL enum the DOM
+`TrackKind`, `DialogClosedBy`, `AreaShape`, `MetaHttpEquiv`), and after the IDL enum the DOM
 reflects it as where there is one (`ReferrerPolicy`, `ShadowRootMode` — the same types the web APIs take). The
 members are the keywords in PascalCase (`"use-credentials"` → `UseCredentials`), and each renders from a switch
 of literals, so a keyword costs nothing per render. A pair of `true`/`false` keywords is a `bool?`

@@ -53,6 +53,10 @@ derives everything from the bound property:
   `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
   `Password`) only makes sense on an `HTMLInputElement<string>`; setting one on a non-string bound input is
   [RASK025](diagnostics.md#rask025).
+- **Passwords are the browser's.** An input of `type=password` (or `autocomplete` `current-password`,
+  `new-password` or `one-time-code`) sends what was typed to the model and never gets it back: the server writes
+  `""` to clear it and nothing else, so a model value set from the server does not reach the field, and a page
+  that prefills a password is a bug in the page.
 - **Update timing** — a bound control says nothing until the next action, and its value travels with
   that: see [bind timing](#bind-timing).
 
@@ -407,6 +411,17 @@ Submit runs every rule, marks every registered field touched, then routes:
 `OnSubmit` / `OnInvalidSubmit` are one `Callback<TModel>` each, so either takes a synchronous
 (`Action<TModel>`) or an asynchronous (`Func<TModel, Task>`) handler — a bare lambda or a method group,
 no cast, no `…Async` twin.
+
+While a submit is in flight the form takes no second one, as Livewire's `wire:submit` does: at the press,
+before anything is sent, the runtime disables the form's submit buttons (a `<button form="…">` outside it
+too) and makes its text fields `readonly`, and it gives them back when the handler and the render it caused
+are done — on the Server host with that submit's ack, in a WebAssembly app when the dispatch returns. A
+double click, a second Enter or a script's `requestSubmit()` meanwhile is dropped in the browser and never
+sent, so a non-repeatable save (an upload, a payment) runs once. The fields stay in what is sent:
+`readonly`, unlike `disabled`, keeps a value in the form data. A render meanwhile does not hand the
+controls back early, and what it says of them (`.Disabled(submitting)` below) is what they are left with.
+The button's spinner still waits its 200 ms, so a fast save never flashes one. A plain button's `OnClick`
+is not held: Livewire disables nothing for `wire:click`.
 
 ### Children that follow the submit
 

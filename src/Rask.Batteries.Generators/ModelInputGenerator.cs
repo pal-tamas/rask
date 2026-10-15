@@ -13,8 +13,8 @@ namespace Rask.Batteries.Generators;
 
 /// <summary>
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
-/// the writes that take it: <c>Product.Create(id, model)</c>, <c>Product.Create(model)</c> where a key
-/// can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
+/// the writes that take it: <c>Product.Create(id, model)</c> where the key is the caller's to give,
+/// <c>Product.Create(model)</c> where one can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
 /// and <c>Product.Delete(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
@@ -95,14 +95,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         // Distinct because a partial entity contributes one candidate per declaration with a base list.
         var entities = candidates.Distinct().OrderBy(static e => e.FullyQualifiedName, StringComparer.Ordinal).ToList();
 
-        // A child model exists to carry its ROOT's form — it is the element type of the list the root's model
-        // holds — so it follows the root rather than deciding for itself. A child of a root that wants no form
-        // gets no model either; a child held by two roots keeps one as long as either still has a form.
-        var childrenWithAForm = new HashSet<string>(
-            entities
-                .Where(static e => !e.IsChild && e.Writes != NoWrites)
-                .SelectMany(static e => e.Children.Select(static c => c.ChildTypeName)),
-            StringComparer.Ordinal);
+        var childrenWithAForm = ChildrenWithAForm(entities);
 
         var reportedMisses = new HashSet<RuleMiss>();
         var reach = RuleReachOf(entities);
@@ -149,6 +142,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             AnnouncesFieldRules = seams.FieldRules,
             RequiredFromCatalog = seams.RequiredSentence,
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
+            AnnouncesOptionalFields = seams.OptionalFields,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
             ValidatingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Checked)),
             AwaitingChildren = new EquatableArray<string>(ChildrenThat(entity, reach, static r => r.Awaited)),
@@ -201,6 +195,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
         bool AnnouncesRequiredFields = false,
+        bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default)
     {
@@ -209,6 +204,33 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
                 new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]),
                 new EquatableArray<ValueCollectionShape>([]), AllWrites, false, true);
+    }
+
+    // A child model exists to carry its ROOT's form — it is the element type of the list the root's model
+    // holds — so it follows the root rather than deciding for itself. A child of a root that wants no form
+    // gets no model either; a child held by two roots keeps one as long as either still has a form. A grandchild
+    // follows its child the same way, at any depth.
+    private static HashSet<string> ChildrenWithAForm(List<Entity> entities)
+    {
+        var withAForm = new HashSet<string>(
+            entities
+                .Where(static e => !e.IsChild && e.Writes != NoWrites)
+                .SelectMany(static e => e.Children.Select(static c => c.ChildTypeName)),
+            StringComparer.Ordinal);
+
+        for (var added = true; added;)
+        {
+            added = false;
+            foreach (var child in entities.Where(e => e.IsChild && withAForm.Contains(e.FullyQualifiedName)).ToList())
+            {
+                foreach (var grandchild in child.Children)
+                {
+                    added |= withAForm.Add(grandchild.ChildTypeName);
+                }
+            }
+        }
+
+        return withAForm;
     }
 
     // A collection of values on the form model. The element is carried as its nested model when it is a value
@@ -272,5 +294,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         ValueObjectShape? ValueObject,
         EquatableArray<string> Attributes,
         string ValueTypeName,
-        Write? Write);
+        Write? Write,
+        EquatableArray<string> Checks,
+        bool RequiredByType);
 }

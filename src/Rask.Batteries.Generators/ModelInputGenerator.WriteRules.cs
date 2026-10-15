@@ -33,9 +33,13 @@ public sealed partial class ModelInputGenerator
         var rules = RuledModels(entity).SelectMany(static m => m.Rules).ToList();
 
         return new RuleReach(
-            rules.Count > 0 || CheckedMembers(entity).Any(),
+            rules.Count > 0 || CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable, ValueRule.Sync)),
             rules.Exists(static r => r.Kind == ValueRule.Async));
     }
+
+    // The root's value objects of several values: each is a nested model that is there or is not.
+    private static IEnumerable<Member> HeldValueObjects(Entity entity) =>
+        entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.ValueObject is { SingleValue: false });
 
     private static IEnumerable<Member> CheckedMembers(Entity entity) =>
         entity.Members.Where(static m => m.Role == ModelMemberRole.Value && m.Write is not null && m.Checks.Count > 0);
@@ -135,9 +139,9 @@ public sealed partial class ModelInputGenerator
 
         AppendRuleMethods(s, entity);
 
-        if (CheckedMembers(entity).Any())
+        if (CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => HasNestedChecks(m.ValueObject!)))
         {
-            AppendCheck(s, modelType);
+            AppendCheck(s);
         }
     }
 
@@ -165,7 +169,7 @@ public sealed partial class ModelInputGenerator
             }
             else if (member.ValueObject is { } valueObject)
             {
-                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, kind, ref held);
+                AppendAsk(s, "        ", "model." + member.Name, member.Name, "Root_", valueObject, member.Nullable, kind, ref held);
             }
         }
 
@@ -191,46 +195,118 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
     }
 
-    // One value object: its own rule when it holds one value, the rules of what it holds when it holds several.
-    // `local` numbers the pattern variables: one declared in an `if` is in scope for the rest of the block, so two
-    // value objects side by side must not share a name.
+    // One value object: its own rule when it holds one value; when it holds several, that it is there at all unless
+    // it may be absent, and then each member's rule under the member's own path. `local` numbers the pattern
+    // variables: one declared in an `if` is in scope for the rest of the block, so two value objects side by side
+    // must not share a name.
     private static void AppendAsk(
-        StringBuilder s, string indent, string access, string field, string modelKey, ValueObjectShape valueObject, ValueRule kind, ref int local)
+        StringBuilder s, string indent, string access, string field, string modelKey, ValueObjectShape valueObject, bool nullable,
+        ValueRule kind, ref int local)
     {
         if (valueObject.SingleValue)
         {
             if (valueObject.Rule == kind)
             {
-                var asked = RuleMethod(modelKey, field.Substring(field.LastIndexOf('.') + 1)) + "(" + access + ")";
-                s.Append(indent).Append("failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(field).Append("\", ")
-                    .Append(kind == ValueRule.Async ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(");");
+                AppendAskRule(s, indent, access, field, modelKey, kind);
             }
 
             return;
         }
 
-        if (!HoldsRule(valueObject, kind))
+        if (!Asks(valueObject, nullable, kind))
         {
             return;
         }
 
-        var held = "__held" + (local++).ToString(CultureInfo.InvariantCulture);
-        s.Append(indent).Append("if (").Append(access).Append(" is { } ").Append(held).AppendLine(")");
-        s.Append(indent).AppendLine("{");
-        foreach (var member in valueObject.Members.Where(static m => m.ValueObject is not null))
+        var missing = indent + "    failures = " + ModelRules + ".Told(failures, path, \"" + field + "\", " + ModelRules + ".Required(__RequiredText()));";
+
+        if (!valueObject.Members.Any(m => AsksMember(m, kind)))
         {
-            AppendAsk(
-                s, indent + "    ", held + "." + member.Name, field + "." + member.Name, valueObject.ModelName + "_",
-                member.ValueObject!, kind, ref local);
+            s.Append(indent).Append("if (").Append(access).AppendLine(" is null)");
+            s.Append(indent).AppendLine("{");
+            s.AppendLine(missing);
+            s.Append(indent).AppendLine("}");
+            return;
+        }
+
+        var held = "__held" + (local++).ToString(CultureInfo.InvariantCulture);
+        s.Append(indent).Append("if (").Append(access).Append(" is { } ").Append(held)
+            .Append(AndNotEmpty(held, valueObject, nullable)).AppendLine(")");
+        s.Append(indent).AppendLine("{");
+        foreach (var member in valueObject.Members)
+        {
+            AppendAskMember(s, indent + "    ", held, field, valueObject, member, kind, ref local);
         }
 
         s.Append(indent).AppendLine("}");
+
+        if (kind == ValueRule.Sync && !nullable)
+        {
+            s.Append(indent).AppendLine("else");
+            s.Append(indent).AppendLine("{");
+            s.AppendLine(missing);
+            s.Append(indent).AppendLine("}");
+        }
     }
 
-    private static bool HoldsRule(ValueObjectShape valueObject, ValueRule kind) =>
+    // One member of a nested model, under the path that reaches it: required by its type, or asked what the value
+    // object it holds says, and then the validation attributes the value object's property carries.
+    private static void AppendAskMember(
+        StringBuilder s, string indent, string held, string field, ValueObjectShape owner, ValueObjectMember member, ValueRule kind,
+        ref int local)
+    {
+        var access = held + "." + member.Name;
+        var path = field + "." + member.Name;
+        var modelKey = owner.ModelName + "_";
+
+        if (member.RequiredByType)
+        {
+            if (kind == ValueRule.Sync)
+            {
+                AppendAskRule(s, indent, access, path, modelKey, kind);
+            }
+        }
+        else if (member.ValueObject is { } inner)
+        {
+            AppendAsk(s, indent, access, path, modelKey, inner, member.Nullable, kind, ref local);
+        }
+
+        if (kind == ValueRule.Sync)
+        {
+            foreach (var check in member.Checks)
+            {
+                s.Append(indent).Append("failures = __Check(").Append(check).Append(", ").Append(access).Append(", \"")
+                    .Append(member.Name).Append("\", ").Append(held).Append(", path + \"").Append(field).AppendLine(".\", failures);");
+            }
+        }
+    }
+
+    private static void AppendAskRule(StringBuilder s, string indent, string access, string field, string modelKey, ValueRule kind)
+    {
+        var asked = RuleMethod(modelKey, field.Substring(field.LastIndexOf('.') + 1)) + "(" + access + ")";
+        s.Append(indent).Append("failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(field).Append("\", ")
+            .Append(kind == ValueRule.Async ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(");");
+    }
+
+    // Whether asking a value object says anything in this pass. One of several values that may not be absent is
+    // asked for in the synchronous pass even when nothing inside it has a rule.
+    private static bool Asks(ValueObjectShape valueObject, bool nullable, ValueRule kind) =>
         valueObject.SingleValue
             ? valueObject.Rule == kind
-            : valueObject.Members.Any(m => m.ValueObject is { } inner && HoldsRule(inner, kind));
+            : (kind == ValueRule.Sync && !nullable) || valueObject.Members.Any(m => AsksMember(m, kind));
+
+    private static bool AsksMember(ValueObjectMember member, ValueRule kind) =>
+        (kind == ValueRule.Sync && (member.RequiredByType || member.Checks.Count > 0)) ||
+        (member.ValueObject is { } inner && Asks(inner, member.Nullable, kind));
+
+    // Whether the one sentence is said for a value object itself, here or anywhere inside it.
+    private static bool RequiresHeld(ValueObjectShape valueObject, bool nullable) =>
+        !valueObject.SingleValue &&
+        (!nullable || valueObject.Members.Any(static m => m.ValueObject is { } inner && RequiresHeld(inner, m.Nullable)));
+
+    private static bool HasNestedChecks(ValueObjectShape valueObject) =>
+        !valueObject.SingleValue &&
+        valueObject.Members.Any(static m => m.Checks.Count > 0 || (m.ValueObject is { } inner && HasNestedChecks(inner)));
 
     private static void AppendAskRows(StringBuilder s, ChildShape child, bool awaited)
     {
@@ -269,7 +345,8 @@ public sealed partial class ModelInputGenerator
             s.AppendLine();
         }
 
-        if (rules.Exists(static r => r.Rule.Required))
+        if (rules.Exists(static r => r.Rule.Required) ||
+            HeldValueObjects(entity).Any(static m => RequiresHeld(m.ValueObject!, m.Nullable)))
         {
             AppendRequiredText(s, entity);
         }
@@ -310,11 +387,12 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
     }
 
-    private static void AppendCheck(StringBuilder s, string modelType)
+    // `model` is whatever holds the field: the root model, or the nested model of a value object.
+    private static void AppendCheck(StringBuilder s)
     {
         s.Append("    private static ").Append(FailureList)
             .Append(" __Check(global::System.ComponentModel.DataAnnotations.ValidationAttribute check, ")
-            .Append("object? value, string name, ").Append(modelType).Append(" model, string path, ").Append(FailureList)
+            .Append("object? value, string name, object model, string path, ").Append(FailureList)
             .AppendLine(" failures)");
         s.AppendLine("    {");
         s.AppendLine("        // The trim-safe context: it names the model without reflecting over it.");

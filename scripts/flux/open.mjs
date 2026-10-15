@@ -29,6 +29,10 @@
 //   liveRoot   runs in the page: the element a walk's `rask` selector found => the example around its control
 //   edges      which controls are opened again with the control HELD at the viewport's edges, by their place
 //              among the page's controls that have a popup: where the list lands with no room (placement.mjs)
+//   raskUrl    where the Rask page is served from, when its list is drawn by a file it fetches (the phone's
+//              engine) and a file:// page cannot fetch one; the page FluxParityPages wrote otherwise
+//   runtime    the runtime's hook modules the Rask page is given (runtime.mjs), and `ready`, a selector the page
+//              matches once they have run
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -82,7 +86,7 @@ export async function openParity(kind) {
     await writeFile(fluxFile, JSON.stringify(flux));
   }
 
-  const rask = await measureOpen(browser, kind, pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
+  const rask = await measureOpen(browser, kind, kind.raskUrl ?? pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
   await writeFile(join(out, 'rask', folder, 'measurements.json'), JSON.stringify(rask));
   // The same width on both pages: Flux's control fills its column, and a held one has no column.
   const held = marker => kind.root.split(', ').filter(root => root.includes(marker)).map(root => `[data-preview-wrapper] ${root}:has(${kind.popup})`).join(', ');
@@ -244,13 +248,17 @@ async function measureOpen(browser, kind, url, shots, like) {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
     // Which row is lit is the runtime's to write (data-rask-list), on a page of the kit's as in an app: the
-    // parity page is given the hook that does it, and nothing else of the runtime.
-    if (like) await withRuntime(page, 'rask-list.ts');
+    // parity page is given the hook that does it, and nothing else of the runtime -- or the hooks its kind names.
+    if (like) {
+      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']));
+      if (kind.ready) await page.waitForSelector(kind.ready, { state: 'attached', timeout: 15000 });
+    }
     const examples = [];
     const wrappers = await page.$$('[data-preview-wrapper]');
     if (like) await page.evaluate(() => { document.body.style.paddingBottom = '900px'; });
     for (const [index, wrapper] of wrappers.entries()) {
-      if (!(await wrapper.$(kind.popup))) continue;
+      // An example whose controls none of them open (disabled, read-only) is no open state on either page.
+      if (!(await wrapper.$(kind.popup)) || !(await wrapper.$(kind.trigger))) continue;
       const twin = like?.[scheme][examples.length];
       if (twin) await wrapper.evaluate((w, inherited) => Object.assign(w.style, inherited), twin.inherited);
       await wrapper.evaluate(w => w.scrollIntoView({ block: 'center' }));
@@ -355,7 +363,11 @@ function collect(wrapper, { STYLES, index, selectors }) {
   };
 
   const nodes = [];
-  [control, ...control.querySelectorAll('*')].slice(0, 600).forEach((el, i) => {
+  // What is never drawn is not collected, as in lib.mjs, so the 600 nodes are drawn ones on both sides: a
+  // <template> (Flux keeps four in a select's button where the kit keeps two), a <script> (the phone's list of
+  // countries), an <input type="hidden"> (a control's one bound field).
+  const undrawn = el => el.localName === 'template' || el.localName === 'script' || (el.localName === 'input' && el.type === 'hidden');
+  [control, ...control.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 600).forEach((el, i) => {
     const id = `${index}-${i}`;
     el.setAttribute('data-o', id);
     const box = el.getBoundingClientRect();

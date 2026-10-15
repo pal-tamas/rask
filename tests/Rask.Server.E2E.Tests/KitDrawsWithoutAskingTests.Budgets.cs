@@ -15,6 +15,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["filter: filter"] = (1, "the value"),
         ["input-clearable: clear"] = (1, "the value, emptied"),
         ["input: typing, then leaving the field"] = (1, "the value, on change"),
+        ["composer: send by Ctrl+Enter"] = (1, "the page's OnSubmit, with what was typed"),
         ["dropdown-heard: open by a press"] = (1, "the page's OnToggle"),
         ["dropdown-heard: close by Escape"] = (1, "the page's OnToggle"),
         ["dropdown-heard: close by a press outside"] = (1, "the page's OnToggle"),
@@ -63,8 +64,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["color-picker: cursor keys"] = 9,
         ["color-picker: close by Escape"] = 2,
         ["color-picker: close by a press outside"] = 1,
-        ["color-picker: drag, still held"] = 12,
-        ["color-picker: drag and release"] = 12,
         ["color-picker: typing part of a colour"] = 6,
         ["command: open by a press"] = 1,
         ["command: typing to filter"] = 6,
@@ -109,6 +108,12 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker: pointer over the open popup"] = (96,
             "the list snaps to the row it lit, in a frame of the browser's own, which moves another row under the resting "
             + "pointer, which is lit in turn: as many rows as the browser gets through, and the list has 96"),
+        // Counted 11 or 12 of the drag's 12 steps, on the same page and build, the machine alone deciding. The surface tells
+        // the page in one animation frame and the runtime sends what that told it in the next, and Chromium hands the page
+        // its pointer moves in frames of its own, which the page's stopped clock does not govern: two steps can reach the
+        // socket as one. Waiting for the page to hear each move and giving each step two frames did not make it exact.
+        ["color-picker: drag, still held"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
+        ["color-picker: drag and release"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
     };
 
 }

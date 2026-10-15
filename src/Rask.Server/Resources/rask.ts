@@ -34,11 +34,17 @@ import {
     endAllLoading,
     endLoading,
     fieldTarget,
-    isVisiblyLoading,
     loadingTarget,
     type LoadingTicket,
 } from "../../Rask.Core/Resources/rask-loading.js";
 import { beginUpload, type Upload } from "../../Rask.Core/Resources/rask-upload.js";
+import {
+    holdForm,
+    isSubmitting,
+    releaseAllForms,
+    releaseForm,
+    type FormHold,
+} from "../../Rask.Core/Resources/rask-submitting.js";
 import {
     createTransportChooser,
     openHttpConnection,
@@ -110,17 +116,22 @@ import {
     // CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
     // preloadNewHeadStylesheets) come from rask-scoped, imported at the top of this file.
 
-    // Read once from an explicit <base href> element so the runtime can host
-    // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
-    // seeing the prefix. Resolves to the directory portion of the base href.
-    // When no <base> element is present we default to "/" — server-rendered
-    // pages carry no <base>, and document.baseURI would otherwise fall back to
-    // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
-    // base that breaks the WS/asset URLs on every deep route.
+    // Read once. A host mapped under a path base (MapRask(pathBase: "/appA")) says so on this
+    // script's own tag, data-rask-base="/appA/", so the app never writes a <base> for the runtime
+    // (#1235). Failing that, an explicit <base href> element, for a prefix only a reverse proxy
+    // knows; it resolves to the directory portion of the base href.
+    // When neither is present we default to "/" — server-rendered pages carry no <base>, and
+    // document.baseURI would otherwise fall back to the current route URL (e.g. /realtime/BTC),
+    // yielding a bogus "/realtime/" base that breaks the WS/asset URLs on every deep route.
     let basePath: string | null = null;
 
     function getBasePath() {
         if (basePath !== null) return basePath;
+        const declared = document.querySelector("script[data-rask-base]")?.getAttribute("data-rask-base");
+        if (declared && declared.charAt(0) === "/") {
+            basePath = declared.charAt(declared.length - 1) === "/" ? declared : declared + "/";
+            return basePath;
+        }
         const baseEl = document.querySelector("base[href]");
         if (!baseEl) {
             basePath = "/";
@@ -1385,6 +1396,8 @@ import {
         clearPending();
         loadingBySeq.clear();
         endAllLoading();
+        formBySeq.clear();
+        releaseAllForms();
         for (const upload of uploadBySeq.values()) upload.end();
         uploadBySeq.clear();
     }
@@ -1408,11 +1421,19 @@ import {
         if (ticket) loadingBySeq.set(payload.seq, ticket);
     }
 
+    // The form each submit seq holds (rask-submitting.ts), released by the same ack.
+    const formBySeq = new Map<number, FormHold>();
+
     function settleLoading(upTo: number): void {
         for (const [seq, ticket] of loadingBySeq) {
             if (seq > upTo) continue;
             loadingBySeq.delete(seq);
             endLoading(ticket);
+        }
+        for (const [seq, hold] of formBySeq) {
+            if (seq > upTo) continue;
+            formBySeq.delete(seq);
+            releaseForm(hold);
         }
         for (const [seq, upload] of uploadBySeq) {
             if (seq > upTo) continue;
@@ -1866,22 +1887,30 @@ import {
         const t = closestFrom(e.target, "[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
-        // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent.
-        if (!submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
-        // The form's own button waits, not the form: it is what was pressed and what must not be pressed
-        // twice. Enter in a field submits through the form's default button, which the browser reports as
-        // the submitter too.
+        // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent; a
+        // form already submitting drops the submit without asking.
+        if (isSubmitting(t) || !submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
+        // A form already submitting takes no second submit, and this one is held until the server is done
+        // with it: from the press, so the files uploading first are waited on too (rask-submitting.ts).
+        const hold = holdForm(t);
+        if (!hold) return;
+        // The form's own button shows the wait: it is what was pressed. Enter in a field submits through the
+        // form's default button, which the browser reports as the submitter too.
         const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
-        if (isVisiblyLoading(submitter)) return;
-        // Started now rather than when the frame goes out, so the files uploading first are waited on too.
         const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
         submitForm(t as HTMLFormElement).then(
             (payload) => {
-                if (ticket && typeof payload.seq === "number") loadingBySeq.set(payload.seq, ticket);
-                else endLoading(ticket);
+                if (typeof payload.seq !== "number") {
+                    endLoading(ticket);
+                    releaseForm(hold);
+                    return;
+                }
+                if (ticket) loadingBySeq.set(payload.seq, ticket);
+                formBySeq.set(payload.seq, hold);
             },
             (err: unknown) => {
                 endLoading(ticket);
+                releaseForm(hold);
                 console.error("Rask: submit failed", err);
             });
     });

@@ -233,6 +233,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("CarouselNext", 0),
         ("CarouselIndicators", 0),
         ("CarouselShowSlide", 1),
+        ("PhoneChangeCountry", 0),
         ("ConnectionReconnecting", 0),
         ("ConnectionOffline", 0),
         ("ConnectionStillTrying", 0),

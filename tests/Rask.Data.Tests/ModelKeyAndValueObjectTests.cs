@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Rask.Data.Tests;
 
@@ -12,6 +13,18 @@ public sealed class Coupon : Aggregate<int>
     public string Code { get; private set; } = "";
 
     public static Coupon Issue(string code) => new() { Code = code };
+}
+
+// An integer key the application assigns — a table numbered by something other than the store's identity.
+public sealed class Chit : Aggregate<int>
+{
+    private Chit() { }
+
+    public string Code { get; private set; } = "";
+
+    public void Recode(string code) => Code = code;
+
+    public static void Configure(EntityTypeBuilder<Chit> builder) => builder.Property(v => v.Id).ValueGeneratedNever();
 }
 
 public readonly record struct ParcelId(Guid Value);
@@ -177,6 +190,58 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         Assert.DoesNotContain(
             typeof(CouponModelExtensions).GetMethods(),
             m => m.Name == "Create" && m.GetParameters()[0].ParameterType == typeof(int));
+    }
+
+    [Fact]
+    public async Task An_integer_key_the_application_assigns_is_inserted_under_the_id_the_caller_gives()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var first = await Chit.Create(1000, new ChitModel { Code = "SPRING" }, cancellationToken: TestContext.Current.CancellationToken);
+        var second = await Chit.Create(1001, chit => chit.Recode("SUMMER"), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal((1000, 1001), (first.Id, second.Id));
+        Assert.Equal("SPRING", (await database.Load<Chit>(1000, TestContext.Current.CancellationToken))!.Code);
+        Assert.Equal("SUMMER", (await database.Load<Chit>(1001, TestContext.Current.CancellationToken))!.Code);
+        Assert.Equal(
+            ValueGenerated.Never,
+            database.Context.Model.FindEntityType(typeof(Chit))!.FindPrimaryKey()!.Properties.Single().ValueGenerated);
+    }
+
+    [Fact]
+    public void An_integer_key_the_application_assigns_gets_no_create_without_one()
+    {
+        // It would insert the row under 0: the first lands and the second collides.
+        var creates = typeof(ChitModelExtensions).GetMethods().Where(m => m.Name == "Create").ToList();
+
+        Assert.Equal(2, creates.Count);
+        Assert.All(creates, create => Assert.Equal(typeof(int), create.GetParameters()[0].ParameterType));
+    }
+
+    [Fact]
+    public async Task A_second_row_under_a_key_that_is_taken_is_refused_by_the_store_and_the_first_stays()
+    {
+        await using var database = await StartDatabaseAsync();
+        await Chit.Create(1000, new ChitModel { Code = "SPRING" }, cancellationToken: TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<DbUpdateException>(
+            () => Chit.Create(1000, new ChitModel { Code = "SUMMER" }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("UNIQUE constraint failed: Chit", refused.InnerException!.Message, StringComparison.Ordinal);
+        Assert.Equal("SPRING", (await database.Load<Chit>(1000, TestContext.Current.CancellationToken))!.Code);
+    }
+
+    [Fact]
+    public async Task A_key_given_as_zero_is_refused_at_the_save_and_no_row_is_written()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Chit.Create(0, new ChitModel { Code = "SPRING" }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("'Chit' was added with its Id still at the default", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("Create(id, …)", refused.Message, StringComparison.Ordinal);
+        Assert.Null(await database.Load<Chit>(0, TestContext.Current.CancellationToken));
     }
 
     [Fact]
