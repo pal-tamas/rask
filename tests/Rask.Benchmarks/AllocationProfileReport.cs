@@ -58,7 +58,6 @@ internal static class AllocationProfileReport
     {
         const int rows = 20;
         const int updates = 20_000;
-        const double headroom = 1.05;
         var budget = long.Parse(
             File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "Baselines", "allocation-budget.csv"))
                 .First(line => line.StartsWith("LiveUpdate20Rows,", StringComparison.Ordinal))
@@ -75,10 +74,10 @@ internal static class AllocationProfileReport
         SessionHarness.Remove(store, handle);
         services.DisposeAsync().AsTask().GetAwaiter().GetResult();
 
-        var ok = each <= budget * headroom;
+        var ok = each <= budget;
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"  LiveUpdate20Rows       {each,6} B per update (budget {budget} B, +5% allowed)  [{(ok ? "ok" : "REGRESSION")}]"));
-        if (each < budget / headroom)
+            $"  LiveUpdate20Rows       {each,6} B per update (budget {budget} B, exact)  [{(ok ? "ok" : "REGRESSION")}]"));
+        if (each < budget)
         {
             Console.WriteLine("  An improvement: lower the budget in Baselines/allocation-budget.csv to keep it.");
         }
