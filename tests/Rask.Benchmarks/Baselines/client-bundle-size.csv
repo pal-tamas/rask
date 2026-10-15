@@ -257,3 +257,13 @@ bundle,bytes
 rask.js,106706
 rask.wasm.js,93174
 rask-hooks.js,70877
+#
+# 2026-10-15, Ui.ColorPicker kept in the browser (rask-color.ts, data-rask-color: Flux's arithmetic, the keys, the drag,
+# typing, the swatch walk, the sheet and the dropper; a dialog's open state followed by rask-toggle.ts; a late echo
+# redrawn through rask-bound.ts): rask-hooks.js +10,339 (esbuild of main's and this branch's hook entries: 70,779 and
+# 81,118), +6 in each runtime (the loader's list). Measured from a Release build of the merge with
+# origin/main (877a4ff65): rask.js 106,712, rask.wasm.js 93,180, rask-hooks.js 81,216.
+bundle,bytes
+rask.js,106712
+rask.wasm.js,93180
+rask-hooks.js,81216

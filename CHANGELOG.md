@@ -45,6 +45,19 @@ them until tagged releases begin.
   indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
   changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
+### Performance
+
+- **`Ui.ColorPicker` is kept in the browser, as Flux's script keeps its own: it asks the server only for the colour.**
+  Before, opening it, Tab, Escape, a press outside, every arrow and every typed character went to the server, because
+  the popover's colour, its tab stop and what was being typed were C# state. Now they are the runtime's
+  (`data-rask-color`, `rask-color.ts`: Flux's arithmetic to the last bit, a typed colour read through the browser as
+  Flux reads it, the area and slider keys, the swatch walk, the phone sheet holding everything until Select — the
+  dropper too), and the page hears the colour through one field exactly when Flux's element announces one. Frames, on
+  a page that gives `OnChange`: Tab 3 → 0, open 1 → 0, Escape 2 → 0, a press outside 1 → 0, "#12" typed 6 → 0, a drag
+  still held up to 12 → 0, a drag let go up to 12 → 1; the area's keys stay 9, one `change` a key, as Flux's. A bound
+  picker that waits sends nothing until the reader's next action; `.Live()` sends as Flux's `wire:model.live` would.
+  Nothing changes at the call site. `rask-hooks.js` +10,339 bytes.
+
 ### Security
 
 - **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the

@@ -37,7 +37,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["calendar, multiple"] = (typeof(UiCalendarMultiple), a => Ui.Calendar.Multiple.Bind(() => a.Days).Locale("en-US").On(Today), page => page.On(Day(20)).Click()),
         ["date picker"] = (typeof(UiDatePicker), a => Ui.DatePicker.Bind(() => a.Day).Locale("en-US").On(Today), page => page.On(Day(20)).Click()),
         ["time picker"] = (typeof(UiTimePicker<>), a => Ui.TimePicker.Bind(() => a.At), page => First(page, "button[role=\"option\"]", "click")),
-        ["colour picker"] = (typeof(UiColorPicker), a => Ui.ColorPicker.Bind(() => a.Text), page => First(page, "button[role=\"option\"]", "click")),
+        ["colour picker"] = (typeof(UiColorPicker), a => Ui.ColorPicker.Bind(() => a.Text), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "#22c55e")),
         ["slider"] = (typeof(UiSlider<>), a => Ui.Slider.Bind(() => a.Volume), page => First(page, "input[type=\"range\"]", "input", "40")),
         ["rating"] = (typeof(UiRating), a => Ui.Rating.Bind(() => a.Stars).Group("stars").Label("Stars").Max(5), page => Last(page, "input[type=\"radio\"]", "change", "on")),
         ["otp"] = (typeof(UiOtp), a => Ui.Otp.Bind(() => a.Text).Length(6), page => First(page, "input[type=\"hidden\"][data-rask-on-input]", "input", "12")),

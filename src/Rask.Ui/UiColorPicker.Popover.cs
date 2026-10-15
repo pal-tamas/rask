@@ -254,24 +254,18 @@ public sealed partial class UiColorPicker
     /// <summary>Flux's <c>flux:color-picker.dropper</c>: picks a colour from the screen, in the click's own gesture.</summary>
     /// <remarks>
     ///     Rendered hidden and shown by the runtime where the browser has an EyeDropper: Flux's is not there
-    ///     where the API is missing.
+    ///     where the API is missing. The runtime opens it and takes the colour as the area's are taken.
     /// </remarks>
     internal Component DrawDropper(string? @class) =>
-        Trigger.EyeDropper
-            .Template(gesture => Button
-                .Type(ButtonType.Button)
-                .Class(UiClass.Compose(UiColorPickerLook.Dropper, @class))
-                .Disabled(Off)
-                .Hidden()
-                .Aria("label", RaskStrings.Get(RaskString.ColorPickerDropper, "Pick a color from the screen"))
-                .Attributes(new Dictionary<string, string?>(gesture, StringComparer.Ordinal)
-                {
-                    ["data-ui-color-picker-dropper"] = null,
-                    ["data-rask-requires"] = "EyeDropper",
-                })[
-                Ui.Icon.Name(Ui.IconName.EyeDropper).Mini
-            ])
-            .OnColor(DroppedAsync);
+        Button
+            .Type(ButtonType.Button)
+            .Class(UiClass.Compose(UiColorPickerLook.Dropper, @class))
+            .Disabled(Off)
+            .Hidden()
+            .Aria("label", RaskStrings.Get(RaskString.ColorPickerDropper, "Pick a color from the screen"))
+            .Attributes(("data-ui-color-picker-dropper", null), ("data-rask-requires", "EyeDropper"), UiColorPickerMarks.Named("dropper"))[
+            Ui.Icon.Name(Ui.IconName.EyeDropper).Mini
+        ];
 
     /// <summary>Flux's <c>flux:color-picker.swatches</c>: a listbox of colours with one tab stop.</summary>
     /// <param name="own">The swatches written as the part's children, or <c>null</c> for the picker's palette.</param>

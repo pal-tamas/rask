@@ -9,6 +9,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["calendar: pick a day"] = (1, "the value"),
         ["checkbox-group: tick one"] = (1, "the value, bound live"),
         ["checkbox: tick"] = (1, "the value"),
+        ["color-picker: cursor keys"] = (9, "the colour, a change a key, as Flux's picker announces one for every key of its area"),
+        ["color-picker: drag and release"] = (1, "the colour, on letting go: Flux's picker says `change` once, at the release"),
         ["editor: typing"] = (3, "the value, as it is typed: a frame a key"),
         ["editor: typing, then leaving the field"] = (3, "the value, as it is typed: a frame a key, and nothing on leaving"),
         ["data-grid: sort a column"] = (1, "the rows are sorted on the server"),
@@ -59,12 +61,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["calendar: focus and blur by Tab"] = 3,
         ["calendar: page the month"] = 2,
         ["calendar: cursor keys"] = 6,
-        ["color-picker: focus and blur by Tab"] = 3,
-        ["color-picker: open by a press"] = 1,
-        ["color-picker: cursor keys"] = 9,
-        ["color-picker: close by Escape"] = 2,
-        ["color-picker: close by a press outside"] = 1,
-        ["color-picker: typing part of a colour"] = 6,
         ["command: open by a press"] = 1,
         ["command: typing to filter"] = 6,
         ["command: cursor keys"] = 9,
@@ -108,12 +104,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker: pointer over the open popup"] = (96,
             "the list snaps to the row it lit, in a frame of the browser's own, which moves another row under the resting "
             + "pointer, which is lit in turn: as many rows as the browser gets through, and the list has 96"),
-        // Counted 11 or 12 of the drag's 12 steps, on the same page and build, the machine alone deciding. The surface tells
-        // the page in one animation frame and the runtime sends what that told it in the next, and Chromium hands the page
-        // its pointer moves in frames of its own, which the page's stopped clock does not govern: two steps can reach the
-        // socket as one. Waiting for the page to hear each move and giving each step two frames did not make it exact.
-        ["color-picker: drag, still held"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
-        ["color-picker: drag and release"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
     };
 
 }

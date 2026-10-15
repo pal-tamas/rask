@@ -20,6 +20,7 @@
 //   button      a button trigger; opener the swatch button beside the text input (named for the colour)
 //   preview     a swatch showing the page's colour; value / placeholder the button trigger's two texts
 //   swatches    a `[role=listbox]` of `[role=option]` buttons, each `data-value` and named by `aria-label`
+//   dropper     the button that opens the browser's EyeDropper
 //   clear       the clear button; announce the live region; select the sheet's Select; sheet the box that
 //               is two pixels wide below `sm`, where the popover is Flux's sheet
 //
@@ -31,6 +32,7 @@
 //   * typed text: nothing while it is typed, the colour (in the picker's format) when the field changes — on
 //     Enter, which also leaves it, or on leaving it; empty clears; a swatch: `input` and `change`;
 //   * the trigger's text input opens the popover on ArrowDown, and so does a button trigger;
+//   * the dropper's colour is taken as the area's, its alpha kept;
 //   * on the sheet everything waits for Select but a swatch, which is taken and closes it; Cancel, Escape and
 //     a press outside drop what waited.
 
@@ -511,6 +513,20 @@ function swatchKey(root: Element, list: Element, swatch: HTMLElement, e: Keyboar
     }
 }
 
+type Dropper = {open(): Promise<{sRGBHex: string}>};
+
+// The colour under the pointer, taken as a move of the area is: held on the sheet like any other.
+function drop(root: Element): void {
+    const Made = (globalThis as unknown as {EyeDropper?: new () => Dropper}).EyeDropper;
+    if (!Made) return;
+    new Made().open().then(function (result) {
+        const c = parse(result.sRGBHex);
+        if (c) move(root, {h: c.h, s: c.s, v: c.v, a: stateOf(root).shown.c.a}, true);
+    }, function () {
+        // the reader pressed Escape
+    });
+}
+
 function opened(root: Element, open: boolean): void {
     const state = stateOf(root);
     state.typedOnSheet = false;
@@ -553,7 +569,7 @@ bind(ROOT, function (root) {
     state.kept = state.shown = pickOf(rendered);
     state.refused = null;
     draw(root);
-});
+}, undefined, draw);
 
 if (page) {
     listen("keydown", function (e) {
@@ -625,6 +641,8 @@ if (page) {
         if (name === "swatches") {
             const swatch = near(e.target, "[role=option]");
             if (swatch) pickSwatch(root, part, swatch);
+        } else if (name === "dropper") {
+            drop(root);
         } else if (name === "select") {
             keep(root, true);
         } else if (name === "clear") {
@@ -639,7 +657,8 @@ if (page) {
     // `toggle` does not bubble; it is caught on the way down.
     listen("toggle", function (e) {
         const dialog = e.target;
-        const root = dialog instanceof HTMLDialogElement ? rootOf(dialog) : null;
+        if (!(dialog instanceof HTMLDialogElement)) return;
+        const root = rootOf(dialog);
         if (root && dialogOf(root) === dialog) opened(root, dialog.open);
     }, true);
 

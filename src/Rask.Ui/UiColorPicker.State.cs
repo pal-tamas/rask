@@ -80,10 +80,6 @@ public sealed partial class UiColorPicker
         return RefuseAsync();
     }
 
-    // The dropper's colour, with the alpha the picker had: the page's at once.
-    private Task DroppedAsync(string? hex) =>
-        UiColorValue.TryParse(hex, out var color) ? KeepAsync(new Pick(color with { Alpha = _kept.Color.Alpha }, Empty: false)) : Task.CompletedTask;
-
     private Task KeepAsync(Pick pick)
     {
         if (_kept == pick)
