@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
+  Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
+  of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over
+  DNS-01. After: `--redirect <host>` (repeatable, remembered as `"redirects"`) gets a Caddy block answering
+  `308 https://<primary>{uri}`, path, query and method kept, while the `--domain` names stay the app's (Caddy
+  matches the most specific address). `--dns azure --dns-env-file <file>` builds Caddy with `caddy-dns/azure`
+  on the box and replaces the shared proxy with it once, after the new app answers, announced first because
+  every site is down for a few seconds; certificates carry over on the data volume. Only blocks naming a
+  wildcard prove over DNS. The credentials live in the proxy's environment, named as `{env.…}` placeholders,
+  never in `.rask/deploy.json`, a label or the output. The proxy is labelled `rask.dns=azure`, so later deploys,
+  CI's included, keep it, and a wildcard on a box without a provider fails before anything starts. A box with no
+  redirects and no wildcard gets exactly the Caddyfile it got before.
+
 - **`rask deploy` serves one app on several domains.** Before: `--domain` took one host, so `example.com` and
   `www.example.com` could not both reach an app. After: `--domain` repeats, or takes a comma-separated list
   (`--domain example.com --domain www.example.com`). Every host is checked like a single one was, a host given

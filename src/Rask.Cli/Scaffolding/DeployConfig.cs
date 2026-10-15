@@ -35,6 +35,20 @@ internal sealed class DeployConfig
         Domains = hosts.Count > 1 ? [.. hosts] : null;
     }
 
+    /// <summary>
+    /// The hosts the proxy redirects to the primary domain (<c>--redirect '*.example.com'</c>), or <c>null</c> when
+    /// there are none — absent from the file then, so a deploy.json without redirects is what an older Rask wrote.
+    /// </summary>
+    public string[]? Redirects { get; set; }
+
+    /// <summary>The remembered redirects as one site string (<see cref="SiteDomains"/>), or <c>null</c>.</summary>
+    [JsonIgnore]
+    public string? RedirectSite => Redirects is { Length: > 0 } redirects ? string.Join(',', redirects) : null;
+
+    /// <summary>Remember the redirect hosts of <paramref name="site"/> the way <see cref="RedirectSite"/> reads them back.</summary>
+    public void SetRedirects(string? site) =>
+        Redirects = site is null || SiteDomains.Hosts(site).Count == 0 ? null : [.. SiteDomains.Hosts(site)];
+
     public int? Port { get; set; }
 
     public string? Name { get; set; }

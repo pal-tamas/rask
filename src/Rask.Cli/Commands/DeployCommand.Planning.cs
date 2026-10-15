@@ -73,6 +73,82 @@ internal sealed partial class DeployCommand
         plan.Host = host;
         plan.Domain = domain;
         plan.SshTarget = sshTarget;
+        return ResolveRedirectsAndDns(plan);
+    }
+
+    // The --redirect hosts (or the remembered ones) and the DNS provider, validated like the domains: they are written
+    // into the proxy config every app on the box shares, and the redirects may come from the committed deploy.json.
+    private int? ResolveRedirectsAndDns(DeployPlan plan)
+    {
+        var parsed = plan.Parsed;
+        IEnumerable<string> redirectValues = parsed.MultiOption("redirect");
+        if (parsed.MultiOption("redirect").Count == 0 && Normalize(plan.Config.RedirectSite) is { } remembered)
+        {
+            redirectValues = [remembered];
+        }
+
+        if (!SiteDomains.TryParse(redirectValues, out var redirects, out var redirectError))
+        {
+            Console.WriteErrorLine(redirectError!, ConsoleStyle.Error);
+            return 1;
+        }
+
+        if (redirects is not null && plan.Domain is null)
+        {
+            return Fail("--redirect needs a --domain: the redirected hosts are sent on to the app's primary domain.");
+        }
+
+        if (redirects is not null && plan.Domain is { } domain
+            && SiteDomains.Hosts(redirects).FirstOrDefault(host => SiteDomains.Hosts(domain).Contains(host, StringComparer.Ordinal)) is { } both)
+        {
+            return Fail($"{both} is both served (--domain) and redirected (--redirect) — give it as one or the other.");
+        }
+
+        plan.Redirects = redirects ?? string.Empty;
+        return ResolveDns(plan);
+    }
+
+    // --dns names the provider; --dns-env-file its credentials, which are checked to set every variable it needs —
+    // by name only: the values are never read into a message.
+    private int? ResolveDns(DeployPlan plan)
+    {
+        var parsed = plan.Parsed;
+        if (parsed.Option("dns") is { } dnsName)
+        {
+            plan.Dns = DnsProvider.Named(dnsName);
+            if (plan.Dns is null)
+            {
+                return Fail($"--dns '{dnsName}' isn't a provider Rask knows — the one there is: {string.Join(", ", DnsProvider.All.Select(provider => provider.Name))}.");
+            }
+        }
+
+        if (parsed.Option("dns-env-file") is not { } dnsEnvFile)
+        {
+            return null;
+        }
+
+        if (plan.Dns is null)
+        {
+            return Fail("--dns-env-file goes with --dns <provider>: it holds that provider's credentials.");
+        }
+
+        var path = Path.GetFullPath(Path.Combine(_workingDirectory, dnsEnvFile));
+        if (!_fileSystem.FileExists(path))
+        {
+            return Fail($"--dns-env-file: {dnsEnvFile} doesn't exist.");
+        }
+
+        var keys = _fileSystem.ReadAllText(path).Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0 && !line.StartsWith('#') && line.Contains('=', StringComparison.Ordinal))
+            .Select(line => line[..line.IndexOf('=', StringComparison.Ordinal)].Trim())
+            .ToHashSet(StringComparer.Ordinal);
+        if (plan.Dns.Variables.Where(variable => !keys.Contains(variable)).ToList() is { Count: > 0 } missing)
+        {
+            return Fail($"--dns-env-file: {dnsEnvFile} doesn't set {string.Join(", ", missing)} — the {plan.Dns.Name} provider needs every one of {string.Join(", ", plan.Dns.Variables)}.");
+        }
+
+        plan.DnsEnvFile = path;
         return null;
     }
 
@@ -156,7 +232,7 @@ internal sealed partial class DeployCommand
     }
 
     private void PersistPlan(DeployPlan plan) =>
-        PersistConfig(plan.Host, plan.Domain, plan.PublishedPort, plan.Slug, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, plan.ContainerPort, plan.Env);
+        PersistConfig(plan.Host, plan.Domain, plan.PublishedPort, plan.Slug, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, plan.ContainerPort, plan.Env, plan.Redirects);
 
     private string ResolveProjectDirectory(string? projectOption, ProjectContext? located)
     {

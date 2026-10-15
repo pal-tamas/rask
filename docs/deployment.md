@@ -56,6 +56,23 @@ Dockerfile below (override with `--dockerfile`).
   `"domains": ["example.com", "www.example.com"]` — one stays `"domain"`, as before — so a bare
   `rask deploy` keeps all of them. A domain another app on the box already answers on is refused before
   the deploy starts anything.
+- **Redirected names.** `--redirect <host>` (repeatable) is a name the proxy answers with a `308` to the app's
+  primary domain, path and query kept — `308` also keeps the method and body, so a program still POSTing to an
+  old address arrives intact. `--redirect '*.example.com'` sends every subdomain on, while the names you
+  `--domain` (`example.com`, `www.example.com`) stay the app's: Caddy matches the most specific address first.
+  Remembered as `"redirects": [...]` in `.rask/deploy.json`, and refused, like a domain, when another app on
+  the box already serves or redirects the name.
+- **Wildcards need a DNS provider.** Let's Encrypt issues a `*.` certificate only over the DNS-01 challenge,
+  which writes a TXT record into the domain's zone. `--dns azure --dns-env-file azure-dns.env` (the file sets
+  `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SUBSCRIPTION_ID`,
+  `AZURE_RESOURCE_GROUP_NAME` — a service principal that may edit just that zone) builds Caddy with the
+  `caddy-dns/azure` module on the box (`rask-caddy:dns-azure`) and, once the new app answers, **replaces the
+  shared proxy** with it: every site on the box is down for the seconds Caddy takes to start, so the CLI says
+  so first. The data volume carries every certificate over. Only the blocks naming a wildcard prove over DNS;
+  the rest stay on HTTP-01. The credentials go into the proxy container's environment and the Caddyfile names
+  them as `{env.…}` placeholders — never into `.rask/deploy.json`, a label or the output. The proxy is
+  labelled `rask.dns=azure`, so every later deploy (CI's, with no credentials) keeps it as it is; a wildcard
+  on a box with no provider fails before anything starts.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own

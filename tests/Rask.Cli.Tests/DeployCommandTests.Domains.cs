@@ -78,7 +78,7 @@ public sealed partial class DeployCommandTests
 
         var taken = CaddyRouting.FindTakenHost(apps, "ta", "ppta.hu,WWW.example.com");
 
-        Assert.Equal(("www.example.com", "shop"), taken);
+        Assert.Equal(("www.example.com", "shop", false), taken);
     }
 
     [Fact]
