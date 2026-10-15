@@ -310,6 +310,31 @@ public static void Configure(EntityTypeBuilder<Destination> builder)
 That is what lets a table that already exists keep the indexes it has. A declared `TenantId` is what the first
 line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", Columns.TenantId)`.
 
+**A prefixed index keeps what it was told about itself**: its [message](data.md#what-a-unique-indexs-violation-says)
+and the `HasDatabaseName("…")` it was given, so a violation is still recognised by the name the database
+reports.
+
+### A key that is unique across every tenant
+
+Some keys are global by nature — a sign-in name, an external reference, a chip id. Say so on the index, and it
+is left exactly as written:
+
+```csharp
+public static void Configure(EntityTypeBuilder<User> builder)
+{
+    builder.HasIndex(u => u.Username)
+        .HasDatabaseName("User_username_key")
+        .IsUnique("Ez a felhasználónév foglalt.")
+        .AcrossTenants();                                            // stays (Username)
+}
+```
+
+Its unique rule is then asked about every tenant's rows too — by
+[a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself) and by
+[the check before the save](data.md#when-the-index-may-not-be-there) — so a name another tenant holds is refused
+at the field and at the save with the index's message, and never tells the caller whose it is. Only the tenant
+filter is lifted for that question; a soft-deleted row counts the way it does for any other rule.
+
 ## Writes stamp it, and it never moves
 
 A create records the tenant in flight — the signed-in user's, with no `Tenant.Use` needed. An update that

@@ -21,7 +21,8 @@ namespace Rask.Data;
 ///     </para>
 ///     <para>
 ///         The query is built from the INDEX and runs through the context's own filters, so a tenant-scoped
-///         table is asked about the tenant in flight and nobody else's rows. Three things follow the way a
+///         table is asked about the tenant in flight and nobody else's rows — except by an index declared
+///         <c>AcrossTenants()</c>, which is asked about every tenant's. Three things follow the way a
 ///         database treats a unique index:
 ///     </para>
 ///     <list type="bullet">
@@ -38,7 +39,7 @@ internal static class DeclaredUniqueRules
 {
     // Both captured from a real expression, as the tenant filter's readers are, then opened to their definition.
     private static readonly MethodInfo ExistsMethod =
-        ((MethodCallExpression)((Expression<Func<DbContext, Task<bool>>>)(c => AnyOfAsync<object>(c, null!, default))).Body)
+        ((MethodCallExpression)((Expression<Func<DbContext, Task<bool>>>)(c => AnyOfAsync<object>(c, null!, false, default))).Body)
         .Method.GetGenericMethodDefinition();
 
     private static readonly MethodInfo EfProperty =
@@ -92,7 +93,8 @@ internal static class DeclaredUniqueRules
         IReadOnlyList<object?>? selfKey,
         CancellationToken cancellationToken) =>
         Predicate(entityType, rule, valueOf, selfKey) is { } taken &&
-        await ExistsAsync(context, entityType.ClrType, taken, cancellationToken).ConfigureAwait(false);
+        await ExistsAsync(context, entityType.ClrType, taken, TenantIndexes.IsAcrossTenants(rule), cancellationToken)
+            .ConfigureAwait(false);
 
     /// <summary>The unique rules of <paramref name="entityType" /> that can be asked as a query.</summary>
     internal static IEnumerable<IIndex> Rules(IEntityType entityType) =>
@@ -196,11 +198,21 @@ internal static class DeclaredUniqueRules
     [UnconditionalSuppressMessage("AOT", "IL3050",
         Justification = "As above: a mapped entity type, always a reference type.")]
     private static Task<bool> ExistsAsync(
-        DbContext context, Type clrType, LambdaExpression taken, CancellationToken cancellationToken) =>
-        (Task<bool>)ExistsMethod.MakeGenericMethod(clrType).Invoke(null, [context, taken, cancellationToken])!;
+        DbContext context, Type clrType, LambdaExpression taken, bool acrossTenants, CancellationToken cancellationToken) =>
+        (Task<bool>)ExistsMethod.MakeGenericMethod(clrType).Invoke(null, [context, taken, acrossTenants, cancellationToken])!;
 
+    // A rule declared AcrossTenants() is asked about every tenant's rows: only the tenant filter is lifted, so a
+    // soft-deleted row still counts the way it does for any other rule.
     private static Task<bool> AnyOfAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
-        DbContext context, LambdaExpression taken, CancellationToken cancellationToken)
-        where TEntity : class =>
-        context.Set<TEntity>().AsNoTracking().AnyAsync((Expression<Func<TEntity, bool>>)taken, cancellationToken);
+        DbContext context, LambdaExpression taken, bool acrossTenants, CancellationToken cancellationToken)
+        where TEntity : class
+    {
+        var rows = context.Set<TEntity>().AsNoTracking();
+        if (acrossTenants)
+        {
+            rows = rows.IgnoreQueryFilters([ModelBuilderExtensions.TenantFilter]);
+        }
+
+        return rows.AnyAsync((Expression<Func<TEntity, bool>>)taken, cancellationToken);
+    }
 }

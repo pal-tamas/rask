@@ -15,6 +15,13 @@ them until tagged releases begin.
   Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+- **`.AcrossTenants()` — a unique key on a tenant-scoped table that holds across every tenant (#1250).** A sign-in
+  name, an external reference, a chip id: `b.HasIndex(u => u.Username).HasDatabaseName("User_username_key")
+  .IsUnique("Ez a felhasználónév foglalt.").AcrossTenants()`. Before: Rask put `TenantId` in front of every index
+  of a `PerTenant` table, so no index could stay global, and a name another tenant held failed in the database as
+  a bare `DbUpdateException`. After: the index is left exactly as written, and its unique rule is asked about every
+  tenant's rows — by a form bound to the generated model and by the check before the save — so the name is
+  refused at the field and at the save with the index's message. See `docs/multi-tenancy.md`.
 
 ### Security
 
@@ -530,6 +537,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
+  `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
+  `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised
+  and its message never shown. After: the prefixed index keeps its name and everything else it was told (a filter
+  included), and on SQLite a database index held without the `TenantId` is recognised by its other columns.
 - **A computed get-only property of a struct or record type no longer stops the app at startup.** Before: `public SupplyKind Kind => …;` (a `record struct`) was mapped by EF Core as a complex property and the model failed with "No backing field could be found for property 'Supply.Kind' and the property does not have a setter", although `docs/data.md` says computed properties are dropped. After: a get-only property with no backing field is left out of the model, as the docs say.
 - **A key that points at its own table gets its join on the read face.** Before: `Supply.SumSupplyId` (an `int?` on `Supply` itself) stayed a plain column, so `s.SumSupply.Number` was not there and an app read the other row with a second query and could not sort by it. After: an id whose name ENDS in its own aggregate's name (`SumSupplyId`, `ParentCategoryId`) is a navigation to another row of the table (`.OrderBy(s => s.SumSupply!.Number)`). An id named exactly like its own type (`CategoryId` on `Category`) is still the row's own id, a column.
 - **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.

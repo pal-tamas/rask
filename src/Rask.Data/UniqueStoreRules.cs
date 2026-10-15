@@ -7,7 +7,8 @@ namespace Rask.Data;
 
 /// <summary>
 ///     Asks <typeparamref name="TEntity" />'s declared unique rules about a form model, through a context of
-///     the scope the form lives in — so the rows that count are the current tenant's and nobody else's.
+///     the scope the form lives in — so the rows that count are the current tenant's and nobody else's, unless
+///     the rule was declared <c>AcrossTenants()</c>.
 /// </summary>
 internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity, TModel>(
     IServiceProvider? services,

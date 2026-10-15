@@ -12,7 +12,9 @@ namespace Rask.Data;
 ///         An index that does not name the tenant gains <c>TenantId</c> at the FRONT: uniqueness then means
 ///         "within this tenant", and the filtered query can use the index rather than scanning and discarding.
 ///         One that names it ANYWHERE is left exactly as declared — the author already said where the tenant
-///         goes, and a table that exists has its indexes in the order it has them.
+///         goes, and a table that exists has its indexes in the order it has them. So is one declared
+///         <c>AcrossTenants()</c>, which is unique among every tenant's rows on purpose. A prefixed index keeps
+///         what it was told about itself — its message, and the database name it was given.
 ///     </para>
 ///     <para>
 ///         It runs three times, because an index can be declared at three moments and one left unprefixed is
@@ -24,6 +26,9 @@ namespace Rask.Data;
 /// </remarks>
 internal static class TenantIndexes
 {
+    /// <summary>The index annotation <c>AcrossTenants()</c> writes.</summary>
+    internal const string AcrossAnnotation = "Rask:AcrossTenants";
+
     /// <summary>Prefixes the indexes of every tenant-scoped entity in <paramref name="model" />.</summary>
     internal static void Prefix(IMutableModel model)
     {
@@ -47,28 +52,41 @@ internal static class TenantIndexes
 
         foreach (var index in entityType.GetIndexes().ToList())
         {
-            if (index.Properties.Contains(tenant))
+            if (index.Properties.Contains(tenant) || IsAcrossTenants(index))
             {
                 continue;
             }
 
             IReadOnlyList<IMutableProperty> prefixed = [tenant, .. index.Properties];
-            var replacement = entityType.FindIndex(prefixed) ?? entityType.AddIndex(prefixed);
+            var (name, unique, annotations) = (index.Name, index.IsUnique, Declared(index));
 
-            if (index.IsUnique)
+            entityType.RemoveIndex(index);
+            var replacement = name is null
+                ? entityType.FindIndex(prefixed) ?? entityType.AddIndex(prefixed)
+                : entityType.FindIndex(name) ?? entityType.AddIndex(prefixed, name);
+
+            if (unique)
             {
                 replacement.IsUnique = true;
             }
 
-            // What the index was told about itself travels with it: the message a violation is reported with.
-            if (index.FindAnnotation(UniqueViolation.Annotation)?.Value is { } message)
+            // What the index was told about itself travels with it: the message a violation is reported with,
+            // and the name the database knows it by — without which a violation of it is recognised by nothing.
+            foreach (var annotation in annotations)
             {
-                replacement.SetAnnotation(UniqueViolation.Annotation, message);
+                replacement.SetAnnotation(annotation.Name, annotation.Value);
             }
-
-            entityType.RemoveIndex(index);
         }
     }
+
+    // What the app said, not what a convention derived from the old columns: SQL Server's "[Code] IS NOT NULL"
+    // filter is worked out again for the new index, the tenant included.
+    private static List<IConventionAnnotation> Declared(IMutableIndex index) =>
+        [.. ((IConventionIndex)index).GetAnnotations()
+            .Where(static annotation => annotation.GetConfigurationSource() != ConfigurationSource.Convention)];
+
+    /// <summary>Whether <paramref name="index" /> was declared <c>AcrossTenants()</c>: unique among every tenant's rows.</summary>
+    internal static bool IsAcrossTenants(IReadOnlyIndex index) => index.FindAnnotation(AcrossAnnotation)?.Value is true;
 
     /// <summary>The last of the three passes: after EF Core's own conventions have finished adding indexes.</summary>
     internal sealed class Convention : IModelFinalizingConvention

@@ -1080,7 +1080,9 @@ asked of the database [when a bound field is committed and again on submit](form
 and the message shows under the field, or under each field of an index over several:
 
 - for the **current tenant's rows only**: the tenant is the one in flight, never the form's to say, and with no
-  tenant — or inside `Tenant.Across()` — the rule is left to the save
+  tenant — or inside `Tenant.Across()` — the rule is left to the save. An index declared
+  [`.AcrossTenants()`](multi-tenancy.md#a-key-that-is-unique-across-every-tenant) is asked about **every
+  tenant's rows**, with a tenant or without one
 - an edit form does not collide with **the row it was filled from**: the model remembers its key from
   `Destination.Model(id)` / `ToModel()`. It is not a field — nothing binds or posts it — and it only decides
   which row this courtesy check leaves out; the save takes its id beside the model and is checked on its own
@@ -1167,7 +1169,8 @@ var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // 
 ```
 
 That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index that does not already name it. The column is a shadow one; an entity that reads its tenant declares
+every index that does not already name it — or say [`.AcrossTenants()`](multi-tenancy.md#a-key-that-is-unique-across-every-tenant),
+for a key that is global by nature, like a sign-in name; a prefixed index keeps its `HasDatabaseName`. The column is a shadow one; an entity that reads its tenant declares
 `public Guid? TenantId { get; private set; }` — or `int?` / `long?` where tenants are numbered, and the declared
 type is then the column's. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant`
 claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), asked once by a request
@@ -1474,7 +1477,10 @@ index names in index order — `TenantId` aside, which is never a field — and 
   translate: SQLSTATE `23505` and the constraint name on PostgreSQL, error `2601` / `2627` and the index name on
   SQL Server, and on SQLite — which names no index — the table and columns it lists. It needs no provider
   package of Rask's: a plain `UseSqlServer` works. On a table that already exists the index's name in the
-  database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
+  database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`,
+  which a [tenant-scoped](multi-tenancy.md#indexes-are-prefixed-for-you) index keeps when Rask puts `TenantId`
+  in front. On SQLite an index the database holds without that `TenantId` is still recognised by its other
+  columns.
 - The original exception is the `InnerException`, for the log.
 
 **In a `Form` the message appears under the field** — under each of them, for an index over several — with
@@ -1492,7 +1498,8 @@ index the model declares is a claim about somebody else's schema, and the table 
 with `AddRaskData<TContext>(o => …)` therefore asks every rule declared with `IsUnique("…")` as a **query**
 before each save, and refuses the save with the same failure:
 
-- through the context's own filters, so a tenant-scoped table is asked about this tenant's rows only
+- through the context's own filters, so a tenant-scoped table is asked about this tenant's rows only — every
+  tenant's, for an index declared [`.AcrossTenants()`](multi-tenancy.md#a-key-that-is-unique-across-every-tenant)
 - a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
 - an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
   filter is skipped, because its condition is SQL that Rask will not guess at

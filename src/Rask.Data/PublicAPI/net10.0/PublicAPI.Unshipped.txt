@@ -313,3 +313,6 @@ static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFra
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Data.TenantIndexBuilderExtensions
+static Rask.Data.TenantIndexBuilderExtensions.AcrossTenants(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
+static Rask.Data.TenantIndexBuilderExtensions.AcrossTenants<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
