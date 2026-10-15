@@ -54,6 +54,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The app's compiled stylesheet is served compressed and cacheable, like Rask's runtime.** Before: Rask.Tailwind's
+  `wwwroot/css/app.css` (650–750 KB for a Tailwind + Rask.Ui app) went out through the app's static files,
+  uncompressed and with no cache header, so every page load fetched it whole before the page could draw. After:
+  the server answers its address ahead of the app's own middleware — brotli or gzip by `Accept-Encoding` (about
+  80 KB), an ETag (a repeat load is a 304), `no-cache` on the bare address, and `RaskApp` links it as
+  `css/app.css?v={hash}` with `Cache-Control: public, max-age=31536000, immutable`. A hand-wired host that calls
+  `UseStaticFiles()` and writes its own `<link>` gets the compression and the 304s with no change; the content hash
+  moves with every rebuild, picked up within a second under `rask dev`.
 - **`rask deploy`'s proxy compresses what the app sends uncompressed.** Before: Caddy passed every response
   through as the app wrote it, so a stylesheet served by the app's own static files (`/css/app.css`, 650–750 KB
   for a Tailwind + Rask.Ui app) crossed the wire uncompressed on every page load. After: every site block that

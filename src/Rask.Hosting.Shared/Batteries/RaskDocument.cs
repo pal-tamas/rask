@@ -15,13 +15,18 @@ internal static class RaskDocument
     // by link order — the app's `bg-white` over the kit's `dark:bg-zinc-800`.
     internal const string KitStylesheetMetadata = "Rask.Ui.Stylesheet";
 
-    public static RaskDocumentDefaults For(Assembly app, bool kit, ToastOptions? toasts = null) =>
-        Defaults(app, kit, toasts ?? new ToastOptions());
+    // appStylesheetVersion: the server's content hash of the app's sheet, for its ?v= (the WASM host has none — its
+    // static files are the web server's).
+    public static RaskDocumentDefaults For(Assembly app, bool kit, ToastOptions? toasts = null, Func<string?>? appStylesheetVersion = null) =>
+        Defaults(app, kit, toasts ?? new ToastOptions(), appStylesheetVersion);
 
-    private static RaskDocumentDefaults Defaults(Assembly app, bool kit, ToastOptions toasts) =>
+    /// <summary>Where the app's compiled stylesheet is served, relative to wwwroot; null when it has none.</summary>
+    internal static string? StylesheetOf(Assembly app) => Metadata(app, StylesheetMetadata);
+
+    private static RaskDocumentDefaults Defaults(Assembly app, bool kit, ToastOptions toasts, Func<string?>? appStylesheetVersion) =>
         new(
             kit && Metadata(app, KitStylesheetMetadata) is null ? UiStylesheet.Href : null,
-            Metadata(app, StylesheetMetadata),
+            StylesheetOf(app),
             kit
                 ? new Dictionary<string, string?>(StringComparer.Ordinal) { [UiStylesheet.ThemeScopeAttribute] = "" }
                 : null,
@@ -34,7 +39,8 @@ internal static class RaskDocument
             // The kit's toast counts down in the browser, where the countdown waits for the pointer.
             toastsTimeThemselves: kit,
             // …and keeps its host on the page with no toast showing, so one arriving is a diff.
-            toastsKeepTheirPlace: kit);
+            toastsKeepTheirPlace: kit,
+            appStylesheetVersion: appStylesheetVersion);
 
     private static string? Metadata(Assembly app, string key) =>
         app.GetCustomAttributes<AssemblyMetadataAttribute>()

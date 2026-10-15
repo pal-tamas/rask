@@ -79,7 +79,9 @@ internal sealed class RootErrorBoundary : Component
 
         if (defaults.AppStylesheet is { } stylesheet)
         {
-            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet));
+            // Named by its hash where the host serves it, so the browser keeps it until it changes.
+            var version = defaults.AppStylesheetVersion?.Invoke();
+            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet + (version is null ? "" : "?v=" + version)));
         }
 
         return [.. head];
