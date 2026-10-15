@@ -104,10 +104,16 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
         await using var session = await OpenAsync();
         var page = session.Page;
         await page.Locator("#combo input[role=combobox]").FocusAsync();
+        await PageClock.StopAsync(page);
 
         await page.Keyboard.TypeAsync("ber");
+        // The keys are heard a frame after they are typed, and open the list. The pause has not begun to end.
+        await page.Clock.RunForAsync(Settle);
         await Expect(page.Locator("#combo [popover]")).ToBeVisibleAsync();
+        var askedBeforeThePause = await page.Locator("#combo-searches").TextContentAsync();
+        await page.Clock.RunForAsync(Pause);
         await Expect(page.Locator("#combo-searches")).ToHaveTextAsync("[ber]");
+        Assert.Equal(string.Empty, askedBeforeThePause);
 
         await Expect(page.Locator("#combo [role=option]")).ToHaveTextAsync(["Beretta", "Bersa"]);
         await Expect(page.Locator("#combo input[role=combobox]")).ToHaveValueAsync("ber");

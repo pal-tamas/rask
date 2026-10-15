@@ -617,6 +617,9 @@ them until tagged releases begin.
   stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
   the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
   press that never takes its toast away holds the rest back for 2 s at most.
+- **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
+  Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — as every `Rask.Ui`
+  handler awaits its calls — was never sent, and the session waited on it for good.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
