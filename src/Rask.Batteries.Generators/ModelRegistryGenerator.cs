@@ -148,12 +148,13 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             ValueCollections(symbol),
             AggregateShape.ConstOf(symbol, "Scope", "Tenancy"),
             ChildTypeNamesOf(symbol),
+            AggregateShape.IsAggregate(symbol),
             unbuildable);
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
     // has to take its root's answer: a child is part of that aggregate, so it belongs to whichever tenant the
-    // root does, and it carries its own TenantId because its own read face is queryable on its own.
+    // root does — through its own TenantId when it declares one, through its parent's when it does not.
     private static EquatableArray<string> ChildTypeNamesOf(INamedTypeSymbol entity)
     {
         var names = new List<string>();
@@ -563,9 +564,10 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         var distinct = candidates.Distinct().ToList();
         var scopeByType = ScopeByType(distinct);
+        var stamps = StampsByType(distinct);
 
         var declared = distinct
-            .Where(c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
+            .Where(c => stamps.ContainsKey(c.FullyQualifiedName) || c.Deletes is not null || c.Checks is not null ||
                         c.Broadcast is not null ||
                         c.Collections.Count > 0 || scopeByType.ContainsKey(c.FullyQualifiedName))
             .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
@@ -591,7 +593,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         foreach (var entity in declared)
         {
-            DeclareConventions(source, entity, scopeByType);
+            DeclareConventions(source, entity, scopeByType, stamps);
         }
 
         source.AppendLine("    }");
@@ -600,28 +602,76 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         context.AddSource("__RaskConventions.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
-    // A child's tenancy is its root's, always. Declared on the root because that is where the aggregate
-    // boundary is; carried on the child because the child's own read face would otherwise be unfiltered.
+    // A child's tenancy is its root's, always — at any depth: a grandchild reaches the root through its parent.
+    // Declared on the root because that is where the aggregate boundary is; registered for every entity under it
+    // because each one's own read face would otherwise be unfiltered.
     private static Dictionary<string, int> ScopeByType(List<Candidate> distinct)
     {
         var scopeByType = new Dictionary<string, int>(StringComparer.Ordinal);
+        var byName = new Dictionary<string, Candidate>(StringComparer.Ordinal);
+
+        foreach (var candidate in distinct)
+        {
+            byName[candidate.FullyQualifiedName] = candidate;
+        }
 
         foreach (var entity in distinct.Where(static c => c.Scope is not null))
         {
             scopeByType[entity.FullyQualifiedName] = entity.Scope!.Value;
-
-            foreach (var child in entity.ChildTypeNames)
-            {
-                scopeByType[child] = entity.Scope.Value;
-            }
+            Descend(entity, entity.Scope.Value, depth: 0);
         }
 
         return scopeByType;
+
+        // A child of two roots is partitioned when either root is: the safe answer never depends on the order.
+        // The same ceiling the runtime walks with, which also makes a cycle impossible to loop on.
+        void Descend(Candidate parent, int scope, int depth)
+        {
+            if (depth >= 4)
+            {
+                return;
+            }
+
+            foreach (var child in parent.ChildTypeNames)
+            {
+                scopeByType[child] = scopeByType.TryGetValue(child, out var other) ? Math.Max(other, scope) : scope;
+
+                if (byName.TryGetValue(child, out var next))
+                {
+                    Descend(next, scope, depth + 1);
+                }
+            }
+        }
     }
 
-    private static void DeclareConventions(StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType)
+    // Timestamps are the aggregate's, like its tenant: a child carries none unless it declares its own Stamps, so
+    // an adopted child table without CreatedAt maps as it is. Registered because the runtime default is All, which a
+    // table no root holds (a battery's queue, a cache entry) keeps.
+    private static Dictionary<string, int> StampsByType(List<Candidate> distinct)
     {
-        Declare(source, entity.FullyQualifiedName, "Timestamps", entity.Stamps);
+        var stamps = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var child in distinct.SelectMany(static c => c.ChildTypeNames))
+        {
+            stamps[child] = 0;
+        }
+
+        foreach (var candidate in distinct.Where(static c => c.Stamps is not null))
+        {
+            stamps[candidate.FullyQualifiedName] = candidate.Stamps!.Value;
+        }
+
+        return stamps;
+    }
+
+    private static void DeclareConventions(
+        StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType, Dictionary<string, int> stamps)
+    {
+        Declare(
+            source,
+            entity.FullyQualifiedName,
+            "Timestamps",
+            stamps.TryGetValue(entity.FullyQualifiedName, out var stamp) ? stamp : null);
         Declare(
             source,
             entity.FullyQualifiedName,
@@ -901,5 +951,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         EquatableArray<ValueCollectionSpec> Collections,
         int? Scope,
         EquatableArray<string> ChildTypeNames,
+        bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders);
 }

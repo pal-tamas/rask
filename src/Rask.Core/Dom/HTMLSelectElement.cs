@@ -217,7 +217,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         if (acc is not null)
         {
             SayInvalid(bindCtx, acc.Field, ref _saidInvalid);
-            SayRequired(acc.Field, ref _saidRequired);
+            SayRequired(acc, ref _saidRequired);
         }
 
         base.WriteAttributes(sb);

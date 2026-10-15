@@ -7,6 +7,7 @@
 //
 // No DOM access at import: everything here runs per click.
 
+import { confirmed } from "./rask-confirm.js";
 import { inRoot } from "./rask-host.js";
 import { isVisiblyLoading, loadingTarget } from "./rask-loading.js";
 import { closestFrom } from "./rask-morph.js";
@@ -73,6 +74,12 @@ export function handlerClick(e: MouseEvent): Element | null {
     // handler — it goes through, which keeps a rapid stepper working.
     if (isVisiblyLoading(loadingTarget(t))) {
         if (!invoker) { e.preventDefault(); }
+        return null;
+    }
+    // Asked last, of a click that would otherwise go (rask-confirm.ts). Said no to, the click does nothing at
+    // all: not the handler, and not the popover or the command it would have opened.
+    if (!confirmed(t)) {
+        e.preventDefault();
         return null;
     }
     if (!invoker) { e.preventDefault(); }

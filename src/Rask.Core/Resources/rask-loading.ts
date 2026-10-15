@@ -27,6 +27,11 @@
 // by. A scope gets `data-loading` alone — it is not a control, so it is not busy to assistive tech and a
 // press inside it is never refused: only the control that was pressed is.
 //
+// And a field whose event was sent: Livewire puts `data-loading` on ANY element that triggered a request, a
+// `wire:model.live` input included, so a typed or chosen value that left (`.Live()`, `.Debounce()`, a server
+// `OnInput` search, a change) marks its field until that event's answer, released where a pressed button's is.
+// Only `data-loading`: a field being typed into is not `aria-busy`, and nothing around it is marked.
+//
 // No DOM access at import: shared by both host bundles and imported by a Node fixture with a stub DOM.
 
 export const LOADING_DELAY_MS = 200;
@@ -47,6 +52,8 @@ export interface LoadingTicket {
     readonly el: Element | null;
     /** The `data-rask-loading="within"` element around where the dispatch started, or null. */
     readonly scope: Element | null;
+    /** Whether the control also says `aria-busy`: a button that waits does, a field being typed into does not. */
+    readonly busy: boolean;
     show: ReturnType<typeof setTimeout> | null;
     hard: ReturnType<typeof setTimeout> | null;
     done: boolean;
@@ -90,6 +97,26 @@ export function loadingTarget(owner: Element | null): Element | null {
         return type === "button" || type === "submit" ? owner : null;
     }
     return null;
+}
+
+/**
+ * The field a sent `input` or `change` event came from — the element carrying that handler's id — or null: for an
+ * event the runtime sent on its own (`unasked`), any other kind, an id no longer on the page, or a field that says
+ * `data-rask-loading="off"` or sits inside one that does.
+ */
+export function fieldTarget(payload: unknown): Element | null {
+    const sent = payload as { id?: unknown; type?: unknown; unasked?: unknown } | null;
+    if (!sent || sent.unasked || typeof sent.id !== "string" || (sent.type !== "input" && sent.type !== "change")) return null;
+
+    const field = document.querySelector("[data-rask-on-" + sent.type + "=\"" + sent.id + "\"]");
+    return field && !isOptedOut(field) ? field : null;
+}
+
+function isOptedOut(el: Element): boolean {
+    for (let n: Node | null = el; n && n.nodeType === 1; n = n.parentNode) {
+        if (attr(n as Element, OPT_ATTR) === "off") return true;
+    }
+    return false;
 }
 
 /**
@@ -140,11 +167,11 @@ function release(marks: Marks, other: Marks, el: Element | null, busy: boolean):
  * around `from`, the element the dispatch started at. Null when there is neither. Pair every ticket with
  * {@link endLoading}.
  */
-export function beginLoading(el: Element | null, from: Element | null = el): LoadingTicket | null {
+export function beginLoading(el: Element | null, from: Element | null = el, busy = true): LoadingTicket | null {
     const scope = loadingScope(from);
     if (!el && !scope) return null;
 
-    const ticket: LoadingTicket = {el, scope, show: null, hard: null, done: false};
+    const ticket: LoadingTicket = {el, scope, busy, show: null, hard: null, done: false};
     hold(controls, el);
     hold(scopes, scope);
     live.add(ticket);
@@ -152,7 +179,7 @@ export function beginLoading(el: Element | null, from: Element | null = el): Loa
     ticket.show = setTimeout(() => {
         ticket.show = null;
         if (ticket.done) return;
-        stamp(controls, el, true);
+        stamp(controls, el, busy);
         stamp(scopes, scope, false);
     }, LOADING_DELAY_MS);
     ticket.hard = setTimeout(() => endLoading(ticket), LOADING_HARD_TIMEOUT_MS);
@@ -169,7 +196,7 @@ export function endLoading(ticket: LoadingTicket | null | undefined): void {
     if (ticket.hard !== null) clearTimeout(ticket.hard);
     ticket.show = ticket.hard = null;
 
-    release(controls, scopes, ticket.el, true);
+    release(controls, scopes, ticket.el, ticket.busy);
     release(scopes, controls, ticket.scope, false);
 }
 

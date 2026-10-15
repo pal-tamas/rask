@@ -21,6 +21,8 @@ interface Kind {
     adopt(group: Element, rendered: string): void;
     /** Whether `rendered` is no news to a group the reader has made something else of: it is not shown. */
     keeps?(group: Element, rendered: string): boolean;
+    /** A late echo came back: what the same render wrote AROUND the field is as old, and is drawn again. */
+    echoed?(group: Element): void;
 }
 
 const kinds: Kind[] = [];
@@ -106,6 +108,7 @@ function refill(group: Element, kind: Kind): void {
     if (waiting && echo >= 0) {
         waiting.splice(0, echo + 1);
         write(bound, kind.current(group));
+        if (kind.echoed) kind.echoed(group);
         return;
     }
     if (waiting) {
@@ -162,8 +165,9 @@ function observed(records: MutationRecord[]): void {
 }
 
 /** Registers a kind of group: from now on its bound field is watched, and every group on the page adopted. */
-export function bind(selector: string, current: Kind["current"], adopt: Kind["adopt"], keeps?: Kind["keeps"]): void {
-    const kind: Kind = {selector, current, adopt, keeps};
+export function bind(
+    selector: string, current: Kind["current"], adopt: Kind["adopt"], keeps?: Kind["keeps"], echoed?: Kind["echoed"]): void {
+    const kind: Kind = {selector, current, adopt, keeps, echoed};
     kinds.push(kind);
     if (!page || typeof MutationObserver !== "function") {
         return;

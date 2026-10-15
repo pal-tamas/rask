@@ -30,9 +30,15 @@ import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
 import "./rask-scroll.js";   // data-rask-scroll-to
 import "./rask-switch.js";   // data-rask-switch
+import "./rask-submit.js";   // data-rask-submit-keys
+import "./rask-grow.js";     // data-rask-grow
 import "./rask-tabs.js";     // role="tablist": the arrow keys, data-rask-tabs
 import "./rask-command.js";  // data-rask-command
 import "./rask-menu-keys.js"; // role="menu": the keys, the pick, focus following the cursor
+import "./rask-phone.js";    // data-rask-phone
+import "./rask-list.js";     // data-rask-list: a list of options' cursor, keys, search and open state
+import "./rask-color.js";    // data-rask-color: a colour picker's colour, keys, typing and palette
+import "./rask-calendar.js"; // data-rask-calendar: a calendar's months, keys, picks and a date picker's popup
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

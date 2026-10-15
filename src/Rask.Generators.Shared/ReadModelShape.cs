@@ -170,11 +170,26 @@ internal static class ReadModelShape
             entity.Name,
             TypeOf(idType),
             AggregateShape.IsAggregate(entity),
+            AggregateShape.ConstOf(entity, "Stamps", "Timestamps"),
             new EquatableArray<ReadMember>([.. members]),
             new EquatableArray<ReadReference>([.. references]),
             new EquatableArray<ReadChildCollection>([.. children]),
             new EquatableArray<ReadValueCollection>([.. valueCollections]),
             SymbolLocation.From(entity));
+
+    /// <summary>
+    ///     The face of a child without the timestamps it does not have: they are its aggregate's, so a child carries
+    ///     them only when it declares its own <c>Stamps</c>.
+    /// </summary>
+    /// <param name="shape">The face as its own declaration describes it.</param>
+    public static ReadShape WithoutStamps(ReadShape shape) =>
+        shape.Stamps is not null
+            ? shape
+            : shape with
+            {
+                Members = new EquatableArray<ReadMember>(
+                    [.. shape.Members.Where(static m => m.Name is not ("CreatedAt" or "UpdatedAt"))]),
+            };
 
     /// <summary>What an entity offers the resolver: its read face and the key a reference must match.</summary>
     internal readonly struct ReadTarget(string readTypeName, string keyTypeName, string ownerTypeName)
@@ -225,7 +240,7 @@ internal static class ReadModelShape
 
         if (aggregates.TryGetValue(reference.Target, out var exact))
         {
-            return Accept(reference, owner, exact, ref problem);
+            return Accept(reference, owner, exact, exactName: true, ref problem);
         }
 
         // Suffix: ShippedByUserId -> User. Longest wins, and a tie is ambiguous rather than a guess.
@@ -268,14 +283,16 @@ internal static class ReadModelShape
             return null;
         }
 
-        return Accept(reference, owner, found, ref problem);
+        return Accept(reference, owner, found, exactName: false, ref problem);
     }
 
     private static ReadNavigation? Accept(
-        ReadReference reference, string owner, ReadTarget target, ref ReadReferenceProblem problem)
+        ReadReference reference, string owner, ReadTarget target, bool exactName, ref ReadReferenceProblem problem)
     {
-        // An id of the declaring type itself is a self-reference: a column, and nothing more.
-        if (string.Equals(target.OwnerTypeName, owner, StringComparison.Ordinal))
+        // An id named exactly like the declaring type — Category.CategoryId — is that row's own id, a column and
+        // nothing more. A longer name that ends in it — Supply.SumSupplyId — can only point at another row of the
+        // same table, and gets its join like any other reference (EF aliases the second use of the table).
+        if (exactName && string.Equals(target.OwnerTypeName, owner, StringComparison.Ordinal))
         {
             return null;
         }

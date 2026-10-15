@@ -41,7 +41,7 @@ internal sealed partial class DeployCommand
         }
 
         // Everything below changes what would be deployed, which none of these verbs do.
-        if (Array.Find(["domain", "port", "container-port", "dockerfile", "health-path"], name => parsed.Option(name) is not null)
+        if (Array.Find(["domain", "redirect", "dns", "dns-env-file", "port", "container-port", "dockerfile", "health-path"], name => parsed.Option(name) is not null || parsed.MultiOption(name).Count > 0)
             is { } option)
         {
             error = $"--{option} doesn't apply to `rask deploy {action}` — it operates on what's already deployed.";
@@ -142,7 +142,7 @@ internal sealed partial class DeployCommand
     {
         if (app.Domain.Length > 0)
         {
-            return $"https://{app.Domain}";
+            return string.Join(", ", SiteDomains.Hosts(app.Domain).Select(host => $"https://{host}"));
         }
 
         return app.Ports.Length > 0 ? app.Ports : "(not published)";
@@ -212,7 +212,7 @@ internal sealed partial class DeployCommand
     /// </summary>
     private async Task<int> RollbackAsync(
         string host, string slug, string? domain, int port, int containerPort,
-        IReadOnlyList<string> env, bool healthEnabled, string healthPath, CancellationToken cancellationToken)
+        IReadOnlyList<string> env, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string redirects = "")
     {
         var image = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
         if (image is null)
@@ -230,7 +230,7 @@ internal sealed partial class DeployCommand
         // on, the nulls passed for project/envFile below would erase those keys from .rask/deploy.json.
         var result = domain is null
             ? await DeployPortAsync(host, slug, port, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false)
-            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false).ConfigureAwait(false);
+            : await DeployWithProxyAsync(host, slug, domain, containerPort, env, project: null, envFile: null, healthEnabled, healthPath, cancellationToken, tag: PreviousTag, persist: false, redirects: redirects).ConfigureAwait(false);
 
         if (result != 0)
         {

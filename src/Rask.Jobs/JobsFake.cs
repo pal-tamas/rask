@@ -33,7 +33,7 @@ public sealed class JobsFake : IJobs, IDisposable
         {
             matching = [.. _enqueued
                 .Where(e => e.Job is TJob)
-                .Select(e => new EnqueuedJob<TJob>((TJob)e.Job, e.Delay, e.Moment))];
+                .Select(e => new EnqueuedJob<TJob>((TJob)e.Job, e.Delay, e.Moment, e.Lane))];
 
             // What was enqueued INSTEAD — the half of a failing expectation that says where to look. It
             // cannot travel as EnqueuedJob<TJob>, so it is built here, while the list is still untyped.
@@ -95,12 +95,12 @@ public sealed class JobsFake : IJobs, IDisposable
     /// <summary>Puts the real job queue back.</summary>
     public void Dispose() => Jobs.Faked.Value = _previous;
 
-    Task IJobs.Add(IJob job, DateTimeOffset? at, TimeSpan? after, CancellationToken cancellationToken)
+    Task IJobs.Add(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at, Current.Tenant, Current.UserId));
+            _enqueued.Add(new EnqueuedJob(job, after, at, Current.Tenant, Current.UserId, lane));
         }
 
         return Task.CompletedTask;
@@ -114,5 +114,5 @@ public sealed class JobsFake : IJobs, IDisposable
         }
     }
 
-    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User);
+    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane);
 }

@@ -90,11 +90,32 @@ public static class ModelBuilderExtensions
         }
 #pragma warning restore S3267
 
+        IgnoreComputedProperties(modelBuilder, entityTypes);
         MapValueCollections(modelBuilder, entityTypes);
         ApplyTenancy(modelBuilder, entityTypes, context);
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    // `public SupplyKind Kind => …;` is a value computed from other columns, not a column of its own. A scalar
+    // like it EF Core leaves alone, but a struct or record it takes for a complex property — and then fails at
+    // startup because there is no field to set. A property with a setter, or the compiler's own backing field
+    // (`{ get; }`), is stored; one with neither can only be computed.
+    private static void IgnoreComputedProperties(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
+    {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
+        foreach (var entityType in entityTypes)
+        {
+            foreach (var complex in entityType.GetComplexProperties().ToList())
+            {
+                if (complex.FieldInfo is null && complex.PropertyInfo is { SetMethod: null })
+                {
+                    modelBuilder.Entity(entityType.ClrType).Ignore(complex.Name);
+                }
+            }
+        }
+#pragma warning restore S3267
     }
 
     private static void ApplyEntityConventions(
@@ -193,57 +214,92 @@ public static class ModelBuilderExtensions
     internal const string TenantFilter = "Tenant";
 
     /// <summary>
-    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column, its query filter and a
-    /// <c>TenantId</c> prefix on each of its indexes.
+    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
+    /// indexes are what the app wrote: one that holds within a tenant names <c>TenantId</c> itself.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The index prefix is not a nicety. <c>HasIndex(p =&gt; p.Sku).IsUnique()</c> on a partitioned table
-    /// otherwise means "no two tenants may ever use the same SKU", and the symptom is one tenant unable to
-    /// create a row because a different tenant already has it — with nothing in the code saying so.
-    /// </para>
-    /// <para>
     /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one —
     /// or <c>int?</c> or <c>long?</c>, for a table whose tenants are numbered: the declared type is the
-    /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when it
-    /// does not, a child included, which is how it carries its root's answer without saying anything. A table
-    /// that did not ask is left alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by
-    /// EF Core's convention like any other.
+    /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when an
+    /// aggregate does not. A CHILD that declares none has no column at all: it belongs to its tenant through its
+    /// parent, and its filter asks the parent (<see cref="TenantParents" />). A table that did not ask is left
+    /// alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by EF Core's convention.
     /// </para>
     /// </remarks>
     private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
     {
-#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
         foreach (var entityType in entityTypes)
         {
-            var clrType = entityType.ClrType;
-            if (!typeof(IEntity).IsAssignableFrom(clrType) ||
-                ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
+            if (!TenantParents.IsPartitioned(entityType.ClrType))
             {
                 continue;
             }
 
-            var builder = modelBuilder.Entity(clrType);
-
             if (context is not ITenantScoped)
             {
                 throw new InvalidOperationException(
-                    $"'{clrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
+                    $"'{entityType.ClrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
                     $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
                     "context as ': DbContext, ITenantScoped' and call " +
                     "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +
                     "context, or EF Core inlines one tenant's id into the cached query for every tenant.");
             }
 
-            // In the type the entity declared it — Guid?, int? or long? — and a shadow Guid? when it did not.
-            var column = TenantColumn.TypeFor(entityType);
-
-            builder.Property(column, Columns.TenantId);
-            builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
-
-            TenantIndexes.Prefix(builder.Metadata);
+            PartitionByTenant(modelBuilder, entityType, context);
         }
-#pragma warning restore S3267
+    }
+
+    /// <summary>
+    /// Settles once more each child partitioned through its parent, after every entity's own <c>Configure</c>
+    /// ran: it may have mapped a <c>TenantId</c> on the child, or moved the foreign key the filter names.
+    /// </summary>
+    internal static void SettleTenancyThroughParents(ModelBuilder modelBuilder, DbContext? context)
+    {
+        if (context is null)
+        {
+            return;
+        }
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(TenantParents.IsThroughParent).ToList())
+        {
+            PartitionByTenant(modelBuilder, entityType, context);
+        }
+    }
+
+    // Only the root carries the tenant (#1251): a child with no TenantId of its own — at any depth — has no column
+    // and a filter that asks its parent, along the path the aggregate's collections make. A root keeps the column it
+    // declared (Guid?, int? or long?) or a shadow Guid?; a child that declares one keeps it too.
+    private static void PartitionByTenant(ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context)
+    {
+        var clrType = entityType.ClrType;
+        var builder = modelBuilder.Entity(clrType);
+
+        if (!typeof(IAggregate).IsAssignableFrom(clrType) && entityType.FindProperty(Columns.TenantId) is null)
+        {
+            var parents = TenantParents.KeysOf(entityType, TenantParents.IsPartitioned);
+
+            // Never left unfiltered: a child with no column and no way up to its root would read every tenant.
+            if (parents.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"'{clrType.Name}' is part of a tenant-scoped aggregate, but the model has no relationship from " +
+                    "it up to a tenant-scoped parent, so its rows cannot be told apart by tenant. Hold it in a " +
+                    "collection of its aggregate (or of a child of it) — IReadOnlyList<" + clrType.Name + "> on the " +
+                    "parent — and map that relationship in the same context.");
+            }
+
+            builder.HasAnnotation(TenantParents.Annotation, true);
+            builder.HasQueryFilter(TenantFilter, TenantParents.BuildFilter(clrType, parents, context));
+            return;
+        }
+
+        entityType.RemoveAnnotation(TenantParents.Annotation);
+
+        var column = TenantColumn.TypeFor(entityType);
+
+        builder.Property(column, Columns.TenantId);
+        builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
     }
 
     /// <summary>
@@ -356,17 +412,28 @@ public static class ModelBuilderExtensions
 
                 var foreignKey = navigation.ForeignKey;
 
+                // A child of TWO parents (a Chip under a Driver or a Vehicle) holds one of its keys and NULL in the
+                // other, so neither can be required; a severed one is deleted at save instead (SeveredChildren).
+                var required = ParentKeysOf(navigation.TargetEntityType) == 1;
+
                 // An application that said otherwise keeps what it said: this is a convention, not a rule.
-                if (foreignKey.IsRequired && foreignKey.DeleteBehavior == DeleteBehavior.Cascade)
+                if (foreignKey.IsRequired == required && foreignKey.DeleteBehavior == DeleteBehavior.Cascade)
                 {
                     continue;
                 }
 
-                foreignKey.IsRequired = true;
+                foreignKey.IsRequired = required;
                 foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
             }
         }
     }
+
+    /// <summary>How many parents hold <paramref name="child" /> in a collection: one foreign key each.</summary>
+    internal static int ParentKeysOf(IReadOnlyEntityType child) =>
+        child.GetForeignKeys().Count(static key =>
+            key.PrincipalToDependent is { IsCollection: true } &&
+            typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType) &&
+            !typeof(IAggregate).IsAssignableFrom(key.DeclaringEntityType.ClrType));
 
     // An Entity<TId> key is the entity's to set, except an integer one, which the store's identity produces —
     // and except where the application already said how its key is generated. An app with a context of its

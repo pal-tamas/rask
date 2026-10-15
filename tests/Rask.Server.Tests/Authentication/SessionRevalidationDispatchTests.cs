@@ -119,11 +119,18 @@ public class SessionRevalidationDispatchTests
         var html = await response.Content.ReadAsStringAsync();
         var sessionId = MarkupAssert.SessionId(html);
         var handler = Regex.Match(html, "<button[^>]*data-rask-on-click=\"(h\\d+)\"[^>]*>[^<]*bump").Groups[1].Value;
+        var session = host.Store.Peek(sessionId)!;
+        var settled = session.AttachesSettled;
 
         host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
         var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
         await ws.SendJsonAsync(new { type = "hello", session = sessionId });
         await ws.AttachedAsync(host, sessionId);
+
+        // The socket is in place before the attach asks about its user: a test that counts the questions next
+        // would otherwise count the attach's own.
+        await WaitFor.True(() => session.AttachesSettled > settled, "the attach has asked about its user");
+        await session.LastHandlerTask;
 
         return (ws, sessionId, handler);
     }
@@ -134,6 +141,8 @@ public class SessionRevalidationDispatchTests
             {
                 services.AddSingleton<M2Counter>();
                 services.AddSingleton<ISessionRevalidator>(revalidator);
+                // How long an answer about the user is trusted is the test's to say, not the runner's speed.
+                services.AddSingleton<TimeProvider>(new StoppedClock());
                 services.AddAuthentication("TestCookie").AddCookie("TestCookie", o =>
                 {
                     o.Cookie.Name = "TestCookie";
@@ -154,12 +163,14 @@ public class SessionRevalidationDispatchTests
 
         public string? ExtraRole { get; set; }
 
-        public int Checks { get; private set; }
+        private int _checks;
+
+        public int Checks => Volatile.Read(ref _checks);
 
         public ValueTask<ClaimsPrincipal?> Revalidate(
             ClaimsPrincipal principal, CancellationToken cancellationToken = default)
         {
-            Checks++;
+            Interlocked.Increment(ref _checks);
 
             if (Ended)
             {

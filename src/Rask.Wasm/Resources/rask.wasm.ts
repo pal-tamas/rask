@@ -30,17 +30,21 @@ import { eventBatch, isHandlerEvent, pageApplied } from "../../Rask.Core/Resourc
 import {
     beginLoading,
     endLoading,
-    isVisiblyLoading,
+    fieldTarget,
     loadingTarget,
 } from "../../Rask.Core/Resources/rask-loading.js";
+import { holdForm, isSubmitting, releaseForm } from "../../Rask.Core/Resources/rask-submitting.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+// Says `data-rask-offline` on <html> while the browser is offline (rask-offline.ts).
+import "../../Rask.Core/Resources/rask-offline.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { tell } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -598,6 +602,14 @@ function send(payload: unknown): Promise<void> {
     // a key, a navigation, an event a behaviour hook raised (rask-input.ts). It joins the call this event
     // crosses into .NET in, ahead of it.
     sendTypedFirst(payload);
+    // A field whose value is leaving waits on its answer as a pressed button does (rask-loading.ts).
+    const ticket = beginLoading(fieldTarget(payload), null, false);
+    const answered = leave(payload);
+    if (ticket) answered.then(settled).finally(() => endLoading(ticket));
+    return answered;
+}
+
+function leave(payload: unknown): Promise<void> {
     if (isHandlerEvent(payload)) {
         // An event from before .NET exists is dropped NOW, not held for a task in which it might arrive:
         // its id is the prerendered page's, and the live page's may name another handler (#973).
@@ -751,9 +763,14 @@ document.addEventListener("submit", (e) => {
     const t = closestFrom(e.target, "[data-rask-on-submit]");
     if (!t || !inRoot(t)) return;
     e.preventDefault();
-    // The form's own button waits, not the form. Mirrors rask.ts.
+    // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent; a
+    // form already submitting drops the submit without asking.
+    if (isSubmitting(t) || !submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
+    // A form already submitting takes no second submit, and this one is held until .NET is done with it
+    // (rask-submitting.ts). The form's own button shows the wait. Mirrors rask.ts.
+    const hold = holdForm(t);
+    if (!hold) return;
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
-    if (isVisiblyLoading(submitter)) return;
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
     for (const input of fileInputs) {
@@ -772,7 +789,10 @@ document.addEventListener("submit", (e) => {
     if (Object.keys(fileFields).length > 0) obj.__files = fileFields;
     const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
     const sent = send({id: t.getAttribute("data-rask-on-submit"), type: "submit", form: obj});
-    if (ticket) sent.then(settled).finally(() => endLoading(ticket));
+    sent.then(settled).finally(() => {
+        endLoading(ticket);
+        releaseForm(hold);
+    });
 });
 
 // ----- IJSRuntime bridge -----------------------------------------------------

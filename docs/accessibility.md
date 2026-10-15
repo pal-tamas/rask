@@ -283,6 +283,12 @@ hook, which is what a table dims its rows by. It is not `aria-busy`, because it 
 nothing inside it becomes unpressable or leaves the tab order: the rows stay readable and clickable, and
 only the control that was pressed says it is busy.
 
+A **field** whose value was sent — `.Live()`, `.Debounce(…)`, a server `OnInput` search, a change — is marked too,
+after the same 200 ms and until the answer to that event: `data-loading` **only**, as Livewire puts it on a
+`wire:model.live` input. It is not `aria-busy` (a field being typed into is not unavailable) and nothing around it
+is marked. A field that waits for the next action sends nothing and is never marked; `data-rask-loading="off"`
+opts a field out as it does a button.
+
 ## Toasts
 
 `Ui.Toast` is Flux's toast, announced as Flux announces it: the host is `role="status"` and each toast is

@@ -280,10 +280,12 @@ public sealed class BlazorGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
         foreach (var p in parameters)
         {
-            if (p.IsRequired)
+            if (p.IsRequired || p.AlwaysWritten)
             {
                 // Required: the chain cannot build the component without it, so there is no "unset"
                 // state to test for, and a null check on a non-nullable member is a warning.
+                // A hand-declared non-nullable value type likewise has no unset state, and a null test
+                // on it does not compile at all (CS0037, #1196) — its value is always the one to pass.
                 sb.Append("        into[\"").Append(p.Parameter).Append("\"] = ")
                     .Append(Value(p)).AppendLine(";");
                 continue;

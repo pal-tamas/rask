@@ -444,6 +444,24 @@ public sealed class ReferencedDeleteTests : IDisposable
     }
 
     [Fact]
+    public async Task A_restrict_violation_postgresql_raises_for_DeleteBehavior_Restrict_is_answered_the_same_way()
+    {
+        await using var database = await StartDatabaseAsync();
+        var restrict = new ProviderRefusal(
+            "23001: update or delete on table \"Yard\" violates RESTRICT setting of foreign key constraint " +
+            "\"FK_Fence_Yard_YardId\" on table \"Fence\"",
+            "23001");
+        restrict.Data["ConstraintName"] = "FK_Fence_Yard_YardId";
+        var refusal = Refusing(database.Context, Yard.Named("East"), EntityState.Deleted, restrict);
+
+        var translated = ReferencedDelete.Translate(refusal);
+
+        var failure = Assert.Single(translated!.Failures);
+        Assert.Equal(Yard.HasAFence, failure.Message);
+        Assert.Equal("FK_Fence_Yard_YardId", failure.Source);
+    }
+
+    [Fact]
     public async Task A_constraint_sql_server_quotes_is_answered_by_that_relationships_sentence()
     {
         await using var database = await StartDatabaseAsync();

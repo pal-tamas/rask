@@ -28,6 +28,22 @@
   </ItemGroup>
 
   <!--
+    The host's own namespace, so a hand-wired Web-SDK host finds AddRask() and MapRask<TApp>() the way it finds
+    every other AddX/MapX (#1236). A RaskApp scaffold never names it, so it gains nothing to clash with: the
+    namespace holds the host's extension classes, RaskServerOptions and LiveSessionStore, none of them a name an
+    app writes for something else. Here rather than in Rask.Server.props because this repository imports that
+    file into its WebAssembly site, which does not reference this package. RaskServerUsing=false turns it off.
+
+    NOT Rask.Core.Routing, although [Route] lives there: in an existing app its RouteAttribute meets
+    Microsoft.AspNetCore.Mvc's on every controller (CS0104) and its QueryString meets Microsoft.AspNetCore.Http's,
+    so importing it for the whole project breaks the code that was already there. The page files import it
+    themselves — docs/spa.md shows the line.
+  -->
+  <ItemGroup Condition=" '$(RaskServerUsing)' != 'false' ">
+    <Using Include="Rask.Server"/>
+  </ItemGroup>
+
+  <!--
     Tailwind. Packed alongside this file by src\RaskTailwindBuildPack.targets, and imported from here
     because NuGet auto-imports only build/<PackageId>.{props,targets}. Referencing this host package is
     the whole of how an app gets Tailwind: there is no Rask.Tailwind package to add and no flag to pass.

@@ -292,6 +292,7 @@ In the environment: `Rask__Live__MaxSessions=1000`.
 | `QuiescenceTimeout` | `5 s` | How long the initial `GET` waits for a page's async lifecycle work to settle before serving its HTML. `0` disables the wait. See [live pages](render-modes.md#the-initial-get-waits-for-your-data). |
 | `NavigationQuiescenceTimeout` | `150 ms` | How long a page reached in place — a link, Back, a handler's `Go()`, a redirect, a sign-in's return page — is waited for before it is sent, so it arrives once, with what its `OnMount` / `OnUpdated` read. Spending it cancels nothing: the page is sent as it stands and the rest follows. A page with nothing pending is sent at once, and a newer navigation ends the wait. `0` disables the wait. In a WebAssembly app: `host.Configure(o => o.NavigationQuiescenceTimeout = …)`. See [routing](routing.md#the-page-is-sent-when-its-first-reads-are-back). |
 | `HandlerQuiescenceTimeout` | `150 ms` | How long a handler's work is waited for before the page is sent: what the handler sets between its awaits is withheld while it runs, and the render after it waits for the reads its change started (a child's `OnUpdated`, a query whose key moved), so a page change is one frame. Spending it cancels nothing: the page is sent as it stands, the rest follows, and the browser's busy marks end when it has. A handler with nothing pending is answered at once. `0` sends every intermediate state. See [routing](routing.md#a-handlers-work-reaches-the-screen-once). |
+| `SignInPath` | `null` | Where the sign-in page is when it is served **outside** the app (a JWT-bearer host beside an old front end that owns `/login`, the app mounted under `pathBase`). A page whose user is gone is sent there as a page load, and a reloading tab is redirected there, with the page's full address as `returnUrl`. The app's own `/login` page and a cookie scheme's `LoginPath` win over it. Unset, nothing is redirected. See [When the user is gone](authentication.md#when-the-user-is-gone). |
 | `CompressPageHtml` | `true` | Serve the page document compressed — brotli, then gzip, HTTPS included. rask.sh's landing page is 78,525 bytes raw and 15,540 gzipped. Turn it off only if a page renders a long-lived secret; see [page compression](#page-compression). |
 
 ```jsonc
@@ -417,6 +418,15 @@ overlay handles the user-facing side automatically — nothing to configure:
   `SessionGracePeriod` if your users routinely background the tab longer than the 30 s default.
 - **Deploy aware.** A drop caused by the server shutting down is *not* reported as a timeout — see
   [Shutdown and redeploy](#shutdown-and-redeploy).
+- **In the page's language.** Every word of it — the messages and the **Retry now** and **Reload** buttons —
+  is a [`RaskStrings`](localization.md#translating-the-frameworks-own-text) key (`ConnectionReconnecting`,
+  `ConnectionOffline`, `ConnectionStillTrying`, `ConnectionRetry`, `ConnectionReload`, `ConnectionUpdating`,
+  `ConnectionAuthenticating`, `ConnectionSessionTimedOut`). The server writes them once, with the first response, in the page's
+  culture, so the overlay can say them with the server gone; the kit ships formal Hungarian.
+- **Styleable.** While the connection is down, or the browser reports itself offline, `<html>` carries
+  `data-rask-offline` — Livewire's `wire:offline`. A page shows something only then with a variant:
+  `Div.Class("hidden in-data-rask-offline:block")["You are offline — changes will be saved when you are back."]`.
+  On WebAssembly, which has no socket, it follows the browser's online state alone.
 
 > **Using `HandlerTimeout`:** thread `Component.CancellationToken` into the cancellable async work your
 > event handlers start, so the timeout (or socket close) can unwind them. Inside a handler that token

@@ -340,7 +340,9 @@ excerpts — and the reference beside them, for a render and for a lifecycle hoo
 over the running app instead ([`rask dev`](cli.md)), and a handler's toast adds the exception's type and message
 after its sentence.
 
-**What decides Development:** the host's own `IHostEnvironment`, which `MapRask`/`RaskApp` read once at startup. A host
+**What decides Development:** the host's own `IHostEnvironment`, which `AddRask`/`RaskApp` register for that host alone —
+two hosts in one process (a test run, an app mounting another) each answer for their own renders, handlers and
+sessions, never with whichever started first. A host
 that never says — a hand-wired host with no `IHostEnvironment`, a component rendered outside a host — falls back to
 `ASPNETCORE_ENVIRONMENT`, then `DOTNET_ENVIRONMENT`, and with neither set to `Development` it is **not** Development.
 A browser (WASM) app has no such variables, so it shows the Production page unless its own startup sets

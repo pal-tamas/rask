@@ -231,10 +231,55 @@
 # 2026-10-13, a tab asks whether the browser's credential changed and reopens its connection before it sends (rask-auth-watch.ts, the Server runtime only): rask.js +1,682, on main at 101,796: 103,478. rask.wasm.js and rask-hooks.js are unchanged.
 # 2026-10-13, a tab told by another does not tell on, 'later' is waited out, and the lost-user mark names its app under __Host- (rask-auth-watch.ts, rask.ts): rask.js 103,478 -> 103,770 (+292). rask.wasm.js and rask-hooks.js are unchanged.
 # Both of the above together, measured from a Release build of the merge (the drawn pick and the guarded form on main at 102,200 / 90,985 / 58,415; the tab watch +1,974 in rask.js): rask.js 104,174, the other two as on main.
-# 2026-10-13, a tab is selected and its panel shown in the browser, the bound field told and the page's own choice followed (data-rask-tabs, rask-tabs.ts): rask-hooks.js 58,415 -> 60,275 (+1,860). The two runtimes are unchanged.
-# 2026-10-13, a command palette's filter and highlight in the browser (data-rask-command, rask-command.ts): rask-hooks.js 60,275 -> 62,153 (+1,878); its attribute in the loader: +8 in each runtime.
-# The tabs and the palette over the tab watch, measured from a Release build of the merge: rask.js 104,182, rask.wasm.js 90,993, rask-hooks.js 62,153.
+# 2026-10-14, a list of options kept in the browser (data-rask-list, rask-list.ts: cursor, keys, type-ahead, filter and open state of Ui.Select's listbox and combobox, Ui.Pillbox and Ui.Autocomplete), and a pause the list ends itself when it rewrites its field (rask-input.ts `seam.hear`), measured from a Release build of the merge on main 2890084c2: rask.js 104,174 -> 104,422 (+248), rask.wasm.js 90,985 -> 91,233 (+248), rask-hooks.js 58,415 -> 68,900 (+10,485).
+# 2026-10-14, Ui.Phone's hook (data-rask-phone, rask-phone.ts: fetches the phone engine, mounts each field, hands it the
+# picker's events; the engine is Rask.Ui's own file, fetched only by a page with a phone field) — its own delta measured
+# on main 2890084c2 at rask-hooks.js +914 and +6 in each runtime (the loader's list). Measured from a Release build of the
+# merge on main 166d98428: rask.js 105,215, rask.wasm.js 91,845, rask-hooks.js 69,820.
 bundle,bytes
-rask.js,104182
-rask.wasm.js,90993
-rask-hooks.js,62153
+rask.js,105215
+rask.wasm.js,91845
+rask-hooks.js,69820
+#
+# 2026-10-15, Ui.Composer's two hooks (rask-submit.ts, data-rask-submit-keys; rask-grow.ts, data-rask-grow) on top of
+# Ui.Phone — measured from a Release build of the merge on main 7b554f71f: rask.js 105,232, rask.wasm.js 91,862,
+# rask-hooks.js 70,877.
+bundle,bytes
+rask.js,105232
+rask.wasm.js,91862
+rask-hooks.js,70877
+#
+# 2026-10-15, a submitted form held from the press until its submit is answered (rask-submitting.ts: submit buttons
+# disabled, text inputs readonly; Server releases at the ack, WASM at the dispatch settle): rask.js +1,474, rask.wasm.js
+# +1,312. Measured from a Release build of the merge on main fc7d0fc26: rask.js 106,706, rask.wasm.js 93,174,
+# rask-hooks.js 70,877.
+bundle,bytes
+rask.js,106706
+rask.wasm.js,93174
+rask-hooks.js,70877
+#
+# 2026-10-15, the four Livewire behaviours together (`.Confirm` in rask-confirm.ts, skipped for a form already
+# submitting; the overlay's texts read from #rask-texts and `data-rask-offline` in rask-offline.ts; a field that waited
+# marked `data-loading` in rask-loading.ts), measured from a Release build of the merge on main ec7241937 (106,706 /
+# 93,174 / 70,877): rask.js +1,511, rask.wasm.js +1,153, rask-hooks.js unchanged.
+bundle,bytes
+rask.js,108217
+rask.wasm.js,94327
+rask-hooks.js,70877
+#
+# 2026-10-15, the colour picker and the calendar / date picker drawn in the browser as Flux (rask-color.ts,
+# rask-calendar.ts; rask-drag.ts place(), rask-bound.ts echoed, rask-toggle.ts dialogs): rask-hooks.js +24,379,
+# rask.js and rask.wasm.js +15 each. Measured from a Release build of the merge on main 9115c52fc+: rask.js 108,232,
+# rask.wasm.js 94,342, rask-hooks.js 95,256.
+bundle,bytes
+rask.js,108232
+rask.wasm.js,94342
+rask-hooks.js,95256
+# 2026-10-15, a tab selected and its panel shown in the browser (data-rask-tabs, rask-tabs.ts) and a command palette's
+# filter and highlight in the browser (data-rask-command, rask-command.ts): rask-hooks.js +3,738, the loader's
+# attribute +8 in each runtime. Measured from a Release build of the merge on main b9e1fff71: rask.js 108,240,
+# rask.wasm.js 94,350, rask-hooks.js 98,994.
+bundle,bytes
+rask.js,108240
+rask.wasm.js,94350
+rask-hooks.js,98994

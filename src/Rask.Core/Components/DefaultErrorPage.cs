@@ -319,11 +319,8 @@ public sealed class DefaultErrorPage : Component
         return info.DeclaringTypeName is { } type ? $"{type}.{info.Name}" : info.Name;
     }
 
-    private static bool IsDevelopmentEnvironment() =>
-        ResolveIsDevelopment(
-            LiveOptions.IsDevelopment,
-            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-            Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT"));
+    // The host whose render this is decides, not whichever host in the process started first.
+    private static bool IsDevelopmentEnvironment() => HostMode.ResolvedInScope;
 
     /// <summary>
     ///     The decision itself, as a pure function of its three inputs.

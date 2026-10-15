@@ -26,6 +26,9 @@ namespace Rask;
 /// </remarks>
 internal sealed class UiWithField
 {
+    // Tailwind's own: out of sight, still read out.
+    private const string SrOnly = "sr-only";
+
     private readonly LambdaExpression? _bound;
     private readonly string? _label;
     private readonly string? _description;
@@ -103,15 +106,24 @@ internal sealed class UiWithField
     /// <param name="control">The control's own markup, carrying <see cref="ControlId" />.</param>
     /// <param name="variant">Inline for a checkbox, a radio, a switch.</param>
     /// <param name="controlFirst">Inline only: the control before its label rather than after.</param>
-    internal Component Wrap(Component control, Ui.FieldVariant variant = Ui.FieldVariant.Block, bool controlFirst = false)
+    /// <param name="labelSrOnly">Flux's <c>label:sr-only</c>: the label kept for screen readers only.</param>
+    /// <param name="descriptionSrOnly">Flux's <c>description:sr-only</c>: the description kept for screen readers only.</param>
+    internal Component Wrap(
+        Component control,
+        Ui.FieldVariant variant = Ui.FieldVariant.Block,
+        bool controlFirst = false,
+        bool labelSrOnly = false,
+        bool descriptionSrOnly = false)
     {
         if (!Wraps)
         {
             return control;
         }
 
-        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge)[_label];
-        var description = _description is null ? null : Ui.Description.Id(UiFieldId.Description(ControlId))[_description];
+        var label = _label is null ? null : Ui.Label.Id(LabelId).For(ControlId).Badge(_badge).Class(Hidden(labelSrOnly))[_label];
+        var description = _description is null
+            ? null
+            : Ui.Description.Id(UiFieldId.Description(ControlId)).Class(Hidden(descriptionSrOnly))[_description];
         var trailing = _descriptionTrailing is null ? null : Ui.Description.Id(TrailingId)[_descriptionTrailing];
         var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error) : null;
         var field = Ui.Field.Variant(variant);
@@ -120,6 +132,8 @@ internal sealed class UiWithField
             ? field[control, label, description, error, trailing]
             : field[label, description, control, error, trailing];
     }
+
+    private static string? Hidden(bool srOnly) => srOnly ? SrOnly : null;
 
     private Dictionary<string, string?> BuildAria()
     {

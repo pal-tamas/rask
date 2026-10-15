@@ -11,7 +11,7 @@ namespace Rask.Data;
 /// each update so the stored value changes (SQLite has no native rowversion). Registered by
 /// <see cref="RaskDataServiceCollectionExtensions.AddRaskData"/> after the <see cref="SoftDeleteInterceptor"/>,
 /// so a soft delete (rewritten to <see cref="EntityState.Modified"/>) is stamped and versioned too. It also
-/// refuses an added <see cref="Aggregate{TId}"/> whose non-integer key is still at its default — see
+/// refuses an added <see cref="Aggregate{TId}"/> whose never-generated key is still at its default — see
 /// <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)"/>.
 /// </summary>
 public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChangesInterceptor
@@ -21,16 +21,31 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
+        // The same work as the async path. A synchronous save has no other way to ask about a parent it does not hold.
+        if (eventData.Context is { } context)
+        {
+            SeveredChildren.Delete(context);
+            ChildWrites.RefuseOutsideTheirAggregate(context);
+            ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         Apply(eventData.Context);
         return base.SavingChanges(eventData, result);
     }
 
     /// <inheritdoc/>
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
+        if (eventData.Context is { } context)
+        {
+            SeveredChildren.Delete(context);
+            ChildWrites.RefuseOutsideTheirAggregate(context);
+            await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+
         Apply(eventData.Context);
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
+        return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
     }
 
     private void Apply(DbContext? context)
@@ -57,13 +72,15 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 // and keeps it. One that did not gets the framework's, so neither can end up at 0001-01-01.
                 Stamp(entry, Columns.CreatedAt, now, onlyWhenUnset: true);
                 Stamp(entry, Columns.UpdatedAt, now, onlyWhenUnset: true);
-                StampTenant(entry);
+                StampTenant(context, entry);
+                RefuseChildApartFromItsRoot(context, entry);
                 SyncTenantKey(entry);
             }
             else if (entry.State == EntityState.Modified)
             {
                 Stamp(entry, Columns.UpdatedAt, now);
                 RefuseTenantChange(entry);
+                RefuseChildApartFromItsRoot(context, entry);
                 SyncTenantKey(entry);
             }
         }
@@ -199,7 +216,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     //
     // Current.RequiredTenant throws when nothing is set — no explicit scope and no signed-in tenant, which is the whole point: writing a tenant-scoped row with
     // no tenant would otherwise store a NULL that every tenant's filter then excludes — a row nobody can read.
-    private static void StampTenant(EntityEntry entry)
+    private static void StampTenant(DbContext context, EntityEntry entry)
     {
         // The REGISTRY decides, not whether the column happens to be mapped. A table that is not partitioned
         // may declare a TenantId of its own — a queue's rows record the tenant they were enqueued for — and
@@ -219,6 +236,14 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return;
         }
 
+        // A child that keeps a column of its own takes its ROOT's tenant: the aggregate decides where its parts
+        // belong, inside Tenant.Across() as well. Only a root not stamped yet leaves it to the tenant in flight.
+        if (RootTenant(context, entry) is { } rootTenant)
+        {
+            property.CurrentValue = TenantColumn.ValueFor(rootTenant, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
+            return;
+        }
+
         // In the column's own type: a table whose tenants are numbered is stamped with the number.
         property.CurrentValue = Tenant.IsAcrossTenants
             ? throw new InvalidOperationException(
@@ -226,6 +251,46 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
                 "or open Tenant.Use(id) around the insert.")
             : TenantColumn.ValueFor(Current.RequiredTenant, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
+    }
+
+    // A child that keeps a column of its own agrees with its root: a part of one tenant's aggregate is that
+    // tenant's row, whatever its column was set to in code.
+    private static void RefuseChildApartFromItsRoot(DbContext context, EntityEntry entry)
+    {
+        if (entry.Entity is IAggregate || !IsPartitioned(entry) || RootTenant(context, entry) is not { } rootTenant)
+        {
+            return;
+        }
+
+        var property = entry.Property(Columns.TenantId);
+        var table = entry.Metadata.ClrType.Name;
+
+        if (!Equals(property.CurrentValue, TenantColumn.ValueFor(rootTenant, property.Metadata.ClrType, table)))
+        {
+            throw new InvalidOperationException(
+                $"'{table}' is saved with tenant {property.CurrentValue ?? "none"}, and the aggregate it is part of " +
+                $"belongs to tenant {rootTenant}. A child belongs to its root's tenant; leave its TenantId to Rask.");
+        }
+    }
+
+    // The tenant of the aggregate a child is part of, as a Guid: null for a root, for a child whose root the
+    // context does not hold, and for a root not stamped yet.
+    private static Guid? RootTenant(DbContext context, EntityEntry entry)
+    {
+        if (entry.Entity is IAggregate ||
+            RootOf(context, entry) is not { } root ||
+            root.Metadata.FindProperty(Columns.TenantId) is null)
+        {
+            return null;
+        }
+
+        return root.Property(Columns.TenantId).CurrentValue switch
+        {
+            Guid tenant when tenant != Guid.Empty => tenant,
+            int number => TenantNumber.ToGuid(number),
+            long number => TenantNumber.ToGuid(number),
+            _ => null,
+        };
     }
 
     // A row does not move between tenants. The query filter already stops you LOADING another tenant's row,
@@ -320,7 +385,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     }
 
     /// <summary>The aggregate <paramref name="entry" /> belongs to, walking up through nested children.</summary>
-    private static EntityEntry? RootOf(DbContext context, EntityEntry entry, int depth = 0)
+    internal static EntityEntry? RootOf(DbContext context, EntityEntry entry, int depth = 0)
     {
         // The same ceiling AggregateChildren walks down with: an aggregate deeper than this is several
         // aggregates wearing one name, and the limit makes a cycle impossible to loop on.
@@ -385,9 +450,10 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         return null;
     }
 
-    // An Entity<TId> key that is not an integer is the entity's to assign (see ApplyRaskConventions), so nothing
-    // fills one left at its default. Inserting it would write an empty key — the first row lands and the second
-    // collides — and the author would meet that as a duplicate-key error far from the factory that forgot the id.
+    // An Entity<TId> key that is never generated is the entity's to assign — every key that is not an integer
+    // (see ApplyRaskConventions), and an integer one the application configured so — and nothing fills one left
+    // at its default. Inserting it would write an empty key — the first row lands and the second collides — and
+    // the author would meet that as a duplicate-key error far from the factory that forgot the id.
     private static void RefuseUnassignedKeys(DbContext context)
     {
         foreach (var entry in context.ChangeTracker.Entries())
@@ -395,7 +461,6 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             if (entry.State != EntityState.Added ||
                 entry.Entity is not IEntity ||
                 ModelBuilderExtensions.IdTypeOf(entry.Metadata.ClrType) is not { } idType ||
-                ModelBuilderExtensions.IsInteger(idType) ||
                 entry.Metadata.FindProperty(nameof(Entity<int>.Id)) is not { ValueGenerated: ValueGenerated.Never } key)
             {
                 continue;
@@ -405,8 +470,10 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             {
                 throw new InvalidOperationException(
                     $"'{entry.Metadata.ClrType.Name}' was added with its Id still at the default, and a " +
-                    $"Entity<{idType.Name}> assigns its own id — nothing generates one. Set it where the entity is " +
-                    "created — for a Guid key, Guid.CreateVersion7() in the entity's constructor or factory.");
+                    $"Entity<{idType.Name}> assigns its own id — nothing generates one. " +
+                    (ModelBuilderExtensions.IsInteger(idType)
+                        ? "Its key is configured ValueGeneratedNever(), so give it one: Create(id, …), or set it where the entity is built."
+                        : "Set it where the entity is created — for a Guid key, Guid.CreateVersion7() in the entity's constructor or factory."));
             }
         }
     }

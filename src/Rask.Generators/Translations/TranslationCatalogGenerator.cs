@@ -233,6 +233,15 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("CarouselNext", 0),
         ("CarouselIndicators", 0),
         ("CarouselShowSlide", 1),
+        ("PhoneChangeCountry", 0),
+        ("ConnectionReconnecting", 0),
+        ("ConnectionOffline", 0),
+        ("ConnectionStillTrying", 0),
+        ("ConnectionRetry", 0),
+        ("ConnectionReload", 0),
+        ("ConnectionUpdating", 0),
+        ("ConnectionAuthenticating", 0),
+        ("ConnectionSessionTimedOut", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

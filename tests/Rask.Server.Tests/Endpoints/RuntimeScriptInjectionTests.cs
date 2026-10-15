@@ -27,7 +27,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
+        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=[0-9a-f]+\"></script><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>[^<]*</script></body>", body);
     }
 
     [Fact]
@@ -37,7 +37,29 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Matches("<script src=\"/appA/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
+        Assert.Matches("<script data-rask-base=\"/appA/\" src=\"/appA/rask/rask\\.js\\?v=[0-9a-f]+\"></script><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>[^<]*</script></body>", body);
+    }
+
+    [Fact]
+    public async Task A_path_base_reaches_the_runtime_without_the_app_writing_a_base_element()
+    {
+        // #1235: a hand-wired MapRask(pathBase:) host whose App declares no <base href>.
+        using var host = RaskTestHost.Create<ShellApp>(pathBase: "/uj");
+
+        var body = await (await host.Http.GetAsync("/uj/orders", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.Contains("data-rask-base=\"/uj/\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("<base", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task No_path_base_leaves_the_runtime_tag_without_one()
+    {
+        using var host = RaskTestHost.Create<ShellApp>();
+
+        var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("data-rask-base", body, StringComparison.Ordinal);
     }
 
     [Fact]

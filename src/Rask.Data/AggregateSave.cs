@@ -144,6 +144,7 @@ internal static class AggregateSave
             {
                 // Entry, not Remove: Remove would attach the loaded copy's whole graph beside the live one.
                 context.Entry(row).State = EntityState.Deleted;
+                ChildWrites.LetGoByItsRoot(row);
             }
         }
 

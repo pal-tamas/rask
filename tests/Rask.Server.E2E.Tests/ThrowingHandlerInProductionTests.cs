@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Rask.Core;
-using Rask.Core.Live;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -29,8 +28,6 @@ public sealed partial class ThrowingHandlerInProductionTests(PlaywrightFixture p
                 frames = SocketFrames.Of(page);
                 return Task.CompletedTask;
             },
-            // The flag is the process's and the first host to map claims it: this host says so itself.
-            beside: static _ => LiveOptions.IsDevelopment = false,
             environment: "Production",
             cultures: static c =>
             {
@@ -74,7 +71,6 @@ public sealed partial class ThrowingHandlerInProductionTests(PlaywrightFixture p
                 frames = SocketFrames.Of(page);
                 return Task.CompletedTask;
             },
-            beside: static _ => LiveOptions.IsDevelopment = false,
             environment: "Production");
         var page = session.Page;
         await page.ClickAsync("#count");

@@ -218,11 +218,37 @@ An order that declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carrie
 so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
 order comes back.
 
-The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
-face of its own — `OrderLine.Where(…)` — because the read side has no borders. It gets no **writes** of its own:
-there is no `OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its
-own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
-collection Rask cannot write is [RASK088](diagnostics.md#rask088).
+The child gets a table, a model so its parent's form can carry it, and a read face of its own —
+`OrderLine.Where(…)` — because the read side has no borders. It gets no **writes** of its own: there is no
+`OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its own. A collection of
+another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot
+write is [RASK088](diagnostics.md#rask088).
+
+**A child is written only through its aggregate.** A save that adds, changes or removes a child whose root the
+same context does not hold — a line found through `db.OrderLines` and edited, a `new OrderLine` attached on its
+own, a `BulkInsert` of lines — is refused with an `InvalidOperationException` naming the child and its root.
+`Tenant.Across()` does not lift it: it is about the aggregate's shape, not whose rows are visible. Load the
+order, change it, save the order:
+
+```csharp
+await Order.Update(id, o => o.Lines.First().SetQuantity(5));   // ✓ through the aggregate
+
+var line = await db.OrderLines.FirstAsync(ct);
+line.SetQuantity(5);
+await db.SaveChangesAsync(ct);   // ✗ 'OrderLine' was changed on its own … load its 'Order'
+```
+
+**Timestamps are the aggregate's**, like its tenant. A child has no `CreatedAt` or `UpdatedAt` — not in its
+table, not on `OrderLineRead`, never stamped — and the root's `UpdatedAt` moves whenever any of its children is
+added, changed or removed, so it means "anything in this order changed". A child whose table does carry them
+declares so, and keeps them:
+
+```csharp
+public sealed class OrderLine : Entity<Guid>
+{
+    public const Timestamps Stamps = Timestamps.All;   // this child table has CreatedAt and UpdatedAt
+}
+```
 
 ### Collections of values
 
@@ -345,12 +371,13 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 |---|---|---|
 | `Guid CustomerId` + a `Customer : Aggregate<Guid>` | exact name match | `Customer` |
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
+| `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid CustomerId`, no `Customer` aggregate | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
 
 The navigation is named after the **property**, not the target, so two references to the same aggregate never
-collide. And it is the one thing the write model cannot do, so this is the join you came for:
+collide. (`CategoryId` on `Category` — the exact name of its own type — stays a plain column: it reads as the row's own id.) And it is the one thing the write model cannot do, so this is the join you came for:
 
 ```csharp
 await Order
@@ -464,6 +491,30 @@ update just names the row first:
   are the only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not
   generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
   PostgreSQL's sequence behind.
+- **An integer key your application assigns** is a key you give, too. Say so in the aggregate's own `Configure`
+  — `b.Property(x => x.Id).ValueGeneratedNever();` — and the aggregate gets `Create(id, model)` and
+  `Create(id, x => …)` **instead of** the creates that take no key, which would insert the row under `0`:
+
+  ```csharp
+  public sealed class Destination : Aggregate<int>
+  {
+      public string Name { get; private set; } = "";
+
+      public static void Configure(EntityTypeBuilder<Destination> b) =>
+          b.Property(d => d.Id).ValueGeneratedNever();          // the table is numbered by the application
+  }
+
+  await Destination.Create(1000, model);                        // inserted under 1000
+  await Destination.Create(1001, d => d.Rename("Baja"));
+  await Destination.Create(model);                              // does not compile: there is no such create
+  ```
+
+  A key given as `0` is refused at the save, by name, like any key left at its default; a key that is taken is
+  the database's own duplicate-key error (`DbUpdateException`). The line is read from the source, so it has to
+  be written in the static `Configure` on the aggregate, as one chain from `Property(x => x.Id)` — or
+  `Property("Id")`, `Property(nameof(Id))`. Written in a helper method, an `IEntityTypeConfiguration` or
+  `OnModelCreating`, the key is still inserted as given, but the aggregate keeps the creates of a stored
+  identity.
 - **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
   `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
@@ -565,8 +616,8 @@ if (order!.TotalAmount > limit) { order.Hold(); }
 await db.SaveChangesAsync(ct);
 ```
 
-`db.Orders`, `db.OrderLines` — children too, since they are in the write context even though they are only
-*writable* through their root. These are extension members on `DbContext` itself, so an app that brings its
+`db.Orders`, `db.OrderLines` — children too, since they are in the write context, but a save that writes a child
+it reached that way [without its root is refused](#children). These are extension members on `DbContext` itself, so an app that brings its
 own context gets them without the context having to be `partial`.
 
 The name comes from one documented rule — `s`, `es` after `s`/`x`/`z`/`ch`/`sh`, and `y` → `ies` after a
@@ -672,7 +723,7 @@ default, so an entity that says nothing is unchanged.
 | const | type | default | what it decides |
 |---|---|---|---|
 | `Writes` | `ModelWrites` | `All` | the form model, and the writes that take one |
-| `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
+| `Stamps` | `Timestamps` | `All` on a root, `None` on a [child](#children) | `CreatedAt` and `UpdatedAt` |
 | `Deletes` | `Deletion` | `Hard` | whether `Delete` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
 | `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](multi-tenancy.md) |
@@ -871,19 +922,86 @@ When a page shows the order between loading and changing it, the same rules run 
 
 ### How a form save writes
 
-A save writes **what the form holds**, property by property:
+**The model is the truth.** A save stores what the model holds, property by property, and reads nothing back
+from the row to fill a gap:
 
 | The model's value | The aggregate's property | What is saved |
 | --- | --- | --- |
 | a value | any | the value |
 | `null` | declared nullable (`string? Notes`) | `null`: the user emptied the field |
-| `null` | not nullable (`string Name`) | nothing: the property keeps its value |
-| a nested value-object model | a value object | merged over the value object the row holds, by the same rules |
+| `null` | not nullable (`string Name`) | nothing: the write is refused, *This field is required.* under `Name` |
+| a nested value-object model | a value object | the value object **built from the nested model alone**, by the same rules |
+| `null` | a value object declared nullable (`Address? Billing`) | `null`: every column of it |
+| a nested model **left wholly empty** | a value object declared nullable (`Address? Billing`) | the same `null`: it was not given, and nothing in it is asked for |
+| `null` | a value object that is not nullable (`Money Price`) | nothing: the write is refused, under `Price` |
 | `Version` is `null` | | no concurrency check |
 
-So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, and a model a
-command built with only some properties set leaves the non-nullable rest alone. To change a few properties from
-code, `Product.Update(id, p => p.Reprice(price))` says so directly.
+The rules are the same one level down, and at every level below that. `Address` holds `string Street`,
+`string? Floor` and `int? Door`; a reader who empties the floor has emptied it:
+
+```csharp
+var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+model.Address!.Floor = null;                  // what an emptied field binds
+model.Address.Door = null;
+
+await Customer.Update(id, model);             // Address_Floor NULL, Address_Door NULL, Address_Street untouched
+
+model.Address.Street = null;
+await Customer.Update(id, model);             // RaskValidationException: "Address.Street" — This field is required.
+```
+
+So a model from `new ProductModel()` or `product.ToModel()` saves exactly what the form shows, an update that
+changes nothing writes nothing — text stored as `''` stays `''`, it is not turned into `NULL` — and a model is
+never a patch: one built in code with only some members set clears the nullable rest and is refused for the
+required rest. To change a few properties from code, `Product.Update(id, p => p.Reprice(price))` says so
+directly. A member that is text and cannot be empty is refused when it holds `''` or white space as well, as a
+root property is; declare it `string?` where the table really holds empty text.
+
+The same holds for a create, which builds the value object from the model and nothing else: a member the model
+leaves empty is not filled from the default the aggregate's initializer gave it.
+
+**An optional value object left empty was not given.** A form over `Address? Billing` has to hold a nested model
+to bind its fields to (`model.Billing ??= new()`), so a reader who fills none of them posts a model that is there
+and empty. That is stored as no address — every column `NULL` — and none of its fields is asked for. Fill one
+and it is an address: the rest of the rules apply, and a missing street is refused under `Billing.Street`.
+
+```csharp
+model.Billing = new();                                   // nothing typed
+await Customer.Update(id, model);                        // Billing is null: every Billing_ column NULL
+
+model.Billing = new() { City = "Szeged" };               // one field typed
+await Customer.Update(id, model);                        // refused — "Billing.Street": This field is required.
+```
+
+*Empty* means exactly this, for every member of the nested model, at every level:
+
+| The member's value | Counts as |
+| --- | --- |
+| `null` | empty |
+| text that is `""` or only white space | empty |
+| `false` | empty: a box nobody ticked says nothing |
+| a nested model that is `null`, or itself wholly empty | empty |
+| any other value — **including `0`** | filled |
+
+Every member of a model is nullable (`bool?`, `int?`), so each has an empty state. A control the reader never
+touched writes nothing and leaves `null`; a number field that is cleared goes back to `null`; a box that is
+ticked and unticked again writes `false`, which is why `false` is empty too. `0` is a number somebody typed. A
+value object that is **not** nullable is never read this way — its empty model is refused for each field it
+lacks — and so is a row of a list, which is there because somebody added it.
+
+**A save that changes nothing still writes nothing.** When the model is empty and what the row holds there is
+empty by the same rule — every column `NULL`, blank text or `false` — the row is left exactly as it is: text
+stored as `''` stays `''`. The columns are cleared only when something stored was a value.
+
+**A form says "required" per place, not per type.** `Address Shipping` and `Address? Billing` are one nested
+model type, and a control bound to `Shipping.Street` announces `aria-required` and refuses an empty street
+before anything is saved, as ever. One bound to `Billing.Street` announces nothing and lets an empty street
+through: a field's rule sees its own value and not the fields beside it, so it cannot tell an address nobody
+gave from one that lacks a street. The write can, and says *This field is required.* under `Billing.Street`,
+[where the form shows it](#a-create-and-an-edit-form). A rule the field's value object carries (`Zip.Validate`)
+is still asked there about a value that was typed. Nothing is written for this: the generated model registers
+which of its properties may be left empty
+([`RaskValidation.RegisterOptionalFields`](forms-validation.md#how-a-control-knows-a-field-is-required)).
 
 A form save writes properties through the aggregate's private setters, with generated `[UnsafeAccessor]`s and no
 reflection. **It does not call the aggregate's methods**, so a rule that must hold for form input belongs in a
@@ -967,7 +1085,12 @@ public static IEnumerable<string> Validate(string value)
 
 A control bound to a field that is required this way says `aria-required="true"`
 ([how a control knows](forms-validation.md#how-a-control-knows-a-field-is-required)): each generated model type
-— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled.
+— the root, a nested value-object model, a row — announces exactly the fields its write refuses unfilled. A
+member of a value object of several values is such a field: `string Street` on `Address` is required under
+`Address.Street`, `string? Floor` is optional, and the validation attributes the value object's own properties
+carry are checked by the write under the same path. The exception is a field under a value object that
+[may be left wholly empty](#how-a-form-save-writes) — `Address? Billing` — which a form announces nothing
+about, while the same type held as `Address Shipping` is announced as ever.
 
 The one sentence is the strings catalog's `ValidationRequired` — *This field is required.*, with the kit's
 built-in translations — so it follows the reader's language, and
@@ -982,8 +1105,10 @@ so is one without a message. Every index `Configure` declares with a message is
 asked of the database [when a bound field is committed and again on submit](forms-validation.md#the-database-said-no),
 and the message shows under the field, or under each field of an index over several:
 
-- for the **current tenant's rows only**: the tenant is the one in flight, never the form's to say, and with no
-  tenant — or inside `Tenant.Across()` — the rule is left to the save
+- over **exactly the index's columns**: one that names `TenantId` about the current tenant's rows — the tenant is
+  the one in flight, never the form's to say, and with no tenant, or inside `Tenant.Across()`, the rule is left to
+  the save — and one that does not about **every tenant's rows**, with a tenant or without one
+  ([an index is what you write](multi-tenancy.md#an-index-is-what-you-write))
 - an edit form does not collide with **the row it was filled from**: the model remembers its key from
   `Destination.Model(id)` / `ToModel()`. It is not a field — nothing binds or posts it — and it only decides
   which row this courtesy check leaves out; the save takes its id beside the model and is checked on its own
@@ -1069,8 +1194,9 @@ public sealed class Invoice : Aggregate<Guid>
 var invoices = await Invoice.OrderByDescending(i => i.CreatedAt).Take(20);   // this tenant's
 ```
 
-That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index that does not already name it. The column is a shadow one; an entity that reads its tenant declares
+That gives the table a `TenantId` column and a query filter no read can compose away. Its indexes are
+[what you write](multi-tenancy.md#an-index-is-what-you-write): name `TenantId` in one that is unique per tenant,
+leave it out of one that is unique across every tenant, like a sign-in name. The column is a shadow one; an aggregate that reads its tenant declares
 `public Guid? TenantId { get; private set; }` — or `int?` / `long?` where tenants are numbered, and the declared
 type is then the column's. The tenant is the signed-in user's — it rides on the principal as the `rask:tenant`
 claim — or whatever a resolver you register returns (`services.AddRaskTenant(sp => …)`), asked once by a request
@@ -1078,6 +1204,9 @@ and [at every event by a live page](multi-tenancy.md#from-the-request-a-resolver
 filters with nothing passed to it and a page follows its user into the tenant they chose; `Tenant.Use(id)` and `Tenant.Across()` say otherwise explicitly.
 A tenant-scoped read with no tenant **throws** rather than return nothing, `IgnoreQueryFilters()` never
 crosses tenants, and a create stamps the tenant while an update refuses to move a row between tenants.
+Only the ROOT carries the tenant: an entity under it — at any depth — is
+[read through its root](multi-tenancy.md#a-child-belongs-to-its-roots-tenant), an `EXISTS` up the path the
+aggregate's own collections make, one per parent for a table two aggregates hold (`Driver.Chips`, `Vehicle.Chips`).
 `RaskAppDbContext` applies it; a context of your own calls `modelBuilder.ApplyRaskConventions(this)`.
 
 Where the tenant comes from, administrators, what it means for jobs, mail, the outbox, the cache, file storage
@@ -1219,7 +1348,9 @@ marks every other key never generated, so a `Guid` or a strongly-typed id is ass
 built: `Id = Guid.CreateVersion7()` in its factory. That is what lets a child with an id of its own be added
 to a loaded aggregate and saved as an insert. An entity added with its key still at the default is refused at
 the save, by name, rather than inserted with an empty key. A key you configured yourself
-(`ValueGeneratedOnAdd()`, a database default) is left as you set it.
+(`ValueGeneratedOnAdd()`, a database default) is left as you set it, and an integer key you marked
+`ValueGeneratedNever()` is yours to assign like the rest: `0` is refused, and the aggregate takes its key
+[in `Create(id, …)`](#writing-create-update-delete).
 
 **One aggregate refers to another by id.** `Order` holds a `Guid ProductId`, not a `Product`: each aggregate is
 loaded and saved on its own, and a change that spans two is [one context, saved once](#changing-two-aggregates-together-db).
@@ -1336,8 +1467,8 @@ public sealed class Product : Aggregate<Guid>
 
 It runs **last** — after Rask's conventions — so it can extend them or overrule them, replacing the
 soft-delete query filter or dropping the concurrency token. It is optional; an entity without one is
-mapped by convention. One thing follows it: on a [tenant-scoped](multi-tenancy.md#indexes-are-prefixed-for-you)
-table, an index declared here that does not name `TenantId` gets it in front.
+mapped by convention. An index declared here is kept exactly as written — on a
+[tenant-scoped](multi-tenancy.md#an-index-is-what-you-write) table too.
 
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
@@ -1375,7 +1506,9 @@ index names in index order — `TenantId` aside, which is never a field — and 
   translate: SQLSTATE `23505` and the constraint name on PostgreSQL, error `2601` / `2627` and the index name on
   SQL Server, and on SQLite — which names no index — the table and columns it lists. It needs no provider
   package of Rask's: a plain `UseSqlServer` works. On a table that already exists the index's name in the
-  database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`.
+  database has to be the one in the model — EF Core's `IX_{Table}_{Columns}`, or say `HasDatabaseName("…")`,
+  which is kept as written. On SQLite an index the database holds without the `TenantId` the model's names is
+  still recognised by its other columns.
 - The original exception is the `InnerException`, for the log.
 
 **In a `Form` the message appears under the field** — under each of them, for an index over several — with
@@ -1393,7 +1526,8 @@ index the model declares is a claim about somebody else's schema, and the table 
 with `AddRaskData<TContext>(o => …)` therefore asks every rule declared with `IsUnique("…")` as a **query**
 before each save, and refuses the save with the same failure:
 
-- through the context's own filters, so a tenant-scoped table is asked about this tenant's rows only
+- over exactly the index's columns: the row's tenant for an index that names `TenantId`, every tenant's rows for
+  one that does not ([an index is what you write](multi-tenancy.md#an-index-is-what-you-write))
 - a NULL in one of the index's columns is not checked, as a database does not let NULLs collide
 - an index filter that only says its own columns are `NOT NULL` counts as no filter; an index with any other
   filter is skipped, because its condition is SQL that Rask will not guess at
@@ -1724,12 +1858,13 @@ public sealed class Destination : Aggregate<int>             // an int key is th
 
 | What Rask assumes | What an existing table usually has | How to say so |
 |---|---|---|
-| `CreatedAt` and `UpdatedAt` | neither | `Stamps = Timestamps.None` (or `Created` / `Updated` for the one it has) |
+| `CreatedAt` and `UpdatedAt` | neither | `Stamps = Timestamps.None` (or `Created` / `Updated` for the one it has) — on the root; a [child](#children) has neither unless it declares them |
 | a `Version` concurrency token | none | `Checks = Concurrency.None` — a write then takes no version, and the last writer wins |
 | a hard delete | the same | nothing: `Deletes` defaults to `Deletion.Hard`, and there is no `DeletedAt` unless you ask |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
+| an integer key the database numbers | a key the application numbers | `b.Property(d => d.Id).ValueGeneratedNever()` in `Configure` — the aggregate then takes its key in [`Create(id, model)`](#writing-create-update-delete) |
 | a `Guid?` tenant column | an `int` one | declare `public int? TenantId { get; private set; }` — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
-| `TenantId` in front of every index | indexes in the order they were created | name `TenantId` in the index and it is [left exactly as written](multi-tenancy.md#indexes-are-prefixed-for-you) |
+| — | `TenantId` in a per-tenant index | write it into the index: it is [left exactly as written](multi-tenancy.md#an-index-is-what-you-write) |
 
 Column names, lengths, precision, conversions and relationships are ordinary EF Core in the same `Configure`.
 Tables this context does not map still hold foreign keys onto the ones it does: `b.WhenReferenced("…")` is

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Rask.Core.Forms;
@@ -16,14 +17,91 @@ internal sealed class RequiredFields
     private const BindingFlags Declared = BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly;
 
     private readonly Dictionary<Type, Func<string, bool>> _registered;
-    private readonly ConcurrentDictionary<(Type Owner, string Name), bool> _answers = new();
+    private readonly Dictionary<Type, Func<string, bool>> _optional;
+    private readonly ConcurrentDictionary<(Type Owner, string Name), bool> _answers;
 
-    private RequiredFields(Dictionary<Type, Func<string, bool>> registered) => _registered = registered;
+    private RequiredFields(
+        Dictionary<Type, Func<string, bool>> registered,
+        Dictionary<Type, Func<string, bool>> optional,
+        ConcurrentDictionary<(Type Owner, string Name), bool> answers)
+    {
+        _registered = registered;
+        _optional = optional;
+        _answers = answers;
+    }
 
-    internal static RequiredFields None { get; } = new([]);
+    internal static RequiredFields None { get; } = new([], [], new());
 
     internal RequiredFields With(Type modelType, Func<string, bool> isRequired) =>
-        new(new Dictionary<Type, Func<string, bool>>(_registered) { [modelType] = isRequired });
+        new(new Dictionary<Type, Func<string, bool>>(_registered) { [modelType] = isRequired }, _optional, new());
+
+    // The answers kept are about a property on its own type, which this does not change: they are carried over.
+    internal RequiredFields WithOptional(Type modelType, Func<string, bool> isOptional) =>
+        new(_registered, new Dictionary<Type, Func<string, bool>>(_optional) { [modelType] = isOptional }, _answers);
+
+    // Whether the property holds an object that may be left wholly empty, so nothing under it has to be filled.
+    // The type that declares the property speaks for every type derived from it.
+    internal bool IsOptional(Type owner, string name)
+    {
+        if (_optional.Count == 0)
+        {
+            return false;
+        }
+
+        for (var type = owner; type is not null; type = type.BaseType)
+        {
+            if (_optional.TryGetValue(type, out var isOptional) && isOptional(name))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The same, asked of a bind expression: whether anything it walks through on the way to its last property
+    // is such a property. One count read for the app that registered none, which is most renders.
+    internal bool IsUnderOptional(Expression? holder)
+    {
+        if (_optional.Count == 0)
+        {
+            return false;
+        }
+
+        for (var at = holder; at is not null;)
+        {
+            switch (at)
+            {
+                case MemberExpression { Member: PropertyInfo { DeclaringType: { } owner } slot } member:
+                    if (IsOptional(owner, slot.Name))
+                    {
+                        return true;
+                    }
+
+                    at = member.Expression;
+                    break;
+                case MemberExpression member:
+                    at = member.Expression;
+                    break;
+                case UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } lifted:
+                    at = lifted.Operand;
+                    break;
+                case MethodCallExpression { Method: { IsSpecialName: true, Name: "get_Item" }, Object: { } indexed }:
+                    at = indexed;
+                    break;
+                case IndexExpression { Object: { } indexed }:
+                    at = indexed;
+                    break;
+                case BinaryExpression { NodeType: ExpressionType.ArrayIndex } element:
+                    at = element.Left;
+                    break;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
 
     // A plain property name is the whole of a bound control's question, on every render: one lookup, nothing built.
     internal bool IsRequired(Type modelType, string fieldPath)
@@ -60,7 +138,7 @@ internal sealed class RequiredFields
 
     // `Rows[2].Weight` is `Weight` on the type of a row and `Price.Amount` is `Amount` on the type of `Price`,
     // read from the declared types: there is no instance here to ask, and the index says nothing about the type.
-    private static (Type Owner, string Name)? Locate(Type modelType, string fieldPath)
+    private (Type Owner, string Name)? Locate(Type modelType, string fieldPath)
     {
         var segments = ModelGraphWalker.SplitPath(fieldPath);
         if (segments.Count == 0 || segments[^1].IsIndexed)
@@ -71,6 +149,12 @@ internal sealed class RequiredFields
         var owner = modelType;
         for (var i = 0; i < segments.Count - 1; i++)
         {
+            // Nothing under an object that may be left wholly empty has to be filled.
+            if (IsOptional(owner, segments[i].Name))
+            {
+                return null;
+            }
+
             var reached = Property(owner, segments[i].Name)?.PropertyType;
             if (reached is not null && segments[i].IsIndexed)
             {

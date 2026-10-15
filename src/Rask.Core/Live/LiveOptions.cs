@@ -24,8 +24,8 @@ public static class LiveOptions
     public static bool? MinifyScopedAssets { get; set; }
 
     /// <summary>
-    ///     Whether the app is running in Development, as decided by the <em>host</em>. <c>null</c>
-    ///     (default) = unresolved, in which case <see cref="Components.DefaultErrorPage" /> falls back to
+    ///     Whether the app is running in Development, for a host that cannot say so itself — a browser (WASM) app
+    ///     sets it at startup. <c>null</c> (default) = unresolved, in which case the error page falls back to
     ///     reading the standard ASP.NET environment variables itself.
     /// </summary>
     /// <remarks>
@@ -37,9 +37,11 @@ public static class LiveOptions
     ///     arrived that way. <c>dotnet run --environment Development</c>, <c>appsettings.json</c>,
     ///     assigning <c>builder.Environment.EnvironmentName</c>, and IDE profiles that set configuration
     ///     rather than the process environment all select Development without setting a variable, and all
-    ///     of them silently produced the production error page while developing (#605). <c>MapRask</c>
-    ///     now resolves this from <c>IWebHostEnvironment</c>; a standalone host or a test can set it
-    ///     directly. Host-wide rather than per-session, like <see cref="MinifyScopedAssets" />.
+    ///     of them silently produced the production error page while developing (#605). A server host
+    ///     therefore answers for itself, from its <c>IHostEnvironment</c>, in its own services (<c>AddRask</c>
+    ///     registers it) — and that answer wins over this one, which no host writes: a process-wide value set by
+    ///     the first host to start once decided whether every later host's visitors were shown exception text.
+    ///     This is the last word only where no host answered: a WASM app, a component rendered outside a host.
     /// </remarks>
     public static bool? IsDevelopment { get; set; }
 

@@ -24,6 +24,43 @@ public partial class FrameDifferTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_password_the_server_sets_after_the_first_render_is_not_in_any_op()
+    {
+        var model = new PasswordModel();
+        var before = Frames(Input.Bind(() => model.Password).Type(InputType.Password).Id("pw"));
+        model.Password = "hunter2";
+        var after = Frames(Input.Bind(() => model.Password).Type(InputType.Password).Id("pw"));
+        var ops = new List<EditOp>();
+
+        FrameDiffer.Diff(before, after, ops);
+
+        Assert.DoesNotContain(ops, op => op.Value is not null && op.Value.Contains("hunter2", StringComparison.Ordinal));
+        Assert.Contains(ops, op => op.Kind == EditOpKind.RemoveAttribute && op.Name == "value");
+    }
+
+    [Fact]
+    public void A_password_the_server_clears_is_an_empty_value_op()
+    {
+        var model = new PasswordModel { Password = "hunter2" };
+        var before = Frames(Input.Bind(() => model.Password).Type(InputType.Password).Id("pw"));
+        model.Password = "";
+        var after = Frames(Input.Bind(() => model.Password).Type(InputType.Password).Id("pw"));
+        var ops = new List<EditOp>();
+
+        FrameDiffer.Diff(before, after, ops);
+
+        var op = Assert.Single(ops);
+        Assert.Equal(EditOpKind.SetAttribute, op.Kind);
+        Assert.Equal("value", op.Name);
+        Assert.Equal("", op.Value);
+    }
+
+    private sealed class PasswordModel
+    {
+        public string Password { get; set; } = "";
+    }
+
+    [Fact]
     public void A_changed_text_node_diffs_to_a_single_UpdateText_op()
     {
         // The CounterOnLargePage / TextNodeUpdate headline scenario in miniature: one

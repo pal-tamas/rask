@@ -7,8 +7,139 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
+  Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
+  of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over
+  DNS-01. After: `--redirect <host>` (repeatable, remembered as `"redirects"`) gets a Caddy block answering
+  `308 https://<primary>{uri}`, path, query and method kept, while the `--domain` names stay the app's (Caddy
+  matches the most specific address). `--dns azure --dns-env-file <file>` builds Caddy with `caddy-dns/azure`
+  on the box and replaces the shared proxy with it once, after the new app answers, announced first because
+  every site is down for a few seconds; certificates carry over on the data volume. Only blocks naming a
+  wildcard prove over DNS. The credentials live in the proxy's environment, named as `{env.…}` placeholders,
+  never in `.rask/deploy.json`, a label or the output. The proxy is labelled `rask.dns=azure`, so later deploys,
+  CI's included, keep it, and a wildcard on a box without a provider fails before anything starts. A box with no
+  redirects and no wildcard gets exactly the Caddyfile it got before.
+
+- **`rask deploy` serves one app on several domains.** Before: `--domain` took one host, so `example.com` and
+  `www.example.com` could not both reach an app. After: `--domain` repeats, or takes a comma-separated list
+  (`--domain example.com --domain www.example.com`). Every host is checked like a single one was, a host given
+  twice is refused, and the app's Caddy site lists them all (`example.com, www.example.com {`), each with its own
+  certificate. The first is the primary, which `Rask__Auth__PublicOrigin` names. `.rask/deploy.json` remembers
+  several as `"domains": [...]`, while one stays `"domain"` exactly as before. A host that another app on the box
+  already serves stops the deploy before anything starts, naming that app; otherwise Caddy would refuse the
+  config only at the reload.
+
+- **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
+  returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
+  Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with
+  Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
+  moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
+  `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+- **Only the aggregate root carries the tenant: every entity under it is read through its root (#1251).** A table
+  another app made often keeps the tenant on the root only — `Chip` rows belong to a partner through their
+  `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
+  mapped. After: a child — at any depth — needs no tenant column and the app writes nothing for it; its read face,
+  an `Include` and a projection are filtered by an `EXISTS` up the path the aggregate's own collections make
+  (one per tenant-scoped parent, `OR`'d — one `Chip` type held by `Driver.Chips` and `Vehicle.Chips`, both keys
+  optional, a navigation back to each on `ChipRead`); `Tenant.Across()` lifts it; a child added, moved, changed or
+  deleted under another tenant's parent is refused, a parent the context does not hold being looked up through
+  the tenant filter; a chip taken out of its parent's collection is deleted rather than left belonging to nobody;
+  a child with no path to its root is a model error naming it. A child that keeps a `TenantId` of its own keeps
+  it, stamped from its root and refused when it disagrees. Grandchildren now get the form model their parent's
+  form holds, and are partitioned with their root. **Read your next migration:** a child that relied on the
+  shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it to keep it.
+  See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
+
+### Changed
+
+- **BREAKING: timestamps are the aggregate's, and a child is written only through its aggregate.** Before: every
+  child (`Entity<TId>` held in a root's collection, any depth) carried `CreatedAt`/`UpdatedAt` whatever its root
+  declared — so under an adopted root with `Stamps = Timestamps.None` every read and save of the child failed with
+  "Invalid column name 'CreatedAt'" — and a child could be saved on its own (`db.Chips`, `db.Set<Chip>()`,
+  `BulkInsert<Chip>`), skipping its root's version, `UpdatedAt` and invariants. After: a child has no timestamps
+  unless it declares `Stamps` (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
+  or removal; and a save or `BulkInsert` that writes a child whose root the context does not hold throws an
+  `InvalidOperationException` naming the child and its root, `Tenant.Across()` included. **Upgrading:** a child
+  table that has `CreatedAt`/`UpdatedAt` declares `public const Timestamps Stamps = Timestamps.All;`; a child
+  written alone is loaded and changed through its aggregate instead. Also fixed: a root holding two kinds of
+  children with rules no longer generates a form model that fails to compile (`rows` declared twice).
+
+- **The app's compiled stylesheet is served compressed and cacheable, like Rask's runtime.** Before: Rask.Tailwind's
+  `wwwroot/css/app.css` (650–750 KB for a Tailwind + Rask.Ui app) went out through the app's static files,
+  uncompressed and with no cache header, so every page load fetched it whole before the page could draw. After:
+  the server answers its address ahead of the app's own middleware — brotli or gzip by `Accept-Encoding` (about
+  80 KB), an ETag (a repeat load is a 304), `no-cache` on the bare address, and `RaskApp` links it as
+  `css/app.css?v={hash}` with `Cache-Control: public, max-age=31536000, immutable`. A hand-wired host that calls
+  `UseStaticFiles()` and writes its own `<link>` gets the compression and the 304s with no change; the content hash
+  moves with every rebuild, picked up within a second under `rask dev`.
+- **`rask deploy`'s proxy compresses what the app sends uncompressed.** Before: Caddy passed every response
+  through as the app wrote it, so a stylesheet served by the app's own static files (`/css/app.css`, 650–750 KB
+  for a Tailwind + Rask.Ui app) crossed the wire uncompressed on every page load. After: every site block that
+  proxies an app has `encode zstd gzip` (redirect-only blocks don't); a response the app already encoded — Rask's
+  page, its runtime script — passes through untouched.
+- **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
+  Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
+  index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:
+  nothing is added. A key unique across every tenant is written without it —
+  `b.HasIndex(u => u.Username).IsUnique("Foglalt.")` — and one unique within a tenant names it —
+  `b.HasIndex(u => new { u.TenantId, u.Name }).IsUnique("Foglalt.")`. The unique rule is asked, by a form bound to
+  the generated model and by the check before the save, over exactly the index's columns: within the row's tenant
+  when `TenantId` is among them, across every tenant when it is not. `HasDatabaseName`, the message and the filter
+  are kept as written, and a violation is matched by the database's index name (constraint name on PostgreSQL and
+  SQL Server, columns on SQLite). **An app that relied on the automatic prefix adds `TenantId` to its per-tenant
+  indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
+  changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
+
+### Performance
+
+- **`Ui.ColorPicker` is kept in the browser, as Flux's script keeps its own: it asks the server only for the colour.**
+  Before, opening it, Tab, Escape, a press outside, every arrow and every typed character went to the server, because
+  the popover's colour, its tab stop and what was being typed were C# state. Now they are the runtime's
+  (`data-rask-color`, `rask-color.ts`: Flux's arithmetic to the last bit, a typed colour read through the browser as
+  Flux reads it, the area and slider keys, the swatch walk, the phone sheet holding everything until Select — the
+  dropper too), and the page hears the colour through one field exactly when Flux's element announces one. Frames, on
+  a page that gives `OnChange`: Tab 3 → 0, open 1 → 0, Escape 2 → 0, a press outside 1 → 0, "#12" typed 6 → 0, a drag
+  still held up to 12 → 0, a drag let go up to 12 → 1; the area's keys stay 9, one `change` a key, as Flux's. A bound
+  picker that waits sends nothing until the reader's next action; `.Live()` sends as Flux's `wire:model.live` would.
+  Nothing changes at the call site. `rask-hooks.js` +10,339 bytes.
+- **`Ui.Calendar` and `Ui.DatePicker` are drawn in the browser, as Flux's script draws them: they ask the server
+  only for the value.** Before, a page of the month, every arrow, every day the pointer crossed while a range waited
+  for its end, a range's first day, and the date picker's popup opening and closing each went to the server, which
+  drew the next month. Now the page draws the first paint and the browser draws every month after it
+  (`data-rask-calendar`, `rask-calendar.ts`: the week, the limits, `MinRange` / `MaxRange`, week numbers, the
+  selectable header, the today shortcut, the presets, the phone sheet and `WithConfirmation` holding a choice for
+  their button), and the page hears the value through one field exactly when Flux's element announces one. Frames, on
+  a page that gives `OnChange`: Tab 3 → 0 (5 → 0 for a range), paging the month 2 → 0, the cursor keys 6 → 0, the
+  pointer over a waiting range 24 → 0, a range's first day 1 → 0 and its last 2 → 1; a date picker's open, Escape and
+  press outside 1 → 0 each, its paging 2 → 0 and a pick 2 → 1. A typed date says each value its parts make, as Flux's
+  field does. The colour picker's sheet now holds a drag let go until Select, and a drag's thumb is no longer moved by
+  the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
+
 ### Security
 
+- **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the
+  `DOCKER-USER` block in `/etc/ufw/after.rules` jumped to `ufw-user-forward`, which ufw only makes after it has
+  loaded `after.rules`, so every `ufw reload` and ufw's start at boot failed ("Chain 'ufw-user-forward' does not
+  exist", Ubuntu 26.04). The step then failed, ufw was left marked disabled (`ENABLED=no`) with no firewall
+  after the next boot, and the CLI reported nothing had been rolled back, hiding ufw's own error. After: the
+  block declares the chain itself (rules version `v2`, so a host carrying the old block gets it rewritten), a
+  ufw that was enabled before the step is enabled again if the load is refused, and ufw's message is printed.
+- **`rask deploy` hardens SSH on hosts whose provider ships its own sshd drop-in.** Before: the settings went to
+  `/etc/ssh/sshd_config.d/99-rask.conf`, which sshd reads after the provider's files and so ignores where one of
+  them sets the same keyword first — on Rackhost (`00-apiv3.conf`: password and root login on) the step failed
+  with "sshd didn't apply" and rolled itself back, leaving password login on. After: the drop-in is
+  `0-rask.conf`, which sorts ahead of `00-*`, `50-cloud-init.conf` and the rest; once it is proven applied the old
+  `99-rask.conf` is removed, and a setting that still does not apply names the files that also set it.
+- **A Production host no longer shows exception text because a Development host started first in the same process (and a Development host keeps its overlay).** Whether a toast, the error page, the overlay or a refused diff names the exception is now decided by the host whose render, handler or session it is — `AddRask` registers its `IHostEnvironment` answer in that host's own services — instead of `LiveOptions.IsDevelopment`, a process-wide flag the first host to map claimed for every host after it; that flag is now only the fallback for a host that gives no answer (a WASM app, a component rendered outside a host).
+- **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
+  model's password changed, the typed text came back over the live connection as an attribute write. After: an
+  `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private
+  `Ui.Otp`'s hidden field) never has its text written by the server, not in the first page, a live update or a
+  whole-page reply, on either transport and in the browser host. The typed text still reaches the server with the
+  event; a server-side set to `""` clears the field, and a set to anything else leaves what the reader typed. The
+  field now carries `data-rask-secret`.
 - The .NET 10 packages move to the 10.0.13 servicing release, and `System.Security.Cryptography.Pkcs` (reached through MailKit and the SQL Server client) is held at 10.0.13: the copies those packages asked for carry two denial-of-service advisories (CVE-2026-84008, CVE-2026-70162).
 - **`Rask.Ui`'s rich text editor is on Tiptap 3 (3.32.0).** Before: `Ui.Editor`'s engine bundled Tiptap 2.11.7.
   After: every `@tiptap/*` package is 3.32.0 (the security update Dependabot proposed, done by hand), the engine
@@ -85,7 +216,116 @@ them until tagged releases begin.
   in full, for a `RaskApp` and for a hand-wired host.
 
 ### Added
+- **`RaskServerOptions.SignInPath`** (`Rask:Server:SignInPath`) names a sign-in page served outside the app — a
+  JWT-bearer host beside an old front end that owns `/login`, which has no cookie scheme to say so. A page whose
+  user is gone loads it, and a reloading tab is redirected to it, with `returnUrl` the page's full address. The
+  app's own `/login` page and a cookie scheme's `LoginPath` win over it.
 
+- **`RaskValidation.RegisterOptionalFields` and `RaskValidation.IsRequired(bind)`: a form says "required" per
+  place, not per type.** One nested model type can be held where it must be there and where it may be absent —
+  `Address Shipping`, `Address? Billing` — and a form asked by the type alone, so it announced `Billing.Street`
+  as required and refused the empty address a save now accepts. `RegisterOptionalFields(typeof(OrderModel),
+  property => property is "Billing")` says which properties of a model hold a part that may be left wholly
+  empty; the generated models call it, as they call `RegisterRequiredFields`. Under such a property nothing is
+  announced (`IsRequired(() => order.Billing.Street)` is false, `() => order.Shipping.Street` stays true), and
+  the rule a field's type carries is asked only about a value that was filled in; the save says what a part
+  that *was* given lacks, under the field. A control asks with the expression it is bound with —
+  `RaskValidation.IsRequired(() => order.Billing.Street)` — which is what every `Ui.*` control and a plain
+  `Input`, `Select` and `Textarea` now do. **BREAKING:** `RaskValidation.IsRequired(Type, string)` is no longer
+  public — it could only answer by the type. A control of your own that asked
+  `IsRequired(acc.Target.GetType(), acc.PropertyName)` asks `RaskValidation.IsRequired(Bind)` instead
+  ([building form controls](docs/building-form-controls.md)).
+- **`X.Create(id, model)` for an integer key the application assigns.** An `Aggregate<int>` (or any integer key)
+  whose own `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()` was given the creates of a stored
+  identity — `Create(model)`, `Create(x => …)`, documented *"The key is assigned by the database"* — so every row
+  was inserted under `0` and the second one collided. It now gets what a `string` key gets: `Create(id, model)`
+  and `Create(id, x => …)`, the key first.
+
+  ```csharp
+  public static void Configure(EntityTypeBuilder<Destination> b) => b.Property(d => d.Id).ValueGeneratedNever();
+
+  await Destination.Create(model);          // before: compiles, inserts under 0   after: does not compile
+  await Destination.Create(1000, model);    // before: does not compile            after: inserted under 1000
+  ```
+
+  **BREAKING** for such an aggregate only: the key-less `Create(model)` / `Create(x => …)` are no longer
+  generated for it. An integer key nothing marks never generated is unchanged. A key given as `0` — to
+  `Create(id, …)`, or on an aggregate added through a context — is now refused at the save with the same named
+  error a `Guid` key left empty gets; it used to be inserted. The line is read from the source of the
+  aggregate's static `Configure`, as one chain from `Property(x => x.Id)`, `Property("Id")` or
+  `Property(nameof(Id))`; configured anywhere else, the key is still inserted as given and the creates stay those
+  of a stored identity. See [writing](docs/data.md#writing-create-update-delete).
+- **`Ui.Phone`: Flux UI's phone field.** `Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Phone number")` — a
+  country picked from a searchable list of flags, the number formatted as it is typed in that country's way, and
+  ONE bound `string`: E.164 (`+36301234567`) once the number is possible, the text as typed until then, as Flux's
+  is. Flux's props in C# (`Country`, `Countries`, `CountryOrder`, `Placeholder`, `Size`, `Variant`, `Label`,
+  `Description`, `Disabled`, `ReadOnly`, `Invalid`, `Name`) and the kit's binding (`Bind`/`Value`/`OnChange`/
+  `Validate`/`AfterBind`, written with the next action, or `.Live()` / `.Debounce(…)`). The engine is the one Flux
+  runs, intl-tel-input 29.2.3 with its libphonenumber utils, so its formatting quirks are Flux's too; it is held to
+  Flux's live page key by key (`UiPhoneTests`), as loaded and with its list open (`parity.mjs phone`,
+  `parity-phone.mjs`). Typing, formatting and the whole list are the browser's: they send the server nothing. The
+  engine is two files every app's build writes to `wwwroot/js` (`rask-ui-phone.js`, 21 KB gzipped, and
+  `rask-ui-phone-utils.js`, 61 KB), fetched by the runtime's new `data-rask-phone` hook only on a page that draws
+  a phone field; `<RaskUiPhoneEngine>false</RaskUiPhoneEngine>` opts an app out. Third-party notices ship beside
+  them in `rask-ui-phone.LICENSES.txt`: intl-tel-input (MIT, Copyright (c) 2014-2016 Jack O'Connor) and the
+  utils' libphonenumber and Closure Library code (Apache-2.0, The Libphonenumber Authors / The Closure Library
+  Authors). New string key `PhoneChangeCountry` ("Change country"; Hungarian "Ország módosítása").
+- **The flag drawings come with the phone engine.** `RaskUiWriteFlags` left unset now follows it: an app that gets
+  the phone engine gets `wwwroot/flags` too (172 KB on disk, a request per flag drawn). `true` still asks for them
+  on a host without the engine, and `false` now says none.
+
+- **`Ui.Composer` — Flux UI's composer, a message box for a chat or a prompt.** Before: a chat box was a
+  `Ui.Textarea` and buttons laid out by hand, and sending it took a press on the button. After:
+  `Form.Model(chat).OnSubmit(Send)[Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly()
+  .ActionsLeading(…).ActionsTrailing(Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane))]`
+  — every prop and slot of Flux's (`Rows`, `MaxRows`, `Inline`, `Submit` (`.Enter`), `Variant`, `Disabled`,
+  `Invalid`, `Name`, `Header`, `Footer`, `Input`, `ActionsLeading`, `ActionsTrailing`, `LabelSrOnly`,
+  `DescriptionSrOnly`), held to fluxui.dev's nine examples in light and dark. Ctrl/Cmd+Enter (or Enter) sends the
+  form in the browser with what was typed, the box grows a line at a time to `MaxRows`, and typing sends nothing;
+  a `Ui.Editor` in `Input` stands in for the box. Two runtime hooks come with it, `data-rask-submit-keys` and
+  `data-rask-grow`.
+
+- **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
+  job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
+  status question to every other pump. After: jobs of one lane run one at a time, in the order they are due, and
+  different lanes run side by side; a job with no lane runs as it always did. A lane is data, not setup - a
+  new pump needs no queue. The first due job of a lane is all a poll offers, so one long lane cannot crowd the
+  others out of a batch, and a lane busy on another instance is left alone there too. `Job` gets a nullable
+  `Lane` column: `rask db add AddJobLane && rask db update` (until then the processor logs exactly that).
+  `IJobs.Add` takes the lane; `jobs.Enqueued<T>().InLane("x")` asks about it in a test.
+
+- **`.Confirm("…")` asks before a click or a submit is sent — Livewire's `wire:confirm`.** A step on every element,
+  kit components included: `Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the
+  partner?")` shows the browser's `confirm` first, and `.Confirm("Type the name to delete it", expect: row.Name)`
+  (Livewire's `.prompt`) lets the action go only when the reader types the name exactly. On a `Form` it asks before
+  the submit, on a submit button before the submit it makes. Refused, nothing leaves the browser — not the event,
+  and not the fields waiting to go with it. Both hosts (`rask-confirm.ts`); `docs/forms.md#asking-before-an-action`.
+- **A field whose event was sent says `data-loading` until its answer (Livewire's `data-loading` on a
+  `wire:model.live` input).** Before: the runtime marked only buttons, submits and `data-rask-loading` elements, so
+  an input searching as it was typed showed nothing. After: a field whose `input` or `change` event left —
+  `.Live()`, `.Debounce(…)`, a server `OnInput` — carries `data-loading` (not `aria-busy`) from 200 ms after it was
+  sent until that event's ack (Server) or dispatch promise (WASM), and `data-rask-loading="off"` opts out. The kit
+  draws nothing for it: Flux's input has no automatic loading state, so `Ui.Input` shows no spinner of its own;
+  `in-data-loading:` is there for an app's own.
+- **The reconnect overlay speaks the page's language, and `<html>` says `data-rask-offline` while the page cannot
+  reach its app (Livewire's `wire:offline`).** Before: "Reconnecting…", "You're offline — waiting to reconnect…",
+  "Retry now" and "Your session timed out…" were English in `rask.js` whatever the page's language. After: they
+  are eight `RaskString` keys (`ConnectionReconnecting` … `ConnectionSessionTimedOut`, formal Hungarian in the
+  kit), written once, with the first response, as `<script type="application/json" id="rask-texts">` in the page's culture (not in the live tree, so no update builds it). And `<html>` carries
+  `data-rask-offline` while the browser reports itself offline or the Server's socket is down, on both hosts, so a
+  page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. `docs/configuration.md#reconnect-ux`.
+- **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
+  matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
+  it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
+  replaces Dependabot's weekly template pull requests.
+- **RASK104: a static member that keeps a component built from a chain entry is flagged (#1201).**
+  `private static readonly Component Empty = Div;` compiled and corrupted pages at random: an entry built during
+  a render is a positional slot of that render, so the static kept one page's slot and shared it with every page
+  after it, and the next entry built at that position stamped its own attributes on it — whether it showed
+  depended on request order. The build now warns at the initializer of a static field or static auto-property
+  (in any type) whose type holds a component and whose initializer builds a chain, and the lightbulb turns it
+  into `static Component Empty => Div;`, which builds a fresh entry per render. A static method, an
+  expression-bodied property and an entry inside a stored lambda are not reported.
 - **RASK103: a constructor-built value object that holds a value object of several values is a build error.**
   `record Route(Label Label, string Carrier)`, where `Label` has several values, compiled and then stopped the app
   at startup: `Label` is an EF Core complex type, and EF Core binds a constructor parameter to a column only
@@ -122,6 +362,51 @@ them until tagged releases begin.
   `ValidationColor`), with Hungarian in the kit. `docs/ui-kit.md#color-picker`.
 
 ### Changed
+
+- **A move that changes only the query string replaces the current history entry (Livewire's `#[Url]`).** Before:
+  `Go.With(...)` and `Go.Without(...)` pushed a new entry, so every pause of a live search added a Back stop. After:
+  they take the current entry's place; `Go.With("page", "2").Pushing()` opts back into a new entry. `Go.With` and
+  `Go.Without` now return the `GoTo` step (they returned `void`), so a call site that ignored the result compiles
+  unchanged. A path change (`Go.To`) still pushes, and a query move after a path change in the same handler joins
+  that push. Both hosts. A pager that should be a place to go Back to says `.Pushing()`, as the site's parcels
+  pager does.
+- **BREAKING: MDN's latest data moved a few generated names, taken as it came.** Before → after:
+  `Textarea.Wrap(TextareaWrap.Soft)` → `Textarea.Wrap("soft")` (the `TextareaWrap` enum is gone; MDN no longer lists
+  its keywords); `ElementRef<HTMLScriptElement>`'s `Src`, `Text` and `SetText` are gone;
+  `Css.QuotesKeywords.MatchParent` and `Css.ScrollSnapTypeKeywords.Pair` are gone;
+  `ElementRef<Element>`'s `Scroll`, `ScrollBy`, `ScrollIntoView` and `ScrollTo` keep their overloads and now return
+  `ValueTask<ScrollResult>` (`ScrollResult.Interrupted`) — `await` them as before; `PushSubscriptionJSON.Keys` is a typed
+  `PushSubscriptionKeys` (`.P256dh`, `.Auth`).
+- **Every pin Rask carries now follows its newest stable release by itself.** Before: Dependabot moved NuGet,
+  the workflows' actions and the site's npm, and nothing moved the rest. After: Dependabot also covers the
+  composite setup action, the template and devhost base images, the editor engine's and the devtools E2E's npm,
+  and `scripts/tools/RaskRename`; and `upstream.yml` runs a follower per pin it cannot read, each with a self-test
+  over saved answers (`scripts/tests/upstream-followers.test.sh`). Moved today:
+  - **tsgo is TypeScript 7.0.2, the stable native compiler** (was the dated preview 7.0.0-dev.20260707.2): the
+    scoped TypeScript compile downloads `@typescript/typescript-<os>-<arch>` and runs its `lib/tsc`.
+    `RaskTsgoVersion` keeps its name; an app that overrides it with a `native-preview` dev build must move to a
+    7.x release.
+  - **Litestream 0.5.17** (was 0.5.14), its SHA-256s computed from the downloads and checked against the
+    release's `checksums.txt`; the template images copy the same release (they were on 0.3.13).
+  - **`rask deploy`'s health probe runs `curlimages/curl:8.22.0`** (was 8.11.1) and **`rask db backup` runs
+    `alpine:3.24`** (was 3.21); the scaffolded deploy workflow uses `actions/checkout@v7` and
+    `actions/setup-dotnet@v6` (were v4); Rask's own CI runs on `ubuntu-26.04` with `setup-dotnet@v6`.
+  - The adapter fixtures test Preact 11.0.1, happy-dom 21.0.1, Vue 3.5.44, Solid 1.9.17, Svelte 5.57.2 and
+    Angular 22.2.2; the provider scripts start PostgreSQL 18.
+- **BREAKING: the Node build floor is the Active LTS line's first release, 24.11.0 (was 22.12.0).** An app with
+  islands or a front end no longer builds on Node 22: it fails with `RASKISLAND001` or `RASKSPA005`. Install the
+  current LTS (`nvm install --lts`), or set `RaskExternalMinimumNode` / `RaskSpaMinimumNode` to keep an older
+  one. `rask.sh` / `rask.ps1` now install the newest LTS release, 24.21.0, and `scripts/upstream/node-lts.sh`
+  follows both daily — the installers' line on every LTS release, the floor on a new major. The Angular
+  template's own 22.22.3 floor is gone; Angular's CLI reports its own.
+- **`rask new` writes the newest front-end versions that install together.** The templates and island fragments
+  name no versions (every package is `latest`) and ship no `package-lock.json`. At scaffold time `rask new` asks
+  npm for the newest stable releases whose peers agree and whose `engines.node` takes the newest Node LTS, and
+  writes them as `^x.y.z` — so when Vite ships a major its React plugin does not take yet, the app gets the newest
+  Vite the plugin does, and the next app gets both once it moves. The holds left are `tailwindcss` /
+  `@tailwindcss/*` (to the Tailwind the host downloads) and `@types/node` (the LTS major). The first build runs
+  `npm install` and writes the app's own lockfile; `npm ci` after that, and the template Dockerfiles do the same.
+  Offline, `latest` stays with one warning, and npm resolves it on the first build.
 
 - **BEHAVIOUR CHANGE: a kit control drawing itself no longer sends what the reader typed.** A bound control
   waits for the reader's next action, as Livewire's `wire:model` does — and the kit's drawn controls are
@@ -212,6 +497,54 @@ them until tagged releases begin.
   date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
   `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
   640 px — only its trigger is 16px text and 12rem there — and is not changed here.
+- **BREAKING: the model is the truth — a nested value-object model is stored as it stands, never merged over the
+  row.** `Update(id, model)` built a value object of several values member by member as *the model's value, else
+  the stored one*, so a field the reader emptied kept what it had: `model.Address.Floor = null` left the floor in
+  the row, and nothing a form could post cleared it. A property of the aggregate itself has long behaved the
+  other way. Both now follow one rule, at every level of nesting, for `Update` and for `Create`:
+
+  ```csharp
+  var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+  model.Address!.Floor = null;
+  await Customer.Update(id, model);
+  // before: Address_Floor stays '2'            after: Address_Floor is NULL
+
+  await Customer.Update(id, new CustomerModel { Name = "Ada", Address = new() { Door = 9 } });
+  // before: Door 9, Street and Floor kept      after: refused — "Address.Street": This field is required.
+  ```
+
+  - a member the value object declares nullable (`string? Floor`, `int? Door`, `Zip? Old`) is stored as `NULL`
+    when the model holds nothing for it;
+  - a member it declares non-nullable (`string Street`, `int Zone`, a one-value value object with no rule, a
+    value object of several values) is **required by its type**: the write throws `RaskValidationException`
+    with *This field is required.* under the field's path (`Address.Street`, `Address.Berth.Dock`) and writes
+    nothing, and a control bound to it says `aria-required="true"`. Text that is `''` or white space counts as
+    unfilled there, as it does for a root property — declare the member `string?` where a table holds empty text;
+  - `model.Address = null` for a value object that is not nullable is refused under `Address`; it used to leave
+    the stored one alone. For a nullable one it clears every column, as before;
+  - a create no longer fills a member the model leaves empty from the default the aggregate's initializer gave
+    the value object (`new(0m, "EUR")`): `new ProductModel()` already holds those defaults, a nested model built
+    by hand does not;
+  - the validation attributes on a value object's own properties (`[Range(1, 9)] int Zone`) are now checked by
+    `Create(model)` and `Update(id, model)`, under the nested path — they were copied to the nested model and
+    checked by a form only;
+  - an update that changes nothing still writes nothing: text stored as `''` stays `''`.
+
+  - **an optional value object whose nested model is left wholly empty was not given.** For `Address? Billing`,
+    a form has to hold a nested model to bind to, so nothing typed arrives as a model that is there and empty:
+    it is stored as `null` — every column `NULL` — and none of its fields is asked for, on `Create` and `Update`,
+    at every level. *Empty* is: every member `null`, text that is `""` or white space, `false` (a box nobody
+    ticked — one ticked and unticked again writes `false`), or a nested model that is itself empty; `0` and
+    every other value count as filled. One filled member makes it given, and the required rules apply
+    (`Billing.Street`). A value object that is not nullable is unchanged: empty is refused. And a save that
+    changes nothing writes nothing: when what the row holds there is empty by the same rule, the row is left
+    exactly as it is — `''` stays `''` — and the columns are cleared only when something stored was a value.
+
+  **Migrating:** a model is not a patch. Code that sent a nested model with only some members set starts from
+  the stored one (`(await Customer.Model(id))!`, then change what changes) or says the change directly
+  (`Customer.Update(id, c => c.MoveTo(address))`). The same holds for an element of a value collection, which
+  was already replaced whole: a nullable one-value value object inside it is now `null` when unfilled, not one
+  built around `null`. See [how a form save writes](docs/data.md#how-a-form-save-writes).
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
@@ -326,6 +659,70 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
+  `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
+  `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised
+  and its message never shown. After: the prefixed index keeps its name and everything else it was told (a filter
+  included), and on SQLite a database index held without the `TenantId` is recognised by its other columns.
+- **A computed get-only property of a struct or record type no longer stops the app at startup.** Before: `public SupplyKind Kind => …;` (a `record struct`) was mapped by EF Core as a complex property and the model failed with "No backing field could be found for property 'Supply.Kind' and the property does not have a setter", although `docs/data.md` says computed properties are dropped. After: a get-only property with no backing field is left out of the model, as the docs say.
+- **A key that points at its own table gets its join on the read face.** Before: `Supply.SumSupplyId` (an `int?` on `Supply` itself) stayed a plain column, so `s.SumSupply.Number` was not there and an app read the other row with a second query and could not sort by it. After: an id whose name ENDS in its own aggregate's name (`SumSupplyId`, `ParentCategoryId`) is a navigation to another row of the table (`.OrderBy(s => s.SumSupply!.Number)`). An id named exactly like its own type (`CategoryId` on `Category`) is still the row's own id, a column.
+- **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.
+- **A page whose user is gone reaches a sign-in page the app does not have.** An app with no page at `/login` —
+  one mounted with `MapRask<App>(pathBase: "/uj")` beside a site that owns `/login` — sent an open page there in
+  place, into its own router, which showed its not-found page. It now goes where the host's authentication names
+  the sign-in page — the default challenge scheme's cookie `LoginPath` — as a page load, with the page's full
+  address as the way back (`/login?ReturnUrl=%2Fuj%2Fdestinations…`); a reloading tab is redirected there too. With
+  no page of its own and no login path named, the open page stays where it is, drawn for nobody, and a reloading
+  tab is served its page, as before. An app with its own sign-in page still shows it in place.
+- **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
+  `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
+  has) wrote and filtered its own rows by that text, but a READ through the generated read face
+  (`Invoice.Where(…)`, `Invoice.Count()`) compared the column with a `Guid`: nothing was found on SQLite (the
+  Guid's upper-case text is not the stored lower-case), and on SQL Server the column was converted to
+  `uniqueidentifier` for every row, which scans and fails on any value that is not a Guid. After: the face takes
+  the declared column's name, type, length and conversion, so the filter binds the text the column holds. A
+  tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
+- A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
+- A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
+- **A word in a `Rask.Ui` comment no longer becomes a rule in every app's stylesheet** (#1214). The kit's sheet,
+  and the class list an app's Tailwind build compiles from, came from a scan that read the kit's comments too,
+  so prose such as "a magnifying glass" shipped daisyUI's `.glass`. Tailwind now scans a copy of the kit's C#
+  with the comments taken out (`RaskTailwindSourceRoot`, `WriteTailwindScanSourcesTask`): every class the kit's
+  code writes is unchanged, and 50 names that only its comments or the editor's bundled script carried —
+  daisyUI's `collapse`, `stat`, `toast` and `skeleton` components among them — are gone; the three a call site without Tailwind relies on (`my-2`, `whitespace-normal`, `whitespace-normal!`, and the chart frame's `aspect-3/1`) are named in `ui.precompiled.css` instead. A change under
+  `src/Rask.Ui` or the Tailwind build now selects the CLI build gate, which is where a scaffold compiles them.
+- **A scaffolded app published in Release starts (#1226).** Before: `dotnet publish -c Release` of a fresh `rask new`
+  app died before it listened, with `Could not load file or assembly 'Rask.DevTools'` from `AddMvcCore` (reached
+  through `AddRaskApi`): the publish removed the devtools, but the Web SDK had compiled an MVC
+  `[ApplicationPart("Rask.DevTools")]` into the app's own assembly, and MVC loads every application part at
+  startup. After: `Rask.DevTools` is never an MVC application part (it has no MVC code), and a publish without the
+  devtools also fails if the app assembly still names it. The template gate now publishes the server template in
+  Release and starts it.
+- **An upload or download that races its session's removal answers 404, not 500** (#1207). A request whose session
+  was found and then reclaimed on another thread before its owner was checked — a never-connected page's grace
+  period ending at that moment — failed with an `ObjectDisposedException` from the session's disposed services.
+  It now gets the answer the session being gone always gave.
+- **`Rask.Spa.Hosting` rebuilds a yarn or pnpm client, and one at the repository root, when its sources change
+  (#1237).** Before: the install's up-to-date check compared against npm's `node_modules/.package-lock.json`,
+  which yarn never writes, so the install ran on every build; a `yarn.lock` did not count as a lockfile, so the
+  first install was `npm install`; and the build's inputs were fixed to `src/**` and `public/**`, so a client
+  whose sources live in `apps/` or `libs/` was built once and its stale bundle served for ever. After: any
+  lockfile counts and the default install follows it (`yarn install --frozen-lockfile`, `pnpm install
+  --frozen-lockfile`), the install stamps its own file in `obj/` (a deleted `node_modules` still reinstalls),
+  and the new `RaskSpaClientInputs` property names the source globs; `node_modules`, `bin/`, `obj/` and the
+  dist directory are never counted, so a glob that covers the host does not rebuild every time.
+- **`MapRask(pathBase:)` reaches the browser runtime without a `<base href>`** (#1235). The Server host's runtime
+  `<script>` tag now carries the prefix (`data-rask-base="/new/"`) and the runtime reads it before any `<base>`, so
+  its connection, pushed history and route paths are right under a path base the app never repeated. No `<base>` is
+  written for it: one would re-resolve every relative URL on the page. `docs/spa.md` also says which `wwwroot`
+  address a hand-wired host under a prefix should link.
+
+- **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
+  build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
+  `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
+  `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
+
+- A form that is submitting takes no second submit, as Livewire's `wire:submit` does: its submit buttons are disabled and its fields made readonly at the press, until the server (or .NET in WebAssembly) is done with it, so a fast double click or a second Enter no longer runs a non-repeatable `OnSubmit` twice
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A slider dragged faster than the page answers no longer drops its last moves.** Each move the page hears
@@ -333,6 +730,35 @@ them until tagged releases begin.
   every time, so a move sent from the page as loaded, three renders back, found none that was its own and ran
   nothing: the value stopped short of where the thumb was let go. The handler now reads the slider as last
   drawn when it runs (`Ui.Slider`, and the ticks a press picks).
+- **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
+  so a `Circle` or `SvgPath` appended to an `Svg` (or inserted by key among its children) arrived as an
+  `HTMLUnknownElement` and never rendered. An insert under an SVG or MathML parent is now parsed in that
+  parent's own namespace, the way a scoped morph already was (#1242).
+- **A `Shell` override that forgets the `Body` element no longer renders a dead page** (#1234). `Html[head, body]`
+  reads right — the parameter is named `body` — and painted right, because the browser supplies a body itself,
+  but the runtime `<script>` and the session id are written on `<body>`, so no socket opened, a click or a form
+  submit did nothing, and nothing said why. Rask now wraps everything after the head in a `<body>` (what the
+  browser does anyway), so the page connects, and reports a warning naming the override (`Html[head,
+  Body[body]]`). A document that still ends without a body — a component of the app's own under `<html>` that
+  writes none — is reported as an error at its first render.
+- **A Blazor island compiles with a non-nullable value-type property of its own, and a title override keeps the
+  library's stylesheets** (#1196). Before: declaring a property that feeds a hosted `[Parameter]` as a plain value
+  type — `[RouteParam] public int Count { get; set; }` — failed with CS0037, because the generated parameter
+  writer tested it with `is not null`; the workaround was `int?`. After: a non-nullable value type has no unset
+  state, so it is always passed on (`int?` still omits the parameter while null). And the stylesheets in
+  `RaskBlazorOptions.HeadAssets` are registered on their own, as a JavaScript island's runtime script is, so an
+  island that overrides `HeadAssets` for its `Title` no longer drops them by leaving out `base.HeadAssets` —
+  `BlazorComponent<T>` no longer overrides `HeadAssets`, and an existing `[base.HeadAssets, …]` keeps compiling.
+- **Toasts whose countdowns end in the same frame all leave** (#1202). The runtime pressed every
+  `data-rask-dismiss-after` toast's `[data-rask-dismiss]` control the moment its time was up, so toasts shown
+  together with one duration were all pressed before the page had answered any of them, each carrying a handler
+  id read from the page as it was before the others' renders — a toast whose id one of those renders retired
+  stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
+  the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
+  press that never takes its toast away holds the rest back for 2 s at most.
+- **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
+  Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — as every `Rask.Ui`
+  handler awaits its calls — was never sent, and the session waited on it for good.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick
@@ -1610,8 +2036,52 @@ them until tagged releases begin.
   panel on a WebAssembly page — a frame the page writes, with no hook loader of its own — now carries the
   behaviour hooks too, so its tabs, and whatever else the kit draws in the browser, work there as on a page.
   Bundled in rather than loaded on demand: the panel always draws a tablist, so the loader would fetch them as
-  it opens anyway, and the frame is a Debug-only document a Release build strips. Its script grows from 49,032
-  to 110,394 bytes minified (14,329 to 33,075 gzipped).
+  it opens anyway, and the frame is a Debug-only document a Release build strips. Its script grows from 50,001
+  to 148,197 bytes minified (14,704 to 45,223 gzipped).
+- **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
+  keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
+  was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was
+  every arrow, every letter typed ahead or into a search, every open and every close. Flux's list is a custom
+  element whose script keeps all of that, and Livewire hears a value: measured on fluxui.dev, opening a select,
+  sweeping the pointer over every row, walking it with the arrows, typing ahead and pressing Escape send no
+  request at all. The runtime now does the same for the kit, on both hosts, in a hook module of its own
+  (`rask-list.ts`, in the on-demand `rask-hooks.js`), asked for by `data-rask-list` on the control's root. It
+  writes `data-active` and `aria-activedescendant` as the cursor moves, `data-open` and `aria-expanded` in the
+  task the list opens, and — where the browser filters — `data-hidden` on the rows a search leaves out, the
+  "no results" row, the create row and a group's heading, and holds every one of them against the next render.
+  The page renders the rows and hears a **pick**: the press on the row itself (Enter clicks the lit row), so the
+  picked row is named by the press and by no cursor of the page's. An autocomplete's pick is the browser writing
+  the item into the input, and the input tells the page as it tells it of anything typed.
+  **Measured on a live Server page over one journey** — open, the pointer over every row, eight keys, type-ahead
+  or a search, Escape, open again from the keyboard, the pointer over every row, Tab — frames sent before → now:
+  **listbox 33 → 0, pillbox 34 → 0, autocomplete 28 → 0**; the searchable listbox, the combobox and the pillbox's
+  combobox could not finish the journey at keyboard speed before (a late toggle shut the list a key had opened)
+  and send 0 now. A pick is the one frame of its press; an autocomplete bound to a member that waits sends 0 at
+  a pick and its text with the next action. `UiListHookTests` asserts each.
+  The rules are Flux's, re-measured for this (`scripts/flux/probe-list.mjs`, and the `--live` walks of
+  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs`, which now also hold the row named to
+  assistive technology): a row the pointer lit goes dark when the pointer leaves the list and one the keys lit
+  stays (the kit used to keep the pointer's row lit everywhere but in a pillbox); with no row lit ArrowDown
+  lands on the first row and ArrowUp on the last; Enter with no row lit picks nothing; a row is lit by
+  `data-active` alone, never by `:hover`, so the keys' row is the one lit while the pointer rests on another.
+  **What changes for an app**: nothing in the chain. `aria-expanded="true"`, `data-open`, `data-active`,
+  `aria-activedescendant` and a browser-filtered `data-hidden` are no longer in any RENDER — a test that read
+  them from `Rask.Testing`'s page drives a browser instead, and presses a row where it used to raise a key. A
+  search the page did not ask to hear (`OnInput`) is never sent; what is typed travels with the press on a
+  create row. `Ui.Autocomplete.Bind(…).Live()` writes its member as it is typed, as `Ui.Input`'s does.
+  Per gesture on the kit's frame gate, before → after, for every list kind (listbox, searchable listbox,
+  combobox, pillbox, autocomplete): open by a press 1 → 0; the pointer over the open list 3–7 → 0; the cursor keys
+  3–9 → 0; Escape 1–3 → 0; a press outside 1–2 → 0; typing to filter 1–2 → 0; Tab in and out 3–5 → 0 (the
+  native select's 2 → 0). Owed and kept: a pick 1 (the value); a debounced search 1 at the pause; a search the
+  page heard, ended by Escape, a pick or a click elsewhere, 1 (`OnInput("")`). A bound select that waits still
+  sends its pick as one frame of drawing (`data-rask-draws`), where Flux sends none.
+  **Changed for an app**: `Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`,
+  `Ui.PillboxInput` and `Ui.Autocomplete` works as before, and the "the search is over" `OnInput("")` (or a
+  combobox's new answer's words) is now raised by the browser as it rewrites the field, once, and only when the
+  page had heard a search; a search it never heard is dropped unsaid. Escape on an autocomplete whose page holds
+  no text tells the page nothing. A press on an autocomplete's suggestion keeps the focus in the input, so the
+  text typed before it is never handed over by the blur. `OnToggle` on these controls was never public and
+  nothing of the open state is sent.
 - **A live update allocates 8 bytes less again (2,512 → 2,504 B on the 20-row page).** The `ConfirmLeave` form
   that learns of a drawn control's pick kept the form being written in a field of the render context, which every
   render of every app allocates; it is now held for the walk on its thread, so only a page with such a form pays.

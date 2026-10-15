@@ -339,7 +339,10 @@ public sealed partial class SessionStaysItsUsersTests
                 {
                     app.Use((ctx, next) => StampUserAsync(ctx, next, pathBase));
                 }
-            }, pathBase: pathBase, diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull);
+            }, pathBase: pathBase, diffMode: Rask.Core.Live.LiveDiffMode.DisabledFull,
+            // A page is opened, then connected, then reconnected: the session must still be there however slowly
+            // the runner gets round to each. Nothing here is about how long a session waits.
+            configureServer: o => (o.UnconnectedSessionGracePeriod, o.SessionGracePeriod) = (TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(10)));
 
     // Signs the request in as whoever the header names, with the rights the directory holds for them at that moment.
     private static Task StampUserAsync(HttpContext ctx, RequestDelegate next, string pathBase)

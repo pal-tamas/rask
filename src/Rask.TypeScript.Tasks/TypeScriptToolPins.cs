@@ -14,10 +14,10 @@ namespace Rask.TypeScript.Tasks;
 ///         build is about to execute have to be the ones that were published on the day somebody looked.
 ///     </para>
 ///     <para>
-///         <b>Bumping <c>RaskEsbuildVersion</c>, <c>RaskTsgoVersion</c> or
-///         <c>RaskExternalTypeScriptVersion</c> means replacing that tool's rows</b> from each package's
-///         version document, <c>dist.integrity</c> (the <c>check-dependency-updates</c> skill). A test
-///         fails while a pinned version has a published package with no entry here.
+///         <c>scripts/upstream/tools.py</c> moves <c>RaskEsbuildVersion</c>, <c>RaskTsgoVersion</c> and
+///         <c>RaskExternalTypeScriptVersion</c> with their rows, hashing each tarball it downloads and
+///         recording it only when it agrees with the registry's <c>dist.integrity</c>. A test fails while a
+///         pinned version has a published package with no entry here.
 ///     </para>
 /// </remarks>
 internal static class TypeScriptToolPins
@@ -35,12 +35,12 @@ internal static class TypeScriptToolPins
         ["@esbuild/win32-arm64@0.28.2"] = "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==",
         ["@esbuild/win32-ia32@0.28.2"] = "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==",
 
-        ["@typescript/native-preview-darwin-x64@7.0.0-dev.20260707.2"] = "sha512-Afc7M5zOwo+GpfcYwz5Z8HMB2tPVsui7nNIqEuuFB73MPdVqNn/Wmpe4tP4MRri0AtJnJknoHBaTJ/VDAp/Jhw==",
-        ["@typescript/native-preview-darwin-arm64@7.0.0-dev.20260707.2"] = "sha512-wny2pgKjGbiZtnOIHVa3tXC1UfDqxNEFzyPGmiqybedG8hipG2Nfp0l5UxbaKCjkLacUpH/W5bP2hBOMVhCOzg==",
-        ["@typescript/native-preview-linux-x64@7.0.0-dev.20260707.2"] = "sha512-du0dzi6y97Po5vDNdPJTyyijHCpaS22JLRnKZEJXBDaO9gCIymOv/5QQokFRuOlQm0bWl3i9PF4OVdGP6uAOQA==",
-        ["@typescript/native-preview-linux-arm64@7.0.0-dev.20260707.2"] = "sha512-iITBa2WjjTI5N9t5l7Z4KoOSI+2zBlhbvFzsD/f8qX8QoKjz/Y4DPyBDgezYi8nkqjjksbgSOJ3/ykzhwrB9cg==",
-        ["@typescript/native-preview-win32-x64@7.0.0-dev.20260707.2"] = "sha512-DL4u27stv0fo71sVhOzHSwE+YMZsbBijVI+kg5dLDLilSH79WFTJ8RSQ46vJrCMt+Gjlv/JOZP1PuLJDfioYeQ==",
-        ["@typescript/native-preview-win32-arm64@7.0.0-dev.20260707.2"] = "sha512-SsAwfhyHJ1akgBc+99z4+hwdbHsdWaKB8EwCNIMA6JfSLMeUjffrYvxu+vfMyxVtOVOz7RrRXRoiDiu4a2sCtg==",
+        ["@typescript/typescript-darwin-x64@7.0.2"] = "sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==",
+        ["@typescript/typescript-darwin-arm64@7.0.2"] = "sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==",
+        ["@typescript/typescript-linux-x64@7.0.2"] = "sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==",
+        ["@typescript/typescript-linux-arm64@7.0.2"] = "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
+        ["@typescript/typescript-win32-x64@7.0.2"] = "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
+        ["@typescript/typescript-win32-arm64@7.0.2"] = "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
 
         ["typescript@6.0.3"] = "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
     };

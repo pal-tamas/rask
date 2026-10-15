@@ -86,6 +86,8 @@ Rask.Server.RaskServerOptions.SessionResume.get -> bool
 Rask.Server.RaskServerOptions.SessionResume.set -> void
 Rask.Server.RaskServerOptions.ShutdownDrainTimeout.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.ShutdownDrainTimeout.set -> void
+Rask.Server.RaskServerOptions.SignInPath.get -> string?
+Rask.Server.RaskServerOptions.SignInPath.set -> void
 Rask.Server.RaskServerOptions.UnconnectedSessionGracePeriod.get -> System.TimeSpan
 Rask.Server.RaskServerOptions.UnconnectedSessionGracePeriod.set -> void
 RaskBuilderSettersRask_Server

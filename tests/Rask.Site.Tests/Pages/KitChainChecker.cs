@@ -21,7 +21,7 @@ internal static class KitChainChecker
 
     // Steps the generator writes that no prop is named after, and the prop each one needs: `Of<T>()` states a
     // generic component's type argument, and `Values` is how a control that holds a collection opens on `Value`.
-    private static readonly Dictionary<string, string?> ChainSteps = new(StringComparer.Ordinal) { ["Of"] = null, ["Values"] = "Value" };
+    private static readonly Dictionary<string, string?> ChainSteps = new(StringComparer.Ordinal) { ["Of"] = null, ["Values"] = "Value", ["Confirm"] = "Id" };
 
     /// <summary>What is wrong with the kit chains in <paramref name="code" />, one line each. Empty when nothing is.</summary>
     internal static IEnumerable<string> Problems(string code)

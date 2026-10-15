@@ -29,6 +29,10 @@
 //   liveRoot   runs in the page: the element a walk's `rask` selector found => the example around its control
 //   edges      which controls are opened again with the control HELD at the viewport's edges, by their place
 //              among the page's controls that have a popup: where the list lands with no room (placement.mjs)
+//   raskUrl    where the Rask page is served from, when its list is drawn by a file it fetches (the phone's
+//              engine) and a file:// page cannot fetch one; the page FluxParityPages wrote otherwise
+//   runtime    the runtime's hook modules the Rask page is given (runtime.mjs), and `ready`, a selector the page
+//              matches once they have run
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -36,6 +40,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, STYLES } from './lib.mjs';
 import { landings } from './placement.mjs';
+import { withRuntime } from './runtime.mjs';
 
 const IGNORED = new Set(['width', 'height']);
 
@@ -81,7 +86,7 @@ export async function openParity(kind) {
     await writeFile(fluxFile, JSON.stringify(flux));
   }
 
-  const rask = await measureOpen(browser, kind, pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
+  const rask = await measureOpen(browser, kind, kind.raskUrl ?? pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
   await writeFile(join(out, 'rask', folder, 'measurements.json'), JSON.stringify(rask));
   // The same width on both pages: Flux's control fills its column, and a held one has no column.
   const held = marker => kind.root.split(', ').filter(root => root.includes(marker)).map(root => `[data-preview-wrapper] ${root}:has(${kind.popup})`).join(', ');
@@ -137,8 +142,10 @@ export async function openParity(kind) {
 // The parity page is static: it has no runtime, so its lists open (the popover is the browser's) and
 // nothing more. `--live <url>` walks the same keys through Flux's examples and through the showcase of a
 // running site (`dotnet run --project src/Rask.Site`, then the URL of the demo's page) and compares what
-// each key left behind: whether the list is open, the active row, the picked rows, what the control says
-// and where focus is. `--record` walks Flux's page alone and prints every step: how a behaviour table is
+// each key left behind: whether the list is open, the active row, the picked rows, what the control says and
+// where focus is. On the running site the row the control names to assistive technology
+// (aria-activedescendant) is held to the active one as well; Flux's is not read, since it goes stale (after
+// Backspace took a pill off, its combobox still names the row picked before). `--record` walks Flux's page alone and prints every step: how a behaviour table is
 // written down before the component is.
 async function walkBoth(browser, kind, fluxUrl, live, every, wait, only) {
   let differs = 0;
@@ -170,7 +177,10 @@ async function walkOne(browser, kind, url, walk, wait, find) {
   await scope.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const trigger = await scope.$(kind.trigger);
   const rows = () => scope.$$(kind.rows);
-  const selectors = { root: kind.root, trigger: kind.trigger, popup: kind.popup, rows: kind.allRows ?? kind.rows, search: kind.search ?? null, says: String(kind.says) };
+  const selectors = {
+    root: kind.root, trigger: kind.trigger, popup: kind.popup, rows: kind.allRows ?? kind.rows, search: kind.search ?? null, says: String(kind.says),
+    names: !url.startsWith('https://fluxui.dev'),
+  };
   const states = [];
   for (const key of walk.keys) {
     const [verb, arg] = key.split(':');
@@ -183,6 +193,11 @@ async function walkOne(browser, kind, url, walk, wait, find) {
     else if (verb === 'type') await page.keyboard.type(arg, { delay: 60 });
     else await page.keyboard.press(verb);
     await page.waitForTimeout(wait);
+    // A headless page left alone draws no frame, and what waits for one — a list placed again under a trigger
+    // that grew a line, the row then under the pointer — is read a step late. Two frames are asked for, and
+    // what they move is given the time to land.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.waitForTimeout(250);
     states.push(await scope.evaluate(read, selectors));
   }
 
@@ -204,12 +219,15 @@ function read(scope, selectors) {
       : popup.contains(focused) ? 'list'
         : control.contains(focused) ? `${focused.localName} in the control` : 'elsewhere';
   const active = open ? rows.find(row => row.hasAttribute('data-active')) : undefined;
+  const named = [...control.querySelectorAll('[aria-activedescendant]')].map(el => document.getElementById(el.getAttribute('aria-activedescendant'))).find(Boolean);
   // eslint-disable-next-line no-new-func
   const says = new Function(`return (${selectors.says})`)()(control, trigger, words);
   return [
     open ? 'open' : 'closed',
     `says "${says}"`,
     `active ${active ? `"${words(active)}"` : '-'}`,
+    // Never what Flux's line says: a row named that is not the active one, or one named while the list is shut.
+    selectors.names && named !== active ? `NAMES "${words(named ?? active)}"` : '',
     `picked [${rows.filter(row => row.getAttribute('aria-selected') === 'true').map(words).join(', ')}]`,
     open ? `shows ${rows.length}` : '',
     `focus ${focus}`,
@@ -229,11 +247,18 @@ async function measureOpen(browser, kind, url, shots, like) {
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
+    // Which row is lit is the runtime's to write (data-rask-list), on a page of the kit's as in an app: the
+    // parity page is given the hook that does it, and nothing else of the runtime -- or the hooks its kind names.
+    if (like) {
+      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']));
+      if (kind.ready) await page.waitForSelector(kind.ready, { state: 'attached', timeout: 15000 });
+    }
     const examples = [];
     const wrappers = await page.$$('[data-preview-wrapper]');
     if (like) await page.evaluate(() => { document.body.style.paddingBottom = '900px'; });
     for (const [index, wrapper] of wrappers.entries()) {
-      if (!(await wrapper.$(kind.popup))) continue;
+      // An example whose controls none of them open (disabled, read-only) is no open state on either page.
+      if (!(await wrapper.$(kind.popup)) || !(await wrapper.$(kind.trigger))) continue;
       const twin = like?.[scheme][examples.length];
       if (twin) await wrapper.evaluate((w, inherited) => Object.assign(w.style, inherited), twin.inherited);
       await wrapper.evaluate(w => w.scrollIntoView({ block: 'center' }));
@@ -338,7 +363,11 @@ function collect(wrapper, { STYLES, index, selectors }) {
   };
 
   const nodes = [];
-  [control, ...control.querySelectorAll('*')].slice(0, 600).forEach((el, i) => {
+  // What is never drawn is not collected, as in lib.mjs, so the 600 nodes are drawn ones on both sides: a
+  // <template> (Flux keeps four in a select's button where the kit keeps two), a <script> (the phone's list of
+  // countries), an <input type="hidden"> (a control's one bound field).
+  const undrawn = el => el.localName === 'template' || el.localName === 'script' || (el.localName === 'input' && el.type === 'hidden');
+  [control, ...control.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 600).forEach((el, i) => {
     const id = `${index}-${i}`;
     el.setAttribute('data-o', id);
     const box = el.getBoundingClientRect();

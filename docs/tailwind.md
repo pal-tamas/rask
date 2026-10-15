@@ -72,6 +72,14 @@ One file and one link — the whole of it, and all of it already there:
    Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
    ```
 
+   **How it is served.** The server answers the sheet's address itself, ahead of the app's own static
+   files: brotli or gzip as the browser accepts (a 750 KB Tailwind + kit sheet is about 80 KB on the
+   wire), with an ETag, so a repeat load is a 304 with no body. `RaskApp` links it as
+   `css/app.css?v={hash}` — the first 16 hex digits of its SHA-256 — and that address is
+   `Cache-Control: public, max-age=31536000, immutable`: the browser keeps it until a rebuild changes the
+   hash. The bare address, the one a hand-wired host links, is `no-cache` (revalidated, never stale).
+   A host that calls `UseStaticFiles()` itself needs no line for any of this.
+
 **Nothing in the `.csproj`.** There is no Tailwind package to add — the compiler, its MSBuild targets
 and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped CSS does — and
 no switch for the kit: the import in `Styles/app.css` is the whole opt-in. The build reads it, writes
@@ -186,7 +194,7 @@ compile, which is what lets a class library in the same solution ignore all of t
 
 | Property | Default | What it does |
 |---|---|---|
-| `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Bump it deliberately. |
+| `RaskTailwindVersion` | `4.3.3` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Each Rask release carries Tailwind's newest at the time, digests included; set it to hold a version. |
 | `RaskTailwindEngine` | `auto` | `standalone` or `npm` to force one. On Windows on ARM, `npm` gets you a native engine instead of the x64 binary under emulation. |
 | `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one that imports Tailwind, on its own or through `rask-ui.css`. |
 | `RaskTailwindOutput` | `wwwroot/css/app.css` | Where the compiled CSS lands. |
@@ -194,6 +202,7 @@ compile, which is what lets a class library in the same solution ignore all of t
 | `RaskTailwindOffline` | `false` | Never reach the network. A missing binary fails the build naming the file to place and the exact path it goes at, instead of downloading it. For builds that must be hermetic. |
 | `RaskTailwindCacheRoot` | `~/.rask/tailwind` | Where fetched binaries are cached. |
 | `RaskTailwindClassList` | unset | For a component **library** that compiles a sheet of its own: a path to write every class that sheet defines, one per line, for an app's Tailwind build to read with `@source`. It is how `Rask.Ui` hands its classes over. |
+| `RaskTailwindSourceRoot` | the project | The folder Tailwind runs in, and so where its source detection starts. `Rask.Ui` points it at a copy of its C# with the comments taken out, so a word of prose is never compiled as a class. |
 | `RaskUiTailwind` | follows the stylesheet | Whether the build writes the kit's Tailwind sources into `Styles/vendor/`: on when the stylesheet imports `rask-ui.css` (or `rask-ui.kit.css`), off otherwise. `true`/`false` decides it regardless. |
 | `RaskUiTailwindDirectory` | `vendor/` beside the stylesheet | Where those sources land. |
 

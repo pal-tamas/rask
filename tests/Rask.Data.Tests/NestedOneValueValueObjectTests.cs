@@ -273,7 +273,7 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
     }
 
     [Fact]
-    public async Task The_edit_form_carries_each_nested_value_and_an_update_writes_what_it_gives_and_keeps_what_it_leaves_empty()
+    public async Task The_edit_form_carries_each_nested_value_and_an_update_writes_what_it_gives_and_clears_what_it_leaves_empty()
     {
         await using var database = await StartDatabaseAsync();
         var id = await SaveAsync(Gondola.Packed("AB-1", alias: "ALT", weight: 12, tare: 3));
@@ -288,8 +288,8 @@ public sealed class NestedOneValueValueObjectTests : IDisposable
         var stored = (await database.Load<Gondola>(id, TestContext.Current.CancellationToken))!;
 
         Assert.Equal(("AB-1", "ALT", 12, 3, "AB-1", "AB-1"), carried);
-        // A nested model merges over the value object the aggregate holds: an empty member keeps what was there.
-        Assert.Equal(new GondolaLabel(new("ZZ-9"), new("NEW"), new(12), new(3), 2), stored.Label);
+        // The nested model is the whole value object: the member it leaves empty is stored empty, not kept.
+        Assert.Equal(new GondolaLabel(new("ZZ-9"), new("NEW"), new(12), null, 2), stored.Label);
         Assert.Equal(new GondolaWeight(8), stored.Crate.Tare);
     }
 

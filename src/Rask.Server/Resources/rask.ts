@@ -33,11 +33,18 @@ import {
     beginLoading,
     endAllLoading,
     endLoading,
-    isVisiblyLoading,
+    fieldTarget,
     loadingTarget,
     type LoadingTicket,
 } from "../../Rask.Core/Resources/rask-loading.js";
 import { beginUpload, type Upload } from "../../Rask.Core/Resources/rask-upload.js";
+import {
+    holdForm,
+    isSubmitting,
+    releaseAllForms,
+    releaseForm,
+    type FormHold,
+} from "../../Rask.Core/Resources/rask-submitting.js";
 import {
     createTransportChooser,
     openHttpConnection,
@@ -53,6 +60,8 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
+import { connectionIs } from "../../Rask.Core/Resources/rask-offline.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -107,17 +116,22 @@ import {
     // CSS_FOUC_GUARD_MS + the scoped-CSS FOUC gating functions (waitForUnappliedHeadCss /
     // preloadNewHeadStylesheets) come from rask-scoped, imported at the top of this file.
 
-    // Read once from an explicit <base href> element so the runtime can host
-    // under a sub-path like /appA/ on a reverse proxy without the .NET side ever
-    // seeing the prefix. Resolves to the directory portion of the base href.
-    // When no <base> element is present we default to "/" — server-rendered
-    // pages carry no <base>, and document.baseURI would otherwise fall back to
-    // the current route URL (e.g. /realtime/BTC), yielding a bogus "/realtime/"
-    // base that breaks the WS/asset URLs on every deep route.
+    // Read once. A host mapped under a path base (MapRask(pathBase: "/appA")) says so on this
+    // script's own tag, data-rask-base="/appA/", so the app never writes a <base> for the runtime
+    // (#1235). Failing that, an explicit <base href> element, for a prefix only a reverse proxy
+    // knows; it resolves to the directory portion of the base href.
+    // When neither is present we default to "/" — server-rendered pages carry no <base>, and
+    // document.baseURI would otherwise fall back to the current route URL (e.g. /realtime/BTC),
+    // yielding a bogus "/realtime/" base that breaks the WS/asset URLs on every deep route.
     let basePath: string | null = null;
 
     function getBasePath() {
         if (basePath !== null) return basePath;
+        const declared = document.querySelector("script[data-rask-base]")?.getAttribute("data-rask-base");
+        if (declared && declared.charAt(0) === "/") {
+            basePath = declared.charAt(declared.length - 1) === "/" ? declared : declared + "/";
+            return basePath;
+        }
         const baseEl = document.querySelector("base[href]");
         if (!baseEl) {
             basePath = "/";
@@ -242,6 +256,23 @@ import {
     window.addEventListener("pageshow", (e: PageTransitionEvent) => {
         if (e.persisted) authWatch.noticed();
     });
+    // The overlay's words, in the page's language: the first response carries them in a
+    // `<script type="application/json" id="rask-texts">` (a JSON array, in the order below) — RaskStrings.Get, so an
+    // app's translation wins. The English is what a page without it says.
+    const CONNECTION_TEXTS = ["Reconnecting…", "You're offline — waiting to reconnect…", "Still trying to reconnect…",
+        "Retry now", "Reload", "Updating…", "Authenticating…", "Your session timed out. Reload to continue."];
+    const [T_RECONNECTING, T_OFFLINE, T_STILL_TRYING, T_RETRY, T_RELOAD, T_UPDATING, T_AUTHENTICATING, T_TIMED_OUT] =
+        [0, 1, 2, 3, 4, 5, 6, 7];
+    function connectionText(index: number): string {
+        try {
+            const raw = document.getElementById("rask-texts")?.textContent;
+            const said = raw ? JSON.parse(raw) as unknown : null;
+            if (Array.isArray(said) && typeof said[index] === "string") return said[index] as string;
+        } catch (e) {
+            // A page that says nothing legible says it in English.
+        }
+        return CONNECTION_TEXTS[index];
+    }
     const overlay = installOverlay();
     // The reconnect overlay doubles as the auth-handshake indicator. During a sign-in/out the
     // socket is deliberately closed and reconnected to pick up the new cookie; that reconnect is
@@ -249,8 +280,6 @@ import {
     // instead of "Reconnecting…" for its duration.
     const overlayMsg = overlay.querySelector(".rask-overlay__msg");
     let authInProgress = false;
-    const RECONNECT_MSG = "Reconnecting…";
-    const AUTH_MSG = "Authenticating…";
     // Wait this long after a drop before showing the full-screen overlay, so a sub-second network blip
     // that reconnects fast never flashes the blur + inert freeze over the whole app.
     const OVERLAY_GRACE_MS = 700;
@@ -266,7 +295,6 @@ import {
     // a blue-green swap moves the proxy to the replacement BEFORE stopping this one, so the replacement
     // is already serving by the time we get here.
     const SHUTDOWN_RELOAD_MS = 250;
-    const UPDATING_MSG = "Updating…";
     // Where the pre-reload scroll/focus snapshot lives. Keyed by path so a reload that lands somewhere
     // else (a redirect, a changed route) never restores a position from an unrelated page.
     const RESTORE_KEY = "rask:restore";
@@ -354,6 +382,7 @@ import {
     // an HTTP stream names its session in the request that opened it, so there is no hello to send.
     function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
         open = true;
+        connectionIs(false);
         attempt = 0;
         suppressEvents = false;
         if (sendHello) {
@@ -379,7 +408,7 @@ import {
         // Auth reconnect completed — restore the default message for any future drop.
         if (authInProgress) {
             authInProgress = false;
-            setOverlayMessage(RECONNECT_MSG);
+            setOverlayMessage(connectionText(T_RECONNECTING));
         }
         hideOverlay();
     }
@@ -547,7 +576,7 @@ import {
                 overlayTimer = null;
             }
             showOverlay();
-            setOverlayMessage(UPDATING_MSG);
+            setOverlayMessage(connectionText(T_UPDATING));
             setRetryButton(null);
             return;
         }
@@ -626,7 +655,7 @@ import {
                 overlayTimer = null;
             }
             showOverlay();
-            setOverlayMessage(UPDATING_MSG);
+            setOverlayMessage(connectionText(T_UPDATING));
             setRetryButton(null);
             attempt = 0;
             connect();
@@ -634,6 +663,8 @@ import {
         }
         open = false;
         resetPending();
+        // The page cannot reach its app: `data-rask-offline` on <html> (rask-offline.ts) until the socket is back.
+        connectionIs(true);
         // Freeze interaction immediately (inert) so events during the outage can't queue up and replay
         // as duplicate submits on reconnect. The *visible* blur overlay, by contrast, is debounced: an
         // auth handshake is deliberate (show at once), but an unexpected drop waits OVERLAY_GRACE_MS so a
@@ -688,14 +719,14 @@ import {
         // appears once the replacement is clearly not coming — a deploy CAN fail, and leaving the user on
         // a frozen "Updating…" with nothing to click would be worse than the reconnect state it replaced.
         if (serverShuttingDown) {
-            setOverlayMessage(UPDATING_MSG);
-            setRetryButton(escalated ? "Retry now" : null);
+            setOverlayMessage(connectionText(T_UPDATING));
+            setRetryButton(escalated ? connectionText(T_RETRY) : null);
             return;
         }
         setOverlayMessage(escalated
-            ? (offline ? "You're offline — waiting to reconnect…" : "Still trying to reconnect…")
-            : RECONNECT_MSG);
-        setRetryButton(escalated ? "Retry now" : null);
+            ? connectionText(offline ? T_OFFLINE : T_STILL_TRYING)
+            : connectionText(T_RECONNECTING));
+        setRetryButton(escalated ? connectionText(T_RETRY) : null);
     }
 
     // Retry immediately: cancel the backoff wait, reset the attempt counter, and reconnect now.
@@ -737,8 +768,8 @@ import {
         saveRestoreFields();
         setInert(true);
         showOverlay();
-        setOverlayMessage(UPDATING_MSG);
-        setRetryButton("Reload");
+        setOverlayMessage(connectionText(T_UPDATING));
+        setRetryButton(connectionText(T_RELOAD));
         setTimeout(function () { location.reload(); },
             devMode ? DEV_RESTART_RELOAD_MS : SHUTDOWN_RELOAD_MS);
     }
@@ -1067,8 +1098,8 @@ import {
         // reload), just sooner. Production keeps the 4s grace and the accurate wording.
         setOverlayMessage(devMode
             ? "Server restarted — reloading…"
-            : "Your session timed out. Reload to continue.");
-        setRetryButton("Reload");
+            : connectionText(T_TIMED_OUT));
+        setRetryButton(connectionText(T_RELOAD));
         setTimeout(function () { location.reload(); },
             devMode ? DEV_RESTART_RELOAD_MS : SESSION_EXPIRED_RELOAD_MS);
     }
@@ -1127,7 +1158,7 @@ import {
         spinner.setAttribute("aria-hidden", "true");
         const msg = document.createElement("span");
         msg.className = "rask-overlay__msg";
-        msg.textContent = "Reconnecting…";
+        msg.textContent = connectionText(T_RECONNECTING);
         // Manual action button — hidden until the reconnect escalates (Retry now) or the session
         // expires (Reload). One handler routes both via retryNow().
         const retry = document.createElement("button");
@@ -1365,6 +1396,8 @@ import {
         clearPending();
         loadingBySeq.clear();
         endAllLoading();
+        formBySeq.clear();
+        releaseAllForms();
         for (const upload of uploadBySeq.values()) upload.end();
         uploadBySeq.clear();
     }
@@ -1381,11 +1414,26 @@ import {
         if (ticket) loadingBySeq.set(payload.seq, ticket);
     }
 
+    // Marks the field a typed or chosen value came from, until the ack of the event that carries it.
+    function trackField(payload: Record<string, unknown>): void {
+        if (typeof payload.seq !== "number") return;
+        const ticket = beginLoading(fieldTarget(payload), null, false);
+        if (ticket) loadingBySeq.set(payload.seq, ticket);
+    }
+
+    // The form each submit seq holds (rask-submitting.ts), released by the same ack.
+    const formBySeq = new Map<number, FormHold>();
+
     function settleLoading(upTo: number): void {
         for (const [seq, ticket] of loadingBySeq) {
             if (seq > upTo) continue;
             loadingBySeq.delete(seq);
             endLoading(ticket);
+        }
+        for (const [seq, hold] of formBySeq) {
+            if (seq > upTo) continue;
+            formBySeq.delete(seq);
+            releaseForm(hold);
         }
         for (const [seq, upload] of uploadBySeq) {
             if (seq > upTo) continue;
@@ -1636,6 +1684,8 @@ import {
         sendTypedFirst(payload);
         // Stamped now, not when the frame leaves: the caller reads the seq as soon as this returns.
         stampSeq(payload as Record<string, unknown>);
+        // A field whose value just left waits on its answer as a pressed button does (rask-loading.ts).
+        trackField(payload as Record<string, unknown>);
         if (isHandlerEvent(payload)) {
             void events.add(payload);
             return;
@@ -1670,7 +1720,7 @@ import {
         // The imminent socket close + reconnect is an auth step — show "Authenticating…" up front
         // so the user never sees "Reconnecting…" for a deliberate sign-in/out.
         authInProgress = true;
-        setOverlayMessage(AUTH_MSG);
+        setOverlayMessage(connectionText(T_AUTHENTICATING));
         showOverlay();
         fetch(prependBase("/_rask/auth/redeem"), {
             method: "POST",
@@ -1837,20 +1887,30 @@ import {
         const t = closestFrom(e.target, "[data-rask-on-submit]");
         if (!t || !inRoot(t)) return;
         e.preventDefault();
-        // The form's own button waits, not the form: it is what was pressed and what must not be pressed
-        // twice. Enter in a field submits through the form's default button, which the browser reports as
-        // the submitter too.
+        // A form or a button that asks first (`.Confirm`, rask-confirm.ts), before anything is held or sent; a
+        // form already submitting drops the submit without asking.
+        if (isSubmitting(t) || !submitConfirmed(t, (e as SubmitEvent).submitter ?? null)) return;
+        // A form already submitting takes no second submit, and this one is held until the server is done
+        // with it: from the press, so the files uploading first are waited on too (rask-submitting.ts).
+        const hold = holdForm(t);
+        if (!hold) return;
+        // The form's own button shows the wait: it is what was pressed. Enter in a field submits through the
+        // form's default button, which the browser reports as the submitter too.
         const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
-        if (isVisiblyLoading(submitter)) return;
-        // Started now rather than when the frame goes out, so the files uploading first are waited on too.
         const ticket = beginLoading(submitter, (e as SubmitEvent).submitter ?? t);
         submitForm(t as HTMLFormElement).then(
             (payload) => {
-                if (ticket && typeof payload.seq === "number") loadingBySeq.set(payload.seq, ticket);
-                else endLoading(ticket);
+                if (typeof payload.seq !== "number") {
+                    endLoading(ticket);
+                    releaseForm(hold);
+                    return;
+                }
+                if (ticket) loadingBySeq.set(payload.seq, ticket);
+                formBySeq.set(payload.seq, hold);
             },
             (err: unknown) => {
                 endLoading(ticket);
+                releaseForm(hold);
                 console.error("Rask: submit failed", err);
             });
     });

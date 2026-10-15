@@ -167,8 +167,13 @@ public sealed partial class RaskApp
     {
         // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
         // Only here, not in AddRask: a hand-wired host writes its own document and keeps it.
+        // The app sheet's link carries its content hash (?v=), so a browser keeps it until a rebuild changes it.
         var app = BuildHost(services =>
-            services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled, _options.Toasts)));
+            services.TryAddSingleton(sp =>
+            {
+                var stylesheet = sp.GetRequiredService<Rask.Server.Http.AppStylesheet>();
+                return RaskDocument.For(typeof(TApp).Assembly, _options.Ui.Enabled, _options.Toasts, () => stylesheet.Hash);
+            }));
 
         MapEndpoints<TApp>(app, pathBase);
         return app;

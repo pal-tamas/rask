@@ -2,7 +2,7 @@
 # Bulk insert on a client-server database, measured at a realistic round-trip time (#1063).
 #
 # A PostgreSQL container on the same machine answers in microseconds, which hides the one cost that decides the
-# write shape on a real server: round trips. This starts PostgreSQL 17 with `tc netem` delaying the container's
+# write shape on a real server: round trips. This starts PostgreSQL with `tc netem` delaying the container's
 # egress, then runs PostgresBulkInsertBenchmarks against it. Benchmarks run only on request, never in a hook.
 #
 # Requirements: a `docker` CLI and a running daemon (the container needs NET_ADMIN for tc).
@@ -31,10 +31,10 @@ fi
 
 trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
 
-echo "==> Starting PostgreSQL 17 ($container) with ${delay} of egress delay"
+echo "==> Starting PostgreSQL ($container) with ${delay} of egress delay"
 docker run -d --rm --name "$container" --cap-add NET_ADMIN \
   -e POSTGRES_PASSWORD="$password" -e POSTGRES_DB=rask \
-  -p "127.0.0.1::5432" postgres:17-alpine >/dev/null
+  -p "127.0.0.1::5432" postgres:18-alpine >/dev/null
 port="$(docker port "$container" 5432/tcp | head -n 1 | sed 's/.*://')"
 
 ready=0

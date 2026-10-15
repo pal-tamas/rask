@@ -61,12 +61,12 @@ public partial class FullPageReplyTests : global::Rask.Core.RaskMarkup
     {
         var (ops, html) = Change(
             [P["before"]],
-            [P["before"], Aside.Class("toast")["Saved"]]);
+            [P["before"], Aside.Class("notice")["Saved"]]);
 
         var reason = FullPageReply.Reason(ops, rawAtRoot: false, diffBytes: 0, html);
 
         Assert.Contains("is by position", reason, StringComparison.Ordinal);
-        Assert.Contains("<aside class=\"toast\">Saved</aside>", reason, StringComparison.Ordinal);
+        Assert.Contains("<aside class=\"notice\">Saved</aside>", reason, StringComparison.Ordinal);
     }
 
     [Fact]

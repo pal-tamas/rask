@@ -24,10 +24,9 @@ public sealed class Invoice : Aggregate<Guid>
 }
 ```
 
-That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index it has. The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
-takes its root's answer and carries the column itself, because a child's read face is queryable on its own and
-would otherwise return every tenant's rows.
+That gives the table a `TenantId` column and a query filter no read can compose away; its indexes are
+[what you write](#an-index-is-what-you-write). The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
+takes its root's answer and needs no tenant column — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant).
 
 The column is the framework's, so the entity does not mention it. One that wants to read its tenant declares
 the property, and Rask maps the column to it:
@@ -67,8 +66,9 @@ using (Tenant.Use(42))
 ```
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
-it is saved — and any other is refused when the model is built. An entity that declares nothing keeps a shadow
-`Guid?`, a child included: a child of a numbered aggregate declares its own `int? TenantId` to keep the number.
+it is saved — and any other is refused when the model is built. An aggregate that declares nothing keeps a shadow
+`Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
+it follows the root's number without saying anything.
 
 Everywhere else the tenant is still a `Guid` — `Current.Tenant`, a job's row, a cache key — and a number
 travels inside it by a fixed rule: **the first eight bytes are zero and the last eight are the number,
@@ -80,6 +80,103 @@ so a real identifier is never taken for a number. Two consequences:
   with an exception, on a read as on a write, rather than compared with something. So is a number too large
   for an `int` column, which would otherwise truncate into another tenant's.
 - Tenant `0` is `Guid.Empty`, which the batteries read as "no tenant". Number tenants from one.
+
+### Tenants kept as text
+
+A table made by another tool may keep its tenant — still a `Guid` — as TEXT, in a column of its own name. Declare
+the `Guid?` and say how it is stored; Rask filters and stamps in the column's own text, on the entity and on its
+read face alike:
+
+```csharp
+public sealed class Company : Aggregate<string>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+
+    public Guid? TenantId { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Company> builder)
+    {
+        builder.ToTable("Company");
+        builder.Property(c => c.TenantId).HasColumnName("tenantId").HasMaxLength(1000).HasConversion<string>();
+    }
+}
+```
+
+The text is the `Guid`'s lower-case form (`0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11`). A column that already holds
+upper-case text is found only where text compares without regard to case — SQL Server's default collation does;
+on SQLite or PostgreSQL either make the column's collation say so or store the lower-case form. The filter binds
+the text as a parameter, so an index on the column is used.
+
+### A child belongs to its root's tenant
+
+**Only the aggregate root carries the tenant.** Every entity under it — a child in the root's collection, a
+grandchild in the child's — is part of that aggregate and belongs to the root's tenant, so it needs no tenant
+column and you write nothing for it: no `TenantId`, no const, no configuration, no filter. Its own read face
+(`Chip.Where(…)`) is filtered **through the root**, along the path the aggregate's own collections already make —
+an `EXISTS` on the parent's key and tenant, one per level for a grandchild.
+
+```csharp
+public sealed class Driver : Aggregate<string>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+    public Guid? TenantId { get; private set; }                   // tenantId, text
+    public IReadOnlyList<Chip> Chips => _chips;                   // by driverId
+}
+
+public sealed class Vehicle : Aggregate<string>
+{
+    public const Tenancy Scope = Tenancy.PerTenant;
+    public Guid? TenantId { get; private set; }
+    public IReadOnlyList<Chip> Chips => _chips;                   // by vehicleId
+}
+
+public sealed class Chip : Entity<string>
+{
+    public string Code { get; private set; } = "";
+    public string? DriverId { get; private set; }                 // one of the two is set,
+    public string? VehicleId { get; private set; }                // the other is NULL
+}
+
+using (Tenant.Use(acme))
+{
+    var chips = await Chip.Where(c => c.Code.StartsWith("A"));    // a driver's AND a vehicle's — Acme's only
+}
+```
+
+```sql
+WHERE EXISTS (SELECT 1 FROM Driver AS d
+              WHERE d.TenantId IS NOT NULL AND d.TenantId = @tenant AND d.Id = c.DriverId)
+   OR EXISTS (SELECT 1 FROM Vehicle AS v
+              WHERE v.TenantId IS NOT NULL AND v.TenantId = @tenant AND v.Id = c.VehicleId)
+```
+
+**One type under two roots.** A table that serves two parents is ONE child type, held by both collections; its
+filter has an `EXISTS` for each tenant-scoped parent, OR'd, so `Chip.Where(…)` returns both kinds and only the
+current tenant's. Each key is optional — a chip holds one and NULL in the other — and the read face has a
+navigation back to each (`chip.Driver`, `chip.Vehicle`), `null` on the side it does not belong to. A chip taken
+out of its parent's collection is deleted at the save, rather than left a row no parent holds.
+
+What follows from reading through the root:
+
+- Every read of the child — `Where`, `Count`, a projection, an `Include` from the root — asks the parent with an
+  `EXISTS` that seeks the parent's key, and `Tenant.Across()` drops the question, as it does for any table.
+- "Through the root" means the parents' own filters: a child whose parent is soft-deleted is not read on its own
+  either. A row whose parent keys are all NULL belongs to nobody, and only `Tenant.Across()` reads it.
+- A child is written only under a parent of the tenant in flight. A parent the context holds answers from its
+  own tenant; one it does not hold is looked up through the tenant filter, once per save. A child added to, moved
+  to, changed or deleted under another tenant's parent is refused with an `InvalidOperationException`.
+- A unique index on the child names no tenant, so — like [any index](#an-index-is-what-you-write) without
+  `TenantId` — it holds across every tenant, and its declared rule is asked about every tenant's rows. Put the
+  parent's key in the index (`(DriverId, Code)`) when unique within the parent is the rule you mean.
+- The path is read from the model. A tenant-scoped child that a context maps with no relationship up to its
+  aggregate is refused when the model is built, naming the entity — never read unfiltered.
+
+**A child that already keeps a column.** An existing table may hold the tenant on its children too. Declare it
+(`public Guid? TenantId { get; private set; }`, or `int?`/`long?`) and it is used: filtered on directly, stamped
+with the **root's** tenant — inside `Tenant.Across()` as well — and refused at the save if it disagrees with the
+root's. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
+reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
+the property if the column should stay.
 
 ## Where the tenant comes from
 
@@ -262,27 +359,31 @@ It means "include soft-deleted rows" and leaves the tenant filter exactly where 
 never quietly becomes a cross-tenant read the day an aggregate declares `Scope`. Crossing tenants is
 `Tenant.Across()`. This uses EF Core 10's named query filters.
 
-## Indexes are prefixed for you
+## An index is what you write
 
-`HasIndex(p => p.Sku).IsUnique()` on a partitioned table would otherwise mean "no two tenants may ever use
-the same SKU", and the symptom is one tenant unable to create a row because a different tenant already has
-it, with nothing in the code saying so. Rask puts `TenantId` at the front of every index on a tenant-scoped
-entity that does not name the tenant, so uniqueness means *within this tenant* and the filtered query can use
-the index — wherever the index was declared: in the entity's `Configure`, by an `[Index]` attribute, or in a
-context of your own.
-
-**An index that already names `TenantId` is left exactly as written**, wherever in the index it is:
+Rask adds nothing to an index. A key that is unique **within a tenant** names `TenantId` in the index; a key that
+is unique **across every tenant** — a sign-in name, an external reference — does not:
 
 ```csharp
-public static void Configure(EntityTypeBuilder<Destination> builder)
+public static void Configure(EntityTypeBuilder<User> builder)
 {
-    builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique();   // stays (Name, TenantId)
-    builder.HasIndex(d => d.Code).IsUnique();                       // becomes (TenantId, Code)
+    builder.HasIndex(u => u.Username).IsUnique("Ez a felhasználónév foglalt.");              // every tenant's rows
+    builder.HasIndex(u => new { u.TenantId, u.Badge }).IsUnique("This badge is handed out."); // one tenant's rows
 }
 ```
 
-That is what lets a table that already exists keep the indexes it has. A declared `TenantId` is what the first
-line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", Columns.TenantId)`.
+Put `TenantId` first in an index that holds per tenant: the filtered query reads it from the front. A declared
+`TenantId` is what the second line needs; for a shadow one, name it as a string —
+`builder.HasIndex(Columns.TenantId, "Badge")`. An index is kept exactly as written, wherever it was declared —
+`Configure`, an `[Index]` attribute, a context of your own — with its [message](data.md#what-a-unique-indexs-violation-says),
+its `HasDatabaseName("…")` and its filter, so a violation is recognised by the name the database reports.
+
+Its unique rule is asked the same way — by [a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself)
+and by [the check before the save](data.md#when-the-index-may-not-be-there) — over exactly the index's columns:
+one that names `TenantId` about the row's tenant, one that does not about every tenant's rows, so a name another
+tenant holds is refused at the field and at the save with the index's message, and never tells the caller whose
+it is. Only the tenant filter is lifted for that question; a soft-deleted row counts the way it does for any
+other rule.
 
 ## Writes stamp it, and it never moves
 
@@ -290,7 +391,8 @@ A create records the tenant in flight — the signed-in user's, with no `Tenant.
 would move a row to another tenant is refused: copy the row into the other tenant instead. **A row belongs to
 the tenant it was loaded in**: saving or deleting one while another tenant is in flight — or none — is refused
 with an `InvalidOperationException`, and so is adding a row that already names another tenant, or a child to an
-aggregate loaded in another; `Tenant.Across()` is how to do any of them on purpose. The column is never
+aggregate loaded in another — or [under another tenant's parent](#a-child-belongs-to-its-roots-tenant), for a child
+read through its parent; `Tenant.Across()` is how to do any of them on purpose. The column is never
 on the generated form model, declared or not, so a post cannot set it. Inserting a tenant-scoped row inside `Tenant.Across()`
 is refused too, unless the row's `TenantId` is already set, because "across" names no tenant to stamp.
 

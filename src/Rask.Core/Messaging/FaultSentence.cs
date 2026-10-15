@@ -9,7 +9,7 @@ internal static class FaultSentence
 {
     /// <summary><paramref name="sentence" /> as the person reads it, for <paramref name="thrown" />.</summary>
     internal static string Of(string sentence, Exception thrown) =>
-        LiveOptions.IsDevelopment == true
+        HostMode.IsDevelopmentInScope
             ? $"{sentence} {thrown.GetType().Name}: {thrown.Message}"
             : sentence;
 }

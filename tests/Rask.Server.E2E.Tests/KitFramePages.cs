@@ -84,6 +84,7 @@ public sealed partial class KitFieldFramePage : KitFramePage
     private string _notes = "Hello";
     private int _volume = 30;
     private string _code = string.Empty;
+    private readonly Chat _chat = new();
 
     protected override Component? Render() =>
         Div.Id("stage")[
@@ -104,20 +105,35 @@ public sealed partial class KitFieldFramePage : KitFramePage
             Part("input-viewable", Ui.Input.Value(_secret).Id("viewable").Type(InputType.Password).Viewable().OnChange(v => _secret = v)),
             Part("input-mask", Ui.Input.Value(_phone).Id("masked").Mask("(999) 999-9999").OnChange(v => _phone = v)),
             Part("textarea", Ui.Textarea.Value(_notes).Label("Notes").OnChange(v => _notes = v)),
+            Part("composer", Form.Model(_chat).OnSubmit(_ => _chat.Sent++)[
+                Ui.Composer.Bind(() => _chat.Prompt).Label("Prompt").LabelSrOnly()
+                    .ActionsTrailing(Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane))
+            ]),
             Part("field", Ui.Field[Ui.Label["Email"], Ui.Input.Value(_name).Id("in-field").OnChange(v => _name = v), Ui.Description["Never shared."]]),
             Part("slider", Ui.Slider.Value(_volume).OnChange(v => _volume = v)),
             Part("slider-bound", Ui.Slider.Bind(() => _choices.Volume)),
             Part("otp", Ui.Otp.Value(_code).Length(4).OnChange(v => _code = v)),
+            // Bound as a form binds it: the number waits for the next action, as Flux's wire:model does.
+            Part("phone", Ui.Phone.Bind(() => _choices.Phone).Country("US").Label("Phone")),
             Part("file-upload", Ui.FileUpload.Id("files").Label("Upload files").Multiple()[
                 Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("PNG up to 10MB")
             ])
         ];
+
+    private sealed class Chat
+    {
+        public string Prompt { get; set; } = string.Empty;
+
+        public int Sent { get; set; }
+    }
 
     private sealed class Choices
     {
         public int Volume { get; set; } = 30;
 
         public ICollection<string> Channels { get; set; } = ["mail"];
+
+        public string? Phone { get; set; }
     }
 }
 

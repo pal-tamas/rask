@@ -8,65 +8,59 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// Shared by the three calendars and the date pickers, which differ only in what "chosen" means for a day
-/// (<see cref="UiCalendarPicks" />). A markup host rather than a component: the state belongs to the control
-/// that calls it (<see cref="UiCalendarState" />), and so do the handlers written here, which re-render it.
+/// (<see cref="UiCalendarPicks" />). This is the page's FIRST paint of it: the header and the months are the
+/// browser's from then on (<c>data-rask-opaque</c>, drawn by <c>rask-calendar.ts</c>, which pages, walks and
+/// picks as Flux's script does), and the page hears the value through the calendar's one bound field.
 /// </remarks>
 internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
 {
     private static readonly UiPartMarker Marker = new("ui-calendar");
 
-    // The box the runtime measures (rask-plot.ts), and the parity tool's name for a node Flux has none of.
+    // The box the runtime reads the width from, and the parity tool's name for a node Flux has none of.
     private static readonly Dictionary<string, string?> NarrowMarks = new(StringComparer.Ordinal)
     {
         ["ui-calendar-narrow"] = "",
-        ["rask-measure"] = "",
+        ["rask-calendar-part"] = "narrow",
     };
 
-    // What the box measures as: two wide on a phone, one elsewhere.
-    private const string NarrowBox = "2 1";
+    private static readonly Dictionary<string, string?> StaticMonths = new(StringComparer.Ordinal)
+    {
+        ["ui-calendar-months"] = "",
+        ["rask-calendar-part"] = "months",
+    };
 
-    private const string WideBox = "1 1";
-
-    private static readonly Dictionary<string, string?> StaticMonths = new(StringComparer.Ordinal) { ["ui-calendar-months"] = "" };
-
-    // The runtime's two hooks for a grid of days: the keys handled here do not scroll the page behind it (Space
-    // is not one of them, as on Flux), and the browser's focus goes with the day that is the tab stop.
+    // The keys the runtime handles here do not scroll the page behind the grid (Space is not one of them, as on Flux).
     private static readonly Dictionary<string, string?> Months = new(StaticMonths, StringComparer.Ordinal)
     {
         ["rask-contain-keys"] = "Arrows Home End PageUp PageDown",
-        ["rask-focus-follows"] = "",
     };
 
     /// <summary>The first of the month a calendar shows first.</summary>
-    internal static DateOnly ViewOf(UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks)
+    internal static DateOnly ViewOf(UiCalendarOptions options, UiCalendarPicks picks)
     {
         var opened = options.ForceOpenTo ? options.OpenTo ?? picks.First : picks.First ?? options.OpenTo;
-        var shown = state.View ?? opened ?? options.Today;
+        var shown = opened ?? options.Today;
         return new DateOnly(shown.Year, shown.Month, 1);
     }
 
     /// <summary>
     ///     The calendar. <paramref name="aside" /> and <paramref name="footer" /> are a date picker's: its preset
-    ///     list before the months, and its confirmation buttons after them; it draws the calendar unmarked.
+    ///     list before the months, and its confirmation buttons after them; it draws the calendar unmarked, and
+    ///     carries the runtime's <paramref name="hook" /> itself.
     /// </summary>
     internal static global::Rask.Core.Component Render(
         UiCalendarOptions options,
-        UiCalendarState state,
         UiCalendarPicks picks,
         string? rootClass = null,
         global::Rask.Core.Component? aside = null,
         global::Rask.Core.Component? footer = null,
-        bool marked = true)
+        bool marked = true,
+        (string Config, global::Rask.Core.Component Field)? hook = null)
     {
-        var view = ViewOf(options, state, picks);
-        // One month on a phone, whatever was asked for: Flux's script draws no other there.
-        var months = Enumerable.Range(0, state.Narrow ? 1 : options.Months).Select(view.AddMonths).ToList();
+        var view = ViewOf(options, picks);
+        var months = Enumerable.Range(0, options.Months).Select(view.AddMonths).ToList();
         var shown = months.SelectMany(month => Weeks(options, month)).SelectMany(week => week).ToHashSet();
-        var stop = TabStop(options, state, picks, months, shown);
-        // A paging key lets go of the focus for the one render it causes: no day asks for it, and it falls to
-        // the page, as it does on Flux.
-        var follows = !state.Dropped;
-        (state.Unnamed, state.Dropped) = (state.Dropped, false);
+        var stop = TabStop(options, picks, months, shown);
         var host = Host(options, months, stop);
 
         var calendar = Div
@@ -75,61 +69,51 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         if (marked)
         {
             // Inside a date picker the calendar is the picker's own part, and Flux leaves it unmarked there.
-            calendar = calendar.Data(Marker.With(options.Data));
-        }
-
-
-        var grids = Div.Class(UiCalendarLook.Months).Data(options.Static ? StaticMonths : Months);
-        if (!options.Static)
-        {
-            grids = grids.Attributes(UiDraws.Marks(("keydown", options.PickDraws))).OnKeyDown(e => KeyAsync(e.Key, options, state, picks, months, shown, stop));
+            calendar = calendar.Data(hook is { } h ? Marker.With(options.Data, "rask-calendar", h.Config) : Marker.With(options.Data));
         }
 
         return calendar[
+            hook?.Field,
             aside,
-            Div.Class(UiCalendarLook.HeaderHost)[
+            HostedElement.Tag("div").Opaque(true).Class(UiCalendarLook.HeaderHost).Attributes(UiCalendarHook.Named("header"))[
                 Div.Class(UiCalendarLook.HeaderBar)[
                     Header.Class(UiCalendarLook.Header)[
                         Div.Class(UiCalendarLook.HeaderStart)[
-                            options.SelectableHeader ? MonthSelect(options, state, view) : null,
-                            options.SelectableHeader ? YearSelect(options, state, view) : null
+                            options.SelectableHeader ? MonthSelect(options, view) : null,
+                            options.SelectableHeader ? YearSelect(options, view) : null
                         ],
                         Div.Class(UiCalendarLook.HeaderEnd)[
-                            options.WithToday ? TodayStep(options, state, picks, months) : null,
-                            options.Navigation ? Step(options, state, view, months, -1) : null,
-                            options.Navigation ? Step(options, state, view, months, 1) : null
+                            options.WithToday ? TodayStep(options) : null,
+                            options.Navigation ? Step(options, view, months, -1) : null,
+                            options.Navigation ? Step(options, view, months, 1) : null
                         ]
                     ]
                 ]
             ],
-            grids[months.Select((month, at) => Month(options, state, picks, month, month == host ? stop : null, follows, at > 0))],
+            HostedElement.Tag("div").Opaque(true).Class(UiCalendarLook.Months).Data(options.Static ? StaticMonths : Months)[
+                months.Select((month, at) => Month(options, picks, month, month == host ? stop : null, at > 0))
+            ],
             footer,
-            options.Months > 1 || options.InPopup ? Narrow(state) : null
+            options.Months > 1 || options.InPopup ? Narrow() : null
         ];
     }
 
     // Asked only where the answer changes something: several months, or a date picker's popup.
-    private static global::Rask.Core.Component Narrow(UiCalendarState state) =>
-        Span.Class(UiCalendarLook.Narrow).Data(NarrowMarks).Aria("hidden", "true")[
-            Input
-                .Value(state.Narrow ? NarrowBox : WideBox)
-                .OnInput(box => { state.Narrow = string.Equals(box, NarrowBox, StringComparison.Ordinal); })
-                .Type(InputType.Hidden)
-        ];
+    private static HTMLSpanElement Narrow() =>
+        Span.Class(UiCalendarLook.Narrow).Data(NarrowMarks).Aria("hidden", "true");
 
     // Two months side by side draw the days between them twice. The tab stop is one button: the day in its own
     // month where that month is shown, else the first month that draws it as a neighbour's.
-    private static DateOnly Host(UiCalendarOptions options, List<DateOnly> months, DateOnly? stop)
+    private static DateOnly Host(UiCalendarOptions options, List<DateOnly> months, DateOnly stop)
     {
-        var own = months.FindIndex(month => month.Year == stop?.Year && month.Month == stop?.Month);
-        var drawn = own >= 0 ? own : months.FindIndex(month => Weeks(options, month).Exists(week => week.Contains(stop ?? default)));
+        var own = months.FindIndex(month => month.Year == stop.Year && month.Month == stop.Month);
+        var drawn = own >= 0 ? own : months.FindIndex(month => Weeks(options, month).Exists(week => week.Contains(stop)));
         return months[Math.Max(drawn, 0)];
     }
 
     // ---- header -----------------------------------------------------------------------------------
 
-    private static global::Rask.Core.Component Step(
-        UiCalendarOptions options, UiCalendarState state, DateOnly view, List<DateOnly> months, int by)
+    private static global::Rask.Core.Component Step(UiCalendarOptions options, DateOnly view, List<DateOnly> months, int by)
     {
         // Nothing to page to: the whole month that way lies outside Min or Max.
         var off = by < 0
@@ -146,56 +130,31 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             .Class(UiCalendarLook.Step)
             .Disabled(off)
             .Aria(off ? [("label", label), ("disabled", "true")] : [("label", label)])
-            .Attributes((UiDraws.Mark, "click"))
-            .OnClick(() => Page(state, view.AddMonths(by)))[
+            .Attributes(UiCalendarHook.Named(by < 0 ? "previous" : "next"))[
             Ui.Icon.Name(by < 0 ? Ui.IconName.ChevronLeft : Ui.IconName.ChevronRight).Mini.Class(UiCalendarLook.StepIcon),
             Ui.Icon.Name(by < 0 ? Ui.IconName.ChevronRight : Ui.IconName.ChevronLeft).Mini.Class(UiCalendarLook.StepIconRtl)
         ];
     }
 
-    private static void Page(UiCalendarState state, DateOnly view)
-    {
-        (state.View, state.Cursor) = (view, null);
-    }
-
     // Flux's shortcut: from another month it comes back to this one; already there, it picks today.
-    private static global::Rask.Core.Component TodayStep(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, List<DateOnly> months)
-    {
-        var today = options.Today;
-        var here = months.Exists(month => month.Year == today.Year && month.Month == today.Month);
-
-        return Button
+    private static global::Rask.Core.Component TodayStep(UiCalendarOptions options) =>
+        Button
             .Key("today")
             .Type(ButtonType.Button)
             .Class(UiCalendarLook.Step)
             .Aria("label", RaskStrings.Get(RaskString.CalendarToday, "Today"))
-            // Away from this month it pages back; in it, it picks today.
-            .Attributes(UiDraws.Marks(("click", !here || options.PickDraws)))
-            .OnClick(async () =>
-            {
-                if (here)
-                {
-                    await PickAsync(options, state, picks, today).ConfigureAwait(false);
-                }
-                else
-                {
-                    Page(state, new DateOnly(today.Year, today.Month, 1));
-                }
-            })[
+            .Attributes(UiCalendarHook.Named("today"))[
             Div.Class(UiCalendarLook.TodayBox)[
-                Div.Class(UiCalendarLook.TodayNumber)[today.Day.ToString(options.Culture)],
+                Div.Class(UiCalendarLook.TodayNumber)[options.Today.Day.ToString(options.Culture)],
                 Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiCalendarLook.TodayIcon)
             ]
         ];
-    }
 
-    private static global::Rask.Core.Component MonthSelect(UiCalendarOptions options, UiCalendarState state, DateOnly view) =>
+    private static global::Rask.Core.Component MonthSelect(UiCalendarOptions options, DateOnly view) =>
         Div.Class(UiCalendarLook.SelectHost)[
             Select
                 .Value(Invariant(view.Month))
-                .OnChange(month => Page(state, new DateOnly(view.Year, int.Parse(month, CultureInfo.InvariantCulture), 1)))
-                .Attributes(UiRuntimeMarks.NotFormData, (UiDraws.Mark, "change"))
+                .Attributes(UiRuntimeMarks.NotFormData, UiCalendarHook.Named("month"))
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(1, 12).Select(month =>
                     Option.Key(month).Value(Invariant(month))[options.Culture.DateTimeFormat.GetAbbreviatedMonthName(month)])
@@ -203,12 +162,11 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         ];
 
     // A century back and a decade on from today, as Flux lists them.
-    private static global::Rask.Core.Component YearSelect(UiCalendarOptions options, UiCalendarState state, DateOnly view) =>
+    private static global::Rask.Core.Component YearSelect(UiCalendarOptions options, DateOnly view) =>
         Div.Class(UiCalendarLook.SelectHost)[
             Select
                 .Value(Invariant(view.Year))
-                .OnChange(year => Page(state, new DateOnly(int.Parse(year, CultureInfo.InvariantCulture), view.Month, 1)))
-                .Attributes(UiRuntimeMarks.NotFormData, (UiDraws.Mark, "change"))
+                .Attributes(UiRuntimeMarks.NotFormData, UiCalendarHook.Named("year"))
                 .Class(UiCalendarLook.Select)[
                 Enumerable.Range(options.Today.Year - 100, 111).Select(year => Option.Key(year).Value(Invariant(year))[Invariant(year)])
             ]
@@ -218,8 +176,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
 
     // ---- one month --------------------------------------------------------------------------------
 
-    private static global::Rask.Core.Component Month(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly month, DateOnly? stop, bool follows, bool folded)
+    private static global::Rask.Core.Component Month(UiCalendarOptions options, UiCalendarPicks picks, DateOnly month, DateOnly? stop, bool folded)
     {
         var cell = Cell(options);
         var names = options.Culture.DateTimeFormat;
@@ -248,7 +205,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                                     WeekOf(week).ToString(options.Culture)
                                 ]
                                 : null,
-                            week.Select((day, slot) => Day(options, state, picks, month, day, slot, stop, follows))
+                            week.Select((day, slot) => Day(options, picks, month, day, slot, stop))
                         ])
                 ]
             ]
@@ -281,19 +238,12 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     // ---- one day ----------------------------------------------------------------------------------
 
     private static global::Rask.Core.Component Day(
-        UiCalendarOptions options,
-        UiCalendarState state,
-        UiCalendarPicks picks,
-        DateOnly month,
-        DateOnly day,
-        int slot,
-        DateOnly? stop,
-        bool follows)
+        UiCalendarOptions options, UiCalendarPicks picks, DateOnly month, DateOnly day, int slot, DateOnly? stop)
     {
         var marks = picks.Marks(day);
         var outside = day.Month != month.Month;
         var unavailable = options.Unavailable?.Contains(day) == true;
-        var blocked = Blocked(options, picks, day);
+        var blocked = Blocked(options, day);
         var today = day == options.Today;
         var cell = Cell(options);
         var name = day.ToString("D", options.Culture);
@@ -323,7 +273,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             Div.Class(marks.Selected ? UiCalendarLook.DotSelected : UiCalendarLook.Dot)
         ];
 
-        var button = DayButton(options, state, picks, day, blocked, day == stop, follows)
+        var button = Button.Type(ButtonType.Button).Disabled(blocked).TabIndex(day == stop ? 0 : -1)
             .Class(UiClass.Compose(marks.Selected ? UiCalendarLook.DaySelected : UiCalendarLook.Day, cell))
             .Aria("label", name);
 
@@ -369,45 +319,6 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         return picks.Range ? null : "false";
     }
 
-    private static HTMLButtonElement DayButton(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly day, bool blocked, bool stop, bool follows)
-    {
-        // The browser closes the picker on the same click that finishes the choice — no runtime, and the C#
-        // handler still runs.
-        var closes = !blocked && picks.Finishes(day) ? options.Closes : null;
-        List<(string, string?)> extra = [];
-        if (closes is not null)
-        {
-            extra.AddRange([("popovertarget", closes), ("popovertargetaction", "hide")]);
-        }
-
-        var button = Button.Type(ButtonType.Button).Disabled(blocked).TabIndex(stop ? 0 : -1);
-        if (!blocked)
-        {
-            extra.AddRange(UiDraws.Pairs(("click", options.PickDraws), ("mouseenter", true)));
-        }
-
-        if (extra.Count > 0)
-        {
-            button = button.Attributes([.. extra]);
-        }
-
-        if (stop && follows)
-        {
-            button = button.Data("rask-focus-target", "");
-        }
-
-        if (blocked)
-        {
-            return button;
-        }
-
-        button = button.OnClick(() => PickAsync(options, state, picks, day));
-
-        // A waiting range draws the stretch to the day under the pointer.
-        return state.Anchor is null ? button : button.OnMouseEnter(() => { state.Hover = day; });
-    }
-
     private static Dictionary<string, string?> States(DateOnly day, bool outside, bool today, bool unavailable, UiCalendarMarks marks)
     {
         var data = new Dictionary<string, string?>(StringComparer.Ordinal)
@@ -430,94 +341,15 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         return data;
     }
 
-    internal static bool Blocked(UiCalendarOptions options, UiCalendarPicks picks, DateOnly day) =>
+    internal static bool Blocked(UiCalendarOptions options, DateOnly day) =>
         (options.Min is { } min && day < min)
         || (options.Max is { } max && day > max)
-        || options.Unavailable?.Contains(day) == true
-        || picks.Blocks(day);
+        || options.Unavailable?.Contains(day) == true;
 
-    // ---- picking and the keyboard -----------------------------------------------------------------
-
-    private static async Task PickAsync(UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, DateOnly day)
+    // Where Tab lands: the first chosen day, else today, else the 1st — as Flux roves.
+    private static DateOnly TabStop(UiCalendarOptions options, UiCalendarPicks picks, List<DateOnly> months, HashSet<DateOnly> shown)
     {
-        if (Blocked(options, picks, day))
-        {
-            return;
-        }
-
-        state.Cursor = day;
-        await picks.PickAsync(day).ConfigureAwait(false);
-    }
-
-    // Where Tab lands: the keyboard's day, else the first chosen one, else today, else the 1st — as Flux roves.
-    private static DateOnly? TabStop(
-        UiCalendarOptions options, UiCalendarState state, UiCalendarPicks picks, List<DateOnly> months, HashSet<DateOnly> shown)
-    {
-        DateOnly?[] wanted = [state.Cursor, picks.First, options.Today, months[0]];
-        return wanted.FirstOrDefault(day => day is { } d && shown.Contains(d) && !Blocked(options, picks, d)) ?? months[0];
-    }
-
-    private static Task KeyAsync(
-        string key,
-        UiCalendarOptions options,
-        UiCalendarState state,
-        UiCalendarPicks picks,
-        List<DateOnly> months,
-        HashSet<DateOnly> shown,
-        DateOnly? stop)
-    {
-        switch (key)
-        {
-            case Keys.ArrowLeft: Move(-1); break;
-            case Keys.ArrowRight: Move(1); break;
-            case Keys.ArrowUp: Move(-7); break;
-            case Keys.ArrowDown: Move(7); break;
-            // Flux pages a month on all four, with or without Shift, and lets go of the focus.
-            case Keys.Home or Keys.PageUp: Drop(-1); break;
-            case Keys.End or Keys.PageDown: Drop(1); break;
-            default: break;
-        }
-
-        return Task.CompletedTask;
-
-        void Drop(int by)
-        {
-            Page(state, months[0].AddMonths(by));
-            state.Dropped = true;
-        }
-
-        void Move(int by)
-        {
-            if (stop is not { } from || Next(options, picks, from, by) is not { } to)
-            {
-                return;
-            }
-
-            (state.Cursor, state.Hover) = (to, state.Anchor is null ? null : to);
-            if (!shown.Contains(to))
-            {
-                // Out of the drawn weeks: the view follows the day, by as little as shows it.
-                state.View = to < months[0] ? new DateOnly(to.Year, to.Month, 1) : new DateOnly(to.Year, to.Month, 1).AddMonths(1 - months.Count);
-            }
-        }
-    }
-
-    // The next day that way which can be picked; none when Min or Max ends the walk first.
-    private static DateOnly? Next(UiCalendarOptions options, UiCalendarPicks picks, DateOnly from, int by)
-    {
-        for (var (day, tries) = (from.AddDays(by), 0); tries < 62; day = day.AddDays(by), tries++)
-        {
-            if ((options.Min is { } min && day < min) || (options.Max is { } max && day > max))
-            {
-                return null;
-            }
-
-            if (!Blocked(options, picks, day))
-            {
-                return day;
-            }
-        }
-
-        return null;
+        DateOnly?[] wanted = [picks.First, options.Today, months[0]];
+        return wanted.FirstOrDefault(day => day is { } d && shown.Contains(d) && !Blocked(options, d)) ?? months[0];
     }
 }

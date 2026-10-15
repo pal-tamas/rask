@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
@@ -157,6 +158,24 @@ public partial class UnreadableQueryValueTests : global::Rask.Core.RaskMarkup
         var reported = Reported(development, () => PageBinder.Bind(page, NoSegments, Query(("weightFrom", "abc"))));
 
         Assert.DoesNotContain(reported, e => string.Equals(e.Category, "Rask.Routing", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_host_in_scope_decides_whether_it_is_said_not_the_process_wide_flag(bool hostIsDevelopment)
+    {
+        RaskDiagnostics.ResetReportOnceForTests();
+        var page = new QuietPage();
+        var services = new ServiceCollection().AddSingleton(HostMode.For(hostIsDevelopment)).BuildServiceProvider();
+
+        var reported = Reported(!hostIsDevelopment, () =>
+        {
+            using var host = Ambient.Enter(services);
+            PageBinder.Bind(page, NoSegments, Query(("weightFrom", "abc")));
+        });
+
+        Assert.Equal(hostIsDevelopment, reported.Exists(static e => string.Equals(e.Category, "Rask.Routing", StringComparison.Ordinal)));
     }
 
     private static List<RaskDiagnosticEvent> Reported(bool? development, Action act)

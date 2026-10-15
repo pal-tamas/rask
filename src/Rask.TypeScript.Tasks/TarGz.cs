@@ -40,7 +40,7 @@ internal static class TarGz
     /// </summary>
     /// <remarks>
     ///     npm wraps every package in a <c>package/</c> directory. Stripping it is what lets the cache
-    ///     path hold <c>bin/esbuild</c> and <c>lib/tsgo</c> rather than a <c>package</c> level that means
+    ///     path hold <c>bin/esbuild</c> and <c>lib/tsc</c> rather than a <c>package</c> level that means
     ///     nothing to anyone reading the cache.
     /// </remarks>
     /// <returns>The relative paths written, in archive order.</returns>

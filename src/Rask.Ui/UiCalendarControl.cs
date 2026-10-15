@@ -25,7 +25,6 @@ namespace Rask;
 /// <typeparam name="T">What is chosen: a day, a collection of days, or a range.</typeparam>
 public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>, IUiClock, IDeferredBind
 {
-    private readonly UiCalendarState _state = new();
     private (bool Held, T? Value, T? Given) _own;
 
     /// <summary>
@@ -119,11 +118,10 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
     /// <inheritdoc />
     DateOnly? IUiClock.Today { get; set; }
 
-    // The view month and the cursor are FIELDS, which the render cache cannot see.
+    // A choice the calendar keeps itself is a FIELD, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
-    private protected UiCalendarState State => _state;
 
     /// <summary>The mode this calendar's bound type is.</summary>
     private protected abstract Ui.CalendarMode Bound { get; }
@@ -137,19 +135,51 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
         UiCalendarModes.Check(Multiple == true ? Ui.CalendarMode.Multiple : Mode, Bound);
         var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
         var current = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
+        var options = Options();
+        var picks = Picks(current);
 
-        return UiCalendarGrid.Render(Options(), _state, Picks(current, value =>
-        {
-            _own = (Bind is null, value, Value);
-            return CommitAsync(acc, ctx, value);
-        }));
+        return UiCalendarGrid.Render(options, picks, hook: (UiCalendarHook.Config(options, picks.Mode), Field(current, acc, ctx)));
     }
 
-    /// <inheritdoc />
-    protected override Task OnRendered() => _state.RenameAsync(StateHasChanged);
-
     /// <summary>What "chosen" means for this calendar, over the value as it stands.</summary>
-    private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> commit);
+    private protected abstract UiCalendarPicks Picks(T? current);
+
+    /// <summary>The value as the calendar's field carries it (<see cref="UiCalendarValue" />).</summary>
+    private protected abstract string Written(T? value);
+
+    /// <summary>Reads what the browser announced; false for text that is no value of this calendar.</summary>
+    private protected abstract bool TryRead(string text, out T value);
+
+    // The one field the page hears the choice through, first in the calendar: on change, or as it is chosen for a
+    // bound calendar that says `.Live()`; bound and waiting, it goes ahead of the reader's next action. A calendar
+    // that keeps its own choice, or is only looked at, hears nothing.
+    private HTMLInputElement<string> Field(T? current, ExpressionAccessor.Accessor? accessor, EditContext? context)
+    {
+        var field = Input.Value(Written(current)).Type(InputType.Hidden);
+        if (Static == true || (Bind is null && !OnChange.HasValue))
+        {
+            return field;
+        }
+
+        Task Changed(string text)
+        {
+            if (!TryRead(text, out var value))
+            {
+                return Task.CompletedTask;
+            }
+
+            _own = (Bind is null, value, Value);
+            return CommitAsync(accessor, context, value);
+        }
+
+        if (Bind is not null && Live == true)
+        {
+            return field.OnInput(Changed);
+        }
+
+        field = field.OnChange(Changed);
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
+    }
 
     private protected virtual Task CommitAsync(ExpressionAccessor.Accessor? accessor, EditContext? context, T value) =>
         UiFormCommit.CommitAsync(this, accessor, context, value);
@@ -178,7 +208,6 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
             SelectableHeader = SelectableHeader == true,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
-            PickDraws = UiDraws.Waits(this, Bind is not null),
             Class = Class,
             Id = Id,
         };

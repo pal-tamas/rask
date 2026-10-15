@@ -98,6 +98,7 @@ public sealed class AnAppsClassWinsTests
         ["UiCheckboxAll"] = "display, margin",
         ["UiCheckboxIndicator"] = "display, text colour, text size",
         ["UiCommand"] = "display, gap, padding, rounded, text size, width",
+        ["UiComposer"] = "display, padding",
         ["UiContext"] = "display",
         ["UiCountdown"] = "display",
         ["UiDataGrid"] = "display, gap",

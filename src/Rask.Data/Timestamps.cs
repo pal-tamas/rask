@@ -18,7 +18,9 @@ namespace Rask.Data;
 ///         </code>
 ///     </example>
 ///     <para>
-///         Leaving the const off means <see cref="All" />, so an entity that says nothing is unchanged.
+///         Leaving the const off means <see cref="All" /> — except on a child of an aggregate, which has
+///         <see cref="None" />: timestamps are the aggregate's, and a change to any child moves the root's
+///         <c>UpdatedAt</c>. A child whose table carries them declares so.
 ///     </para>
 ///     <para>
 ///         Read by the generator at COMPILE time and emitted as a registration, never reflected over at run
@@ -45,6 +47,6 @@ public enum Timestamps
     /// </summary>
     Updated = 2,
 
-    /// <summary>Both. The default when no <c>Stamps</c> const is declared.</summary>
+    /// <summary>Both. The default when no <c>Stamps</c> const is declared, except on a child of an aggregate.</summary>
     All = Created | Updated,
 }

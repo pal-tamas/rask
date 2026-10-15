@@ -6,7 +6,8 @@
 // `--rask-drag-x` / `--rask-drag-y` on the surface, which is what the thumb's CSS reads. The page hears about
 // it through the surface's ONE bound field (rask-bound.ts), whose value is "x y" (or the one axis): an `input`
 // at most once a frame while the pointer moves, and a `change` when it lets go. When the page writes that
-// field itself — a key handled in C#, a colour typed as text — the properties follow it.
+// field itself — a key handled in C#, a colour typed as text — the properties follow it, and a hook that keeps
+// the value in the browser says where they stand with `place` (rask-color.ts).
 //
 //   data-rask-drag="x y" | "x" | "y"   the axes; 0 is the left / top edge
 //   data-rask-drag-inset="<px>"        the track is that much shorter at both ends: a thumb drawn centred on
@@ -59,6 +60,14 @@ function show(surface: Element, value: string): void {
 
 // The surface under the pointer, from the press to the release.
 let held: HTMLElement | null = null;
+
+/**
+ * Puts the thumbs of `surface` at `value` ("x y", or the one axis), as the bound field would: what a hook that
+ * keeps the value in the browser says after a key or a typed value moved it. Not while the pointer holds it.
+ */
+export function place(surface: Element, value: string): void {
+    if (surface !== held) show(surface, value);
+}
 
 // A value the page writes while the surface is held is an answer to an earlier move, however it is spelled.
 bind(SURFACE, shown, function (surface, rendered) {

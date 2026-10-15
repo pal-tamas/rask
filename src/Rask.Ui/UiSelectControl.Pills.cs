@@ -1,15 +1,12 @@
-using Rask.Core;
-
 namespace Rask;
 
 // Ui.Pillbox: the same list under a trigger that shows every picked option as a pill. What differs from the
-// select is here — the trigger, the pills, the input among them — and is what was recorded on Flux's page:
-// Space opens it, a letter typed on the closed trigger switches the next option that starts with it,
-// Backspace in the empty input takes the last pill off, and a pick empties what was typed.
+// select is here — the trigger, the pills, the input among them. What the keys and the pointer do is the
+// browser's (rask-list.ts), as recorded on Flux's page: Space opens it, a letter typed on the closed trigger
+// switches the next option that starts with it, Backspace in the empty input takes the last pill off, and a
+// pick empties what was typed.
 public abstract partial class UiSelectControl<T>
 {
-    private long? _dismissed;
-
     /// <summary>The pillbox this control is the list of, when it is one's.</summary>
     internal UiPillboxFace? Pills { get; private set; }
 
@@ -39,18 +36,10 @@ public abstract partial class UiSelectControl<T>
             .Role(plain ? "combobox" : "button")
             .Class(UiClass.Compose(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class))
             .Aria(PillTriggerAria(view, plain))
-            .Attributes(UiDraws.With(
-                PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain),
-                ("click", !off),
-                ("keydown", !off && KeysDraw(view))));
+            .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain));
         if (!PillsCombobox)
         {
             trigger = trigger.Id(view.Field.ControlId);
-        }
-
-        if (!off)
-        {
-            trigger = trigger.OnClick(OnPillTriggerClickAsync).OnKeyDown(e => OnButtonKeyAsync(e, Latest));
         }
 
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
@@ -90,9 +79,10 @@ public abstract partial class UiSelectControl<T>
         var remove = Div.Class(UiClass.Compose(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small)));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
+        // Backspace in the empty input presses the last cross (`data-rask-list-remove`, rask-list.ts).
         return Div.Key(answer.Face.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", answer.Face.FormValue)[
             Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
-            (off ? remove : remove.Attributes(UiDraws.Marks(("click", CommitDraws))).OnClick(() => RemoveAsync(value, Latest)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
+            (off ? remove : remove.Attributes(UiDraws.With(UiPillboxLook.RemoveMarks, ("click", CommitDraws))).OnClick(() => RemoveAsync(value)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
 
@@ -105,35 +95,20 @@ public abstract partial class UiSelectControl<T>
             ["autocomplete"] = "list",
             ["controls"] = ListId,
         };
-        if (_open && view.Cursor >= 0)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
-        }
+        var marks = HearingMarks(UiPillboxLook.InputMarks(placeholder), view.Parts.Create is not null);
 
-        var input = Input
-            .Value(view.Search)
+        return Input
+            // Only what the page itself holds: what is typed is the reader's, and a render says nothing of it.
+            .Value(slot?.Value ?? string.Empty)
             .Id(view.Field.ControlId)
-            .Type(InputType.Text);
-        if (_open)
-        {
-            // While the list is open its keys are the input's: Enter picks, the arrows walk the rows.
-            input = input.Data("rask-contain-keys", UiListboxLook.ListKeys);
-        }
-
-        return input
+            .Type(InputType.Text)
             // The placeholder is the pillbox's while it holds nothing; Flux keeps it beside the pills as data.
             .Placeholder(pills == 0 ? placeholder : string.Empty)
             .Role("combobox")
             .Disabled(off)
             .Class(UiClass.Compose(UiPillboxLook.Input, slot?.Class))
             .Aria(aria)
-            .Attributes(UiDraws.With(
-                UiSearchPause.Over(UiPillboxLook.InputMarks(placeholder), _pause, PausedAsync),
-                ("input", TypingDraws),
-                ("keydown", KeysDraw(view))))
-            .Ref(_input)
-            .OnInput(AtEveryKey(opens: true))
-            .OnKeyDown(e => OnPillInputKeyAsync(e, Latest));
+            .Attributes(marks);
     }
 
     private Dictionary<string, string?> PillTriggerAria(View view, bool plain)
@@ -149,11 +124,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         aria["haspopup"] = "listbox";
-        aria["expanded"] = _open ? "true" : "false";
-        if (plain && _open && view.Cursor >= 0)
-        {
-            aria["activedescendant"] = UiSelectNav.OptId(Prefixed, view.Cursor);
-        }
+        aria["expanded"] = "false";
 
         return aria;
     }
@@ -184,103 +155,4 @@ public abstract partial class UiSelectControl<T>
 
     private Component?[] RowContent(UiSelectOption option) =>
         Pills is null ? [UiListboxRow.Content(option)] : UiPillboxRow.Content(option);
-
-    // ----- What the pointer and the keyboard do --------------------------------------------------------
-
-    private async Task OnPillTriggerClickAsync()
-    {
-        if (PillsCombobox)
-        {
-            _open = true;
-            await UiInputReach.ReachAsync(() => _input.Focus()).ConfigureAwait(false);
-            return;
-        }
-
-        // The browser shuts a popover on a click outside it, the trigger included. When it said so first,
-        // this is the click that closed the list, not one that opens it.
-        if (_dismissed is { } at && Clock.GetElapsedTime(at) < UiPillboxFace.DismissedBy)
-        {
-            _dismissed = null;
-            return;
-        }
-
-        if (_open)
-        {
-            await ShutAsync().ConfigureAwait(false);
-            return;
-        }
-
-        _open = true;
-        _cursor = Unset;
-    }
-
-    private async Task OnPopupToggleAsync(ToggleEvent e)
-    {
-        OnToggle(e);
-        if (_open)
-        {
-            return;
-        }
-
-        // Flux's `clear="close"`: a closed pillbox keeps nothing of what was typed.
-        await SettleAsync(held: PillsCombobox).ConfigureAwait(false);
-    }
-
-    private async Task OnPillInputKeyAsync(KeyboardEvent e, View view)
-    {
-        switch (e.Key)
-        {
-            // Heard only from an empty input (UiListKeys.Pills). The page's own reading of the text is asked
-            // where it is known: an input that waits holds what no render has drawn.
-            case Keys.Backspace when (Waits || view.Search.Length == 0) && view.Picked.Count > 0:
-                await CommitAsync([.. view.Picked.Take(view.Picked.Count - 1)]).ConfigureAwait(false);
-                break;
-            case Keys.Escape or Keys.Tab:
-                // The browser emptied the input at the key (UiListKeys.PillsClear): emptied from here, a round
-                // trip later, it lost what was typed since.
-                Close();
-                await ForgetTypedAsync(view, emptied: true).ConfigureAwait(false);
-                break;
-            case Keys.ArrowDown or Keys.ArrowUp when !_open:
-                _open = true;
-                _cursor = Unset;
-                break;
-            default:
-                if (_open)
-                {
-                    await OnListKeyAsync(e, view).ConfigureAwait(false);
-                }
-
-                break;
-        }
-    }
-
-    // Empties the pillbox's own input — unless the browser already has — and tells the page that holds the search.
-    private async Task ForgetTypedAsync(View view, bool emptied = false)
-    {
-        if (view.Search.Length == 0 && !Waits)
-        {
-            return;
-        }
-
-        var cursor = _cursor;
-        await SearchedAsync(string.Empty, opens: false).ConfigureAwait(false);
-        _typing = false;
-        _cursor = cursor;
-        if (!emptied)
-        {
-            UiInputReach.Tell(_input, string.Empty);
-        }
-    }
-
-    // Flux empties what was typed when a pill is taken off, as at a pick (measured: "re" typed, a pill's cross
-    // pressed, the input is empty and the list still open).
-    private async Task RemoveAsync(T value, View view)
-    {
-        await CommitAsync([.. view.Picked.Where(held => !Same(held, value))]).ConfigureAwait(false);
-        if (PillsCombobox)
-        {
-            await ForgetAtChoiceAsync(view).ConfigureAwait(false);
-        }
-    }
 }
