@@ -44,6 +44,9 @@ public sealed class SessionRenderCache : IDisposable
     // on first diff; nulled on Dispose alongside the frame buffers.
     private FrameDiffer.DiffScratch? _scratch;
 
+    // Whether the session's host runs in Development, handed to the differ so it names what it gave up on.
+    internal bool Development { get; init; }
+
     public void Dispose()
     {
         // Dispose, not just null: each FrameWriter holds a pooled RenderFrame[] that dropping the
@@ -128,7 +131,7 @@ public sealed class SessionRenderCache : IDisposable
         }
 
         FrameDiffer.Diff(_previous!.WrittenSpan, _current.WrittenSpan, output,
-            _scratch ??= new FrameDiffer.DiffScratch(), out usedKeyedPath, newHtml);
+            _scratch ??= new FrameDiffer.DiffScratch { Development = Development }, out usedKeyedPath, newHtml);
         if (rotate)
         {
             RotateBuffers();

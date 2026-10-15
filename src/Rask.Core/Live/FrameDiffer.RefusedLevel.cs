@@ -27,7 +27,7 @@ public static partial class FrameDiffer
         }
 
         scratch.ForgetMorphedFrom(opCountAtEntry);
-        if (LiveOptions.IsDevelopment == true)
+        if (scratch.Development)
         {
             var refused = output.GetRange(opCountAtEntry, output.Count - opCountAtEntry);
             scratch.NoteMorphed(opCountAtEntry, innerEnd - innerStart, FullPageReply.ByPosition(refused, newHtml));

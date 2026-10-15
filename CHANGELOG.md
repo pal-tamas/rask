@@ -31,6 +31,7 @@ them until tagged releases begin.
   with "sshd didn't apply" and rolled itself back, leaving password login on. After: the drop-in is
   `0-rask.conf`, which sorts ahead of `00-*`, `50-cloud-init.conf` and the rest; once it is proven applied the old
   `99-rask.conf` is removed, and a setting that still does not apply names the files that also set it.
+- **A Production host no longer shows exception text because a Development host started first in the same process (and a Development host keeps its overlay).** Whether a toast, the error page, the overlay or a refused diff names the exception is now decided by the host whose render, handler or session it is — `AddRask` registers its `IHostEnvironment` answer in that host's own services — instead of `LiveOptions.IsDevelopment`, a process-wide flag the first host to map claimed for every host after it; that flag is now only the fallback for a host that gives no answer (a WASM app, a component rendered outside a host).
 - **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
   model's password changed, the typed text came back over the live connection as an attribute write. After: an
   `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private

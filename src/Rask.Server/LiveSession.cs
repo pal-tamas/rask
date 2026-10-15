@@ -826,7 +826,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             return View.RenderAsLiveRoot(Services, publishOnly);
         }
 
-        _renderCache ??= new SessionRenderCache();
+        _renderCache ??= new SessionRenderCache { Development = IsDevelopment };
         var frameWriter = _renderCache.PrepareCurrentBuffer();
         using (FrameSinkScope.Push(frameWriter))
         {

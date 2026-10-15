@@ -47,12 +47,6 @@ internal sealed class RaskTestHost : IDisposable
         // into subsequent tests in the same AppDomain. Cheap; matches the
         // existing Diff-mode reset convention.
         LiveOptions.PathBase = string.Empty;
-
-        // Same reason, and sharper: MapRask sets IsDevelopment with `??=`, so it is claimed by the FIRST
-        // host in the process and never revised. Left set, one host built with environment "Development"
-        // would decide what every later host in the run reports — and the dev-only behaviour gated on it
-        // (the error overlay, the dev error page) would then be tested against somebody else's answer.
-        LiveOptions.IsDevelopment = null;
     }
 
     public static RaskTestHost Create<TApp>(
@@ -100,10 +94,6 @@ internal sealed class RaskTestHost : IDisposable
         app.UseRouting();
         app.UseWebSockets();
         configureMiddleware?.Invoke(app);
-        // A host that names its environment claims IsDevelopment itself. Dispose clears it for the next
-        // host, but a RaskApp-built host never comes through here, and what it left behind would answer.
-        if (environment is not null)
-            LiveOptions.IsDevelopment = null;
         // The endpoint-routing overload is what a host that composes its own pipeline calls: no WebApplication.
         if (endpointRouting)
             ((Microsoft.AspNetCore.Routing.IEndpointRouteBuilder)app).MapRask<TApp>(pathBase: pathBase);
