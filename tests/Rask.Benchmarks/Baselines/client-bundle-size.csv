@@ -284,3 +284,11 @@ bundle,bytes
 rask.js,108524
 rask.wasm.js,94612
 rask-hooks.js,95256
+#
+# 2026-10-15, the time picker drawn in the browser as Flux (rask-time-list.ts; rask-focus.ts no longer reveals a hovered
+# option): rask-hooks.js +2,538, rask.js and rask.wasm.js +10 each. Measured from a Release build of the merge on main
+# f74c323eb: rask.js 108,534, rask.wasm.js 94,622, rask-hooks.js 97,794.
+bundle,bytes
+rask.js,108534
+rask.wasm.js,94622
+rask-hooks.js,97794

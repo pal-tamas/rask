@@ -51,6 +51,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " carousel carousel-controls"                               // rask-carousel
     + " scroll-to"                                                // rask-scroll
     + " switch"                                                   // rask-switch
+    + " time-list"                                                // rask-time-list
     + " phone"                                                    // rask-phone
     + " submit-keys"                                              // rask-submit
     + " grow"                                                     // rask-grow

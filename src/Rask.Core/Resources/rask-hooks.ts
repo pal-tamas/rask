@@ -34,6 +34,7 @@ import "./rask-submit.js";   // data-rask-submit-keys
 import "./rask-grow.js";     // data-rask-grow
 import "./rask-tabs.js";     // role="tablist": the arrow keys
 import "./rask-menu-keys.js"; // role="menu": the keys, the pick, focus following the cursor
+import "./rask-time-list.js"; // data-rask-time-list
 import "./rask-phone.js";    // data-rask-phone
 import "./rask-list.js";     // data-rask-list: a list of options' cursor, keys, search and open state
 import "./rask-color.js";    // data-rask-color: a colour picker's colour, keys, typing and palette

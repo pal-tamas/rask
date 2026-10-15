@@ -94,6 +94,19 @@ them until tagged releases begin.
 
 ### Performance
 
+- **`Ui.TimePicker` asks the server nothing to be opened, walked or closed.** The list's cursor, the row under
+  the pointer and whether it is open were the component's state, a round trip each; they are the browser's now
+  (`rask-time-list.ts`, `data-rask-time-list`), with Flux UI's rules measured on its live page: opening lights
+  the chosen time (or `OpenTo`, or the first) and brings it into view, the arrows walk past a time that cannot
+  be picked and stop at the ends, Enter picks, Tab closes, Home and End do nothing. Frames sent on the kit's
+  frame gate, before → after: Tab through it 3 → 0, open 1 → 0, the pointer over the open list 12–38 → 0,
+  the cursor keys 9 → 0, Escape 2 → 0, a press outside 1 → 0, a pick 3 → 1 (the page's `OnChange`). The typed
+  trigger: an hour typed over a whole time 2 → 1 and a whole time 4 → 3, each the value as Flux's field says
+  it — a first hour digit that may still become 10 or 20 is no longer said as 01; and a BOUND typed time that
+  waits now goes with the next action (`data-rask-bind-on="action"` on its hidden field) instead of a frame a
+  value. Tabbing out of a typed `Ui.DatePicker` onto a time picker cost 2 frames for the time picker's key
+  handler; it costs none. `rask-hooks.js` +2,538 bytes.
+
 - **`Ui.ColorPicker` is kept in the browser, as Flux's script keeps its own: it asks the server only for the colour.**
   Before, opening it, Tab, Escape, a press outside, every arrow and every typed character went to the server, because
   the popover's colour, its tab stop and what was being typed were C# state. Now they are the runtime's
@@ -717,6 +730,11 @@ them until tagged releases begin.
   written for it: one would re-resolve every relative URL on the page. `docs/spa.md` also says which `wwwroot`
   address a hand-wired host under a prefix should link.
 
+- **The pointer resting on a `Ui.TimePicker`'s open list no longer scrolls it.** A row the pointer lit was
+  named on the button and brought into view, which slid the next row under the resting pointer, which was lit
+  and brought into view in turn — the list crept on by itself. Flux's list never scrolls for the pointer
+  (measured), and neither does any list now: `aria-activedescendant` brings into view only an option the
+  pointer is not on.
 - **A hand-wired Web-SDK host finds `AddRask()` and `MapRask<App>()` with no `using`** (#1236). `Rask.Server`'s
   build now imports its own namespace for the project (`RaskServerUsing=false` turns it off). `[Route]` still needs
   `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC

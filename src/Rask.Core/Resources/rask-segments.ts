@@ -167,7 +167,9 @@ function value(group: Element): string | null {
         out.push(year + "-" + month + "-" + day);
     }
     if (part(group, "hour") || part(group, "minute")) {
-        if (hour < 0 || !minute) {
+        // An hour waiting for its second digit is no hour yet: "1" may still be 10. A minute's is said, as
+        // Flux says it (measured: 10:04 on the way to 10:45).
+        if (hour < 0 || !minute || typed.get(part(group, "hour")!)) {
             return null;
         }
         out.push(pad(hour) + ":" + minute);

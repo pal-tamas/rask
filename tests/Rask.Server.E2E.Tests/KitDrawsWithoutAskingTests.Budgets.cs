@@ -48,6 +48,9 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["toggle-heard: press"] = (1, "the value"),
         ["switch: flip"] = (1, "the value"),
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
+        ["time-picker: pick a time"] = (1, "the page's OnChange"),
+        ["time-picker-input: typing a part of the time"] = (1, "the value: the hour typed over 09:30 makes 10:30, as Flux's field says it"),
+        ["time-picker-input: typing a whole time"] = (3, "the value each time the parts make a new one, as Flux's field says it: 10:30, 10:04, 10:45"),
         ["toast: raise one from the page's handler"] = (1, "the page's OnClick"),
         ["toast: dismiss it by its button"] = (1, "the toast leaves the queue the server keeps"),
     };
@@ -62,8 +65,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["command: typing to filter"] = 6,
         ["command: cursor keys"] = 9,
         ["command: close by Escape"] = 2,
-        // Not the date picker's: Tab leaves it for the time picker below, whose button hears the keys in C#.
-        ["date-picker-input: focus and blur by Tab"] = 2,
         // A select that waits holds its pick for the next action, and the press that makes it is still sent —
         // alone, as drawing (data-rask-draws). Flux draws the picked option itself and sends nothing.
         ["select-bound: pick a row"] = 1,
@@ -71,14 +72,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["tabs-segmented: switch by the arrows"] = 3,
         ["tabs: switch by a press"] = 1,
         ["tabs: switch by the arrows"] = 3,
-        ["time-picker-input: typing a part of the time"] = 2,
-        ["time-picker-input: typing a whole time"] = 4,
-        ["time-picker: focus and blur by Tab"] = 3,
-        ["time-picker: open by a press"] = 1,
-        ["time-picker: cursor keys"] = 9,
-        ["time-picker: close by Escape"] = 2,
-        ["time-picker: close by a press outside"] = 1,
-        ["time-picker: pick a time"] = 3,
         ["tree: focus and blur by Tab"] = 3,
         ["tree: cursor keys"] = 9,
         ["tree: press a node"] = 1,
@@ -88,12 +81,5 @@ public abstract partial class KitDrawsWithoutAskingTests
     ///     Drawing that is still sent and whose count the BROWSER decides, on a clock that is not the page's: held
     ///     to the most it can cost, and taken out when it costs nothing. Each says why it cannot be exact.
     /// </summary>
-    private static readonly Dictionary<string, (int AtMost, string Why)> Unsteady = new(StringComparer.Ordinal)
-    {
-        // Counted between 12 and 38. A defect of the list's own, seen here: a row lit by the pointer scrolls the list.
-        ["time-picker: pointer over the open popup"] = (96,
-            "the list snaps to the row it lit, in a frame of the browser's own, which moves another row under the resting "
-            + "pointer, which is lit in turn: as many rows as the browser gets through, and the list has 96"),
-    };
-
+    private static readonly Dictionary<string, (int AtMost, string Why)> Unsteady = new(StringComparer.Ordinal);
 }
