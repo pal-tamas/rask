@@ -408,9 +408,9 @@ public abstract partial class Element : Component
     // registered it, or the member is [Required]. Only aria-required, never the native `required`, which would
     // switch the browser's own validation bubble on. Called ahead of the universal attributes, as SayInvalid,
     // and an aria-required the author wrote, typed or in a bag, is left alone.
-    private protected void SayRequired(Forms.FieldIdentifier field, ref bool said)
+    private protected void SayRequired(Forms.ExpressionAccessor.Accessor bound, ref bool said)
     {
-        var required = Forms.RaskValidation.IsRequired(field.Model.GetType(), field.FieldName);
+        var required = Forms.RaskValidation.IsRequired(bound);
         if (required && !said && AriaRequired is null && !AuthorSaysRequired())
         {
             AriaRequired = true;

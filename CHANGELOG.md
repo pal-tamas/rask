@@ -15,9 +15,52 @@ them until tagged releases begin.
   Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+- **Only the aggregate root carries the tenant: every entity under it is read through its root (#1251).** A table
+  another app made often keeps the tenant on the root only — `Chip` rows belong to a partner through their
+  `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
+  mapped. After: a child — at any depth — needs no tenant column and the app writes nothing for it; its read face,
+  an `Include` and a projection are filtered by an `EXISTS` up the path the aggregate's own collections make
+  (one per tenant-scoped parent, `OR`'d — one `Chip` type held by `Driver.Chips` and `Vehicle.Chips`, both keys
+  optional, a navigation back to each on `ChipRead`); `Tenant.Across()` lifts it; a child added, moved, changed or
+  deleted under another tenant's parent is refused, a parent the context does not hold being looked up through
+  the tenant filter; a chip taken out of its parent's collection is deleted rather than left belonging to nobody;
+  a child with no path to its root is a model error naming it. A child that keeps a `TenantId` of its own keeps
+  it, stamped from its root and refused when it disagrees. Grandchildren now get the form model their parent's
+  form holds, and are partitioned with their root. **Read your next migration:** a child that relied on the
+  shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it to keep it.
+  See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
+
+### Changed
+
+- **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
+  Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
+  index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:
+  nothing is added. A key unique across every tenant is written without it —
+  `b.HasIndex(u => u.Username).IsUnique("Foglalt.")` — and one unique within a tenant names it —
+  `b.HasIndex(u => new { u.TenantId, u.Name }).IsUnique("Foglalt.")`. The unique rule is asked, by a form bound to
+  the generated model and by the check before the save, over exactly the index's columns: within the row's tenant
+  when `TenantId` is among them, across every tenant when it is not. `HasDatabaseName`, the message and the filter
+  are kept as written, and a violation is matched by the database's index name (constraint name on PostgreSQL and
+  SQL Server, columns on SQLite). **An app that relied on the automatic prefix adds `TenantId` to its per-tenant
+  indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
+  changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Security
 
+- **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the
+  `DOCKER-USER` block in `/etc/ufw/after.rules` jumped to `ufw-user-forward`, which ufw only makes after it has
+  loaded `after.rules`, so every `ufw reload` and ufw's start at boot failed ("Chain 'ufw-user-forward' does not
+  exist", Ubuntu 26.04). The step then failed, ufw was left marked disabled (`ENABLED=no`) with no firewall
+  after the next boot, and the CLI reported nothing had been rolled back, hiding ufw's own error. After: the
+  block declares the chain itself (rules version `v2`, so a host carrying the old block gets it rewritten), a
+  ufw that was enabled before the step is enabled again if the load is refused, and ufw's message is printed.
+- **`rask deploy` hardens SSH on hosts whose provider ships its own sshd drop-in.** Before: the settings went to
+  `/etc/ssh/sshd_config.d/99-rask.conf`, which sshd reads after the provider's files and so ignores where one of
+  them sets the same keyword first — on Rackhost (`00-apiv3.conf`: password and root login on) the step failed
+  with "sshd didn't apply" and rolled itself back, leaving password login on. After: the drop-in is
+  `0-rask.conf`, which sorts ahead of `00-*`, `50-cloud-init.conf` and the rest; once it is proven applied the old
+  `99-rask.conf` is removed, and a setting that still does not apply names the files that also set it.
+- **A Production host no longer shows exception text because a Development host started first in the same process (and a Development host keeps its overlay).** Whether a toast, the error page, the overlay or a refused diff names the exception is now decided by the host whose render, handler or session it is — `AddRask` registers its `IHostEnvironment` answer in that host's own services — instead of `LiveOptions.IsDevelopment`, a process-wide flag the first host to map claimed for every host after it; that flag is now only the fallback for a host that gives no answer (a WASM app, a component rendered outside a host).
 - **A password field's value is never sent from the server to the browser, except as a clear.** Before: after the
   model's password changed, the typed text came back over the live connection as an attribute write. After: an
   `Input` of `type=password` (or `autocomplete` `current-password`/`new-password`/`one-time-code`, and a private
@@ -101,6 +144,74 @@ them until tagged releases begin.
   in full, for a `RaskApp` and for a hand-wired host.
 
 ### Added
+- **`RaskServerOptions.SignInPath`** (`Rask:Server:SignInPath`) names a sign-in page served outside the app — a
+  JWT-bearer host beside an old front end that owns `/login`, which has no cookie scheme to say so. A page whose
+  user is gone loads it, and a reloading tab is redirected to it, with `returnUrl` the page's full address. The
+  app's own `/login` page and a cookie scheme's `LoginPath` win over it.
+
+- **`RaskValidation.RegisterOptionalFields` and `RaskValidation.IsRequired(bind)`: a form says "required" per
+  place, not per type.** One nested model type can be held where it must be there and where it may be absent —
+  `Address Shipping`, `Address? Billing` — and a form asked by the type alone, so it announced `Billing.Street`
+  as required and refused the empty address a save now accepts. `RegisterOptionalFields(typeof(OrderModel),
+  property => property is "Billing")` says which properties of a model hold a part that may be left wholly
+  empty; the generated models call it, as they call `RegisterRequiredFields`. Under such a property nothing is
+  announced (`IsRequired(() => order.Billing.Street)` is false, `() => order.Shipping.Street` stays true), and
+  the rule a field's type carries is asked only about a value that was filled in; the save says what a part
+  that *was* given lacks, under the field. A control asks with the expression it is bound with —
+  `RaskValidation.IsRequired(() => order.Billing.Street)` — which is what every `Ui.*` control and a plain
+  `Input`, `Select` and `Textarea` now do. **BREAKING:** `RaskValidation.IsRequired(Type, string)` is no longer
+  public — it could only answer by the type. A control of your own that asked
+  `IsRequired(acc.Target.GetType(), acc.PropertyName)` asks `RaskValidation.IsRequired(Bind)` instead
+  ([building form controls](docs/building-form-controls.md)).
+- **`X.Create(id, model)` for an integer key the application assigns.** An `Aggregate<int>` (or any integer key)
+  whose own `Configure` says `b.Property(x => x.Id).ValueGeneratedNever()` was given the creates of a stored
+  identity — `Create(model)`, `Create(x => …)`, documented *"The key is assigned by the database"* — so every row
+  was inserted under `0` and the second one collided. It now gets what a `string` key gets: `Create(id, model)`
+  and `Create(id, x => …)`, the key first.
+
+  ```csharp
+  public static void Configure(EntityTypeBuilder<Destination> b) => b.Property(d => d.Id).ValueGeneratedNever();
+
+  await Destination.Create(model);          // before: compiles, inserts under 0   after: does not compile
+  await Destination.Create(1000, model);    // before: does not compile            after: inserted under 1000
+  ```
+
+  **BREAKING** for such an aggregate only: the key-less `Create(model)` / `Create(x => …)` are no longer
+  generated for it. An integer key nothing marks never generated is unchanged. A key given as `0` — to
+  `Create(id, …)`, or on an aggregate added through a context — is now refused at the save with the same named
+  error a `Guid` key left empty gets; it used to be inserted. The line is read from the source of the
+  aggregate's static `Configure`, as one chain from `Property(x => x.Id)`, `Property("Id")` or
+  `Property(nameof(Id))`; configured anywhere else, the key is still inserted as given and the creates stay those
+  of a stored identity. See [writing](docs/data.md#writing-create-update-delete).
+- **`Ui.Phone`: Flux UI's phone field.** `Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Phone number")` — a
+  country picked from a searchable list of flags, the number formatted as it is typed in that country's way, and
+  ONE bound `string`: E.164 (`+36301234567`) once the number is possible, the text as typed until then, as Flux's
+  is. Flux's props in C# (`Country`, `Countries`, `CountryOrder`, `Placeholder`, `Size`, `Variant`, `Label`,
+  `Description`, `Disabled`, `ReadOnly`, `Invalid`, `Name`) and the kit's binding (`Bind`/`Value`/`OnChange`/
+  `Validate`/`AfterBind`, written with the next action, or `.Live()` / `.Debounce(…)`). The engine is the one Flux
+  runs, intl-tel-input 29.2.3 with its libphonenumber utils, so its formatting quirks are Flux's too; it is held to
+  Flux's live page key by key (`UiPhoneTests`), as loaded and with its list open (`parity.mjs phone`,
+  `parity-phone.mjs`). Typing, formatting and the whole list are the browser's: they send the server nothing. The
+  engine is two files every app's build writes to `wwwroot/js` (`rask-ui-phone.js`, 21 KB gzipped, and
+  `rask-ui-phone-utils.js`, 61 KB), fetched by the runtime's new `data-rask-phone` hook only on a page that draws
+  a phone field; `<RaskUiPhoneEngine>false</RaskUiPhoneEngine>` opts an app out. Third-party notices ship beside
+  them in `rask-ui-phone.LICENSES.txt`: intl-tel-input (MIT, Copyright (c) 2014-2016 Jack O'Connor) and the
+  utils' libphonenumber and Closure Library code (Apache-2.0, The Libphonenumber Authors / The Closure Library
+  Authors). New string key `PhoneChangeCountry` ("Change country"; Hungarian "Ország módosítása").
+- **The flag drawings come with the phone engine.** `RaskUiWriteFlags` left unset now follows it: an app that gets
+  the phone engine gets `wwwroot/flags` too (172 KB on disk, a request per flag drawn). `true` still asks for them
+  on a host without the engine, and `false` now says none.
+
+- **`Ui.Composer` — Flux UI's composer, a message box for a chat or a prompt.** Before: a chat box was a
+  `Ui.Textarea` and buttons laid out by hand, and sending it took a press on the button. After:
+  `Form.Model(chat).OnSubmit(Send)[Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly()
+  .ActionsLeading(…).ActionsTrailing(Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane))]`
+  — every prop and slot of Flux's (`Rows`, `MaxRows`, `Inline`, `Submit` (`.Enter`), `Variant`, `Disabled`,
+  `Invalid`, `Name`, `Header`, `Footer`, `Input`, `ActionsLeading`, `ActionsTrailing`, `LabelSrOnly`,
+  `DescriptionSrOnly`), held to fluxui.dev's nine examples in light and dark. Ctrl/Cmd+Enter (or Enter) sends the
+  form in the browser with what was typed, the box grows a line at a time to `MaxRows`, and typing sends nothing;
+  a `Ui.Editor` in `Input` stands in for the box. Two runtime hooks come with it, `data-rask-submit-keys` and
+  `data-rask-grow`.
 
 - **Jobs run in lanes: `Jobs.Enqueue(new SendChips(pump.Id)).InLane(pump.Id)`.** Before: the processor ran one
   job at a time, so a ten-minute job held up every other job in the app - a pump being programmed stopped the
@@ -287,6 +398,54 @@ them until tagged releases begin.
   date"), and the Hungarian "Select date" reads "Dátum kiválasztása" (was "Kiválasztás"). New kit strings:
   `DatePickerConfirmRange`, `DatePickerPresetsPlaceholder`. Flux's time picker is the same control under
   640 px — only its trigger is 16px text and 12rem there — and is not changed here.
+- **BREAKING: the model is the truth — a nested value-object model is stored as it stands, never merged over the
+  row.** `Update(id, model)` built a value object of several values member by member as *the model's value, else
+  the stored one*, so a field the reader emptied kept what it had: `model.Address.Floor = null` left the floor in
+  the row, and nothing a form could post cleared it. A property of the aggregate itself has long behaved the
+  other way. Both now follow one rule, at every level of nesting, for `Update` and for `Create`:
+
+  ```csharp
+  var model = (await Customer.Model(id))!;      // Address: Street "1 Quay", Floor "2", Door 7
+  model.Address!.Floor = null;
+  await Customer.Update(id, model);
+  // before: Address_Floor stays '2'            after: Address_Floor is NULL
+
+  await Customer.Update(id, new CustomerModel { Name = "Ada", Address = new() { Door = 9 } });
+  // before: Door 9, Street and Floor kept      after: refused — "Address.Street": This field is required.
+  ```
+
+  - a member the value object declares nullable (`string? Floor`, `int? Door`, `Zip? Old`) is stored as `NULL`
+    when the model holds nothing for it;
+  - a member it declares non-nullable (`string Street`, `int Zone`, a one-value value object with no rule, a
+    value object of several values) is **required by its type**: the write throws `RaskValidationException`
+    with *This field is required.* under the field's path (`Address.Street`, `Address.Berth.Dock`) and writes
+    nothing, and a control bound to it says `aria-required="true"`. Text that is `''` or white space counts as
+    unfilled there, as it does for a root property — declare the member `string?` where a table holds empty text;
+  - `model.Address = null` for a value object that is not nullable is refused under `Address`; it used to leave
+    the stored one alone. For a nullable one it clears every column, as before;
+  - a create no longer fills a member the model leaves empty from the default the aggregate's initializer gave
+    the value object (`new(0m, "EUR")`): `new ProductModel()` already holds those defaults, a nested model built
+    by hand does not;
+  - the validation attributes on a value object's own properties (`[Range(1, 9)] int Zone`) are now checked by
+    `Create(model)` and `Update(id, model)`, under the nested path — they were copied to the nested model and
+    checked by a form only;
+  - an update that changes nothing still writes nothing: text stored as `''` stays `''`.
+
+  - **an optional value object whose nested model is left wholly empty was not given.** For `Address? Billing`,
+    a form has to hold a nested model to bind to, so nothing typed arrives as a model that is there and empty:
+    it is stored as `null` — every column `NULL` — and none of its fields is asked for, on `Create` and `Update`,
+    at every level. *Empty* is: every member `null`, text that is `""` or white space, `false` (a box nobody
+    ticked — one ticked and unticked again writes `false`), or a nested model that is itself empty; `0` and
+    every other value count as filled. One filled member makes it given, and the required rules apply
+    (`Billing.Street`). A value object that is not nullable is unchanged: empty is refused. And a save that
+    changes nothing writes nothing: when what the row holds there is empty by the same rule, the row is left
+    exactly as it is — `''` stays `''` — and the columns are cleared only when something stored was a value.
+
+  **Migrating:** a model is not a patch. Code that sent a nested model with only some members set starts from
+  the stored one (`(await Customer.Model(id))!`, then change what changes) or says the change directly
+  (`Customer.Update(id, c => c.MoveTo(address))`). The same holds for an element of a value collection, which
+  was already replaced whole: a nullable one-value value object inside it is now `null` when unfilled, not one
+  built around `null`. See [how a form save writes](docs/data.md#how-a-form-save-writes).
 - **BREAKING: a one-value struct value object held as `T?` is a value object, and optional.** An aggregate
   property like `public NormPercent? Discount { get; private set; }` over
   `readonly record struct NormPercent(decimal Value)` was not seen as a value object at all: the form model
@@ -401,6 +560,21 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
+  `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
+  `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised
+  and its message never shown. After: the prefixed index keeps its name and everything else it was told (a filter
+  included), and on SQLite a database index held without the `TenantId` is recognised by its other columns.
+- **A computed get-only property of a struct or record type no longer stops the app at startup.** Before: `public SupplyKind Kind => …;` (a `record struct`) was mapped by EF Core as a complex property and the model failed with "No backing field could be found for property 'Supply.Kind' and the property does not have a setter", although `docs/data.md` says computed properties are dropped. After: a get-only property with no backing field is left out of the model, as the docs say.
+- **A key that points at its own table gets its join on the read face.** Before: `Supply.SumSupplyId` (an `int?` on `Supply` itself) stayed a plain column, so `s.SumSupply.Number` was not there and an app read the other row with a second query and could not sort by it. After: an id whose name ENDS in its own aggregate's name (`SumSupplyId`, `ParentCategoryId`) is a navigation to another row of the table (`.OrderBy(s => s.SumSupply!.Number)`). An id named exactly like its own type (`CategoryId` on `Category`) is still the row's own id, a column.
+- **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.
+- **A page whose user is gone reaches a sign-in page the app does not have.** An app with no page at `/login` —
+  one mounted with `MapRask<App>(pathBase: "/uj")` beside a site that owns `/login` — sent an open page there in
+  place, into its own router, which showed its not-found page. It now goes where the host's authentication names
+  the sign-in page — the default challenge scheme's cookie `LoginPath` — as a page load, with the page's full
+  address as the way back (`/login?ReturnUrl=%2Fuj%2Fdestinations…`); a reloading tab is redirected there too. With
+  no page of its own and no login path named, the open page stays where it is, drawn for nobody, and a reloading
+  tab is served its page, as before. An app with its own sign-in page still shows it in place.
 - **A tenant column kept as text is read the way it is written.** Before: an aggregate that declared
   `public Guid? TenantId` and mapped it to a text column (`.HasConversion<string>()`, a name an existing table
   has) wrote and filtered its own rows by that text, but a READ through the generated read face
@@ -449,6 +623,7 @@ them until tagged releases begin.
   `using Rask.Core.Routing;` in the page file — importing it project-wide would break an existing app's MVC
   `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
 
+- A form that is submitting takes no second submit, as Livewire's `wire:submit` does: its submit buttons are disabled and its fields made readonly at the press, until the server (or .NET in WebAssembly) is done with it, so a fast double click or a second Enter no longer runs a non-repeatable `OnSubmit` twice
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
@@ -477,6 +652,9 @@ them until tagged releases begin.
   stayed up for good. The presses now go one at a time: the next toast due is pressed once the render that took
   the last one off the page has landed, and its control (and the handler id on it) is read from that page. A
   press that never takes its toast away holds the rest back for 2 s at most.
+- **A handler that awaits two browser calls off its context no longer hangs over a slow line (Server host).**
+  Once a handler's 150 ms repaint had gone, a call awaited with `ConfigureAwait(false)` — as every `Rask.Ui`
+  handler awaits its calls — was never sent, and the session waited on it for good.
 - **A value chosen in a control the kit draws makes a `ConfirmLeave` form unsaved.** Picking an option of a
   `Ui.Select` listbox and following a link asked nothing, and on an edit form a changed pick was lost without
   a question: the guard counts the browser's `input` and `change`, and a drawn list raises neither — its pick

@@ -291,6 +291,10 @@ public static partial class RaskEndpointExtensions
     private static void AddSessionServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
     {
         services.AddSingleton<RaskLiveMarker>();
+
+        // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
+        // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
+        services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
         services.AddScoped<ServerPageResponse>();
@@ -479,11 +483,6 @@ public static partial class RaskEndpointExtensions
         // true/false was already set (via AddRask or directly): minify outside Development, and keep it
         // readable + hot-reloadable in Development.
         LiveOptions.MinifyScopedAssets ??= !environment.IsDevelopment();
-
-        // Same idea, and the reason it is here rather than in Core: the host knows the answer, and every
-        // way of selecting Development that ISN'T an environment variable — --environment, appsettings,
-        // an IDE profile — used to give you the production error page while developing (#605).
-        LiveOptions.IsDevelopment ??= environment.IsDevelopment();
     }
 
     /// <summary>
@@ -604,7 +603,7 @@ public static partial class RaskEndpointExtensions
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
 
-        if (SentToSignIn(httpContext, path, user, pathBaseNormalized, selector))
+        if (await SentToSignInAsync(httpContext, path, user, pathBaseNormalized, selector).ConfigureAwait(false))
         {
             return;
         }
@@ -2445,6 +2444,12 @@ public static partial class RaskEndpointExtensions
         session.InHandlerScope = true;
         try
         {
+            if (redirect.AsPage)
+            {
+                await LeaveForAsync(session, redirect).ConfigureAwait(false);
+                return;
+            }
+
             // The page the guard sends to may send the reader on in turn, as any page reached in place may.
             var navigator = session.Services.GetRequiredService<Navigator>();
             using var navigating = navigator.EnterHandler();
@@ -3210,6 +3215,7 @@ public static partial class RaskEndpointExtensions
     {
         session.Services.GetRequiredService<RouteState>().Table = selector.TableFor(path);
         session.OwnsPath = other => selector.SameApplication(path, other);
+        session.SignInRoutes = selector.TableFor(RouteAuthorizationGuard.ChallengePath);
     }
 
     // When the session's route has moved to a path another application on this host owns, tells the client to
@@ -3567,9 +3573,15 @@ public static partial class RaskEndpointExtensions
                 return;
             }
 
-            if (await RedirectUnauthorizedRouteAsync(session).ConfigureAwait(false) is { } guardUrl)
+            if (await RedirectUnauthorizedRouteAsync(session).ConfigureAwait(false) is { } redirect)
             {
-                historyUrl = guardUrl;
+                if (redirect.AsPage)
+                {
+                    await LeaveForAsync(session, redirect).ConfigureAwait(false);
+                    return;
+                }
+
+                historyUrl = redirect.Url;
                 replace = true;
             }
         }
@@ -3631,9 +3643,9 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    // Points the session's route at the guard's redirect when its principal may not see the page it is on,
-    // and returns the URL the address bar should then show; null when the page is allowed.
-    private static async Task<string?> RedirectUnauthorizedRouteAsync(LiveSession session)
+    // Points the session's route at the guard's redirect when its principal may not see the page it is on; null
+    // when the page is allowed. One outside the app moves nothing: the browser loads it as a page.
+    private static async Task<GuardRedirect?> RedirectUnauthorizedRouteAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
         if (await GuardRouteAsync(session, routeState.Path, routeState.Query).ConfigureAwait(false) is not { } redirect)
@@ -3641,20 +3653,33 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        redirect.ApplyTo(routeState);
-        return redirect.Url;
+        if (!redirect.AsPage)
+        {
+            redirect.ApplyTo(routeState);
+        }
+
+        return redirect;
+    }
+
+    // Sends the browser to a guard's redirect the app has no page for, in place of the page it is on. Nothing more is
+    // rendered for this one: the reader is on their way out of it.
+    private static async Task LeaveForAsync(LiveSession session, GuardRedirect redirect)
+    {
+        await session.SendOutOfBandAsync(LocationFrame(LocalUrl.Sanitize(redirect.Url), replace: true, redirect.Outside))
+            .ConfigureAwait(false);
+        session.DiscardPendingRender();
     }
 
     // Where the guard sends the session's principal instead of a route; null when it may see the page (or the
     // path resolves to nothing — a NotFound page has nothing to gate). Moves nothing: moving the route asks
     // for a render, so a caller has to know the answer before it moves it. A session whose sign-in ended is sent
-    // to the sign-in page whatever the page, once (SignInAgain).
+    // to the sign-in page whatever the page, once (SignInAgainAsync).
     private static async Task<GuardRedirect?> GuardRouteAsync(
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
-        if (session.SignInEnded)
+        if (session.SignInEnded && await SignInAgainAsync(session, path, query).ConfigureAwait(false) is { } signIn)
         {
-            return SignInAgain(session, path, query);
+            return signIn;
         }
 
         var routeState = session.Services.GetRequiredService<RouteState>();
@@ -3678,7 +3703,9 @@ public static partial class RaskEndpointExtensions
         };
     }
 
-    private readonly record struct GuardRedirect(string Path, string Query)
+    // AsPage: an address this application does not render, loaded as a page rather than routed — another
+    // application's on this mapping, or (Outside) the host site's beside it, its address used as written.
+    private readonly record struct GuardRedirect(string Path, string Query, bool AsPage = false, bool Outside = false)
     {
         public string Url => Path + Query;
 

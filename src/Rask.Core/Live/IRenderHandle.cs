@@ -30,6 +30,9 @@ public interface IRenderHandle
     /// </summary>
     internal TimeSpan HandlerRepaintBudget => TimeSpan.Zero;
 
+    /// <summary>Whether this session's host runs in Development; a handle with no host of its own asks the work in progress.</summary>
+    internal bool IsDevelopment => HostMode.IsDevelopmentInScope;
+
     /// <summary>
     ///     Runs work that arrived from the browser outside an event (a scoped script's callback) in order with the
     ///     session's event handlers. The Server session queues it on its handler chain; a single-threaded host runs it.

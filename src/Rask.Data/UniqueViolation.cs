@@ -75,7 +75,11 @@ internal static class UniqueViolation
         if (marker >= 0)
         {
             var columns = SqliteColumns(provider.Message, marker + SqliteMarker.Length);
-            return candidates.Find(index => string.Equals(ColumnsOf(index), columns, StringComparison.Ordinal));
+
+            // Then without the tenant Rask put in front: a table that already existed may hold the index as the
+            // app declared it, and SQLite names the columns it has rather than the index the model has.
+            return candidates.Find(index => string.Equals(ColumnsOf(index, tenant: true), columns, StringComparison.Ordinal)) ??
+                   candidates.Find(index => string.Equals(ColumnsOf(index, tenant: false), columns, StringComparison.Ordinal));
         }
 
         // The first quoted identifier that is one of OUR index names. The object and the index are named before
@@ -101,14 +105,16 @@ internal static class UniqueViolation
         return end < 0 ? message[start..] : message[start..end];
     }
 
-    private static string ColumnsOf(IIndex index)
+    private static string ColumnsOf(IIndex index, bool tenant)
     {
         var table = index.DeclaringEntityType.GetTableName();
         var store = StoreObjectIdentifier.Create(index.DeclaringEntityType, StoreObjectType.Table);
 
         return string.Join(
             ", ",
-            index.Properties.Select(p => $"{table}.{(store is { } at ? p.GetColumnName(at) : p.GetColumnName())}"));
+            index.Properties
+                .Where(p => tenant || !string.Equals(p.Name, Columns.TenantId, StringComparison.Ordinal))
+                .Select(p => $"{table}.{(store is { } at ? p.GetColumnName(at) : p.GetColumnName())}"));
     }
 
     /// <summary>

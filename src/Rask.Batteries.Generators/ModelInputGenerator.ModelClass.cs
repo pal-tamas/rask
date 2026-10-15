@@ -48,6 +48,7 @@ public sealed partial class ModelInputGenerator
         var plumbingMark = s.Length;
         AppendValidate(s, entity);
         AppendApply(s, entity);
+        AppendEmptyChecks(s, entity);
         AppendFill(s, entity);
         AppendToModelByName(s, entity);
 
@@ -302,8 +303,9 @@ public sealed partial class ModelInputGenerator
 
     // ---- plumbing ----
     // A model save writes what the form holds. A null clears a property the aggregate declares nullable — the user
-    // emptied that field; a non-nullable scalar cannot be null here, since __Validate has refused the model first. A
-    // nested value-object model merges what it gives over the value object the aggregate holds.
+    // emptied that field; a non-nullable one cannot be null here, since __Validate has refused the model first. A
+    // nested value-object model is the whole value object: what it leaves empty is stored empty, never kept —
+    // and one the aggregate may be without, left wholly empty, was not given at all.
 
     private static void AppendApply(StringBuilder s, Entity entity)
     {
@@ -320,10 +322,12 @@ public sealed partial class ModelInputGenerator
             {
                 null => given,
                 { SingleValue: true } single => BuildExpression(single, _ => given),
-                { } valueObject => MergeExpression(given, "entity." + member.Name, valueObject, member.Nullable, ref local),
+                { } valueObject => FromModelExpression(
+                    given, valueObject, ref local, stored: "entity." + member.Name, storedMayBeNull: member.Nullable || !valueObject.IsValueType),
             };
 
-            s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given).AppendLine(")");
+            s.Append("        if (model.").Append(member.Name).Append(" is { } ").Append(given)
+                .Append(member.ValueObject is { } held ? AndNotEmpty(given, held, member.Nullable) : "").AppendLine(")");
             s.AppendLine("        {");
             s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, value));
             s.AppendLine("        }");
@@ -332,7 +336,9 @@ public sealed partial class ModelInputGenerator
             {
                 s.AppendLine("        else");
                 s.AppendLine("        {");
-                s.Append("            ").AppendLine(Assignment(member.Write!, "entity", member.Name, "null"));
+                s.Append("            ").AppendLine(Assignment(
+                    member.Write!, "entity", member.Name,
+                    member.ValueObject is { SingleValue: false } absent ? KeptMethod(absent) + "(entity." + member.Name + ")" : "null"));
                 s.AppendLine("        }");
             }
         }
@@ -538,6 +544,7 @@ public sealed partial class ModelInputGenerator
 
     // Not for a key the store generates: an explicit value in an identity column is refused on SQL Server
     // (IDENTITY_INSERT is off) and, on PostgreSQL, accepted without moving the sequence — which then collides.
+    // An integer key the aggregate's Configure marks never generated is the caller's, and gets these alone.
     private static bool CreateWithId(Entity entity) =>
         entity.Constructible && entity.IdTypeName is not null && entity.KeyWrite is not null &&
         entity.KeySource != KeySource.Store;

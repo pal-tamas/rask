@@ -594,4 +594,7 @@ public enum RaskString
 
     /// <summary>The accessible name of one indicator of a carousel: the slide it shows.</summary>
     CarouselShowSlide,
+
+    /// <summary>The accessible name of a phone field's country button, before the country it shows.</summary>
+    PhoneChangeCountry,
 }

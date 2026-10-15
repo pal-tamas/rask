@@ -423,7 +423,7 @@ True of the scripts wherever they run — a CI job or your terminal.
   modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
 - **Benchmarks — `scripts/run-benchmarks-local.sh`** (CI, every push). Checks both wire-byte baselines —
   the standalone codec and the head-to-head against Blazor — byte-for-byte, holds a live update to its
-  allocation budget (`Baselines/allocation-budget.csv`, +5%; measured with
+  allocation budget (`Baselines/allocation-budget.csv`, exact; measured with
   `DOTNET_TieredCompilation=0 DOTNET_TieredPGO=0`, which the script sets on that one process, so the count
   is the same on every run), and smoke-runs the three
   live-session capacity reports; `session-churn --smoke` asserts that 100 create→dispose cycles leave

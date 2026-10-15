@@ -72,6 +72,7 @@ function srcPath(script: HTMLScriptElement): string {
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
 import {runtimeOwnsAttr} from "./rask-loading.js";
 import {keepsOpen, ownsAttr, ownsChecked} from "./rask-owned.js";
+import {noteRendered} from "./rask-submitting.js";
 
 // An attribute the BROWSER wrote, and a render never will, so a render that does not carry it says nothing
 // about it. `open` on a dialog shown with showModal() — an invoker command, Ui.Modal's popover path — is the
@@ -562,6 +563,9 @@ export function morph(fromNode: Node, toNode: Node): void {
     const valueBefore = from.tagName === "INPUT" ? from.getAttribute("value")
         : from.tagName === "TEXTAREA" ? from.getAttribute("value") ?? from.textContent : null;
 
+    // A submitting form's controls stay disabled and readonly until it is done; what this render says of them
+    // is what they get then (rask-submitting.ts).
+    noteRendered(from, to);
     const fa = from.attributes, ta = to.attributes;
     // Reverse walk: removeAttribute mutates the live `fa` NamedNodeMap, so iterate
     // by index from the end to keep the unvisited slots stable.

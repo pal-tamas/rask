@@ -181,7 +181,7 @@ internal static class PageBinder
             return true;
         }
 
-        if (LiveOptions.IsDevelopment == true)
+        if (HostMode.IsDevelopmentInScope)
         {
             SayIgnored(page.GetType(), property);
         }

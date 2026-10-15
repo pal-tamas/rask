@@ -206,6 +206,27 @@ public class ReadModelGeneratorTests
         Assert.DoesNotContain("CategoryRead Category {", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void An_id_that_ends_in_its_own_aggregates_name_is_a_join_to_another_row_of_the_table()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Supply : Aggregate<int>
+            {
+                private Supply() { }
+                public int? SumSupplyId { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop_SupplyRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("public int? SumSupplyId { get; init; }", source, StringComparison.Ordinal);
+        Assert.Contains("SupplyRead? SumSupply { get; init; }", source, StringComparison.Ordinal);
+    }
+
     // Three ways an entity can stand to the tenant column: partitioned and silent (a shadow column),
     // partitioned and reading it, and not partitioned at all but keeping a tenant as data of its own.
     private const string Tenants = """

@@ -21,6 +21,9 @@
       (Microsoft.NET.Sdk.Web); this is a test library that hosts Kestrel itself, so it says it is such a host.
     -->
     <RaskUiEditorEngine>true</RaskUiEditorEngine>
+    <!-- UiPhoneTests draws a Ui.Phone, for the same reason; its flags are not drawn by any test. -->
+    <RaskUiPhoneEngine>true</RaskUiPhoneEngine>
+    <RaskUiWriteFlags>false</RaskUiWriteFlags>
   </PropertyGroup>
 
   <!--
@@ -30,6 +33,9 @@
   <ItemGroup>
     <None Include="wwwroot\js\rask-ui-editor.js" CopyToOutputDirectory="PreserveNewest"/>
     <None Include="wwwroot\js\rask-ui-editor.LICENSES.txt" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="wwwroot\js\rask-ui-phone.js" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="wwwroot\js\rask-ui-phone-utils.js" CopyToOutputDirectory="PreserveNewest"/>
+    <None Include="wwwroot\js\rask-ui-phone.LICENSES.txt" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>
 
   <ItemGroup>

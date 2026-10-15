@@ -543,6 +543,7 @@ they say when you set nothing.
 | `CarouselNext` | Carousel | `Next slide` |
 | `CarouselIndicators` | Carousel | `Choose slide to display` |
 | `CarouselShowSlide` | Carousel | `Show slide {0}` |
+| `PhoneChangeCountry` | Phone | `Change country` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

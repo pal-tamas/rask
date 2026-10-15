@@ -26,7 +26,7 @@ whole story — the script exists for the case where you don't.
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | installed if missing; `rask db` updates it when it is older than the EF Core runtime the app uses, rather than letting every command open with a version notice |
 | **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
-| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | [islands](islands.md) (`rask new --islands react\|vue\|svelte\|…`): their build bundles them, and `rask dev` serves them from Vite. Also the front-end templates (`react`, `vue`, `angular`, …), whose client npm builds. Only at build time — a published app does not run Node. | left alone if `node --version` is ≥ 24.21 (the newest Active LTS release; an app builds on 24.11 or later) |
+| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | [islands](islands.md) (`rask new --islands react\|vue\|svelte\|…`): their build bundles them, and `rask dev` serves them from Vite. Also the front-end templates (`react`, `vue`, `angular`, …), whose client npm builds. Only at build time — a published app does not run Node. | left alone if `node --version` is ≥ 24.22 (the newest Active LTS release; an app builds on 24.11 or later) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
 Docker is deliberately not installed. Putting a container runtime on someone's workstation is a big,
@@ -80,7 +80,7 @@ Every path is overridable from the environment, on both scripts:
 | `RASK_INSTALL_DOTNET_CHANNEL` | `10.0` | `10.0` |
 | `RASK_INSTALL_DOTNET_MAJOR` | `10` | `10` |
 | `RASK_INSTALL_DOTNET_QUALITY` | *(unset)* | *(unset)* |
-| `RASK_INSTALL_NODE_MIN` | `24.21.0` | `24.21.0` |
+| `RASK_INSTALL_NODE_MIN` | `24.22.0` | `24.22.0` |
 | `RASK_INSTALL_PACKAGE` | `Rask.Cli` | `Rask.Cli` |
 
 `RASK_INSTALL_DOTNET_QUALITY` is passed to Microsoft's `dotnet-install` only when you set it, because a

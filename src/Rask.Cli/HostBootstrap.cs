@@ -20,8 +20,16 @@ internal static class HostBootstrap
     /// <summary>The sentinel whose presence tells the guard the client got back in. On tmpfs — a reboot clears it.</summary>
     internal const string GuardSentinel = "/run/rask-setup-ok";
 
-    /// <summary>Our sshd drop-in. A separate file so the guard can undo hardening with a single <c>rm</c>.</summary>
-    internal const string SshDropIn = "/etc/ssh/sshd_config.d/99-rask.conf";
+    /// <summary>
+    /// Our sshd drop-in. A separate file so the guard can undo hardening with a single <c>rm</c>. sshd keeps
+    /// the FIRST value it reads for a keyword and reads the directory in byte order, so the name has to sort
+    /// ahead of the providers' own files — Rackhost ships <c>00-apiv3.conf</c> with password and root login
+    /// on, cloud-init <c>50-cloud-init.conf</c>. <c>-</c> sorts before every digit, so <c>0-</c> goes first.
+    /// </summary>
+    internal const string SshDropIn = "/etc/ssh/sshd_config.d/0-rask.conf";
+
+    /// <summary>Where the drop-in used to live, sorted last and so overridden by any provider file. Removed once ours applies.</summary>
+    internal const string LegacySshDropIn = "/etc/ssh/sshd_config.d/99-rask.conf";
 
     /// <summary>How long the guard waits before assuming we're locked out and reverting.</summary>
     internal const string GuardDelay = "5min";
@@ -48,8 +56,10 @@ internal static class HostBootstrap
     /// <summary>
     /// Bumped whenever the rules inside the block change, so an existing block is recognised as stale
     /// even when it allows the same ports. It's the first half of the signature the probe reads back.
+    /// v2: the block declares <c>ufw-user-forward</c> itself — a v1 block jumped to it before ufw had made it,
+    /// so every later <c>ufw reload</c>, and ufw's start at boot, failed.
     /// </summary>
-    internal const string RulesVersion = "v1";
+    internal const string RulesVersion = "v2";
 
     /// <summary>
     /// Build the plan. Order within <see cref="BootstrapPlan.Preparation"/> and
@@ -381,6 +391,8 @@ internal static class HostBootstrap
         set -e
         [ -f {{AfterRules}} ] || { echo "rask: {{AfterRules}} is missing, so there is no ufw to put Docker's published ports behind" >&2; exit 1; }
         cp {{AfterRules}} {{AfterRules}}.rask-bak
+        was_enabled=no
+        if grep -qx 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then was_enabled=yes; fi
         awk '/^{{BlockBegin}}/{skip=1} skip!=1{print} /^{{BlockEnd}}/{skip=0}' {{AfterRules}}.rask-bak > {{AfterRules}}.rask-new
         cat >> {{AfterRules}}.rask-new <<'RASK_RULES'
         {{BlockBegin}} {{signature}} managed by rask deploy; this block is rewritten whenever it goes stale
@@ -390,6 +402,10 @@ internal static class HostBootstrap
         *filter
         :DOCKER-USER - [0:0]
         :{{DockerChain}} - [0:0]
+        # ufw loads before.rules, then after.rules, and only then makes its user chains and loads user.rules
+        # into them, so the jump below would name a chain that does not exist yet and fail the whole load:
+        # every reload, and ufw's start at boot. Declared here it exists, empty; user.rules fills it next.
+        :ufw-user-forward - [0:0]
         -F DOCKER-USER
         -F {{DockerChain}}
         # ufw's own forward rules first, so `ufw route allow ...` is how you open another container port.
@@ -412,10 +428,14 @@ internal static class HostBootstrap
         RASK_RULES
         chmod 640 {{AfterRules}}.rask-new
         mv {{AfterRules}}.rask-new {{AfterRules}}
-        if ! ufw reload >/dev/null 2>&1; then
+        if ! out="$(ufw reload 2>&1)"; then
           mv {{AfterRules}}.rask-bak {{AfterRules}}
-          ufw reload >/dev/null 2>&1 || true
-          echo "rask: ufw wouldn't load the Docker rules — {{AfterRules}} has been put back as it was" >&2
+          # A start ufw could not finish leaves it marked disabled (ENABLED=no), and a disabled ufw skips a
+          # reload. So a ufw that was on before this step is enabled again, which loads the restored file AND
+          # keeps the firewall on at the next boot; one that was off stays off.
+          if [ "$was_enabled" = yes ]; then ufw --force enable >/dev/null 2>&1 || true; else ufw reload >/dev/null 2>&1 || true; fi
+          echo "rask: ufw wouldn't load the Docker rules — {{AfterRules}} has been put back as it was. ufw said:" >&2
+          echo "$out" >&2
           exit 1
         fi
         rm -f {{AfterRules}}.rask-bak
@@ -463,8 +483,7 @@ internal static class HostBootstrap
     private static string HardenScript(IReadOnlyList<string> settings)
     {
         var lines = string.Concat(settings.Select(s => s + "\\n"));
-        var checks = string.Join('\n', settings.Select(s =>
-            $"sshd -T | grep -qix '{s}' || {{ echo \"rask: sshd didn't apply '{s}'\" >&2; exit 1; }}"));
+        var checks = string.Join('\n', settings.Select(CheckApplied));
 
         return $$"""
             set -e
@@ -474,7 +493,19 @@ internal static class HostBootstrap
             sshd -t || { rm -f {{SshDropIn}}; echo "rask: refusing to reload sshd with a config it rejects" >&2; exit 1; }
             systemctl reload ssh 2>/dev/null || systemctl reload sshd
             {{checks}}
+            rm -f {{LegacySshDropIn}}
             """;
+    }
+
+    /// <summary>
+    /// Prove sshd took <paramref name="setting"/>; when it didn't, name the files that set the keyword, so the
+    /// person can see which one wins instead of being told only that something did.
+    /// </summary>
+    private static string CheckApplied(string setting)
+    {
+        var keyword = setting.Split(' ')[0];
+        return $"sshd -T | grep -qix '{setting}' || {{ echo \"rask: sshd didn't apply '{setting}'; '{keyword}' is also set in: "
+            + $"$(grep -ilE '^[[:space:]]*{keyword}[[:space:]]' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | grep -v {SshDropIn} | tr '\\n' ' ')\" >&2; exit 1; }}";
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────────────────────────

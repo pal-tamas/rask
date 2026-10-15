@@ -47,6 +47,12 @@ internal static class ShellBodyRepair
         }
 
         document.Children = WrapAfterHead(children, head);
+        ReportWrapped(app);
+        return document;
+    }
+
+    // Its own method: a lambda capturing a parameter of Ensure would allocate its closure on every render, at entry.
+    private static void ReportWrapped(Type app) =>
         RaskDiagnostics.ReportOnce(
             "shell-no-body:" + app.FullName,
             RaskLogLevel.Warning,
@@ -55,8 +61,6 @@ internal static class ShellBodyRepair
                   + "wrapped everything after the head in one. Without a <body> the live runtime <script> and the "
                   + "session id are never written, and the page cannot connect. The `body` parameter is the app's "
                   + "content, not the element: write Html[head, Body[body]].");
-        return document;
-    }
 
     /// <summary>Reports, once, a live document that closed its <c>&lt;html&gt;</c> without writing a body.</summary>
     internal static void ReportNoBodyWritten() =>
@@ -86,10 +90,11 @@ internal static class ShellBodyRepair
 
     private static Placement Place(IReadOnlyList<Component?> children, Component head, Component body)
     {
+        // Indexed, not foreach: this runs on every render, and enumerating the interface boxes an enumerator.
         var placement = Placement.Absent;
-        foreach (var child in children)
+        for (var i = 0; i < children.Count; i++)
         {
-            var found = PlaceChild(child, head, body);
+            var found = PlaceChild(children[i], head, body);
             if (found is Placement.InBody or Placement.Unknown)
             {
                 return found;

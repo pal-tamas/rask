@@ -11,7 +11,29 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiRequiredFieldTests : global::Rask.Core.RaskMarkup
 {
-    static UiRequiredFieldTests() => RaskValidation.RegisterRequiredFields(typeof(Trip), Trip.IsRequired);
+    static UiRequiredFieldTests()
+    {
+        RaskValidation.RegisterRequiredFields(typeof(Trip), Trip.IsRequired);
+        RaskValidation.RegisterRequiredFields(typeof(Place), Place.IsRequired);
+        RaskValidation.RegisterOptionalFields(typeof(Booking), Booking.IsOptional);
+    }
+
+    [Fact]
+    public void One_value_object_type_is_required_in_the_slot_that_must_be_there_and_not_in_the_one_that_may_be_absent()
+    {
+        var booking = new Booking { Billing = new Place() };
+
+        var page = Page.Render(() => Div[
+            Ui.Input.Bind(() => booking.Shipping.Street).Label("Ship to").Id("ship"),
+            Ui.Input.Bind(() => booking.Billing!.Street).Label("Bill to").Id("bill")
+        ]);
+
+        // The same control, bound to the same property of the same type: the slot it sits in decides.
+        Assert.True(page.Exists("input#ship[aria-required=\"true\"]"));
+        Assert.True(page.Exists("input#bill"));
+        Assert.False(page.Exists("input#bill[aria-required]"));
+        Assert.Single(page.FindAll("[aria-required]"));
+    }
 
     [Fact]
     public void A_text_input_says_aria_required_once_for_a_field_its_models_type_registered()
@@ -132,6 +154,24 @@ public partial class UiRequiredFieldTests : global::Rask.Core.RaskMarkup
         Ui.SelectOption.Value("hu")["Hungary"],
         Ui.SelectOption.Value("gb")["United Kingdom"],
     ];
+
+    // What a generator emits for a value object held both ways: the type says which of its fields must be filled,
+    // and the model that holds it says which property may be left wholly empty.
+    private sealed class Booking
+    {
+        public Place Shipping { get; set; } = new();
+
+        public Place? Billing { get; set; }
+
+        internal static bool IsOptional(string property) => property is nameof(Billing);
+    }
+
+    private sealed class Place
+    {
+        public string Street { get; set; } = "";
+
+        internal static bool IsRequired(string property) => property is nameof(Street);
+    }
 
     // What a generator emits for a model: required is said by the type, with no attribute on the member.
     private sealed class Trip

@@ -51,6 +51,9 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " carousel carousel-controls"                               // rask-carousel
     + " scroll-to"                                                // rask-scroll
     + " switch"                                                   // rask-switch
+    + " phone"                                                    // rask-phone
+    + " submit-keys"                                              // rask-submit
+    + " grow"                                                     // rask-grow
     + " list"                                                     // rask-list
     + " color"                                                    // rask-color
 ).split(" ").map(function (name) { return "data-rask-" + name; }).concat(

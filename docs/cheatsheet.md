@@ -129,7 +129,7 @@ public sealed class Product : Aggregate<Guid> { public string Name { get; privat
 // What a table carries — a const on the aggregate, each optional (Rask.Data):
 public const Deletion Deletes = Deletion.Soft;      // keep the row as DeletedAt (default: Hard — the row goes)
 public const Deletion Deletes = Deletion.None;      // never deleted: no Delete is generated
-public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId, a filter, tenant-prefixed indexes — docs/multi-tenancy.md
+public const Tenancy Scope = Tenancy.PerTenant;     // a TenantId on the root, a filter — docs/multi-tenancy.md
 
 // Who is signed in, from a static factory or anything with no constructor to inject into:
 OwnerId = Current.RequiredUserId,                   // Current.UserId is null when nobody is
