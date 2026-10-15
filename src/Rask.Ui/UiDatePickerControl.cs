@@ -22,7 +22,8 @@ namespace Rask;
 /// <para>
 /// <b>On a phone</b> — under 640 px — it is what Flux's is there: the same popup centred over a dimmed page, one
 /// month of larger days, and Cancel and a selecting button under them. A pick marks the day and writes nothing;
-/// the button writes it, and Cancel, Escape and a press outside leave the value as it was.
+/// the button writes it, and Cancel, Escape and a press outside leave the value as it was. All of that is the
+/// browser's, as it is Flux's script's (<c>rask-calendar.ts</c>): the page hears the value.
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day or a range.</typeparam>
@@ -34,30 +35,22 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         ["ui-date-picker"] = "",
     };
 
-    private static readonly Dictionary<string, string?> MarksOpen = new(Marks, StringComparer.Ordinal) { ["open"] = "" };
-
     private static readonly UiPartMarker FocusPlaceholder = new("ui-focus-placeholder");
 
-    private static readonly Dictionary<string, string?> PopupClosed = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string?> PopupMarks = new(StringComparer.Ordinal)
     {
-        ["rask-popover-open"] = "false",
         ["rask-lock"] = "",
         // Under the trigger's start, five pixels away: the runtime keeps it inside the viewport from this, and
         // leaves it to the stylesheet where that says so (the phone's sheet).
         ["rask-place"] = "bottom start 5 0",
     };
 
-    private static readonly Dictionary<string, string?> PopupOpen = new(PopupClosed, StringComparer.Ordinal) { ["rask-popover-open"] = "true" };
-
     private readonly string _popover = UiDatePickerIds.Next();
-    private readonly UiCalendarState _state = new();
     private string? _ownId;
     private (bool Held, T? Value, T? Given) _own;
-    private (bool Held, T? Value) _pending;
 
     // The typed fields the reader emptied, a bit a slot: a range is nothing chosen once both are.
     private int _emptied;
-    private bool _open;
 
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
@@ -192,11 +185,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
-    // The open state, the view month and a held choice are FIELDS, which the render cache cannot see.
+    // A choice the picker keeps itself, and the typed fields emptied, are FIELDS, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
-
-    private protected UiCalendarState State => _state;
 
     private protected string PopoverId => _popover;
 
@@ -213,9 +204,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private bool Confirms => WithConfirmation == true;
 
-    // A pick is held for the popup's button: where the picker confirms, and on a phone, where Flux's always does.
-    private bool Holds => Confirms || _state.Narrow;
-
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -223,7 +211,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         UiDatePickerModes.Check(Mode, Bound);
         var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
         var committed = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
-        var shown = _pending.Held ? _pending.Value : committed;
         var options = Options();
 
         Task Commit(T value)
@@ -233,8 +220,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             return UiFormCommit.CommitAsync(this, acc, ctx, value);
         }
 
-        Task Choose(T value) => Holds ? Hold(value) : Commit(value);
-
         var scope = new UiDatePickerScope
         {
             PopoverId = PopoverId,
@@ -243,7 +228,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Placeholder = Placeholder ?? DefaultPlaceholder,
             Culture = options.Culture,
             Text = Text(committed, options),
-            Open = _open,
             Disabled = Disabled == true,
             Invalid = field.Invalid,
             Aria = field.Aria,
@@ -253,29 +237,50 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
             FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
-            Show = () => _open = true,
+            Waits = UiDraws.Waits(this, Bind is not null),
         };
 
-        var calendar = Calendar(scope.CalendarId, options, shown, Choose, Commit);
+        var picks = Picks(committed);
+        var config = UiCalendarHook.Config(options, picks.Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder));
 
         return field.Wrap(
-            // The popup hangs under the whole picker — under both fields of a range typed into two.
+            // The popup hangs under the whole picker — under both fields of a range typed into two. Whether it is
+            // open, and what is picked in it, are the browser's (rask-calendar.ts); the page hears the choice.
             Div.Class(UiClass.Compose(UiDatePickerLook.Root, Class))
-                .Data(_open ? MarksOpen : Marks)
+                .Data(Hooked(config))
                 .Attributes(("style", "anchor-name:--" + PopoverId))[
+                Field(committed, Commit),
                 Context.Provide(scope)[Trigger ?? OwnTrigger()],
-                Popup(calendar)
+                Popup(Calendar(scope.CalendarId, options, picks, committed))
             ]);
     }
 
-    /// <inheritdoc />
-    protected override Task OnRendered() => _state.RenameAsync(StateHasChanged);
-
-    // A choice waiting for the popup's confirming button.
-    private Task Hold(T value)
+    private Dictionary<string, string?> Hooked(string config) => new(Marks, StringComparer.Ordinal)
     {
-        _pending = (true, value);
-        return Task.CompletedTask;
+        ["rask-calendar"] = config,
+        ["rask-open-mark"] = PopoverId,
+    };
+
+    // The one field the page hears the choice through, first in the picker: on change, or as it is chosen for a
+    // bound picker that says `.Live()`; bound and waiting, it goes ahead of the reader's next action. A picker
+    // that keeps its own choice hears nothing.
+    private HTMLInputElement<string> Field(T? committed, Func<T, Task> commit)
+    {
+        var field = Input.Value(Written(committed)).Type(InputType.Hidden);
+        if (Bind is null && !OnChange.HasValue)
+        {
+            return field;
+        }
+
+        Task Changed(string text) => TryRead(text, out var value) ? commit(value) : Task.CompletedTask;
+
+        if (Bind is not null && Live == true)
+        {
+            return field.OnInput(Changed);
+        }
+
+        field = field.OnChange(Changed);
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
     }
 
     // A typed field left with no date in it. Half filled is no date at all; emptied is nothing chosen — once
@@ -298,7 +303,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
     {
         _emptied = ~0;
-        _pending = default;
         return EmptyAsync(accessor, context);
     }
 
@@ -311,7 +315,13 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     }
 
     /// <summary>What "chosen" means for this picker, over the value as it stands.</summary>
-    private protected abstract UiCalendarPicks Picks(T? current, Func<T, Task> choose);
+    private protected abstract UiCalendarPicks Picks(T? current);
+
+    /// <summary>The value as the picker's field carries it (<see cref="UiCalendarValue" />).</summary>
+    private protected abstract string Written(T? value);
+
+    /// <summary>Reads what the browser announced; false for text that is no value of this picker.</summary>
+    private protected abstract bool TryRead(string text, out T value);
 
     /// <summary>What the button shows for <paramref name="current" />; nothing while it is unset.</summary>
     private protected abstract string? Text(T? current, UiCalendarOptions options);
@@ -323,33 +333,19 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private protected abstract T Typed(T? current, int slot, DateOnly date);
 
     /// <summary>What stands before the months: a range picker's preset list.</summary>
-    private protected virtual Component? Aside(T? current, UiCalendarOptions options, Func<T, Task> choose) => null;
+    private protected virtual Component? Aside(T? current, UiCalendarOptions options) => null;
 
     /// <summary>What stands under the months, over the buttons: a range picker's presets as a phone lists them.</summary>
-    private protected virtual Component? Below(T? current, UiCalendarOptions options, Func<T, Task> choose) => null;
-
-    /// <summary>A day as the button shows it: the locale's long date without its weekday, the month abbreviated.</summary>
-    private protected static string Medium(DateOnly date, CultureInfo culture)
-    {
-        var pattern = culture.DateTimeFormat.LongDatePattern
-            .Replace("dddd, ", "", StringComparison.Ordinal)
-            .Replace(", dddd", "", StringComparison.Ordinal)
-            .Replace("dddd", "", StringComparison.Ordinal)
-            .Replace("MMMM", "MMM", StringComparison.Ordinal)
-            .Trim();
-
-        return date.ToString(pattern, culture);
-    }
+    private protected virtual Component? Below(T? current, UiCalendarOptions options) => null;
 
     // The months in the popup, a range's presets before them and the confirming buttons under them.
-    private Component Calendar(string id, UiCalendarOptions options, T? shown, Func<T, Task> choose, Func<T, Task> commit) =>
+    private Component Calendar(string id, UiCalendarOptions options, UiCalendarPicks picks, T? current) =>
         UiCalendarGrid.Render(
-            options with { Id = id, InPopup = true, Closes = Holds ? null : PopoverId },
-            _state,
-            Picks(shown, choose),
+            options with { Id = id, InPopup = true },
+            picks,
             UiDatePickerLook.Calendar,
-            Aside(shown, options, choose) ?? Div.Class(UiDatePickerLook.Aside),
-            Fragment[Below(shown, options, choose), Footer(commit)],
+            Aside(current, options) ?? Div.Class(UiDatePickerLook.Aside),
+            Fragment[Below(current, options), Footer()],
             marked: false);
 
     private Component OwnTrigger() =>
@@ -360,39 +356,24 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             .Id(PopoverId)
             .Class(UiDatePickerLook.Dialog)
             .Popover(Rask.Core.Popover.Auto)
-            // The runtime shows the popup when C# says so (an arrow key on the closed button), and holds the
-            // page still behind it while it is open, as Flux does: no scroll, no pointer.
-            .Data(_open ? PopupOpen : PopupClosed)
+            // The runtime holds the page still behind it while it is open, as Flux does: no scroll, no pointer.
+            .Data(PopupMarks)
             // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
             // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
             // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
-            .Attributes(("autofocus", ""), (UiDraws.Mark, "toggle"), ("style", "position-anchor:--" + PopoverId))
-            .OnToggle(e =>
-            {
-                _open = string.Equals(e.NewState, "open", StringComparison.Ordinal);
-                if (!_open)
-                {
-                    // Reopening goes back to the chosen day's month, and a choice nobody confirmed is gone —
-                    // but not on a phone: Flux's sheet opens again with the day that was marked on it, and its
-                    // button still writes that day (measured: pick, Cancel, open, Select).
-                    _state.Forget();
-                    _pending = _state.Narrow ? _pending : default;
-                }
-            })[
+            .Attributes(("autofocus", ""), ("style", "position-anchor:--" + PopoverId))[
             Div.Class(UiDatePickerLook.FocusPlaceholder).Data(FocusPlaceholder.With(null)).TabIndex(0),
             calendar
         ];
 
     // Flux's two buttons, there in every picker and shown where a choice waits to be confirmed. The confirming
-    // click is heard on the box around the button, where Flux hears it too: both close the popup themselves.
-    private Component Footer(Func<T, Task> commit) =>
+    // press is heard on the box around the button, where Flux hears it too: both close the popup themselves.
+    private Component Footer() =>
         Div.Class(Confirms ? UiDatePickerLook.Footer : UiDatePickerLook.FooterPhone)[
             Div.Class(UiDatePickerLook.FooterButton)[
                 Ui.Button.Ghost.CommandFor(PopoverId).Command("hide-popover")[RaskStrings.Get(RaskString.DatePickerCancel, "Cancel")]
             ],
-            Div.Class(UiDatePickerLook.FooterButton).Role("button").TabIndex(0)
-                .Attributes(UiDraws.Marks(("click", UiDraws.Waits(this, Bind is not null))))
-                .OnClick(() => _pending.Held ? commit(_pending.Value!) : Task.CompletedTask)[
+            Div.Class(UiDatePickerLook.FooterButton).Role("button").TabIndex(0).Attributes(UiCalendarHook.Named("confirm"))[
                 Ui.Button.Primary.CommandFor(PopoverId).Command("hide-popover")[ConfirmLabel]
             ]
         ];
@@ -419,7 +400,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             SelectableHeader = SelectableHeader == true,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
-            PickDraws = UiDraws.Waits(this, Bind is not null),
         };
     }
 }

@@ -55,7 +55,8 @@ public sealed partial class UiDatePickerButton : Component
             ["label"] = placeholder,
             ["controls"] = scope.CalendarId,
             ["haspopup"] = "listbox",
-            ["expanded"] = scope.Open ? "true" : "false",
+            // The browser's while the popup shows (rask-toggle.ts).
+            ["expanded"] = "false",
         };
 
         var height = UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerButtonSize.Base));
@@ -69,17 +70,10 @@ public sealed partial class UiDatePickerButton : Component
             .Disabled(locked)
             .Aria(aria)
             // Enter and Space press the button, which is the browser's; the arrows open it too, as on Flux, and
-            // the runtime keeps them from scrolling the page on their way.
-            .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"), (UiDraws.Mark, "keydown"))
-            .OnKeyDown(e =>
-            {
-                if (e.Key is Keys.ArrowDown or Keys.ArrowUp)
-                {
-                    scope.Show();
-                }
-            })[
+            // the runtime keeps them from scrolling the page on their way (rask-calendar.ts opens it).
+            .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"))[
             Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
-            Div.Class(UiDatePickerLook.Selected)[
+            Div.Class(UiDatePickerLook.Selected).Attributes(UiCalendarHook.Named("text"))[
                 scope.Text is { } text ? Span[text] : Span.Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)

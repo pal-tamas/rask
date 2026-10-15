@@ -266,3 +266,12 @@ bundle,bytes
 rask.js,108217
 rask.wasm.js,94327
 rask-hooks.js,70877
+#
+# 2026-10-15, the colour picker and the calendar / date picker drawn in the browser as Flux (rask-color.ts,
+# rask-calendar.ts; rask-drag.ts place(), rask-bound.ts echoed, rask-toggle.ts dialogs): rask-hooks.js +24,379,
+# rask.js and rask.wasm.js +15 each. Measured from a Release build of the merge on main 9115c52fc+: rask.js 108,232,
+# rask.wasm.js 94,342, rask-hooks.js 95,256.
+bundle,bytes
+rask.js,108232
+rask.wasm.js,94342
+rask-hooks.js,95256

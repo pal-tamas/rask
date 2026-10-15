@@ -18,6 +18,8 @@
 //     With a value — data-rask-open-mark="<popover id>" — it is on any OTHER element while that popover shows:
 //     the dropdown around a trigger and its panel, the trigger itself, the area a context menu belongs to. So
 //     nothing about a panel being open is the page's to draw, and opening one asks the server nothing.
+//   * A <dialog> is such a panel too: its invokers' aria-expanded and the data-open of what names it follow it
+//     as they follow a popover (a colour picker's, which its trigger's command opens).
 
 import {disown, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
@@ -38,6 +40,15 @@ function mark(panel: Element, open: boolean): void {
     }
 }
 const FIELD = "input, textarea, select, [contenteditable]";
+
+// A popover or a dialog, whose open state the browser keeps.
+function isPanel(el: EventTarget | null): el is HTMLElement {
+    return el instanceof HTMLDialogElement || (el instanceof HTMLElement && el.hasAttribute("popover"));
+}
+
+function showing(panel: Element | null): boolean {
+    return isShown(panel) || (panel instanceof HTMLDialogElement && panel.open);
+}
 
 // The panel itself when it asks, and everything that names it.
 function markAll(doc: Document, panel: HTMLElement, open: boolean): void {
@@ -133,14 +144,14 @@ if (page) {
     // `toggle` does not bubble; it is caught on the way down.
     listen("toggle", function (e) {
         const panel = e.target;
-        if (!(panel instanceof HTMLElement) || !panel.id || !panel.hasAttribute("popover")) {
+        if (!isPanel(panel) || !panel.id) {
             return;
         }
         const open = (e as ToggleEvent).newState === "open";
         if (!open) {
             opened.delete(panel);
         }
-        markAll(doc, panel, isShown(panel));
+        markAll(doc, panel, showing(panel));
         const invokers = doc.querySelectorAll("[aria-expanded]");
         for (let i = 0; i < invokers.length; i++) {
             const el = invokers[i];
@@ -157,17 +168,17 @@ if (page) {
     // looked at again once the popover has opened, or has not.
     listen("beforetoggle", function (e) {
         const panel = e.target;
-        if (!(panel instanceof HTMLElement) || !panel.hasAttribute("popover")) {
+        if (!isPanel(panel)) {
             return;
         }
         markAll(doc, panel, (e as ToggleEvent).newState === "open");
-        setTimeout(function () { markAll(doc, panel, isShown(panel)); }, 0);
+        setTimeout(function () { markAll(doc, panel, showing(panel)); }, 0);
     }, true);
 
     // One that was open before the hooks arrived: a render opened it with the page.
     const marked = doc.querySelectorAll("[" + MARK + "]");
     for (let i = 0; i < marked.length; i++) {
         const name = marked[i].getAttribute(MARK);
-        mark(marked[i], isShown(name ? doc.getElementById(name) : marked[i]));
+        mark(marked[i], showing(name ? doc.getElementById(name) : marked[i]));
     }
 }

@@ -36,6 +36,8 @@ import "./rask-tabs.js";     // role="tablist": the arrow keys
 import "./rask-menu-keys.js"; // role="menu": the keys, the pick, focus following the cursor
 import "./rask-phone.js";    // data-rask-phone
 import "./rask-list.js";     // data-rask-list: a list of options' cursor, keys, search and open state
+import "./rask-color.js";    // data-rask-color: a colour picker's colour, keys, typing and palette
+import "./rask-calendar.js"; // data-rask-calendar: a calendar's months, keys, picks and a date picker's popup
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

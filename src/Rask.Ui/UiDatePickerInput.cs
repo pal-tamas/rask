@@ -156,8 +156,9 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
     }
 
     // The one field the parts are read and written through: the whole date, or nothing.
-    private static HTMLInputElement<string> Whole(UiDatePickerScope scope, int slot) =>
-        Input
+    private static HTMLInputElement<string> Whole(UiDatePickerScope scope, int slot)
+    {
+        var whole = Input
             .Value(scope.Dates[slot]?.ToString(Iso, CultureInfo.InvariantCulture) ?? string.Empty)
             // No date: the parts were left half filled, which the frame says beside its empty value, or emptied.
             .OnChange(text => DateOnly.TryParseExact(text, Iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
@@ -165,6 +166,10 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
                 : scope.Left(slot, UnreadInput.Current is not null))
             .Key("whole")
             .Type(InputType.Hidden);
+
+        // Bound and waiting, it is the browser's to keep until the next action, which it goes ahead of.
+        return scope.Waits ? whole.Attributes(UiCalendarHook.WaitsForAction) : whole;
+    }
 
     // What Flux's trigger opens the calendar from is everything in it that is not a field, and a second press
     // closes it: the runtime's toggle, which leaves a press in a field to the field.

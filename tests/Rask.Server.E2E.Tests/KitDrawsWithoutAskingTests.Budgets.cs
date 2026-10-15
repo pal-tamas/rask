@@ -6,11 +6,17 @@ public abstract partial class KitDrawsWithoutAskingTests
     private static readonly Dictionary<string, (int Frames, string Why)> Sends = new(StringComparer.Ordinal)
     {
         ["autocomplete: pick an item"] = (1, "the value, on change"),
+        ["calendar-range: pick the last day of a range"] = (1, "the range, once it is whole: Flux's calendar says nothing of its first day"),
         ["calendar: pick a day"] = (1, "the value"),
         ["checkbox-group: tick one"] = (1, "the value, bound live"),
         ["checkbox: tick"] = (1, "the value"),
+        ["color-picker: cursor keys"] = (9, "the colour, a change a key, as Flux's picker announces one for every key of its area"),
+        ["color-picker: drag and release"] = (1, "the colour, on letting go: Flux's picker says `change` once, at the release"),
         ["editor: typing"] = (3, "the value, as it is typed: a frame a key"),
         ["editor: typing, then leaving the field"] = (3, "the value, as it is typed: a frame a key, and nothing on leaving"),
+        ["date-picker-input: typing a part of the date"] = (2, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20"),
+        ["date-picker-input: typing a whole date"] = (3, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20, then 2027 once its fourth digit is in"),
+        ["date-picker: pick a day"] = (1, "the value, and the popup closes in the browser"),
         ["data-grid: sort a column"] = (1, "the rows are sorted on the server"),
         ["filter: filter"] = (1, "the value"),
         ["input-clearable: clear"] = (1, "the value, emptied"),
@@ -52,32 +58,12 @@ public abstract partial class KitDrawsWithoutAskingTests
     /// </summary>
     private static readonly Dictionary<string, int> Known = new(StringComparer.Ordinal)
     {
-        ["calendar-range: focus and blur by Tab"] = 5,
-        ["calendar-range: pick the first day of a range"] = 1,
-        ["calendar-range: pick the last day of a range"] = 2,
-        ["calendar-range: pointer over the days while a range is being chosen"] = 24,
-        ["calendar: focus and blur by Tab"] = 3,
-        ["calendar: page the month"] = 2,
-        ["calendar: cursor keys"] = 6,
-        ["color-picker: focus and blur by Tab"] = 3,
-        ["color-picker: open by a press"] = 1,
-        ["color-picker: cursor keys"] = 9,
-        ["color-picker: close by Escape"] = 2,
-        ["color-picker: close by a press outside"] = 1,
-        ["color-picker: typing part of a colour"] = 6,
         ["command: open by a press"] = 1,
         ["command: typing to filter"] = 6,
         ["command: cursor keys"] = 9,
         ["command: close by Escape"] = 2,
+        // Not the date picker's: Tab leaves it for the time picker below, whose button hears the keys in C#.
         ["date-picker-input: focus and blur by Tab"] = 2,
-        ["date-picker-input: typing a part of the date"] = 2,
-        ["date-picker-input: typing a whole date"] = 3,
-        ["date-picker: focus and blur by Tab"] = 3,
-        ["date-picker: open by a press"] = 1,
-        ["date-picker: close by Escape"] = 1,
-        ["date-picker: close by a press outside"] = 1,
-        ["date-picker: page the month"] = 2,
-        ["date-picker: pick a day"] = 2,
         // A select that waits holds its pick for the next action, and the press that makes it is still sent —
         // alone, as drawing (data-rask-draws). Flux draws the picked option itself and sends nothing.
         ["select-bound: pick a row"] = 1,
@@ -108,12 +94,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker: pointer over the open popup"] = (96,
             "the list snaps to the row it lit, in a frame of the browser's own, which moves another row under the resting "
             + "pointer, which is lit in turn: as many rows as the browser gets through, and the list has 96"),
-        // Counted 11 or 12 of the drag's 12 steps, on the same page and build, the machine alone deciding. The surface tells
-        // the page in one animation frame and the runtime sends what that told it in the next, and Chromium hands the page
-        // its pointer moves in frames of its own, which the page's stopped clock does not govern: two steps can reach the
-        // socket as one. Waiting for the page to hear each move and giving each step two frames did not make it exact.
-        ["color-picker: drag, still held"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
-        ["color-picker: drag and release"] = (12, "a step of the drag is sent a frame behind the pointer, and two can be sent as one"),
     };
 
 }

@@ -1200,7 +1200,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             new PageWaitForFunctionOptions { Timeout = 15_000 });
 
         // The tab stop is named again once the focus has fallen: an arrow pressed on it carries the focus on.
-        var stop = calendar.Locator("td button[tabindex='0'][data-rask-focus-target]");
+        var stop = calendar.Locator("td button[tabindex='0']");
         await Expect(stop).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
         await stop.FocusAsync();
         var paged = DateOnly.ParseExact(await Page.EvaluateAsync<string>(FocusedDay), "yyyy-MM-dd", CultureInfo.InvariantCulture);

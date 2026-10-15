@@ -35,8 +35,6 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
         ["ui-color-picker"] = string.Empty,
     };
 
-    private static readonly Dictionary<string, string?> MarksOpen = new(Marks, StringComparer.Ordinal) { ["open"] = string.Empty };
-
     private static readonly Dictionary<string, string?> Announced = new(StringComparer.Ordinal)
     {
         ["live"] = "polite",
@@ -131,7 +129,7 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
     /// <inheritdoc />
     bool? IUiFormControl.ShowValidation => null;
 
-    // The colour held, whether the popover is open and what is being typed are FIELDS, which the render cache cannot see.
+    // The colour held is a FIELD, which the render cache cannot see.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -160,11 +158,54 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
         return field.Wrap(
             Div.Class(UiClass.Compose(UiColorPickerLook.Root, Class))
                 .Style("--ui-color-picker-anchor:--" + Prefixed)
-                .Data(_open ? MarksOpen : Marks)[
+                .Data(Off ? Marks : Hooked())[
+                ValueField(),
                 Type == Ui.ColorPickerType.Button ? ButtonTrigger(field) : InputTrigger(field),
-                Span.Class(UiColorPickerLook.Announce).Data("ui-color-picker-announce", string.Empty).Aria(Announced)[_said],
-                Popover(field.LabelledBy),
-                Name is { } name ? Input.Value(_kept.Text(Written)).Type(InputType.Hidden).Name(name) : null
+                Span.Class(UiColorPickerLook.Announce).Data(UiColorPickerMarks.Announced).Aria(Announced),
+                Popover(field.LabelledBy)
             ]);
+    }
+
+    // What the browser keeps the picker by: its format, the words it writes, and whether text that is no colour is
+    // the page's to refuse. `data-open` is the browser's too, while the dialog shows.
+    private Dictionary<string, string?> Hooked()
+    {
+        var marks = new Dictionary<string, string?>(Marks, StringComparer.Ordinal)
+        {
+            ["rask-color"] = UiColorPickerMarks.FormatName(Written),
+            ["rask-color-says"] = UiColorPickerMarks.Says(),
+            ["rask-open-mark"] = DialogId,
+        };
+        if (Refuses)
+        {
+            marks["rask-color-refuses"] = string.Empty;
+        }
+
+        return marks;
+    }
+
+    // The one field the page hears the colour through, first in the picker: what the browser announces when Flux's
+    // element would. On change, or as it moves for a bound picker that says `.Live()`; bound and waiting, it goes
+    // ahead of the reader's next action. A picker that keeps its own colour hears nothing.
+    private HTMLInputElement<string> ValueField()
+    {
+        var field = Input.Value(_refused ?? _kept.Text(Written)).Type(InputType.Hidden);
+        if (Name is { } name)
+        {
+            field = field.Name(name);
+        }
+
+        if (Keeps || Off)
+        {
+            return field;
+        }
+
+        if (Bind is not null && Live == true)
+        {
+            return field.OnInput(ChangedAsync);
+        }
+
+        field = field.OnChange(ChangedAsync);
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiColorPickerMarks.WaitsForAction) : field;
     }
 }

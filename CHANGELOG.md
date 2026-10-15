@@ -80,6 +80,31 @@ them until tagged releases begin.
   indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
   changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
+### Performance
+
+- **`Ui.ColorPicker` is kept in the browser, as Flux's script keeps its own: it asks the server only for the colour.**
+  Before, opening it, Tab, Escape, a press outside, every arrow and every typed character went to the server, because
+  the popover's colour, its tab stop and what was being typed were C# state. Now they are the runtime's
+  (`data-rask-color`, `rask-color.ts`: Flux's arithmetic to the last bit, a typed colour read through the browser as
+  Flux reads it, the area and slider keys, the swatch walk, the phone sheet holding everything until Select — the
+  dropper too), and the page hears the colour through one field exactly when Flux's element announces one. Frames, on
+  a page that gives `OnChange`: Tab 3 → 0, open 1 → 0, Escape 2 → 0, a press outside 1 → 0, "#12" typed 6 → 0, a drag
+  still held up to 12 → 0, a drag let go up to 12 → 1; the area's keys stay 9, one `change` a key, as Flux's. A bound
+  picker that waits sends nothing until the reader's next action; `.Live()` sends as Flux's `wire:model.live` would.
+  Nothing changes at the call site. `rask-hooks.js` +10,339 bytes.
+- **`Ui.Calendar` and `Ui.DatePicker` are drawn in the browser, as Flux's script draws them: they ask the server
+  only for the value.** Before, a page of the month, every arrow, every day the pointer crossed while a range waited
+  for its end, a range's first day, and the date picker's popup opening and closing each went to the server, which
+  drew the next month. Now the page draws the first paint and the browser draws every month after it
+  (`data-rask-calendar`, `rask-calendar.ts`: the week, the limits, `MinRange` / `MaxRange`, week numbers, the
+  selectable header, the today shortcut, the presets, the phone sheet and `WithConfirmation` holding a choice for
+  their button), and the page hears the value through one field exactly when Flux's element announces one. Frames, on
+  a page that gives `OnChange`: Tab 3 → 0 (5 → 0 for a range), paging the month 2 → 0, the cursor keys 6 → 0, the
+  pointer over a waiting range 24 → 0, a range's first day 1 → 0 and its last 2 → 1; a date picker's open, Escape and
+  press outside 1 → 0 each, its paging 2 → 0 and a pick 2 → 1. A typed date says each value its parts make, as Flux's
+  field does. The colour picker's sheet now holds a drag let go until Select, and a drag's thumb is no longer moved by
+  the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
+
 ### Security
 
 - **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the

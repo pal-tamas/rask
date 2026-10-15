@@ -5,8 +5,6 @@ namespace Rask;
 // What stands on the page: an input with a swatch button, or one button showing the colour.
 public sealed partial class UiColorPicker
 {
-    private readonly ElementRef<HTMLInputElement> _input = new();
-
     private Component InputTrigger(UiWithField field)
     {
         var aria = OpenerAria(field.LabelledBy, RaskStrings.Get(RaskString.ColorPickerInput, "Color"));
@@ -26,23 +24,19 @@ public sealed partial class UiColorPicker
                 .Class(UiClass.Compose(UiColorPickerLook.SwatchButton, UiColorPickerLook.SwatchSize(Height)))
                 .Disabled(Off)
                 .Aria(OpenerAria(null, OpenerLabel()))
-                .Attributes(("data-ui-color-picker-swatch-button", null), ("command", "show-modal"), ("commandfor", DialogId))[
+                .Attributes(("data-ui-color-picker-swatch-button", null), ("command", "show-modal"), ("commandfor", DialogId), UiColorPickerMarks.Named("opener"))[
                 Preview()
             ],
             Input
-                .Value(Said(_input))
+                .Value(_refused ?? _kept.Text(Written))
                 .Type(InputType.Text)
                 .Id(field.ControlId)
-                .Ref(_input)
                 .Placeholder(Hint)
                 .Role("combobox")
                 .Disabled(Off)
                 .Class(UiColorPickerLook.TriggerInput)
                 .Aria(aria)
-                .Attributes(("size", "1"), ("data-ui-color-picker-input", null))
-                .OnInput(text => Typing(text, _input))
-                .OnChange(text => TypedAsync(text, _input))
-                .OnKeyDown(e => TypingKey(e, _input, opens: true)),
+                .Attributes(("size", "1"), ("data-ui-color-picker-input", null), UiColorPickerMarks.Named("text")),
             Clearable == true && !Off ? ClearButton() : null,
             Copyable == true && !Off ? CopyButton(field.ControlId) : null
         ];
@@ -64,12 +58,13 @@ public sealed partial class UiColorPicker
             .Class(UiClass.Compose(UiColorPickerLook.ButtonTrigger, UiColorPickerLook.ButtonSize(Height)))
             .Disabled(Off)
             .Aria(aria)
-            .Attributes([.. Marked("data-ui-color-picker-button", field.Invalid), ("command", "show-modal"), ("commandfor", DialogId)])
-            .OnKeyDown(OpeningKey)[
+            .Attributes([.. Marked("data-ui-color-picker-button", field.Invalid), ("command", "show-modal"), ("commandfor", DialogId), UiColorPickerMarks.Named("button")])[
             Div.Class(UiClass.Compose(UiColorPickerLook.SwatchBox, UiColorPickerLook.SwatchSize(Height)))[Preview()],
             Span.Class(UiColorPickerLook.Display).Data("ui-color-picker-display", string.Empty)[
-                Span.Class(UiClass.Compose(UiColorPickerLook.DisplayPlaceholder, empty ? null : "hidden")).Data("ui-color-picker-placeholder", string.Empty)[Hint],
-                Span.Class(empty ? "hidden" : null).Data("ui-color-picker-value", string.Empty)[_kept.Text(Written)]
+                Span.Class(UiColorPickerLook.DisplayPlaceholder).Hidden(!empty)
+                    .Attributes(("data-ui-color-picker-placeholder", null), UiColorPickerMarks.Named("placeholder"))[Hint],
+                // Never without a text the browser can rewrite: hidden, it says the placeholder.
+                Span.Hidden(empty).Attributes(("data-ui-color-picker-value", null), UiColorPickerMarks.Named("value"))[empty ? Hint : _kept.Text(Written)]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiColorPickerLook.Chevron)
         ];
@@ -78,16 +73,17 @@ public sealed partial class UiColorPicker
     private HTMLDivElement Preview() =>
         Div.Class(UiColorPickerLook.Preview)
             .Style("background-color:" + _kept.Css)
-            .Data("ui-color-picker-preview", string.Empty);
+            .Attributes(("data-ui-color-picker-preview", null), UiColorPickerMarks.Named("preview"));
 
     // Flux's clear button is its small subtle button drawn as a <div>, out of the tab order. Always there and
     // out of sight while there is no colour, so the button after it keeps its place in the tree.
+    // The runtime empties the picker on a press.
     private Component ClearButton() =>
-        Div.Class(_kept.Empty && _refused is null ? UiColorPickerLook.ClearHidden : UiColorPickerLook.Clear)
+        Div.Class(UiColorPickerLook.Clear)
+            .Hidden(_kept.Empty && _refused is null)
             .TabIndex(-1)
             .Aria("label", RaskStrings.Get(RaskString.ColorPickerClear, "Clear color"))
-            .Data("ui-button", string.Empty)
-            .OnClick(ClearAsync)[
+            .Attributes(("data-ui-button", null), UiColorPickerMarks.Named("clear"))[
             Ui.Icon.Name(Ui.IconName.XMark).Micro
         ];
 
@@ -118,7 +114,8 @@ public sealed partial class UiColorPicker
 
         aria["haspopup"] = "dialog";
         aria["controls"] = DialogId;
-        aria["expanded"] = _open ? "true" : "false";
+        // The browser's while the dialog shows (rask-toggle.ts, rask-color.ts).
+        aria["expanded"] = "false";
         if (labelled is not null)
         {
             aria["labelledby"] = labelled;

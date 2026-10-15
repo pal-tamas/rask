@@ -21,6 +21,9 @@ public sealed partial class UiCalendarRange : UiCalendarControl<UiDateRange>
 
     private protected override int DefaultMonths => 2;
 
-    private protected override UiCalendarPicks Picks(UiDateRange current, Func<UiDateRange, Task> commit) =>
-        new UiCalendarRangePick(current, State, MinRange, MaxRange, commit);
+    private protected override UiCalendarPicks Picks(UiDateRange current) => new UiCalendarRangePick(current);
+
+    private protected override string Written(UiDateRange value) => UiCalendarValue.Range(value);
+
+    private protected override bool TryRead(string text, out UiDateRange value) => UiCalendarValue.TryRange(text, out value);
 }

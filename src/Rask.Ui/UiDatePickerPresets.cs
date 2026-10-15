@@ -20,39 +20,37 @@ internal abstract partial class UiDatePickerPresets : global::Rask.Core.RaskMark
 
     private static readonly Dictionary<string, string?> CheckedStop = new(StringComparer.Ordinal) { ["active"] = "", ["checked"] = "" };
 
-    internal static global::Rask.Core.Component Render(
-        IReadOnlyList<Ui.DateRangePreset> listed,
-        UiDateRange current,
-        UiCalendarOptions options,
-        string? closes,
-        Func<UiDateRange, Task> choose)
+    // A preset is picked in the browser (rask-calendar.ts), which reads its range from the row: the page wrote
+    // what each means today.
+    private static readonly Dictionary<string, string?> ListMarks = new(StringComparer.Ordinal)
+    {
+        ["rask-roving"] = "",
+        ["rask-calendar-part"] = "presets",
+    };
+
+    internal static global::Rask.Core.Component Render(IReadOnlyList<Ui.DateRangePreset> listed, UiDateRange current, UiCalendarOptions options)
     {
         var (rows, ranges, named) = Listed(listed, current, options);
 
         return Div.Class(UiDatePickerLook.Presets)[
-            Div.Class(UiDatePickerLook.PresetList).Role("radiogroup").Data("rask-roving", "")[
+            Div.Class(UiDatePickerLook.PresetList).Role("radiogroup").Data(ListMarks)[
                 rows.Select((preset, at) => Row(
-                    preset, ranges[preset], preset == named, named == Ui.DateRangePreset.Custom ? at == 0 : preset == named, closes, choose))
+                    preset, ranges[preset], preset == named, named == Ui.DateRangePreset.Custom ? at == 0 : preset == named))
             ]
         ];
     }
 
     /// <summary>The same presets as the phone's select: the one that names the range is the chosen option.</summary>
-    internal static global::Rask.Core.Component Narrow(
-        IReadOnlyList<Ui.DateRangePreset> listed, UiDateRange current, UiCalendarOptions options, Func<UiDateRange, Task> choose)
+    internal static global::Rask.Core.Component Narrow(IReadOnlyList<Ui.DateRangePreset> listed, UiDateRange current, UiCalendarOptions options)
     {
-        var (rows, ranges, named) = Listed(listed, current, options);
-        var byKey = rows.ToDictionary(UiDateRangePresets.Key, preset => preset, StringComparer.Ordinal);
+        var (rows, _, named) = Listed(listed, current, options);
 
         return Div.Class(UiDatePickerLook.PresetSelect)[
             Select
                 .Value(UiDateRangePresets.Key(named))
-                // Custom names what the calendar picks; it has no range of its own to write.
-                .OnChange(key => byKey.TryGetValue(key, out var preset) && preset != Ui.DateRangePreset.Custom
-                    ? choose(ranges[preset])
-                    : Task.CompletedTask)
                 .Class(UiDatePickerLook.PresetSelectControl)
-                .Data(SelectMarks)[
+                .Data(SelectMarks)
+                .Attributes(UiCalendarHook.Named("preset-select"))[
                 Option.Value(string.Empty).Disabled()[RaskStrings.Get(RaskString.DatePickerPresetsPlaceholder, "Choose predefined range...")],
                 rows.Select(preset => Option.Key(preset).Value(UiDateRangePresets.Key(preset))[UiDateRangePresets.Label(preset)])
             ]
@@ -76,12 +74,9 @@ internal abstract partial class UiDatePickerPresets : global::Rask.Core.RaskMark
 
     private static bool Same(UiDateRange a, UiDateRange b) => a.Start == b.Start && a.End == b.End;
 
-    private static global::Rask.Core.Component Row(
-        Ui.DateRangePreset preset, UiDateRange range, bool on, bool stop, string? closes, Func<UiDateRange, Task> choose)
+    // Custom names what the calendar picks; it has no range of its own to write.
+    private static global::Rask.Core.Component Row(Ui.DateRangePreset preset, UiDateRange range, bool on, bool stop)
     {
-        // Custom names what the calendar picks; it has no range of its own to write.
-        var picks = preset != Ui.DateRangePreset.Custom;
-        var hides = picks ? closes : null;
         var row = Button
             .Key(preset)
             .Type(ButtonType.Button)
@@ -89,9 +84,9 @@ internal abstract partial class UiDatePickerPresets : global::Rask.Core.RaskMark
             .Role("radio")
             .TabIndex(stop ? 0 : -1)
             .Aria("checked", on ? "true" : "false")
-            .Attributes(hides is null
+            .Attributes(preset == Ui.DateRangePreset.Custom
                 ? [("value", UiDateRangePresets.Key(preset))]
-                : [("value", UiDateRangePresets.Key(preset)), ("popovertarget", hides), ("popovertargetaction", "hide")]);
+                : [("value", UiDateRangePresets.Key(preset)), ("data-rask-calendar-range", UiCalendarValue.Range(range with { Preset = null }))]);
 
         // The tab stop is where the arrows start from: Flux marks it, checked or not.
         if (on)
@@ -101,11 +96,6 @@ internal abstract partial class UiDatePickerPresets : global::Rask.Core.RaskMark
         else if (stop)
         {
             row = row.Data(Stop);
-        }
-
-        if (picks)
-        {
-            row = row.OnClick(() => choose(range));
         }
 
         return row[UiDateRangePresets.Label(preset)];
