@@ -275,3 +275,12 @@ bundle,bytes
 rask.js,108232
 rask.wasm.js,94342
 rask-hooks.js,95256
+#
+# 2026-10-15, a field the render marks for its correction (data-rask-on-edit) is handed back from the submit's
+# readonly hold (rask-submitting.ts noteRendered / noteAttributeSet; rask-dom.ts calls it on a SetAttribute op):
+# rask.js +292, rask.wasm.js +270. Measured from a Release build of the merge on main b9e1fff71: rask.js 108,524,
+# rask.wasm.js 94,612, rask-hooks.js 95,256.
+bundle,bytes
+rask.js,108524
+rask.wasm.js,94612
+rask-hooks.js,95256

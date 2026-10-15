@@ -419,7 +419,9 @@ are done — on the Server host with that submit's ack, in a WebAssembly app whe
 double click, a second Enter or a script's `requestSubmit()` meanwhile is dropped in the browser and never
 sent, so a non-repeatable save (an upload, a payment) runs once. The fields stay in what is sent:
 `readonly`, unlike `disabled`, keeps a value in the form data. A render meanwhile does not hand the
-controls back early, and what it says of them (`.Disabled(submitting)` below) is what they are left with.
+controls back early, and what it says of them (`.Disabled(submitting)` below) is what they are left with —
+except a field it shows a message under: a submit whose rule awaits a lookup draws what it already knows at
+that await, and the field it calls wrong is handed back then, so the first key of the correction is heard.
 The button's spinner still waits its 200 ms, so a fast save never flashes one. A plain button's `OnClick`
 is not held: Livewire disables nothing for `wire:click`.
 

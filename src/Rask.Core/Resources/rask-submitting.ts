@@ -9,7 +9,8 @@
 //
 // What it writes, on the form's own controls (`form.elements`, so a `<button form="x">` outside it too):
 //   disabled — on every submit button, so neither a second press nor Enter in a field submits again.
-//   readonly — on every text-like input and textarea: what goes out is what was there at the press.
+//   readonly — on every text-like input and textarea: what goes out is what was there at the press. A field a
+//              render mid-flight asks to have corrected is handed back (handBack, below).
 // Only where the render did not already write it, and each held against the morph (rask-owned.ts): the
 // render the submit itself causes lands mid-flight and would otherwise hand the button back early. What a
 // render says meanwhile is kept, and is what the control is left with when the submit is done.
@@ -108,9 +109,32 @@ export function releaseAllForms(): void {
     for (const hold of [...live]) releaseForm(hold);
 }
 
+// A FIELD THE PAGE ASKS TO HAVE CORRECTED IS THE READER'S AGAIN. A submit whose rules await — a lookup — draws
+// what it already knows at that await: "Enter a whole number." under a field, the submit still in flight. That
+// render listens for the first key of the correction (`data-rask-on-edit`, rask-input.ts), and a field still
+// readonly would drop it. What the press sent went at the press, and the submit button stays disabled.
+const ASKS_CORRECTION = "data-rask-on-edit";
+
+function handBack(el: Element): void {
+    const hold = heldBy.get(el);
+    const slot = hold && hold.held.get(el);
+    if (!hold || !slot || slot.name !== READONLY) return;
+    hold.held.delete(el);
+    heldBy.delete(el);
+    disown(el, READONLY);
+    if (slot.rendered === null) el.removeAttribute(READONLY);
+    else el.setAttribute(READONLY, slot.rendered);
+}
+
 /** Called by the morph before it brings `from` up to `to`: what a render says of a held control is kept. */
 export function noteRendered(from: Element, to: Element): void {
-    const hold = heldBy.get(from);
-    const slot = hold && hold.held.get(from);
-    if (slot) slot.rendered = to.getAttribute(slot.name);
+    const slot = heldBy.get(from)?.held.get(from);
+    if (!slot) return;
+    slot.rendered = to.getAttribute(slot.name);
+    if (to.hasAttribute(ASKS_CORRECTION)) handBack(from);
+}
+
+/** Called by the diff for each attribute it sets: one that asks for a correction hands a held field back. */
+export function noteAttributeSet(el: Element, name: string): void {
+    if (name === ASKS_CORRECTION) handBack(el);
 }

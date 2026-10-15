@@ -723,6 +723,7 @@ them until tagged releases begin.
   `[Route]` (CS0104) — and `docs/spa.md` and `docs/routing.md` now say so, and name the CS0616 it otherwise gives.
 
 - A form that is submitting takes no second submit, as Livewire's `wire:submit` does: its submit buttons are disabled and its fields made readonly at the press, until the server (or .NET in WebAssembly) is done with it, so a fast double click or a second Enter no longer runs a non-repeatable `OnSubmit` twice
+- A field a submit shows wrong while it still awaits a rule (a lookup) takes the reader's correction at once: the render that draws its message hands the field back from the submit's readonly hold, so the first key of the correction is no longer dropped. The submit button stays disabled until the submit is done
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
