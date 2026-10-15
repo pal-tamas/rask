@@ -91,8 +91,10 @@ public sealed class FormSubmittingTests
 
         var handedBack = root.GetProperty("handedBack");
         var renderedReadonly = root.GetProperty("handedBackKeepsRenderedReadonly").GetBoolean();
+        var byTheDiff = root.GetProperty("handedBackByTheDiff").GetBoolean();
 
         Assert.True(handedBack.GetProperty("wrongEditable").GetBoolean(), "the field asked to be corrected stayed readonly.");
+        Assert.True(byTheDiff, "the diff's attribute did not hand the field back.");
         Assert.True(handedBack.GetProperty("rightHeld").GetBoolean());
         Assert.True(handedBack.GetProperty("buttonHeld").GetBoolean());
         Assert.True(renderedReadonly);

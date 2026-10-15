@@ -10,6 +10,7 @@ import {ownsAttr} from "../../../src/Rask.Core/Resources/rask-owned.js";
 import {
     holdForm,
     isSubmitting,
+    noteAttributeSet,
     releaseAllForms,
     releaseForm,
 } from "../../../src/Rask.Core/Resources/rask-submitting.js";
@@ -154,6 +155,14 @@ const keepHold = holdForm(dom(makeForm(renderedReadonly)));
 morph(dom(renderedReadonly), dom(makeEl("INPUT", {type: "text", readonly: "", "data-rask-on-edit": "8"})));
 releaseForm(keepHold);
 const handedBackKeepsRenderedReadonly = renderedReadonly.hasAttribute("readonly");
+// The diff sets the attribute alone, with no whole element to compare (rask-dom.ts).
+const patched = makeEl("INPUT", {type: "number"});
+const patchedNeighbour = makeEl("INPUT", {type: "text"});
+const patchHold = holdForm(dom(makeForm(patched, patchedNeighbour)));
+noteAttributeSet(dom(patchedNeighbour), "aria-invalid");
+noteAttributeSet(dom(patched), "data-rask-on-edit");
+const handedBackByTheDiff = !patched.hasAttribute("readonly") && patchedNeighbour.hasAttribute("readonly");
+releaseForm(patchHold);
 
 // ---- A submit that never reports back, and a dropped connection, both let go ----
 const hungButton = makeEl("BUTTON");
@@ -181,6 +190,7 @@ process.stdout.write(JSON.stringify({
     renderedKept,
     handedBack,
     handedBackKeepsRenderedReadonly,
+    handedBackByTheDiff,
     hungHeld,
     hardTimeoutReleased,
     disconnectReleased,

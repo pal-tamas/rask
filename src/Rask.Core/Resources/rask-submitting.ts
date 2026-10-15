@@ -113,18 +113,28 @@ export function releaseAllForms(): void {
 // what it already knows at that await: "Enter a whole number." under a field, the submit still in flight. That
 // render listens for the first key of the correction (`data-rask-on-edit`, rask-input.ts), and a field still
 // readonly would drop it. What the press sent went at the press, and the submit button stays disabled.
-function handBack(hold: FormHold, el: Element, to: Element): void {
+const ASKS_CORRECTION = "data-rask-on-edit";
+
+function handBack(el: Element): void {
+    const hold = heldBy.get(el);
+    const slot = hold && hold.held.get(el);
+    if (!hold || !slot || slot.name !== READONLY) return;
     hold.held.delete(el);
     heldBy.delete(el);
     disown(el, READONLY);
-    if (!to.hasAttribute(READONLY)) el.removeAttribute(READONLY);
+    if (slot.rendered === null) el.removeAttribute(READONLY);
+    else el.setAttribute(READONLY, slot.rendered);
 }
 
 /** Called by the morph before it brings `from` up to `to`: what a render says of a held control is kept. */
 export function noteRendered(from: Element, to: Element): void {
-    const hold = heldBy.get(from);
-    const slot = hold && hold.held.get(from);
-    if (!hold || !slot) return;
-    if (slot.name === READONLY && to.hasAttribute("data-rask-on-edit")) handBack(hold, from, to);
-    else slot.rendered = to.getAttribute(slot.name);
+    const slot = heldBy.get(from)?.held.get(from);
+    if (!slot) return;
+    slot.rendered = to.getAttribute(slot.name);
+    if (to.hasAttribute(ASKS_CORRECTION)) handBack(from);
+}
+
+/** Called by the diff for each attribute it sets: one that asks for a correction hands a held field back. */
+export function noteAttributeSet(el: Element, name: string): void {
+    if (name === ASKS_CORRECTION) handBack(el);
 }

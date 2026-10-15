@@ -22,6 +22,7 @@ import {
 } from "./rask-morph.js";
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
 import {drive, keepsOpen, stands, unasked} from "./rask-owned.js";
+import {noteAttributeSet} from "./rask-submitting.js";
 
 export {resolvePath};
 
@@ -207,6 +208,8 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     const newVal = rawVal == null ? "" : rawVal;
                     if (keepsOpen(el, name1, true)) break;
                     el.setAttribute(name1, newVal);
+                    // A field a submit holds is handed back when the render asks for its correction (rask-submitting.ts).
+                    noteAttributeSet(el, name1);
                     // After a form-control has been interacted with, the value
                     // attribute is desynchronised from the .value/.checked property
                     // (the attribute is the *default*, not the current state). Sync
