@@ -35,7 +35,9 @@ internal static class CaddyRouting
                 ? labelled
                 : DeployCommand.DefaultContainerPort;
 
-            apps.Add(new DeployedApp(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3]), port));
+            // rask.redirect came after rask.port: an older listing, or a container without redirects, has none.
+            var redirects = parts.Length > 5 ? Label(parts[5]) : string.Empty;
+            apps.Add(new DeployedApp(parts[0], Label(parts[1]), Label(parts[2]), Label(parts[3]), port, redirects));
         }
 
         return apps;
@@ -59,31 +61,98 @@ internal static class CaddyRouting
                 continue; // port-mode apps aren't proxied; the deploying app is set explicitly below
             }
 
-            // Each app keeps ITS OWN container port: one box can host apps that don't agree on one.
-            map[app.Domain] = new RouteTarget(app.Container, app.Port);
+            // Each app keeps ITS OWN container port: one box can host apps that don't agree on one. And its redirects.
+            map[app.Domain] = new RouteTarget(app.Container, app.Port, app.Redirects);
         }
 
         map[deployingDomain] = newTarget;
         return map;
     }
 
-    /// <summary>Render the multi-site Caddyfile from a <c>domain → container</c> map (uses <c>\n</c> for determinism).</summary>
-    internal static string BuildCaddyfile(IReadOnlyDictionary<string, RouteTarget> routes)
+    /// <summary>
+    /// A host of <paramref name="deployingSite"/> that another app on the box already serves, with that app —
+    /// or <c>null</c> when none is. Caddy refuses a config that names one host in two site blocks, and the
+    /// reload would fail only after the new container had started; asked first, the deploy stops before it
+    /// touches anything and says which app holds the name.
+    /// </summary>
+    internal static (string Host, string App, bool Redirected)? FindTakenHost(IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingSite, string deployingRedirects = "")
+    {
+        // Served and redirected names alike: either way the host has a site block of its own in the shared file.
+        var wanted = SiteDomains.Hosts(deployingSite).Concat(SiteDomains.Hosts(deployingRedirects)).ToList();
+        foreach (var app in apps)
+        {
+            if (app.Domain.Length == 0 || string.Equals(app.App, deployingApp, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (SiteDomains.Hosts(app.Domain).FirstOrDefault(host => wanted.Contains(host, StringComparer.OrdinalIgnoreCase)) is { } served)
+            {
+                return (served, app.App, false);
+            }
+
+            if (SiteDomains.Hosts(app.Redirects).FirstOrDefault(host => wanted.Contains(host, StringComparer.OrdinalIgnoreCase)) is { } redirected)
+            {
+                return (redirected, app.App, true);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Whether any site or redirect in <paramref name="routes"/> names a wildcard host, whose certificate only DNS-01 can prove.</summary>
+    internal static bool NeedsDnsChallenge(IReadOnlyDictionary<string, RouteTarget> routes) =>
+        routes.Any(route => HasWildcard(route.Key) || HasWildcard(route.Value.Redirects));
+
+    /// <summary>Whether a site string names a wildcard host (<c>*.example.com</c>).</summary>
+    internal static bool HasWildcard(string site) =>
+        SiteDomains.Hosts(site).Any(host => host.StartsWith("*.", StringComparison.Ordinal));
+
+    /// <summary>
+    /// Render the multi-site Caddyfile from a <c>domain → container</c> map (uses <c>\n</c> for determinism): a
+    /// block per app, then a block per app's redirects. A block naming a wildcard host gets its certificate over DNS
+    /// with <paramref name="dns"/>; every other block keeps Caddy's default HTTP-01, so with no wildcard anywhere the
+    /// file is byte-for-byte what it always was.
+    /// </summary>
+    internal static string BuildCaddyfile(IReadOnlyDictionary<string, RouteTarget> routes, DnsProvider? dns = null)
     {
         var builder = new StringBuilder();
         foreach (var (domain, target) in routes)
+        {
+            // Every host of `domain` reached here through DomainName.TryParse, so none can close this block
+            // early. An app on several domains is one block with all its addresses: `ppta.hu, www.ppta.hu {`.
+            OpenBlock(builder, domain, dns);
+            // Whatever the app sends uncompressed (a stylesheet its own static files serve, a JSON API) goes out
+            // compressed; a response the app already encoded is passed through untouched.
+            builder.Append("\tencode zstd gzip\n");
+            builder.Append("\treverse_proxy ").Append(target.Container).Append(':').Append(target.Port).Append('\n');
+            builder.Append("}\n");
+        }
+
+        // After every served block, so a reader sees the apps first. The order does not decide anything: Caddy
+        // matches the most specific address, so eszaf.hu and www.eszaf.hu above win over *.eszaf.hu here.
+        foreach (var (domain, target) in routes.Where(route => route.Value.Redirects.Length > 0))
+        {
+            OpenBlock(builder, target.Redirects, dns);
+            // 308 keeps the method and the body, so a program still POSTing to an old name arrives intact.
+            builder.Append("\tredir https://").Append(SiteDomains.Primary(domain)).Append("{uri} 308\n");
+            builder.Append("}\n");
+        }
+
+        return builder.ToString();
+
+        static void OpenBlock(StringBuilder builder, string site, DnsProvider? dns)
         {
             if (builder.Length > 0)
             {
                 builder.Append('\n');
             }
 
-            // `domain` reached here through DomainName.TryParse, so it cannot close this block early.
-            builder.Append(domain).Append(" {\n");
-            builder.Append("\treverse_proxy ").Append(target.Container).Append(':').Append(target.Port).Append('\n');
-            builder.Append("}\n");
+            builder.Append(SiteDomains.CaddyAddress(site)).Append(" {\n");
+            if (dns is not null && HasWildcard(site))
+            {
+                builder.Append(dns.TlsBlock());
+            }
         }
-
-        return builder.ToString();
     }
 }

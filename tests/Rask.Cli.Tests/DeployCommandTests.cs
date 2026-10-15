@@ -165,7 +165,7 @@ public sealed partial class DeployCommandTests
         });
 
         Assert.Equal(
-            "demo.example.com {\n\treverse_proxy demo-green:8080\n}\n\nshop.example.com {\n\treverse_proxy shop-blue:8080\n}\n",
+            "demo.example.com {\n\tencode zstd gzip\n\treverse_proxy demo-green:8080\n}\n\nshop.example.com {\n\tencode zstd gzip\n\treverse_proxy shop-blue:8080\n}\n",
             caddyfile);
     }
 

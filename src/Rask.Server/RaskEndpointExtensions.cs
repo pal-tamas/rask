@@ -149,6 +149,10 @@ public static partial class RaskEndpointExtensions
         AddSessionHosting(services);
         AddSessionServices(services, configureCulture);
 
+        // The app's compiled stylesheet, compressed and cacheable, ahead of the app's own static files — so a
+        // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
+        Http.AppStylesheet.Register(services);
+
         // A test is running this app's Program.cs (Page.Visit): a server that opens no socket, and the started app
         // handed to the test rather than served. Every Rask server app comes through here, however it is wired.
         if (AppCapture.Current is { } capture)

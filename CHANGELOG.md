@@ -9,6 +9,28 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
+  Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
+  of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over
+  DNS-01. After: `--redirect <host>` (repeatable, remembered as `"redirects"`) gets a Caddy block answering
+  `308 https://<primary>{uri}`, path, query and method kept, while the `--domain` names stay the app's (Caddy
+  matches the most specific address). `--dns azure --dns-env-file <file>` builds Caddy with `caddy-dns/azure`
+  on the box and replaces the shared proxy with it once, after the new app answers, announced first because
+  every site is down for a few seconds; certificates carry over on the data volume. Only blocks naming a
+  wildcard prove over DNS. The credentials live in the proxy's environment, named as `{env.…}` placeholders,
+  never in `.rask/deploy.json`, a label or the output. The proxy is labelled `rask.dns=azure`, so later deploys,
+  CI's included, keep it, and a wildcard on a box without a provider fails before anything starts. A box with no
+  redirects and no wildcard gets exactly the Caddyfile it got before.
+
+- **`rask deploy` serves one app on several domains.** Before: `--domain` took one host, so `example.com` and
+  `www.example.com` could not both reach an app. After: `--domain` repeats, or takes a comma-separated list
+  (`--domain example.com --domain www.example.com`). Every host is checked like a single one was, a host given
+  twice is refused, and the app's Caddy site lists them all (`example.com, www.example.com {`), each with its own
+  certificate. The first is the primary, which `Rask__Auth__PublicOrigin` names. `.rask/deploy.json` remembers
+  several as `"domains": [...]`, while one stays `"domain"` exactly as before. A host that another app on the box
+  already serves stops the deploy before anything starts, naming that app; otherwise Caddy would refuse the
+  config only at the reload.
+
 - **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
   returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
   Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with
@@ -32,6 +54,19 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The app's compiled stylesheet is served compressed and cacheable, like Rask's runtime.** Before: Rask.Tailwind's
+  `wwwroot/css/app.css` (650–750 KB for a Tailwind + Rask.Ui app) went out through the app's static files,
+  uncompressed and with no cache header, so every page load fetched it whole before the page could draw. After:
+  the server answers its address ahead of the app's own middleware — brotli or gzip by `Accept-Encoding` (about
+  80 KB), an ETag (a repeat load is a 304), `no-cache` on the bare address, and `RaskApp` links it as
+  `css/app.css?v={hash}` with `Cache-Control: public, max-age=31536000, immutable`. A hand-wired host that calls
+  `UseStaticFiles()` and writes its own `<link>` gets the compression and the 304s with no change; the content hash
+  moves with every rebuild, picked up within a second under `rask dev`.
+- **`rask deploy`'s proxy compresses what the app sends uncompressed.** Before: Caddy passed every response
+  through as the app wrote it, so a stylesheet served by the app's own static files (`/css/app.css`, 650–750 KB
+  for a Tailwind + Rask.Ui app) crossed the wire uncompressed on every page load. After: every site block that
+  proxies an app has `encode zstd gzip` (redirect-only blocks don't); a response the app already encoded — Rask's
+  page, its runtime script — passes through untouched.
 - **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
   Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
   index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:

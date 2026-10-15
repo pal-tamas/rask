@@ -72,6 +72,14 @@ One file and one link — the whole of it, and all of it already there:
    Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
    ```
 
+   **How it is served.** The server answers the sheet's address itself, ahead of the app's own static
+   files: brotli or gzip as the browser accepts (a 750 KB Tailwind + kit sheet is about 80 KB on the
+   wire), with an ETag, so a repeat load is a 304 with no body. `RaskApp` links it as
+   `css/app.css?v={hash}` — the first 16 hex digits of its SHA-256 — and that address is
+   `Cache-Control: public, max-age=31536000, immutable`: the browser keeps it until a rebuild changes the
+   hash. The bare address, the one a hand-wired host links, is `no-cache` (revalidated, never stale).
+   A host that calls `UseStaticFiles()` itself needs no line for any of this.
+
 **Nothing in the `.csproj`.** There is no Tailwind package to add — the compiler, its MSBuild targets
 and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped CSS does — and
 no switch for the kit: the import in `Styles/app.css` is the whole opt-in. The build reads it, writes

@@ -924,7 +924,11 @@ had typed put back — see
 
 **Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
 from the host's live containers on every deploy — deploying a second app (a different `--domain`)
-leaves the first untouched. Without `--domain`, the app is published on `--port` (default `8080`) and
+leaves the first untouched. **One app can answer on several domains**: repeat `--domain` (or give
+`--domain example.com,www.example.com`) and each gets its own certificate, all routed to the same
+container. The first is the primary — the address emailed links use — and every one of them is
+remembered (as `"domains": [...]` in `.rask/deploy.json`; a single one stays `"domain"`). A domain another
+app on the box already serves is refused before anything starts. Without `--domain`, the app is published on `--port` (default `8080`) and
 you put your own TLS/reverse proxy in front (there's no zero-downtime swap on a single published port).
 That downtime is inherent to publishing one port; *staying* down is not. If the new container fails to
 start or fails its health check, port mode brings `:previous` back automatically — the last image that
@@ -942,7 +946,10 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | Option | Purpose |
 | --- | --- |
 | `--host <user@host>` | SSH target. Required on the first deploy, then remembered in `.rask/deploy.json`. |
-| `--domain <host>` | Front the app with auto-HTTPS Caddy. Omit to publish `--port` directly. |
+| `--domain <host>` | Front the app with auto-HTTPS Caddy. Repeat it, or comma-separate the hosts, to serve one app on several domains (`--domain example.com --domain www.example.com`); the first is the primary. Omit to publish `--port` directly. |
+| `--redirect <host>` | A name the proxy redirects (`308`, path and query kept) to the primary domain — `'*.example.com'` for every subdomain. Repeatable; remembered as `"redirects"`. Needs `--domain`. |
+| `--dns <provider>` | Prove certificates over DNS (DNS-01), which a `*.` host needs: `azure`. Builds `rask-caddy:dns-azure` on the box and replaces the shared proxy with it once (a few seconds of downtime for every site); later deploys keep it. Not remembered — the proxy carries it. |
+| `--dns-env-file <path>` | The provider's credentials as `KEY=VALUE` lines (for `azure`: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP_NAME`), needed when the proxy is given the provider. Never stored or printed. |
 | `--port <n>` | Host port when there's no domain (default `8080`). |
 | `--container-port <n>` | The port your app listens on **inside** the container — what the proxy is pointed at and what the readiness probe hits (default `8080`, which every `rask new` Dockerfile uses). Only needed for a hand-written Dockerfile that exposes something else. Remembered in `.rask/deploy.json`, and recorded on the container so a host running apps on different ports keeps each one's routing correct. |
 | `--app <name>` | Image/container name (default: the project name). The same flag names the app for `rask db --remote`. |

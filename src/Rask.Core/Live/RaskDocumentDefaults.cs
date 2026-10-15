@@ -15,8 +15,13 @@ internal sealed class RaskDocumentDefaults(
     Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? toasts = null,
     TimeSpan? toastDuration = null,
     bool toastsTimeThemselves = false,
-    bool toastsKeepTheirPlace = false)
+    bool toastsKeepTheirPlace = false,
+    Func<string?>? appStylesheetVersion = null)
 {
+    // The app sheet's content hash, asked at each document so a rebuilt sheet gets a new address; null where
+    // the host does not serve the sheet itself (WASM), and then the link carries no ?v=.
+    public Func<string?>? AppStylesheetVersion { get; } = appStylesheetVersion;
+
     // The template draws its host with no toast to show too, so a toast arriving is a change inside it (the kit's does).
     public bool ToastsKeepTheirPlace { get; } = toastsKeepTheirPlace;
 
