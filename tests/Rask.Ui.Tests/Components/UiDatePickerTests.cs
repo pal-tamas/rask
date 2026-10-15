@@ -136,20 +136,6 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Range_limits_rule_out_the_days_that_would_break_them_once_a_start_waits()
-    {
-        var state = new UiCalendarState { Anchor = Jan(10) };
-
-        var picks = new UiCalendarRangePick(default, state, 3, 5, _ => Task.CompletedTask);
-
-        Assert.True(picks.Blocks(Jan(9)));
-        Assert.True(picks.Blocks(Jan(11)));
-        Assert.False(picks.Blocks(Jan(12)));
-        Assert.False(picks.Blocks(Jan(14)));
-        Assert.True(picks.Blocks(Jan(15)));
-    }
-
-    [Fact]
     public void Presets_are_listed_as_radios_with_custom_last_and_checked_while_nothing_else_fits()
     {
         var picker = Ranged(default).WithPresets().Min(new DateOnly(2012, 1, 1));

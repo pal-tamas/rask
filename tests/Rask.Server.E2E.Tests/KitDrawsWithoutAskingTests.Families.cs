@@ -145,7 +145,7 @@ public abstract partial class KitDrawsWithoutAskingTests
 
         ["calendar"] = On<KitPickerFramePage>("calendar",
             Twice("page the month", "[data-c='calendar']" + NextMonth, "[data-c='calendar']" + PreviousMonth),
-            Cursor(Focusing("[data-c='calendar'] [data-rask-focus-target]")),
+            Cursor(Focusing("[data-c='calendar'] [role=gridcell] button[tabindex='0']")),
             Press("pick a day", "[data-c='calendar']" + ADay)),
         ["calendar-range"] = On<KitPickerFramePage>("calendar-range",
             Press("pick the first day of a range", RangeStart),

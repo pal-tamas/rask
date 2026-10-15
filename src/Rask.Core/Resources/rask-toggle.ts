@@ -47,7 +47,7 @@ function isPanel(el: EventTarget | null): el is HTMLElement {
 }
 
 function showing(panel: Element | null): boolean {
-    return panel instanceof HTMLDialogElement ? panel.open : isShown(panel);
+    return isShown(panel) || (panel instanceof HTMLDialogElement && panel.open);
 }
 
 // The panel itself when it asks, and everything that names it.

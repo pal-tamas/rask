@@ -619,6 +619,8 @@ function choose(root: Element, state: State, value: Value, finishes: boolean): v
 
 function pick(root: Element, state: State, day: number): void {
     if (blocked(state, day)) return;
+    // The months stay where they are: a day taken out does not page back to today.
+    state.view = monthsShown(root, state)[0];
     state.cursor = day;
     const v = shown(state);
     const mode = state.config.mode;
