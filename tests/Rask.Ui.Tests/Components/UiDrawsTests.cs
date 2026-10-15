@@ -103,18 +103,14 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_calendar_pages_as_drawing_and_picks_as_drawing_only_while_it_waits()
+    public void A_calendar_draws_in_the_browser_and_sends_nothing_that_only_draws()
     {
         var a = new Answers();
 
-        var waits = Page.Render(() => Ui.Calendar.Bind(() => a.Day).SelectableHeader().Locale("en-US").On(Today));
-        var live = Page.Render(() => Ui.Calendar.Bind(() => a.Day).Live().Locale("en-US").On(Today));
+        var page = Page.Render(() => Ui.Calendar.Bind(() => a.Day).SelectableHeader().WithToday().Locale("en-US").On(Today));
 
-        Assert.Equal("click mouseenter", Draws(waits, Day(20)));
-        Assert.Equal("click", Draws(waits, "button[aria-label=\"Next month\"]"));
-        Assert.Equal("change", Draws(waits, "select"));
-        Assert.Equal("mouseenter", Draws(live, Day(20)));
-        Assert.Equal("click", Draws(live, "button[aria-label=\"Next month\"]"));
+        Assert.DoesNotContain("data-rask-draws", page.Html, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(page.Html, "data-rask-on-"));
     }
 
     [Fact]

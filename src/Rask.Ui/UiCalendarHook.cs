@@ -56,8 +56,12 @@ internal static class UiCalendarHook
             Flag(json, "weekNumbers", options.WeekNumbers);
             Flag(json, "static", options.Static);
             Flag(json, "selectableHeader", options.SelectableHeader);
-            json.WriteString("previous", RaskStrings.Get(RaskString.PickerPreviousMonth, "Previous month"));
-            json.WriteString("next", RaskStrings.Get(RaskString.PickerNextMonth, "Next month"));
+            if (options.Navigation)
+            {
+                json.WriteString("previous", RaskStrings.Get(RaskString.PickerPreviousMonth, "Previous month"));
+                json.WriteString("next", RaskStrings.Get(RaskString.PickerNextMonth, "Next month"));
+            }
+
             if (picker is { } p)
             {
                 json.WriteBoolean("picker", true);

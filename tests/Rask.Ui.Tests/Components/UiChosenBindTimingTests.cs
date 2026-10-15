@@ -13,6 +13,9 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
 {
+    // The one field a calendar's page hears the choice through: the browser picks (rask-calendar.ts).
+    private const string CalendarField = "[data-ui-calendar] > input[type=\"hidden\"]";
+
     private static readonly DateOnly Today = new(2026, 1, 15);
 
     private sealed class Booking
@@ -170,7 +173,7 @@ public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
         ]);
 
         await Pick(page, "Attic");
-        await page.On(Day(20)).Click();
+        await page.On(CalendarField).Change("2026-01-20");
         var (room, day) = (m.Room, m.Day);
         await Acting.Act(page);
 
@@ -238,7 +241,7 @@ public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
         ]);
         await Pick(page, "Attic");
 
-        await page.On(Day(20)).Click();
+        await page.On(CalendarField).Input("2026-01-20");
 
         Assert.Equal("Attic", roomWhenTheDayArrived);
         Assert.Equal(new DateOnly(2026, 1, 20), m.Day);
