@@ -168,6 +168,7 @@ public sealed class JobsHarness : IAsyncDisposable
         services.AddLogging(b => b.AddProvider(new CapturingLoggerProvider(Logs)));
         services.AddSingleton(Recorder);
         services.AddSingleton(Gate);
+        services.AddSingleton(Lanes);
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskJobs' TryAddSingleton keeps it
         services.AddRaskCqrs();
         services.AddRaskJobs<JobsDbContext>(o =>
@@ -193,6 +194,9 @@ public sealed class JobsHarness : IAsyncDisposable
 
     /// <summary>Latches for <see cref="GateJob"/>, so a test can hold a handler open across a shutdown.</summary>
     public Gate Gate { get; } = new();
+
+    /// <summary>Latches for <see cref="LaneJob"/>, one pair per tag.</summary>
+    public LaneGate Lanes { get; } = new();
 
     public IJobs Queue => _provider.GetRequiredService<IJobs>();
 

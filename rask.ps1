@@ -67,10 +67,10 @@ $DotnetRoot = if ($env:RASK_INSTALL_DOTNET_ROOT) { $env:RASK_INSTALL_DOTNET_ROOT
 $Prefix = if ($env:RASK_INSTALL_PREFIX) { $env:RASK_INSTALL_PREFIX } else { Join-Path $env:LOCALAPPDATA 'rask' }
 $DotnetScriptUrl = if ($env:RASK_INSTALL_DOTNET_SCRIPT_URL) { $env:RASK_INSTALL_DOTNET_SCRIPT_URL } else { 'https://dot.net/v1/dotnet-install.ps1' }
 $NodeDist = if ($env:RASK_INSTALL_NODE_DIST) { $env:RASK_INSTALL_NODE_DIST } else { 'https://nodejs.org/dist' }
-# 24.15.0 rather than the islands' build floor: this decides whether an existing Node is left alone, and
+# 24.22.0 rather than the islands' build floor: this decides whether an existing Node is left alone, and
 # the standing rule is the latest LTS, which the island toolchains (Vite and the framework plugins) track
 # (#886). Mirrors RASK_INSTALL_NODE_MIN in rask.sh.
-$NodeMin = if ($env:RASK_INSTALL_NODE_MIN) { $env:RASK_INSTALL_NODE_MIN } else { '24.15.0' }
+$NodeMin = if ($env:RASK_INSTALL_NODE_MIN) { $env:RASK_INSTALL_NODE_MIN } else { '24.22.0' }
 $Package = if ($env:RASK_INSTALL_PACKAGE) { $env:RASK_INSTALL_PACKAGE } else { 'Rask.Cli' }
 
 $script:Warnings = @()

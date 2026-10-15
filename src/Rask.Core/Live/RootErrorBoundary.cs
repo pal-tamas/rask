@@ -79,7 +79,9 @@ internal sealed class RootErrorBoundary : Component
 
         if (defaults.AppStylesheet is { } stylesheet)
         {
-            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet));
+            // Named by its hash where the host serves it, so the browser keeps it until it changes.
+            var version = defaults.AppStylesheetVersion?.Invoke();
+            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet + (version is null ? "" : "?v=" + version)));
         }
 
         return [.. head];
@@ -235,7 +237,8 @@ internal sealed class RootErrorBoundary : Component
         ctx.DocumentAttributes = Defaults?.HtmlAttributes;
         try
         {
-            return inner.ShellInternal(head, boundary);
+            // A shell that forgot its Body element gets one, or the page paints and never connects (#1234).
+            return ShellBodyRepair.Ensure(inner.ShellInternal(head, boundary), head, boundary, inner.GetType());
         }
         catch (Exception ex)
         {

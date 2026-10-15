@@ -36,8 +36,6 @@ internal sealed record UiCalendarOptions(
 
     internal bool FixedWeeks { get; init; }
 
-    /// <summary>Whether a day picked is held for the next action, so the pick only draws (<see cref="UiDraws" />).</summary>
-    internal bool PickDraws { get; init; }
 
     internal string? Class { get; init; }
 
@@ -51,8 +49,6 @@ internal sealed record UiCalendarOptions(
     /// </summary>
     internal bool InPopup { get; init; }
 
-    /// <summary>The popover a pick that finishes the choice closes, when the grid sits in a date picker.</summary>
-    internal string? Closes { get; init; }
 
     /// <summary>The clock a calendar reads today from. A test that snapshots markup pins it.</summary>
     internal static TimeProvider Clock { get; set; } = TimeProvider.System;

@@ -74,55 +74,12 @@ updates:
         patterns:
           - "SQLitePCLRaw.*"
 
-  # The front-end dependencies every `rask new --template react|preact|vue|angular|solid|svelte|lit`
-  # app receives: each template's committed client/package.json and, as much, its package-lock.json —
-  # the scaffolded app's first build is `npm ci`, so the lockfile IS the tree a user gets.
-  #
-  # ONE pull request a week for all seven, not one per template. They share most of what moves
-  # (vite, typescript, eslint, prettier, tailwindcss), a pull request each would be seven that must
-  # land one after another — each rebased onto the last — and a list of pull requests nobody reads is
-  # how a repository ends up turning Dependabot off. Majors are a second group: a new major is the
-  # one that breaks a build, and it should not hold back a week of patches while somebody reads it.
-  #
-  # dependabot-merge.yml merges these with nobody reading them, on ci's verdict. That verdict includes
-  # the "front end <key>" job of every template the pull request changes (gates.yml, "deps":
-  # "touched"): the scaffold installed from the new lockfile, built, linted and served. A red template
-  # holds the whole pull request back.
-  - package-ecosystem: npm
-    directories:
-      - "/src/Rask.Templates/*/client"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    # The ranges in package.json are drawn by hand and TailwindVersionPinTests holds tailwindcss's
-    # to the version the C# hosts download. An update inside a range moves the lockfile only; one
-    # outside it (a major) widens the range.
-    versioning-strategy: increase-if-necessary
-    # Conventional Commits so the commitlint check passes (e.g. "build(deps): bump X").
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # The same hold as the site's, for the same reason: vue-tsc, svelte-check and Angular's
-      # compiler all run on TypeScript's JavaScript API, which 7.x does not ship.
-      - dependency-name: "typescript"
-        versions: [">=7.0.0"]
-    groups:
-      template-front-ends:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      template-front-end-majors:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
+  # No entry for the front-end templates (src/Rask.Templates/*/client, _islands/*/island.json): they name
+  # no version. `rask new` chooses the newest set that installs together (FrontEndVersions), the
+  # scaffolded app writes its own lockfile on the first build, and upstream.yml proves that newest set
+  # every day — there is nothing here for a pull request to move.
 
-  # The site's own front end (src/Rask.Site/package.json + its lockfile). The island versions a
-  # scaffold writes live in src/Rask.Templates/_islands/*/island.json, which is not a package.json
-  # and so nothing Dependabot can read — the check-dependency-updates skill bumps those by hand.
+  # The site's own front end (src/Rask.Site/package.json + its lockfile).
   - package-ecosystem: npm
     directory: "/src/Rask.Site"
     schedule:
@@ -144,9 +101,85 @@ updates:
         patterns:
           - "*"
 
-  # GitHub Actions used by commitlint.yml / release.yml / nightly.yml / pages.yml / upstream.yml
+  # The rich text editor's engine (src/Rask.Ui/Resources/editor): Tiptap and the esbuild that bundles it.
+  - package-ecosystem: npm
+    directory: "/src/Rask.Ui/Resources/editor"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Held to the last release whose serialised HTML is what Flux's live editor answers (no trailing
+      # semicolon in a style attribute) — package.json's description says so; it is an override there.
+      - dependency-name: "prosemirror-model"
+    groups:
+      # Every @tiptap/* package at one version: the family refuses a mixed set.
+      ui-editor:
+        patterns:
+          - "*"
+
+  # The island bundler the devtools E2E journeys run (tests/Rask.DevTools.E2E.Tests/package.json).
+  - package-ecosystem: npm
+    directory: "/tests/Rask.DevTools.E2E.Tests"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      devtools-e2e:
+        patterns:
+          - "*"
+
+  # The rename tool (scripts/tools/RaskRename): cut off from central package management on purpose, so
+  # its references are its own csproj's.
+  - package-ecosystem: nuget
+    directory: "/scripts/tools/RaskRename"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # The same Roslyn hold as the root entry: the workspace must not be newer than the SDK's compiler.
+      - dependency-name: "Microsoft.CodeAnalysis.*"
+    groups:
+      rask-rename:
+        patterns:
+          - "*"
+
+  # The base images: every template's Dockerfile, and the throwaway Linux box `rask dev` is tested in
+  # (scripts/devhost — its image is an ARG, which Dependabot reads no further than the default).
+  - package-ecosystem: docker
+    directories:
+      - "/src/Rask.Templates/*"
+      - "/scripts/devhost"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Rask targets net10.0 only (the LTS); 11.0 is not an LTS release. Patches still flow.
+      - dependency-name: "mcr.microsoft.com/dotnet/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # The same release as RaskLitestreamVersion, which scripts/upstream/litestream.py moves with its digests.
+      - dependency-name: "litestream/litestream"
+    groups:
+      template-images:
+        patterns:
+          - "*"
+
+  # GitHub Actions used by the workflows, and by the composite action they share (.github/actions/setup).
   - package-ecosystem: github-actions
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: weekly
     # Conventional Commits so the commitlint check passes (e.g. "ci(deps): bump X").

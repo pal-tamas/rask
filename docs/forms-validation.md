@@ -108,8 +108,8 @@ object and a row of a collection bring their own.
 ### How a control knows a field is required
 
 A bound control announces a field that must be filled as `aria-required="true"`, so a screen reader says
-"required" on the way in rather than only once Save has refused. It asks one question,
-`RaskValidation.IsRequired(modelType, fieldPath)`, which answers yes when either is true:
+"required" on the way in rather than only once Save has refused. It asks one question, with the expression
+it is bound with — `RaskValidation.IsRequired(() => m.Name)` — which answers yes when either is true:
 
 - the member carries `[Required]`;
 - the type that declares the property registered it:
@@ -126,9 +126,18 @@ because ARIA has no required state for their roles.
 
 A registration is keyed by the type that declares the property and covers the types derived from it. A path
 is followed through the declared types of the properties it walks, and an index stands for the collection's
-item type, so `IsRequired(typeof(OrderModel), "Rows[2].Weight")` asks what the row's type registered for
-`Weight`, and `Price.Amount` asks the type of `Price`. The answer is worked out once per field and kept until
+item type, so `IsRequired(() => order.Rows[2].Weight)` asks what the row's type registered for
+`Weight`, and `order.Price.Amount` asks the type of `Price`. The answer is worked out once per field and kept until
 a type is registered again, so asking on every render costs a lookup.
+
+**A part of the model that may be left empty.** One nested type can be held where it must be there and where
+it may be absent — `Address Shipping`, `Address? Billing` — so "may be left wholly empty" is said of the
+property that holds it: `RaskValidation.RegisterOptionalFields(typeof(OrderModel), property => property is
+"Billing")`, made by the same layer. Nothing under such a property is required, however deep:
+`RaskValidation.IsRequired(() => order.Billing.Street)` is false while `() => order.Shipping.Street` is true:
+a bound control asks with its own bind expression, so it answers for the place it sits in. The rule a field's type carries is asked there only about a value that was
+filled in (not `null`, blank text or an unticked box). It relaxes what a form asks and enforces nothing: the
+save still says what a part that *was* given lacks.
 
 A field required only by a `Validate` step, a FluentValidation rule or a custom attribute is not visible to
 this question; say it on the control with `.AriaRequired()`.

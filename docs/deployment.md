@@ -26,6 +26,8 @@ Dockerfile below (override with `--dockerfile`).
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
   else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
+  Every site it proxies also has `encode zstd gzip`: anything the app sends uncompressed goes out
+  compressed, and a response the app already encoded passes through as it is.
 - **Zero-downtime, health-gated.** Deploys are blue-green: the new container starts alongside the old,
   is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
   default), then Caddy is reloaded to point at it before the old one is removed. A container that fails
@@ -50,6 +52,29 @@ Dockerfile below (override with `--dockerfile`).
   Dockerfile prepares a writable `/data`; a custom Dockerfile needs the same
   (`RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Pair it with `Rask.SQLite.Litestream` to also
   stream the database off the box for machine-loss recovery.
+- **Several domains, one app.** `--domain example.com --domain www.example.com` (or
+  `--domain example.com,www.example.com`) serves the same container on each, every one with its own
+  certificate; the first is the primary, which emailed links use. `.rask/deploy.json` remembers them as
+  `"domains": ["example.com", "www.example.com"]` — one stays `"domain"`, as before — so a bare
+  `rask deploy` keeps all of them. A domain another app on the box already answers on is refused before
+  the deploy starts anything.
+- **Redirected names.** `--redirect <host>` (repeatable) is a name the proxy answers with a `308` to the app's
+  primary domain, path and query kept — `308` also keeps the method and body, so a program still POSTing to an
+  old address arrives intact. `--redirect '*.example.com'` sends every subdomain on, while the names you
+  `--domain` (`example.com`, `www.example.com`) stay the app's: Caddy matches the most specific address first.
+  Remembered as `"redirects": [...]` in `.rask/deploy.json`, and refused, like a domain, when another app on
+  the box already serves or redirects the name.
+- **Wildcards need a DNS provider.** Let's Encrypt issues a `*.` certificate only over the DNS-01 challenge,
+  which writes a TXT record into the domain's zone. `--dns azure --dns-env-file azure-dns.env` (the file sets
+  `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SUBSCRIPTION_ID`,
+  `AZURE_RESOURCE_GROUP_NAME` — a service principal that may edit just that zone) builds Caddy with the
+  `caddy-dns/azure` module on the box (`rask-caddy:dns-azure`) and, once the new app answers, **replaces the
+  shared proxy** with it: every site on the box is down for the seconds Caddy takes to start, so the CLI says
+  so first. The data volume carries every certificate over. Only the blocks naming a wildcard prove over DNS;
+  the rest stay on HTTP-01. The credentials go into the proxy container's environment and the Caddyfile names
+  them as `{env.…}` placeholders — never into `.rask/deploy.json`, a label or the output. The proxy is
+  labelled `rask.dns=azure`, so every later deploy (CI's, with no credentials) keeps it as it is; a wildcard
+  on a box with no provider fails before anything starts.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
@@ -193,7 +218,7 @@ Beyond your own `--env` values, every deployed container gets:
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
-| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
+| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`; the first one when there are several) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |
@@ -378,7 +403,8 @@ the `Upgrade`/`Connection` headers (most do by default; for nginx set `proxy_set
 sends, and the 15-second heartbeat stays inside its default 60-second `proxy_read_timeout` — but a proxy that
 ignores both must not buffer that path, and must not compress `text/event-stream`. Serve over HTTP/2 where you
 can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.MapRask<App>(pathBase:
-"/myapp")` and route `/myapp/*` to the container.
+"/myapp")` and route `/myapp/*` to the container; the page tells the browser runtime the prefix on its own
+`<script>` tag, so no `<base href>` is needed ([details](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
 
 **Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
 private`, because every page is [live](render-modes.md) and its document carries a session id that

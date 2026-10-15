@@ -31,10 +31,11 @@ public sealed class RuntimeHookTimeListTests(PlaywrightFixture playwright) : ICl
 
         await page.ClickAsync(Button);
         await Expect(page.Locator(List)).ToHaveAttributeAsync("data-open", string.Empty);
+        // aria-expanded is written at `toggle`, a task after data-open: the row is in view by then too.
+        await Expect(page.Locator(Button)).ToHaveAttributeAsync("aria-expanded", "true");
 
         var lit = await Lit(page);
         Assert.Equal("14:00", lit);
-        Assert.Equal("true", await page.GetAttributeAsync(Button, "aria-expanded"));
         Assert.Equal(await page.GetAttributeAsync("[data-time='14:00']", "id"), await page.GetAttributeAsync(Button, "aria-activedescendant"));
         Assert.True(await InSightAsync(page, "14:00"));
     }

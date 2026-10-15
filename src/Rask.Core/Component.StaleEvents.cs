@@ -213,10 +213,10 @@ public abstract partial class Component
     }
 
     // Counted always, and said in Development: a click that ran nothing is otherwise invisible.
-    private static bool Missed(Component? component, int slot, int sent, HandlerState? root)
+    private bool Missed(Component? component, int slot, int sent, HandlerState? root)
     {
         StaleEvents.CountMissed();
-        if (LiveOptions.IsDevelopment == true)
+        if (RenderHandle?.IsDevelopment ?? HostMode.IsDevelopmentInScope)
         {
             var handler = component is null
                 ? "a handler whose component has left the page"

@@ -12,6 +12,11 @@ project or a component library adds it itself:
 using Rask.Core.Routing;
 ```
 
+In a Web SDK project without it, `[Route]` finds ASP.NET's `Microsoft.AspNetCore.Routing.Route` class instead
+and the build stops with `CS0616: 'Route' is not an attribute class` — the fix is the line above. A hand-wired host
+puts it in the page files rather than in a global using when it also has MVC controllers: their `[Route]` is
+`Microsoft.AspNetCore.Mvc.RouteAttribute`, and both in scope is CS0104 (see [SPA hosting](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
+
 See also: [lifecycle.md](lifecycle.md) for hook timing on routed pages, [authentication.md](authentication.md) for
 auth gating, and [diagnostics.md](diagnostics.md) for the routing analyzers (RASK003–RASK013).
 
@@ -565,12 +570,15 @@ Key behaviours:
 - `Go.To(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
 - `Go.With` / `Go.Without` operate on the **current** path and leave it unchanged — they're for
-  partial query updates (`?page=2&sort=asc`).
+  partial query updates (`?page=2&sort=asc`). A move that changes only the query **replaces** the current history
+  entry, as Livewire's `#[Url]` does, so a live search adds no Back stop at every pause; follow it with `.Pushing()`
+  (`Go.With("page", "2").Pushing()`) when the move is a place the reader should be able to go Back to.
 
 ### Replacing the history entry
 
 `Go.To(…)` and a route's `.Go()` push a new history entry. Follow either with `.Replacing()` to replace the current
-one instead, so it adds no extra Back-button stop:
+one instead, so it adds no extra Back-button stop (`Go.With` and `Go.Without` replace by default, and take
+`.Pushing()` to add one):
 
 ```csharp
 Go.To("/login").Replacing();               // redirect without a back-stack entry

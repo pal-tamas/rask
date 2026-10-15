@@ -15,6 +15,7 @@
          directory and fails the build if any of it is still there. The check reads what was actually
          published rather than the item lists that were supposed to produce it, because the lists are
          exactly what a future SDK can reshuffle without telling anyone.
+      5. The assembly is never an MVC application part, so the app's own dll does not name it either.
 
     Imported from build/ (a direct reference), buildTransitive/ (through another package), and
     in-repo from Directory.Build.targets. Everything below either costs one property check or names a
@@ -42,6 +43,33 @@
       <_RaskDevToolsToLink Include="@(ManagedAssemblyToLink)"
                            Condition=" '%(ManagedAssemblyToLink.Filename)' == 'Rask.DevTools' "/>
       <TrimmerRootAssembly Include="Rask.DevTools" Condition=" '@(_RaskDevToolsToLink)' != '' "/>
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Never an MVC application part, in any configuration (#1226). The Web SDK's _DiscoverMvcApplicationParts writes an
+    [ApplicationPart("…")] into the APP's own assembly for every reference that reaches MVC, and Rask.DevTools does,
+    through Rask.Server. AddMvcCore (AddRaskApi calls it) then Assembly.Loads each name while the host is still being
+    built, so a publish that removed the devtools dies at startup with "Could not load file or assembly
+    'Rask.DevTools'" — after every check below has passed, because the leak is inside the app's own dll.
+
+    Unconditional rather than tied to RaskDevTools, because the SDK target is incremental on the assets file and the
+    imported projects only: a build with the devtools on followed by a publish with them off, in the same obj/, would
+    reuse the attribute file the first one wrote. The devtools contribute nothing to MVC — their endpoints are minimal
+    APIs — so a Debug build loses nothing. The reference is held out for that one target and put straight back.
+  -->
+  <Target Name="_RaskDevToolsHoldOutOfMvcApplicationParts" BeforeTargets="_DiscoverMvcApplicationParts">
+    <ItemGroup>
+      <_RaskDevToolsHeldReferencePath Include="@(ReferencePath)"
+                                      Condition=" '%(ReferencePath.Filename)' == 'Rask.DevTools' "/>
+      <ReferencePath Remove="@(_RaskDevToolsHeldReferencePath)"/>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_RaskDevToolsRestoreAfterMvcApplicationParts" AfterTargets="_DiscoverMvcApplicationParts">
+    <ItemGroup>
+      <ReferencePath Include="@(_RaskDevToolsHeldReferencePath)"/>
+      <_RaskDevToolsHeldReferencePath Remove="@(_RaskDevToolsHeldReferencePath)"/>
     </ItemGroup>
   </Target>
 
@@ -158,6 +186,17 @@
            Text="Rask.DevTools: this publish has RaskDevTools=false but its output folder still contains @(_RaskDevToolsPublishedLeak). A publish without the devtools must carry none of them. The usual cause is an EARLIER publish into the same folder — a Debug publish, or one with RaskDevTools=true — because publish never empties $(PublishDir): delete that folder and publish again. If the folder was empty, the SDK changed how publish items are resolved and _RaskDevToolsStripPublish in Rask.DevTools.targets no longer matches them."/>
     <Error Condition=" '$(_RaskDevToolsDepsLeak)' == 'true' "
            Text="Rask.DevTools: this publish has RaskDevTools=false but $(_RaskDevToolsDepsFile) still lists Rask.DevTools. A framework-dependent app refuses to start when its deps.json names an assembly that is not on disk."/>
+
+    <!--
+      The third place the assembly is named: the app's own dll, through the MVC application-part attributes the Web SDK
+      compiled into it. Read from the file the compile took them from, since the dll is what was published (#1226).
+    -->
+    <PropertyGroup>
+      <_RaskDevToolsMvcPartsText Condition=" '$(_MvcApplicationPartAttributeGeneratedFile)' != '' AND Exists('$(_MvcApplicationPartAttributeGeneratedFile)') ">$([System.IO.File]::ReadAllText('$(_MvcApplicationPartAttributeGeneratedFile)'))</_RaskDevToolsMvcPartsText>
+      <_RaskDevToolsMvcPartLeak Condition=" $(_RaskDevToolsMvcPartsText.Contains('ApplicationPartAttribute(&quot;Rask.DevTools&quot;)')) ">true</_RaskDevToolsMvcPartLeak>
+    </PropertyGroup>
+    <Error Condition=" '$(_RaskDevToolsMvcPartLeak)' == 'true' "
+           Text="Rask.DevTools: this publish has RaskDevTools=false but the app assembly names Rask.DevTools as an MVC application part ($(_MvcApplicationPartAttributeGeneratedFile)). AddMvcCore loads every application part at startup, so the published app would fail with 'Could not load file or assembly Rask.DevTools'. Delete the obj folder and publish again; if it persists, _RaskDevToolsHoldOutOfMvcApplicationParts no longer runs before the SDK's _DiscoverMvcApplicationParts."/>
   </Target>
 
 </Project>

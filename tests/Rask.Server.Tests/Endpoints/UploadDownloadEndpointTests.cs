@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Routing;
 using Rask.Server.Files;
 using Rask.Server.Tests.Infrastructure;
 
@@ -105,6 +106,38 @@ public class UploadDownloadEndpointTests
         await WaitFor.True(() => store.Peek(sessionId) is null, "the session to be removed");
 
         Assert.Null(store.Peek(sessionId));
+    }
+
+    // The store can still hand out a session that its removal is tearing down on another thread: the grace period
+    // above ending between the endpoint's lookup and its owner check. That request finds the session gone, as
+    // one a moment later would, instead of failing on its disposed services (#1207). Here the session's scope
+    // is disposed while the store still holds it, so the window the timing only sometimes opens is open every
+    // run — the scope alone, as the session itself is the host's to dispose, once.
+    [Fact]
+    public async Task A_download_for_a_session_disposed_after_its_lookup_answers_404()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
+        session.Scope.Dispose();
+
+        var response = await host.Http.GetAsync($"/_rask/download/{session.Id}/nope", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_upload_to_a_session_disposed_after_its_lookup_answers_404()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
+        session.Scope.Dispose();
+
+        var response = await host.Http.PostAsync(
+            $"/_rask/upload/{session.Id}",
+            BuildSingleFileForm("a.txt", [1]),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]

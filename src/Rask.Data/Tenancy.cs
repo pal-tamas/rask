@@ -17,8 +17,9 @@ namespace Rask.Data;
 ///     </code>
 ///     <para>
 ///         A child entity takes its aggregate root's answer: it is part of that aggregate, so it belongs to
-///         whichever tenant the root does, and it carries its own <c>TenantId</c> so its own read face cannot
-///         return another tenant's rows.
+///         whichever tenant the root does. One that declares a <c>TenantId</c> carries the column itself; one
+///         that declares none has no column and is read through its parent — an <c>EXISTS</c> on the parent's
+///         key and tenant — so its own read face cannot return another tenant's rows either way.
 ///     </para>
 /// </remarks>
 public enum Tenancy

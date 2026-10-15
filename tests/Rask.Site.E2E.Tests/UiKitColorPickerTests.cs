@@ -344,7 +344,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
             Assert.Equal((390 - sheet.Width) / 2, sheet.X, 1);
             Assert.Equal((844 - sheet.Height) / 2, sheet.Y, 1);
             Assert.Equal("hidden", await Page.EvaluateAsync<string>("getComputedStyle(document.documentElement).overflowY"));
-            await Expect(intro.Locator("[data-ui-color-picker-sheet] input")).ToHaveValueAsync("2 1");
+            await Expect(intro.Locator("[data-ui-color-picker-sheet]")).ToHaveCSSAsync("width", "2px");
             await Page.Keyboard.PressAsync("ArrowRight");
             await Expect(intro.Locator("[data-ui-color-picker-popover-input]")).ToHaveValueAsync("#b9da51");
             await Expect(input).ToHaveValueAsync("#bada55");
@@ -382,7 +382,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
             var dialog = intro.Locator("dialog");
 
             await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
-            await Expect(intro.Locator("[data-ui-color-picker-sheet] input")).ToHaveValueAsync("2 1");
+            await Expect(intro.Locator("[data-ui-color-picker-sheet]")).ToHaveCSSAsync("width", "2px");
             await intro.Locator("[data-ui-color-picker-swatch]").Nth(3).ClickAsync();
 
             await Expect(dialog).ToBeHiddenAsync();

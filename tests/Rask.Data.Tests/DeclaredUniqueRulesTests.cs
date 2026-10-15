@@ -105,7 +105,7 @@ public sealed class DeclaredUniqueRulesTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Another_tenant_can_hold_the_same_value_because_the_check_asks_through_the_tenant_filter()
+    public async Task Another_tenant_can_hold_the_same_value_because_the_index_names_the_tenant()
     {
         await SaveAsync(Acme, Lane.Between("Budapest", "Vienna"));
 

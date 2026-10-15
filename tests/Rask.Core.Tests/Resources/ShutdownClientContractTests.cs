@@ -116,8 +116,8 @@ public class ShutdownClientContractTests
         var branch = body[body.IndexOf("if (serverShuttingDown)", StringComparison.Ordinal)..];
         var branchEnd = branch[..branch.IndexOf("return;", StringComparison.Ordinal)];
 
-        Assert.Contains("setOverlayMessage(UPDATING_MSG)", branchEnd, StringComparison.Ordinal);
-        Assert.Contains("setRetryButton(escalated ? \"Retry now\" : null)", branchEnd, StringComparison.Ordinal);
+        Assert.Contains("setOverlayMessage(connectionText(T_UPDATING))", branchEnd, StringComparison.Ordinal);
+        Assert.Contains("setRetryButton(escalated ? connectionText(T_RETRY) : null)", branchEnd, StringComparison.Ordinal);
         Assert.DoesNotContain("Still trying to reconnect", branchEnd, StringComparison.Ordinal);
     }
 
@@ -128,7 +128,7 @@ public class ShutdownClientContractTests
         var fn = js[js.IndexOf("function reloadForUpdate", StringComparison.Ordinal)..];
         var end = fn.IndexOf("\n    }", StringComparison.Ordinal);
 
-        Assert.Contains("UPDATING_MSG", fn[..end], StringComparison.Ordinal);
+        Assert.Contains("T_UPDATING", fn[..end], StringComparison.Ordinal);
         Assert.Contains("saveRestorePoint()", fn[..end], StringComparison.Ordinal);
         // Fast, because a blue-green swap has already moved the proxy to the replacement.
         Assert.Contains("const SHUTDOWN_RELOAD_MS = 250;", js, StringComparison.Ordinal);

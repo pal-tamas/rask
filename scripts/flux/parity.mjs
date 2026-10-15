@@ -160,6 +160,10 @@ const NATIVE = {
   'ui-tab-group': 'div', 'ui-tabs': 'div', 'ui-tabs-scroll-area': 'div',
   // The carousel: plain boxes around a native scroller, which the runtime's hook reports on (rask-carousel.ts).
   'ui-carousel': 'div', 'ui-carousel-slide': 'div', 'ui-carousel-button': 'div', 'ui-carousel-indicators': 'div',
+  // The phone field: a box around a native tel input and the select's elements, which the phone engine drives.
+  'ui-phone': 'div',
+  // The composer: a role="group" box; its submit keys and its growing textarea are the runtime's (rask-submit.ts, rask-grow.ts).
+  'ui-composer': 'div',
 };
 // Flux's ui-checkbox, ui-radio and ui-switch ARE the control, by script. The <label> written in their place
 // holds the native <input> that is: one child Flux has no node for, and nothing drawn.
@@ -187,6 +191,14 @@ const MISMARKED = { 'ui-disclosure-group': 'accordion', 'ui-chart': 'chart' };
 // …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
 // whether the dialog is Flux's sheet: Flux asks the window. And the one in a calendar, which is how the page
 // learns that it is drawn for a phone.
+// The owner-approved departures in LOOK (SKILL.md "Owner-approved departures"): each names the node by where it
+// sits, and only the named properties are let go there.
+const DEPARTED = [
+  // 2026-10-14: Ui.Table's scroll frame — the box holding the <table> itself — is `relative`, so it holds what
+  // its cells place absolutely.
+  { holds: 'table', keys: ['position'] },
+];
+
 const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet', 'data-ui-calendar-narrow'];
 // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
 // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,
@@ -336,7 +348,8 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
   // A <template> is never drawn — Flux keeps a prototype of every chart node in one, and inside an <svg> a
   // template's children are ordinary DOM children — so it is no child on either side. Nor is an EXTRA node.
   // Nor is a <path> outside an <svg>: Flux's editor leaves one beside the link panel's check icon, and no browser draws it.
-  const stray = (c, n) => c.tag === 'template' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
+  // Nor is a <script>: Flux's phone carries its list of countries in one, data its script reads, never drawn.
+  const stray = (c, n) => c.tag === 'template' || c.tag === 'script' || (c.tag === 'path' && !['svg', 'g', 'defs', 'clippath', 'mask', 'symbol'].includes(n.tag));
   const kids = (example, n) => example.nodes.filter(c => c.parent === n.id && !stray(c, n) && !EXTRA.some(name => name in c.attrs));
   const ca = kids(theirs, a);
   const cb = kids(mine, b).filter(c => !(HOLDS_INPUT.has(a.tag) && c.tag === 'input') && !boundField(b, c));
@@ -350,7 +363,9 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs, placed(a, b) ? PLACEMENT : undefined);
+  const departs = departedFrom(mine, b);
+  const unheld = placed(a, b) ? new Set([...PLACEMENT, ...departs]) : (departs.length ? new Set(departs) : undefined);
+  compareStyles(a.style, b.style, where, diffs, unheld);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
@@ -375,6 +390,11 @@ function compareLook(theirs, a, mine, b, where, diffs) {
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
+}
+
+function departedFrom(example, node) {
+  const holds = tag => example.nodes.some(c => c.parent === node.id && c.tag === tag);
+  return DEPARTED.filter(d => holds(d.holds)).flatMap(d => d.keys);
 }
 
 function isNativeControl(example, node) {

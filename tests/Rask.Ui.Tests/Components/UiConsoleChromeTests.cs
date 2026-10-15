@@ -72,7 +72,7 @@ public partial class UiConsoleChromeTests : global::Rask.Core.RaskMarkup
     public void The_kit_sheet_carries_what_wraps_a_long_token_in_a_badge()
     {
         // Flux's badge has no such prop, so the console hands the utilities to Class — from packages whose
-        // sources the kit's Tailwind build never reads. UiBadge's remarks name them, which is what emits them.
+        // sources the kit's Tailwind build never reads. ui.precompiled.css names them with `@source inline` (a comment no longer reaches the scan, #1214).
         var css = UiStylesheet.Css;
 
         Assert.Contains(".font-mono{", css, StringComparison.Ordinal);

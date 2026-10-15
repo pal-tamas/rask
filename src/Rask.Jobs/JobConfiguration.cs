@@ -28,5 +28,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // see everybody's work. So the tenant is data on the row, not a partition of the table, and
         // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.
         builder.Property(x => x.TenantId);
+
+        // The lane is data on the row, and the claim looks a lane up to see whether it is busy.
+        builder.Property(x => x.Lane).HasMaxLength(256);
+        builder.HasIndex(x => new { x.Lane, x.ProcessedAt });
     }
 }

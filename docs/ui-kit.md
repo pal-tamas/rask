@@ -5,8 +5,9 @@
 package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
 install, or a Tailwind configuration of its own.
 
-It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with one exception, the
-[rich text editor](#rich-text-editor), whose engine is a script a page loads only when it draws one. It runs on
+It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with two exceptions, the
+[rich text editor](#rich-text-editor) and the [phone](#phone) field, whose engines are scripts a page loads only when
+it draws one. It runs on
 the ASP.NET host and in browser-WebAssembly, which is the one place it differs from `Rask.Dashboard` —
 the console is deliberately server-only because its panels read a `DbContext`.
 
@@ -953,6 +954,44 @@ Not measured, because no example on Flux's page shows these buttons: the icons o
 `superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
 icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
 
+## Composer
+
+`Ui.Composer` is Flux UI's composer ([fluxui.dev/components/composer](https://fluxui.dev/components/composer)):
+a message box with buttons around it, for a chat or a prompt. It sends the form it is in from the keyboard, and
+what was typed travels with that submit — typing sends nothing.
+
+```csharp
+Form.Model(chat).OnSubmit(Send)[
+    Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly().Placeholder("How can I help you today?")
+        .ActionsLeading([Ui.Button.Sm.Subtle.Icon(Ui.IconName.PaperClip), Ui.Button.Sm.Subtle.Icon(Ui.IconName.Slash)])
+        .ActionsTrailing([
+            Ui.Button.Sm.Filled.Icon(Ui.IconName.Microphone),
+            Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane),
+        ])
+]
+
+Ui.Composer.Bind(() => chat.Prompt).Rows(1).Inline()                 // the buttons in one row with the box
+Ui.Composer.Bind(() => chat.Prompt).Enter                            // Enter sends, Shift+Enter is a new line
+Ui.Composer.Bind(() => chat.Prompt).Rows(4).MaxRows(8)               // starts at 4 lines, grows to 8, then scrolls
+Ui.Composer.Bind(() => chat.Prompt).Variant(Ui.ComposerVariant.Input) // the corners of the other inputs
+Ui.Composer.Bind(() => chat.Prompt).Input(Ui.Editor.Toolbar("bold italic bullet ordered | link | align"))
+```
+
+- **Keys.** Ctrl+Enter or Cmd+Enter sends the form (Flux's `cmd+enter`); `.Enter` makes Enter alone send it and
+  leaves Shift+Enter for a new line. The keys are the runtime's (`data-rask-submit-keys`), in the keydown itself:
+  no newline lands first, and the form is submitted as its submit button would submit it. Outside a form the
+  keys do nothing. Neither key empties the box, as on Flux's page.
+- **Height.** Two lines unless `Rows` says otherwise; the box grows a line at a time with its text up to
+  `MaxRows` (ten unless set) and scrolls from there (`data-rask-grow`). A box the page empties keeps its height,
+  as Flux's does.
+- **Slots.** `Header` (above the box: files about to be sent), `Footer`, `ActionsLeading` and `ActionsTrailing`
+  take any component; `Input` takes a `Ui.Editor`, which is then drawn without a box of its own, as tall as
+  `Rows` and `MaxRows` say, and bound to the composer's value (a `string` one).
+- **States.** `Disabled()` locks the box and every `Ui.Button` in its slots. `Invalid()` — or a bound member the
+  form calls invalid — draws the red border; the message is the field's `Ui.Error`.
+- **Field.** `Label` / `Description` wrap it in a `Ui.Field`; `LabelSrOnly()` / `DescriptionSrOnly()` keep them
+  for screen readers only. The composer is a `role="group"` named by its label and described by its description.
+
 ## Pagination
 
 `Ui.Pagination` is Flux UI's `flux:pagination`. Flux hands it a Laravel paginator; Rask hands it a
@@ -1221,18 +1260,69 @@ position on any country, territory or border. The drawings are
 `UN` and `CQ` are not in that set and draw the empty frame.
 
 **The 254 drawings are files, not part of the assembly** — 172 KB an app that shows three flags should not
-download. An app that draws flags says so, and the build copies them into `wwwroot/flags` with their notice
-(`wwwroot/flags/LICENSE.txt`):
+download. An app's build copies them into `wwwroot/flags` with their notice (`wwwroot/flags/LICENSE.txt`)
+together with the [phone](#phone) field's engine, whose list draws a flag a country; an app that turned that
+engine off, or a host that is not a Web SDK project, says it wants them:
 
 ```xml
 <PropertyGroup>
-  <RaskUiWriteFlags>true</RaskUiWriteFlags>
+  <RaskUiWriteFlags>true</RaskUiWriteFlags>   <!-- false: none, phone engine or not -->
 </PropertyGroup>
 ```
 
 Each `Ui.Flag` is then one `<img loading="lazy">` of `/flags/<CC>.svg`: a page fetches the flags it shows.
-In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without the
-switch every flag is a broken image, so set it in the project that serves the pages.
+In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without them
+every flag is a broken image.
+
+## Phone
+
+`Ui.Phone` is Flux UI's `flux:phone`: an international phone number, with the country picked from a searchable
+list of flags, formatted as it is typed and normalised to E.164.
+
+```csharp
+Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Telefonszám")        // +36301234567 once it is possible
+Ui.Phone.Bind(() => m.Office).Countries(["US", "CA", "GB", "AU"])       // only these in the list
+Ui.Phone.Bind(() => m.Mobile).CountryOrder(["US", "CA"]).Placeholder("(201) 555-0123")
+Ui.Phone.Bind(() => m.Mobile).Live()                                    // written as it changes, after a pause
+Ui.Phone.Value(number).OnChange(v => number = v).Sm.Filled              // the page keeps it
+```
+
+| | |
+| --- | --- |
+| `Country` | The country of an empty number, by its two-letter code. None when unset: a number then needs its calling code. |
+| `Countries` | The countries the list offers. It does not limit what can be typed — check that on the server. |
+| `CountryOrder` | The countries the list shows first; the rest follow alphabetically in the page's language. |
+| `Placeholder` | Shown while the number is empty. |
+| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
+| `Variant` | `Outline` or `Filled`. |
+| `Label`, `Description`, `DescriptionTrailing` | The field around it. |
+| `Disabled()`, `ReadOnly()`, `Invalid()`, `Name` | As every kit input. A read-only field's list does not open. |
+
+**The value is what Flux's is.** The bound `string` is the number in E.164 (`+12015550123`) once it is a
+possible one, and the text as typed until then (`201`, `abc`) — so it is not always E.164, and a possible
+number is not a checked one: validate it on the server. An extension typed after the number is dropped from
+the value. A number typed with its code (`+44 7400 123456`) picks its country; picking a country keeps the
+number and reads it again for that country.
+
+**Everything is in the browser.** The field runs [intl-tel-input](https://github.com/jackocnr/intl-tel-input)
+29.2.3 — the release fluxui.dev runs, so a formatting quirk of Flux's is this field's too — with its utils, Google's
+libphonenumber compiled. Typing, formatting, opening, searching and walking the list send the server nothing; the
+number goes with the next action, as Flux's `wire:model` does, or as it changes with `.Live()` / `.Debounce(…)`.
+The list names the countries in the page's language (`Intl.DisplayNames`).
+
+**The engine is two files, not part of any page that draws no phone field.** The runtime fetches
+`wwwroot/js/rask-ui-phone.js` (61 KB, 21 KB gzipped) the first time a page carries a phone field, and that fetches
+`rask-ui-phone-utils.js` (263 KB, 61 KB gzipped) when the field mounts. Every app's build writes both, with
+their notices (`rask-ui-phone.LICENSES.txt`: intl-tel-input is MIT, the utils Apache-2.0), and the flag
+drawings the list shows ([Flag](#flag)). An app that will never draw one keeps its `wwwroot` clean:
+
+```xml
+<PropertyGroup>
+  <RaskUiPhoneEngine>false</RaskUiPhoneEngine>
+</PropertyGroup>
+```
+
+Without script the field is a plain tel input beside the starting country, and a form posts the bound value.
 
 ## Buttons and links that go somewhere
 
@@ -1512,6 +1602,11 @@ opts them out; `data-rask-loading` on a non-button element opts it in. It is nev
 throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
 dispatch over the same channel.
 
+A **field** is marked the same way once the event that sent its value is unanswered — `data-loading` alone, with no
+`aria-busy` — so your own CSS can say `data-loading:opacity-70` on an input that searches as it is typed. The kit
+draws nothing for it: Flux's input draws no loading state of its own (its `icon:trailing="loading"` is an icon you
+put there), so `Ui.Input` shows no spinner by itself; style one yourself with `in-data-loading:` if you want one.
+
 **The wait ends when the page is whole, not when the handler returns.** A handler's own intermediate state is
 not painted while it runs, and the page it answers with waits 150 ms for the reads it started
 ([routing](routing.md#a-handlers-work-reaches-the-screen-once)); when those are slower, the button stays busy
@@ -1528,7 +1623,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Aura` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.ChatBubble` `Ui.Countdown` `Ui.Diff` `Ui.Empty` `Ui.Flag` `Ui.Hover3d` `Ui.HoverGallery` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Kbd` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.TextRotate` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Dock` `Ui.Link` `Ui.Pagination` `Ui.Steps` `Ui.Step` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Rating` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Validator` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Filter` `Ui.Calendar` `Ui.DatePicker` |
 | **Layout** | `Ui.Separator` `Ui.Footer` `Ui.Hero` `Ui.Indicator` `Ui.Join` `Ui.Stack` `Ui.Mask` |
 | **Mockup** | `Ui.MockupBrowser` `Ui.MockupCode` `Ui.MockupPhone` `Ui.MockupWindow` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
@@ -1748,10 +1843,11 @@ all, and `Expanded` is only the state it starts in — see [Accordion](#accordio
 **And one that lets you choose.** `Ui.Select` is the browser's own `<select>` by default, and the browser
 owns all of it: it works on a prerendered page and with scripting off, which is why it is the default.
 `.Listbox` and `.Combobox` draw the list instead — a native `popover` under a `role="combobox"` trigger. The
-browser still opens and dismisses it (a click, Escape, a click elsewhere, focus back on the button, with no
-handler at all), while the cursor, type-ahead, the search and the picking are C#, so the drawn list **needs
-the runtime**. Reach for it when an option must carry more than words, or the list must be searched. The
-whole of it is under [Select](#select).
+browser owns where the reader is in it, as it does in Flux: the runtime keeps the lit row, the keys,
+type-ahead, the search and whether the list is open (`data-rask-list`), and **none of that sends the page
+anything** — a pointer swept over every row, the arrows, a search typed, Escape. The page renders the rows
+and hears a pick, so the drawn list **needs the runtime**. Reach for it when an option must carry more than
+words, or the list must be searched. The whole of it is under [Select](#select).
 
 **And one that lets you choose several — under the same name.** Open `Ui.Select` on a collection and the
 same chain builds the select that holds several answers; the model's type decides which, so a model that
@@ -1780,8 +1876,9 @@ A row of a drawn select that needs more than words says so on the option — `Ic
 or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
 nothing else.
 
-The browser still owns dismissal there — Escape and click-outside — and C# hears the popover's toggle,
-which is what keeps `aria-expanded` truthful rather than drifting the moment the list is dismissed.
+The browser owns opening and dismissal there — a press, Escape, a click elsewhere — and the runtime writes
+`aria-expanded` and `data-open` in the task the list opens or shuts, so they never trail the list by a round
+trip and the page hears no toggle.
 
 ## Fields: label, description, error
 
@@ -1913,7 +2010,10 @@ Ui.Select.Bind(() => m.Visibility).Listbox.Class("max-w-32").OptionsClass("min-w
 **Searchable, and keywords.** `Searchable()` puts a search field at the top of the listbox's options.
 Opening focuses it; typing filters case- and accent-insensitively over each option's text and its
 `Keywords` — more words to find it by, never shown — and puts the cursor on the first match. "No results
-found" shows when nothing matches; `Empty("…")` says it in your own words.
+found" shows when nothing matches; `Empty("…")` says it in your own words. The filtering is done in the
+browser, as Flux's is: a key typed sends the page nothing. `Filter(false)` hands the search to the page
+instead — its `Ui.SelectSearch.OnInput` hears what is typed, at every key or at the pause `Debounce` names,
+and renders the rows that match.
 
 ```csharp
 Ui.Select.Bind(() => m.Category).Listbox.Searchable().Placeholder("Choose category...")[
@@ -2039,19 +2139,28 @@ is handed what the input holds when it is pressed, typed-since included (Flux se
 **No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
 trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
 kept inside the viewport as every panel is. The browser opens it on a
-click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard below is C#,
-recorded on fluxui.dev and matched.
+click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard and the pointer
+below are the runtime's (`data-rask-list`, [the runtime reference](js-interop-runtime.md#behaviour-hooks-data-rask-)),
+recorded on fluxui.dev and matched — and, as there, **an open list sends the page nothing** until a row is
+picked. Measured on a live Server page over one journey — open, the pointer over every row, eight keys,
+type-ahead or a search, Escape, open again, Tab — a listbox sent 33 frames, a pillbox 34 and an autocomplete
+28; each now sends 0.
 
 | Key | Listbox |
 | --- | --- |
 | Click, Space, ArrowDown, ArrowUp | Open, with the cursor on the picked option — the first when there is none. |
-| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. |
+| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. With no row lit, ArrowDown lands on the first and ArrowUp on the last. |
 | Home, End, PageUp, PageDown | Nothing, as on Flux. |
-| Enter | Picks the active row and closes. With `Multiple()` it switches the row and the list stays open. |
+| Enter | Picks the lit row and closes; with no row lit, nothing. With `Multiple()` it switches the row and the list stays open. |
+| Space | On the open listbox's button, closes it. |
 | Escape, a click elsewhere | Close; focus returns to the button. |
 | Tab | Closes, picks nothing, and moves on. |
-| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. |
-| The pointer | Moves the cursor to the row under it. |
+| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. Letters within half a second are one prefix. |
+| The pointer | Lights the row it **enters** — not one that slid under a pointer at rest — and the arrows go on from there. A row the pointer lit goes dark when the pointer leaves the list; one the keys lit stays. |
+
+**What a pick sends.** The press on the row — the pointer's, or Enter's — is the one thing the page hears, and
+it names its own row: no cursor of the page's picks for it. A bound select then writes its member with the
+next action (`.Live()`: at once), as every control does.
 
 In a combobox, Escape closes the list and a second Escape empties the text but keeps the answer; leaving
 the input with words that name nothing puts the answer's text back.
@@ -2064,7 +2173,9 @@ A drawn select posts nothing by itself, so one with a `Name` carries its answer 
 
 Markers follow Flux's: `data-ui-select` on a drawn select's root, `data-ui-select-button`,
 `data-ui-select-native`, `data-ui-options`, `data-ui-option`, and on a row `data-selected` and `data-active`
-(the cursor); `data-open` while the list is.
+(the cursor); `data-open` while the list is. `data-active`, `data-open`, an open `aria-expanded`,
+`aria-activedescendant` and — on a list the browser filters — `data-hidden` are written by the runtime and are
+in no render: a test that reads them drives a browser.
 
 Two things Flux does in script are the runtime's here, by attribute: the closed listbox button ignores Enter
 and its arrows do not scroll the page (`data-rask-listbox-button`), and while a list is open the page behind
@@ -2099,7 +2210,8 @@ It takes what Flux documents for it, which is the input's own list: `Type`, `Lab
 `Disabled()`, `ReadOnly()`, `Invalid()`, `Multiple()`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`,
 `Copyable()`, `Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
 as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
-`OnChange` — when an item is picked, when Escape empties the input, and when what was typed is left.
+`OnChange` — as an input's text does: a bound member with the next action (`.Live()`: as it is typed), and
+`OnChange` when an item is picked, when Escape empties the input, and when what was typed is left.
 
 **Suggestions from the database.** `Debounce(250.Milliseconds)` hands the page what was typed once typing has
 paused as well — Flux's `wire:model.live.debounce.250ms` — and the page answers it with the items:
@@ -2126,8 +2238,9 @@ Without the step nothing changes: `.Live()` alone writes a pick, a clear and a l
 is being typed. The input's own `change` is not taken while the list is open — a press on an item leaves the
 input first — so a click elsewhere hands over what was typed as the list shuts.
 
-No script: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the filter and the
-picking are C#. As recorded on Flux's page:
+No script of its own: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the
+filter, the open state and the pick that writes an item into the input are the runtime's (`data-rask-list`) —
+in the browser, with nothing sent to the page until the input's text is. As recorded on Flux's page:
 
 | | |
 | --- | --- |
@@ -2137,7 +2250,7 @@ picking are C#. As recorded on Flux's page:
 | Enter | Writes the active item into the input and closes. With no active item it does nothing. |
 | Escape | Closes the list **and empties the input**, open or not. |
 | Tab, a click elsewhere | Close, and keep whatever was typed. |
-| The pointer | Moves the cursor to the row under it; a click picks it and focus stays in the input. |
+| The pointer | Lights the row it enters, and that row goes dark when the pointer leaves the list; a click picks it and focus stays in the input. |
 
 The input is `role="combobox"` with `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded`,
 `aria-controls` and, while open, `aria-activedescendant`. The list is `role="listbox"` and — as Flux writes it,
@@ -2206,8 +2319,9 @@ Backspace still takes the last. A select of several goes on counting and posting
 that leaves takes what it showed with it, and a value no render ever drew an option for has no pill — render
 its option once, or keep it among the rows the search answers with. Measured on Flux's "With backend search".
 
-It is the list `Ui.Select` draws, under another trigger, so it ships no script either. As recorded on Flux's
-page, where it differs from the select's listbox:
+It is the list `Ui.Select` draws, under another trigger, so it ships no script either and its keys, pointer
+and search are the runtime's too: an open pillbox sends the page nothing until a row or a cross is pressed. As
+recorded on Flux's page, where it differs from the select's listbox:
 
 | | |
 | --- | --- |
@@ -2215,7 +2329,8 @@ page, where it differs from the select's listbox:
 | Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
 | A letter on the closed trigger | Switches the next option that starts with it, without opening. |
 | The cross on a pill | Takes that option off; the list stays as it was, and what was typed among the pills is emptied. |
-| The pointer leaving the list | No row is lit any more. |
+| The pointer leaving the list | The row it lit goes dark; a row the keys lit stays, as in every list. |
+| A row pressed, then a key | Nothing: the press took focus to the list, as on Flux, and the keys are the trigger's. |
 | Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
 | Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
 
@@ -2228,7 +2343,7 @@ type into, and `role="button"` over a search field or an input, which is then th
 The page behind an open list is locked (`data-rask-lock`), as on Flux, and the trigger keeps the keys Flux's
 keeps (`data-rask-contain-keys`): Enter, Space and the vertical arrows as a combobox, Space and the arrows as the
 button over a search field, so opening it from the keyboard does not scroll the page. The input among the pills
-keeps the list's keys the same way while the list is open.
+keeps the list's keys while the list is open (the runtime's, with the rest of the list).
 `Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
 
 ## Form controls

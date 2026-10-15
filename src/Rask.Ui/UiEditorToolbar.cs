@@ -15,6 +15,13 @@ public sealed partial class UiEditorToolbar : Component
     /// <summary>What an editor shows when nothing says otherwise.</summary>
     internal const string Default = "heading | bold italic strike | bullet ordered blockquote | link | align";
 
+    private const string Look =
+        "block overflow-x-auto rounded-t-[calc(var(--radius-lg)-1px)] border-b border-zinc-200 bg-zinc-50 "
+        + "dark:border-white/10 dark:bg-white/[6%]";
+
+    // In a composer the editor has no box: the bar is a rounded zinc-100 strip of its own.
+    private const string InComposer = "block overflow-x-auto rounded-lg bg-zinc-100 dark:bg-white/10";
+
     /// <summary>
     ///     Space-separated list of toolbar items to display; <c>|</c> is a separator and <c>~</c> a spacer.
     ///     Left unset, and with nothing composed inside, the default toolbar is shown.
@@ -28,11 +35,9 @@ public sealed partial class UiEditorToolbar : Component
     protected override Component? Render()
     {
         var composed = (Children ?? []).Where(child => child is not null).ToList();
+        var hosted = Context.Get<UiEditorScope>()?.Host is not null;
         var bar = Div
-            .Class(UiClass.Compose(
-                "block overflow-x-auto rounded-t-[calc(var(--radius-lg)-1px)] border-b border-zinc-200 bg-zinc-50 "
-                + "dark:border-white/10 dark:bg-white/[6%]",
-                Class))
+            .Class(UiClass.Compose(hosted ? InComposer : Look, Class))
             .Role("toolbar")
             .Aria("label", RaskStrings.Get(RaskString.EditorToolbar, "Formatting"));
         if (Context.Get<UiEditorScope>() is { } editor)
@@ -42,7 +47,7 @@ public sealed partial class UiEditorToolbar : Component
 
         return bar[
             Context.Provide(new UiEditorToolbarScope())[
-                Div.Class("flex items-center gap-2 p-2")[
+                Div.Class(hosted ? "flex items-center gap-2 p-1.5" : "flex items-center gap-2 p-2")[
                     composed.Count != 0 ? composed : Named(Items ?? Default)
                 ]
             ]

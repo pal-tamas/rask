@@ -218,7 +218,7 @@ public sealed class DoctorDependencyTests
     [Fact]
     public async Task A_node_at_the_island_build_floor_is_not_warned_about()
     {
-        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v22.12.0", "")));
+        var (console, command) = Build(Except("node", () => new ProcessResult(0, $"v{NodeRequirement.BuildFloor}", "")));
 
         await command.ExecuteAsync(["--json"], CancellationToken.None);
 

@@ -25,7 +25,6 @@ public partial class UiNotFormDataTests : global::Rask.Core.RaskMarkup
         ["a pillbox's search field"] = (a => Ui.Pillbox.Bind(() => a.Many).Searchable()[Pills()], "[data-ui-pillbox-search] input"),
         ["a pillbox's own input"] = (a => Ui.Pillbox.Bind(() => a.Many).Combobox[Pills()], "input[data-ui-pillbox-input]"),
         ["a calendar's month list"] = (a => Ui.Calendar.Bind(() => a.Day).SelectableHeader().Locale("en-US").On(new DateOnly(2026, 1, 15)), "select"),
-        ["a colour picker's measuring box"] = (a => Ui.ColorPicker.Bind(() => a.Text), "[data-rask-measure] input"),
     };
 
     public static TheoryData<string> Names => [.. NotData.Keys];

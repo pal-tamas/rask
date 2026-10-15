@@ -16,6 +16,7 @@ public partial class RequiredFieldTests : global::Rask.Core.RaskMarkup
         RaskValidation.RegisterRequiredFields(typeof(Parcel), Parcel.IsRequired);
         RaskValidation.RegisterRequiredFields(typeof(Row), Row.IsRequired);
         RaskValidation.RegisterRequiredFields(typeof(Money), Money.IsRequired);
+        RegisterTheOrder();
     }
 
     [Fact]
@@ -144,8 +145,15 @@ public partial class RequiredFieldTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_field_asked_about_again_allocates_nothing()
     {
-        RaskValidation.IsRequired(typeof(Parcel), nameof(Parcel.Recipient));
-        RaskValidation.IsRequired(typeof(Letter), nameof(Letter.Greeting));
+        // Asked twice before measuring: the first answers and keeps the answer, the second is the cache's first
+        // hit, and only a hit compares keys — which creates EqualityComparer<(Type, string)>.Default, once per
+        // process. Whether an earlier test already had depended on which tests ran first.
+        for (var warm = 0; warm < 2; warm++)
+        {
+            RaskValidation.IsRequired(typeof(Parcel), nameof(Parcel.Recipient));
+            RaskValidation.IsRequired(typeof(Letter), nameof(Letter.Greeting));
+        }
+
         var before = GC.GetAllocatedBytesForCurrentThread();
 
         for (var render = 0; render < 1_000; render++)

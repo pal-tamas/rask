@@ -13,7 +13,9 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         By the provider's own code, as <see cref="UniqueViolation" /> does and for the same reason: SQLSTATE
-///         <c>23503</c> on PostgreSQL, error <c>547</c> on SQL Server, and SQLite's fixed
+///         <c>23503</c> on PostgreSQL — or <c>23001</c>, which it raises instead for a key declared
+///         <c>ON DELETE RESTRICT</c>, the DDL EF Core's <c>DeleteBehavior.Restrict</c> becomes there —, error
+///         <c>547</c> on SQL Server, and SQLite's fixed
 ///         <c>FOREIGN KEY constraint failed</c>. Those codes also cover the other side — a row inserted with a
 ///         key that points nowhere — and, on SQL Server, a CHECK constraint, so nothing is translated unless
 ///         the command that failed was deleting a row.
@@ -32,6 +34,7 @@ internal static class ReferencedDelete
     internal const string EntityAnnotation = "Rask:WhenReferencedMessage";
 
     private const string PostgresForeignKeyViolation = "23503";
+    private const string PostgresRestrictViolation = "23001";
     private const string SqlServerConstraintConflict = "547";
     private const string SqlServerErrorNumber = "HelpLink.EvtID";
     private const string PostgresConstraintName = "ConstraintName";
@@ -67,6 +70,7 @@ internal static class ReferencedDelete
 
     private static bool IsForeignKeyViolation(DbException provider) =>
         string.Equals(provider.SqlState, PostgresForeignKeyViolation, StringComparison.Ordinal) ||
+        string.Equals(provider.SqlState, PostgresRestrictViolation, StringComparison.Ordinal) ||
         string.Equals(provider.Data[SqlServerErrorNumber]?.ToString(), SqlServerConstraintConflict, StringComparison.Ordinal) ||
         provider.Message.Contains(SqliteMarker, StringComparison.Ordinal);
 

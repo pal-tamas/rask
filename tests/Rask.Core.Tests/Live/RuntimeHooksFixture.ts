@@ -18,6 +18,16 @@ import {daysIn, pastedDate, pivotYear, segmentDigit, yearDigit} from "../../../s
 import {beside, lineOf, nearestRow, sameBox, sizeText} from "../../../src/Rask.Core/Resources/rask-plot.js";
 import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
 import {landing} from "../../../src/Rask.Core/Resources/rask-place.js";
+import {filtered, fold} from "../../../src/Rask.Core/Resources/rask-list.js";
+import {stepFrom, typeAhead} from "../../../src/Rask.Core/Resources/rask-menu-keys.js";
+
+// Flux UI's own select: the seven options of its listbox, and the three of its "create" combobox.
+const plain = (label: string) => ({label, keywords: null as string | null, keep: false});
+const industries = ["Photography", "Design services", "Web development", "Accounting", "Legal services", "Consulting", "Other"].map(plain);
+const projects = ["Branding", "Analytics", "Security"].map(plain);
+const shown = (text: string, rows: {label: string; keywords: string | null; keep: boolean}[]): string[] =>
+    rows.filter((_, i) => !filtered(text, rows, null).hidden[i]).map((row) => row.label);
+const names = industries.map((row) => row.label);
 
 // A 192 by 290 panel under a 126 by 40 trigger at (x, y) in a 1920 by 1080 viewport: Flux's first popover.
 function lands(x: number, y: number, place = "bottom start 5 0", w = 192, h = 290, vw = 1920, vh = 1080, rtl = false): (number | null)[] {
@@ -74,6 +84,24 @@ console.log(JSON.stringify({
         rove: [rove(2, 1, 3), rove(0, -1, 3), rove(1, 1, 3), rove(0, 1, 0)],
         // A 100 px view at 200–300: a row above it, inside it, below it, and one taller than the view.
         scroll: [scrollBy(170, 200, 200, 300), scrollBy(230, 260, 200, 300), scrollBy(290, 320, 200, 300), scrollBy(250, 400, 200, 300)],
+    },
+    list: {
+        fold: [fold("Österreich"), fold("CAFÉ au lait")],
+        // Anywhere in the words, whatever the case; "é" finds every "e"; nothing typed hides nothing.
+        search: [shown("CO", industries), shown("é", industries), shown("", industries), shown("zz", industries)],
+        keywords: shown("apple", [{label: "Fruit", keywords: "apple orange pear", keep: false}, {label: "Drinks", keywords: "coffee tea juice", keep: false}]),
+        kept: shown("zz", [plain("Design"), {label: "Something else", keywords: null, keep: true}]),
+        // The create row of a list that waits for two letters: too short, long enough, an option's own name
+        // (whatever its case and accents), and nothing typed. Then a list that always offers it, and one with none.
+        create: ["n", "ne", "security", "Sécurity", ""].map((text) => filtered(text, projects, 2).create)
+            .concat(filtered("", projects, -1).create, filtered("new", projects, null).create),
+        // Over what is disabled, and stopping at either end; from no row (-1, or one past the last) to the nearest end.
+        step: [stepFrom([false, true, false], 0, 1), stepFrom([false, true, false], 2, 1), stepFrom([false, false], -1, 1),
+            stepFrom([false, false, true], 3, -1), stepFrom([true, false], 1, -1)],
+        // A letter looks from the row after the cursor, the same letter again goes on, and letters typed
+        // together are a prefix looked for from the cursor itself; a row that is off is nobody's.
+        ahead: [typeAhead("l", "l", -1, names), typeAhead("le", "e", 4, names), typeAhead("d", "d", 1, names), typeAhead("dd", "d", 1, names),
+            typeAhead("zz", "z", 0, names), typeAhead("a", "a", -1, names.map((name) => name === "Accounting" ? null : name))],
     },
     drag: {
         // A 220 px surface from 100 with an inset of 10: before the track, a quarter in, past its end; and no room at all.

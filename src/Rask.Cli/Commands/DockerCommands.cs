@@ -32,7 +32,7 @@ internal static class DockerCommands
     /// so the values never appear in this machine's process table the way <c>-e KEY=VALUE</c> does. Entries
     /// whose value spans lines can't be expressed in that format and stay inline.
     /// </summary>
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null)
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, string redirects = "")
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
 
@@ -43,6 +43,13 @@ internal static class DockerCommands
         //    nothing here: nothing a Rask app does needs to escalate.
         args.AddRange(["--log-opt", "max-size=10m", "--log-opt", "max-file=3", "--security-opt", "no-new-privileges"]);
         AddPlacementArguments(args, slug, domain, color, port, containerPort);
+
+        // The names the proxy redirects to this app, read back from the label to regenerate the Caddyfile like the
+        // domains are. Only when there are some, so a container without redirects is labelled exactly as before.
+        if (domain is not null && redirects.Length > 0)
+        {
+            args.AddRange(["--label", $"{RedirectLabel}={redirects}"]);
+        }
 
         // Persist the SQLite database on a per-app named volume so it survives container replacement — every
         // deploy runs a fresh container, and without this the DB (in the container's writable layer) would be
@@ -101,8 +108,9 @@ internal static class DockerCommands
             args.AddRange(["-e", "Rask__BehindProxy=true"]);
 
             // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
-            // from the request, whose Host header anyone can set, so without this no such email goes out.
-            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{domain}"]);
+            // from the request, whose Host header anyone can set, so without this no such email goes out. With several
+            // domains the links name the first, the one the app is primarily known by.
+            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{SiteDomains.Primary(domain)}"]);
         }
     }
 
@@ -115,16 +123,52 @@ internal static class DockerCommands
     internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
         [.. Prefix(host), "stop", "-t", StopTimeoutSeconds.ToString(CultureInfo.InvariantCulture), container];
 
-    internal static IReadOnlyList<string> BuildCaddyRunArguments(string host, string network) =>
-    [
-        .. Prefix(host), "run", "-d", "--name", CaddyContainer, "--restart", "unless-stopped",
-        "--network", network, "-p", "80:80", "-p", "443:443", "-v", "rask-caddy-data:/data", "caddy:2",
-    ];
+    /// <summary>The label on an app container naming the hosts the proxy redirects to it (<c>--redirect</c>).</summary>
+    internal const string RedirectLabel = "rask.redirect";
+
+    /// <summary>
+    /// Start the shared proxy. With a <paramref name="dns"/> provider it runs the image built with that provider's module,
+    /// carries the credentials from <paramref name="dnsEnvFile"/> in its environment (read by the local docker CLI, so they
+    /// are never on a command line), and is labelled with the provider, which is how a later deploy — CI's, with no
+    /// credentials at all — knows to keep it. Same name, network, ports, restart policy and data volume either way, so
+    /// the certificates already issued carry over.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildCaddyRunArguments(string host, string network, DnsProvider? dns = null, string? dnsEnvFile = null)
+    {
+        var args = new List<string>(Prefix(host))
+        {
+            "run", "-d", "--name", CaddyContainer, "--restart", "unless-stopped",
+            "--network", network, "-p", "80:80", "-p", "443:443", "-v", "rask-caddy-data:/data",
+        };
+
+        if (dns is null)
+        {
+            args.Add("caddy:2");
+            return args;
+        }
+
+        args.AddRange(["--label", $"{DnsProvider.Label}={dns.Name}"]);
+        if (dnsEnvFile is not null)
+        {
+            args.AddRange(["--env-file", dnsEnvFile]);
+        }
+
+        args.Add(dns.Image);
+        return args;
+    }
+
+    /// <summary>The DNS provider the running proxy was built with — empty for the stock image; a failure when there is no proxy.</summary>
+    internal static IReadOnlyList<string> BuildCaddyDnsLabelArguments(string host) =>
+        [.. Prefix(host), "inspect", "--format", $"{{{{index .Config.Labels \"{DnsProvider.Label}\"}}}}", CaddyContainer];
+
+    /// <summary>Build the proxy image with <paramref name="dns"/>'s module, from a context holding just its Dockerfile.</summary>
+    internal static IReadOnlyList<string> BuildCaddyImageArguments(string host, DnsProvider dns, string contextDir) =>
+        [.. Prefix(host), "build", "-t", dns.Image, contextDir];
 
     internal static IReadOnlyList<string> BuildListArguments(string host) =>
     [
         .. Prefix(host), "ps", "--filter", "label=rask.managed=true",
-        "--format", "{{.Names}}\t{{.Label \"rask.app\"}}\t{{.Label \"rask.domain\"}}\t{{.Label \"rask.color\"}}\t{{.Label \"rask.port\"}}",
+        "--format", "{{.Names}}\t{{.Label \"rask.app\"}}\t{{.Label \"rask.domain\"}}\t{{.Label \"rask.color\"}}\t{{.Label \"rask.port\"}}\t{{.Label \"rask.redirect\"}}",
     ];
 
     internal static IReadOnlyList<string> BuildInspectRunningArguments(string host, string container) =>

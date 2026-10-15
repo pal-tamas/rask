@@ -1,9 +1,13 @@
 #nullable enable
+const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 override Rask.Core.Css.GetHashCode() -> int
 override Rask.Core.Css.ToString() -> string!
 override Rask.Core.Messaging.ToastLink.Equals(object? obj) -> bool
 override Rask.Core.Messaging.ToastLink.GetHashCode() -> int
 override Rask.Core.Messaging.ToastLink.ToString() -> string!
+override Rask.Core.ScrollResult.Equals(object? obj) -> bool
+override Rask.Core.ScrollResult.GetHashCode() -> int
+override Rask.Core.ScrollResult.ToString() -> string!
 Rask.Core.AttrBag
 Rask.Core.AttrBag.AttrBag(System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> void
 Rask.Core.AttrBag.AttrBag(string! name, string? value) -> void
@@ -1684,9 +1688,14 @@ Rask.Core.Css.ContainKeywords.Size.get -> Rask.Core.Css
 Rask.Core.Css.ContainKeywords.Strict.get -> Rask.Core.Css
 Rask.Core.Css.ContainKeywords.Style.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords
+Rask.Core.Css.ContentKeywords.CloseQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.ContentKeywords() -> void
+Rask.Core.Css.ContentKeywords.Contents.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.NoCloseQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.None.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.NoOpenQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.Normal.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.OpenQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords
 Rask.Core.Css.ContentVisibilityKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords.ContentVisibilityKeywords() -> void
@@ -2983,7 +2992,7 @@ Rask.Core.Css.PrintColorAdjustKeywords.Exact.get -> Rask.Core.Css
 Rask.Core.Css.PrintColorAdjustKeywords.PrintColorAdjustKeywords() -> void
 Rask.Core.Css.QuotesKeywords
 Rask.Core.Css.QuotesKeywords.Auto.get -> Rask.Core.Css
-Rask.Core.Css.QuotesKeywords.MatchParent.get -> Rask.Core.Css
+Rask.Core.Css.QuotesKeywords.BikeshedThis.get -> Rask.Core.Css
 Rask.Core.Css.QuotesKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.QuotesKeywords.QuotesKeywords() -> void
 Rask.Core.Css.ResizeKeywords
@@ -3093,7 +3102,6 @@ Rask.Core.Css.ScrollSnapTypeKeywords.Block.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Both.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Inline.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.None.get -> Rask.Core.Css
-Rask.Core.Css.ScrollSnapTypeKeywords.Pair.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.ScrollSnapTypeKeywords() -> void
 Rask.Core.Css.ScrollSnapTypeKeywords.X.get -> Rask.Core.Css
 Rask.Core.Css.ScrollSnapTypeKeywords.Y.get -> Rask.Core.Css
@@ -3658,6 +3666,18 @@ Rask.Core.Element.Translate.get -> bool?
 Rask.Core.Element.Translate.set -> void
 Rask.Core.ElementRef
 Rask.Core.ElementRef.Id.get -> string!
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy(double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView(bool arg) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView(Rask.Core.ScrollIntoViewOptions! arg) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 Rask.Core.FactoryGenericAttribute
 Rask.Core.FactoryGenericAttribute.Constraint.get -> string!
 Rask.Core.FactoryGenericAttribute.Constraint.init -> void
@@ -3892,6 +3912,14 @@ Rask.Core.Globalization.RaskString.ColorSwatchYellow = 158 -> Rask.Core.Globaliz
 Rask.Core.Globalization.RaskString.CommandEmpty = 106 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveLeave = 98 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveStay = 97 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionAuthenticating = 196 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionOffline = 191 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionReconnecting = 190 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionReload = 194 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionRetry = 193 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionSessionTimedOut = 197 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionStillTrying = 192 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionUpdating = 195 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridCollapseGroup = 117 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridCollapseRow = 123 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridColumns = 107 -> Rask.Core.Globalization.RaskString
@@ -4000,6 +4028,7 @@ Rask.Core.Globalization.RaskString.OtpCharacter = 99 -> Rask.Core.Globalization.
 Rask.Core.Globalization.RaskString.PaginationNext = 14 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PaginationPrevious = 13 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PaginationSummary = 12 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PhoneChangeCountry = 189 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerClear = 5 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerHour = 2 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PickerMinute = 3 -> Rask.Core.Globalization.RaskString
@@ -4038,10 +4067,12 @@ Rask.Core.Globalization.SessionCulture.Set(System.Globalization.CultureInfo! cul
 Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
+Rask.Core.GoTo.Pushing() -> void
 Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
 Rask.Core.HTMLInputElement<T>.Blur.set -> void
 Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
 Rask.Core.HTMLInputElement<T>.Debounce.set -> void
+Rask.Core.HTMLTextAreaElement.Wrap.get -> string?
 Rask.Core.HTMLTextAreaElement<T>.Blur.get -> bool?
 Rask.Core.HTMLTextAreaElement<T>.Blur.set -> void
 Rask.Core.HTMLTextAreaElement<T>.Debounce.get -> System.TimeSpan?
@@ -4460,6 +4491,12 @@ Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Kind.get -> Rask.Core
 Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Kind.init -> void
 Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Utf8.get -> System.ReadOnlyMemory<byte>
 Rask.Core.ScopedAssets.ScopedAssetRegistry.EnumeratedEntry.Utf8.init -> void
+Rask.Core.ScrollResult
+Rask.Core.ScrollResult.<Clone>$() -> Rask.Core.ScrollResult!
+Rask.Core.ScrollResult.Equals(Rask.Core.ScrollResult? other) -> bool
+Rask.Core.ScrollResult.Interrupted.get -> bool
+Rask.Core.ScrollResult.Interrupted.init -> void
+Rask.Core.ScrollResult.ScrollResult() -> void
 Rask.Core.SkipFactoryAttribute
 Rask.Core.SkipFactoryAttribute.SkipFactoryAttribute() -> void
 Rask.Core.Validator<T>
@@ -4768,6 +4805,8 @@ static Rask.Core.Browser.WebRtcInterop.State(int id, string! state) -> System.Th
 static Rask.Core.Browser.WebRtcInterop.Track(int id, int streamId) -> System.Threading.Tasks.Task!
 static Rask.Core.BuilderRuntime.ClaimKey<T>(T! target, object? key) -> T!
 static Rask.Core.BuilderRuntime.ClearCallbacks(Rask.Core.Component! target) -> void
+static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text) -> T!
+static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text, string! expect) -> T!
 static Rask.Core.BuilderRuntime.HasCallbacks(Rask.Core.Component! target) -> bool
 static Rask.Core.BuilderRuntime.MarkCallbacks(Rask.Core.Component! target) -> void
 static Rask.Core.BuilderRuntime.MarkChanged(Rask.Core.Component! target) -> void
@@ -7157,6 +7196,18 @@ static Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(object? value) -> st
 static Rask.Core.DragAndDrop.DragDropMove.operator !=(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.DragAndDrop.DragDropMove.operator ==(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.ElementRef.New() -> Rask.Core.ElementRef!
+static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element, bool arg) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollIntoViewOptions! arg) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 static Rask.Core.Forms.BindingHelpers.BoolSetHandler(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Forms.EditContext? ctx, Rask.Core.Forms.FieldIdentifier fid, System.Func<System.Threading.Tasks.Task!>? afterBind = null) -> System.Func<string!, System.Threading.Tasks.Task!>!
 static Rask.Core.Forms.BindingHelpers.BuildAfterBind<TProp>(Rask.Core.Forms.ExpressionAccessor.Accessor! acc, Rask.Core.Callback<TProp> hook) -> System.Func<System.Threading.Tasks.Task!>?
 static Rask.Core.Forms.BindingHelpers.DefaultInputType(System.Type! propType) -> string!
@@ -7185,8 +7236,9 @@ static Rask.Core.Forms.RaskValidation.AutoValidate.get -> bool
 static Rask.Core.Forms.RaskValidation.AutoValidate.set -> void
 static Rask.Core.Forms.RaskValidation.HasStoreRulesFor(System.Type! modelType) -> bool
 static Rask.Core.Forms.RaskValidation.HasValidatorFor(System.Type! modelType) -> bool
-static Rask.Core.Forms.RaskValidation.IsRequired(System.Type! modelType, string! fieldPath) -> bool
+static Rask.Core.Forms.RaskValidation.IsRequired(System.Linq.Expressions.LambdaExpression! bound) -> bool
 static Rask.Core.Forms.RaskValidation.RegisterFieldRules(System.Type! modelType, System.Func<string!, System.Delegate?>! rule) -> void
+static Rask.Core.Forms.RaskValidation.RegisterOptionalFields(System.Type! modelType, System.Func<string!, bool>! isOptional) -> void
 static Rask.Core.Forms.RaskValidation.RegisterRequiredFields(System.Type! modelType, System.Func<string!, bool>! isRequired) -> void
 static Rask.Core.Forms.RaskValidation.RegisterSource(System.Func<System.Type!, bool>! has, System.Func<System.Type!, System.IServiceProvider?, Rask.Core.Forms.IAsyncFieldValidator?>! resolve) -> void
 static Rask.Core.Forms.RaskValidation.RegisterStoreRules(System.Type! modelType, System.Func<System.IServiceProvider?, Rask.Core.Forms.IStoreRules?>! resolve) -> void
@@ -7213,6 +7265,10 @@ static Rask.Core.Globalization.RaskStrings.Get<T0, T1>(Rask.Core.Globalization.R
 static Rask.Core.Globalization.RaskStrings.Get<T0>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0) -> string!
 static Rask.Core.Globalization.RaskStrings.UseLibrarySource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
+static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> Rask.Core.GoTo!
+static Rask.Core.Go.With(string! key, string? value) -> Rask.Core.GoTo!
+static Rask.Core.Go.Without() -> Rask.Core.GoTo!
+static Rask.Core.Go.Without(string! key) -> Rask.Core.GoTo!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Core.Live.DevErrorInfo.From(System.Exception! ex, string! kind) -> Rask.Core.Live.DevErrorInfo?
 static Rask.Core.Live.DevErrorInfo.operator !=(Rask.Core.Live.DevErrorInfo? left, Rask.Core.Live.DevErrorInfo? right) -> bool
@@ -7333,6 +7389,8 @@ static Rask.Core.ScopedAssets.ScopedAssetRegistry.TryGetJs(System.Type! componen
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.TryGetScopeId(System.Type! componentType, out string! scopeId) -> bool
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.UnregisterCss(System.Type! componentType) -> void
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.UnregisterJs(System.Type! componentType) -> void
+static Rask.Core.ScrollResult.operator !=(Rask.Core.ScrollResult? left, Rask.Core.ScrollResult? right) -> bool
+static Rask.Core.ScrollResult.operator ==(Rask.Core.ScrollResult? left, Rask.Core.ScrollResult? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderRequest.operator !=(Rask.Core.Virtualization.ItemsProviderRequest? left, Rask.Core.Virtualization.ItemsProviderRequest? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderRequest.operator ==(Rask.Core.Virtualization.ItemsProviderRequest? left, Rask.Core.Virtualization.ItemsProviderRequest? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderResult<T>.operator !=(Rask.Core.Virtualization.ItemsProviderResult<T>? left, Rask.Core.Virtualization.ItemsProviderResult<T>? right) -> bool
@@ -7527,6 +7585,7 @@ static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Valid
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_ValidationSummary(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_VirtualizeModel(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Routing_Router(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskEntriesRask_Core.Authorize.get -> Rask.Core.Components.Authorize!
 static RaskEntriesRask_Core.DefaultNotFoundPage.get -> Rask.Core.Components.DefaultNotFoundPage!
 static RaskEntriesRask_Core.Doctype.get -> Rask.Core.Components.Doctype!
@@ -8798,20 +8857,8 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Prefix.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReleasePointerCapture(int pointerId) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Role.get -> System.Threading.Tasks.ValueTask<string?>
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(double x, double y) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollBy(double x, double y) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollHeight.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView(Rask.Core.ScrollIntoViewOptions! arg) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollIntoView(bool arg) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollLeft.get -> System.Threading.Tasks.ValueTask<double>
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo() -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(double x, double y) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTop.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollWidth.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).SetPointerCapture(int pointerId) -> System.Threading.Tasks.ValueTask
@@ -8963,18 +9010,6 @@ static Rask.Core.ElementRefMembers.HasAttributes(this Rask.Core.IElementRef<Rask
 static Rask.Core.ElementRefMembers.HasPointerCapture(this Rask.Core.IElementRef<Rask.Core.Element!>! element, int pointerId) -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Core.ElementRefMembers.Matches(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! selectors) -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Core.ElementRefMembers.ReleasePointerCapture(this Rask.Core.IElementRef<Rask.Core.Element!>! element, int pointerId) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollBy(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollIntoViewOptions! arg) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollIntoView(this Rask.Core.IElementRef<Rask.Core.Element!>! element, bool arg) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.ScrollTo(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetPointerCapture(this Rask.Core.IElementRef<Rask.Core.Element!>! element, int pointerId) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetScrollLeft(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetScrollTop(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double value) -> System.Threading.Tasks.ValueTask
@@ -9440,9 +9475,6 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScript
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).Integrity.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).NoModule.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).ReferrerPolicy.get -> System.Threading.Tasks.ValueTask<string!>
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).SetText(string! value) -> System.Threading.Tasks.ValueTask
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).Src.get -> System.Threading.Tasks.ValueTask<string!>
-Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).Text.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>!).Type.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!)
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLSelectElement!>!).Autocomplete.get -> System.Threading.Tasks.ValueTask<string!>
@@ -11391,7 +11423,6 @@ static Rask.Core.ElementRefMembers.SetStdDeviation(this Rask.Core.IElementRef<Ra
 static Rask.Core.ElementRefMembers.SetStdDeviation(this Rask.Core.IElementRef<Rask.Core.SVGFEGaussianBlurElement!>! element, double stdDeviationX, double stdDeviationY) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetText(this Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetText(this Rask.Core.IElementRef<Rask.Core.HTMLOptionElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
-static Rask.Core.ElementRefMembers.SetText(this Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetText(this Rask.Core.IElementRef<Rask.Core.HTMLTitleElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetUsername(this Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.SetUsername(this Rask.Core.IElementRef<Rask.Core.HTMLAreaElement!>! element, string! value) -> System.Threading.Tasks.ValueTask
@@ -11679,7 +11710,6 @@ static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLI
 static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLImageElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLInputElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLMediaElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
-static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLSourceElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Src(Rask.Core.IElementRef<Rask.Core.HTMLTrackElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Srclang(Rask.Core.IElementRef<Rask.Core.HTMLTrackElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
@@ -11691,7 +11721,6 @@ static Rask.Core.ElementRefMembers.get_TabIndex(Rask.Core.IElementRef<Rask.Core.
 static Rask.Core.ElementRefMembers.get_TabIndex(Rask.Core.IElementRef<Rask.Core.SVGElement!>! element) -> System.Threading.Tasks.ValueTask<int>
 static Rask.Core.ElementRefMembers.get_Text(Rask.Core.IElementRef<Rask.Core.HTMLAnchorElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Text(Rask.Core.IElementRef<Rask.Core.HTMLOptionElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
-static Rask.Core.ElementRefMembers.get_Text(Rask.Core.IElementRef<Rask.Core.HTMLScriptElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_Text(Rask.Core.IElementRef<Rask.Core.HTMLTitleElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.get_TextLength(Rask.Core.IElementRef<Rask.Core.HTMLTextAreaElement!>! element) -> System.Threading.Tasks.ValueTask<int>
 static Rask.Core.ElementRefMembers.get_Title(Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
@@ -17899,10 +17928,6 @@ static Rask.Core.Go.Out(string! path) -> void
 static Rask.Core.Go.To(Rask.Core.Routing.RouteUrl url) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query) -> Rask.Core.GoTo!
-static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> void
-static Rask.Core.Go.With(string! key, string? value) -> void
-static Rask.Core.Go.Without() -> void
-static Rask.Core.Go.Without(string! key) -> void
 Rask.Core.Auth
 static Rask.Core.Auth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Core.Auth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
@@ -18127,7 +18152,6 @@ Rask.Core.HTMLScriptElement.FetchPriority.get -> Rask.Core.FetchPriority?
 Rask.Core.HTMLScriptElement.ReferrerPolicy.get -> Rask.Core.ReferrerPolicy?
 Rask.Core.HTMLTableCellElement.Scope.get -> Rask.Core.ThScope?
 Rask.Core.HTMLTemplateElement.ShadowRootMode.get -> Rask.Core.ShadowRootMode?
-Rask.Core.HTMLTextAreaElement.Wrap.get -> Rask.Core.TextareaWrap?
 Rask.Core.HTMLTrackElement.Kind.get -> Rask.Core.TrackKind?
 Rask.Core.InputMode
 Rask.Core.InputMode.Decimal = 520654156 -> Rask.Core.InputMode
@@ -18183,9 +18207,6 @@ Rask.Core.SelectionMode.Start = 1697318111 -> Rask.Core.SelectionMode
 Rask.Core.ShadowRootMode
 Rask.Core.ShadowRootMode.Closed = -336703291 -> Rask.Core.ShadowRootMode
 Rask.Core.ShadowRootMode.Open = -748763959 -> Rask.Core.ShadowRootMode
-Rask.Core.TextareaWrap
-Rask.Core.TextareaWrap.Hard = -456959012 -> Rask.Core.TextareaWrap
-Rask.Core.TextareaWrap.Soft = -196492107 -> Rask.Core.TextareaWrap
 Rask.Core.ThScope
 Rask.Core.ThScope.Col = -225586063 -> Rask.Core.ThScope
 Rask.Core.ThScope.Colgroup = 150307336 -> Rask.Core.ThScope
@@ -18421,7 +18442,6 @@ static RaskBuilderSettersRask_Core.Scope(this Rask.Core.HTMLTableCellElement! __
 static RaskBuilderSettersRask_Core.ShadowRootMode(this Rask.Core.HTMLTemplateElement! __b, Rask.Core.ShadowRootMode? value) -> Rask.Core.HTMLTemplateElement!
 static RaskBuilderSettersRask_Core.Shape(this Rask.Core.HTMLAreaElement! __b, Rask.Core.AreaShape? value) -> Rask.Core.HTMLAreaElement!
 static RaskBuilderSettersRask_Core.Type(this Rask.Core.HTMLButtonElement! __b, Rask.Core.ButtonType? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, Rask.Core.TextareaWrap? value) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAnchorElement! __b, bool? value) -> Rask.Core.HTMLAnchorElement!
 static RaskBuilderSettersRask_Core.WritingSuggestions(this Rask.Core.HTMLAreaElement! __b) -> Rask.Core.HTMLAreaElement!
@@ -19251,7 +19271,6 @@ const Rask.Core.AriaRole.Tooltip = "tooltip" -> string!
 const Rask.Core.AriaRole.Tree = "tree" -> string!
 const Rask.Core.AriaRole.Treegrid = "treegrid" -> string!
 const Rask.Core.AriaRole.Treeitem = "treeitem" -> string!
-const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 static RaskBuilderSettersRask_Core.AriaActiveDescendant<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b, bool? value) -> T!

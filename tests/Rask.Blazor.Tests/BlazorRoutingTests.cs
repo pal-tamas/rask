@@ -9,10 +9,14 @@ namespace Rask.Blazor.Tests;
 [Route("/greetings/{count:int}")]
 public sealed partial class GreetingPage : BlazorComponent<Greeting>
 {
-    /// <summary>Bound from the route's own path segment, and handed on as the hosted parameter.</summary>
-    [RouteParam] public int? Count { get; set; }
+    /// <summary>
+    ///     Bound from the route's own path segment, and handed on as the hosted parameter. A plain <c>int</c>: a
+    ///     non-nullable value type has no unset state, so it is always passed on (#1196).
+    /// </summary>
+    [RouteParam] public int Count { get; set; }
 
-    protected override Component? HeadAssets => [base.HeadAssets, Title[$"Greeting {Count}"]];
+    // No base.HeadAssets: the library's stylesheets are registered on their own, so a title override keeps them.
+    protected override Component? HeadAssets => Title[$"Greeting {Count}"];
 }
 
 // The Blazor mirror of ExternalRoutingTests: a hosted component as the whole page, rather than as a part
@@ -48,10 +52,10 @@ public partial class BlazorRoutingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_titled_blazor_island_keeps_the_librarys_stylesheet_by_including_the_base_head()
+    public void A_titled_blazor_island_keeps_the_librarys_stylesheet_without_including_the_base_head()
     {
-        // A Blazor island's HeadAssets IS where RaskBlazorOptions.HeadAssets reaches the page, so an
-        // override that leaves the base out drops the hosted library's stylesheet.
+        // #1196: the stylesheets used to arrive through BlazorComponent.HeadAssets, so an override that left
+        // the base out dropped them. They are registered on their own now, as a JS island's runtime script is.
         var services = new ServiceCollection()
             .AddRaskBlazor(o => o.HeadAssets.Add(Link.Rel("stylesheet").Href("/lib.css")))
             .BuildServiceProvider();

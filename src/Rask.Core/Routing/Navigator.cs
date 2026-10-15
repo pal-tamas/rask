@@ -215,6 +215,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             }
 
             routeState.Query = new QueryCollection(dict);
+            MovedTheQuery();
             Navigated();
         }
     }
@@ -250,6 +251,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             }
 
             routeState.Query = new QueryCollection(dict);
+            MovedTheQuery();
             Navigated();
         }
     }
@@ -271,6 +273,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
             var dict = ToDictionary(routeState.Query);
             dict.Remove(key);
             routeState.Query = new QueryCollection(dict);
+            MovedTheQuery();
             Navigated();
         }
     }
@@ -288,6 +291,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         {
             BeforeNavigating();
             routeState.Query = QueryCollection.Empty;
+            MovedTheQuery();
             Navigated();
         }
     }
@@ -340,6 +344,29 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
 
         EnsureInHandler();
         _replace = true;
+    }
+
+    /// <summary>Makes the query move this handler made add a history entry: <c>.Pushing()</c>.</summary>
+    internal void Push()
+    {
+        // A navigation handed to the session replaces whatever it is: the page that asked is not a place to go back to.
+        if (OutsideADispatch)
+        {
+            return;
+        }
+
+        EnsureInHandler();
+        _replace = false;
+    }
+
+    // A move of the query alone takes the place of the entry it is made from, as Livewire's #[Url] does, so a live
+    // search leaves no Back stop at every pause — unless this dispatch already moved the path, whose entry it joins.
+    private void MovedTheQuery()
+    {
+        if (!_dirty)
+        {
+            _replace = true;
+        }
     }
 
     private IDownloadSink ResolveSink() =>

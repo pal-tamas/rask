@@ -154,6 +154,39 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task A_composer_grows_as_lines_are_typed_and_sends_its_form_on_Ctrl_Enter() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var prompt = Page.Locator("#composer-prompt");
+        await prompt.FocusAsync();
+        var before = (await prompt.BoundingBoxAsync())!.Height;
+        await Page.Keyboard.TypeAsync("What is Rask?");
+        await Page.Keyboard.PressAsync("Enter");
+        await Page.Keyboard.PressAsync("Enter");
+        await Page.Keyboard.TypeAsync("Briefly.");
+
+        await Page.Keyboard.PressAsync("Control+Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-composer-sent']")).ToContainTextAsync("Sent: What is Rask?");
+        Assert.True((await prompt.BoundingBoxAsync())!.Height > before, "the composer did not grow with its third line.");
+    });
+
+    [Fact]
+    public Task A_composer_that_sends_on_Enter_keeps_Shift_Enter_for_a_new_line() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var quick = Page.Locator("#composer-enter");
+        await quick.FocusAsync();
+        await Page.Keyboard.TypeAsync("One");
+        await Page.Keyboard.PressAsync("Shift+Enter");
+        await Page.Keyboard.TypeAsync("Two");
+
+        await Page.Keyboard.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-composer-sent']")).ToContainTextAsync("Sent: One Two");
+    });
+
+    [Fact]
     public Task The_one_time_code_is_a_cell_per_character_that_spells_one_code() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -1167,7 +1200,7 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
             new PageWaitForFunctionOptions { Timeout = 15_000 });
 
         // The tab stop is named again once the focus has fallen: an arrow pressed on it carries the focus on.
-        var stop = calendar.Locator("td button[tabindex='0'][data-rask-focus-target]");
+        var stop = calendar.Locator("td button[tabindex='0']");
         await Expect(stop).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
         await stop.FocusAsync();
         var paged = DateOnly.ParseExact(await Page.EvaluateAsync<string>(FocusedDay), "yyyy-MM-dd", CultureInfo.InvariantCulture);

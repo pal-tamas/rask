@@ -437,20 +437,36 @@ public static partial class RaskEndpointExtensions
         && !session.SignInEnded;
 
     // Where a session whose sign-in ended goes instead of the page it is on, guarded or not: the sign-in page,
-    // with the way back. Null once it is there.
-    private static GuardRedirect? SignInAgain(LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
+    // with the way back. Null once it is there, or when there is none to go to — the page's own guard then decides.
+    //
+    // The app's own sign-in page is reached in place, and another application's on this mapping is loaded as a page.
+    // Without one, the sign-in page the host's authentication names (HostSignInPage) is loaded as a page, with the
+    // page's full address as the way back, and the session stays one whose sign-in ended until the browser has gone.
+    private static async ValueTask<GuardRedirect?> SignInAgainAsync(
+        LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
-        if (!session.SignInEnded)
+        var pageUrl = Rask.Core.Routing.QueryString.Build(path, query);
+        var signInRoutes = session.SignInRoutes?.Invoke() ?? session.Services.GetRequiredService<RouteState>().CurrentTable;
+        if (!HasSignInPage(signInRoutes))
         {
+            if (await HostSignInPage.FindAsync(session.Services).ConfigureAwait(false) is { } host)
+            {
+                return new GuardRedirect(host.For(LiveOptions.PathBase + pageUrl), string.Empty, AsPage: true, Outside: true);
+            }
+
+            session.SignInEnded = false;
             return null;
         }
 
         session.SignInEnded = false;
-        return string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
-            ? null
-            : new GuardRedirect(
-                RouteAuthorizationGuard.ChallengePath,
-                "?returnUrl=" + Uri.EscapeDataString(Rask.Core.Routing.QueryString.Build(path, query)));
+        if (string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var anotherApplications = session.OwnsPath is { } owns && !owns(RouteAuthorizationGuard.ChallengePath);
+        return new GuardRedirect(
+            RouteAuthorizationGuard.ChallengePath, "?returnUrl=" + Uri.EscapeDataString(pageUrl), AsPage: anotherApplications);
     }
 
     // Said once, as the app's live endpoints are mapped: with sign-in and nothing to ask, an open page keeps whatever its connection
@@ -574,7 +590,7 @@ public static partial class RaskEndpointExtensions
     ///     cannot tell from an anonymous request. A visitor who never signed in never sets it, another app on the
     ///     host ignores it, and a public page goes on serving them. All it can do is redirect its own bearer, once.
     /// </remarks>
-    private static bool SentToSignIn(
+    private static async ValueTask<bool> SentToSignInAsync(
         HttpContext ctx, string path, ClaimsPrincipal user, string pathBase, RaskRootSelector selector)
     {
         // Over https only the prefixed name is believed: the plain one can be planted from next door.
@@ -587,17 +603,31 @@ public static partial class RaskEndpointExtensions
 
         ForgetEnded(ctx, name);
 
-        // Nowhere to send them when the app has no sign-in page: the page is served, as to any anonymous visitor.
         if (PrincipalRights.IsSignedIn(user)
-            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
-            || !HasSignInPage(selector))
+            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // The app's own sign-in page, or else the one the host's authentication names, as an open page goes to them
+        // (SignInAgainAsync). With neither there is nowhere to send them: the page is served, as to any anonymous visitor.
+        var pageUrl = path + ctx.Request.QueryString.Value;
+        string location;
+        if (HasSignInPage(selector))
+        {
+            location = pathBase + RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(pageUrl);
+        }
+        else if (await HostSignInPage.FindAsync(ctx.RequestServices).ConfigureAwait(false) is { } host)
+        {
+            location = host.For(pathBase + pageUrl);
+        }
+        else
         {
             return false;
         }
 
         ctx.Response.StatusCode = StatusCodes.Status302Found;
-        ctx.Response.Headers.Location = pathBase + RouteAuthorizationGuard.ChallengePath
-            + "?returnUrl=" + Uri.EscapeDataString(path + ctx.Request.QueryString.Value);
+        ctx.Response.Headers.Location = location;
         ctx.Response.Headers.CacheControl = "no-store";
         return true;
     }

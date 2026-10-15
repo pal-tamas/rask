@@ -81,6 +81,7 @@
     <RaskTestReads Include="..\..\docs\localization.md" />
     <RaskTestReads Include="..\..\src\**\*.cs" />
     <RaskTestReads Include="..\..\src\**\*.targets" />
+    <RaskTestReads Include="..\..\src\**\*.props" />
     <RaskTestReads Include="..\..\src\**\*.csproj" />
     <RaskTestReads Include="..\..\.github\workflows\**" />
     <RaskTestReads Include="..\..\NUGET.md" />

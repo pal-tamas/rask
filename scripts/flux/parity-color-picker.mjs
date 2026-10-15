@@ -222,7 +222,8 @@ async function walkBoth(browser, liveUrl, phone, wait) {
       // A WASM site boots after its document has loaded, and draws its page of demos a moment after that.
       await picker.waitFor({ state: 'attached', timeout: 90000 });
       if (side === 'rask') await page.waitForTimeout(wait * 2);
-      await picker.scrollIntoViewIfNeeded({ timeout: 20000 });
+      // Into view by the page's own scroll: a page whose other demos never come to rest is never "stable" for Playwright.
+      await picker.evaluate(el => el.scrollIntoView({ block: 'center' }));
       const lines = [];
       for (const step of walk.steps) {
         await act(page, picker, prefix, step, phone).catch(e => lines.push(`${step}: could not (${String(e.message).split('\n')[0].slice(0, 80)})`));

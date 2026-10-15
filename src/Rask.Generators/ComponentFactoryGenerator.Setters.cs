@@ -386,7 +386,7 @@ public sealed partial class ComponentFactoryGenerator
         }
 
         var group = elementOwned && bits.TryGetValue(TypedAriaGroup, out var g) ? g : -1;
-        if (pending.Count != 0 || group >= 0)
+        if (pending.Count != 0 || group >= 0 || elementOwned)
         {
             EmitReceiverCast(sb, receiver, "        ");
             foreach (var s in pending)
@@ -401,6 +401,14 @@ public sealed partial class ComponentFactoryGenerator
             sb.AppendLine("        {");
             sb.AppendLine("            __c.ResetUnwrittenAria();");
             sb.AppendLine("        }");
+        }
+
+        // `.Confirm(…)` is a hand-written step over internal state (BuilderRuntime.Confirm), so it has no bit of its own:
+        // whatever no step wrote this render goes, every render, whichever of the element's other steps are pending.
+        // A null check and nothing else when the element never asked.
+        if (elementOwned)
+        {
+            sb.AppendLine("        __c.ResetUnwrittenConfirm();");
         }
 
         sb.AppendLine("    }");

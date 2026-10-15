@@ -4,18 +4,16 @@ using Page = Rask.Testing.Page;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     Flux's color picker: the trigger, the popover it opens, and the keyboard as it was recorded on
-///     fluxui.dev — the area by 2 and by 10, a typed colour on Enter or on leaving, a swatch at a press.
+///     Flux's color picker as the page draws it: the trigger, the popover, and the one field the colour reaches
+///     the page through.
 /// </summary>
 /// <remarks>
-///     The browser owns whether the dialog is open and says so through the <c>toggle</c> event, and the pointer
-///     is the runtime's: what reaches the page is the bound field of the surface it dragged across, which is
-///     what these tests raise. The drag itself is the browser tests' (UiKitColorPickerTests).
+///     Everything the reader does before a value is owed — the keys, a drag, typing, a swatch, the sheet — is the
+///     browser's (<c>rask-color.ts</c>), and asserted in a browser (<c>RuntimeHookColorTests</c>). What reaches the
+///     page is the value field's <c>change</c>, which is what these tests raise.
 /// </remarks>
 public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
 {
-    private const string Opened = "{\"oldState\":\"closed\",\"newState\":\"open\"}";
-    private const string Closed = "{\"oldState\":\"open\",\"newState\":\"closed\"}";
     private const string Thumb = "[data-ui-color-picker-area-thumb]";
     private const string Swatch = "[data-ui-color-picker-swatch]";
     private const string TriggerInput = "[data-ui-color-picker-input]";
@@ -23,8 +21,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     private const string Hue = "[data-channel=\"hue\"] input[type=\"range\"]";
     private const string AreaField = "[data-ui-color-picker-area] > input[type=\"hidden\"]";
     private const string HueField = "[data-channel=\"hue\"] > input[type=\"hidden\"]";
-    private const string Probe = "[data-ui-color-picker-sheet] input";
-    private const string Select = "dialog [role=\"button\"]";
+    private const string ValueField = "[data-ui-color-picker] > input[type=\"hidden\"]";
 
     private string _color = "#bada55";
 
@@ -35,17 +32,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
 
     private UiColorPicker Picker() => Ui.ColorPicker.Value(_color).OnChange(color => _color = color);
 
-    private static Task Key(Page page, string selector, string key, bool shift = false) =>
-        page.On(selector).Raise("keydown", $"{{\"key\":\"{key}\",\"shiftKey\":{(shift ? "true" : "false")}}}");
-
     private static string Preview(Page page) => page.Find("[data-ui-color-picker-preview]").Attribute("style")!;
-
-    // The popover as Flux's sheet: open, and measured two pixels wide by the stylesheet's probe.
-    private static async Task OnTheSheet(Page page)
-    {
-        await page.On("dialog").Raise("toggle", Opened);
-        await page.On(Probe).Input("2 1");
-    }
 
     [Fact]
     public void The_trigger_is_a_swatch_button_and_a_text_input_over_a_dialog()
@@ -66,7 +53,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("#bada55", input.Attribute("value"));
         Assert.Equal("#000000", input.Attribute("placeholder"));
         Assert.Equal("any", dialog.Attribute("data-rask-modal"));
-        Assert.Equal("false", dialog.Attribute("data-rask-modal-open"));
+        Assert.Null(dialog.Attribute("data-rask-modal-open"));
         Assert.Contains("background-color:rgb(186 218 85)", Preview(page), StringComparison.Ordinal);
     }
 
@@ -101,14 +88,14 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("x y", area.Attribute("data-rask-drag"));
         Assert.NotNull(area.Attribute("data-rask-press-keeps-focus"));
-        Assert.Equal("0.6101 0.1451", page.Find(AreaField).Attribute("value"));
+        Assert.Equal(string.Empty, page.Find(AreaField).Attribute("value"));
         Assert.Equal("inset-inline-start:calc(var(--rask-drag-x, 0.6101) * 100%);top:calc(var(--rask-drag-y, 0.1451) * 100%)", thumb.Attribute("style"));
         Assert.Equal("Arrows Home End PageUp PageDown", thumb.Attribute("data-rask-contain-keys"));
         Assert.Equal("x", hue.Attribute("data-rask-drag"));
         Assert.Equal("8", hue.Attribute("data-rask-drag-inset"));
         Assert.Equal(page.Find(Hue).Attribute("id"), hue.Attribute("data-rask-focus"));
         Assert.Equal("Arrows", page.Find(Hue).Attribute("data-rask-contain-keys"));
-        Assert.Equal("0.2056", page.Find(HueField).Attribute("value"));
+        Assert.Equal(string.Empty, page.Find(HueField).Attribute("value"));
         Assert.Equal("Arrows Home End PageUp PageDown Space Enter", page.Find("[data-ui-color-picker-swatches]").Attribute("data-rask-contain-keys"));
     }
 
@@ -127,152 +114,48 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_dialog_says_when_it_opened_and_closed()
+    public void The_browser_keeps_the_picker_by_its_format_its_words_and_its_one_field()
     {
         var page = Page.Render(Picker);
 
-        await page.On("dialog").Raise("toggle", Opened);
-        var open = page.Find(TriggerInput).Attribute("aria-expanded");
-        var marked = page.Find("[data-ui-color-picker]").Attribute("data-open");
-        await page.On("dialog").Raise("toggle", Closed);
+        var (root, field) = (page.Find("[data-ui-color-picker]"), page.Find(ValueField));
 
-        Assert.Equal("true", open);
-        Assert.NotNull(marked);
-        Assert.Equal("false", page.Find(TriggerInput).Attribute("aria-expanded"));
-        Assert.Equal("false", page.Find("[data-ui-color-picker-swatch-button]").Attribute("aria-expanded"));
-        Assert.Null(page.Find("[data-ui-color-picker]").Attribute("data-open"));
+        Assert.Equal("hex", root.Attribute("data-rask-color"));
+        Assert.Equal(page.Find("dialog").Attribute("id"), root.Attribute("data-rask-open-mark"));
+        Assert.Equal(
+            "{\"open\":\"Open color picker\",\"openWith\":\"Open color picker, {0}\",\"selected\":\"{0} selected\",\"area\":\"Saturation {0}%, brightness {1}%\"}",
+            root.Attribute("data-rask-color-says"));
+        Assert.Null(root.Attribute("data-rask-color-refuses"));
+        Assert.Equal("#bada55", field.Attribute("value"));
+        Assert.NotNull(field.Attribute("data-rask-on-change"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
+        Assert.Null(field.Attribute("data-rask-bind-on"));
     }
 
     [Fact]
-    public async Task ArrowDown_in_the_trigger_asks_the_runtime_to_open_the_popover()
+    public void Nothing_the_reader_does_before_a_value_is_owed_has_a_handler()
     {
-        var page = Page.Render(Picker);
+        var page = Page.Render(() => Picker().Clearable().Dropper());
 
-        await Key(page, TriggerInput, "ArrowDown");
+        var handlers = System.Text.RegularExpressions.Regex.Matches(page.Html, "data-rask-on-[a-z]+=").Count;
 
-        Assert.Equal("true", page.Find(TriggerInput).Attribute("aria-expanded"));
-        Assert.Equal("true", page.Find("dialog").Attribute("data-rask-modal-open"));
+        Assert.Equal(1, handlers);
+        Assert.NotNull(page.Find(ValueField).Attribute("data-rask-on-change"));
     }
 
     [Fact]
-    public async Task The_arrows_move_the_area_by_two_and_by_ten_with_shift()
+    public async Task A_colour_the_browser_announces_reaches_the_page_and_is_drawn()
     {
         var page = Page.Render(Picker);
 
-        await Key(page, Thumb, "ArrowRight");
-        var right = _color;
-        await Key(page, Thumb, "ArrowDown");
-        var down = _color;
-        await Key(page, Thumb, "ArrowLeft", shift: true);
-        var far = _color;
-        await Key(page, Thumb, "ArrowUp", shift: true);
+        await page.On(ValueField).Change("#14b8a6");
 
-        Assert.Equal("#b9da51", right);
-        Assert.Equal("#b5d54f", down);
-        Assert.Equal("#bad564", far);
-        Assert.Equal("#d0ee70", _color);
-        Assert.Equal("0.5301 0.0651", page.Find(AreaField).Attribute("value"));
-    }
-
-    [Fact]
-    public async Task The_page_keys_and_Home_and_End_go_to_the_edges_of_the_area()
-    {
-        var page = Page.Render(Picker);
-
-        await Key(page, Thumb, "PageUp");
-        var top = _color;
-        await Key(page, Thumb, "End");
-        var corner = _color;
-        await Key(page, Thumb, "Home");
-        var white = _color;
-        await Key(page, Thumb, "PageDown");
-
-        Assert.Equal("#daff63", top);
-        Assert.Equal("#c2ff00", corner);
-        Assert.Equal("#ffffff", white);
-        Assert.Equal("#000000", _color);
-    }
-
-    [Fact]
-    public async Task Black_keeps_the_hue_and_names_its_swatch()
-    {
-        var page = Page.Render(Picker);
-
-        await Key(page, Thumb, "PageDown");
-
-        Assert.Equal("#000000", _color);
-        Assert.Equal("74", page.Find(Hue).Attribute("value"));
-        Assert.Equal("Open color picker, Black", page.Find("[data-ui-color-picker-swatch-button]").Attribute("aria-label"));
-        Assert.Equal("Black", page.Find(Swatch + "[aria-selected=\"true\"]").Attribute("aria-label"));
-        Assert.Equal("Black", page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label"));
-    }
-
-    [Fact]
-    public async Task The_pointer_on_the_area_is_saturation_across_and_brightness_up()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(AreaField).Input("0.5 0.25");
-
-        Assert.Equal("#a8bf60", _color);
-        Assert.Equal("Saturation 50%, brightness 75%", page.Find(Thumb).Attribute("aria-valuetext"));
-        Assert.Equal("0.5 0.25", page.Find(AreaField).Attribute("value"));
-    }
-
-    [Fact]
-    public async Task The_pointer_on_a_track_moves_its_channel_in_whole_steps()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(HueField).Input("0.4991");
-
-        Assert.Equal("#55dada", _color);
-        Assert.Equal("180", page.Find(Hue).Attribute("value"));
-        Assert.Equal("0.5", page.Find(HueField).Attribute("value"));
-        Assert.Contains("background-color:rgb(0 255 255)", page.Find("[data-ui-color-picker-area-hue]").Attribute("style"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task An_arrow_steps_a_slider_by_one_and_by_ten_with_shift()
-    {
-        var page = Page.Render(Picker);
-
-        await Key(page, Hue, "ArrowRight");
-        var one = page.Find(Hue).Attribute("value");
-        await Key(page, Hue, "ArrowLeft", shift: true);
-
-        Assert.Equal("75", one);
-        Assert.Equal("65", page.Find(Hue).Attribute("value"));
-        Assert.Equal("#cfda55", _color);
-    }
-
-    [Fact]
-    public async Task The_hue_slider_takes_the_range_inputs_value()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(Hue).Change("180");
-
-        Assert.Equal("#55dada", _color);
-        Assert.Equal("180", page.Find(Hue).Attribute("value"));
-    }
-
-    [Fact]
-    public async Task A_typed_colour_is_taken_in_any_css_form_and_written_in_the_pickers_format()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(TriggerInput).Change("#f00");
-        var red = _color;
-        await page.On(PopoverInput).Change("hsl(120 50% 50%)");
-        var green = _color;
-        await page.On(TriggerInput).Change("oklch(0.7 0.1 200)");
-
-        Assert.Equal("#ff0000", red);
-        Assert.Equal("#40bf40", green);
-        Assert.Equal("#0100c8", _color);
-        Assert.Equal("#0100c8", page.Find(TriggerInput).Attribute("value"));
-        Assert.Equal("#0100c8", page.Find(PopoverInput).Attribute("value"));
+        Assert.Equal("#14b8a6", _color);
+        Assert.Equal("#14b8a6", page.Find(TriggerInput).Attribute("value"));
+        Assert.Equal("#14b8a6", page.Find(PopoverInput).Attribute("value"));
+        Assert.Equal("Open color picker, Teal", page.Find("[data-ui-color-picker-swatch-button]").Attribute("aria-label"));
+        Assert.Equal("Teal", page.Find(Swatch + "[aria-selected=\"true\"]").Attribute("aria-label"));
+        Assert.Contains("background-color:rgb(20 184 166)", Preview(page), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -280,173 +163,23 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(Picker);
 
-        await page.On(TriggerInput).Change("zzz");
+        await page.On(ValueField).Change("zzz");
 
         Assert.Equal("#bada55", _color);
         Assert.Equal("#bada55", page.Find(TriggerInput).Attribute("value"));
     }
 
     [Fact]
-    public async Task An_emptied_input_clears_the_colour()
+    public async Task An_emptied_value_clears_the_colour()
     {
         var page = Page.Render(Picker);
 
-        await page.On(TriggerInput).Change("");
+        await page.On(ValueField).Change("");
 
         Assert.Equal(string.Empty, _color);
         Assert.Contains("background-color:transparent", Preview(page), StringComparison.Ordinal);
         Assert.Equal("Open color picker", page.Find("[data-ui-color-picker-swatch-button]").Attribute("aria-label"));
         Assert.Equal("Saturation 0%, brightness 0%", page.Find(Thumb).Attribute("aria-valuetext"));
-    }
-
-    [Fact]
-    public async Task A_typed_alpha_stays_with_the_colour_though_hex_does_not_write_it()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(TriggerInput).Change("rgb(64 191 64 / 0.5)");
-
-        Assert.Equal("#40bf40", _color);
-        Assert.Contains("background-color:rgb(64 191 64 / 0.5)", Preview(page), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task Picking_a_swatch_sets_the_colour_and_announces_it()
-    {
-        var page = Page.Render(Picker);
-
-        await page.On(Swatch + "[aria-label=\"Teal\"]").Click();
-
-        Assert.Equal("#14b8a6", _color);
-        Assert.Equal("Teal", page.Find(Swatch + "[aria-selected=\"true\"]").Attribute("aria-label"));
-        Assert.NotNull(page.Find(Swatch + "[aria-label=\"Teal\"]").Attribute("data-selected"));
-        Assert.Equal("Teal selected", page.TextOf("[data-ui-color-picker-announce]"));
-        // Flux leaves the tab stop where it was until the popover opens again.
-        Assert.Equal("Red", page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label"));
-    }
-
-    [Fact]
-    public async Task The_tab_stop_follows_the_picked_swatch_when_the_popover_opens_again()
-    {
-        var page = Page.Render(Picker);
-        await page.On("dialog").Raise("toggle", Opened);
-        await page.On(Swatch + "[aria-label=\"Teal\"]").Click();
-
-        await page.On("dialog").Raise("toggle", Closed);
-        await page.On("dialog").Raise("toggle", Opened);
-
-        Assert.Equal("Teal", page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label"));
-    }
-
-    [Fact]
-    public async Task The_arrows_walk_the_swatches_eight_to_a_row_and_stop_at_the_edges()
-    {
-        var page = Page.Render(Picker);
-        string Stop() => page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label")!;
-
-        await Key(page, Swatch + "[aria-label=\"Red\"]", "ArrowDown");
-        var down = Stop();
-        await Key(page, Swatch + "[aria-label=\"Purple\"]", "ArrowRight");
-        var right = Stop();
-        await Key(page, Swatch + "[aria-label=\"Pink\"]", "End");
-        var end = Stop();
-        await Key(page, Swatch + "[aria-label=\"White\"]", "ArrowRight");
-        var edge = Stop();
-        await Key(page, Swatch + "[aria-label=\"White\"]", "ArrowDown");
-        var bottom = Stop();
-        await Key(page, Swatch + "[aria-label=\"White\"]", "Home");
-
-        Assert.Equal(["Purple", "Pink", "White", "White", "White", "Red"], [down, right, end, edge, bottom, Stop()]);
-        Assert.Equal("#bada55", _color);
-    }
-
-    [Theory]
-    [InlineData("Enter")]
-    [InlineData(" ")]
-    public async Task Enter_and_Space_pick_the_swatch_they_are_pressed_on(string key)
-    {
-        var page = Page.Render(Picker);
-
-        await Key(page, Swatch + "[aria-label=\"Sky\"]", key);
-
-        Assert.Equal("#0ea5e9", _color);
-    }
-
-    [Fact]
-    public async Task On_the_sheet_a_change_waits_for_Select()
-    {
-        var page = Page.Render(Picker);
-        await OnTheSheet(page);
-
-        await Key(page, Thumb, "ArrowRight");
-        await page.On(HueField).Input("0.5");
-        var (held, trigger, inside) = (_color, page.Find(TriggerInput).Attribute("value"), page.Find(PopoverInput).Attribute("value"));
-        await page.On(Select).Click();
-
-        Assert.Equal("#bada55", held);
-        Assert.Equal("#bada55", trigger);
-        Assert.Equal("#51dada", inside);
-        Assert.Equal("#51dada", _color);
-        Assert.Equal("#51dada", page.Find(TriggerInput).Attribute("value"));
-        Assert.Equal("10", page.Find("[data-channel=\"hue\"]").Attribute("data-rask-drag-inset"));
-    }
-
-    [Fact]
-    public async Task On_the_sheet_a_typed_colour_is_held_and_its_input_says_the_pages_again_as_fluxs_does()
-    {
-        var page = Page.Render(Picker);
-        await OnTheSheet(page);
-
-        await page.On(PopoverInput).Change("#00ff00");
-        var (held, inside, area) = (_color, page.Find(PopoverInput).Attribute("value"), page.Find(AreaField).Attribute("value"));
-        await page.On(Select).Click();
-
-        Assert.Equal("#bada55", held);
-        Assert.Equal("#bada55", inside);
-        Assert.Equal("1 0", area);
-        Assert.Equal("#00ff00", _color);
-    }
-
-    [Fact]
-    public async Task On_the_sheet_what_nobody_selected_is_gone_when_it_closes()
-    {
-        var page = Page.Render(Picker);
-        await OnTheSheet(page);
-        await Key(page, Thumb, "ArrowRight");
-
-        await page.On("dialog").Raise("toggle", Closed);
-
-        Assert.Equal("#bada55", _color);
-        Assert.Equal("#bada55", page.Find(PopoverInput).Attribute("value"));
-        Assert.Equal("0.6101 0.1451", page.Find(AreaField).Attribute("value"));
-    }
-
-    [Fact]
-    public async Task On_the_sheet_a_swatch_is_taken_at_once_and_closes_it()
-    {
-        var page = Page.Render(Picker);
-        await OnTheSheet(page);
-
-        await page.On(Swatch + "[aria-label=\"Yellow\"]").Click();
-
-        Assert.Equal("#eab308", _color);
-        Assert.Equal("false", page.Find("dialog").Attribute("data-rask-modal-open"));
-        Assert.Equal("Yellow selected", page.TextOf("[data-ui-color-picker-announce]"));
-        Assert.Equal("Yellow", page.Find(Swatch + "[tabindex=\"0\"]").Attribute("aria-label"));
-    }
-
-    [Fact]
-    public async Task Under_a_pointer_Select_has_nothing_left_to_take()
-    {
-        var page = Page.Render(Picker);
-        await page.On("dialog").Raise("toggle", Opened);
-        await Key(page, Thumb, "ArrowRight");
-        var live = _color;
-
-        await page.On(Select).Click();
-
-        Assert.Equal("#b9da51", live);
-        Assert.Equal("#b9da51", _color);
     }
 
     [Fact]
@@ -469,12 +202,13 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(() => Picker().Clearable());
 
-        var before = page.Find("[aria-label=\"Clear color\"]").Attribute("class")!;
-        await page.On("[aria-label=\"Clear color\"]").Click();
+        var before = page.Find("[aria-label=\"Clear color\"]").Attribute("hidden");
+        await page.On(ValueField).Change("");
 
-        Assert.DoesNotContain("hidden", before, StringComparison.Ordinal);
+        Assert.Null(before);
+        Assert.Equal("clear", page.Find("[aria-label=\"Clear color\"]").Attribute("data-rask-color-part"));
         Assert.Equal(string.Empty, _color);
-        Assert.Contains("hidden", page.Find("[aria-label=\"Clear color\"]").Attribute("class"), StringComparison.Ordinal);
+        Assert.NotNull(page.Find("[aria-label=\"Clear color\"]").Attribute("hidden"));
     }
 
     [Fact]
@@ -504,7 +238,7 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Children_compose_the_popover_and_its_parts_move_the_same_colour()
+    public async Task Children_compose_the_popover_and_its_parts_draw_the_same_colour()
     {
         var page = Page.Render(() => Picker()[
             Div.Class("flex flex-col gap-3")[
@@ -516,12 +250,10 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
             ]
         ]);
 
-        await Key(page, Thumb, "ArrowRight");
-        var moved = _color;
-        await page.On(Swatch).Click();
+        await page.On(ValueField).Change("#0000ff");
 
-        Assert.Equal("#b9da51", moved);
         Assert.Equal("#0000ff", _color);
+        Assert.Equal("Blue", page.Find(Swatch + "[aria-selected=\"true\"]").Attribute("aria-label"));
         Assert.Equal("#0000ff", page.Find(TriggerInput).Attribute("value"));
         Assert.Equal("Any colour", page.Find(PopoverInput).Attribute("placeholder"));
         Assert.Contains("my-area", page.Find("[data-ui-color-picker-area]").Attribute("class"), StringComparison.Ordinal);
@@ -540,21 +272,21 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Pick a color from the screen", dropper.Attribute("aria-label"));
         Assert.NotNull(dropper.Attribute("hidden"));
         Assert.Equal("EyeDropper", dropper.Attribute("data-rask-requires"));
+        Assert.Equal("dropper", dropper.Attribute("data-rask-color-part"));
     }
 
     [Fact]
-    public async Task A_disabled_picker_opens_nothing_and_moves_nothing()
+    public void A_disabled_picker_opens_nothing_and_moves_nothing()
     {
         var page = Page.Render(() => Picker().Disabled());
 
-        await Key(page, TriggerInput, "ArrowDown");
-        await Key(page, Thumb, "ArrowRight");
+        var root = page.Find("[data-ui-color-picker]");
 
         Assert.NotNull(page.Find("[data-ui-color-picker-swatch-button]").Attribute("disabled"));
         Assert.NotNull(page.Find(TriggerInput).Attribute("disabled"));
-        Assert.Equal("false", page.Find(TriggerInput).Attribute("aria-expanded"));
+        Assert.Null(root.Attribute("data-rask-color"));
         Assert.Null(page.Find("[data-ui-color-picker-area]").Attribute("data-rask-drag"));
-        Assert.Equal("#bada55", _color);
+        Assert.Null(page.Find(ValueField).Attribute("data-rask-on-change"));
     }
 
     [Fact]
@@ -563,10 +295,12 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         var theme = new Theme();
         var page = Acting.Render(() => Ui.ColorPicker.Bind(() => theme.Accent).Label("Accent").Name("accent"));
 
-        await page.On(Swatch + "[aria-label=\"Green\"]").Click();
+        var waits = page.Find(ValueField).Attribute("data-rask-bind-on");
+        await page.On(ValueField).Change("#22c55e");
         var (waiting, shown) = (theme.Accent, page.Find(TriggerInput).Attribute("value"));
         await Acting.Act(page);
 
+        Assert.Equal("action", waits);
         Assert.Equal("#ef4444", waiting);
         Assert.Equal("#22c55e", shown);
         Assert.Equal("#22c55e", theme.Accent);
@@ -582,8 +316,11 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         var theme = new Theme();
         var page = Page.Render(() => Ui.ColorPicker.Bind(() => theme.Accent).Live());
 
-        await page.On(Swatch + "[aria-label=\"Green\"]").Click();
+        var field = page.Find(ValueField);
+        await page.On(ValueField).Input("#22c55e");
 
+        Assert.NotNull(field.Attribute("data-rask-on-input"));
+        Assert.Null(field.Attribute("data-rask-bind-on"));
         Assert.Equal("#22c55e", theme.Accent);
     }
 
@@ -594,9 +331,11 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         var saves = 0;
         var page = Acting.Render(() => Form.Model(theme).OnSubmit(_ => saves++)[Ui.ColorPicker.Bind(() => theme.Accent).Label("Accent").Id("accent")]);
 
-        await page.On(TriggerInput).Change("#12");
+        var refuses = page.Find("[data-ui-color-picker]").Attribute("data-rask-color-refuses");
+        await page.On(ValueField).Change("#12");
         await page.On("form").Submit();
 
+        Assert.NotNull(refuses);
         Assert.Equal("Enter a valid color.", page.TextOf("#accent-error"));
         Assert.Equal("#12", page.Find(TriggerInput).Attribute("value"));
         Assert.Equal("true", page.Find(TriggerInput).Attribute("aria-invalid"));
@@ -610,10 +349,10 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
         var theme = new Theme();
         var saves = 0;
         var page = Acting.Render(() => Form.Model(theme).OnSubmit(_ => saves++)[Ui.ColorPicker.Bind(() => theme.Accent).Label("Accent").Id("accent")]);
-        await page.On(TriggerInput).Change("#12");
+        await page.On(ValueField).Change("#12");
         await page.On("form").Submit();
 
-        await page.On(TriggerInput).Change("#123");
+        await page.On(ValueField).Change("#112233");
         await page.On("form").Submit();
 
         Assert.Equal("", page.TextOf("#accent-error"));
@@ -623,13 +362,16 @@ public partial class UiColorPickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_picker_with_neither_Bind_nor_OnChange_keeps_the_colour_itself()
+    public void A_picker_with_neither_Bind_nor_OnChange_keeps_the_colour_in_the_browser()
     {
-        var page = Page.Render(() => Ui.ColorPicker.Value("#bada55"));
+        var page = Page.Render(() => Ui.ColorPicker.Value("#bada55").Name("accent"));
 
-        await Key(page, Thumb, "ArrowRight");
+        var field = page.Find(ValueField);
 
-        Assert.Equal("#b9da51", page.Find(TriggerInput).Attribute("value"));
+        Assert.Equal("accent", field.Attribute("name"));
+        Assert.Equal("#bada55", field.Attribute("value"));
+        Assert.Null(field.Attribute("data-rask-on-change"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
     }
 
     [Fact]

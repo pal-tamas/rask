@@ -52,6 +52,12 @@ internal static class HookBundleTag
         "data-rask-scroll-to",
         "data-rask-switch",
         "data-rask-time-list",
+        "data-rask-phone",
+        "data-rask-submit-keys",
+        "data-rask-grow",
+        "data-rask-list",
+        "data-rask-color",
+        "data-rask-calendar",
     ];
 
     // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and

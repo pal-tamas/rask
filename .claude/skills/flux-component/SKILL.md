@@ -54,7 +54,7 @@ unset prop).
 Rendered attributes are not in that gate: compare them with Flux's live DOM (marker and ARIA names per
 `[data-flux-*]` node) when a component changes.
 
-**Owner-approved departures from Flux's behaviour** — the whole list; anything not on it is a parity bug.
+**Owner-approved departures from Flux** (behaviour and, rarely, look) — the whole list; anything not on it is a parity bug.
 `FluxConformanceTests.Translations` cannot hold these: it is keyed by a prop the component carries, and a
 departure in behaviour carries none.
 - **2026-10-12 — typed `Ui.DatePicker` / `Ui.TimePicker` left with parts that make no value.** Flux keeps the
@@ -65,6 +65,10 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
+- **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
+  cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
+  scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets
+  `position` go on that node only (`DEPARTED`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
@@ -210,9 +214,9 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-color-picker.mjs`, `parity-carousel.mjs`, `parity-phone.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -456,8 +460,11 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   value drawn and committed), the select's listbox button `data-rask-listbox-button`, every list popover
   `data-rask-lock`, the pillbox's trigger `data-rask-contain-keys` (`Enter Space ArrowUp ArrowDown` as a combobox,
   `Space ArrowUp ArrowDown` as the button over a search field). The select's search field and the pillbox's inline
-  input say NO `aria-expanded`, as Flux's: they keep the list's keys by `data-rask-contain-keys` on the field
-  itself (`UiListboxLook.ListKeys`; the pill input only while its list is open). Still open: `mask:dynamic` (the
+  input say NO `aria-expanded`, as Flux's: the search field keeps the list's keys by `data-rask-contain-keys`
+  on the field itself (`UiListboxLook.ListKeys`), and every open list keeps them through `data-rask-list`.
+  **Since 2026-10-13 the lists are the browser's** (`data-rask-list`, the hook table below): no cursor, open
+  state or search text is C# state, so a kit unit test asserts the markup and the PRESS, and everything a key or
+  the pointer does is asserted in a browser (`UiListHookTests`, the `--live` walks). Still open: `mask:dynamic` (the
   runtime has `data-rask-mask-money`; what a C# prop for an Alpine expression takes is the owner's call).
   `Ui.Input.Attributes(…)` forwards attributes to the `<input>` (how an unlabelled input gets `aria-label`); the
   typed `Min` / `Max` / `Step` / `MaxLength` / `Autofocus` / `Name` it also keeps are `Translations` rows — whether
@@ -565,7 +572,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (`UiCalendarModes`, `UiDatePickerModes`) handing back the typed twin's seed, so a wrong pairing does not
   compile; `Mode(value)` and the bare `Multiple()` are checked against the bound type at render. The twins are
   reachable as entries too — `Ui.CalendarMultiple`, `Ui.CalendarRange`, `Ui.DatePickerRange` — because the
-  generator cannot hide one: to remove when it can. Every hook is wired and was driven on the published site
+  generator cannot hide one: to remove when it can. Since 2026-10-15 the whole calendar is `rask-calendar.ts` (hook table):
+  the paragraphs below about C# handlers, `UiCalendarState`, `RenameAsync` and the probe's field describe what it
+  replaced. Every hook is wired and was driven on the published site
   against Flux's pages (`UiKitDataInputTests`): the grid's keys and focus, the typed segments (the whole
   trigger is the `data-rask-toggle`; the runtime leaves a press in a field to the field), the roving presets
   (tab stop = the checked preset, or the FIRST while Custom is the checked one, with `data-active`, as Flux
@@ -655,20 +664,22 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 
 - Color picker (2026-10-13): seven parts, loaded and open parity 22/22 each (`parity.mjs color-picker`,
   `parity-color-picker.mjs` — the `data-parity-open` route; `--live <url>` walks a running site beside Flux's page,
-  `--phone` the sheet at 390). EVERY hook in the table below is wired and none is new: the area and the tracks are
+  `--phone` the sheet at 390). Since 2026-10-15 the whole picker is `rask-color.ts` (hook table): the page renders
+  the colour it holds and hears it through one field — measured on Flux, its element says `input` + `change` per key of
+  the area or a slider and per swatch, `input` per move of a drag and `change` at the release, and nothing for opening,
+  closing or a character typed (the field's own `change`, on Enter or leaving it, takes the text). The area and the tracks are
   `data-rask-drag` surfaces (the thumb's CSS reads `--rask-drag-x/-y` with the rendered place as its fallback, so a
-  static page draws it too), a track says `data-rask-focus="<its range input>"`, the range input is bound on
-  CHANGE (a field bound on input is not moved by a render while it has focus, and a press on the track leaves
-  focus there) and keeps its arrows by `data-rask-contain-keys="Arrows"` — they are C#'s, 1 and 10 with Shift,
-  because `data-rask-big-step` would take the page keys too and Flux's are the browser's own tenth of the track
-  (hue 360 → 324, measured), the dialog is `data-rask-modal="any"` +
-  `data-rask-modal-open` behind a `command="show-modal"` button, the copy button `data-rask-copy`, the dropper
-  `hidden` + `data-rask-requires` (its parity example removes `hidden` in a line of script, as the runtime would).
+  static page draws it too), a track says `data-rask-focus="<its range input>"`, the range input keeps its arrows
+  by `data-rask-contain-keys="Arrows"` — the hook's, 1 and 10 with Shift, because `data-rask-big-step` would take
+  the page keys too and Flux's are the browser's own tenth of the track (hue 360 → 324, measured), the dialog is
+  `data-rask-modal="any"` behind a `command="show-modal"` button (ArrowDown in the trigger's input opens it from the
+  hook), the copy button `data-rask-copy`, the dropper `hidden` + `data-rask-requires`, opened by the hook (its parity
+  example removes `hidden` in a line of script, as the runtime would).
   **The sheet** (below `sm`) holds what is chosen until Select — measured on Flux at 390: area, sliders and the
   popover's input change nothing outside the sheet; Select takes it; Cancel, Escape and a press outside drop it; a
   swatch is taken at once and closes the sheet. A render cannot ask a media query, so the dialog holds a box only
-  the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`) under `data-rask-measure`, and the
-  page reads the width it is told — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
+  the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`), which the runtime reads as a choice
+  is made (since 2026-10-15 the page is told nothing of it) — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
   media-queried `:root:has()` rule in `ui.css`, not `data-rask-lock`: the lock depends on the width, and Flux
   locks nothing at pointer widths. Placement is the date picker's anchor rules said in `ui.css` (the name comes down in
   `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
@@ -686,7 +697,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   red border), `clearable` with `copyable` together (clear first), a disabled button trigger. A Flux quirk kept: on the sheet
   its popover input says the page's colour again after a colour was typed into it, while the sheet holds the typed
   one (`_typedOnSheet`). Not Flux's: Flux draws a thumb outside the area for a channel above 255, the kit holds it
-  at the edge. A focused range input is not moved by a render (`syncFormProperty`), so a step it did not take
+  at the edge. (Before the hook:) A focused range input is not moved by a render (`syncFormProperty`), so a step it did not take
   itself — an arrow, a press on its track — is put on the element too (`SetValueAsNumber`).
 - Where a panel LANDS (2026-10-13, the owner: exactly as Flux's). Flux places every panel by script, and the
   kit's anchor rules could only turn one to the other side. Measured on Flux's live pages by holding a host
@@ -781,7 +792,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Sidebar rail item | the same + `data-rask-hover-if="<selector true while collapsed>"` | the menu opens on hover only while the rail is collapsed |
 | Dropdown, Popover, Select, Context | panel `data-rask-lock` (WIRED on `Ui.Menu`, `Ui.Navmenu` and `Ui.Popover` — a dropdown's and a context menu's, measured locked on Flux — and on the select, autocomplete, date and time popups; never in the kit's stylesheet) | `<html>`: `overflow:hidden; pointer-events:none; scrollbar-gutter:stable` while open — the gutter only where a scrollbar was showing, so a page that shows none (every headless browser) is neither narrowed nor scrolled |
 | a panel that is something else under a breakpoint (WIRED: `Ui.DatePicker`'s popup) | `max-sm:[--rask-place:none]` beside `data-rask-place`; the anchor rules as `sm:` utilities, `position-anchor` alone in `style` | not placed while `--rask-place` computes to `none`: the stylesheet's, and placed again above the breakpoint, asked on every pass |
-| a calendar of several months, a date picker's popup (WIRED: `UiCalendarGrid`) | a box only the stylesheet sizes (`w-px max-sm:w-0.5`) with `data-rask-measure` and its one bound hidden field, rendered `"1 1"` / `"2 1"` | the page hears which side of `sm` it is on, with no frame where it already says so; `unasked` |
+| a calendar of several months, a date picker's popup (WIRED: `UiCalendarGrid`) | a box only the stylesheet sizes (`w-px max-sm:w-0.5`), `data-rask-calendar-part="narrow"`, NO field | the runtime that draws the calendar reads its width as it draws (one month on a phone) and as a pick is made (held on the sheet); nothing is sent |
 | every panel anchored to a trigger (WIRED: `Ui.Menu`, `Ui.Navmenu`, `Ui.Popover` through `UiPopupHost.Place`; the select, autocomplete and pillbox lists through `UiAnchor.Place`; the date and time popups; `Ui.TooltipContent`; a context menu, which names no anchor and sits at the pointer) | `data-rask-place="<side> <align> <gap> <offset>"` on the `[popover]`, beside the CSS anchor rules in its `style` (`position-anchor:--x` against an element whose `style` says `anchor-name:--x`), which stay what places it with no script | Flux's placement (`rask-place.ts`): flip the side → flip the alignment (the offset mirrored) → slide back 5 px inside the edge → hold to the height that is left; placed in the task that opens it, never drawn where the anchor rules alone leave it; one rule per open panel in the runtime's own stylesheet, keyed on `data-rask-placed`; nothing sent |
 | any `popover="auto"` panel | nothing | Tab out closes it, and so does focus leaving its `popovertarget` button for anything but the panel; a press outside hands focus to that button; a hover panel the pointer left hands it to nobody |
 | Menu (WIRED: `UiMenu`) | the outermost `[role=menu]` `data-rask-menu-cursor` + `data-rask-menu-pointer`, each flyout `data-rask-menu-pointer`; rows rendered with `tabindex="-1"`, NO `data-active`, NO key handler, NO pointer handler; no `:hover` highlight, only `[data-active]`. The cursor is NOT C# state: a hover or an arrow key must send the server nothing (`UiMenuHookTests` asserts zero WebSocket frames) | Flux's whole menu in the browser: one lit row and focus left where it was; the first arrow takes the row the pointer is on, later ones count from the lit row; ends, disabled rows, type-ahead; the keyboard's row stays lit when the pointer leaves, the pointer's does not |
@@ -795,20 +806,21 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
 | Tabs | `role="tablist"` over `button[role=tab]`, roving `tabindex`, `aria-selected`; each tab's `OnClick` selects it — NO key handler in C# | the arrows move focus and select, past disabled tabs and around the ends; Home / End are the page's, as Flux's (`rask-tabs.ts`; the role alone loads the bundle, like the switch's) |
 | Slider | `data-rask-big-step="<BigStep>"` on each thumb's `<input type="range">`, only when `BigStep` is set (Flux without `big-step`: Shift changes nothing, the Page keys are the browser's) | Shift+Arrow, PageUp / PageDown |
-| A search field that asks a store | `data-rask-on-pause="<handler>"` + `data-rask-debounce="<ms>"` on the `<input>` typed into (`Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`, `Ui.Autocomplete` — ONE reading, `UiSearchPause`), with `data-rask-keys` for the list's own keys (a search field carries them always; a pillbox's input lists `Backspace:empty`); a `data-rask-on-input` beside it only where the select hides rows itself | the handler hears the field's text once typing has paused, and NOTHING else sends it (not the next action, not leaving the field): a pick during the pause is of the list as drawn (`rask-input.ts`, not a hook) |
+| A search field that asks a store | `data-rask-on-pause="<handler>"` + `data-rask-debounce="<ms>"` on the `<input>` typed into (`Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`, `Ui.Autocomplete` — ONE reading, `UiSearchPause`); the list's keys, Backspace on the pills and the field emptied with its list are the list hook's (`data-rask-list`), which ends the pause itself when it rewrites the field and tells the handler only when the page had heard a search | the handler hears the field's text once typing has paused, and NOTHING else sends it (not the next action, not leaving the field): a pick during the pause is of the list as drawn (`rask-input.ts`, not a hook) |
 | ANY control that draws itself in C# | `data-rask-draws="<events>"` on each element, naming the handlers that only draw the control (`UiDraws.Marks/With/Pairs`): opening, the cursor, paging, a search nobody of the page's listens to, and a PICK when the control is bound and waits (`UiDraws.Waits`). NEVER a handler that reaches a `Callback` the app gave or writes a value now (`.Live()`, `Value`/`OnChange`) | the event is sent alone and marked `unasked`: no waiting field is sent ahead of it and no `PendingBinds` are written — Flux makes no request there at all (`rask-owned.ts` `tell`, not a hook). `UiDrawsTests` pins the marks |
 | A field that is not the form's data | `data-rask-unguarded` on the field or around it (`UiRuntimeMarks.Unguarded`): a list's search, a combobox's text, a calendar's month list | `ConfirmLeave` does not count what is typed or chosen there (`rask-leave.ts`) |
 | A commit of the reader's | go through `UiFormCommit` (or call `ReaderEdits.Note(this)` beside a commit of your own) | the `ConfirmLeave` form the control is drawn in carries `data-rask-edited` until a submit saves it; add the control's row to `ReaderChangesMakeTheFormUnsavedTests` |
+| Select listbox / combobox, Autocomplete, Pillbox (WIRED 2026-10-13: `UiSelectControl`, `UiAutocomplete`) | root `data-rask-list="<words>"` (`multiple` `stay` `filter` `strict` `clears` `text` `top`); the trigger rendered SHUT (`aria-expanded="false"`, no `data-open`, no `aria-activedescendant`), rows with NO `data-active`, NO pointer / key / toggle handler anywhere, no `data-rask-popover-open`; a row keeps its `OnClick` (the pick) except in a `text` list; on rows `data-rask-list-text` / `-keywords` / `-says` / `-keep`, the create row `data-rask-list-create="<min>"`, the empty row `data-rask-list-empty`, a group heading `data-rask-list-group="<rows>"`, a pill's cross `data-rask-list-remove` | `rask-list.ts` keeps the cursor, the keys, type-ahead, the filter and the open state in the browser, as Flux's custom element does: an open list sends the page NOTHING (33 / 34 / 28 frames a journey before, `UiListHookTests`). Opening lights the first picked row or the first; arrows stop at the ends and step over disabled / hidden rows, from no row Down = first and Up = last; Home / End / Page keys nothing; the pointer lights the row it ENTERS and that row goes dark when it leaves the list, a keyed row stays; Enter clicks the lit row (none lit: nothing); Space shuts an open listbox button; letters jump (500 ms prefix) and on a shut list pick; focus on the list itself (after a pressed row in a list that stays open): keys do nothing. Not Flux's: a shut list keeps no `aria-activedescendant` (Flux leaves its last one), and Flux's `popover="manual"` + script is `popover="auto"` here |
 | Select (listbox button) | `data-rask-listbox-button` on the closed `button[role=combobox]` | Enter does nothing, the arrows do not scroll (open the list from the C# key handler: Flux opens on ArrowUp / ArrowDown / Space) |
-| Calendar | grid `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space — Flux lets it scroll); the calendar root `data-rask-focus-follows`, the day that is the tab stop `data-rask-focus-target` + `tabindex="0"`; key the day cells by DATE. On Home / End / PageUp / PageDown render NO `data-rask-focus-target` for that render (or let the keyed day leave) | arrows never scroll the page; focus lands on the new day after the morph, across a month change too; after Home / End / Page keys focus is on `<body>`, as Flux |
-| Color picker | area and tracks `data-rask-contain-keys="Arrows Home End PageUp PageDown"` on the `[role=slider]`; swatch `[role=listbox]` the same list plus `Space Enter`; the area `data-rask-press-keeps-focus` | keys kept; a press on the area leaves focus where it was |
+| Calendar, Date picker (WIRED 2026-10-15: `UiCalendarGrid`, `UiCalendarControl`, `UiDatePickerControl`) | root `data-rask-calendar="<json>"` (`UiCalendarHook.Config`: mode, today, limits, week, culture names + .NET patterns, the look's classes) — on the date picker's root, beside `data-rask-open-mark="<popup id>"` — its FIRST child the ONE hidden value field (`UiCalendarValue`; `OnChange`, `OnInput` for `.Live()`, `data-rask-bind-on="action"` bound and waiting, none when it keeps its own); the header host and the months a `HostedElement` with `Opaque(true)` (first paint only); every interactive part `data-rask-calendar-part`; the grid keeps `data-rask-contain-keys="Arrows Home End PageUp PageDown"` (NOT Space); NO handler anywhere, NO focus target, NO `data-rask-popover-open`, NO `popovertarget` on a day | `rask-calendar.ts`: Flux's calendar in the browser — months drawn and paged, the arrows walking the days and paging with them, Home / End / Page keys leaving the focus to `<body>`, a range waiting unheard with its stretch drawn under the pointer, `MinRange` / `MaxRange` ruling days out, presets, the date picker's button text and clear slot, the phone sheet / confirmation holding a choice, the popup closed by a finishing pick; the page hears the value when Flux's element announces one (`RuntimeHookCalendarTests`, the frame gate) |
+| Color picker (WIRED 2026-10-15: `UiColorPicker`) | root `data-rask-color="<format>"` + `data-rask-color-says` (JSON words) + `data-rask-open-mark="<dialog id>"` (+ `data-rask-color-refuses` when bound in a form); its FIRST child the ONE hidden value field (`OnChange`; `OnInput` for `.Live()`; `data-rask-bind-on="action"` bound and waiting; no handler when it keeps its own); every part `data-rask-color-part`; NO handler on any part, NO open state, drawn from the page's colour; area and tracks keep `data-rask-contain-keys`, swatches the same list plus `Space Enter`, the area `data-rask-press-keeps-focus` | `rask-color.ts`: Flux's whole picker in the browser — the colour shown, the keys, the drag (through `rask-drag.ts`'s `place`), typing, the swatch walk, the sheet held until Select, the dropper, the live region and the opener's name, redrawn after each late echo (`rask-bound.ts` `echoed`); the page hears the colour when Flux's element announces one: a key 1 frame, a drag 1 on release, a character 0, opening / closing 0 (`RuntimeHookColorTests`) |
 | Pillbox trigger | `[role=combobox]`: `data-rask-contain-keys="Enter Space ArrowUp ArrowDown"`; the `[role=button]` variant: `"Space ArrowUp ArrowDown"` (Flux lets Enter through there) | the trigger's keys do not scroll or press |
 | Select / Time picker list | `aria-activedescendant` on the `[role=combobox]` or `[role=listbox]` (as today) | the active option scrolls into view inside the list only |
-| Date picker presets | `[role=radiogroup]` `data-rask-roving`; each preset `[role=radio]` button with `OnClick` selecting it, `tabindex` 0 on the checked one | arrows walk and select, wrapping |
+| Date picker presets | `[role=radiogroup]` `data-rask-roving` + `data-rask-calendar-part="presets"`; each preset `[role=radio]` button with its key as `value` and its range as `data-rask-calendar-range`, NO `OnClick`, `tabindex` 0 on the checked one | arrows walk and select, wrapping; the pick is `rask-calendar.ts`'s |
 | Tooltip `Toggleable()` | non-button trigger wrapper: `data-rask-toggle="<bubble id>"` + `aria-expanded="false"` + `tabindex="0"`, bubble `popover="manual"`; a `<button>` trigger: `popovertarget` + `aria-expanded="false"`, bubble `popover` | Flux's toggleable tooltip: click / Enter / Space toggle, Escape / outside press / Tab away close; `aria-expanded` mirrored |
 | any popover invoker | `aria-expanded="false"` beside `popovertarget` / `commandfor` / `data-rask-toggle` | mirrored from the popover's `toggle` event; never added for you |
 | Popover panel (WIRED: `Ui.Popover`); what is drawn open with a panel (WIRED: `Ui.Dropdown`'s root and trigger through `UiInvoker.OpenMark`, `Ui.Context`'s area) | `data-rask-open-mark` (bare) on the `[popover]`, `data-rask-open-mark="<panel id>"` on the others; NO `data-open` from the render, NO `_open` field, and `.OnToggle` on the panel ONLY when the page gave `OnToggle` (`UiPopupHost.Toggled` is null otherwise) | `data-open` while it shows, from the `beforetoggle` on (the same task as the open), held against the render; one already open when the hooks arrive is marked then |
-| Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
+| Color picker area / hue / alpha, a custom slider | surface `data-rask-drag="x y"` (tracks: `"x"`), `data-rask-drag-inset="<half the thumb>"` when Flux keeps the thumb inside, `touch-action:none`, ONE `Input.Type(Hidden)` inside heard by the hook that keeps the control (`rask-color.ts`), or bound with `OnInput` (live) / `OnChange` (settled) to `"x y"` fractions; thumb CSS from `--rask-drag-x` / `--rask-drag-y`; NO pointer handlers in C# | the thumb under the pointer every frame; one event per frame and one on release |
 | Color picker eyedropper | button rendered `hidden` with `data-rask-requires="EyeDropper"` | shown only where the API exists (Flux hides it, it does not disable it) |
 | A control waits on its handler; what is around it waits too | Nothing for a `<button>`. `data-rask-loading` (bare) on any other element that carries the handler (WIRED: a sortable `Ui.TableColumn`'s `<th>`); `data-rask-loading="within"` on a container whose pressed control is REPLACED by the render that answers it (WIRED: `Ui.Pagination`'s root); `data-rask-loading="off"` to opt out. CSS from `[data-loading]` / `has-[[data-loading]]:` — the table's rows dim by it in `ui.css` | Livewire's `data-loading` + `has-data-loading:opacity-50` (Flux documents no table loading state). The control gets `data-loading` + `aria-busy` after 200 ms and refuses a second press; a `within` container gets `data-loading` ONLY. Core runtime (`rask-loading.ts`), not a hook module: nothing to add to `HOOK_ATTRIBUTES`. The mark ends when the page is whole — the ack after the reads the frame went without |
 | File upload / dropzone | `data-rask-loading` on the element around the `Input.Type(File).OnFiles(…)` (WIRED: `Ui.FileUpload`'s root, which is where Flux writes `data-loading`); CSS from `in-data-loading:`, `width: var(--rask-progress)` and `content: var(--rask-progress-as-string)` — the kit hands the pair on as `--ui-file-upload-progress*` in `ui.css` | Flux's `data-loading` + percent pair; real upload progress on Server, bytes read on WASM |
@@ -822,6 +834,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Toggle, unbound and unheard (WIRED: `UiToggle`) | `data-rask-switch` (bare) on the `<button role="switch">`, NO `OnClick`; `aria-checked` and `data-checked` rendered for where it starts (`rask-switch.ts`) | a press, Space and Enter flip both in the browser, held against the render; nothing is sent |
 | Time picker list (WIRED: `UiTimePicker`, button and typed trigger) | `data-rask-time-list` on the root; the list a `[popover]` of `button[role=option]` with ids, the start row (chosen, else `OpenTo`, else first) `data-rask-time-start`; NO key, toggle or pointer handler in C# — only each row's `OnClick` (the pick) | the cursor, the pointer's row and the arrows, Enter and Tab are the browser's, as Flux's (measured 2026-10-14): the pointer never scrolls the list (`rask-time-list.ts`; `rask-focus.ts` reveals no option the pointer is on). A typed trigger's hidden field says `data-rask-bind-on="action"` when bound and waiting: a typed time goes with the next action |
 | Pagination `scroll-to` | root `data-rask-scroll-to="<selector>"` (`rask-scroll.ts`) | a press on a button or link inside brings the selector's element into view; the press still runs |
+| Composer (WIRED: `UiComposer`) | root `data-rask-submit-keys="Mod+Enter"` / `="Enter"`; its `<textarea>` `rows` + `data-rask-grow="<max rows>"` + `overflow-y-hidden`, NO height in C# | Cmd/Ctrl+Enter (or Enter, Shift+Enter a newline) submits the enclosing form in the keydown (`rask-submit.ts`); the box grows a line at a time to the max and scrolls there, height held in `style` (`rask-grow.ts`); typing sends nothing |
 
 Measured, and NOT built because Flux does not do it: a toast's countdown does not RESTART under the pointer — it
 resumes the remainder (shown 1000 ms, hovered 3000 ms, gone 4359 ms after the pointer left; 5390 would be a
@@ -943,6 +956,22 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
   draws the `Label` in place of its children, so the flag page's two selects are written without it.
 
+- Phone (2026-10-14): `Ui.Phone` runs intl-tel-input 29.2.3 — the release fluxui.dev's `phone.min.js` says it is —
+  with that release's own libphonenumber utils (Flux's `phone-utils.js` answered the same on every country's
+  examples and as-you-type), as an ENGINE like the editor's: `Resources/phone/` (pinned, locked, `npm ci && node
+  build.mjs`) writes `Resources/ui-phone.js`, `ui-phone-utils.js`, their notices (MIT + Apache-2.0),
+  `UiPhoneEngine`'s two versions and `UiPhoneCountries.g.cs`; the targets copy them to `wwwroot/js` of every app
+  (`RaskUiPhoneEngine=false` opts out) and `RaskUiWriteFlags` unset follows that switch. The runtime's
+  `rask-phone.ts` hook fetches the engine; the engine owns the tel input (iti's wrapper is taken back off), the ONE
+  hidden bound field (rask-bound.ts) and the whole picker: rows built from the library's countries
+  (`data-rask-managed`, named by `Intl.DisplayNames` in the page's language), cursor, search, pick — 0 frames, held by
+  the frame gate's `phone` rows. Measured on Flux and kept: the value is `iti.getNumber()` (E.164 once possible,
+  the text as typed until then); picking a country KEEPS the number and reads it again; a read-only field says
+  `aria-readonly` and its list never opens; the placeholder is the prop alone (Flux's first example states one);
+  Home/End/Page keys in the search do not move the cursor; the list opens with the chosen row lit and unscrolled.
+  `parity-phone.mjs` serves the parity page with the engine and the hook and compares the OPEN list (all rows).
+  To move onto the select family's `rask-list.ts` when it lands: the picker's cursor/search/pick would be that
+  hook's, and the engine keeps the number and the countries.
 - Toggle (2026-10-13): `Ui.Toggle` is a real `<button role="switch">` where Flux writes a `<ui-switch>` — the
   element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
   press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides

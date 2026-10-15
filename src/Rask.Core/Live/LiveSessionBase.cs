@@ -77,6 +77,13 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     protected virtual RenderEngine EngineCore => RenderEngine.Server;
 
+    // Whether this session's host runs in Development — its own host's answer, asked once, never another's.
+    private bool? _isDevelopment;
+
+    internal bool IsDevelopment => _isDevelopment ??= HostMode.Of(Services) == true;
+
+    bool IRenderHandle.IsDevelopment => IsDevelopment;
+
     void IRenderHandle.RunInOrder(Func<Task> work) => RunInOrderCore(work);
 
     // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.
@@ -519,7 +526,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         FrameSinkScope.Popper popper = default;
         if (DiffMode != LiveDiffMode.DisabledFull)
         {
-            _renderCache ??= new SessionRenderCache();
+            _renderCache ??= new SessionRenderCache { Development = IsDevelopment };
             frameWriter = _renderCache.PrepareCurrentBuffer();
             popper = FrameSinkScope.Push(frameWriter);
         }
@@ -773,7 +780,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
         // A render with a sign-in handoff or a download never reaches the differ, so the branch that names a
         // refused diff never sees it. In Development it is named here: no whole page goes out unexplained.
-        if (diffCache is null && frameWriter is not null && LiveOptions.IsDevelopment == true)
+        if (diffCache is null && frameWriter is not null && IsDevelopment)
         {
             FullPageReply.ReportOutOfBand(auth is not null, html.Length);
         }
@@ -803,21 +810,35 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         devTools?.DiffComputed(this, usedDiff ? _diffOps!.Count : 0, usedDiff, devToolsStart);
     }
 
-    // The diff path: builds the diff frame into the write buffer and reports whether it shipped. A diff that
-    // cannot carry the change, or that loses to the full body on size, leaves the buffer empty and returns false.
+    // The tree the browser holds is the tree this render drew: the markup may still differ, but only in what a tree
+    // does not describe — the order two attributes are written in, say — so there is nothing to patch and nothing to
+    // send. A page is not the answer: it would land on whatever the reader has typed since. Not when the markup
+    // baseline was dropped (a reconnect's catch-up is a page by design), nor for a level the differ gave up on.
+    private bool TreeUnchanged(SessionRenderCache renderCache) =>
+        _diffOps!.Count == 0 && _htmlBuffers.HasPrevious && !renderCache.LastDiffForcedFullHtml;
+
+    // The diff path: builds the diff frame into the write buffer and reports whether the render is answered. A diff
+    // that cannot carry the change, or that loses to the full body on size, leaves the buffer empty and returns false;
+    // a render with nothing to say leaves it empty and returns true: the answer is no frame at all.
     private bool TryWriteDiff(SessionRenderCache renderCache, ReadOnlyMemory<char> html, PendingJsInvoke[]? jsInvokes,
         string? historyUrl, bool replace, bool commitCache, string? resume, DevErrorInfo? devError)
     {
         _diffOps ??= new List<EditOp>();
         var headChanged = _htmlBuffers.HasPrevious && !LiveDiffGate.HeadUnchanged(html.Span, _htmlBuffers.PreviousSpan);
         // Ship the diff when it carries DOM ops, OR when it carries none but a navigation, a head
-        // change or a script call must still flow (a query-only nav pushes the URL; a head-only change
-        // ships the head fragment; a handler that only called script changed nothing else, and the call
-        // used to cost the whole page). Zero ops and none of those means nothing to send.
+        // change, a script call or a development error must still flow: a query-only nav pushes the URL,
+        // a head-only change ships the head fragment, a handler that only called script changed nothing
+        // else and the call used to cost the whole page. Zero ops and none of those means nothing to send.
         var compared = renderCache.TryComputeDiff(_diffOps, commitCache, html.Span);
+        var carries = historyUrl is not null || headChanged || jsInvokes is not null || devError is not null;
+        if (compared && !carries && TreeUnchanged(renderCache))
+        {
+            return true;
+        }
+
         var diffBytes = 0;
         if (compared
-            && (_diffOps.Count > 0 || historyUrl is not null || headChanged || jsInvokes is not null)
+            && (_diffOps.Count > 0 || carries)
             && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
             && !renderCache.LastDiffForcedFullHtml)
         {
@@ -855,7 +876,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         // The whole page goes out instead. In Development, say why: nothing else names the node the differ gave up on.
-        if (LiveOptions.IsDevelopment == true)
+        if (IsDevelopment)
         {
             FullPageReply.Report(compared, _diffOps, renderCache.LastDiffForcedFullHtml, diffBytes, html.Span);
         }

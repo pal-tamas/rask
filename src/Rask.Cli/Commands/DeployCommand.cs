@@ -44,7 +44,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal const string CaddyContainer = "rask-caddy";
 
     /// <summary>A tiny, pinned curl image run as an ephemeral readiness probe joined to the target's netns.</summary>
-    internal const string CurlImage = "curlimages/curl:8.11.1";
+    internal const string CurlImage = "curlimages/curl:8.23.0";
 
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";
@@ -94,6 +94,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     public override IReadOnlyList<string> Examples =>
     [
         "rask deploy --host root@box.example.com --domain app.example.com",
+        "rask deploy --domain example.com --domain www.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
         "rask deploy --env Rask:Mail:Smtp:Password=... --env-file .env.production",
         "rask deploy --github-actions",
@@ -116,7 +117,10 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
             // it would silently print help instead of running (see CliApplication.RequestsHelp).
             .Option("host", null, "user@host", "SSH target to build and run on (remembered in .rask/deploy.json).")
-            .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
+            .MultiOption("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443; repeatable or comma-separated, the first is the primary).")
+            .MultiOption("redirect", null, "host", "Host the proxy redirects (308) to the primary domain, path kept; '*.example.com' for every subdomain (repeatable; remembered).")
+            .Option("dns", valueHint: "provider", description: "Prove certificates over DNS (needed for a '*.' host): 'azure'. Kept by the proxy once set.")
+            .Option("dns-env-file", valueHint: "path", description: "The DNS provider's credentials (KEY=VALUE lines), read when the proxy is (re)created; never stored.")
             .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
             .Option("container-port", valueHint: "n", description: "Port the app listens on inside the container (default: 8080; remembered).")
             .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
@@ -208,6 +212,15 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
         public string? Domain { get; set; }
 
+        /// <summary>The hosts redirected to the primary domain, as a site string; empty when none.</summary>
+        public string Redirects { get; set; } = string.Empty;
+
+        /// <summary>The DNS provider asked for with <c>--dns</c>, or <c>null</c> — the running proxy may already have one.</summary>
+        public DnsProvider? Dns { get; set; }
+
+        /// <summary>The provider's credentials file (<c>--dns-env-file</c>), checked to exist and to set every variable.</summary>
+        public string? DnsEnvFile { get; set; }
+
         public int Port { get; set; }
 
         public int ContainerPort { get; set; }
@@ -281,11 +294,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         return 0;
     }
 
-    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null) =>
-        new DeployConfig
+    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null, string? redirects = null)
+    {
+        var config = new DeployConfig
         {
             Host = host,
-            Domain = domain,
             Port = port,
             Name = slug,
             Project = project,
@@ -296,9 +309,17 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
             // Keys only — this file is committed. See DeployConfig.EnvKeys.
             EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
-        }.Save(_fileSystem, _workingDirectory);
+        };
 
-    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath)
+        // One domain stays "domain", as an older Rask wrote it; several become "domains".
+        config.SetSite(domain);
+        // The DNS provider is NOT remembered: the running proxy carries it (its rask.dns label), and its credentials
+        // must never reach this committed file.
+        config.SetRedirects(redirects);
+        config.Save(_fileSystem, _workingDirectory);
+    }
+
+    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath, string redirects = "", DnsProvider? dns = null)
     {
         var writer = Console.Out;
         writer.WriteLine("Dry run — the following docker commands would run (no changes made):");
@@ -325,14 +346,24 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             var container = $"{slug}-{color}";
             Line(BuildListArguments(host));
             Line(BuildNetworkCreateArguments(host, Network));
-            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort));
+            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects));
             Line(BuildInspectRunningArguments(host, container));
             if (healthEnabled)
             {
                 Line(BuildHealthCheckArguments(host, container, healthPath, containerPort));
             }
 
-            Line(BuildCaddyRunArguments(host, Network));
+            if (dns is null)
+            {
+                Line(BuildCaddyRunArguments(host, Network));
+            }
+            else
+            {
+                // Only when the proxy hasn't got the provider yet; the credentials stay in their file, named by placeholder.
+                writer.WriteLine($"  # when the proxy has no {dns.Name} DNS provider yet: build {dns.Image} if absent, replace rask-caddy with:");
+                Line(BuildCaddyRunArguments(host, Network, dns, "<dns-env-file>"));
+            }
+
             writer.WriteLine($"  # write a Caddyfile (regenerated from the host's live rask.* labels) and:");
             Line(BuildCaddyCopyArguments(host, $"<tmp>/rask-{slug}.Caddyfile"));
             Line(BuildCaddyReloadArguments(host));

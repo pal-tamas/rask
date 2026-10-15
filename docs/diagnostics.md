@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK101, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK104, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -21,6 +21,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
 | **RASK095** | adds the missing required steps right after the chain so far (or moves one taken too late) |
 | **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
+| **RASK104** | turns the static field or get-only auto-property into an expression-bodied property (`static Component Empty => Div;`) |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -128,6 +129,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
 | [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
+| [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2304,6 +2306,47 @@ public sealed class Route
 A record that should stay one keeps its positional constructor and gains a private parameterless one:
 `public sealed record Route(Label Label, string Carrier) { private Route() : this(null!, "") { } }`.
 
+---
+
+## RASK104
+
+**A static member keeps a component built from a chain entry** · Warning
+
+An entry (`Div`, `Ui.Button`, `Card.Note("a")`) built during a render is a **positional slot** of the component
+being rendered, handed back to it on its next render. A static initializer runs once — during whichever render
+first touches the type — so the static keeps that one page's slot and shares it with every page after it. The
+next entry of the same type built at that position redraws the shared instance with its own attributes, for the
+rest of the process. Which page wins depends on request order, so it shows in one process and not the next.
+
+```csharp
+public sealed partial class Panel : Component
+{
+    private static readonly Component Empty = Div;               // ⚠ RASK104
+    public static Component Spacer { get; } = Div.Class("gap");  // ⚠ RASK104
+
+    protected override Component? Render() => Items.Count == 0 ? Empty : List;
+}
+```
+
+> 'Empty' is static and keeps 'Div', built once by whichever render touched it first — that render's slot, then
+> shared by every page. Build it per call instead: 'static Component Empty => …'.
+
+What it names: a `static` field or `static` auto-property, in any type, whose type holds a component (a
+component, an array of them, or a generic over one) and whose initializer builds a chain — an entry, or steps and
+indexers on one, anywhere in the expression it evaluates.
+
+**Not reported:** a static method or an expression-bodied property (`static Component Empty => Div;`) — each
+call builds a fresh entry in the render that calls it; an instance field; and an entry inside a lambda the
+initializer stores (`static readonly Func<Component> Make = () => Div;`), which runs later.
+
+**Fix:** build it per read (**quick-fix available** for a `static readonly` field of one variable and a get-only
+auto-property):
+
+```csharp
+private static Component Empty => Div;
+public static Component Spacer => Div.Class("gap");
+```
+
 ## RASKVAL001
 
 **Two validators for the same model** · Error
@@ -2723,7 +2766,7 @@ switch and does not reach a build task:
 
 A project with islands and a `package.json` bundles them with Vite, which needs Node. The build probes
 `node --version` before `npm` runs and stops here when it did not run, or reported less than
-`RaskExternalMinimumNode` (22.12.0).
+`RaskExternalMinimumNode` (24.11.0, the first release of the Active LTS line).
 
 **Fix:** install the current LTS (`nvm install --lts`, `brew install node`, `winget install OpenJS.NodeJS.LTS`)
 and build again. `-p:RaskExternalMinimumNode=…` moves the bar if you have a reason to.

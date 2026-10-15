@@ -19,6 +19,18 @@ public abstract partial class KitDrawsWithoutAskingTests
     private const string CommandButton = "[data-c='command'] > button";
     private const string RangeStart = "[data-c='calendar-range'] [role=gridcell] button >> nth=10";
     private const string Rail = "label[for=sidebar-rail][role=button]";
+    private const string PhoneNumber = "[data-c='phone'] input[type=tel]";
+    private const string PhoneButton = "[data-c='phone'] button[role=combobox]";
+
+    // The phone engine is a file the field fetches: every gesture waits for it to have taken the field over.
+    private static readonly Func<Microsoft.Playwright.IPage, Task> PhoneMounted = page =>
+        page.Locator("[data-c='phone'] [data-ui-phone-ready]").WaitForAsync(new() { State = Microsoft.Playwright.WaitForSelectorState.Attached });
+
+    private static readonly Func<Microsoft.Playwright.IPage, Task> PhoneOpen = async page =>
+    {
+        await PhoneMounted(page);
+        await page.Locator(PhoneButton).ClickAsync();
+    };
 
     private static readonly Dictionary<string, Family> Families = new(StringComparer.Ordinal)
     {
@@ -56,6 +68,11 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["input-mask"] = On<KitFieldFramePage>("input-mask", Typing("[data-c='input-mask'] input", "5551234567")),
         ["textarea"] = On<KitFieldFramePage>("textarea",
             Typing("[data-c='textarea'] textarea", "abc"), TypingThenLeaving("[data-c='textarea'] textarea", "abc")),
+        ["composer"] = On<KitFieldFramePage>("composer",
+            Typing("[data-c='composer'] textarea", "abc"),
+            TypingThenLeaving("[data-c='composer'] textarea", "abc"),
+            Keys("new lines that grow the box", Focusing("[data-c='composer'] textarea"), "Enter", "Enter", "Enter"),
+            Keys("send by Ctrl+Enter", Focusing("[data-c='composer'] textarea"), "a", "Control+Enter")),
         ["field"] = On<KitFieldFramePage>("field"),
         ["slider"] = On<KitFieldFramePage>("slider",
             DragBy("[data-c='slider'] [data-ui-slider-thumb]", 120, release: false),
@@ -65,6 +82,23 @@ public abstract partial class KitDrawsWithoutAskingTests
             Typing("[data-c='otp'] [data-ui-otp-input]", "12", "typing half the code"),
             Typing("[data-c='otp'] [data-ui-otp-input]", "1234", "typing the whole code")),
         ["file-upload"] = On<KitFieldFramePage>("file-upload"),
+        ["phone"] = On<KitFieldFramePage>("phone",
+        [
+            Typing(PhoneNumber, "2015550123", arrange: PhoneMounted),
+            new("typing, then leaving the field", async page =>
+            {
+                await page.Locator(PhoneNumber).ClickAsync();
+                await page.Keyboard.TypeAsync("2015550123");
+                await page.Keyboard.PressAsync("Tab");
+            }, PhoneMounted),
+            Press("open by a press", PhoneButton, PhoneMounted),
+            Pointer("[data-c='phone'] [popover]", PhoneOpen, "pointer over the open popup"),
+            Cursor(PhoneOpen),
+            Typing("[data-c='phone'] [popover] input", "hun", "typing to filter", PhoneOpen),
+            Escape(PhoneOpen),
+            Outside(PhoneOpen),
+            Press("pick a country", "[data-c='phone'] [role=option] >> nth=3", PhoneOpen),
+        ]),
 
         ["dropdown"] = On<KitOverlayFramePage>("dropdown", Popup("#dropdown-open", "[data-c='dropdown'] [popover]")),
         ["dropdown-hover"] = On<KitOverlayFramePage>("dropdown-hover"),
@@ -111,7 +145,7 @@ public abstract partial class KitDrawsWithoutAskingTests
 
         ["calendar"] = On<KitPickerFramePage>("calendar",
             Twice("page the month", "[data-c='calendar']" + NextMonth, "[data-c='calendar']" + PreviousMonth),
-            Cursor(Focusing("[data-c='calendar'] [data-rask-focus-target]")),
+            Cursor(Focusing("[data-c='calendar'] [role=gridcell] button[tabindex='0']")),
             Press("pick a day", "[data-c='calendar']" + ADay)),
         ["calendar-range"] = On<KitPickerFramePage>("calendar-range",
             Press("pick the first day of a range", RangeStart),
@@ -143,17 +177,59 @@ public abstract partial class KitDrawsWithoutAskingTests
         ]),
 
         ["select-native"] = On<KitSelectFramePage>("select-native"),
-        ["select"] = On<KitSelectFramePage>("select", Popup("#listbox", "[data-c='select'] [popover]")),
+        ["select"] = On<KitSelectFramePage>("select",
+        [
+            .. Popup("#listbox", "[data-c='select'] [popover]"),
+            Keys("type ahead", Pressing("#listbox"), "g", "a"),
+            Press("pick a row", "[data-c='select'] [role=option] >> nth=2", Pressing("#listbox")),
+        ]),
+        ["select-bound"] = On<KitSelectFramePage>("select-bound",
+        [
+            .. Popup("#bound", "[data-c='select-bound'] [popover]"),
+            Press("pick a row", "[data-c='select-bound'] [role=option] >> nth=2", Pressing("#bound")),
+        ]),
         ["select-searchable"] = On<KitSelectFramePage>("select-searchable",
         [
             .. Popup("#searchable", "[data-c='select-searchable'] [popover]"),
             Typing("[data-c='select-searchable'] [popover] input", "al", "typing to filter", Pressing("#searchable")),
+            Press("pick a row", "[data-c='select-searchable'] [role=option] >> nth=2", Pressing("#searchable")),
+        ]),
+        ["select-searched"] = On<KitSelectFramePage>("select-searched",
+        [
+            .. Popup("#searched", "[data-c='select-searched'] [popover]"),
+            Typing("[data-c='select-searched'] [popover] input", "al", "typing to search", Pressing("#searched")),
+            Escape(SearchingFor("#searched", "[data-c='select-searched'] [popover] input", "al"), "close by Escape after a search the page heard"),
         ]),
         ["select-combobox"] = On<KitSelectFramePage>("select-combobox",
-            [.. Popup("#combobox", "[data-c='select-combobox'] [popover]"), Typing("#combobox", "al", "typing to filter")]),
+        [
+            .. Popup("#combobox", "[data-c='select-combobox'] [popover]"),
+            Typing("#combobox", "al", "typing to filter"),
+            Press("pick a row", "[data-c='select-combobox'] [role=option] >> nth=2", Pressing("#combobox")),
+        ]),
         ["autocomplete"] = On<KitSelectFramePage>("autocomplete",
-            [.. Popup("#autocomplete", "[data-c='autocomplete'] [popover]"), Typing("#autocomplete", "al", "typing to filter")]),
-        ["pillbox"] = On<KitSelectFramePage>("pillbox", Popup("#pillbox", "[data-c='pillbox'] [popover]")),
+        [
+            .. Popup("#autocomplete", "[data-c='autocomplete'] [popover]"),
+            Typing("#autocomplete", "al", "typing to filter"),
+            Press("pick an item", "[data-c='autocomplete'] [role=option] >> nth=1", Pressing("#autocomplete")),
+        ]),
+        ["autocomplete-bound"] = On<KitSelectFramePage>("autocomplete-bound",
+        [
+            .. Popup("#autocomplete-bound", "[data-c='autocomplete-bound'] [popover]"),
+            Typing("#autocomplete-bound", "al", "typing to filter"),
+            Press("pick an item", "[data-c='autocomplete-bound'] [role=option] >> nth=1", Pressing("#autocomplete-bound")),
+        ]),
+        ["pillbox"] = On<KitSelectFramePage>("pillbox",
+        [
+            .. Popup("#pillbox", "[data-c='pillbox'] [popover]"),
+            Press("pick a row", "[data-c='pillbox'] [role=option] >> nth=1", Pressing("#pillbox")),
+            Press("take a pill off", "[data-c='pillbox'] [data-rask-list-remove]"),
+        ]),
+        ["pillbox-combobox"] = On<KitSelectFramePage>("pillbox-combobox",
+        [
+            .. Popup("#pillbox-combobox", "[data-c='pillbox-combobox'] [popover]"),
+            Typing("#pillbox-combobox", "be", "typing to filter"),
+            Keys("Backspace over what was typed", TypingInto("#pillbox-combobox", "be"), "Backspace", "Backspace"),
+        ]),
 
         ["chart"] = On<KitChartFramePage>("chart", Across("[data-c='chart'] svg", "pointer across the plot")),
         ["editor"] = On<KitEditorFramePage>("editor",

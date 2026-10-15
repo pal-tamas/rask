@@ -17,8 +17,11 @@ internal sealed record KitGesture(string Name, Func<IPage, Task> Do, Func<IPage,
 /// </remarks>
 internal static class KitGestures
 {
-    // One animation frame of the page's time, and a little: what is sent once a frame has been sent.
-    private const int FrameMs = 20;
+    // Two animation frames of the page's time, and a little. A step is often heard in one frame and sent in the
+    // next — the drag surface tells its field in a frame, and the field sends in the frame after — and the page's
+    // frames fall every 16 ms from wherever its clock stood: a single frame's worth would hold both for some
+    // steps and not for others, and the step left over would be sent with the next one.
+    private const int BeatMs = 34;
 
     private const int DragSteps = 12;
 
@@ -96,7 +99,7 @@ internal static class KitGestures
     /// <summary>The pointer across <paramref name="selector" /> from side to side, a few pixels at a time.</summary>
     public static KitGesture Across(string selector, string name) => new(name, async page =>
     {
-        var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
+        var box = await InViewAsync(page, selector);
         var y = box.Y + (box.Height / 2);
         await GlideAsync(page, (AwayX, AwayY), (box.X + 2, y), 1);
         await GlideAsync(page, (box.X + 2, y), (box.X + box.Width - 2, y), 25);
@@ -110,7 +113,7 @@ internal static class KitGestures
     /// <summary>A drag that starts on <paramref name="selector" /> and goes <paramref name="by" /> pixels along.</summary>
     public static KitGesture DragBy(string selector, int by, bool release) => new(release ? "drag and release" : "drag, still held", async page =>
     {
-        var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
+        var box = await InViewAsync(page, selector);
         var (x, y) = (box.X + (box.Width / 2), box.Y + (box.Height / 2));
         await HoldAndGlideAsync(page, (x, y), (x + by, y), release);
     });
@@ -161,25 +164,48 @@ internal static class KitGestures
     public static KitGesture Outside(Func<IPage, Task> arrange, string name = "close by a press outside") =>
         new(name, page => page.Mouse.ClickAsync(AwayX - 5, AwayY - 5), arrange);
 
+    /// <summary>Text typed into <paramref name="selector" />, as an arrangement.</summary>
+    public static Func<IPage, Task> TypingInto(string selector, string text) => async page =>
+    {
+        await page.Locator(selector).First.FocusAsync();
+        await page.Keyboard.TypeAsync(text);
+    };
+
+    /// <summary>A list opened by <paramref name="trigger" /> and searched for <paramref name="text" />, as an arrangement.</summary>
+    public static Func<IPage, Task> SearchingFor(string trigger, string field, string text) => async page =>
+    {
+        await page.Locator(trigger).First.ClickAsync();
+        await TypingInto(field, text)(page);
+    };
+
     /// <summary>A press on <paramref name="selector" />, as an arrangement.</summary>
     public static Func<IPage, Task> Pressing(string selector) => page => page.Locator(selector).First.ClickAsync();
 
     /// <summary>
-    ///     One animation frame of the page's time, and the server's answer to whatever the page sent in it: what
+    ///     Two animation frames of the page's time, and the server's answer to whatever the page sent in them: what
     ///     follows each step of a gesture, so the next step is made on a page that has heard the one before.
     /// </summary>
     public static async Task BeatAsync(IPage page)
     {
-        await page.Clock.RunForAsync(FrameMs);
+        await page.Clock.RunForAsync(BeatMs);
         await KitSocket.AnsweredAsync(page);
     }
 
     /// <summary>A drag from one end of <paramref name="selector" /> towards the other, without letting go.</summary>
     public static async Task DragAsync(IPage page, string selector, bool release)
     {
-        var box = (await page.Locator(selector).First.BoundingBoxAsync())!;
+        var box = await InViewAsync(page, selector);
         var y = box.Y + (box.Height / 2);
         await HoldAndGlideAsync(page, (box.X + (box.Width * 0.2f), y), (box.X + (box.Width * 0.8f), y), release);
+    }
+
+    // Where a part is drawn, scrolled into the viewport first as a reader would: a pointer taken to a part below
+    // the fold is over nothing, and a drag there drags nothing.
+    private static async Task<LocatorBoundingBoxResult> InViewAsync(IPage page, string selector)
+    {
+        var part = page.Locator(selector).First;
+        await part.ScrollIntoViewIfNeededAsync();
+        return (await part.BoundingBoxAsync())!;
     }
 
     // Text typed a key at a time into the field, the focus left in it.
@@ -202,7 +228,7 @@ internal static class KitGestures
     // The button goes down at one place and the pointer is taken to another in twelve steps, a beat after each.
     private static async Task HoldAndGlideAsync(IPage page, (float X, float Y) from, (float X, float Y) to, bool release)
     {
-        await page.Mouse.MoveAsync(from.X, from.Y);
+        await KitSocket.MoveAsync(page, from.X, from.Y);
         await page.Mouse.DownAsync();
         await GlideAsync(page, from, to, DragSteps);
         if (release)
@@ -216,7 +242,7 @@ internal static class KitGestures
     {
         for (var step = 1; step <= steps; step++)
         {
-            await page.Mouse.MoveAsync(from.X + ((to.X - from.X) * step / steps), from.Y + ((to.Y - from.Y) * step / steps));
+            await KitSocket.MoveAsync(page, from.X + ((to.X - from.X) * step / steps), from.Y + ((to.Y - from.Y) * step / steps));
             await BeatAsync(page);
         }
     }

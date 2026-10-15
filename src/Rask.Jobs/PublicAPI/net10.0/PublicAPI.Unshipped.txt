@@ -1,6 +1,43 @@
 #nullable enable
+Rask.Background.Cadence
+Rask.Background.Cadence.Daily = 0 -> Rask.Background.Cadence
+Rask.Background.Cadence.Monthly = 2 -> Rask.Background.Cadence
+Rask.Background.Cadence.Weekly = 1 -> Rask.Background.Cadence
+Rask.Background.DailyJob
+Rask.Background.DailyJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
+Rask.Background.DailyJob.At(int hour, int minute = 0) -> Rask.Background.RecurringJob!
+Rask.Background.DailyJob.DailyJob() -> void
+Rask.Background.DailyJob.DailyJob(Rask.Background.RecurringJob! job) -> void
+Rask.Background.EnqueuedJob<TJob>
+Rask.Background.EnqueuedJob<TJob>.<Clone>$() -> Rask.Background.EnqueuedJob<TJob>!
+Rask.Background.EnqueuedJob<TJob>.Deconstruct(out TJob Job, out System.TimeSpan? Delay, out System.DateTimeOffset? Moment, out string? Lane) -> void
+Rask.Background.EnqueuedJob<TJob>.Delay.get -> System.TimeSpan?
+Rask.Background.EnqueuedJob<TJob>.Delay.init -> void
+Rask.Background.EnqueuedJob<TJob>.EnqueuedJob(TJob Job, System.TimeSpan? Delay, System.DateTimeOffset? Moment, string? Lane = null) -> void
+Rask.Background.EnqueuedJob<TJob>.Equals(Rask.Background.EnqueuedJob<TJob>? other) -> bool
+Rask.Background.EnqueuedJob<TJob>.Job.get -> TJob
+Rask.Background.EnqueuedJob<TJob>.Job.init -> void
+Rask.Background.EnqueuedJob<TJob>.Lane.get -> string?
+Rask.Background.EnqueuedJob<TJob>.Lane.init -> void
+Rask.Background.EnqueuedJob<TJob>.Moment.get -> System.DateTimeOffset?
+Rask.Background.EnqueuedJob<TJob>.Moment.init -> void
+Rask.Background.EnqueuedJobCounting
+Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>)
+Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).At(System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).In(System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).InLane(string! lane) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).Matching(System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+Rask.Background.Enqueuing
+Rask.Background.Enqueuing.AsTask() -> System.Threading.Tasks.Task!
+Rask.Background.Enqueuing.At(System.DateTimeOffset moment) -> Rask.Background.Enqueuing
+Rask.Background.Enqueuing.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
+Rask.Background.Enqueuing.Enqueuing() -> void
+Rask.Background.Enqueuing.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Background.Enqueuing.In(System.TimeSpan delay) -> Rask.Background.Enqueuing
+Rask.Background.Enqueuing.InLane(string! lane) -> Rask.Background.Enqueuing
 Rask.Background.IJob
 Rask.Background.IJobs
+Rask.Background.IJobs.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Background.Job
 Rask.Background.Job.Attempts.get -> int
 Rask.Background.Job.ClaimToken.get -> System.Guid?
@@ -8,6 +45,7 @@ Rask.Background.Job.ClaimedUntil.get -> System.DateTime?
 Rask.Background.Job.Completed(System.DateTime at) -> void
 Rask.Background.Job.Error.get -> string?
 Rask.Background.Job.Failed(string! error, System.DateTime retryAt) -> void
+Rask.Background.Job.Lane.get -> string?
 Rask.Background.Job.Payload.get -> string!
 Rask.Background.Job.ProcessedAt.get -> System.DateTime?
 Rask.Background.Job.Release() -> void
@@ -15,7 +53,11 @@ Rask.Background.Job.RunAt.get -> System.DateTime
 Rask.Background.Job.TenantId.get -> System.Guid?
 Rask.Background.Job.Type.get -> string!
 Rask.Background.Job.UserId.get -> System.Guid?
+Rask.Background.JobBacklog<TContext>
+Rask.Background.JobBacklog<TContext>.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.JobBacklog<TContext>.JobBacklog(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider) -> void
 Rask.Background.JobConfiguration
+Rask.Background.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.Job!>! builder) -> void
 Rask.Background.JobConfiguration.JobConfiguration() -> void
 Rask.Background.JobMetrics
 Rask.Background.JobMetrics.DeadLettered(string! jobType) -> void
@@ -26,7 +68,54 @@ Rask.Background.JobMetrics.JobMetrics(System.Diagnostics.Metrics.IMeterFactory? 
 Rask.Background.JobMetrics.ObserveQueueDepth(int pending, int deadLetters) -> void
 Rask.Background.JobMetrics.Processed(string! jobType, double milliseconds) -> void
 Rask.Background.JobMetrics.WantsQueueDepth.get -> bool
+Rask.Background.JobProcessor<TContext>
+Rask.Background.JobProcessor<TContext>.JobProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Background.JobsOptions! options, System.TimeProvider! timeProvider, Rask.Background.JobMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Background.JobProcessor<TContext!>!>! logger) -> void
+Rask.Background.JobRead
+Rask.Background.JobRead.Attempts.get -> int
+Rask.Background.JobRead.Attempts.init -> void
+Rask.Background.JobRead.ClaimToken.get -> System.Guid?
+Rask.Background.JobRead.ClaimToken.init -> void
+Rask.Background.JobRead.ClaimedUntil.get -> System.DateTime?
+Rask.Background.JobRead.ClaimedUntil.init -> void
+Rask.Background.JobRead.CreatedAt.get -> System.DateTime
+Rask.Background.JobRead.CreatedAt.init -> void
+Rask.Background.JobRead.Error.get -> string?
+Rask.Background.JobRead.Error.init -> void
+Rask.Background.JobRead.Id.get -> long
+Rask.Background.JobRead.Id.init -> void
+Rask.Background.JobRead.JobRead() -> void
+Rask.Background.JobRead.Lane.get -> string?
+Rask.Background.JobRead.Lane.init -> void
+Rask.Background.JobRead.Payload.get -> string!
+Rask.Background.JobRead.Payload.init -> void
+Rask.Background.JobRead.ProcessedAt.get -> System.DateTime?
+Rask.Background.JobRead.ProcessedAt.init -> void
+Rask.Background.JobRead.RunAt.get -> System.DateTime
+Rask.Background.JobRead.RunAt.init -> void
+Rask.Background.JobRead.Type.get -> string!
+Rask.Background.JobRead.Type.init -> void
+Rask.Background.JobRead.UpdatedAt.get -> System.DateTime
+Rask.Background.JobRead.UpdatedAt.init -> void
+Rask.Background.JobRead.UserId.get -> System.Guid?
+Rask.Background.JobRead.UserId.init -> void
+Rask.Background.JobReadAccess
+Rask.Background.JobReadAccess.extension(Rask.Background.Job!)
+Rask.Background.JobSerializerRegistry
+Rask.Background.Jobs
+Rask.Background.JobsExtensions
+Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!)
+Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!).Enqueue(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
+Rask.Background.JobsFake
+Rask.Background.JobsFake.Clear() -> void
+Rask.Background.JobsFake.Count.get -> int
+Rask.Background.JobsFake.Dispose() -> void
+Rask.Background.JobsFake.Enqueued<TJob>() -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+Rask.Background.JobsFake.Run(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.JobsFakes
+Rask.Background.JobsFakes.extension(Rask.Background.Jobs!)
+Rask.Background.JobsModelBuilderExtensions
 Rask.Background.JobsOptions
+Rask.Background.JobsOptions.Adopt(Rask.Background.RecurringJob! job) -> void
 Rask.Background.JobsOptions.BaseRetryDelay.get -> System.TimeSpan
 Rask.Background.JobsOptions.BaseRetryDelay.set -> void
 Rask.Background.JobsOptions.BatchSize.get -> int
@@ -43,50 +132,36 @@ Rask.Background.JobsOptions.PollInterval.set -> void
 Rask.Background.JobsOptions.RecurringJobs.get -> System.Collections.Generic.IReadOnlyList<Rask.Background.RecurringJob!>!
 Rask.Background.JobsOptions.Retention.get -> System.TimeSpan
 Rask.Background.JobsOptions.Retention.set -> void
+Rask.Background.JobsOptions.Run<TJob>() -> Rask.Background.RecurringJob!
+Rask.Background.JobsOptions.Run<TJob>(System.Func<TJob>! make) -> Rask.Background.RecurringJob!
 Rask.Background.JobsOptions.ShutdownGracePeriod.get -> System.TimeSpan
 Rask.Background.JobsOptions.ShutdownGracePeriod.set -> void
-Rask.Background.JobProcessor<TContext>
-Rask.Background.JobProcessor<TContext>.JobProcessor(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory, Rask.Background.JobsOptions! options, System.TimeProvider! timeProvider, Rask.Background.JobMetrics! metrics, Microsoft.Extensions.Logging.ILogger<Rask.Background.JobProcessor<TContext!>!>! logger) -> void
-Rask.Background.JobBacklog<TContext>
-Rask.Background.JobBacklog<TContext>.JobBacklog(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider) -> void
-Rask.Background.JobRead
-Rask.Background.JobRead.Attempts.get -> int
-Rask.Background.JobRead.Attempts.init -> void
-Rask.Background.JobRead.ClaimToken.get -> System.Guid?
-Rask.Background.JobRead.ClaimToken.init -> void
-Rask.Background.JobRead.ClaimedUntil.get -> System.DateTime?
-Rask.Background.JobRead.ClaimedUntil.init -> void
-Rask.Background.JobRead.CreatedAt.get -> System.DateTime
-Rask.Background.JobRead.CreatedAt.init -> void
-Rask.Background.JobRead.Error.get -> string?
-Rask.Background.JobRead.Error.init -> void
-Rask.Background.JobRead.Id.get -> long
-Rask.Background.JobRead.Id.init -> void
-Rask.Background.JobRead.JobRead() -> void
-Rask.Background.JobRead.Payload.get -> string!
-Rask.Background.JobRead.Payload.init -> void
-Rask.Background.JobRead.ProcessedAt.get -> System.DateTime?
-Rask.Background.JobRead.ProcessedAt.init -> void
-Rask.Background.JobRead.RunAt.get -> System.DateTime
-Rask.Background.JobRead.RunAt.init -> void
-Rask.Background.JobRead.Type.get -> string!
-Rask.Background.JobRead.Type.init -> void
-Rask.Background.JobRead.UserId.get -> System.Guid?
-Rask.Background.JobRead.UserId.init -> void
-Rask.Background.JobRead.UpdatedAt.get -> System.DateTime
-Rask.Background.JobRead.UpdatedAt.init -> void
-Rask.Background.JobReadAccess
-Rask.Background.JobReadAccess.extension(Rask.Background.Job!)
-Rask.Background.JobSerializerRegistry
-Rask.Background.JobsModelBuilderExtensions
+Rask.Background.JobsOptions.TimeZone.get -> System.TimeZoneInfo!
+Rask.Background.JobsOptions.TimeZone.set -> void
+Rask.Background.MonthlyDayJob
+Rask.Background.MonthlyDayJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
+Rask.Background.MonthlyDayJob.At(int hour, int minute = 0) -> Rask.Background.RecurringJob!
+Rask.Background.MonthlyDayJob.MonthlyDayJob() -> void
+Rask.Background.MonthlyDayJob.MonthlyDayJob(Rask.Background.RecurringJob! job, int day) -> void
+Rask.Background.MonthlyJob
+Rask.Background.MonthlyJob.MonthlyJob() -> void
+Rask.Background.MonthlyJob.MonthlyJob(Rask.Background.RecurringJob! job) -> void
+Rask.Background.MonthlyJob.On(int day) -> Rask.Background.MonthlyDayJob
 Rask.Background.RaskJobsServiceCollectionExtensions
 Rask.Background.RecurringJob
+Rask.Background.RecurringJob.Daily.get -> Rask.Background.DailyJob
+Rask.Background.RecurringJob.Every(System.TimeSpan interval) -> Rask.Background.RecurringJob!
 Rask.Background.RecurringJob.Factory.get -> System.Func<Rask.Background.IJob!>!
+Rask.Background.RecurringJob.Monthly.get -> Rask.Background.MonthlyJob
 Rask.Background.RecurringJob.Name.get -> string!
+Rask.Background.RecurringJob.Named(string! name) -> Rask.Background.RecurringJob!
+Rask.Background.RecurringJob.Schedule.get -> Rask.Background.Schedule?
+Rask.Background.RecurringJob.Weekly.get -> Rask.Background.WeeklyJob
 Rask.Background.RecurringJobState
 Rask.Background.RecurringJobState.LastEnqueuedAt.get -> System.DateTime?
 Rask.Background.RecurringJobState.Name.get -> string!
 Rask.Background.RecurringJobStateConfiguration
+Rask.Background.RecurringJobStateConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.RecurringJobState!>! builder) -> void
 Rask.Background.RecurringJobStateConfiguration.RecurringJobStateConfiguration() -> void
 Rask.Background.RecurringJobStateRead
 Rask.Background.RecurringJobStateRead.CreatedAt.get -> System.DateTime
@@ -102,57 +177,6 @@ Rask.Background.RecurringJobStateRead.UpdatedAt.get -> System.DateTime
 Rask.Background.RecurringJobStateRead.UpdatedAt.init -> void
 Rask.Background.RecurringJobStateReadAccess
 Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!)
-const Rask.Background.Job.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
-const Rask.Background.JobMetrics.MeterName = "Rask.Jobs" -> string!
-const Rask.Background.RecurringJobState.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
-override Rask.Background.JobProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
-static Rask.Background.Job.For(string! type, string! payload, System.DateTime runAt) -> Rask.Background.Job!
-static Rask.Background.JobSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.ICommand?
-static Rask.Background.JobSerializerRegistry.RegisterJob(string! typeName, System.Type! type) -> void
-static Rask.Background.JobSerializerRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(string! TypeName, System.Type! Type)>! registrations) -> void
-static Rask.Background.JobSerializerRegistry.Serialize(Rask.Background.IJob! job) -> (string! Type, string! Payload)
-static Rask.Background.JobsModelBuilderExtensions.AddRaskJobs(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
-static Rask.Background.RaskJobsServiceCollectionExtensions.AddRaskJobs<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Background.JobsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static Rask.Background.RecurringJobState.For(string! name) -> Rask.Background.RecurringJobState!
-Rask.Background.Cadence
-Rask.Background.Cadence.Daily = 0 -> Rask.Background.Cadence
-Rask.Background.Cadence.Monthly = 2 -> Rask.Background.Cadence
-Rask.Background.Cadence.Weekly = 1 -> Rask.Background.Cadence
-Rask.Background.DailyJob
-Rask.Background.DailyJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
-Rask.Background.DailyJob.At(int hour, int minute = 0) -> Rask.Background.RecurringJob!
-Rask.Background.DailyJob.DailyJob() -> void
-Rask.Background.DailyJob.DailyJob(Rask.Background.RecurringJob! job) -> void
-Rask.Background.Enqueuing
-Rask.Background.Enqueuing.AsTask() -> System.Threading.Tasks.Task!
-Rask.Background.Enqueuing.At(System.DateTimeOffset moment) -> Rask.Background.Enqueuing
-Rask.Background.Enqueuing.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
-Rask.Background.Enqueuing.Enqueuing() -> void
-Rask.Background.Enqueuing.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
-Rask.Background.Enqueuing.In(System.TimeSpan delay) -> Rask.Background.Enqueuing
-Rask.Background.Jobs
-Rask.Background.JobsExtensions
-Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!)
-Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!).Enqueue(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
-Rask.Background.JobsOptions.Run<TJob>() -> Rask.Background.RecurringJob!
-Rask.Background.JobsOptions.Run<TJob>(System.Func<TJob>! make) -> Rask.Background.RecurringJob!
-Rask.Background.JobsOptions.TimeZone.get -> System.TimeZoneInfo!
-Rask.Background.JobsOptions.TimeZone.set -> void
-Rask.Background.MonthlyDayJob
-Rask.Background.MonthlyDayJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
-Rask.Background.MonthlyDayJob.At(int hour, int minute = 0) -> Rask.Background.RecurringJob!
-Rask.Background.MonthlyDayJob.MonthlyDayJob() -> void
-Rask.Background.MonthlyDayJob.MonthlyDayJob(Rask.Background.RecurringJob! job, int day) -> void
-Rask.Background.MonthlyJob
-Rask.Background.MonthlyJob.MonthlyJob() -> void
-Rask.Background.MonthlyJob.MonthlyJob(Rask.Background.RecurringJob! job) -> void
-Rask.Background.MonthlyJob.On(int day) -> Rask.Background.MonthlyDayJob
-Rask.Background.RecurringJob.Daily.get -> Rask.Background.DailyJob
-Rask.Background.RecurringJob.Every(System.TimeSpan interval) -> Rask.Background.RecurringJob!
-Rask.Background.RecurringJob.Monthly.get -> Rask.Background.MonthlyJob
-Rask.Background.RecurringJob.Named(string! name) -> Rask.Background.RecurringJob!
-Rask.Background.RecurringJob.Schedule.get -> Rask.Background.Schedule?
-Rask.Background.RecurringJob.Weekly.get -> Rask.Background.WeeklyJob
 Rask.Background.Schedule
 Rask.Background.WeeklyDayJob
 Rask.Background.WeeklyDayJob.At(System.TimeOnly time) -> Rask.Background.RecurringJob!
@@ -163,11 +187,6 @@ Rask.Background.WeeklyJob
 Rask.Background.WeeklyJob.On(System.DayOfWeek day) -> Rask.Background.WeeklyDayJob
 Rask.Background.WeeklyJob.WeeklyJob() -> void
 Rask.Background.WeeklyJob.WeeklyJob(Rask.Background.RecurringJob! job) -> void
-override abstract Rask.Background.Schedule.ToString() -> string!
-static Rask.Background.Jobs.Enqueue(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
-static Rask.Background.JobsExtensions.Enqueue(this Rask.Background.IJobs! jobs, Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
-Rask.Background.IJobs.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-Rask.Background.JobBacklog<TContext>.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Batteries.Counting<T>
 Rask.Batteries.Counting<T>.Count.get -> int
 Rask.Batteries.Counting<T>.Counting() -> void
@@ -175,144 +194,133 @@ Rask.Batteries.Counting<T>.Counting(System.Collections.Generic.IReadOnlyList<T>!
 Rask.Batteries.Counting<T>.Exactly(int times) -> void
 Rask.Batteries.Counting<T>.None() -> void
 Rask.Batteries.Counting<T>.Once() -> void
+Rask.Batteries.Counting<T>.Only() -> T
 Rask.Batteries.Counting<T>.Twice() -> void
 Rask.Batteries.Counting<T>.Where(System.Func<T, bool>! predicate, string! said) -> Rask.Batteries.Counting<T>
 Rask.Batteries.CountingException
+Rask.Batteries.CountingException.CountingException() -> void
 Rask.Batteries.CountingException.CountingException(string! message) -> void
-Rask.Background.EnqueuedJob<TJob>
-Rask.Background.EnqueuedJob<TJob>.<Clone>$() -> Rask.Background.EnqueuedJob<TJob>!
-Rask.Background.EnqueuedJob<TJob>.Deconstruct(out TJob Job, out System.TimeSpan? Delay, out System.DateTimeOffset? Moment) -> void
-Rask.Background.EnqueuedJob<TJob>.Delay.get -> System.TimeSpan?
-Rask.Background.EnqueuedJob<TJob>.Delay.init -> void
-Rask.Background.EnqueuedJob<TJob>.EnqueuedJob(TJob Job, System.TimeSpan? Delay, System.DateTimeOffset? Moment) -> void
-Rask.Background.EnqueuedJob<TJob>.Equals(Rask.Background.EnqueuedJob<TJob>? other) -> bool
-Rask.Background.EnqueuedJob<TJob>.Job.get -> TJob
-Rask.Background.EnqueuedJob<TJob>.Job.init -> void
-Rask.Background.EnqueuedJob<TJob>.Moment.get -> System.DateTimeOffset?
-Rask.Background.EnqueuedJob<TJob>.Moment.init -> void
-Rask.Background.EnqueuedJobCounting
-Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>)
-Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).At(System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).In(System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).Matching(System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-Rask.Background.JobsFake
-Rask.Background.JobsFake.Clear() -> void
-Rask.Background.JobsFake.Count.get -> int
-Rask.Background.JobsFake.Dispose() -> void
-Rask.Background.JobsFake.Enqueued<TJob>() -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-Rask.Background.JobsFakes
-Rask.Background.JobsFakes.extension(Rask.Background.Jobs!)
+Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
+const Rask.Background.Job.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
+const Rask.Background.JobMetrics.MeterName = "Rask.Jobs" -> string!
+const Rask.Background.RecurringJobState.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 override Rask.Background.EnqueuedJob<TJob>.Equals(object? obj) -> bool
 override Rask.Background.EnqueuedJob<TJob>.GetHashCode() -> int
 override Rask.Background.EnqueuedJob<TJob>.ToString() -> string!
+override Rask.Background.JobProcessor<TContext>.StopAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+override abstract Rask.Background.Schedule.ToString() -> string!
 static Rask.Background.EnqueuedJob<TJob>.operator !=(Rask.Background.EnqueuedJob<TJob>? left, Rask.Background.EnqueuedJob<TJob>? right) -> bool
 static Rask.Background.EnqueuedJob<TJob>.operator ==(Rask.Background.EnqueuedJob<TJob>? left, Rask.Background.EnqueuedJob<TJob>? right) -> bool
 static Rask.Background.EnqueuedJobCounting.At<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, System.DateTimeOffset moment) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 static Rask.Background.EnqueuedJobCounting.In<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, System.TimeSpan delay) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
+static Rask.Background.EnqueuedJobCounting.InLane<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, string! lane) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 static Rask.Background.EnqueuedJobCounting.Matching<TJob>(this Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!> enqueued, System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
-static Rask.Background.JobsFakes.Fake() -> Rask.Background.JobsFake!
-static Rask.Background.JobsFakes.extension(Rask.Background.Jobs!).Fake() -> Rask.Background.JobsFake!
-static Rask.Background.Jobs.IsOn.get -> bool
+static Rask.Background.Job.For(string! type, string! payload, System.DateTime runAt, string? lane = null) -> Rask.Background.Job!
+static Rask.Background.JobReadAccess.Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Background.JobReadAccess.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.JobReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.JobRead!, TResult>!
-static Rask.Background.JobReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsQueryable() -> System.Linq.IQueryable<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.JobRead!, TResult>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Take(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
-static Rask.Background.RecurringJobStateReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.RecurringJobStateRead!, TResult>!
-static Rask.Background.RecurringJobStateReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsQueryable() -> System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.RecurringJobStateRead!, TResult>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Take(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-Rask.Background.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.Job!>! builder) -> void
-Rask.Background.RecurringJobStateConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.RecurringJobState!>! builder) -> void
-Rask.Batteries.Counting<T>.Only() -> T
-Rask.Batteries.CountingException.CountingException() -> void
-Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
-static Rask.Background.JobReadAccess.Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-static Rask.Background.JobReadAccess.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.JobReadAccess.Count(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.JobReadAccess.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.JobReadAccess.First(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
 static Rask.Background.JobReadAccess.First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
+static Rask.Background.JobReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.LongCount(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Background.JobReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.Query<TResult>(System.Func<System.Linq.IQueryable<Rask.Background.JobRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Background.JobReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.JobRead!, TResult>!
 static Rask.Background.JobReadAccess.Single(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
 static Rask.Background.JobReadAccess.Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
+static Rask.Background.JobReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).All.get -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsQueryable() -> System.Linq.IQueryable<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Count(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).First(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).LongCount(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Query<TResult>(System.Func<System.Linq.IQueryable<Rask.Background.JobRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.JobRead!, TResult>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Single(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
 static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobRead?>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Take(int count) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobReadAccess.extension(Rask.Background.Job!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.JobRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
 static Rask.Background.JobReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Background.JobRead!>!
+static Rask.Background.JobSerializerRegistry.Deserialize(string! typeName, string! payload) -> Rask.Cqrs.ICommand?
+static Rask.Background.JobSerializerRegistry.RegisterJob(string! typeName, System.Type! type) -> void
+static Rask.Background.JobSerializerRegistry.Replace(object! groupKey, System.Collections.Generic.IEnumerable<(string! TypeName, System.Type! Type)>! registrations) -> void
+static Rask.Background.JobSerializerRegistry.Serialize(Rask.Background.IJob! job) -> (string! Type, string! Payload)
+static Rask.Background.Jobs.Enqueue(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
+static Rask.Background.Jobs.IsOn.get -> bool
+static Rask.Background.JobsExtensions.Enqueue(this Rask.Background.IJobs! jobs, Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing
+static Rask.Background.JobsFakes.Fake() -> Rask.Background.JobsFake!
+static Rask.Background.JobsFakes.extension(Rask.Background.Jobs!).Fake() -> Rask.Background.JobsFake!
+static Rask.Background.JobsModelBuilderExtensions.AddRaskJobs(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Background.RaskJobsServiceCollectionExtensions.AddRaskJobs<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Background.JobsOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Background.RecurringJobState.For(string! name) -> Rask.Background.RecurringJobState!
 static Rask.Background.RecurringJobStateReadAccess.Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.RecurringJobStateReadAccess.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Background.RecurringJobStateReadAccess.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.AsQueryable() -> System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.Count(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.RecurringJobStateReadAccess.Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.RecurringJobStateReadAccess.First(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
+static Rask.Background.RecurringJobStateReadAccess.IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.LongCount(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Background.RecurringJobStateReadAccess.OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.Query<TResult>(System.Func<System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Background.RecurringJobStateReadAccess.Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.RecurringJobStateRead!, TResult>!
 static Rask.Background.RecurringJobStateReadAccess.Single(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
+static Rask.Background.RecurringJobStateReadAccess.Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Take(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).All.get -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Any(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsQueryable() -> System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).AsSplitQuery() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Count(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Count(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).First(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).First(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).IgnoreQueryFilters() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Include(string! navigationPropertyPath) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Include<TProperty>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TProperty>!>! navigation) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).LongCount(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).OrderBy<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).OrderByDescending<TKey>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TKey>!>! keySelector) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Query<TResult>(System.Func<System.Linq.IQueryable<Rask.Background.RecurringJobStateRead!>!, System.Threading.CancellationToken, System.Threading.Tasks.Task<TResult>!>! query, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Search(string? text) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Select<TResult>(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, TResult>!>! selector) -> Rask.Data.Projection<Rask.Background.RecurringJobStateRead!, TResult>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Single(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
 static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.RecurringJobStateRead?>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Skip(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Take(int count) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
+static Rask.Background.RecurringJobStateReadAccess.extension(Rask.Background.RecurringJobState!).Where(System.Linq.Expressions.Expression<System.Func<Rask.Background.RecurringJobStateRead!, bool>!>! predicate) -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
 static Rask.Background.RecurringJobStateReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Background.RecurringJobStateRead!>!
-Rask.Background.JobsOptions.Adopt(Rask.Background.RecurringJob! job) -> void
-Rask.Background.JobsFake.Run(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!

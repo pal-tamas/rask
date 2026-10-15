@@ -1178,7 +1178,7 @@ public abstract partial class SharedSmokeTests
         // one page now. Open the guide once and drive each demo in place — locators are scoped by unique
         // #id or by the enclosing .guide-demo where option values (Pro/AI) repeat across demos.
         await SideAsync("Forms & validation", "Forms & validation", "main .markdown-body h1");
-        await AssertGuideDemosAsync(15, "forms");
+        await AssertGuideDemosAsync(16, "forms");
         // The hub co-mounts its forms demos on one (large) page; wait for a late demo's control (the
         // floating-label form, the last marker on the page) before driving any interaction so clicks
         // never race hydration.
@@ -1268,6 +1268,12 @@ public abstract partial class SharedSmokeTests
                 const note = () => labels.push(document.querySelector('#fss-submit')?.textContent ?? '');
                 new MutationObserver(note).observe(document.querySelector('#fss-form'),
                     { subtree: true, childList: true, characterData: true, attributes: true });
+                // Heard after the runtime's own listener, in the press's task, before any render: what the
+                // runtime held of the form at the press (rask-submitting.ts).
+                window.addEventListener('submit', () => {
+                    window.__fssHeld = document.querySelector('#fss-submit').disabled
+                        && document.querySelector('#fss-input').readOnly;
+                }, { once: true });
             }
             """);
         await Page.Locator("#fss-submit").ClickAsync();
@@ -1277,6 +1283,9 @@ public abstract partial class SharedSmokeTests
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await Expect(Page.Locator("#fss-submit")).ToContainTextAsync("Sign up",
             new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__fssHeld === true"), "the submit did not hold its form at the press.");
+        await Expect(Page.Locator("#fss-submit")).ToBeEnabledAsync();
+        await Expect(Page.Locator("#fss-input")).Not.ToHaveAttributeAsync("readonly", "");
 
         // Unsaved-changes guard — the WebAssembly host's half of ConfirmLeave and of the dialog the layout
         // places for it (the Server host's are ConfirmLeaveHookTests and ConfirmLeaveDialogTests). A note typed

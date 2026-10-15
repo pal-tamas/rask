@@ -10,13 +10,12 @@ namespace Rask.UiTests.Components;
 ///     the keyboard does, and the markup a screen reader depends on.
 /// </summary>
 /// <remarks>
-///     Driven through the real handlers with <c>Page</c>, on a pinned day so a month has the weeks the test
-///     counts. How it looks is <c>scripts/flux/parity.mjs calendar</c>'s to hold.
+///     The page's first paint and the value it hears, on a pinned day so a month has the weeks the test counts.
+///     What the keys, a press and the pointer do is the browser's (<c>rask-calendar.ts</c>), asserted in
+///     <c>RuntimeHookCalendarTests</c>. How it looks is <c>scripts/flux/parity.mjs calendar</c>'s to hold.
 /// </remarks>
 public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
 {
-    private const string Months = "[data-ui-calendar-months]";
-
     private static readonly DateOnly Today = new(2026, 1, 15);
 
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
@@ -33,7 +32,8 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     private static string[] TabStops(string html) =>
         [.. Regex.Matches(html, "tabindex=\"0\"[^>]*aria-label=\"([^\"]+)\"").Select(match => match.Groups[1].Value)];
 
-    private static Task Press(Page page, string key) => page.On(Months).Raise("keydown", "{\"key\":\"" + key + "\"}");
+    // The one field the page hears the choice through, first in the calendar.
+    private const string Field = "[data-ui-calendar] > input[type=\"hidden\"]";
 
     private sealed class Trip
     {
@@ -74,17 +74,21 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_click_writes_the_day_and_a_second_click_clears_it()
+    public async Task The_day_the_browser_announces_is_written_with_the_next_action_and_nothing_announced_clears_it()
     {
         var trip = new Trip();
         var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Day).Locale("en-US").On(Today));
 
-        await page.On(Day(Jan(20))).Click();
+        var waits = page.Find(Field).Attribute("data-rask-bind-on");
+        await page.On(Field).Change("2026-01-20");
+        var held = trip.Day;
         await Acting.Act(page);
         var picked = trip.Day;
-        await page.On(Day(Jan(20))).Click();
+        await page.On(Field).Change("");
         await Acting.Act(page);
 
+        Assert.Equal("action", waits);
+        Assert.Equal(default, held);
         Assert.Equal(Jan(20), picked);
         Assert.Equal(default, trip.Day);
     }
@@ -95,71 +99,57 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         var trip = new Trip();
         var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Due).Locale("en-US").On(Today));
 
-        await page.On(Day(Jan(9))).Click();
+        await page.On(Field).Change("2026-01-09");
         await Acting.Act(page);
 
         Assert.Equal(Jan(9), trip.Due);
-        Assert.Contains("data-date=\"2026-01-09\" data-selected", page.Render(), StringComparison.Ordinal);
+        Assert.Equal("2026-01-09", page.Find(Field).Attribute("value"));
     }
 
     [Fact]
-    public async Task An_unbound_calendar_keeps_the_pick_itself()
+    public void An_unbound_calendar_keeps_the_pick_in_the_browser_and_the_page_hears_nothing()
     {
-        var page = Page.Render(() => Single());
+        var page = Page.Render(() => Single(Jan(8)));
 
-        await page.On(Day(Jan(8))).Click();
+        var field = page.Find(Field);
 
-        Assert.Contains("data-date=\"2026-01-08\" data-selected", page.Render(), StringComparison.Ordinal);
+        Assert.Equal("2026-01-08", field.Attribute("value"));
+        Assert.Null(field.Attribute("data-rask-on-change"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
     }
 
     [Fact]
-    public async Task A_collection_of_days_takes_each_click_and_gives_one_back_on_the_second()
+    public async Task A_collection_of_days_takes_what_the_browser_announces_in_date_order()
     {
         var trip = new Trip();
         var page = Acting.Render(() => Ui.Calendar.Multiple.Bind(() => trip.DaysOff).Locale("en-US").On(Today));
 
-        await page.On(Day(Jan(20))).Click();
-        await page.On(Day(Jan(5))).Click();
+        await page.On(Field).Change("2026-01-20,2026-01-05");
         await Acting.Act(page);
         var two = trip.DaysOff.ToList();
-        await page.On(Day(Jan(20))).Click();
+        await page.On(Field).Change("2026-01-05");
         await Acting.Act(page);
 
         Assert.Equal([Jan(5), Jan(20)], two);
         Assert.Equal([Jan(5)], trip.DaysOff);
+        Assert.Equal("2026-01-05", page.Find(Field).Attribute("value"));
     }
 
     [Fact]
-    public async Task A_range_is_written_whole_on_its_second_click()
+    public async Task A_range_is_written_whole_and_text_that_is_no_range_is_not()
     {
         var trip = new Trip();
         var page = Acting.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
 
-        await page.On(Day(Jan(10))).Click();
-        var held = trip.Stay;
-        var waiting = page.Render();
-        await page.On(Day(Jan(13))).Click();
+        await page.On(Field).Change("2026-01-10");
+        await Acting.Act(page);
+        var half = trip.Stay;
+        await page.On(Field).Change("2026-01-10/2026-01-13");
         await Acting.Act(page);
 
-        Assert.Equal(default, held);
-        Assert.Matches("data-date=\"2026-01-10\"[^>]*data-start", waiting);
+        Assert.Equal(default, half);
         Assert.Equal(new UiDateRange(Jan(10), Jan(13)), trip.Stay);
-    }
-
-    [Fact]
-    public async Task A_click_before_a_waiting_start_begins_the_range_again_from_there()
-    {
-        var trip = new Trip();
-        var page = Acting.Render(() => Ui.Calendar.Range.Bind(() => trip.Stay).Locale("en-US").On(Today));
-
-        await page.On(Day(Jan(20))).Click();
-        await page.On(Day(Jan(12))).Click();
-        var restarted = trip.Stay;
-        await page.On(Day(Jan(14))).Click();
-        await Acting.Act(page);
-
-        Assert.Equal(default, restarted);
-        Assert.Equal(new UiDateRange(Jan(12), Jan(14)), trip.Stay);
+        Assert.Equal("2026-01-10/2026-01-13", page.Find(Field).Attribute("value"));
     }
 
     [Fact]
@@ -173,21 +163,6 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         Assert.Equal(4, Regex.Count(html, "aria-selected=\"true\""));
         Assert.DoesNotContain("aria-selected=\"false\"", html, StringComparison.Ordinal);
         Assert.Equal(2, Regex.Count(html, "role=\"grid\""));
-    }
-
-    [Fact]
-    public async Task A_range_limit_rules_out_days_too_near_and_too_far_from_the_start()
-    {
-        var page = Page.Render(() => Ranged().MinRange(3).MaxRange(5));
-
-        await page.On(Day(Jan(10))).Click();
-        var html = page.Render();
-
-        Assert.Matches("data-date=\"2026-01-09\"[^>]*aria-disabled=\"true\"", html);
-        Assert.Matches("data-date=\"2026-01-11\"[^>]*aria-disabled=\"true\"", html);
-        Assert.DoesNotMatch("data-date=\"2026-01-12\"[^>]*aria-disabled", html);
-        Assert.DoesNotMatch("data-date=\"2026-01-14\"[^>]*aria-disabled", html);
-        Assert.Matches("data-date=\"2026-01-15\"[^>]*aria-disabled=\"true\"", html);
     }
 
     [Fact]
@@ -230,20 +205,14 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_day_outside_min_and_max_is_disabled_and_takes_no_click()
+    public void A_day_outside_min_and_max_is_disabled()
     {
-        var trip = new Trip();
-        var page = Acting.Render(() => Ui.Calendar.Bind(() => trip.Day).Min(Jan(10)).Max(Jan(20)).Locale("en-US").On(Today));
-
-        var html = page.Render();
-        await page.On(Day(Jan(12))).Click();
-        await Acting.Act(page);
+        var html = Single().Min(Jan(10)).Max(Jan(20)).ToHtml();
 
         Assert.Matches("data-date=\"2026-01-09\"[^>]*aria-disabled=\"true\"", html);
         Assert.Matches("data-date=\"2026-01-21\"[^>]*aria-disabled=\"true\"", html);
         Assert.DoesNotMatch("data-date=\"2026-01-10\"[^>]*aria-disabled", html);
         Assert.Matches("aria-label=\"Friday, January 9, 2026\"[^>]*\\sdisabled", html);
-        Assert.Equal(Jan(12), trip.Day);
     }
 
     [Fact]
@@ -270,64 +239,7 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task The_arrows_walk_days_and_weeks()
-    {
-        var page = Page.Render(() => Single());
-
-        await Press(page, "ArrowRight");
-        var right = TabStops(page.Render());
-        await Press(page, "ArrowDown");
-        var down = TabStops(page.Render());
-        await Press(page, "ArrowLeft");
-        await Press(page, "ArrowUp");
-
-        Assert.Equal(["Friday, January 16, 2026"], right);
-        Assert.Equal(["Friday, January 23, 2026"], down);
-        Assert.Equal(["Thursday, January 15, 2026"], TabStops(page.Render()));
-    }
-
-    [Fact]
-    public async Task An_arrow_past_the_drawn_weeks_takes_the_view_with_it()
-    {
-        var page = Page.Render(() => Single(Jan(31)));
-
-        await Press(page, "ArrowRight");
-        var html = page.Render();
-
-        Assert.Contains(">February 2026<", html, StringComparison.Ordinal);
-        Assert.Equal(["Sunday, February 1, 2026"], TabStops(html));
-    }
-
-    [Fact]
-    public async Task An_arrow_steps_over_an_unavailable_day_and_stops_at_max()
-    {
-        var page = Page.Render(() => Single().Unavailable([Jan(16)]).Max(Jan(17)));
-
-        await Press(page, "ArrowRight");
-        var over = TabStops(page.Render());
-        await Press(page, "ArrowRight");
-        await Press(page, "ArrowDown");
-
-        Assert.Equal(["Saturday, January 17, 2026"], over);
-        Assert.Equal(["Saturday, January 17, 2026"], TabStops(page.Render()));
-    }
-
-    [Theory]
-    [InlineData("PageDown", "February 2026")]
-    [InlineData("End", "February 2026")]
-    [InlineData("PageUp", "December 2025")]
-    [InlineData("Home", "December 2025")]
-    public async Task The_page_keys_and_home_and_end_page_a_month(string key, string month)
-    {
-        var page = Page.Render(() => Single());
-
-        await Press(page, key);
-
-        Assert.Contains(">" + month + "<", page.Render(), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_grid_keeps_its_keys_from_the_page_and_names_the_tab_stop_for_the_focus_to_follow()
+    public void The_grid_keeps_its_keys_from_the_page_and_the_browser_draws_it_from_the_first_paint_on()
     {
         var html = Single().ToHtml();
 
@@ -335,42 +247,11 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
 
         // Flux's list, measured: the arrows, Home, End and the paging keys — not Space, which it lets scroll.
         Assert.Contains("data-rask-contain-keys=\"Arrows Home End PageUp PageDown\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-rask-focus-follows=\"\"", html, StringComparison.Ordinal);
-        Assert.Matches("<button[^>]*data-rask-focus-target=\"\"[^>]*aria-label=\"Thursday, January 15, 2026\"", html);
-        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
+        Assert.Equal(2, Regex.Count(html, "data-rask-opaque"));
+        Assert.Contains("data-rask-calendar=\"{&quot;mode&quot;:&quot;single&quot;", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-", html, StringComparison.Ordinal);
+        Assert.Matches("<button[^>]*tabindex=\"0\"[^>]*aria-label=\"Thursday, January 15, 2026\"", html);
         Assert.DoesNotContain("data-rask-contain-keys", looked, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-focus", looked, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task An_arrow_takes_the_focus_target_to_the_new_day_across_a_month_too()
-    {
-        var page = Page.Render(() => Single(Jan(31)));
-
-        await Press(page, "ArrowRight");
-        var html = page.Render();
-
-        Assert.Matches("<button[^>]*data-rask-focus-target=\"\"[^>]*aria-label=\"Sunday, February 1, 2026\"", html);
-        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
-    }
-
-    [Theory]
-    [InlineData("PageDown")]
-    [InlineData("End")]
-    [InlineData("PageUp")]
-    [InlineData("Home")]
-    public async Task A_paging_key_names_no_focus_target_for_its_one_render_so_the_focus_falls_to_the_page(string key)
-    {
-        var page = Page.Render(() => Single());
-
-        await Press(page, key);
-        var paged = page.Html;
-        await Press(page, "ArrowRight");
-
-        // Flux leaves the focus on <body> after these four; the tab stop is still there for Tab to find.
-        Assert.DoesNotContain("data-rask-focus-target", paged, StringComparison.Ordinal);
-        Assert.Single(TabStops(paged));
-        Assert.Single(Regex.Matches(page.Html, "data-rask-focus-target"));
     }
 
     [Fact]
@@ -382,35 +263,6 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         // April 1 closes March's last week as a neighbour's day and stands in April's own first week.
         Assert.Equal(2, Regex.Matches(html, "aria-label=\"Wednesday, April 1, 2026\"").Count);
         Assert.Equal(["Wednesday, April 1, 2026"], TabStops(html));
-        Assert.Single(Regex.Matches(html, "data-rask-focus-target"));
-    }
-
-    [Fact]
-    public async Task The_month_steps_page_the_view_and_leave_the_choice_alone()
-    {
-        var page = Page.Render(() => Single(Jan(20)));
-
-        await page.On("button[aria-label=\"Next month\"]").Click();
-        var html = page.Render();
-
-        Assert.Contains(">February 2026<", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-selected=\"true\"", html, StringComparison.Ordinal);
-        Assert.Equal(["Sunday, February 1, 2026"], TabStops(html));
-    }
-
-    [Fact]
-    public async Task The_today_shortcut_comes_back_to_this_month_then_picks_today()
-    {
-        var page = Page.Render(() => Single().WithToday());
-
-        await page.On("button[aria-label=\"Next month\"]").Click();
-        await page.On("button[aria-label=\"Today\"]").Click();
-        var back = page.Render();
-        await page.On("button[aria-label=\"Today\"]").Click();
-
-        Assert.Contains(">January 2026<", back, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-selected", back, StringComparison.Ordinal);
-        Assert.Matches("data-date=\"2026-01-15\"[^>]*data-selected", page.Render());
     }
 
     [Fact]
@@ -419,13 +271,12 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(() => Single().SelectableHeader());
 
         var html = page.Render();
-        await page.On("select:has-text(\"Jan\")").Change("6");
 
         Assert.Equal(2, Regex.Count(html, "<select"));
         Assert.Equal(12 + 111, Regex.Count(html, "<option"));
         Assert.Contains(">1926<", html, StringComparison.Ordinal);
         Assert.Contains(">2036<", html, StringComparison.Ordinal);
-        Assert.Contains(">June 2026<", page.Render(), StringComparison.Ordinal);
+        Assert.Contains("data-rask-calendar-part=\"month\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

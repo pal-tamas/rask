@@ -35,6 +35,9 @@ internal static class TenantColumn
     private static readonly MethodInfo StoredInt64 =
         Call((Expression<Func<object, long?>>)(e => EF.Property<long?>(e, Columns.TenantId)));
 
+    private static readonly MethodInfo InlinedBool =
+        Call((Expression<Func<bool, bool>>)(flag => EF.Constant(flag)));
+
     private static readonly MethodInfo UnrestrictedReader =
         Call((Expression<Func<ITenantScoped, bool>>)(scope => Unrestricted(scope)));
 
@@ -70,6 +73,12 @@ internal static class TenantColumn
     ///         <c>IS NULL</c>, so without it a read that names no tenant would return exactly the rows that
     ///         belong to none — and a table that already existed may well hold some.
     ///     </para>
+    ///     <para>
+    ///         The <c>unrestricted</c> arm is read through <see cref="EF.Constant{T}" />, so EF Core folds it into
+    ///         the query when it is built (and caches one plan for <c>Across</c>, one without) instead of binding
+    ///         a parameter: <c>@flag = 1 OR TenantId = @t</c> is a catch-all SQL Server cannot seek an index with.
+    ///         The tenant itself stays a parameter, or one tenant's id would be cached for every other.
+    ///     </para>
     /// </remarks>
     internal static LambdaExpression BuildFilter(Type clrType, Type column, DbContext context)
     {
@@ -84,8 +93,17 @@ internal static class TenantColumn
             Expression.NotEqual(stored, Expression.Constant(null, column)),
             Expression.Equal(stored, current));
 
-        return Expression.Lambda(Expression.OrElse(Expression.Call(UnrestrictedReader, scope), owned), entity);
+        return Expression.Lambda(Expression.OrElse(UnrestrictedArm(context), owned), entity);
     }
+
+    /// <summary>
+    ///     The <c>unrestricted</c> arm every tenant filter opens with, folded into the query when it is built so
+    ///     <see cref="Tenant.Across" /> and a tenant in flight each get a plan of their own.
+    /// </summary>
+    internal static Expression UnrestrictedArm(DbContext context) =>
+        Expression.Call(
+            InlinedBool,
+            Expression.Call(UnrestrictedReader, Expression.Convert(Expression.Constant(context), typeof(ITenantScoped))));
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
