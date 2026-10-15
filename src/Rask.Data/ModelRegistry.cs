@@ -125,7 +125,9 @@ public static class ModelRegistry
         }
 
         // Once more, for what Configure declared: the conventions ran before it, so an index it added has not
-        // been given its tenant, and a unique one would hold across every tenant.
+        // been given its tenant, and a unique one would hold across every tenant. A child partitioned through its
+        // parent is settled first — Configure may have given it a TenantId, or moved the key its filter asks by.
+        ModelBuilderExtensions.SettleTenancyThroughParents(modelBuilder, context);
         TenantIndexes.Prefix(modelBuilder.Model);
 
         return modelBuilder;

@@ -21,16 +21,29 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     /// <inheritdoc/>
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
+        // The same work as the async path. A synchronous save has no other way to ask about a parent it does not hold.
+        if (eventData.Context is { } context)
+        {
+            SeveredChildren.Delete(context);
+            ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
+        }
+
         Apply(eventData.Context);
         return base.SavingChanges(eventData, result);
     }
 
     /// <inheritdoc/>
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
+        if (eventData.Context is { } context)
+        {
+            SeveredChildren.Delete(context);
+            await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+
         Apply(eventData.Context);
-        return base.SavingChangesAsync(eventData, result, cancellationToken);
+        return await base.SavingChangesAsync(eventData, result, cancellationToken).ConfigureAwait(false);
     }
 
     private void Apply(DbContext? context)

@@ -93,10 +93,17 @@ internal static class TenantColumn
             Expression.NotEqual(stored, Expression.Constant(null, column)),
             Expression.Equal(stored, current));
 
-        var unrestricted = Expression.Call(InlinedBool, Expression.Call(UnrestrictedReader, scope));
-
-        return Expression.Lambda(Expression.OrElse(unrestricted, owned), entity);
+        return Expression.Lambda(Expression.OrElse(UnrestrictedArm(context), owned), entity);
     }
+
+    /// <summary>
+    ///     The <c>unrestricted</c> arm every tenant filter opens with, folded into the query when it is built so
+    ///     <see cref="Tenant.Across" /> and a tenant in flight each get a plan of their own.
+    /// </summary>
+    internal static Expression UnrestrictedArm(DbContext context) =>
+        Expression.Call(
+            InlinedBool,
+            Expression.Call(UnrestrictedReader, Expression.Convert(Expression.Constant(context), typeof(ITenantScoped))));
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>

@@ -226,45 +226,77 @@ public static class ModelBuilderExtensions
     /// <para>
     /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one —
     /// or <c>int?</c> or <c>long?</c>, for a table whose tenants are numbered: the declared type is the
-    /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when it
-    /// does not, a child included, which is how it carries its root's answer without saying anything. A table
-    /// that did not ask is left alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by
-    /// EF Core's convention like any other.
+    /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when an
+    /// aggregate does not. A CHILD that declares none has no column at all: it belongs to its tenant through its
+    /// parent, and its filter asks the parent (<see cref="TenantParents" />). A table that did not ask is left
+    /// alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by EF Core's convention.
     /// </para>
     /// </remarks>
     private static void ApplyTenancy(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes, DbContext? context)
     {
-#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
         foreach (var entityType in entityTypes)
         {
-            var clrType = entityType.ClrType;
-            if (!typeof(IEntity).IsAssignableFrom(clrType) ||
-                ConventionRegistry.ScopeFor(clrType) != Tenancy.PerTenant)
+            if (!TenantParents.IsPartitioned(entityType.ClrType))
             {
                 continue;
             }
 
-            var builder = modelBuilder.Entity(clrType);
-
             if (context is not ITenantScoped)
             {
                 throw new InvalidOperationException(
-                    $"'{clrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
+                    $"'{entityType.ClrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
                     $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
                     "context as ': DbContext, ITenantScoped' and call " +
                     "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +
                     "context, or EF Core inlines one tenant's id into the cached query for every tenant.");
             }
 
-            // In the type the entity declared it — Guid?, int? or long? — and a shadow Guid? when it did not.
-            var column = TenantColumn.TypeFor(entityType);
-
-            builder.Property(column, Columns.TenantId);
-            builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
-
-            TenantIndexes.Prefix(builder.Metadata);
+            PartitionByTenant(modelBuilder, entityType, context);
         }
-#pragma warning restore S3267
+    }
+
+    /// <summary>
+    /// Settles once more each child partitioned through its parent, after every entity's own <c>Configure</c>
+    /// ran: it may have mapped a <c>TenantId</c> on the child, or moved the foreign key the filter names.
+    /// </summary>
+    internal static void SettleTenancyThroughParents(ModelBuilder modelBuilder, DbContext? context)
+    {
+        if (context is null)
+        {
+            return;
+        }
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().Where(TenantParents.IsThroughParent).ToList())
+        {
+            PartitionByTenant(modelBuilder, entityType, context);
+        }
+    }
+
+    // A child with no TenantId of its own belongs to its tenant through its parent (#1251): no column, and a filter
+    // that asks the parent. Anything else keeps the column — the one it declared (Guid?, int? or long?), or a
+    // shadow Guid? for a table with no tenant-scoped parent to ask.
+    private static void PartitionByTenant(ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context)
+    {
+        var clrType = entityType.ClrType;
+        var builder = modelBuilder.Entity(clrType);
+
+        if (!typeof(IAggregate).IsAssignableFrom(clrType) &&
+            entityType.FindProperty(Columns.TenantId) is null &&
+            TenantParents.KeysOf(entityType, TenantParents.IsPartitioned) is { Count: > 0 } parents)
+        {
+            builder.HasAnnotation(TenantParents.Annotation, true);
+            builder.HasQueryFilter(TenantFilter, TenantParents.BuildFilter(clrType, parents, context));
+            return;
+        }
+
+        entityType.RemoveAnnotation(TenantParents.Annotation);
+
+        var column = TenantColumn.TypeFor(entityType);
+
+        builder.Property(column, Columns.TenantId);
+        builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
+
+        TenantIndexes.Prefix(builder.Metadata);
     }
 
     /// <summary>
@@ -377,17 +409,28 @@ public static class ModelBuilderExtensions
 
                 var foreignKey = navigation.ForeignKey;
 
+                // A child of TWO parents (a Chip under a Driver or a Vehicle) holds one of its keys and NULL in the
+                // other, so neither can be required; a severed one is deleted at save instead (SeveredChildren).
+                var required = ParentKeysOf(navigation.TargetEntityType) == 1;
+
                 // An application that said otherwise keeps what it said: this is a convention, not a rule.
-                if (foreignKey.IsRequired && foreignKey.DeleteBehavior == DeleteBehavior.Cascade)
+                if (foreignKey.IsRequired == required && foreignKey.DeleteBehavior == DeleteBehavior.Cascade)
                 {
                     continue;
                 }
 
-                foreignKey.IsRequired = true;
+                foreignKey.IsRequired = required;
                 foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
             }
         }
     }
+
+    /// <summary>How many parents hold <paramref name="child" /> in a collection: one foreign key each.</summary>
+    internal static int ParentKeysOf(IReadOnlyEntityType child) =>
+        child.GetForeignKeys().Count(static key =>
+            key.PrincipalToDependent is { IsCollection: true } &&
+            typeof(IEntity).IsAssignableFrom(key.PrincipalEntityType.ClrType) &&
+            !typeof(IAggregate).IsAssignableFrom(key.DeclaringEntityType.ClrType));
 
     // An Entity<TId> key is the entity's to set, except an integer one, which the store's identity produces —
     // and except where the application already said how its key is generated. An app with a context of its

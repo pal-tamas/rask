@@ -37,13 +37,9 @@ namespace Rask.Data;
 /// </remarks>
 internal static class DeclaredUniqueRules
 {
-    // Both captured from a real expression, as the tenant filter's readers are, then opened to their definition.
+    // Captured from a real expression, as the tenant filter's readers are, then opened to its definition.
     private static readonly MethodInfo ExistsMethod =
         ((MethodCallExpression)((Expression<Func<DbContext, Task<bool>>>)(c => AnyOfAsync<object>(c, null!, false, default))).Body)
-        .Method.GetGenericMethodDefinition();
-
-    private static readonly MethodInfo EfProperty =
-        ((MethodCallExpression)((Expression<Func<object, object?>>)(e => EF.Property<object?>(e, ""))).Body)
         .Method.GetGenericMethodDefinition();
 
     private static readonly FieldInfo BoxedValue =
@@ -174,20 +170,13 @@ internal static class DeclaredUniqueRules
     {
         try
         {
-            return Expression.Equal(Stored(row, property), Parameter(value, property.ClrType));
+            return Expression.Equal(StoredProperty.Of(row, property), Parameter(value, property.ClrType));
         }
         catch (InvalidOperationException)
         {
             return null;
         }
     }
-
-    [UnconditionalSuppressMessage("Trimming", "IL2060",
-        Justification = "EF.Property<T> is closed over a mapped property's own type, which the model already roots.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "As above: the type argument is a mapped property's type.")]
-    private static MethodCallExpression Stored(ParameterExpression row, IProperty property) =>
-        Expression.Call(EfProperty.MakeGenericMethod(property.ClrType), row, Expression.Constant(property.Name));
 
     // Read through a box rather than inlined, so EF Core sees a parameter: one cached plan, not one per value.
     private static UnaryExpression Parameter(object? value, Type type) =>

@@ -153,7 +153,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
     // has to take its root's answer: a child is part of that aggregate, so it belongs to whichever tenant the
-    // root does, and it carries its own TenantId because its own read face is queryable on its own.
+    // root does — through its own TenantId when it declares one, through its parent's when it does not.
     private static EquatableArray<string> ChildTypeNamesOf(INamedTypeSymbol entity)
     {
         var names = new List<string>();
@@ -601,7 +601,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
     }
 
     // A child's tenancy is its root's, always. Declared on the root because that is where the aggregate
-    // boundary is; carried on the child because the child's own read face would otherwise be unfiltered.
+    // boundary is; registered for the child because the child's own read face would otherwise be unfiltered.
     private static Dictionary<string, int> ScopeByType(List<Candidate> distinct)
     {
         var scopeByType = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -610,9 +610,12 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         {
             scopeByType[entity.FullyQualifiedName] = entity.Scope!.Value;
 
+            // A child of two roots is partitioned when either root is: the safe answer never depends on the order.
             foreach (var child in entity.ChildTypeNames)
             {
-                scopeByType[child] = entity.Scope.Value;
+                scopeByType[child] = scopeByType.TryGetValue(child, out var other)
+                    ? Math.Max(other, entity.Scope.Value)
+                    : entity.Scope.Value;
             }
         }
 

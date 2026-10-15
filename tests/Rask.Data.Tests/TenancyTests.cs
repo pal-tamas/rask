@@ -26,7 +26,7 @@ public sealed class Ledger : Aggregate<Guid>
     }
 }
 
-/// <summary>A child. It declares nothing and takes its root's tenancy.</summary>
+/// <summary>A child. It declares nothing, takes its root's tenancy, and belongs to its tenant through its root.</summary>
 public sealed class LedgerEntry : Entity<Guid>
 {
     private LedgerEntry() { }
@@ -101,8 +101,10 @@ public sealed class TenancyTests : IDisposable
         Assert.NotNull(model.FindEntityType(typeof(Ledger))!.FindProperty(Columns.TenantId));
 
         // The child never says anything: it is part of the aggregate, so it belongs to the root's tenant —
-        // and it carries the column itself, because LedgerEntry.Where(…) is queryable on its own.
-        Assert.NotNull(model.FindEntityType(typeof(LedgerEntry))!.FindProperty(Columns.TenantId));
+        // through the root, with no column of its own, and LedgerEntry.Where(…) asks the root (#1251).
+        var entry = model.FindEntityType(typeof(LedgerEntry))!;
+        Assert.Null(entry.FindProperty(Columns.TenantId));
+        Assert.Contains(entry.GetDeclaredQueryFilters(), f => f.Key == "Tenant");
 
         // A table that said nothing has no such column at all.
         Assert.Null(model.FindEntityType(typeof(RateCard))!.FindProperty(Columns.TenantId));
@@ -128,7 +130,7 @@ public sealed class TenancyTests : IDisposable
     }
 
     [Fact]
-    public async Task An_insert_is_stamped_with_the_tenant_in_flight_root_and_child()
+    public async Task An_insert_stamps_the_root_and_the_child_is_read_through_it()
     {
         await using var database = await StartDatabaseAsync();
 
@@ -140,7 +142,12 @@ public sealed class TenancyTests : IDisposable
             await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal(_acme, TenantOf(database, ledger));
-            Assert.Equal(_acme, TenantOf(database, ledger.Entries.Single()));
+            Assert.Equal(["widgets"], await LedgerEntry.Select(e => e.Description));
+        }
+
+        using (Tenant.Use(_globex))
+        {
+            Assert.Empty(await LedgerEntry.Select(e => e.Description));
         }
     }
 
