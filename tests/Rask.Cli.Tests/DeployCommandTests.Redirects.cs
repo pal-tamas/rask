@@ -45,8 +45,8 @@ public sealed partial class DeployCommandTests
         var caddyfile = CaddyRouting.BuildCaddyfile(routes, DnsProvider.Azure);
 
         Assert.Equal(
-            "eszaf.hu, www.eszaf.hu {\n\treverse_proxy eszaf-blue:8080\n}\n\n"
-            + "ppta.hu {\n\treverse_proxy ta-green:8080\n}\n\n"
+            "eszaf.hu, www.eszaf.hu {\n\tencode zstd gzip\n\treverse_proxy eszaf-blue:8080\n}\n\n"
+            + "ppta.hu {\n\tencode zstd gzip\n\treverse_proxy ta-green:8080\n}\n\n"
             + "*.eszaf.hu {\n" + AzureTls + "\tredir https://eszaf.hu{uri} 308\n}\n",
             caddyfile);
     }
@@ -63,8 +63,8 @@ public sealed partial class DeployCommandTests
         var caddyfile = CaddyRouting.BuildCaddyfile(routes, DnsProvider.Azure);
 
         Assert.Equal(
-            "*.shop.example.com, shop.example.com {\n" + AzureTls + "\treverse_proxy shop-blue:8080\n}\n\n"
-            + "ppta.hu {\n\treverse_proxy ta-green:8080\n}\n",
+            "*.shop.example.com, shop.example.com {\n" + AzureTls + "\tencode zstd gzip\n\treverse_proxy shop-blue:8080\n}\n\n"
+            + "ppta.hu {\n\tencode zstd gzip\n\treverse_proxy ta-green:8080\n}\n",
             caddyfile);
     }
 

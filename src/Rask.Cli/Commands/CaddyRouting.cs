@@ -122,6 +122,9 @@ internal static class CaddyRouting
             // Every host of `domain` reached here through DomainName.TryParse, so none can close this block
             // early. An app on several domains is one block with all its addresses: `ppta.hu, www.ppta.hu {`.
             OpenBlock(builder, domain, dns);
+            // Whatever the app sends uncompressed (a stylesheet its own static files serve, a JSON API) goes out
+            // compressed; a response the app already encoded is passed through untouched.
+            builder.Append("\tencode zstd gzip\n");
             builder.Append("\treverse_proxy ").Append(target.Container).Append(':').Append(target.Port).Append('\n');
             builder.Append("}\n");
         }

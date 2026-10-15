@@ -53,7 +53,7 @@ public sealed partial class DeployCommandTests
         var caddyfile = CaddyRouting.BuildCaddyfile(routes);
 
         Assert.Equal(
-            "ppta.hu, www.ppta.hu {\n\treverse_proxy ta-blue:8080\n}\n\nshop.example.com {\n\treverse_proxy shop-blue:8080\n}\n",
+            "ppta.hu, www.ppta.hu {\n\tencode zstd gzip\n\treverse_proxy ta-blue:8080\n}\n\nshop.example.com {\n\tencode zstd gzip\n\treverse_proxy shop-blue:8080\n}\n",
             caddyfile);
     }
 

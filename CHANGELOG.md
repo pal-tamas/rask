@@ -54,6 +54,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`rask deploy`'s proxy compresses what the app sends uncompressed.** Before: Caddy passed every response
+  through as the app wrote it, so a stylesheet served by the app's own static files (`/css/app.css`, 650–750 KB
+  for a Tailwind + Rask.Ui app) crossed the wire uncompressed on every page load. After: every site block that
+  proxies an app has `encode zstd gzip` (redirect-only blocks don't); a response the app already encoded — Rask's
+  page, its runtime script — passes through untouched.
 - **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
   Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
   index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:

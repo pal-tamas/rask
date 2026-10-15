@@ -26,6 +26,8 @@ Dockerfile below (override with `--dockerfile`).
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
   else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
+  Every site it proxies also has `encode zstd gzip`: anything the app sends uncompressed goes out
+  compressed, and a response the app already encoded passes through as it is.
 - **Zero-downtime, health-gated.** Deploys are blue-green: the new container starts alongside the old,
   is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
   default), then Caddy is reloaded to point at it before the old one is removed. A container that fails
