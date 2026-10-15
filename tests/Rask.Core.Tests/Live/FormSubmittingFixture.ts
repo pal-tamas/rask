@@ -135,6 +135,26 @@ const alreadyReadonly = makeEl("INPUT", {readonly: ""});
 releaseForm(holdForm(dom(makeForm(alreadyOff, alreadyReadonly))));
 const renderedKept = alreadyOff.hasAttribute("disabled") && alreadyReadonly.hasAttribute("readonly");
 
+// ---- A field the render asks to have corrected mid-flight is handed back; the rest stay held ----
+const fixButton = makeEl("BUTTON");
+const wrong = makeEl("INPUT", {type: "number"});
+const right = makeEl("INPUT", {type: "text"});
+const fixHold = holdForm(dom(makeForm(fixButton, wrong, right)));
+morph(dom(wrong), dom(makeEl("INPUT", {type: "number", "data-rask-on-edit": "7"})));
+morph(dom(right), dom(makeEl("INPUT", {type: "text"})));
+const handedBack = {
+    wrongEditable: !wrong.hasAttribute("readonly") && !ownsAttr(dom(wrong), "readonly"),
+    rightHeld: right.hasAttribute("readonly"),
+    buttonHeld: fixButton.hasAttribute("disabled"),
+};
+releaseForm(fixHold);
+handedBack.wrongEditable &&= !wrong.hasAttribute("readonly");
+const renderedReadonly = makeEl("INPUT", {type: "text"});
+const keepHold = holdForm(dom(makeForm(renderedReadonly)));
+morph(dom(renderedReadonly), dom(makeEl("INPUT", {type: "text", readonly: "", "data-rask-on-edit": "8"})));
+releaseForm(keepHold);
+const handedBackKeepsRenderedReadonly = renderedReadonly.hasAttribute("readonly");
+
 // ---- A submit that never reports back, and a dropped connection, both let go ----
 const hungButton = makeEl("BUTTON");
 const hung = makeForm(hungButton);
@@ -159,6 +179,8 @@ process.stdout.write(JSON.stringify({
     afterRelease,
     takesTheNextSubmit,
     renderedKept,
+    handedBack,
+    handedBackKeepsRenderedReadonly,
     hungHeld,
     hardTimeoutReleased,
     disconnectReleased,

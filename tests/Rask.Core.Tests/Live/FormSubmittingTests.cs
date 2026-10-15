@@ -82,6 +82,23 @@ public sealed class FormSubmittingTests
     }
 
     [Fact]
+    public void A_field_a_render_asks_to_have_corrected_mid_flight_is_handed_back_and_the_rest_stay_held()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var handedBack = root.GetProperty("handedBack");
+        var renderedReadonly = root.GetProperty("handedBackKeepsRenderedReadonly").GetBoolean();
+
+        Assert.True(handedBack.GetProperty("wrongEditable").GetBoolean(), "the field asked to be corrected stayed readonly.");
+        Assert.True(handedBack.GetProperty("rightHeld").GetBoolean());
+        Assert.True(handedBack.GetProperty("buttonHeld").GetBoolean());
+        Assert.True(renderedReadonly);
+    }
+
+    [Fact]
     public void A_submit_that_never_reports_back_and_a_dropped_connection_both_release_the_form()
     {
         if (Run() is not { } root)
