@@ -61,6 +61,52 @@ public class ChildOfTwoRootsGeneratorTests
     }
 
     [Fact]
+    public void A_grandchild_is_partitioned_with_its_root_and_gets_the_model_its_parents_form_holds()
+    {
+        var run = GeneratorHarness.Run(
+            """
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Rounds;
+
+            public sealed class Tour : Aggregate<Guid>
+            {
+                private readonly List<Drop> _drops = [];
+                private Tour() { }
+                public const Tenancy Scope = Tenancy.PerTenant;
+                public IReadOnlyList<Drop> Drops => _drops;
+            }
+
+            public sealed class Drop : Entity<Guid>
+            {
+                private readonly List<Packet> _packets = [];
+                private Drop() { }
+                public IReadOnlyList<Packet> Packets => _packets;
+            }
+
+            public sealed class Packet : Entity<Guid>
+            {
+                private Packet() { }
+                public string Label { get; private set; } = "";
+            }
+            """,
+            [new ModelInputGenerator(), new ModelRegistryGenerator(), new ReadModelGenerator()],
+            "Rask.Data",
+            "Rask.Cqrs",
+            "Microsoft.EntityFrameworkCore");
+
+        var conventions = run.GeneratedSource("__RaskConventions");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("class PacketModel", run.GeneratedSource("Rounds.PacketModel"), StringComparison.Ordinal);
+        Assert.Contains(
+            "global::Rask.Data.ConventionRegistry.Declare(typeof(global::Rounds.Packet), (global::Rask.Data.Tenancy)1);",
+            conventions,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_child_is_partitioned_when_either_root_is_whichever_is_read_last()
     {
         var conventions = Run().GeneratedSource("__RaskConventions");

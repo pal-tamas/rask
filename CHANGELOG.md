@@ -15,18 +15,20 @@ them until tagged releases begin.
   Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
-- **A child of a tenant-scoped aggregate with no tenant column of its own is read through its parent (#1251).**
-  A table another app made often keeps the tenant on the root only: `Chip` rows belong to a partner through their
+- **Only the aggregate root carries the tenant: every entity under it is read through its root (#1251).** A table
+  another app made often keeps the tenant on the root only — `Chip` rows belong to a partner through their
   `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
-  mapped. After: a child that declares no `TenantId` has no column, and its read face, an `Include` and a projection
-  are filtered by an `EXISTS` on each tenant-scoped parent's key and tenant (`OR`'d — one `Chip` type held by
-  `Driver.Chips` and `Vehicle.Chips`, both keys optional, a navigation back to each on `ChipRead`); `Tenant.Across()`
-  lifts it; a child added, moved, changed or deleted under another tenant's parent is refused, a parent the context
-  does not hold being looked up through the tenant filter; a chip taken out of its parent's collection is deleted
-  rather than left belonging to nobody; and a declared unique rule on it is asked within the tenant, through the
-  parent. A child that declares `TenantId` keeps the column, as before. **Read your next migration:** a child that
-  relied on the shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it
-  to keep it. See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
+  mapped. After: a child — at any depth — needs no tenant column and the app writes nothing for it; its read face,
+  an `Include` and a projection are filtered by an `EXISTS` up the path the aggregate's own collections make
+  (one per tenant-scoped parent, `OR`'d — one `Chip` type held by `Driver.Chips` and `Vehicle.Chips`, both keys
+  optional, a navigation back to each on `ChipRead`); `Tenant.Across()` lifts it; a child added, moved, changed or
+  deleted under another tenant's parent is refused, a parent the context does not hold being looked up through
+  the tenant filter; a chip taken out of its parent's collection is deleted rather than left belonging to nobody;
+  a child with no path to its root is a model error naming it. A child that keeps a `TenantId` of its own keeps
+  it, stamped from its root and refused when it disagrees. Grandchildren now get the form model their parent's
+  form holds, and are partitioned with their root. **Read your next migration:** a child that relied on the
+  shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it to keep it.
+  See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
 

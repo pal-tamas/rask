@@ -26,8 +26,7 @@ public sealed class Invoice : Aggregate<Guid>
 
 That gives the table a `TenantId` column and a query filter no read can compose away; its indexes are
 [what you write](#an-index-is-what-you-write). The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
-takes its root's answer — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant) for
-whether it keeps a column of its own or is read through its parent.
+takes its root's answer and needs no tenant column — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant).
 
 The column is the framework's, so the entity does not mention it. One that wants to read its tenant declares
 the property, and Rask maps the column to it:
@@ -68,9 +67,8 @@ using (Tenant.Use(42))
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
 it is saved — and any other is refused when the model is built. An aggregate that declares nothing keeps a shadow
-`Guid?`; a child that declares nothing has no column at all and is [read through its parent](#a-child-belongs-to-its-roots-tenant),
-so it follows the parent's number without saying anything. A child that keeps the column itself declares it in
-the same type: `int? TenantId`.
+`Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
+it follows the root's number without saying anything.
 
 Everywhere else the tenant is still a `Guid` — `Current.Tenant`, a job's row, a cache key — and a number
 travels inside it by a fixed rule: **the first eight bytes are zero and the last eight are the number,
@@ -111,16 +109,11 @@ the text as a parameter, so an index on the column is used.
 
 ### A child belongs to its root's tenant
 
-A child — an `Entity<TId>` held in a tenant-scoped aggregate's collection — is part of that aggregate, so it
-belongs to the root's tenant. How its own read face (`Chip.Where(…)`) keeps to that tenant depends on one thing:
-whether the child has a `TenantId`.
-
-- **It declares none** — the usual case, and the shape of a table another app made, where the child has no tenant
-  column. It belongs to its tenant **through its parent**: no column, and a filter that asks the parent, an
-  `EXISTS` on the parent's key and tenant. Nothing to declare.
-- **It declares one** (`public Guid? TenantId { get; private set; }`, or `int?`/`long?`), or its `Configure` maps
-  the column. It **carries the column itself**, stamped from the tenant in flight and filtered on directly, as an
-  aggregate is.
+**Only the aggregate root carries the tenant.** Every entity under it — a child in the root's collection, a
+grandchild in the child's — is part of that aggregate and belongs to the root's tenant, so it needs no tenant
+column and you write nothing for it: no `TenantId`, no const, no configuration, no filter. Its own read face
+(`Chip.Where(…)`) is filtered **through the root**, along the path the aggregate's own collections already make —
+an `EXISTS` on the parent's key and tenant, one per level for a grandchild.
 
 ```csharp
 public sealed class Driver : Aggregate<string>
@@ -137,7 +130,7 @@ public sealed class Vehicle : Aggregate<string>
     public IReadOnlyList<Chip> Chips => _chips;                   // by vehicleId
 }
 
-public sealed class Chip : Entity<string>                         // no TenantId: read through its parent
+public sealed class Chip : Entity<string>
 {
     public string Code { get; private set; } = "";
     public string? DriverId { get; private set; }                 // one of the two is set,
@@ -163,23 +156,27 @@ current tenant's. Each key is optional — a chip holds one and NULL in the othe
 navigation back to each (`chip.Driver`, `chip.Vehicle`), `null` on the side it does not belong to. A chip taken
 out of its parent's collection is deleted at the save, rather than left a row no parent holds.
 
-What follows from reading through the parent:
+What follows from reading through the root:
 
 - Every read of the child — `Where`, `Count`, a projection, an `Include` from the root — asks the parent with an
   `EXISTS` that seeks the parent's key, and `Tenant.Across()` drops the question, as it does for any table.
-- "Through the parent" means the parent's own filters: a child whose parent is soft-deleted is not read on its
-  own either. A row whose parent keys are all NULL belongs to nobody, and only `Tenant.Across()` reads it.
-- A child is written only under a parent of the tenant in flight. A parent the context holds answers from its own
-  `TenantId`; one it does not hold is looked up through the tenant filter, once per save. A child added to, moved
+- "Through the root" means the parents' own filters: a child whose parent is soft-deleted is not read on its own
+  either. A row whose parent keys are all NULL belongs to nobody, and only `Tenant.Across()` reads it.
+- A child is written only under a parent of the tenant in flight. A parent the context holds answers from its
+  own tenant; one it does not hold is looked up through the tenant filter, once per save. A child added to, moved
   to, changed or deleted under another tenant's parent is refused with an `InvalidOperationException`.
 - A unique index on the child names no tenant, so — like [any index](#an-index-is-what-you-write) without
   `TenantId` — it holds across every tenant, and its declared rule is asked about every tenant's rows. Put the
   parent's key in the index (`(DriverId, Code)`) when unique within the parent is the rule you mean.
+- The path is read from the model. A tenant-scoped child that a context maps with no relationship up to its
+  aggregate is refused when the model is built, naming the entity — never read unfiltered.
 
-**A column that disappears.** A child that declares no `TenantId` used to get a shadow `TenantId` column of its
-own; it is now read through its parent instead. The rows stay isolated either way, but a database Rask migrates
-will see the column dropped from that child's table in the next migration — read the migration, and declare
-`public Guid? TenantId { get; private set; }` on the child if it should keep the column.
+**A child that already keeps a column.** An existing table may hold the tenant on its children too. Declare it
+(`public Guid? TenantId { get; private set; }`, or `int?`/`long?`) and it is used: filtered on directly, stamped
+with the **root's** tenant — inside `Tenant.Across()` as well — and refused at the save if it disagrees with the
+root's. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
+reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
+the property if the column should stay.
 
 ## Where the tenant comes from
 

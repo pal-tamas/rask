@@ -267,9 +267,9 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // A child with no TenantId of its own belongs to its tenant through its parent (#1251): no column, and a filter
-    // that asks the parent. Anything else keeps the column — the one it declared (Guid?, int? or long?), or a
-    // shadow Guid? for a table with no tenant-scoped parent to ask.
+    // Only the root carries the tenant (#1251): a child with no TenantId of its own — at any depth — has no column
+    // and a filter that asks its parent, along the path the aggregate's collections make. A root keeps the column it
+    // declared (Guid?, int? or long?) or a shadow Guid?; a child that declares one keeps it too.
     private static void PartitionByTenant(ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context)
     {
         var clrType = entityType.ClrType;
