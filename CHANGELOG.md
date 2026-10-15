@@ -15,6 +15,35 @@ them until tagged releases begin.
   Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
+- **Only the aggregate root carries the tenant: every entity under it is read through its root (#1251).** A table
+  another app made often keeps the tenant on the root only — `Chip` rows belong to a partner through their
+  `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
+  mapped. After: a child — at any depth — needs no tenant column and the app writes nothing for it; its read face,
+  an `Include` and a projection are filtered by an `EXISTS` up the path the aggregate's own collections make
+  (one per tenant-scoped parent, `OR`'d — one `Chip` type held by `Driver.Chips` and `Vehicle.Chips`, both keys
+  optional, a navigation back to each on `ChipRead`); `Tenant.Across()` lifts it; a child added, moved, changed or
+  deleted under another tenant's parent is refused, a parent the context does not hold being looked up through
+  the tenant filter; a chip taken out of its parent's collection is deleted rather than left belonging to nobody;
+  a child with no path to its root is a model error naming it. A child that keeps a `TenantId` of its own keeps
+  it, stamped from its root and refused when it disagrees. Grandchildren now get the form model their parent's
+  form holds, and are partitioned with their root. **Read your next migration:** a child that relied on the
+  shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it to keep it.
+  See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
+
+### Changed
+
+- **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
+  Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
+  index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:
+  nothing is added. A key unique across every tenant is written without it —
+  `b.HasIndex(u => u.Username).IsUnique("Foglalt.")` — and one unique within a tenant names it —
+  `b.HasIndex(u => new { u.TenantId, u.Name }).IsUnique("Foglalt.")`. The unique rule is asked, by a form bound to
+  the generated model and by the check before the save, over exactly the index's columns: within the row's tenant
+  when `TenantId` is among them, across every tenant when it is not. `HasDatabaseName`, the message and the filter
+  are kept as written, and a violation is matched by the database's index name (constraint name on PostgreSQL and
+  SQL Server, columns on SQLite). **An app that relied on the automatic prefix adds `TenantId` to its per-tenant
+  indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
+  changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Security
 
@@ -531,6 +560,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
+  `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
+  `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised
+  and its message never shown. After: the prefixed index keeps its name and everything else it was told (a filter
+  included), and on SQLite a database index held without the `TenantId` is recognised by its other columns.
 - **A computed get-only property of a struct or record type no longer stops the app at startup.** Before: `public SupplyKind Kind => …;` (a `record struct`) was mapped by EF Core as a complex property and the model failed with "No backing field could be found for property 'Supply.Kind' and the property does not have a setter", although `docs/data.md` says computed properties are dropped. After: a get-only property with no backing field is left out of the model, as the docs say.
 - **A key that points at its own table gets its join on the read face.** Before: `Supply.SumSupplyId` (an `int?` on `Supply` itself) stayed a plain column, so `s.SumSupply.Number` was not there and an app read the other row with a second query and could not sort by it. After: an id whose name ENDS in its own aggregate's name (`SumSupplyId`, `ParentCategoryId`) is a navigation to another row of the table (`.OrderBy(s => s.SumSupply!.Number)`). An id named exactly like its own type (`CategoryId` on `Category`) is still the row's own id, a column.
 - **A tenant-scoped read is seekable.** Before: the `PerTenant` filter was a catch-all, `@ef_filter = 1 OR (TenantId IS NOT NULL AND TenantId = @t)`, which SQL Server cannot answer from an index on `TenantId`: counting tenant 27's rows of a 591 136-row table took about 400 ms a query. After: the "inside `Tenant.Across()`" flag is read once per query (`EF.Constant`) and folded away, so a tenant in flight reads `TenantId IS NOT NULL AND TenantId = @t` (about 46 ms for the same count), `Tenant.Across()` names no tenant in the SQL, and no tenant in flight still refuses the read. Two cached plans per query shape (with and without `Across`), not one.

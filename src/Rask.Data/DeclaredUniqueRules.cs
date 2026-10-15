@@ -20,9 +20,10 @@ namespace Rask.Data;
 ///         same failure the index's violation would have produced.
 ///     </para>
 ///     <para>
-///         The query is built from the INDEX and runs through the context's own filters, so a tenant-scoped
-///         table is asked about the tenant in flight and nobody else's rows. Three things follow the way a
-///         database treats a unique index:
+///         The query is built from the INDEX and asks exactly its columns: an index that names <c>TenantId</c> is
+///         asked about the row's tenant, one that does not about every tenant's rows — the database's own index
+///         would hold that way. Only the tenant filter is lifted for it; a soft-deleted row still counts. Three
+///         things follow the way a database treats a unique index:
 ///     </para>
 ///     <list type="bullet">
 ///         <item>a NULL in any of the index's columns is not checked — NULLs do not collide;</item>
@@ -36,13 +37,9 @@ namespace Rask.Data;
 /// </remarks>
 internal static class DeclaredUniqueRules
 {
-    // Both captured from a real expression, as the tenant filter's readers are, then opened to their definition.
+    // Captured from a real expression, as the tenant filter's readers are, then opened to its definition.
     private static readonly MethodInfo ExistsMethod =
         ((MethodCallExpression)((Expression<Func<DbContext, Task<bool>>>)(c => AnyOfAsync<object>(c, null!, default))).Body)
-        .Method.GetGenericMethodDefinition();
-
-    private static readonly MethodInfo EfProperty =
-        ((MethodCallExpression)((Expression<Func<object, object?>>)(e => EF.Property<object?>(e, ""))).Body)
         .Method.GetGenericMethodDefinition();
 
     private static readonly FieldInfo BoxedValue =
@@ -92,7 +89,8 @@ internal static class DeclaredUniqueRules
         IReadOnlyList<object?>? selfKey,
         CancellationToken cancellationToken) =>
         Predicate(entityType, rule, valueOf, selfKey) is { } taken &&
-        await ExistsAsync(context, entityType.ClrType, taken, cancellationToken).ConfigureAwait(false);
+        await ExistsAsync(context, entityType.ClrType, taken, cancellationToken)
+            .ConfigureAwait(false);
 
     /// <summary>The unique rules of <paramref name="entityType" /> that can be asked as a query.</summary>
     internal static IEnumerable<IIndex> Rules(IEntityType entityType) =>
@@ -172,20 +170,13 @@ internal static class DeclaredUniqueRules
     {
         try
         {
-            return Expression.Equal(Stored(row, property), Parameter(value, property.ClrType));
+            return Expression.Equal(StoredProperty.Of(row, property), Parameter(value, property.ClrType));
         }
         catch (InvalidOperationException)
         {
             return null;
         }
     }
-
-    [UnconditionalSuppressMessage("Trimming", "IL2060",
-        Justification = "EF.Property<T> is closed over a mapped property's own type, which the model already roots.")]
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "As above: the type argument is a mapped property's type.")]
-    private static MethodCallExpression Stored(ParameterExpression row, IProperty property) =>
-        Expression.Call(EfProperty.MakeGenericMethod(property.ClrType), row, Expression.Constant(property.Name));
 
     // Read through a box rather than inlined, so EF Core sees a parameter: one cached plan, not one per value.
     private static UnaryExpression Parameter(object? value, Type type) =>
@@ -199,8 +190,13 @@ internal static class DeclaredUniqueRules
         DbContext context, Type clrType, LambdaExpression taken, CancellationToken cancellationToken) =>
         (Task<bool>)ExistsMethod.MakeGenericMethod(clrType).Invoke(null, [context, taken, cancellationToken])!;
 
+    // The index's own columns decide whose rows count — a TenantId among them pins the row's tenant — so the
+    // tenant filter is lifted; a soft-deleted row still counts the way the database's index counts it.
     private static Task<bool> AnyOfAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context, LambdaExpression taken, CancellationToken cancellationToken)
         where TEntity : class =>
-        context.Set<TEntity>().AsNoTracking().AnyAsync((Expression<Func<TEntity, bool>>)taken, cancellationToken);
+        context.Set<TEntity>()
+            .AsNoTracking()
+            .IgnoreQueryFilters([ModelBuilderExtensions.TenantFilter])
+            .AnyAsync((Expression<Func<TEntity, bool>>)taken, cancellationToken);
 }

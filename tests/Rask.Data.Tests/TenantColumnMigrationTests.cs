@@ -81,8 +81,10 @@ public sealed class TenantColumnMigrationTests
     {
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Pallet>().HasIndex(p => p.Reference).IsUnique();
-            modelBuilder.Entity<Crate>().HasIndex(c => c.Reference).IsUnique();
+            // Per tenant, as the app writes it: the tenant named in the index, shadow column or declared.
+            modelBuilder.Entity<Pallet>().Property<Guid?>(Columns.TenantId);
+            modelBuilder.Entity<Pallet>().HasIndex(Columns.TenantId, nameof(Pallet.Reference)).IsUnique();
+            modelBuilder.Entity<Crate>().HasIndex(c => new { c.TenantId, c.Reference }).IsUnique();
             modelBuilder.ApplyRaskConventions(this);
         }
     }
@@ -107,7 +109,7 @@ public sealed class TenantColumnMigrationTests
     [Theory]
     [InlineData(typeof(Pallet))]
     [InlineData(typeof(Crate))]
-    public void Every_index_leads_with_the_tenant_whether_the_column_is_declared_or_not(Type entity)
+    public void An_index_written_with_the_tenant_leads_with_it_whether_the_column_is_declared_or_not(Type entity)
     {
         using var today = new TodayContext(new DbContextOptionsBuilder<TodayContext>().UseSqlite("Data Source=:memory:").Options);
 

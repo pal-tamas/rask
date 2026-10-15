@@ -53,14 +53,14 @@ public sealed class Lane : Aggregate<int>
         // Names the tenant, one column of its own: the message belongs under that field.
         builder.HasIndex(l => new { l.Name, l.TenantId }).IsUnique(NameTaken);
 
-        // Does not name the tenant, so Rask puts it in front — and the message has to survive that.
-        builder.HasIndex(l => l.Code).IsUnique(CodeTaken);
+        // The tenant first, as a per-tenant index is written: the message still belongs under Code alone.
+        builder.HasIndex(l => new { l.TenantId, l.Code }).IsUnique(CodeTaken);
 
         // Two columns of its own: a rule about the row, not about either field.
-        builder.HasIndex(l => new { l.Origin, l.Target }).IsUnique(RouteTaken);
+        builder.HasIndex(l => new { l.TenantId, l.Origin, l.Target }).IsUnique(RouteTaken);
 
         // No message: the provider's error, as it always was.
-        builder.HasIndex(l => l.Slug).IsUnique();
+        builder.HasIndex(l => new { l.TenantId, l.Slug }).IsUnique();
     }
 }
 
@@ -124,7 +124,7 @@ public sealed class ViolationMessageTests : IDisposable
     }
 
     [Fact]
-    public async Task The_message_survives_the_tenant_being_put_in_front_of_the_index()
+    public async Task The_message_of_an_index_led_by_the_tenant_lands_under_its_own_field()
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(Acme, Lane.Between("Budapest", "Vienna"));
