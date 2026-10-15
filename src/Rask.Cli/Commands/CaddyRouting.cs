@@ -67,6 +67,31 @@ internal static class CaddyRouting
         return map;
     }
 
+    /// <summary>
+    /// A host of <paramref name="deployingSite"/> that another app on the box already serves, with that app —
+    /// or <c>null</c> when none is. Caddy refuses a config that names one host in two site blocks, and the
+    /// reload would fail only after the new container had started; asked first, the deploy stops before it
+    /// touches anything and says which app holds the name.
+    /// </summary>
+    internal static (string Host, string App)? FindTakenHost(IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingSite)
+    {
+        var wanted = SiteDomains.Hosts(deployingSite);
+        foreach (var app in apps)
+        {
+            if (app.Domain.Length == 0 || string.Equals(app.App, deployingApp, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (SiteDomains.Hosts(app.Domain).FirstOrDefault(host => wanted.Contains(host, StringComparer.OrdinalIgnoreCase)) is { } taken)
+            {
+                return (taken, app.App);
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Render the multi-site Caddyfile from a <c>domain → container</c> map (uses <c>\n</c> for determinism).</summary>
     internal static string BuildCaddyfile(IReadOnlyDictionary<string, RouteTarget> routes)
     {
@@ -78,8 +103,9 @@ internal static class CaddyRouting
                 builder.Append('\n');
             }
 
-            // `domain` reached here through DomainName.TryParse, so it cannot close this block early.
-            builder.Append(domain).Append(" {\n");
+            // Every host of `domain` reached here through DomainName.TryParse, so none can close this block
+            // early. An app on several domains is one block with all its addresses: `ppta.hu, www.ppta.hu {`.
+            builder.Append(SiteDomains.CaddyAddress(domain)).Append(" {\n");
             builder.Append("\treverse_proxy ").Append(target.Container).Append(':').Append(target.Port).Append('\n');
             builder.Append("}\n");
         }

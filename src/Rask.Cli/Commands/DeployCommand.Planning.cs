@@ -30,20 +30,20 @@ internal sealed partial class DeployCommand
     {
         var parsed = plan.Parsed;
         var host = Normalize(parsed.Option("host") ?? plan.Config.Host);
-        var domain = Normalize(parsed.Option("domain") ?? plan.Config.Domain);
-
-        // Validated at the boundary for the same reason as the SSH host below: the domain is written
-        // verbatim into the Caddyfile that fronts every app on the box, and it may come from the
+        // Every --domain given (each may be a comma-separated list), else the remembered ones. Validated
+        // host by host at the boundary for the same reason as the SSH host below: the domains are written
+        // verbatim into the Caddyfile that fronts every app on the box, and they may come from the
         // *committed* .rask/deploy.json rather than from this user's keyboard.
-        if (domain is not null)
+        var domainsGiven = parsed.MultiOption("domain").Count > 0;
+        IEnumerable<string> domainValues = parsed.MultiOption("domain");
+        if (!domainsGiven && Normalize(plan.Config.Site) is { } remembered)
         {
-            if (!DomainName.TryParse(domain, out var parsedDomain, out var domainError))
-            {
-                Console.WriteErrorLine(domainError!, ConsoleStyle.Error);
-                return 1;
-            }
-
-            domain = parsedDomain;
+            domainValues = [remembered];
+        }
+        if (!SiteDomains.TryParse(domainValues, out var domain, out var domainError))
+        {
+            Console.WriteErrorLine(domainError!, ConsoleStyle.Error);
+            return 1;
         }
 
         // --port and --domain are two different modes: with a domain the app is reached internally on the
@@ -51,9 +51,9 @@ internal sealed partial class DeployCommand
         // than silently ignore --port (which also covers a --port passed against a remembered domain).
         if (parsed.Option("port") is not null && domain is not null)
         {
-            return Fail(parsed.Option("domain") is not null
+            return Fail(domainsGiven
                 ? "--port doesn't apply with --domain (the app is served over HTTPS on 80/443 via the proxy)."
-                : $"This app is deployed with --domain {domain} (remembered in .rask/deploy.json), so --port doesn't apply. Remove \"domain\" from .rask/deploy.json to switch to a published port.");
+                : $"This app is deployed with --domain {SiteDomains.Describe(domain)} (remembered in .rask/deploy.json), so --port doesn't apply. Remove \"domain\"/\"domains\" from .rask/deploy.json to switch to a published port.");
         }
 
         if (host is null)

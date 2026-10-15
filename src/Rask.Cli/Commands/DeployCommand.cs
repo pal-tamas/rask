@@ -94,6 +94,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     public override IReadOnlyList<string> Examples =>
     [
         "rask deploy --host root@box.example.com --domain app.example.com",
+        "rask deploy --domain example.com --domain www.example.com",
         "rask deploy --host deploy@box.example.com --port 8080",
         "rask deploy --env Rask:Mail:Smtp:Password=... --env-file .env.production",
         "rask deploy --github-actions",
@@ -116,7 +117,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             // No short name: '-h' is reserved for --help across the whole CLI, and a command that claimed
             // it would silently print help instead of running (see CliApplication.RequestsHelp).
             .Option("host", null, "user@host", "SSH target to build and run on (remembered in .rask/deploy.json).")
-            .Option("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443).")
+            .MultiOption("domain", 'd', "host", "Public domain to serve over HTTPS via Caddy (implies ports 80/443; repeatable or comma-separated, the first is the primary).")
             .Option("port", valueHint: "n", description: "Published port when not using --domain (default: 8080).")
             .Option("container-port", valueHint: "n", description: "Port the app listens on inside the container (default: 8080; remembered).")
             .Option("project", 'p', "path", "Project to deploy (default: found from the current directory).")
@@ -281,11 +282,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         return 0;
     }
 
-    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null) =>
-        new DeployConfig
+    private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null)
+    {
+        var config = new DeployConfig
         {
             Host = host,
-            Domain = domain,
             Port = port,
             Name = slug,
             Project = project,
@@ -296,7 +297,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
             // Keys only — this file is committed. See DeployConfig.EnvKeys.
             EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
-        }.Save(_fileSystem, _workingDirectory);
+        };
+
+        // One domain stays "domain", as an older Rask wrote it; several become "domains".
+        config.SetSite(domain);
+        config.Save(_fileSystem, _workingDirectory);
+    }
 
     private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath)
     {

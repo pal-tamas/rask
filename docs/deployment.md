@@ -50,6 +50,12 @@ Dockerfile below (override with `--dockerfile`).
   Dockerfile prepares a writable `/data`; a custom Dockerfile needs the same
   (`RUN mkdir -p /data && chown $APP_UID:$APP_UID /data`). Pair it with `Rask.SQLite.Litestream` to also
   stream the database off the box for machine-loss recovery.
+- **Several domains, one app.** `--domain example.com --domain www.example.com` (or
+  `--domain example.com,www.example.com`) serves the same container on each, every one with its own
+  certificate; the first is the primary, which emailed links use. `.rask/deploy.json` remembers them as
+  `"domains": ["example.com", "www.example.com"]` — one stays `"domain"`, as before — so a bare
+  `rask deploy` keeps all of them. A domain another app on the box already answers on is refused before
+  the deploy starts anything.
 - **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
   host's live containers on every deploy, so a second app never disturbs the first.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
@@ -193,7 +199,7 @@ Beyond your own `--env` values, every deployed container gets:
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
-| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
+| `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`; the first one when there are several) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |

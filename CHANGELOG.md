@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **`rask deploy` serves one app on several domains.** Before: `--domain` took one host, so `example.com` and
+  `www.example.com` could not both reach an app. After: `--domain` repeats, or takes a comma-separated list
+  (`--domain example.com --domain www.example.com`). Every host is checked like a single one was, a host given
+  twice is refused, and the app's Caddy site lists them all (`example.com, www.example.com {`), each with its own
+  certificate. The first is the primary, which `Rask__Auth__PublicOrigin` names. `.rask/deploy.json` remembers
+  several as `"domains": [...]`, while one stays `"domain"` exactly as before. A host that another app on the box
+  already serves stops the deploy before anything starts, naming that app; otherwise Caddy would refuse the
+  config only at the reload.
+
 - **`Rask.Xlsx` — an Excel workbook from a list of rows, with no dependency.** `Xlsx.Write("Invoices", headings, rows)`
   returns the bytes of an `.xlsx`; `Xlsx.Write(params Sheet[])` several sheets; `Xlsx.ContentType` for the download.
   Bold frozen headings with a filter, fitted columns, amounts with thousands, `Xlsx.Day`/`Moment`, rows folded with

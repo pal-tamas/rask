@@ -41,7 +41,7 @@ internal sealed partial class DeployCommand
         }
 
         // Everything below changes what would be deployed, which none of these verbs do.
-        if (Array.Find(["domain", "port", "container-port", "dockerfile", "health-path"], name => parsed.Option(name) is not null)
+        if (Array.Find(["domain", "port", "container-port", "dockerfile", "health-path"], name => parsed.Option(name) is not null || parsed.MultiOption(name).Count > 0)
             is { } option)
         {
             error = $"--{option} doesn't apply to `rask deploy {action}` — it operates on what's already deployed.";
@@ -142,7 +142,7 @@ internal sealed partial class DeployCommand
     {
         if (app.Domain.Length > 0)
         {
-            return $"https://{app.Domain}";
+            return string.Join(", ", SiteDomains.Hosts(app.Domain).Select(host => $"https://{host}"));
         }
 
         return app.Ports.Length > 0 ? app.Ports : "(not published)";

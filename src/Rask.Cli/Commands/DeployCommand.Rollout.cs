@@ -250,6 +250,16 @@ internal sealed partial class DeployCommand
         // The live containers are the source of truth. Read them once: the current color of this app (to
         // pick the next), plus every other app's route (to regenerate the full Caddyfile).
         var apps = ParseDeployedApps((await Capture(BuildListArguments(host), cancellationToken).ConfigureAwait(false)).StandardOutput);
+
+        // A name another app already answers on would make the proxy's config ambiguous, and Caddy would only
+        // refuse it at the reload — after the new container had started. Stop before anything moves.
+        if (FindTakenHost(apps, slug, domain) is { } taken)
+        {
+            Console.WriteErrorLine($"{taken.Host} is already served by the app '{taken.App}' on this box — one domain can front only one app.", ConsoleStyle.Error);
+            await Console.Error.WriteLineAsync($"Deploy '{taken.App}' without it first, or leave it out of this app's --domain.").ConfigureAwait(false);
+            return 1;
+        }
+
         var current = apps.FirstOrDefault(a => string.Equals(a.App, slug, StringComparison.Ordinal)).Color;
         var newColor = NextColor(string.IsNullOrEmpty(current) ? null : current);
         var newContainer = $"{slug}-{newColor}";
@@ -267,8 +277,9 @@ internal sealed partial class DeployCommand
         {
             PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort, env);
         }
-        Console.WriteLine($"Deployed. The app is live at https://{domain}", ConsoleStyle.Success);
-        Console.WriteLine($"  (make sure {domain}'s DNS A/AAAA record points at {HostName(host)})", ConsoleStyle.Dim);
+        var hosts = SiteDomains.Hosts(domain);
+        Console.WriteLine($"Deployed. The app is live at {string.Join(", ", hosts.Select(h => $"https://{h}"))}", ConsoleStyle.Success);
+        Console.WriteLine($"  (make sure the DNS A/AAAA record{(hosts.Count > 1 ? "s" : "")} of {string.Join(", ", hosts)} point{(hosts.Count > 1 ? "" : "s")} at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
     }
 
@@ -283,7 +294,7 @@ internal sealed partial class DeployCommand
         // failed reload) can leave it behind, and `docker run --name` would otherwise collide.
         await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false); // ignore-absent
 
-        await Console.Out.WriteLineAsync($"Starting {newContainer} ({domain})…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Starting {newContainer} ({SiteDomains.Describe(domain)})…").ConfigureAwait(false);
         // In domain mode the app is reached internally on its container port; no host port is published.
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
@@ -351,7 +362,7 @@ internal sealed partial class DeployCommand
         // create first, and whatever it held would be copied into the proxy that fronts every app on the box.
         var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.Caddyfile");
         _fileSystem.WriteSecretText(caddyfilePath, BuildCaddyfile(routes));
-        await Console.Out.WriteLineAsync($"Routing {domain} → {target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Routing {SiteDomains.CaddyAddress(domain)} → {target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
         await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
 
         // The file has been copied to the box; leaving a predictably-named copy in the shared temp dir

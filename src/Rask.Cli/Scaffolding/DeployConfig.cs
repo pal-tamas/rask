@@ -13,7 +13,27 @@ internal sealed class DeployConfig
 {
     public string? Host { get; set; }
 
+    /// <summary>The one domain the app is served on — what a single <c>--domain</c> is remembered as.</summary>
     public string? Domain { get; set; }
+
+    /// <summary>
+    /// The domains the app is served on when there are several (<c>--domain ppta.hu --domain www.ppta.hu</c>),
+    /// the first being the primary. Written instead of <see cref="Domain"/> only then, so a one-domain file
+    /// stays exactly what an older Rask wrote and reads.
+    /// </summary>
+    public string[]? Domains { get; set; }
+
+    /// <summary>The remembered domains as one site string (<see cref="SiteDomains"/>), whichever field holds them.</summary>
+    [JsonIgnore]
+    public string? Site => Domains is { Length: > 0 } domains ? string.Join(',', domains) : Domain;
+
+    /// <summary>Remember <paramref name="site"/> the way <see cref="Site"/> reads it back.</summary>
+    public void SetSite(string? site)
+    {
+        var hosts = site is null ? [] : SiteDomains.Hosts(site);
+        Domain = hosts.Count == 1 ? hosts[0] : null;
+        Domains = hosts.Count > 1 ? [.. hosts] : null;
+    }
 
     public int? Port { get; set; }
 

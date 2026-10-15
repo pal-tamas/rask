@@ -101,8 +101,9 @@ internal static class DockerCommands
             args.AddRange(["-e", "Rask__BehindProxy=true"]);
 
             // The address emailed links (confirm, reset) point at. Outside Development the app will not take it
-            // from the request, whose Host header anyone can set, so without this no such email goes out.
-            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{domain}"]);
+            // from the request, whose Host header anyone can set, so without this no such email goes out. With several
+            // domains the links name the first, the one the app is primarily known by.
+            args.AddRange(["-e", $"Rask__Auth__PublicOrigin=https://{SiteDomains.Primary(domain)}"]);
         }
     }
 
