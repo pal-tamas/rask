@@ -23,7 +23,6 @@ internal sealed class UiDatePickerScope
     /// <summary>What the button shows: the chosen day, range or preset; nothing while unset.</summary>
     internal string? Text { get; init; }
 
-    internal bool Open { get; init; }
 
     internal bool Disabled { get; init; }
 
@@ -55,8 +54,8 @@ internal sealed class UiDatePickerScope
     /// <summary>A typed field was left with no date in it: half filled, or with every part emptied.</summary>
     internal Task Left(int slot, bool half) => Untyped(slot, half, Math.Max(1, _claimed));
 
-    /// <summary>Opens the calendar from a key on the trigger, where the browser has no gesture of its own for it.</summary>
-    internal required Action Show { get; init; }
+    /// <summary>Whether a typed whole date waits for the reader's next action: the picker is bound and not live.</summary>
+    internal bool Waits { get; init; }
 
     /// <summary>The next typed field's slot: the first is the day or a range's start, the second its end.</summary>
     internal int Claim() => Math.Min(_claimed++, Dates.Count - 1);
@@ -66,5 +65,5 @@ internal sealed class UiDatePickerScope
     ///     for one: shown while a date is chosen and the trigger is not <paramref name="locked" />.
     /// </summary>
     internal Rask.Core.Component Cleared(Rask.Core.Component trigger, bool? asked, string height, bool locked) =>
-        asked ?? Clearable ? UiPickerClear.Over(trigger, height, Clear, shown: Dates[0] is not null && !locked) : trigger;
+        asked ?? Clearable ? UiPickerClear.Over(trigger, height, Clear, shown: Dates[0] is not null && !locked, part: UiCalendarHook.Named("clear")) : trigger;
 }

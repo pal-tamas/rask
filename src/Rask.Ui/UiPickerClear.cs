@@ -33,10 +33,12 @@ internal abstract partial class UiPickerClear : global::Rask.Core.RaskMarkup
     /// <param name="height">The trigger's own height, as a class.</param>
     /// <param name="clear">Empties the picker.</param>
     /// <param name="shown">Whether there is something to empty.</param>
-    internal static global::Rask.Core.Component Over(global::Rask.Core.Component trigger, string height, Func<Task> clear, bool shown) =>
+    /// <param name="part">What a runtime that draws the picker calls the slot, or nothing.</param>
+    internal static global::Rask.Core.Component Over(
+        global::Rask.Core.Component trigger, string height, Func<Task> clear, bool shown, (string, string?)? part = null) =>
         Div.Class("relative")[
             trigger,
-            Div.Class(UiClass.Compose(shown ? Slot : SlotHidden, height))[Press(clear)]
+            Div.Class(UiClass.Compose(shown ? Slot : SlotHidden, height)).Attributes(part is { } p ? [p] : [])[Press(clear)]
         ];
 
     private static global::Rask.Core.Component Press(Func<Task> clear) =>

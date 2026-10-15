@@ -22,11 +22,14 @@ public sealed partial class UiDatePicker : UiDatePickerControl<DateOnly>
 
     private protected override string ConfirmLabel => RaskStrings.Get(RaskString.DatePickerConfirm, "Select date");
 
-    private protected override UiCalendarPicks Picks(DateOnly current, Func<DateOnly, Task> choose) =>
-        new UiCalendarSinglePick(current, choose);
+    private protected override UiCalendarPicks Picks(DateOnly current) => new UiCalendarSinglePick(current);
+
+    private protected override string Written(DateOnly value) => UiCalendarValue.Day(value);
+
+    private protected override bool TryRead(string text, out DateOnly value) => UiCalendarValue.TryDay(text, out value);
 
     private protected override string? Text(DateOnly current, UiCalendarOptions options) =>
-        current == default ? null : Medium(current, options.Culture);
+        current == default ? null : UiDatePickerText.Medium(current, options.Culture);
 
     private protected override IReadOnlyList<DateOnly?> Dates(DateOnly current) => [current == default ? null : current];
 

@@ -117,13 +117,26 @@ internal static class UiCalendarLook
         _ => "size-11 max-sm:size-10",
     };
 
+    // A day's cell, by its parts: the browser composes them too (rask-calendar.ts), in this order.
+    internal const string TdBase = "p-0";
+
+    internal const string TdFirst = "rounded-s-lg";
+
+    internal const string TdLast = "rounded-e-lg";
+
+    internal const string TdInRange = "bg-zinc-100 dark:bg-white/10";
+
+    internal const string TdOutside = "opacity-50";
+
+    internal const string TdUnavailable = "line-through";
+
     /// <summary>A day's cell: rounded where a row or a range starts and ends, tinted inside a range.</summary>
     internal static string Td(bool first, bool last, bool outside, bool unavailable, UiCalendarMarks marks) =>
         UiClass.Compose(
-            "p-0",
-            first || marks.Start ? "rounded-s-lg" : null,
-            last || marks.End || marks.EndPreview ? "rounded-e-lg" : null,
-            marks.InRange ? "bg-zinc-100 dark:bg-white/10" : null,
-            outside ? "opacity-50" : null,
-            unavailable ? "line-through" : null);
+            TdBase,
+            first || marks.Start ? TdFirst : null,
+            last || marks.End || marks.EndPreview ? TdLast : null,
+            marks.InRange ? TdInRange : null,
+            outside ? TdOutside : null,
+            unavailable ? TdUnavailable : null);
 }

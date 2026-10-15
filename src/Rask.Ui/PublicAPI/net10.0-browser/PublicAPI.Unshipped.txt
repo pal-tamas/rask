@@ -1,11 +1,9 @@
 #nullable enable
 const Rask.UiStylesheet.DocumentAttribute = "data-rask-ui-document" -> string!
 override Rask.UiCalendarControl<T>.BypassRenderCache.get -> bool
-override Rask.UiCalendarControl<T>.OnRendered() -> System.Threading.Tasks.Task!
 override Rask.UiCalendarControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiColorSwatch.GetHashCode() -> int
 override Rask.UiDatePickerControl<T>.BypassRenderCache.get -> bool
-override Rask.UiDatePickerControl<T>.OnRendered() -> System.Threading.Tasks.Task!
 override Rask.UiDatePickerControl<T>.Render() -> Rask.Core.Component?
 override Rask.UiPaginator.Equals(object? obj) -> bool
 override Rask.UiPaginator.GetHashCode() -> int

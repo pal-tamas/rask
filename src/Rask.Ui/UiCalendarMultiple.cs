@@ -14,8 +14,16 @@ public sealed partial class UiCalendarMultiple : UiCalendarControl<ICollection<D
 {
     private protected override Ui.CalendarMode Bound => Ui.CalendarMode.Multiple;
 
-    private protected override UiCalendarPicks Picks(ICollection<DateOnly>? current, Func<ICollection<DateOnly>, Task> commit) =>
-        new UiCalendarMultiplePick(current ?? [], picked => commit([.. picked]));
+    private protected override UiCalendarPicks Picks(ICollection<DateOnly>? current) => new UiCalendarMultiplePick(current ?? []);
+
+    private protected override string Written(ICollection<DateOnly>? value) => UiCalendarValue.Days(value);
+
+    private protected override bool TryRead(string text, out ICollection<DateOnly> value)
+    {
+        var read = UiCalendarValue.TryDays(text, out var days);
+        value = days;
+        return read;
+    }
 
     private protected override Task CommitAsync(
         ExpressionAccessor.Accessor? accessor, EditContext? context, ICollection<DateOnly> value) =>

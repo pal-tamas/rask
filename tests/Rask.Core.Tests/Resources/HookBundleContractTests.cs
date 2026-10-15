@@ -72,6 +72,8 @@ public partial class HookBundleContractTests
         ["data-rask-color-part"] = "inside a data-rask-color",
         ["data-rask-color-says"] = "on a data-rask-color",
         ["data-rask-color-refuses"] = "on a data-rask-color",
+        ["data-rask-calendar-part"] = "inside a data-rask-calendar",
+        ["data-rask-calendar-range"] = "on a preset row inside a data-rask-calendar",
     };
 
     [Fact]

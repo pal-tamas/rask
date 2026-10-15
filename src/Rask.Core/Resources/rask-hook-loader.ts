@@ -56,6 +56,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " grow"                                                     // rask-grow
     + " list"                                                     // rask-list
     + " color"                                                    // rask-color
+    + " calendar"                                                 // rask-calendar
 ).split(" ").map(function (name) { return "data-rask-" + name; }).concat(
     // And the ones the platform named: any popover (rask-overlay closes it when focus leaves), an invoker
     // command (the fallback), a switch (rask-field), a tablist (rask-tabs) or a menu (rask-menu-keys), a listbox's

@@ -24,6 +24,9 @@ public sealed partial class UiCalendar : UiCalendarControl<DateOnly>
 {
     private protected override Ui.CalendarMode Bound => Ui.CalendarMode.Single;
 
-    private protected override UiCalendarPicks Picks(DateOnly current, Func<DateOnly, Task> commit) =>
-        new UiCalendarSinglePick(current, commit);
+    private protected override UiCalendarPicks Picks(DateOnly current) => new UiCalendarSinglePick(current);
+
+    private protected override string Written(DateOnly value) => UiCalendarValue.Day(value);
+
+    private protected override bool TryRead(string text, out DateOnly value) => UiCalendarValue.TryDay(text, out value);
 }
