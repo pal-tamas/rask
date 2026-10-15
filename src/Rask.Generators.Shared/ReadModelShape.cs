@@ -170,11 +170,26 @@ internal static class ReadModelShape
             entity.Name,
             TypeOf(idType),
             AggregateShape.IsAggregate(entity),
+            AggregateShape.ConstOf(entity, "Stamps", "Timestamps"),
             new EquatableArray<ReadMember>([.. members]),
             new EquatableArray<ReadReference>([.. references]),
             new EquatableArray<ReadChildCollection>([.. children]),
             new EquatableArray<ReadValueCollection>([.. valueCollections]),
             SymbolLocation.From(entity));
+
+    /// <summary>
+    ///     The face of a child without the timestamps it does not have: they are its aggregate's, so a child carries
+    ///     them only when it declares its own <c>Stamps</c>.
+    /// </summary>
+    /// <param name="shape">The face as its own declaration describes it.</param>
+    public static ReadShape WithoutStamps(ReadShape shape) =>
+        shape.Stamps is not null
+            ? shape
+            : shape with
+            {
+                Members = new EquatableArray<ReadMember>(
+                    [.. shape.Members.Where(static m => m.Name is not ("CreatedAt" or "UpdatedAt"))]),
+            };
 
     /// <summary>What an entity offers the resolver: its read face and the key a reference must match.</summary>
     internal readonly struct ReadTarget(string readTypeName, string keyTypeName, string ownerTypeName)

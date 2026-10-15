@@ -25,6 +25,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         if (eventData.Context is { } context)
         {
             SeveredChildren.Delete(context);
+            ChildWrites.RefuseOutsideTheirAggregate(context);
             ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
         }
 
@@ -39,6 +40,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         if (eventData.Context is { } context)
         {
             SeveredChildren.Delete(context);
+            ChildWrites.RefuseOutsideTheirAggregate(context);
             await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
@@ -383,7 +385,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     }
 
     /// <summary>The aggregate <paramref name="entry" /> belongs to, walking up through nested children.</summary>
-    private static EntityEntry? RootOf(DbContext context, EntityEntry entry, int depth = 0)
+    internal static EntityEntry? RootOf(DbContext context, EntityEntry entry, int depth = 0)
     {
         // The same ceiling AggregateChildren walks down with: an aggregate deeper than this is several
         // aggregates wearing one name, and the limit makes a cycle impossible to loop on.

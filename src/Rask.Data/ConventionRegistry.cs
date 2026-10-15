@@ -5,7 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace Rask.Data;
 
 /// <summary>
-///     Which <see cref="Timestamps" /> each entity type asked for, as the generator read them.
+///     Which <see cref="Timestamps" /> each entity type asked for, as the generator read them — a child of an
+///     aggregate that asked for nothing is registered with none: timestamps are the aggregate's.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -120,7 +121,10 @@ public static class ConventionRegistry
     internal static IReadOnlyList<ValueCollection> CollectionsFor(Type entity) =>
         DeclaredCollections.TryGetValue(entity, out var collections) ? collections : [];
 
-    /// <summary>What <paramref name="entity" /> asked for, or <see cref="Timestamps.All" /> when it did not ask.</summary>
+    /// <summary>
+    ///     What <paramref name="entity" /> asked for — <see cref="Timestamps.None" /> for a child that did not ask —
+    ///     or <see cref="Timestamps.All" /> when nothing was registered.
+    /// </summary>
     /// <param name="entity">The entity type.</param>
     internal static Timestamps StampsFor(Type entity) =>
         DeclaredStamps.TryGetValue(entity, out var stamps) ? stamps : Timestamps.All;
