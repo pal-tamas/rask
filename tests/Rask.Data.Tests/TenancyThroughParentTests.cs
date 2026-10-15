@@ -318,7 +318,7 @@ public sealed class TenancyThroughParentTests : IDisposable
     }
 
     [Fact]
-    public async Task A_chip_written_alone_under_the_tenants_own_driver_is_saved()
+    public async Task A_chip_written_alone_even_under_the_tenants_own_driver_is_refused_since_children_go_through_their_aggregate()
     {
         await using var database = await StartDatabaseAsync();
         await SeedAsync();
@@ -326,10 +326,13 @@ public sealed class TenancyThroughParentTests : IDisposable
         using (Tenant.Use(Acme))
         {
             database.Context.Add(Chip.Under("a-d", "A-D2"));
-            await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+            Assert.Contains("'Chip' was added on its own", refused.Message, StringComparison.Ordinal);
         }
 
-        Assert.Equal(1, await StoredCountAsync(database, "A-D2"));
+        Assert.Equal(0, await StoredCountAsync(database, "A-D2"));
     }
 
     [Fact]

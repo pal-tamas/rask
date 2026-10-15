@@ -54,6 +54,18 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: timestamps are the aggregate's, and a child is written only through its aggregate.** Before: every
+  child (`Entity<TId>` held in a root's collection, any depth) carried `CreatedAt`/`UpdatedAt` whatever its root
+  declared — so under an adopted root with `Stamps = Timestamps.None` every read and save of the child failed with
+  "Invalid column name 'CreatedAt'" — and a child could be saved on its own (`db.Chips`, `db.Set<Chip>()`,
+  `BulkInsert<Chip>`), skipping its root's version, `UpdatedAt` and invariants. After: a child has no timestamps
+  unless it declares `Stamps` (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
+  or removal; and a save or `BulkInsert` that writes a child whose root the context does not hold throws an
+  `InvalidOperationException` naming the child and its root, `Tenant.Across()` included. **Upgrading:** a child
+  table that has `CreatedAt`/`UpdatedAt` declares `public const Timestamps Stamps = Timestamps.All;`; a child
+  written alone is loaded and changed through its aggregate instead. Also fixed: a root holding two kinds of
+  children with rules no longer generates a form model that fails to compile (`rows` declared twice).
+
 - **The app's compiled stylesheet is served compressed and cacheable, like Rask's runtime.** Before: Rask.Tailwind's
   `wwwroot/css/app.css` (650–750 KB for a Tailwind + Rask.Ui app) went out through the app's static files,
   uncompressed and with no cache header, so every page load fetched it whole before the page could draw. After:

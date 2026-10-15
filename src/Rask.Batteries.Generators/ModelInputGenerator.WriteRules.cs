@@ -314,11 +314,15 @@ public sealed partial class ModelInputGenerator
         var asked = collect + "(row, path + \"" + child.Name
                     + "[\" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \"].\", failures)";
 
-        s.Append("        if (model.").Append(child.Name).AppendLine(" is { } rows)");
+        // Named after the collection: a pattern variable in an if's condition is scoped to the whole method, so a
+        // root holding two kinds of rows would otherwise declare `rows` twice.
+        var rows = "__" + child.Name + "Rows";
+
+        s.Append("        if (model.").Append(child.Name).Append(" is { } ").Append(rows).AppendLine(")");
         s.AppendLine("        {");
-        s.AppendLine("            for (var i = 0; i < rows.Count; i++)");
+        s.Append("            for (var i = 0; i < ").Append(rows).AppendLine(".Count; i++)");
         s.AppendLine("            {");
-        s.AppendLine("                if (rows[i] is { } row)");
+        s.Append("                if (").Append(rows).AppendLine("[i] is { } row)");
         s.AppendLine("                {");
         s.Append("                    failures = ").Append(awaited ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(";");
         s.AppendLine("                }");

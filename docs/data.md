@@ -218,11 +218,37 @@ An order that declares [`Deletes = Deletion.Soft`](#choosing-what-a-table-carrie
 so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
 order comes back.
 
-The child gets a table, `CreatedAt` and `UpdatedAt`, a model so its parent's form can carry it, and a read
-face of its own — `OrderLine.Where(…)` — because the read side has no borders. It gets no **writes** of its own:
-there is no `OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its
-own. A collection of another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a
-collection Rask cannot write is [RASK088](diagnostics.md#rask088).
+The child gets a table, a model so its parent's form can carry it, and a read face of its own —
+`OrderLine.Where(…)` — because the read side has no borders. It gets no **writes** of its own: there is no
+`OrderLine.Create`, no version and no soft delete, because it is not a thing you save on its own. A collection of
+another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot
+write is [RASK088](diagnostics.md#rask088).
+
+**A child is written only through its aggregate.** A save that adds, changes or removes a child whose root the
+same context does not hold — a line found through `db.OrderLines` and edited, a `new OrderLine` attached on its
+own, a `BulkInsert` of lines — is refused with an `InvalidOperationException` naming the child and its root.
+`Tenant.Across()` does not lift it: it is about the aggregate's shape, not whose rows are visible. Load the
+order, change it, save the order:
+
+```csharp
+await Order.Update(id, o => o.Lines.First().SetQuantity(5));   // ✓ through the aggregate
+
+var line = await db.OrderLines.FirstAsync(ct);
+line.SetQuantity(5);
+await db.SaveChangesAsync(ct);   // ✗ 'OrderLine' was changed on its own … load its 'Order'
+```
+
+**Timestamps are the aggregate's**, like its tenant. A child has no `CreatedAt` or `UpdatedAt` — not in its
+table, not on `OrderLineRead`, never stamped — and the root's `UpdatedAt` moves whenever any of its children is
+added, changed or removed, so it means "anything in this order changed". A child whose table does carry them
+declares so, and keeps them:
+
+```csharp
+public sealed class OrderLine : Entity<Guid>
+{
+    public const Timestamps Stamps = Timestamps.All;   // this child table has CreatedAt and UpdatedAt
+}
+```
 
 ### Collections of values
 
@@ -590,8 +616,8 @@ if (order!.TotalAmount > limit) { order.Hold(); }
 await db.SaveChangesAsync(ct);
 ```
 
-`db.Orders`, `db.OrderLines` — children too, since they are in the write context even though they are only
-*writable* through their root. These are extension members on `DbContext` itself, so an app that brings its
+`db.Orders`, `db.OrderLines` — children too, since they are in the write context, but a save that writes a child
+it reached that way [without its root is refused](#children). These are extension members on `DbContext` itself, so an app that brings its
 own context gets them without the context having to be `partial`.
 
 The name comes from one documented rule — `s`, `es` after `s`/`x`/`z`/`ch`/`sh`, and `y` → `ies` after a
@@ -697,7 +723,7 @@ default, so an entity that says nothing is unchanged.
 | const | type | default | what it decides |
 |---|---|---|---|
 | `Writes` | `ModelWrites` | `All` | the form model, and the writes that take one |
-| `Stamps` | `Timestamps` | `All` | `CreatedAt` and `UpdatedAt` |
+| `Stamps` | `Timestamps` | `All` on a root, `None` on a [child](#children) | `CreatedAt` and `UpdatedAt` |
 | `Deletes` | `Deletion` | `Hard` | whether `Delete` removes the row, stamps `DeletedAt`, or [is not generated at all](#behaviour-rich-aggregates) (`None`) |
 | `Checks` | `Concurrency` | `Version` | the optimistic-concurrency token |
 | `Scope` | `Tenancy` | `Shared` | whether the table is partitioned by tenant — see [Multi-tenancy](multi-tenancy.md) |
@@ -1832,7 +1858,7 @@ public sealed class Destination : Aggregate<int>             // an int key is th
 
 | What Rask assumes | What an existing table usually has | How to say so |
 |---|---|---|
-| `CreatedAt` and `UpdatedAt` | neither | `Stamps = Timestamps.None` (or `Created` / `Updated` for the one it has) |
+| `CreatedAt` and `UpdatedAt` | neither | `Stamps = Timestamps.None` (or `Created` / `Updated` for the one it has) — on the root; a [child](#children) has neither unless it declares them |
 | a `Version` concurrency token | none | `Checks = Concurrency.None` — a write then takes no version, and the last writer wins |
 | a hard delete | the same | nothing: `Deletes` defaults to `Deletion.Hard`, and there is no `DeletedAt` unless you ask |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |

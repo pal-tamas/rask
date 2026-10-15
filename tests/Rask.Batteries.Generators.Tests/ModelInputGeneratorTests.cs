@@ -1724,4 +1724,39 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("Version", source, StringComparison.Ordinal);
         Assert.Contains(".Update<global::Shop.Depot>(id!, null, entity =>", source, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_root_holding_two_kinds_of_rows_with_rules_asks_each_without_a_clash()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Roster : Aggregate<Guid>
+            {
+                private readonly List<Slot> _slots = [];
+                private readonly List<Badge> _badges = [];
+                private Roster() { }
+                public IReadOnlyList<Slot> Slots => _slots;
+                public IReadOnlyList<Badge> Badges => _badges;
+            }
+            public sealed class Slot : Entity<Guid>
+            {
+                private Slot() { }
+                public string Label { get; private set; } = "";
+            }
+            public sealed class Badge : Entity<Guid>
+            {
+                private Badge() { }
+                public string Title { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.RosterModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("is { } __SlotsRows", source, StringComparison.Ordinal);
+        Assert.Contains("is { } __BadgesRows", source, StringComparison.Ordinal);
+    }
 }

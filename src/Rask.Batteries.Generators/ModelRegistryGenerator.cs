@@ -148,6 +148,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             ValueCollections(symbol),
             AggregateShape.ConstOf(symbol, "Scope", "Tenancy"),
             ChildTypeNamesOf(symbol),
+            AggregateShape.IsAggregate(symbol),
             unbuildable);
     }
 
@@ -563,9 +564,10 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         var distinct = candidates.Distinct().ToList();
         var scopeByType = ScopeByType(distinct);
+        var stamps = StampsByType(distinct);
 
         var declared = distinct
-            .Where(c => c.Stamps is not null || c.Deletes is not null || c.Checks is not null ||
+            .Where(c => stamps.ContainsKey(c.FullyQualifiedName) || c.Deletes is not null || c.Checks is not null ||
                         c.Broadcast is not null ||
                         c.Collections.Count > 0 || scopeByType.ContainsKey(c.FullyQualifiedName))
             .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
@@ -591,7 +593,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         foreach (var entity in declared)
         {
-            DeclareConventions(source, entity, scopeByType);
+            DeclareConventions(source, entity, scopeByType, stamps);
         }
 
         source.AppendLine("    }");
@@ -642,9 +644,34 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         }
     }
 
-    private static void DeclareConventions(StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType)
+    // Timestamps are the aggregate's, like its tenant: a child carries none unless it declares its own Stamps, so
+    // an adopted child table without CreatedAt maps as it is. Registered because the runtime default is All, which a
+    // table no root holds (a battery's queue, a cache entry) keeps.
+    private static Dictionary<string, int> StampsByType(List<Candidate> distinct)
     {
-        Declare(source, entity.FullyQualifiedName, "Timestamps", entity.Stamps);
+        var stamps = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var child in distinct.SelectMany(static c => c.ChildTypeNames))
+        {
+            stamps[child] = 0;
+        }
+
+        foreach (var candidate in distinct.Where(static c => c.Stamps is not null))
+        {
+            stamps[candidate.FullyQualifiedName] = candidate.Stamps!.Value;
+        }
+
+        return stamps;
+    }
+
+    private static void DeclareConventions(
+        StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType, Dictionary<string, int> stamps)
+    {
+        Declare(
+            source,
+            entity.FullyQualifiedName,
+            "Timestamps",
+            stamps.TryGetValue(entity.FullyQualifiedName, out var stamp) ? stamp : null);
         Declare(
             source,
             entity.FullyQualifiedName,
@@ -924,5 +951,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         EquatableArray<ValueCollectionSpec> Collections,
         int? Scope,
         EquatableArray<string> ChildTypeNames,
+        bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders);
 }

@@ -47,7 +47,8 @@ public static class BulkInsertExtensions
     /// <param name="cancellationToken">Cancels the load.</param>
     /// <returns>The number of rows written.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The context has unsaved changes; the entities carry domain events the chosen mode could not deliver
+    /// The entities are children of an aggregate, which are inserted only with it; the context has unsaved changes;
+    /// the entities carry domain events the chosen mode could not deliver
     /// honestly; or <see cref="BulkInsertOptions.SkipChangeTracking"/> was asked for on a model its writer
     /// cannot map faithfully.
     /// </exception>
@@ -60,6 +61,7 @@ public static class BulkInsertExtensions
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(entities);
+        ChildWrites.RefuseBulkInsert(context, typeof(TEntity));
 
         var options = new BulkInsertOptions();
         configure?.Invoke(options);
