@@ -800,8 +800,8 @@ if (page) {
         }
     }, true);
 
-    // The popup opening shows the chosen day's month again, drawn for the width it opens at; closing drops a
-    // choice nobody confirmed — but not on a phone, whose sheet opens again with it.
+    // The popup opening shows the chosen day's month again, drawn for the width it opened at — measured once it
+    // shows; closing drops a choice nobody confirmed — but not on a phone, whose sheet opens again with it.
     listen("beforetoggle", function (e) {
         const popup = e.target;
         const root = popup instanceof HTMLElement ? rootOf(popup) : null;
@@ -809,10 +809,17 @@ if (page) {
         if (!root || !state || popupOf(root) !== popup) return;
         if ((e as ToggleEvent).newState === "open") {
             forget(state);
+        } else {
+            if (!narrow(root)) state.pending = null;
             draw(root);
-            drawPresets(root, state);
-        } else if (!narrow(root)) {
-            state.pending = null;
         }
+    }, true);
+    listen("toggle", function (e) {
+        const popup = e.target;
+        const root = popup instanceof HTMLElement ? rootOf(popup) : null;
+        const state = root ? stateOf(root) : null;
+        if (!root || !state || popupOf(root) !== popup || (e as ToggleEvent).newState !== "open") return;
+        draw(root);
+        drawPresets(root, state);
     }, true);
 }

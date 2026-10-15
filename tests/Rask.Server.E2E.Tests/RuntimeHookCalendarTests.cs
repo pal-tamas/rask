@@ -291,7 +291,8 @@ public sealed class RuntimeHookCalendarTests(PlaywrightFixture playwright) : ICl
         Assert.Equal(("0", true), held);
         await Expect(page.Locator("#confirmed-box [popover]")).ToBeHiddenAsync();
         await page.ClickAsync("#confirmed");
-        Assert.Equal("true", await page.GetAttributeAsync("#confirmed-box td[data-date='2026-01-20']", "aria-selected"));
+        await Expect(page.Locator("#confirmed-box td[data-date='2026-01-20']")).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(page.Locator("#confirmed-box td[data-date='2026-01-22']")).ToHaveAttributeAsync("aria-selected", "false");
         Assert.Equal("1", await page.TextContentAsync("#confirmed-heard"));
     }
 
