@@ -8,13 +8,13 @@ namespace Rask.Data.Tests;
 /// <summary>
 /// <see cref="Clerk" /> over a table somebody else made, in a host wired by hand the way an adopting app wires
 /// it: the declared unique rules are asked as queries before the save, and the database's own index may not be
-/// the one the model has (#1250).
+/// the one the model has.
 /// </summary>
 /// <remarks>
 /// Every index of the table is DROPPED first, so a refusal with no inner exception is the check's.
 /// </remarks>
 [Collection(DataDbCollection.Name)]
-public sealed class AcrossTenantsAdoptedSchemaTests : IAsyncLifetime
+public sealed class IndexAsWrittenAdoptedSchemaTests : IAsyncLifetime
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
     private static readonly Guid Globex = new("a1b2c3d4-0000-4000-8000-00000000beef");
@@ -77,12 +77,12 @@ public sealed class AcrossTenantsAdoptedSchemaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_database_index_left_global_is_still_recognised_when_the_model_prefixed_it()
+    public async Task A_database_index_left_global_is_recognised_while_the_model_names_the_tenant()
     {
         await using (var context = await OpenAsync())
         {
             // The table as an existing app has it: the badge unique among everybody's rows, under the name the
-            // model gave it — while the model, not told AcrossTenants(), put the tenant in front.
+            // model gave it — while the model's index names the tenant.
             await context.Database.ExecuteSqlRawAsync(
                 "CREATE UNIQUE INDEX \"Clerk_badge_key\" ON \"Clerk\" (\"Badge\")",
                 TestContext.Current.CancellationToken);

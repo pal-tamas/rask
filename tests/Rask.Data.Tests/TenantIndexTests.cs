@@ -30,7 +30,7 @@ public sealed class Carrier : Aggregate<Guid>
         // Names the tenant itself, in the order an existing table has it: left exactly as written.
         builder.HasIndex(c => new { c.Name, c.TenantId }).IsUnique();
 
-        // Do not name it: the tenant goes in front.
+        // Do not name it: unique among every tenant's rows, as written.
         builder.HasIndex(c => c.Code).IsUnique();
         builder.HasIndex(c => c.Country);
 
@@ -40,8 +40,8 @@ public sealed class Carrier : Aggregate<Guid>
 }
 
 /// <summary>
-/// An index on a tenant-scoped table is unique WITHIN a tenant: one that does not name the tenant gets it in
-/// front, wherever it was declared, and one that already names it is left exactly as written (#1233).
+/// An index on a tenant-scoped table is exactly what the app wrote, wherever it was declared: one that names the
+/// tenant holds within a tenant, one that does not holds across every tenant. Nothing puts the tenant in front.
 /// </summary>
 [Collection(DataDbCollection.Name)]
 public sealed class TenantIndexTests : IDisposable
@@ -64,37 +64,16 @@ public sealed class TenantIndexTests : IDisposable
         Assert.Null(IndexOver(database, "TenantId", "Name"));
     }
 
-    [Fact]
-    public async Task A_unique_index_declared_in_Configure_gets_the_tenant_in_front()
+    [Theory]
+    [InlineData("Code")]
+    [InlineData("Country")]
+    [InlineData("Region")]
+    public async Task An_index_that_does_not_name_the_tenant_is_left_as_declared_wherever_it_was(string column)
     {
         await using var database = await StartDatabaseAsync();
 
-        var index = IndexOver(database, "TenantId", "Code");
-
-        Assert.NotNull(index);
-        Assert.True(index.IsUnique);
-        Assert.Null(IndexOver(database, "Code"));
-    }
-
-    [Fact]
-    public async Task A_plain_index_declared_in_Configure_gets_the_tenant_in_front_and_stays_plain()
-    {
-        await using var database = await StartDatabaseAsync();
-
-        var index = IndexOver(database, "TenantId", "Country");
-
-        Assert.NotNull(index);
-        Assert.False(index.IsUnique);
-        Assert.Null(IndexOver(database, "Country"));
-    }
-
-    [Fact]
-    public async Task An_index_declared_before_the_conventions_gets_the_tenant_in_front()
-    {
-        await using var database = await StartDatabaseAsync();
-
-        Assert.NotNull(IndexOver(database, "TenantId", "Region"));
-        Assert.Null(IndexOver(database, "Region"));
+        Assert.NotNull(IndexOver(database, column));
+        Assert.Null(IndexOver(database, "TenantId", column));
     }
 
     [Fact]
@@ -109,33 +88,19 @@ public sealed class TenantIndexTests : IDisposable
     }
 
     [Fact]
-    public async Task Two_tenants_can_hold_the_same_value_in_a_unique_column()
-    {
-        await using var database = await StartDatabaseAsync();
-        await SaveAsync(_acme, Carrier.Named("Acme Freight", "FRT"));
-
-        await SaveAsync(_globex, Carrier.Named("Globex Freight", "FRT"));
-
-        using (Tenant.Across())
-        {
-            Assert.Equal(2, await Carrier.Count(c => c.Code == "FRT", TestContext.Current.CancellationToken));
-        }
-    }
-
-    [Fact]
-    public async Task One_tenant_cannot_hold_the_same_value_twice()
+    public async Task A_unique_index_without_the_tenant_holds_across_every_tenant()
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(_acme, Carrier.Named("Acme Freight", "FRT"));
 
         var refused = await Assert.ThrowsAsync<DbUpdateException>(
-            () => SaveAsync(_acme, Carrier.Named("Acme Haulage", "FRT")));
+            () => SaveAsync(_globex, Carrier.Named("Globex Freight", "FRT")));
 
         Assert.Contains("UNIQUE", refused.InnerException!.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_index_that_names_the_tenant_still_holds_within_it_and_not_across()
+    public async Task The_index_that_names_the_tenant_holds_within_it_and_not_across()
     {
         await using var database = await StartDatabaseAsync();
         await SaveAsync(_acme, Carrier.Named("Freight", "A"));

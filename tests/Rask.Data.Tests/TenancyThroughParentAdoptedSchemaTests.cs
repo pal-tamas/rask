@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 
 /// <summary>
 /// <see cref="Chip" /> over a table somebody else made, in a host wired by hand: its declared unique rule is asked
-/// as a query before the save, through the parent — so it holds within a tenant, as the chip does (#1251).
+/// as a query before the save — over exactly the index's columns, so a code holds across every tenant (#1251).
 /// </summary>
 /// <remarks>
 /// The table's unique index is DROPPED first, so a refusal with no inner exception is the check's.
@@ -62,13 +62,16 @@ public sealed class TenancyThroughParentAdoptedSchemaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task A_code_another_tenant_holds_passes_because_the_rule_is_asked_through_the_parent()
+    public async Task A_code_another_tenant_holds_is_refused_because_the_index_names_no_tenant()
     {
         await SaveAsync(Acme, Driver.Named("a-d", "Ada", "C-1"));
 
-        await SaveAsync(Globex, Driver.Named("g-d", "Gus", "C-1"));
+        var refused = await Assert.ThrowsAsync<RaskValidationException>(
+            () => SaveAsync(Globex, Driver.Named("g-d", "Gus", "C-1")));
 
-        Assert.Equal(2, await ChipsAsync());
+        Assert.Equal(Chip.Taken, Assert.Single(refused.Failures).Message);
+        Assert.Null(refused.InnerException);
+        Assert.Equal(1, await ChipsAsync());
     }
 
     [Fact]

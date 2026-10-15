@@ -42,8 +42,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
 - **`Current` and multi-tenancy**: `Current.UserId`, `Current.Principal` and `Current.Tenant` answer from a
   static factory or anywhere else with no constructor to inject into. `public const Tenancy Scope =
-  Tenancy.PerTenant;` gives a table a `TenantId`, a query filter no read can compose away and a tenant prefix on
-  every index; the tenant comes from the signed-in user.
+  Tenancy.PerTenant;` gives a table a `TenantId` and a query filter no read can compose away, and an entity under
+  it is read through its root; the tenant comes from the signed-in user.
 - **`BulkInsert`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
 

@@ -5,7 +5,7 @@ using Rask.Cqrs;
 
 namespace Rask.Providers.E2E.Tests;
 
-/// <summary>A tenant's sign-ins: a name unique among every tenant, a badge unique within one (#1250).</summary>
+/// <summary>A tenant's sign-ins: a name unique among every tenant, a badge unique within one, as the app wrote them.</summary>
 public sealed class Login : Aggregate<string>
 {
     public const string UsernameTaken = "Ez a felhasználónév foglalt.";
@@ -44,8 +44,8 @@ public sealed class LoginDbContext(DbContextOptions<LoginDbContext> options) : D
             b.Property(l => l.TenantId).HasConversion<string>().HasMaxLength(64);
             b.Property(l => l.Username).HasMaxLength(255);
             b.Property(l => l.Badge).HasMaxLength(32);
-            b.HasIndex(l => l.Username).HasDatabaseName(Login.UsernameKey).IsUnique(Login.UsernameTaken).AcrossTenants();
-            b.HasIndex(l => l.Badge).HasDatabaseName(Login.BadgeKey).IsUnique(Login.BadgeTaken);
+            b.HasIndex(l => l.Username).HasDatabaseName(Login.UsernameKey).IsUnique(Login.UsernameTaken);
+            b.HasIndex(l => new { l.TenantId, l.Badge }).HasDatabaseName(Login.BadgeKey).IsUnique(Login.BadgeTaken);
         });
 
         modelBuilder.ApplyRaskConventions(this);
@@ -53,11 +53,11 @@ public sealed class LoginDbContext(DbContextOptions<LoginDbContext> options) : D
 }
 
 /// <summary>
-/// The violation of an index declared <c>AcrossTenants()</c>, and of one Rask prefixed under the name it was
-/// given, recognised by that name on PostgreSQL.
+/// The violation of an index without the tenant, and of one that names it, recognised by the name it was given on
+/// PostgreSQL.
 /// </summary>
 [Collection(PostgresCollection.Name)]
-public sealed class PostgresAcrossTenantsTests
+public sealed class PostgresIndexAsWrittenTests
 {
     private readonly Guid _acme = Guid.NewGuid();
     private readonly Guid _globex = Guid.NewGuid();
@@ -66,12 +66,12 @@ public sealed class PostgresAcrossTenantsTests
     public async Task A_username_another_tenant_holds_fails_with_the_message_by_the_indexs_name()
     {
         Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
-        await using var app = AcrossTenantsApp.Build(o => o.UseRaskPostgresAt(Postgres.Required));
+        await using var app = IndexAsWrittenApp.Build(o => o.UseRaskPostgresAt(Postgres.Required));
         await using var db = await ResetAsync(app);
-        await AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("ada"));
+        await IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("ada"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => AcrossTenantsApp.SaveAsync(db, _globex, Login.Named("ada")));
+            () => IndexAsWrittenApp.SaveAsync(db, _globex, Login.Named("ada")));
 
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Login.UsernameTaken, failure.Message);
@@ -83,13 +83,13 @@ public sealed class PostgresAcrossTenantsTests
     public async Task A_badge_taken_within_the_tenant_fails_with_the_message_by_the_name_it_was_given()
     {
         Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
-        await using var app = AcrossTenantsApp.Build(o => o.UseRaskPostgresAt(Postgres.Required));
+        await using var app = IndexAsWrittenApp.Build(o => o.UseRaskPostgresAt(Postgres.Required));
         await using var db = await ResetAsync(app);
-        await AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("ada", badge: "B-1"));
-        await AcrossTenantsApp.SaveAsync(db, _globex, Login.Named("bob", badge: "B-1"));
+        await IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("ada", badge: "B-1"));
+        await IndexAsWrittenApp.SaveAsync(db, _globex, Login.Named("bob", badge: "B-1"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("cyd", badge: "B-1")));
+            () => IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("cyd", badge: "B-1")));
 
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Login.BadgeTaken, failure.Message);
@@ -106,11 +106,11 @@ public sealed class PostgresAcrossTenantsTests
 }
 
 /// <summary>
-/// The same on SQL Server, in a database of its own — and the case that found it: a database whose index is
-/// GLOBAL while the model, not told <c>AcrossTenants()</c>, prefixed it.
+/// The same on SQL Server, in a database of its own — and a database whose index is GLOBAL while the model's
+/// names the tenant.
 /// </summary>
 [Collection(SqlServerCollection.Name)]
-public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
+public sealed class SqlServerIndexAsWrittenTests : IAsyncLifetime
 {
     private const string DatabaseName = "rask_across_tenants";
     private const int UniqueConstraintViolated = 2627;
@@ -142,7 +142,7 @@ public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
     }
 
     [Fact]
-    public void The_prefixed_index_keeps_its_name_and_its_null_filter_names_the_tenant_too()
+    public void The_index_that_names_the_tenant_keeps_its_name_and_its_null_filter_names_both_columns()
     {
         using var db = new LoginDbContext(new DbContextOptionsBuilder<LoginDbContext>()
             .UseSqlServer("Server=(local);Database=rask_model_only;Trusted_Connection=True").Options);
@@ -162,10 +162,10 @@ public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
         await using var app = App();
         await using var db = await OpenAsync(app);
-        await AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("ada"));
+        await IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("ada"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => AcrossTenantsApp.SaveAsync(db, _globex, Login.Named("ada")));
+            () => IndexAsWrittenApp.SaveAsync(db, _globex, Login.Named("ada")));
 
         var failure = Assert.Single(refused.Failures);
         Assert.Equal(Login.UsernameTaken, failure.Message);
@@ -178,11 +178,11 @@ public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
         await using var app = App();
         await using var db = await OpenAsync(app);
-        await AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("ada", badge: "B-1"));
-        await AcrossTenantsApp.SaveAsync(db, _globex, Login.Named("bob", badge: "B-1"));
+        await IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("ada", badge: "B-1"));
+        await IndexAsWrittenApp.SaveAsync(db, _globex, Login.Named("bob", badge: "B-1"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("cyd", badge: "B-1")));
+            () => IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("cyd", badge: "B-1")));
 
         Assert.Equal(Login.BadgeKey, Assert.Single(refused.Failures).Source);
     }
@@ -201,10 +201,10 @@ public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
             ALTER TABLE [across].[Login] ADD CONSTRAINT [Login_badge_key] UNIQUE ([Badge]);
             """,
             TestContext.Current.CancellationToken);
-        await AcrossTenantsApp.SaveAsync(db, _acme, Login.Named("eve", badge: "G-1"));
+        await IndexAsWrittenApp.SaveAsync(db, _acme, Login.Named("eve", badge: "G-1"));
 
         var refused = await Assert.ThrowsAsync<RaskValidationException>(
-            () => AcrossTenantsApp.SaveAsync(db, _globex, Login.Named("fay", badge: "G-1")));
+            () => IndexAsWrittenApp.SaveAsync(db, _globex, Login.Named("fay", badge: "G-1")));
 
         Assert.Equal(Login.BadgeTaken, Assert.Single(refused.Failures).Message);
         Assert.Equal(
@@ -217,11 +217,11 @@ public sealed class SqlServerAcrossTenantsTests : IAsyncLifetime
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
 
     private static ServiceProvider App() =>
-        AcrossTenantsApp.Build(o => o.UseSqlServer(SqlServer.Database(DatabaseName)));
+        IndexAsWrittenApp.Build(o => o.UseSqlServer(SqlServer.Database(DatabaseName)));
 }
 
 /// <summary>Wired the way an application wires it: AddRaskData registers the interceptors, the context adds them.</summary>
-internal static class AcrossTenantsApp
+internal static class IndexAsWrittenApp
 {
     internal static ServiceProvider Build(Action<DbContextOptionsBuilder> provider)
     {

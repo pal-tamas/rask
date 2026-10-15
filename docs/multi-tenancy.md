@@ -24,8 +24,8 @@ public sealed class Invoice : Aggregate<Guid>
 }
 ```
 
-That gives the table a `TenantId` column, a query filter no read can compose away, and a `TenantId` prefix on
-every index it has. The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
+That gives the table a `TenantId` column and a query filter no read can compose away; its indexes are
+[what you write](#an-index-is-what-you-write). The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
 takes its root's answer — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant) for
 whether it keeps a column of its own or is read through its parent.
 
@@ -172,10 +172,9 @@ What follows from reading through the parent:
 - A child is written only under a parent of the tenant in flight. A parent the context holds answers from its own
   `TenantId`; one it does not hold is looked up through the tenant filter, once per save. A child added to, moved
   to, changed or deleted under another tenant's parent is refused with an `InvalidOperationException`.
-- There is no column to put first in its indexes, so a unique index on the child holds across every tenant in the
-  database. Its declared rule, asked [before the save](data.md#what-a-form-over-the-model-asks-by-itself), runs through the
-  child's filter and so within the tenant. Put the parent's key in the index (`(DriverId, Code)`) when that is
-  the rule you mean.
+- A unique index on the child names no tenant, so — like [any index](#an-index-is-what-you-write) without
+  `TenantId` — it holds across every tenant, and its declared rule is asked about every tenant's rows. Put the
+  parent's key in the index (`(DriverId, Code)`) when unique within the parent is the rule you mean.
 
 **A column that disappears.** A child that declares no `TenantId` used to get a shadow `TenantId` column of its
 own; it is now read through its parent instead. The rows stay isolated either way, but a database Rask migrates
@@ -363,52 +362,31 @@ It means "include soft-deleted rows" and leaves the tenant filter exactly where 
 never quietly becomes a cross-tenant read the day an aggregate declares `Scope`. Crossing tenants is
 `Tenant.Across()`. This uses EF Core 10's named query filters.
 
-## Indexes are prefixed for you
+## An index is what you write
 
-`HasIndex(p => p.Sku).IsUnique()` on a partitioned table would otherwise mean "no two tenants may ever use
-the same SKU", and the symptom is one tenant unable to create a row because a different tenant already has
-it, with nothing in the code saying so. Rask puts `TenantId` at the front of every index on a tenant-scoped
-entity that does not name the tenant, so uniqueness means *within this tenant* and the filtered query can use
-the index — wherever the index was declared: in the entity's `Configure`, by an `[Index]` attribute, or in a
-context of your own.
-
-**An index that already names `TenantId` is left exactly as written**, wherever in the index it is:
-
-```csharp
-public static void Configure(EntityTypeBuilder<Destination> builder)
-{
-    builder.HasIndex(d => new { d.Name, d.TenantId }).IsUnique();   // stays (Name, TenantId)
-    builder.HasIndex(d => d.Code).IsUnique();                       // becomes (TenantId, Code)
-}
-```
-
-That is what lets a table that already exists keep the indexes it has. A declared `TenantId` is what the first
-line needs; for a shadow one, name it as a string — `builder.HasIndex("Name", Columns.TenantId)`.
-
-**A prefixed index keeps what it was told about itself**: its [message](data.md#what-a-unique-indexs-violation-says)
-and the `HasDatabaseName("…")` it was given, so a violation is still recognised by the name the database
-reports.
-
-### A key that is unique across every tenant
-
-Some keys are global by nature — a sign-in name, an external reference, a chip id. Say so on the index, and it
-is left exactly as written:
+Rask adds nothing to an index. A key that is unique **within a tenant** names `TenantId` in the index; a key that
+is unique **across every tenant** — a sign-in name, an external reference — does not:
 
 ```csharp
 public static void Configure(EntityTypeBuilder<User> builder)
 {
-    builder.HasIndex(u => u.Username)
-        .HasDatabaseName("User_username_key")
-        .IsUnique("Ez a felhasználónév foglalt.")
-        .AcrossTenants();                                            // stays (Username)
+    builder.HasIndex(u => u.Username).IsUnique("Ez a felhasználónév foglalt.");              // every tenant's rows
+    builder.HasIndex(u => new { u.TenantId, u.Badge }).IsUnique("This badge is handed out."); // one tenant's rows
 }
 ```
 
-Its unique rule is then asked about every tenant's rows too — by
-[a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself) and by
-[the check before the save](data.md#when-the-index-may-not-be-there) — so a name another tenant holds is refused
-at the field and at the save with the index's message, and never tells the caller whose it is. Only the tenant
-filter is lifted for that question; a soft-deleted row counts the way it does for any other rule.
+Put `TenantId` first in an index that holds per tenant: the filtered query reads it from the front. A declared
+`TenantId` is what the second line needs; for a shadow one, name it as a string —
+`builder.HasIndex(Columns.TenantId, "Badge")`. An index is kept exactly as written, wherever it was declared —
+`Configure`, an `[Index]` attribute, a context of your own — with its [message](data.md#what-a-unique-indexs-violation-says),
+its `HasDatabaseName("…")` and its filter, so a violation is recognised by the name the database reports.
+
+Its unique rule is asked the same way — by [a form bound to the generated model](data.md#what-a-form-over-the-model-asks-by-itself)
+and by [the check before the save](data.md#when-the-index-may-not-be-there) — over exactly the index's columns:
+one that names `TenantId` about the row's tenant, one that does not about every tenant's rows, so a name another
+tenant holds is refused at the field and at the save with the index's message, and never tells the caller whose
+it is. Only the tenant filter is lifted for that question; a soft-deleted row counts the way it does for any
+other rule.
 
 ## Writes stamp it, and it never moves
 

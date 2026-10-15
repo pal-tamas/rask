@@ -15,13 +15,6 @@ them until tagged releases begin.
   Excel's outline, a `SUBTOTAL` total row. A raw `DateTime`/`DateOnly`/`DateTimeOffset` is written as a day or
   moment, a text is always a string (never a formula), control characters are escaped, more than 26 columns get
   `AA`, and a sheet name Excel would reject throws up front. `net10.0` and `net10.0-browser`; see `docs/xlsx.md`.
-- **`.AcrossTenants()` — a unique key on a tenant-scoped table that holds across every tenant (#1250).** A sign-in
-  name, an external reference, a chip id: `b.HasIndex(u => u.Username).HasDatabaseName("User_username_key")
-  .IsUnique("Ez a felhasználónév foglalt.").AcrossTenants()`. Before: Rask put `TenantId` in front of every index
-  of a `PerTenant` table, so no index could stay global, and a name another tenant held failed in the database as
-  a bare `DbUpdateException`. After: the index is left exactly as written, and its unique rule is asked about every
-  tenant's rows — by a form bound to the generated model and by the check before the save — so the name is
-  refused at the field and at the save with the index's message. See `docs/multi-tenancy.md`.
 - **A child of a tenant-scoped aggregate with no tenant column of its own is read through its parent (#1251).**
   A table another app made often keeps the tenant on the root only: `Chip` rows belong to a partner through their
   `driverId` or `vehicleId`. Before: every child got a `TenantId` column of its own, so such a schema could not be
@@ -34,6 +27,21 @@ them until tagged releases begin.
   parent. A child that declares `TenantId` keeps the column, as before. **Read your next migration:** a child that
   relied on the shadow `TenantId` loses that column — declare `public Guid? TenantId { get; private set; }` on it
   to keep it. See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
+
+### Changed
+
+- **BREAKING: an index on a tenant-scoped table is what the app writes — Rask no longer puts `TenantId` in front.**
+  Before: every index of a `PerTenant` table that did not name the tenant got `TenantId` added at the front, so no
+  index could stay global and a sign-in name another tenant held failed as a bare `DbUpdateException`. After:
+  nothing is added. A key unique across every tenant is written without it —
+  `b.HasIndex(u => u.Username).IsUnique("Foglalt.")` — and one unique within a tenant names it —
+  `b.HasIndex(u => new { u.TenantId, u.Name }).IsUnique("Foglalt.")`. The unique rule is asked, by a form bound to
+  the generated model and by the check before the save, over exactly the index's columns: within the row's tenant
+  when `TenantId` is among them, across every tenant when it is not. `HasDatabaseName`, the message and the filter
+  are kept as written, and a violation is matched by the database's index name (constraint name on PostgreSQL and
+  SQL Server, columns on SQLite). **An app that relied on the automatic prefix adds `TenantId` to its per-tenant
+  indexes** (`b.HasIndex(Columns.TenantId, "Code")` for a shadow column); a migration then shows only what you
+  changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Security
 

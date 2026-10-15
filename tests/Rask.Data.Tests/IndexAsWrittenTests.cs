@@ -42,17 +42,18 @@ public sealed class Clerk : Aggregate<string>
         builder.Property(c => c.TenantId).HasConversion<string>().HasMaxLength(64);
         builder.Property(c => c.Username).HasMaxLength(255);
 
-        builder.HasIndex(c => c.Username).HasDatabaseName(UsernameKey).IsUnique(UsernameTaken).AcrossTenants();
-        builder.HasIndex(c => c.Badge).HasDatabaseName(BadgeKey).IsUnique(BadgeTaken);
+        builder.HasIndex(c => c.Username).HasDatabaseName(UsernameKey).IsUnique(UsernameTaken);
+        builder.HasIndex(c => new { c.TenantId, c.Badge }).HasDatabaseName(BadgeKey).IsUnique(BadgeTaken);
     }
 }
 
 /// <summary>
-/// An index declared <c>AcrossTenants()</c> on a tenant-scoped table is left exactly as written and is unique
-/// among every tenant's rows; one Rask does prefix keeps the database name it was given (#1250).
+/// The index on a tenant-scoped table is what the app wrote: without <c>TenantId</c> it is unique among every
+/// tenant's rows (TA's sign-in name), with it within one tenant (an Eszaf-style badge). Nothing adds the
+/// tenant, and the name, message and filter the app gave an index are kept as written.
 /// </summary>
 [Collection(DataDbCollection.Name)]
-public sealed class AcrossTenantsTests : IDisposable
+public sealed class IndexAsWrittenTests : IDisposable
 {
     private static readonly Guid Acme = new("0f9d5a3c-7c1e-4d52-9a54-2b6f1f0c8e11");
     private static readonly Guid Globex = new("a1b2c3d4-0000-4000-8000-00000000beef");
@@ -62,7 +63,7 @@ public sealed class AcrossTenantsTests : IDisposable
     public void Dispose() => File.Delete(_dbPath);
 
     [Fact]
-    public async Task An_index_declared_across_tenants_is_left_exactly_as_written()
+    public async Task An_index_without_the_tenant_is_left_exactly_as_written()
     {
         await using var database = await StartDatabaseAsync();
 
@@ -74,7 +75,7 @@ public sealed class AcrossTenantsTests : IDisposable
     }
 
     [Fact]
-    public async Task A_prefixed_index_keeps_the_database_name_it_was_given_and_its_message()
+    public async Task An_index_that_names_the_tenant_keeps_its_order_its_name_and_its_message()
     {
         await using var database = await StartDatabaseAsync();
 

@@ -214,15 +214,10 @@ public static class ModelBuilderExtensions
     internal const string TenantFilter = "Tenant";
 
     /// <summary>
-    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column, its query filter and a
-    /// <c>TenantId</c> prefix on each of its indexes.
+    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
+    /// indexes are what the app wrote: one that holds within a tenant names <c>TenantId</c> itself.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// The index prefix is not a nicety. <c>HasIndex(p =&gt; p.Sku).IsUnique()</c> on a partitioned table
-    /// otherwise means "no two tenants may ever use the same SKU", and the symptom is one tenant unable to
-    /// create a row because a different tenant already has it — with nothing in the code saying so.
-    /// </para>
     /// <para>
     /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one —
     /// or <c>int?</c> or <c>long?</c>, for a table whose tenants are numbered: the declared type is the
@@ -305,8 +300,6 @@ public static class ModelBuilderExtensions
 
         builder.Property(column, Columns.TenantId);
         builder.HasQueryFilter(TenantFilter, TenantColumn.BuildFilter(clrType, column, context));
-
-        TenantIndexes.Prefix(builder.Metadata);
     }
 
     /// <summary>
