@@ -1,4 +1,5 @@
 #nullable enable
+const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 override Rask.Core.Css.GetHashCode() -> int
 override Rask.Core.Css.ToString() -> string!
 override Rask.Core.Messaging.ToastLink.Equals(object? obj) -> bool
@@ -3911,6 +3912,14 @@ Rask.Core.Globalization.RaskString.ColorSwatchYellow = 158 -> Rask.Core.Globaliz
 Rask.Core.Globalization.RaskString.CommandEmpty = 106 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveLeave = 98 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveStay = 97 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionAuthenticating = 196 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionOffline = 191 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionReconnecting = 190 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionReload = 194 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionRetry = 193 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionSessionTimedOut = 197 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionStillTrying = 192 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConnectionUpdating = 195 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridCollapseGroup = 117 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridCollapseRow = 123 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DataGridColumns = 107 -> Rask.Core.Globalization.RaskString
@@ -4058,6 +4067,7 @@ Rask.Core.Globalization.SessionCulture.Set(System.Globalization.CultureInfo! cul
 Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tasks.Task<bool>!
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
+Rask.Core.GoTo.Pushing() -> void
 Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
 Rask.Core.HTMLInputElement<T>.Blur.set -> void
 Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
@@ -4795,6 +4805,8 @@ static Rask.Core.Browser.WebRtcInterop.State(int id, string! state) -> System.Th
 static Rask.Core.Browser.WebRtcInterop.Track(int id, int streamId) -> System.Threading.Tasks.Task!
 static Rask.Core.BuilderRuntime.ClaimKey<T>(T! target, object? key) -> T!
 static Rask.Core.BuilderRuntime.ClearCallbacks(Rask.Core.Component! target) -> void
+static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text) -> T!
+static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text, string! expect) -> T!
 static Rask.Core.BuilderRuntime.HasCallbacks(Rask.Core.Component! target) -> bool
 static Rask.Core.BuilderRuntime.MarkCallbacks(Rask.Core.Component! target) -> void
 static Rask.Core.BuilderRuntime.MarkChanged(Rask.Core.Component! target) -> void
@@ -7253,6 +7265,10 @@ static Rask.Core.Globalization.RaskStrings.Get<T0, T1>(Rask.Core.Globalization.R
 static Rask.Core.Globalization.RaskStrings.Get<T0>(Rask.Core.Globalization.RaskString key, string! fallback, T0 arg0) -> string!
 static Rask.Core.Globalization.RaskStrings.UseLibrarySource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
+static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> Rask.Core.GoTo!
+static Rask.Core.Go.With(string! key, string? value) -> Rask.Core.GoTo!
+static Rask.Core.Go.Without() -> Rask.Core.GoTo!
+static Rask.Core.Go.Without(string! key) -> Rask.Core.GoTo!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
 static Rask.Core.Live.DevErrorInfo.From(System.Exception! ex, string! kind) -> Rask.Core.Live.DevErrorInfo?
 static Rask.Core.Live.DevErrorInfo.operator !=(Rask.Core.Live.DevErrorInfo? left, Rask.Core.Live.DevErrorInfo? right) -> bool
@@ -17912,10 +17928,6 @@ static Rask.Core.Go.Out(string! path) -> void
 static Rask.Core.Go.To(Rask.Core.Routing.RouteUrl url) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path) -> Rask.Core.GoTo!
 static Rask.Core.Go.To(string! path, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! query) -> Rask.Core.GoTo!
-static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> void
-static Rask.Core.Go.With(string! key, string? value) -> void
-static Rask.Core.Go.Without() -> void
-static Rask.Core.Go.Without(string! key) -> void
 Rask.Core.Auth
 static Rask.Core.Auth.AddPasskey(string? name = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 static Rask.Core.Auth.ConfirmEmail(string! userId, string! token) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
@@ -19259,7 +19271,6 @@ const Rask.Core.AriaRole.Tooltip = "tooltip" -> string!
 const Rask.Core.AriaRole.Tree = "tree" -> string!
 const Rask.Core.AriaRole.Treegrid = "treegrid" -> string!
 const Rask.Core.AriaRole.Treeitem = "treeitem" -> string!
-const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 static RaskBuilderSettersRask_Core.AriaActiveDescendant<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b) -> T!
 static RaskBuilderSettersRask_Core.AriaAtomic<T>(this T! __b, bool? value) -> T!

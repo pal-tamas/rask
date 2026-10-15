@@ -477,6 +477,30 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 `Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. See
 [`Form`](../src/Rask.Core/Dom/HTMLFormElement.cs).
 
+### Asking before an action
+
+`.Confirm("…")` asks the reader in the browser's own `confirm` dialog before a click or a submit is sent —
+Livewire's `wire:confirm`. It is a step on every element, so it works on a plain `Button`, a kit
+`Ui.Button`, a `Form` and a submit button alike:
+
+```csharp
+Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the partner?")
+
+// Livewire's wire:confirm.prompt: the reader types the name, and only an exact match goes (case and all).
+Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Type the partner's name to delete it", expect: row.Name)
+
+// On a form it asks before the submit; on a submit button, before the submit that button makes.
+Form.Model(_order).OnSubmit(Send).Confirm("Send the order?")[ … ]
+```
+
+<!-- demo:form-confirm -->
+
+The question is asked in the browser, before anything leaves it, so it costs no round trip. Cancelled, **nothing
+is sent**: not the click or the submit, and not the fields still waiting to go with it — a bound field that
+waits for the next action keeps waiting. Both hosts ask the same way. The element carries the question as
+`data-rask-confirm` (and the expected answer as `data-rask-confirm-expect`), so it is in the page's own words
+and in its language. Do not put a secret in `expect:` — it is in the page.
+
 ### Ask before leaving unsaved changes
 
 `ConfirmLeave` makes a form ask before the reader walks away from what they typed:

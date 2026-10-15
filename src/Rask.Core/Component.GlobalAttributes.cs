@@ -102,6 +102,10 @@ public abstract partial class Component
         public ContentEditable? ContentEditable;
         public bool? Spellcheck;
         public bool? Translate;
+
+        // What `.Confirm(…)` asks, and whether a step wrote it since the entry (Element.Ask).
+        public ConfirmAsk? Confirm;
+        public bool ConfirmWritten;
     }
 
     // The whole side object in one read, for the writer's single null check.

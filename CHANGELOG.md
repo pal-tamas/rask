@@ -257,6 +257,26 @@ them until tagged releases begin.
   `Lane` column: `rask db add AddJobLane && rask db update` (until then the processor logs exactly that).
   `IJobs.Add` takes the lane; `jobs.Enqueued<T>().InLane("x")` asks about it in a test.
 
+- **`.Confirm("…")` asks before a click or a submit is sent — Livewire's `wire:confirm`.** A step on every element,
+  kit components included: `Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the
+  partner?")` shows the browser's `confirm` first, and `.Confirm("Type the name to delete it", expect: row.Name)`
+  (Livewire's `.prompt`) lets the action go only when the reader types the name exactly. On a `Form` it asks before
+  the submit, on a submit button before the submit it makes. Refused, nothing leaves the browser — not the event,
+  and not the fields waiting to go with it. Both hosts (`rask-confirm.ts`); `docs/forms.md#asking-before-an-action`.
+- **A field whose event was sent says `data-loading` until its answer (Livewire's `data-loading` on a
+  `wire:model.live` input).** Before: the runtime marked only buttons, submits and `data-rask-loading` elements, so
+  an input searching as it was typed showed nothing. After: a field whose `input` or `change` event left —
+  `.Live()`, `.Debounce(…)`, a server `OnInput` — carries `data-loading` (not `aria-busy`) from 200 ms after it was
+  sent until that event's ack (Server) or dispatch promise (WASM), and `data-rask-loading="off"` opts out. The kit
+  draws nothing for it: Flux's input has no automatic loading state, so `Ui.Input` shows no spinner of its own;
+  `in-data-loading:` is there for an app's own.
+- **The reconnect overlay speaks the page's language, and `<html>` says `data-rask-offline` while the page cannot
+  reach its app (Livewire's `wire:offline`).** Before: "Reconnecting…", "You're offline — waiting to reconnect…",
+  "Retry now" and "Your session timed out…" were English in `rask.js` whatever the page's language. After: they
+  are eight `RaskString` keys (`ConnectionReconnecting` … `ConnectionSessionTimedOut`, formal Hungarian in the
+  kit), written once, with the first response, as `<script type="application/json" id="rask-texts">` in the page's culture (not in the live tree, so no update builds it). And `<html>` carries
+  `data-rask-offline` while the browser reports itself offline or the Server's socket is down, on both hosts, so a
+  page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. `docs/configuration.md#reconnect-ux`.
 - **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
   matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
   it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
@@ -306,6 +326,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A move that changes only the query string replaces the current history entry (Livewire's `#[Url]`).** Before:
+  `Go.With(...)` and `Go.Without(...)` pushed a new entry, so every pause of a live search added a Back stop. After:
+  they take the current entry's place; `Go.With("page", "2").Pushing()` opts back into a new entry. `Go.With` and
+  `Go.Without` now return the `GoTo` step (they returned `void`), so a call site that ignored the result compiles
+  unchanged. A path change (`Go.To`) still pushes, and a query move after a path change in the same handler joins
+  that push. Both hosts. A pager that should be a place to go Back to says `.Pushing()`, as the site's parcels
+  pager does.
 - **BREAKING: MDN's latest data moved a few generated names, taken as it came.** Before → after:
   `Textarea.Wrap(TextareaWrap.Soft)` → `Textarea.Wrap("soft")` (the `TextareaWrap` enum is gone; MDN no longer lists
   its keywords); `ElementRef<HTMLScriptElement>`'s `Src`, `Text` and `SetText` are gone;

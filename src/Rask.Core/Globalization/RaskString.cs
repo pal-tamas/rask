@@ -597,4 +597,28 @@ public enum RaskString
 
     /// <summary>The accessible name of a phone field's country button, before the country it shows.</summary>
     PhoneChangeCountry,
+
+    /// <summary>The reconnect overlay's message while the page tries to reach its app again.</summary>
+    ConnectionReconnecting,
+
+    /// <summary>The reconnect overlay's message while the browser reports itself offline.</summary>
+    ConnectionOffline,
+
+    /// <summary>The reconnect overlay's message once the first attempts have failed.</summary>
+    ConnectionStillTrying,
+
+    /// <summary>The reconnect overlay's button that tries to reconnect at once.</summary>
+    ConnectionRetry,
+
+    /// <summary>The reconnect overlay's button that reloads the page.</summary>
+    ConnectionReload,
+
+    /// <summary>The reconnect overlay's message while the app is being updated.</summary>
+    ConnectionUpdating,
+
+    /// <summary>The reconnect overlay's message while a sign-in or sign-out reconnects the page.</summary>
+    ConnectionAuthenticating,
+
+    /// <summary>The reconnect overlay's message once the page's session is gone.</summary>
+    ConnectionSessionTimedOut,
 }

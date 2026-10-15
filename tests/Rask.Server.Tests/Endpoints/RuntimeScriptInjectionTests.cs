@@ -27,7 +27,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
+        Assert.Matches("<script src=\"/rask/rask\\.js\\?v=[0-9a-f]+\"></script><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>[^<]*</script></body>", body);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class RuntimeScriptInjectionTests
 
         var body = await (await host.Http.GetAsync("/appA/", TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-        Assert.Matches("<script data-rask-base=\"/appA/\" src=\"/appA/rask/rask\\.js\\?v=[0-9a-f]+\"></script></body>", body);
+        Assert.Matches("<script data-rask-base=\"/appA/\" src=\"/appA/rask/rask\\.js\\?v=[0-9a-f]+\"></script><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>[^<]*</script></body>", body);
     }
 
     [Fact]

@@ -544,6 +544,14 @@ they say when you set nothing.
 | `CarouselIndicators` | Carousel | `Choose slide to display` |
 | `CarouselShowSlide` | Carousel | `Show slide {0}` |
 | `PhoneChangeCountry` | Phone | `Change country` |
+| `ConnectionReconnecting` | Reconnect overlay | `Reconnecting…` |
+| `ConnectionOffline` | Reconnect overlay | `You're offline — waiting to reconnect…` |
+| `ConnectionStillTrying` | Reconnect overlay | `Still trying to reconnect…` |
+| `ConnectionRetry` | Reconnect overlay | `Retry now` |
+| `ConnectionReload` | Reconnect overlay | `Reload` |
+| `ConnectionUpdating` | Reconnect overlay | `Updating…` |
+| `ConnectionAuthenticating` | Reconnect overlay | `Authenticating…` |
+| `ConnectionSessionTimedOut` | Reconnect overlay | `Your session timed out. Reload to continue.` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

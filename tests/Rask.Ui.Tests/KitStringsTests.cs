@@ -302,6 +302,10 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.HandlerFailed),
         nameof(RaskString.ErrorTitle),
         nameof(RaskString.NotFoundTitle), nameof(RaskString.NotFoundBody), nameof(RaskString.NotFoundBackHome),
+        // The reconnect overlay: the Server host writes them on the runtime's script (ConnectionTexts).
+        nameof(RaskString.ConnectionReconnecting), nameof(RaskString.ConnectionOffline), nameof(RaskString.ConnectionStillTrying),
+        nameof(RaskString.ConnectionRetry), nameof(RaskString.ConnectionReload), nameof(RaskString.ConnectionUpdating),
+        nameof(RaskString.ConnectionAuthenticating), nameof(RaskString.ConnectionSessionTimedOut),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

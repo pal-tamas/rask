@@ -570,12 +570,15 @@ Key behaviours:
 - `Go.To(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
 - `Go.With` / `Go.Without` operate on the **current** path and leave it unchanged — they're for
-  partial query updates (`?page=2&sort=asc`).
+  partial query updates (`?page=2&sort=asc`). A move that changes only the query **replaces** the current history
+  entry, as Livewire's `#[Url]` does, so a live search adds no Back stop at every pause; follow it with `.Pushing()`
+  (`Go.With("page", "2").Pushing()`) when the move is a place the reader should be able to go Back to.
 
 ### Replacing the history entry
 
 `Go.To(…)` and a route's `.Go()` push a new history entry. Follow either with `.Replacing()` to replace the current
-one instead, so it adds no extra Back-button stop:
+one instead, so it adds no extra Back-button stop (`Go.With` and `Go.Without` replace by default, and take
+`.Pushing()` to add one):
 
 ```csharp
 Go.To("/login").Replacing();               // redirect without a back-stack entry

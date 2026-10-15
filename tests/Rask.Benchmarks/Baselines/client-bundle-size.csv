@@ -257,3 +257,12 @@ bundle,bytes
 rask.js,106706
 rask.wasm.js,93174
 rask-hooks.js,70877
+#
+# 2026-10-15, the four Livewire behaviours together (`.Confirm` in rask-confirm.ts, skipped for a form already
+# submitting; the overlay's texts read from #rask-texts and `data-rask-offline` in rask-offline.ts; a field that waited
+# marked `data-loading` in rask-loading.ts), measured from a Release build of the merge on main ec7241937 (106,706 /
+# 93,174 / 70,877): rask.js +1,511, rask.wasm.js +1,153, rask-hooks.js unchanged.
+bundle,bytes
+rask.js,108217
+rask.wasm.js,94327
+rask-hooks.js,70877

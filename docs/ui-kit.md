@@ -1602,6 +1602,11 @@ opts them out; `data-rask-loading` on a non-button element opts it in. It is nev
 throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
 dispatch over the same channel.
 
+A **field** is marked the same way once the event that sent its value is unanswered — `data-loading` alone, with no
+`aria-busy` — so your own CSS can say `data-loading:opacity-70` on an input that searches as it is typed. The kit
+draws nothing for it: Flux's input draws no loading state of its own (its `icon:trailing="loading"` is an icon you
+put there), so `Ui.Input` shows no spinner by itself; style one yourself with `in-data-loading:` if you want one.
+
 **The wait ends when the page is whole, not when the handler returns.** A handler's own intermediate state is
 not painted while it runs, and the page it answers with waits 150 ms for the reads it started
 ([routing](routing.md#a-handlers-work-reaches-the-screen-once)); when those are slower, the button stays busy

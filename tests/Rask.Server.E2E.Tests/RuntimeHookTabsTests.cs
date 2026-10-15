@@ -27,7 +27,7 @@ public sealed class RuntimeHookTabsTests(PlaywrightFixture playwright) : IClassF
         var firstResponse = await (await page.APIRequest.GetAsync(session.BaseUrl + "/")).TextAsync();
         await session.HooksLoadedAsync();
 
-        Assert.Contains("data-rask-hooks data-rask-managed></script></body>", firstResponse, StringComparison.Ordinal);
+        Assert.Matches("data-rask-hooks data-rask-managed></script><script type=\"application/json\" id=\"rask-texts\" data-rask-managed>[^<]*</script></body>", firstResponse);
         Assert.Equal(1, await session.HookBundleRequestsAsync());
     }
 
