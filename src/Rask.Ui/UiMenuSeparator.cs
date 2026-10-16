@@ -10,8 +10,8 @@ public sealed partial class UiMenuSeparator : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Context.Get<UiMenuLevel>() is { Scope.AsOptions: true } palette
-            ? UiCommandRows.Separator(palette)
+        Context.Get<UiMenuLevel>() is { Scope.AsOptions: true }
+            ? UiCommandRows.Separator()
             : Line();
 
     /// <summary>

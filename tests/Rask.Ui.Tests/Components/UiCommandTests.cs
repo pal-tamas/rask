@@ -7,9 +7,11 @@ namespace Rask.UiTests.Components;
 ///     The command palette: <c>Ui.Command.Label(...).Shortcut("mod+k")[Ui.MenuItem…]</c>.
 /// </summary>
 /// <remarks>
-///     The dialog opening, the shortcut and Enter pressing a command are the platform's and the runtime's, and the
-///     site's browser suite drives them. What C# owns is pinned here: the markup those hooks look for, the filter,
-///     and the cursor.
+///     The dialog opening, the shortcut and Enter pressing a command are the platform's and the runtime's, and so
+///     are the filter and the highlight (<c>rask-command.ts</c>): typing into a palette and walking it send the
+///     page nothing. What C# owns is pinned here — the markup those hooks read. The rules are
+///     <c>CommandPaletteTests</c>' in Rask.Core.Tests, the browser is <c>UiCommandBrowserTests</c>' in
+///     Rask.Server.E2E.Tests.
 /// </remarks>
 public partial class UiCommandTests : global::Rask.Core.RaskMarkup
 {
@@ -21,19 +23,6 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
             Ui.MenuItem["Réglages"],
             Ui.MenuItem.Danger["Sign out"]
         ];
-
-    private static Task TypeAsync(Page page, string text) =>
-        page.On("[role=\"combobox\"]").Input(text);
-
-    private static Task KeyAsync(Page page, string key) =>
-        page.On("[role=\"combobox\"]").Raise("keydown", $"{{\"key\":\"{key}\"}}");
-
-    private static string Highlighted(string html)
-    {
-        var id = Regex.Match(html, "role=\"combobox\"[^>]*aria-activedescendant=\"([^\"]+)\"").Groups[1].Value;
-        var row = Regex.Match(html, "id=\"" + Regex.Escape(id) + "\"[^>]*>(.*?)</(button|a)>", RegexOptions.Singleline);
-        return Regex.Replace(row.Groups[1].Value, "<[^>]+>", "").Trim();
-    }
 
     [Fact]
     public void The_field_opens_a_modal_dialog_and_carries_the_shortcut()
@@ -77,58 +66,40 @@ public partial class UiCommandTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Typing_narrows_the_list_accent_insensitively_and_drops_the_separators()
+    public void The_palette_asks_the_runtime_for_its_filter_and_highlight_and_gives_the_page_no_handler_for_them()
     {
         var page = Page.Render(Palette());
-        Assert.Contains("ui-menu-separator", page.Html, StringComparison.Ordinal);
 
-        await TypeAsync(page, "reglages");
+        var box = page.Find("[role=\"combobox\"]");
 
-        Assert.Single(Regex.Matches(page.Html, "role=\"option\""));
-        Assert.Contains("glages", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("ui-menu-separator", page.Html, StringComparison.Ordinal);
+        Assert.True(page.Find("dialog").Attributes.ContainsKey("data-rask-command"));
+        Assert.Null(box.Attribute("value"));
+        Assert.DoesNotContain("data-rask-on-input", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-keydown", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Nothing_matching_leaves_no_option_for_the_empty_message_to_follow()
+    public void Every_command_is_rendered_with_the_words_the_filter_matches_and_a_separator_between_runs()
     {
         var page = Page.Render(Palette());
 
-        await TypeAsync(page, "zzz");
+        var matched = page.FindAll("[role=\"option\"]").Select(option => option.Attribute("data-rask-match"));
 
-        Assert.Empty(Regex.Matches(page.Html, "role=\"option\""));
-        Assert.Contains("ui-command-empty", page.Html, StringComparison.Ordinal);
+        Assert.Equal(["New invoice", "Archive", "Réglages", "Sign out"], matched);
+        Assert.Single(page.FindAll("[role=\"separator\"]"));
+        Assert.Single(page.FindAll(".ui-command-empty"));
     }
 
     [Fact]
-    public async Task The_arrows_move_the_highlight_skip_what_is_disabled_and_wrap()
+    public void The_highlight_starts_on_the_first_command_that_can_be_picked()
     {
-        var page = Page.Render(Palette());
-        // A second render, so the cursor is worked out against a list that has registered.
-        await TypeAsync(page, "");
-        Assert.Equal("New invoice", Highlighted(page.Html));
+        var palette = Ui.Command.Label("Search")[Ui.MenuItem.Disabled(true)["Archive"], Ui.MenuItem["Rename"], Ui.MenuItem["Delete"]];
 
-        await KeyAsync(page, "ArrowDown");
-        // "Archive" is disabled: the highlight steps over it.
-        Assert.Equal("Réglages", System.Net.WebUtility.HtmlDecode(Highlighted(page.Html)));
+        var options = Page.Render(palette).FindAll("[role=\"option\"]");
 
-        await KeyAsync(page, "ArrowDown");
-        Assert.Equal("Sign out", Highlighted(page.Html));
-
-        await KeyAsync(page, "ArrowDown");
-        Assert.Equal("New invoice", Highlighted(page.Html));
-
-        await KeyAsync(page, "ArrowUp");
-        Assert.Equal("Sign out", Highlighted(page.Html));
-    }
-
-    [Fact]
-    public async Task The_highlighted_option_says_so_to_a_screen_reader()
-    {
-        var page = Page.Render(Palette());
-        await TypeAsync(page, "");
-
-        Assert.Single(Regex.Matches(page.Html, "aria-selected=\"true\""));
+        Assert.Equal(["false", "true", "false"], options.Select(option => option.Attribute("aria-selected")));
+        Assert.Equal("true", options[0].Attribute("aria-disabled"));
     }
 
     [Fact]

@@ -757,6 +757,11 @@ them until tagged releases begin.
 - A field a submit shows wrong while it still awaits a rule (a lookup) takes the reader's correction at once: the render that draws its message hands the field back from the submit's readonly hold, so the first key of the correction is no longer dropped. The submit button stays disabled until the submit is done
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
+- **A slider dragged faster than the page answers no longer drops its last moves.** Each move the page hears
+  is a render, and the thumb's handler was made of that render's own view of the slider — a different handler
+  every time, so a move sent from the page as loaded, three renders back, found none that was its own and ran
+  nothing: the value stopped short of where the thumb was let go. The handler now reads the slider as last
+  drawn when it runs (`Ui.Slider`, and the ticks a press picks).
 - **A child added to an `<svg>` after a state change draws.** The client parsed every inserted subtree as HTML,
   so a `Circle` or `SvgPath` appended to an `Svg` (or inserted by key among its children) arrived as an
   `HTMLUnknownElement` and never rendered. An insert under an SVG or MathML parent is now parsed in that
@@ -2041,6 +2046,30 @@ them until tagged releases begin.
 
 ### Performance
 
+- **A command palette is narrowed and walked in the browser.** `Ui.Command` kept its query and its cursor in C#:
+  opening it was a frame, every character typed another, every key in the box — the arrows, and each one that
+  moves nothing — one more, and Escape two (open 1 → 0, three characters 4 → 0, nine keys 9 → 0, Escape
+  2 → 0). The runtime now hides the commands that do not match, case- and accent-insensitively, and moves the
+  highlight (`aria-selected`, the box's `aria-activedescendant`) in the key's own event (`data-rask-command`,
+  `rask-command.ts`); closed, the palette starts over there too. Pressing a command is the page's action, and
+  all that is sent.
+- **Switching a tab sends the server nothing** — as in Flux UI, whose script selects the tab and shows its
+  panel, and where Livewire hears only a model. Every tab of `Ui.Tabs` carried a click handler, so a press
+  was a frame and a render and three arrow keys were three (1 → 0 and 3 → 0, plain and segmented, with a
+  panel group or without). The runtime now moves `aria-selected`, the roving `tabindex` and `data-selected`
+  on the tabs and `hidden`, `tabindex` and `data-selected` on the panels in the press (`data-rask-tabs`,
+  `rask-tabs.ts`), and the selected tab is painted from `data-selected`, as Flux paints it. What the page
+  reads is one hidden field in the row: `.Bind(() => m.Tab)` travels with the reader's next action,
+  `.Bind(…).Live()` and `OnChange` hear it at once (one frame a choice), and a `Ui.Tab`'s own `OnClick` is
+  all a press on it sends. The page keeps the last word: a tab it chooses itself — a refused save opening the
+  tab with the first mistake, an `OnChange` that does not take the choice — is the one shown, also when it
+  is the tab the page rendered before. A `Findable()` group's match selects its tab in the browser too.
+  Fields on a panel that is not shown stay in their form, keep what was typed and are submitted. The DevTools
+  panel on a WebAssembly page — a frame the page writes, with no hook loader of its own — now carries the
+  behaviour hooks too, so its tabs, and whatever else the kit draws in the browser, work there as on a page.
+  Bundled in rather than loaded on demand: the panel always draws a tablist, so the loader would fetch them as
+  it opens anyway, and the frame is a Debug-only document a Release build strips. Its script grows from 50,001
+  to 148,197 bytes minified (14,704 to 45,223 gzipped).
 - **An open list sends the server nothing: `Ui.Select`'s listbox and combobox, `Ui.Pillbox` and `Ui.Autocomplete`
   keep their cursor, their keys, their search and their open state in the browser, as Flux's do.** The lit row
   was C# state, so every row the pointer crossed was a request (a `mouseenter` handler per row), and so was

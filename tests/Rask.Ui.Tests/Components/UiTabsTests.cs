@@ -15,6 +15,11 @@ namespace Rask.UiTests.Components;
 ///     pressed is the site's E2E.
 ///     </para>
 ///     <para>
+///     A press on a tab is the runtime's too (<c>rask-tabs.ts</c>): it draws the tab selected and writes its
+///     name into the row's one hidden field. So what a reader's choice is here is that field changing, and
+///     what is drawn in the browser meanwhile is <c>UiTabsBrowserTests</c>' in Rask.Server.E2E.Tests.
+///     </para>
+///     <para>
 ///     Pixels are <c>TabsParity</c>'s; the class assertions here only say which of a variant's drawings was
 ///     chosen.
 ///     </para>
@@ -84,12 +89,12 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Clicking_a_tab_selects_it_and_reports_its_name()
+    public async Task A_tab_chosen_in_the_browser_is_reported_by_name_and_rendered_selected()
     {
         string? heard = null;
         var page = Page.Render(Three(Ui.Tabs.OnChange(name => heard = name)));
 
-        await page.On("[role=\"tab\"]:has-text(\"Billing\")").Click();
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("billing");
 
         Assert.Equal("billing", heard);
         Assert.Equal("Billing", Selected(page));
@@ -97,13 +102,30 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_row_with_no_handler_at_all_keeps_track_itself()
+    public void A_row_nobody_reads_is_the_browsers_alone_with_no_field_and_no_handler()
     {
         var page = Page.Render(Three(Ui.Tabs));
 
+        var row = page.Find("[role=\"tablist\"]");
+
+        Assert.True(row.Attributes.ContainsKey("data-rask-tabs"));
+        Assert.Empty(page.FindAll("[role=\"tablist\"] input"));
+        Assert.DoesNotContain("data-rask-on-", page.Html, StringComparison.Ordinal);
+        Assert.Equal(["profile", "account", "billing"], page.FindAll("[role=\"tab\"]").Select(tab => tab.Attribute("data-rask-tab")));
+    }
+
+    [Fact]
+    public async Task A_tabs_own_click_is_all_a_press_on_it_sends()
+    {
+        var pressed = 0;
+        var row = Ui.Tabs[Ui.Tab.Name("profile")["Profile"], Ui.Tab.Name("account").OnClick(() => pressed++)["Account"]];
+        var page = Page.Render(row);
+
         await page.On("[role=\"tab\"]:has-text(\"Account\")").Click();
 
-        Assert.Equal("Account", Selected(page));
+        Assert.Equal(1, pressed);
+        Assert.Null(page.Find("[role=\"tab\"]:has-text(\"Profile\")").Attribute("data-rask-on-click"));
+        Assert.Equal("Profile", Selected(page));
     }
 
     [Fact]
@@ -112,10 +134,34 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         string? asked = null;
         var page = Page.Render(Three(Ui.Tabs.Value("profile").OnChange(name => asked = name)));
 
-        await page.On("[role=\"tab\"]:has-text(\"Billing\")").Click();
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("billing");
 
         Assert.Equal("billing", asked);
         Assert.Equal("Profile", Selected(page));
+    }
+
+    [Fact]
+    public async Task A_page_that_chooses_another_tab_than_the_browser_shows_says_so_with_a_new_turn()
+    {
+        // The browser draws the tab it was pressed on at once; the turn is how it learns the page disagreed.
+        var page = Page.Render(Three(Ui.Tabs.Value("profile").OnChange(_ => { })));
+        var before = page.Find("[role=\"tablist\"]").Attribute("data-rask-tabs");
+
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("billing");
+
+        Assert.Equal("0 profile", before);
+        Assert.Equal("1 profile", page.Find("[role=\"tablist\"]").Attribute("data-rask-tabs"));
+    }
+
+    [Fact]
+    public async Task A_page_that_takes_the_tab_the_browser_chose_answers_in_the_same_turn()
+    {
+        var tab = "profile";
+        var page = Page.Render(() => Three(Ui.Tabs.Value(tab).OnChange(name => tab = name)));
+
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("billing");
+
+        Assert.Equal("0 billing", page.Find("[role=\"tablist\"]").Attribute("data-rask-tabs"));
     }
 
     [Fact]
@@ -125,7 +171,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         var page = Acting.Render(Three(Ui.Tabs.Bind(() => settings.Tab)));
         var before = Selected(page);
 
-        await page.On("[role=\"tab\"]:has-text(\"Billing\")").Click();
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("billing");
         await Acting.Act(page);
 
         Assert.Equal("Account", before);
@@ -140,7 +186,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         var row = Ui.Tabs.Segmented.OnChange(name => heard = name)[Ui.Tab["List"], Ui.Tab["Board"], Ui.Tab["Timeline"]];
         var page = Page.Render(row);
 
-        await page.On("[role=\"tab\"]:has-text(\"Timeline\")").Click();
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("2");
 
         Assert.Equal("2", heard);
         Assert.Equal("Timeline", Selected(page));
@@ -184,10 +230,10 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.TabsVariant.Default, "border-b", "border-fx-accent-content", "border-transparent")]
-    [InlineData(Ui.TabsVariant.Segmented, "rounded-lg", "shadow-xs", "text-zinc-600")]
-    [InlineData(Ui.TabsVariant.Pills, "h-8", "bg-fx-accent", "bg-zinc-800/5")]
-    public void Each_variant_draws_its_row_its_selected_tab_and_the_others(
+    [InlineData(Ui.TabsVariant.Default, "border-b", "data-selected:border-fx-accent-content", "border-transparent")]
+    [InlineData(Ui.TabsVariant.Segmented, "rounded-lg", "data-selected:shadow-xs", "text-zinc-600")]
+    [InlineData(Ui.TabsVariant.Pills, "h-8", "data-selected:bg-fx-accent", "bg-zinc-800/5")]
+    public void Each_variant_draws_its_row_and_paints_the_selected_tab_from_the_mark_the_browser_moves(
         Ui.TabsVariant variant, string row, string selected, string other)
     {
         var page = Page.Render(Three(Ui.Tabs.Variant(variant)));
@@ -195,14 +241,13 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         var tabs = page.FindAll("[role=\"tab\"]");
 
         Assert.True(page.Find("[role=\"tablist\"]").HasClass(row));
-        Assert.True(tabs[0].HasClass(selected));
-        Assert.False(tabs[1].HasClass(selected));
-        Assert.True(tabs[1].HasClass(other));
+        Assert.All(tabs, tab => Assert.True(tab.HasClass(selected) && tab.HasClass(other)));
+        Assert.Equal([true, false, false], tabs.Select(tab => tab.Attributes.ContainsKey("data-selected")));
     }
 
     [Theory]
-    [InlineData(Ui.TabsVariant.Default, "border-zinc-800", "border-fx-accent-content")]
-    [InlineData(Ui.TabsVariant.Pills, "bg-zinc-800", "bg-fx-accent")]
+    [InlineData(Ui.TabsVariant.Default, "data-selected:border-zinc-800", "data-selected:border-fx-accent-content")]
+    [InlineData(Ui.TabsVariant.Pills, "data-selected:bg-zinc-800", "data-selected:bg-fx-accent")]
     public void A_tab_that_turns_the_accent_off_is_selected_in_the_base_colour(
         Ui.TabsVariant variant, string plain, string accent)
     {
