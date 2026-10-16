@@ -136,7 +136,7 @@
   <PropertyGroup>
     <!-- Pinned, and the only copy of each number. Listed in the check-dependency-updates skill. -->
     <RaskPreactFixtureVersion Condition="'$(RaskPreactFixtureVersion)' == ''">11.0.1</RaskPreactFixtureVersion>
-    <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">21.0.1</RaskHappyDomFixtureVersion>
+    <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">21.0.3</RaskHappyDomFixtureVersion>
     <RaskReactFixtureVersion Condition="'$(RaskReactFixtureVersion)' == ''">19.3.1</RaskReactFixtureVersion>
     <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.44</RaskVueFixtureVersion>
     <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.17</RaskSolidFixtureVersion>

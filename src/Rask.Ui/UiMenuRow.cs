@@ -162,16 +162,10 @@ internal static class UiMenuRow
     {
         data[marker] = "";
 
-        // Only where the PAGE keeps the cursor. A menu's rows are all rendered unlit, with no tab stop: which one
-        // is lit and which has focus is the runtime's, written and held in the browser (rask-menu.ts).
-        var active = level is not null && ordinal == level.Scope.Active;
-        if (active)
-        {
-            data["active"] = "";
-        }
-
+        // A menu's rows are all rendered unlit, with no tab stop: which one is lit and which has focus is the
+        // runtime's, written and held in the browser (rask-menu.ts).
         // Chain steps, not property writes: a chain-built element renders what its chain was given.
-        element = element.Role(role).TabIndex(active ? 0 : -1).Aria(aria).Data(data);
+        element = element.Role(role).TabIndex(-1).Aria(aria).Data(data);
         return level is null ? element : element.Id(level.Scope.ItemId(ordinal));
     }
 

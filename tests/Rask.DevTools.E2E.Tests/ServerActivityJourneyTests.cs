@@ -24,7 +24,7 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
 
         // The switch's input is out of sight inside the label that draws it: its words are what a reader presses.
         await devTools.Panel.GetByText("Flash on the page").ClickAsync();
-        await Expect(devTools.Panel.GetByRole(AriaRole.Switch, new() { Name = "Flash on the page" })).ToBeCheckedAsync();
+        await DevToolsPage.Step("panel.GetByRole(AriaRole.Switch, new() { Name = 'Flash on the page' })", () => Expect(devTools.Panel.GetByRole(AriaRole.Switch, new() { Name = "Flash on the page" })).ToBeCheckedAsync());
         await devTools.Page.WaitForFunctionAsync("() => localStorage.getItem('rask.devtools.flash') === 'on'");
         await devTools.Page.ClickAsync("#add-task");
 
@@ -39,8 +39,8 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
             """,
             null,
             new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds, PollingInterval = 16 });
-        await Expect(devTools.Panel.GetByRole(AriaRole.Cell, new() { Name = "Board", Exact = true }).First)
-            .ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel cell 'Board'", () => Expect(devTools.Panel.GetByRole(AriaRole.Cell, new() { Name = "Board", Exact = true }).First)
+            .ToBeVisibleAsync(DevToolsPage.Visible));
     }
 
     [Fact]
@@ -79,9 +79,9 @@ public sealed class ServerActivityJourneyTests(PlaywrightFixture playwright)
 
         var open = devTools.Page.Locator("[data-rask-dev-error] [data-rask-devtools-open]");
         await open.ClickAsync(new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds });
-        await Expect(devTools.Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync("Errors", DevToolsPage.Contains);
+        await DevToolsPage.Step("the panel's selected tab", () => Expect(devTools.Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync("Errors", DevToolsPage.Contains));
         var entry = devTools.Panel.Locator("body");
-        await Expect(entry).ToContainTextAsync("locked by another deploy", DevToolsPage.Contains);
-        await Expect(entry).ToContainTextAsync("DeployCard", DevToolsPage.Contains);
+        await DevToolsPage.Step("the Errors tab's entry", () => Expect(entry).ToContainTextAsync("locked by another deploy", DevToolsPage.Contains));
+        await DevToolsPage.Step("the Errors tab's component", () => Expect(entry).ToContainTextAsync("DeployCard", DevToolsPage.Contains));
     }
 }
