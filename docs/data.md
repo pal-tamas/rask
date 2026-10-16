@@ -255,6 +255,55 @@ public sealed class OrderLine : Entity<Guid, Timestamps>   // this child table h
 }
 ```
 
+### A key of several columns
+
+A child that is the meeting of two aggregates (which transactions fuelled which delivery note) is keyed by the pair,
+not by an `Id` of its own. Declare the key as a tuple of the **types** it joins, and make the class `partial`:
+
+```csharp
+public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model: read-only for now, see below
+{
+    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+}
+
+public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
+{
+    public decimal Quantity { get; private set; }
+}
+```
+
+Rask generates the rest. Each aggregate in the tuple becomes a `{Aggregate}Id` of **that aggregate's own key
+type**, so it is never written twice. `Id` becomes the key's values together:
+
+```csharp
+// generated
+public int DeliveryNoteId { get; private set; }
+public int TransactionId { get; private set; }
+public new (int DeliveryNoteId, int TransactionId) Id => (DeliveryNoteId, TransactionId);
+```
+
+The table's primary key is `(DeliveryNoteId, TransactionId)`, in the order the tuple names them, and nothing
+generates either value. A part that is a plain value is named, and the entity declares it:
+`Entity<(Order, int LineNo)>` with `public int LineNo { get; private set; }`. The same key reaches a context you
+wired yourself, through `ApplyRaskConventions`.
+
+It reads like any child. The read face lists the key's parts where `Id` would be. Each part infers its navigation
+by the usual `{X}Id` rule. The tenant comes through the aggregate that holds it, so the row needs no `TenantId`
+of its own:
+
+```csharp
+var fuellings = await DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))
+    .Select(t => new { t.DeliveryNoteId, t.TransactionId, t.Quantity, t.Transaction.ProductId });
+
+var note = await DeliveryNote.Include(n => n.Fuellings).First(n => n.Id == id);
+```
+
+**Writes come later.** For now a row keyed by several columns is read-only through Rask. A save that adds, changes
+or deletes one is refused with a `NotSupportedException`, and an aggregate whose form would carry one is
+[RASK106](diagnostics.md#rask106). Leave `Model` (and `CreateModel` / `UpdateModel`) off that aggregate's base,
+and write the table the way your app writes it today. A class that is not `partial`, a value part with no name, a name that is already
+taken, and a key of several columns on an aggregate **root** are RASK106 too.
+
 ### Collections of values
 
 A collection whose elements are **values** rather than entities is one column, not a table. Declare it the same
@@ -1596,7 +1645,7 @@ A value object is **its values**: two with the same values are the same. Any com
 not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
 value's column, and one that holds several is an EF Core **complex type**.
 
-It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a
+It must compare by value, or the build says so ([RASK106](diagnostics.md#rask106)). A `record` or a
 `record struct` already does, and needs nothing else. A plain class derives from `ValueObject` and names the values
 that make it the same:
 

@@ -77,8 +77,10 @@ internal static class GeneratedModelShape
             : null;
 
     /// <summary>Whether a model is actually generated for <paramref name="symbol" />.</summary>
+    /// <remarks>A row keyed by several columns is read-only for now, so it has no model to be written from.</remarks>
     public static bool GetsModel(INamedTypeSymbol symbol) =>
-        IsCandidate(symbol) && symbol.ContainingType is null && ClashingType(symbol) is null;
+        IsCandidate(symbol) && symbol.ContainingType is null && ClashingType(symbol) is null &&
+        !CompositeKeyShape.HasCompositeKey(symbol);
 
     /// <summary>The model's simple name: <c>ProductModel</c>.</summary>
     public static string ModelName(INamedTypeSymbol entity) => entity.Name + ModelSuffix;
@@ -275,7 +277,12 @@ internal static class GeneratedModelShape
 
             if (DescribeChild(entity, property) is { } child)
             {
-                children.Add(child);
+                // Not carried: a row keyed by several columns is not written through its aggregate yet (RASK106).
+                if (!CompositeKeyShape.HasCompositeKey(child.ChildType))
+                {
+                    children.Add(child);
+                }
+
                 continue;
             }
 

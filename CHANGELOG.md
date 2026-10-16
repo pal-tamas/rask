@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**
+  Before: a row whose key is a pair, like Eszaf's `DeliveryNoteTransactions (DeliveryNoteId, TransactionId)`, could
+  not be an `Entity<TId>` at all, and an adopted table like it had to stay outside Rask.Data. After:
+  `public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates a
+  `DeliveryNoteId` and a `TransactionId` of those aggregates' key types, plus `new (int DeliveryNoteId, int
+  TransactionId) Id`. The table is keyed by the pair in tuple order, never generated, whether the context is
+  Rask's or wired by hand. `DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))` reads the key
+  parts, navigates to `t.Transaction`, and filters by tenant through the note. `DeliveryNote.Include(n =>
+  n.Fuellings)` loads them. A named value part (`Entity<(Order, int LineNo)>`) is a property the entity declares.
+  Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK106 (error) refuses
+  a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK106 also catches a class that is not `partial`, an unnamed or undeclared value
+  part, a name already taken, and a key of several columns on an aggregate root.
 - **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
   taking the name — infers a navigation on the read face, as one naming an aggregate always has:
   `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side

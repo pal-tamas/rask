@@ -43,6 +43,24 @@ internal static class ChildWrites
         }
     }
 
+    /// <summary>
+    ///     Throws for the first row keyed by several columns this save would write: such a row is read through its
+    ///     aggregate — <c>DeliveryNoteTransaction.Where(…)</c>, an <c>Include</c> — and writing it is not supported yet.
+    /// </summary>
+    internal static void RefuseCompositeKeys(DbContext context)
+    {
+        var written = context.ChangeTracker.Entries<IEntity>().FirstOrDefault(static entry =>
+            entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+            ModelBuilderExtensions.HasCompositeKey(entry.Metadata.ClrType));
+
+        if (written is not null)
+        {
+            throw new NotSupportedException(
+                $"'{written.Metadata.ClrType.Name}' was {Verb(written.State)}, but a row keyed by several columns is "
+                + "read-only for now: read it through its read face, and write the table the way it is written today.");
+        }
+    }
+
     /// <summary>Throws when <paramref name="entity" /> is a child: a bulk load inserts roots, which bring their children.</summary>
     internal static void RefuseBulkInsert(DbContext context, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type entity)
     {
