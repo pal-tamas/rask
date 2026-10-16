@@ -23,6 +23,10 @@ import {CHANNEL, type FrameMessage} from "./rask-devtools-frame-protocol.js";
 
 // For its side effect: the shared key, pointer, focus and drag listeners, bound to THIS document.
 import "../../Rask.Core/Resources/rask-events.js";
+// And the behaviour hooks, which a page loads as a bundle of its own (rask-hook-loader.ts) and this frame has no
+// loader for. What a kit component draws in the browser is drawn by them: without them a press on one of the panel's
+// tabs selected nothing and told the panel nothing, since the tab itself no longer carries a click for the page.
+import "../../Rask.Core/Resources/rask-hooks.js";
 
 const decoder = new TextDecoder();
 
