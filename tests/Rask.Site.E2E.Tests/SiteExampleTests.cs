@@ -42,7 +42,7 @@ public sealed class SiteExampleTests
 
             // The hero's code is one feature back to front, and its first file — the aggregate that is
             // the table — is in the prerendered document, both tabs with it.
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<Guid, Timestamps, Versioned, Model, Deletable>");
             await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
 
             // The three front-end lanes are part of the prerendered document rather than something the
@@ -112,7 +112,7 @@ public sealed class SiteExampleTests
             // The hero's file tabs are Rask state too: the second shows the page that queries the aggregate.
             await page.Locator(".hero-code-tab", new PageLocatorOptions { HasTextString = "ProductsPage.cs" }).ClickAsync();
             await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync("QueryClient.Query(");
-            await Expect(page.Locator(".hero-grid pre")).Not.ToContainTextAsync("class Product : Aggregate<");
+            await Expect(page.Locator(".hero-grid pre")).Not.ToContainTextAsync(": Aggregate<");
 
             // The install tabs are Rask state too — switching re-renders the selected terminal.
             // Both terminals must lead with the one-line installer: the tabs pick a TEMPLATE, not an
