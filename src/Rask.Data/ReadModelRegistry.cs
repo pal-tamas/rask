@@ -128,7 +128,7 @@ public static class ReadModelRegistry
         var store = write is null ? null : StoreObjectIdentifier.Create(write, StoreObjectType.Table);
 
         builder.ToTable(write?.GetTableName() ?? mapping.TableName, write?.GetSchema());
-        builder.HasKey(nameof(Entity<int>.Id));
+        builder.HasKey(KeyOf(mapping, write));
 
         foreach (var column in mapping.Columns)
         {
@@ -150,6 +150,20 @@ public static class ReadModelRegistry
         }
 
         MapAnnotationsAndFilters(builder, mapping, write, context);
+    }
+
+    // The write model's key, member for member — Id, or the parts of a key of several columns. With no write model to
+    // read, the generator's order answers: a key of several columns is the face's first columns, in the tuple's order.
+    private static string[] KeyOf(ReadEntityMapping mapping, IEntityType? write)
+    {
+        if (write?.FindPrimaryKey() is { } key)
+        {
+            return [.. key.Properties.Select(static p => p.Name)];
+        }
+
+        return ModelBuilderExtensions.IdTypeOf(mapping.WriteType) is { } idType && ModelBuilderExtensions.IsComposite(idType)
+            ? [.. mapping.Columns.Take(idType.GetGenericArguments().Length).Select(static c => c.Member)]
+            : [nameof(Entity<int>.Id)];
     }
 
     private static void MapColumn(

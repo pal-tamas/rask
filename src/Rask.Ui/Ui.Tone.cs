@@ -13,9 +13,7 @@ public static partial class Ui
     /// had to map every example back through a second set of words for no gain.
     /// </para>
     /// <para>
-    /// Colour is one axis of three, and they compose. <see cref="Ui.Variant" /> chooses how a component is
-    /// drawn — filled, outlined, ghosted — and <see cref="Ui.Size" /> how big. What used to be
-    /// <c>Quiet</c> is <see cref="Ui.Variant.Ghost" />, because it was never a colour.
+    /// Colour is one axis, and <see cref="Ui.Size" /> — how big — composes with it.
     /// </para>
     /// <para>
     /// Not every component honours every member, and each documents what it does with the rest; anything a

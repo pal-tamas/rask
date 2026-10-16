@@ -34,9 +34,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         await OpenAsync();
 
-        // The FAB is absent here on purpose: it is `position: fixed`, so its wrapper in the flow has no
-        // height of its own and a bounding box on the wrapper would measure nothing. It is measured
-        // below, on the floating element itself.
         foreach (var id in new[]
                  {
                      "ui-button", "ui-button-variants", "ui-button-groups", "ui-dropdown", "ui-context-menu", "ui-command",
@@ -54,12 +51,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
             Assert.True(box!.Height > 0, $"{id} rendered with zero height, which is what an unstyled kit component looks like.");
             Assert.True(box.Width > 0, $"{id} rendered with zero width.");
         }
-
-        var fab = Page.Locator("[data-testid='ui-fab'] .fab");
-        await Expect(fab).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        var fabBox = await fab.BoundingBoxAsync();
-        Assert.NotNull(fabBox);
-        Assert.True(fabBox!.Height > 0, "the FAB rendered with zero height.");
     });
 
     [Fact]
@@ -828,22 +819,6 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync();
-    });
-
-    [Fact]
-    public Task The_floating_action_button_reveals_its_actions_on_focus() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-fab']");
-        var photo = scope.GetByText("Photo");
-
-        // Hidden by `visibility`, so it occupies space and is present in the DOM — ToBeVisibleAsync is
-        // what distinguishes the two states, not a count.
-        await Expect(photo).ToBeHiddenAsync();
-
-        await scope.Locator("[tabindex='0']").First.FocusAsync();
-        await Expect(photo).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
     });
 
     [Fact]

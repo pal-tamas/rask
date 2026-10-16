@@ -3,7 +3,7 @@ using Rask.Batteries.Generators.Analyzers;
 
 namespace Rask.Batteries.Generators.Tests;
 
-/// <summary>RASK106: an aggregate is made inside its own type, a child inside its own type or its holder.</summary>
+/// <summary>RASK107: an aggregate is made inside its own type, a child inside its own type or its holder.</summary>
 public class EntityCreationAnalyzerTests
 {
     private static Task<IReadOnlyList<Diagnostic>> Run(string elsewhere) =>
@@ -30,17 +30,17 @@ public class EntityCreationAnalyzerTests
             """);
 
     [Fact]
-    public async Task An_aggregate_made_with_new_outside_its_type_is_RASK106()
+    public async Task An_aggregate_made_with_new_outside_its_type_is_RASK107()
     {
         var diagnostic = Assert.Single(await Run("public static Order Make() => new Order();"));
 
-        Assert.Equal("RASK106", diagnostic.Id);
+        Assert.Equal("RASK107", diagnostic.Id);
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("'Order' is an aggregate, so it is made only inside 'Order'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_child_made_with_new_outside_its_type_and_its_holder_is_RASK106()
+    public async Task A_child_made_with_new_outside_its_type_and_its_holder_is_RASK107()
     {
         var diagnostic = Assert.Single(await Run("public static OrderLine Make() => new OrderLine();"));
 

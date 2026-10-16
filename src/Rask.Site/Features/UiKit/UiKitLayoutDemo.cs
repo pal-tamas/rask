@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     daisyUI's Layout and Mockup categories, drawn with the kit.
+///     daisyUI's Layout category and the code mockup, drawn with the kit.
 /// </summary>
 public sealed partial class UiKitLayoutDemo : Component
 {
@@ -12,10 +12,9 @@ public sealed partial class UiKitLayoutDemo : Component
     [
         DrawerSection(),
         SeparatorSection(),
-        JoinIndicatorSection(),
+        AvatarSection(),
         ApplicationLayoutSection(),
         TypographySection(),
-        MaskSection(),
         MockupsSection()
     ];
 
@@ -64,25 +63,15 @@ public sealed partial class UiKitLayoutDemo : Component
             Ui.Button.Key("login")["Log in"]
         ];
 
-    private static Component JoinIndicatorSection() =>
+    private static Component AvatarSection() =>
         Section(
-            "Join, indicator and stack",
-            "Structure with no state.",
-            Div.Data(Testid("ui-layout-rest")).Class("space-y-4")[
-                Ui.Join.Key("j")[
-                    Ui.Button.Key("1")["«"],
-                    Ui.Button.Key("2")["1"],
-                    Ui.Button.Key("3")["»"]
-                ],
-                Div.Class("flex flex-wrap items-center gap-6")[
-                    Ui.Indicator.Key("i").Badge(Ui.Badge.Sm.Solid.Rounded().Color(Ui.Color.Red)["9"])[
-                        Ui.Button["Inbox"]
-                    ],
-                    Ui.Avatar.Key("a").Src("/img/rask-mark.svg").Alt("The Rask mark").Circle().Lg,
-                    // No picture: the monogram stands in. Most accounts have none, and a broken image is
-                    // worse than two letters — the NAME is still what a screen reader announces.
-                    Ui.Avatar.Key("a2").Name("Ada Lovelace").Lg
-                ]
+            "Avatar",
+            "A picture of the account, or its initials when it has none.",
+            Div.Data(Testid("ui-layout-rest")).Class("flex flex-wrap items-center gap-6")[
+                Ui.Avatar.Key("a").Src("/img/rask-mark.svg").Alt("The Rask mark").Circle().Lg,
+                // No picture: the monogram stands in. Most accounts have none, and a broken image is
+                // worse than two letters — the NAME is still what a screen reader announces.
+                Ui.Avatar.Key("a2").Name("Ada Lovelace").Lg
             ]);
 
     private static Component ApplicationLayoutSection() =>
@@ -189,39 +178,17 @@ public sealed partial class UiKitLayoutDemo : Component
                 ]
             ]);
 
-    private static Component MaskSection() =>
-        Section(
-            "Mask",
-            "Clipping, so whatever is masked has to survive losing its corners.",
-            Div.Data(Testid("ui-layout-mask")).Class("flex flex-wrap gap-3")[
-                Ui.Mask.Key("m1").Shape(Ui.MaskShape.Squircle).Class("size-12 bg-secondary"),
-                Ui.Mask.Key("m2").Shape(Ui.MaskShape.Hexagon).Class("size-12 bg-accent"),
-                Ui.Mask.Key("m3").Shape(Ui.MaskShape.Triangle).Class("size-12 bg-primary")
-            ]);
-
     private static Component MockupsSection() =>
         Section(
-            "Mockups",
-            "Frames for a screenshot or a snippet. The code block is the only one carrying text, and "
-            + "it encodes it — a snippet containing markup has to read as that markup, not become it.",
+            "Code mockup",
+            "A frame for a snippet. It encodes its text — a snippet containing markup has to read as that "
+            + "markup, not become it.",
             Div.Data(Testid("ui-mockups")).Class("space-y-4")[
                 Ui.MockupCode.Key("code").Lines([
                     ("$", "dotnet new install Rask.Templates"),
                     ("$", "rask new shop"),
                     (">", "Scaffolded shop in 1.2s")
-                ]),
-                Ui.MockupBrowser.Key("browser").Url("https://rask.sh").Class("border border-base-300")[
-                    Div.Class("flex h-24 items-center justify-center bg-base-200 text-sm")[
-                        "One C# app, published as static files."
-                    ]
-                ],
-                Div.Class("flex flex-wrap gap-4")[
-                    Ui.MockupWindow.Key("window").Class("border border-base-300")[
-                        Div.Class("flex h-20 w-64 items-center justify-center bg-base-200 text-sm")[
-                            "A window"
-                        ]
-                    ]
-                ]
+                ])
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);

@@ -43,6 +43,12 @@ public sealed partial class ModelInputGenerator
             return Entity.Refused(name, symbol.Name, location, Refusal.Clash, existing.ToDisplayString());
         }
 
+        // Read-only for now: no model, and its aggregate's form may not carry it (RASK106).
+        if (CompositeKeyShape.HasCompositeKey(symbol))
+        {
+            return Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
+        }
+
         return Accepted(symbol, name, location, cancellationToken);
     }
 
@@ -86,8 +92,18 @@ public sealed partial class ModelInputGenerator
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol),
             DeletableOf(symbol),
-            ConfiguresUniqueRule(symbol, cancellationToken));
+            ConfiguresUniqueRule(symbol, cancellationToken))
+        {
+            CompositeChildren = new EquatableArray<string>(CompositeChildrenOf(symbol)),
+        };
     }
+
+    // The children keyed by several columns, as `property|child`: read through the aggregate, never written by its form.
+    private static IEnumerable<string> CompositeChildrenOf(INamedTypeSymbol symbol) =>
+        symbol.GetMembers().OfType<IPropertySymbol>()
+            .Select(p => GeneratedModelShape.DescribeChild(symbol, p))
+            .Where(static c => c is not null && CompositeKeyShape.HasCompositeKey(c.ChildType))
+            .Select(static c => c!.Name + "|" + c.ChildType.Name);
 
     /// <summary>
     ///     Whether the aggregate gets a generated <c>Delete</c>: its base names <c>Deletable</c> or <c>SoftDelete</c>.

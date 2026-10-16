@@ -125,8 +125,6 @@ public sealed partial class KitOwnFramePage : KitFramePage
 
     private static readonly Package[] Catalog = [new(1, "Rask", 1200), new(2, "Rask.Ui", 800), new(3, "Rask.Data", 300)];
 
-    private int _stars = 3;
-    private string? _tag;
     private bool _muted;
 
     protected override Component? Render() =>
@@ -137,12 +135,8 @@ public sealed partial class KitOwnFramePage : KitFramePage
                 c.Field(r => r.Name).Title("Package").Sortable(),
                 c.Field(r => r.Downloads).Title("Downloads").Sortable(),
             ]]),
-            Part("rating", Ui.Rating.Value(_stars).Group("score").Label("Rate this").Max(5).OnChange(v => _stars = v)),
-            Part("filter", Ui.Filter.Value(_tag).Group("tags").Options([("bug", "bug"), ("docs", "docs")]).ResetLabel("All").OnChange(v => _tag = v)),
             Part("toggle-heard", Ui.Toggle.Icon(Ui.IconName.SpeakerWave).Label("Mute").Checked(_muted).OnChange(v => _muted = v)),
-            Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]]),
-            Part("hover-gallery", Ui.HoverGallery[Div["One"], Div["Two"]]),
-            Part("fab", Ui.Fab.AccessibleLabel("Compose").Icon(Ui.IconName.Plus)[Ui.Button.Sm.Key("photo")["Photo"]])
+            Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]])
         ];
 
     private sealed record Node(string Id, string Name, Node[] Children);

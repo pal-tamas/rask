@@ -96,7 +96,7 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void Around_something_that_is_not_one_element_nothing_is_said_as_Flux_wires_only_the_trigger()
     {
-        var html = Ui.Tooltip.Content("Search")[Ui.Kbd.Text("K")].ToHtml();
+        var html = Ui.Tooltip.Content("Search")[Ui.Icon.Name(Ui.IconName.MagnifyingGlass)].ToHtml();
 
         Assert.StartsWith("<div data-ui-tooltip data-rask-tooltip=\"ui-tooltip-", html, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"group\"", html);

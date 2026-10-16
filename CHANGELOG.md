@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**
+  Before: a row whose key is a pair, like Eszaf's `DeliveryNoteTransactions (DeliveryNoteId, TransactionId)`, could
+  not be an `Entity<TId>` at all, and an adopted table like it had to stay outside Rask.Data. After:
+  `public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates a
+  `DeliveryNoteId` and a `TransactionId` of those aggregates' key types, plus `new (int DeliveryNoteId, int
+  TransactionId) Id`. The table is keyed by the pair in tuple order, never generated, whether the context is
+  Rask's or wired by hand. `DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))` reads the key
+  parts, navigates to `t.Transaction`, and filters by tenant through the note. `DeliveryNote.Include(n =>
+  n.Fuellings)` loads them. A named value part (`Entity<(Order, int LineNo)>`) is a property the entity declares.
+  Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK106 (error) refuses
+  a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK106 also catches a class that is not `partial`, an unnamed or undeclared value
+  part, a name already taken, and a key of several columns on an aggregate root.
 - **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
   taking the name — infers a navigation on the read face, as one naming an aggregate always has:
   `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side
@@ -90,7 +102,7 @@ them until tagged releases begin.
   `Order.Create(o => o.Rename("A-1"))` read as a rename. Now `var order = Order.Place("A-1"); await order.Save();`
   — or `Order.Create(order)` — and from a form `Order.Create(model)` / `Order.Create(model, o => …)` as before, the
   lambda for what a form must not carry (the signed-in user, a parent from the route, a domain event).
-  `Create(id, x => …)` is gone the same way. `new Order()` outside `Order` is now RASK106, an error — a child may
+  `Create(id, x => …)` is gone the same way. `new Order()` outside `Order` is now RASK107, an error — a child may
   be made by its own type or the entity that holds it — so `private Order() { }` need not be written.
 
 - **Rask's own tables are aggregates.** `Job`, `RecurringJobState`, `QueuedMail`, `OutboxMessage`, `CacheEntry`,
@@ -3842,6 +3854,22 @@ them until tagged releases begin.
   Spectre switched interaction off behind it.
 
 ### Removed
+
+- **BREAKING: the kit's components that are not Flux UI's are gone, and nothing of them is left.** Rask.Ui holds
+  Flux UI's components only. Deleted, with their CSS, strings and docs: `Ui.Aura` (and `Ui.AuraStyle`),
+  `Ui.ChatBubble`, `Ui.Countdown`, `Ui.Diff`, `Ui.Dock`, `Ui.Fab`, `Ui.Filter` (`UiFilter<T>`), `Ui.Footer`,
+  `Ui.Hero`, `Ui.Hover3d`, `Ui.HoverGallery`, `Ui.Indicator`, `Ui.Join`, `Ui.Kbd`, `Ui.Mask` (and
+  `Ui.MaskShape`), `Ui.MockupBrowser`, `Ui.MockupPhone`, `Ui.MockupWindow`, `Ui.Rating`, `Ui.Stack`
+  (`UiStackLayout`), `Ui.Steps` and `Ui.Step`, `Ui.TextRotate`, `Ui.Validator`, the `UiFormField<T>` base and
+  `Ui.Variant`. daisyUI's rules for them are no longer compiled into the kit's sheet (they join the plugin's
+  `exclude`), and the framework strings only they used went with them: `RaskString.DiffHandle`, `FilterReset`,
+  `FieldValidating`, `RatingNone` and `RatingValue` (a `RaskStrings.{culture}.json` that still names one is
+  now refused by the build — delete the line); the enum's values are positional, so the members after them
+  renumber — a catalog names its keys, never their numbers. Draw what you used them for with Flux's parts or with
+  Tailwind: a shortcut is a `<kbd>` element (or a button's own `Kbd`), a choice of tags a segmented
+  `Ui.RadioGroup`, a count over an avatar the avatar's `Badge`. The kit's
+  conformance test now fails on any public component that is not mapped to a Flux part, so the rest
+  (the data grid, the tree, the console chrome, `Ui.Command`) is listed there and can only shrink.
 
 - **BREAKING: `Ui.Navlist.Variant` and `Ui.NavlistVariant` are gone.** Flux's public reference gives
   `flux:navlist` no `variant`, so the kit has none: the outlined rows it drew are what `Ui.SidebarNav` and

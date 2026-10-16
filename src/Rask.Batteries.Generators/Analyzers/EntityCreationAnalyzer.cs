@@ -8,7 +8,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Analyzers;
 
 /// <summary>
-///     RASK106 — an aggregate or a child entity is made with <c>new</c> outside the type that guards it.
+///     RASK107 — an aggregate or a child entity is made with <c>new</c> outside the type that guards it.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -24,8 +24,8 @@ namespace Rask.Batteries.Generators.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class EntityCreationAnalyzer : DiagnosticAnalyzer
 {
-    private static readonly DiagnosticDescriptor Rask106 = new(
-        "RASK106",
+    private static readonly DiagnosticDescriptor Rask107 = new(
+        "RASK107",
         "An entity is created outside the type that guards it",
         "'{0}' is {1}, so it is made only {2} — call its factory or the generated '{0}.Create(…)' instead of 'new'",
         DiagnosticHelp.Category,
@@ -34,9 +34,9 @@ public sealed class EntityCreationAnalyzer : DiagnosticAnalyzer
         description: "An aggregate keeps its invariants by being made in one place: a member of its own type (a "
                      + "static factory) or the generated Create. A child entity is made by its own type or by the "
                      + "entity that holds it. EF Core builds rows through reflection and is not affected.",
-        helpLinkUri: DiagnosticHelp.Link("RASK106"));
+        helpLinkUri: DiagnosticHelp.Link("RASK107"));
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask106);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(Rask107);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -63,7 +63,7 @@ public sealed class EntityCreationAnalyzer : DiagnosticAnalyzer
         }
 
         context.ReportDiagnostic(Diagnostic.Create(
-            Rask106,
+            Rask107,
             creation.Syntax.GetLocation(),
             created.Name,
             aggregate ? "an aggregate" : "a child entity",

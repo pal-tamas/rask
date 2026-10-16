@@ -50,9 +50,9 @@ public partial class RaskStringsTests : global::Rask.Core.RaskMarkup, IDisposabl
     public void A_translated_value_is_written_in_the_visitors_culture()
     {
         (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (Hungarian, Hungarian);
-        RaskStrings.UseSource(new Table("hu", (RaskString.RatingValue, "{0:N1} / {1}")));
+        RaskStrings.UseSource(new Table("hu", (RaskString.OtpCharacter, "{0:N1} / {1}")));
 
-        var text = RaskStrings.Get(RaskString.RatingValue, "{0} of {1}", 2.5, 5);
+        var text = RaskStrings.Get(RaskString.OtpCharacter, "{0} of {1}", 2.5, 5);
 
         Assert.Equal("2,5 / 5", text);
     }
@@ -64,7 +64,7 @@ public partial class RaskStringsTests : global::Rask.Core.RaskMarkup, IDisposabl
         (CultureInfo.CurrentCulture, CultureInfo.CurrentUICulture) = (Hungarian, Hungarian);
         RaskStrings.UseSource(new Table("hu"));
 
-        var text = RaskStrings.Get(RaskString.RatingValue, "{0} of {1}", 2.5, 5);
+        var text = RaskStrings.Get(RaskString.OtpCharacter, "{0} of {1}", 2.5, 5);
 
         Assert.Equal("2.5 of 5", text);
     }
@@ -76,9 +76,9 @@ public partial class RaskStringsTests : global::Rask.Core.RaskMarkup, IDisposabl
     public void A_translation_the_text_cannot_fill_is_passed_over_for_the_english(string broken)
     {
         CultureInfo.CurrentUICulture = Hungarian;
-        RaskStrings.UseSource(new Table("hu", (RaskString.RatingValue, broken)));
+        RaskStrings.UseSource(new Table("hu", (RaskString.OtpCharacter, broken)));
 
-        var text = RaskStrings.Get(RaskString.RatingValue, "{0} of {1}", 2, 5);
+        var text = RaskStrings.Get(RaskString.OtpCharacter, "{0} of {1}", 2, 5);
 
         Assert.Equal("2 of 5", text);
     }

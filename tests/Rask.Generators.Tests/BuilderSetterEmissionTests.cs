@@ -495,8 +495,7 @@ public class BuilderSetterEmissionTests
 
     // A generic base's `T? Value` closed over a STRUCT keeps its annotation, so the prop is optional — but
     // `T?` on an unconstrained T is not Nullable<T>, the substituted type is plain `DateOnly`, and `null`
-    // does not convert to it. The reset has to write `default`, or the component does not compile at all:
-    // Rask.Ui's date picker (`UiFormField<DateOnly>`) was the first to close one over a struct.
+    // does not convert to it. The reset has to write `default`, or the component does not compile at all.
     [Fact]
     public void A_nullable_T_closed_over_a_struct_resets_to_default_not_null()
     {

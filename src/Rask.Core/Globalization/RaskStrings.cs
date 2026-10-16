@@ -82,7 +82,7 @@ public static class RaskStrings
     /// </summary>
     /// <remarks>
     ///     <paramref name="fallback" /> is the framework's English and is itself such a text:
-    ///     <c>RaskStrings.Get(RaskString.RatingValue, "{0} of {1}", star, max)</c>. A translation that asks
+    ///     <c>RaskStrings.Get(RaskString.OtpCharacter, "Character {0} of {1}", cell, length)</c>. A translation that asks
     ///     for a value the text does not carry is passed over for the English, so this never throws.
     /// </remarks>
     public static string Get<T0>(RaskString key, string fallback, T0 arg0)
