@@ -19,15 +19,9 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.App;
 
 /// <summary>A table that already exists, mapped as it is: an identity key and a tenant numbered by an int.</summary>
-public sealed class Terminal : Aggregate<int>
+public sealed class Terminal : Aggregate<int, Model, Deletable, PerTenant>
 {
     private Terminal() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 

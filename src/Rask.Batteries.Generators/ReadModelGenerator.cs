@@ -128,10 +128,10 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
 
         // Distinct because a partial class contributes one shape per declaration, and ordered so the
         // generated files are stable across builds.
-        var shapes = ChildrenWithoutStamps(candidates
+        var shapes = candidates
             .Distinct()
             .OrderBy(static s => s.FullyQualifiedName, StringComparer.Ordinal)
-            .ToList());
+            .ToList();
 
         // Only an aggregate is a reference target: a child is part of somebody, and an id naming one would
         // be a reference into the middle of an aggregate, which is the thing the border exists to stop.
@@ -179,17 +179,6 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         }
 
         context.AddSource("__RaskReadModelRegistry.g.cs", SourceText.From(EmitRegistry(mappings), Encoding.UTF8));
-    }
-
-    // Timestamps are the aggregate's: a child that declares no Stamps has neither column, so its face shows neither.
-    private static List<ReadShape> ChildrenWithoutStamps(List<ReadShape> shapes)
-    {
-        var children = new HashSet<string>(
-            shapes.SelectMany(static s => s.Children.Select(static c => c.ChildWriteType)), StringComparer.Ordinal);
-
-        return shapes
-            .Select(s => children.Contains(s.SourceTypeName) ? ReadModelShape.WithoutStamps(s) : s)
-            .ToList();
     }
 
     // Every {X}Id that resolves, with the ones that cannot reported rather than silently dropped.

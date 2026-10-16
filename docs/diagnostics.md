@@ -116,7 +116,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK088](#rask088) | Warning | Child collection cannot be synced, so a save cannot add or remove one |
 | [RASK089](#rask089) | Warning | Id looks like a reference but no navigation was inferred |
 | [RASK090](#rask090) | Warning | Two entities want one DbContext set name, so neither is generated |
-| [RASK091](#rask091) | Warning | A child cannot choose its own form writes — its root decides |
 | [RASK092](#rask092) | Warning | A unit reads wrong for its count (`2.Hour`, `1.Hours`) |
 | [RASK093](#rask093) | Error | An awaitable result is dropped, so the call never runs |
 | [RASK094](#rask094) | Warning | A scoped TypeScript export gets no typed method on its component |
@@ -134,7 +133,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 **Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
-RASK049, RASK050, RASK054, RASK075 and RASK081. Each guarded a mistake that can no longer be written; a
+RASK049, RASK050, RASK054, RASK075, RASK081 and RASK091. Each guarded a mistake that can no longer be written; a
 suppression that names one is dead and can be deleted. RASK063 and RASK065 are reserved.
 
 ---
@@ -1759,14 +1758,15 @@ public sealed partial class MuiToggle : ReactComponent
 
 **A type already has the generated model's name** · Error
 
-Every aggregate gets a generated form model emitted beside it, in the same namespace, as `{Aggregate}Model`. A
+An aggregate that names `Model` (or `CreateModel` / `UpdateModel`) gets a generated form model emitted beside
+it, in the same namespace, as `{Aggregate}Model`. A
 hand-written, non-`partial` type of that name, often a request model written before the generator existed,
 would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
 generator stands down for that aggregate and says why: no `ProductModel` is generated, and neither are the
 `Create`, `Update` and `Delete` that take it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid> { /* … */ }
+public sealed class Product : Aggregate<Guid, Model> { /* … */ }
 
 public sealed class ProductModel                  // ✗ RASK082: the generated model's name
 {
@@ -1802,7 +1802,7 @@ model is generated for it.
 ```csharp
 public static class Catalog
 {
-    public sealed class Product : Aggregate<Guid> { }  // ⚠ RASK083: nested in Catalog
+    public sealed class Product : Aggregate<Guid, Model> { }  // ⚠ RASK083: nested in Catalog
 }
 ```
 
@@ -1811,7 +1811,7 @@ public static class Catalog
 ```csharp
 namespace Shop.Catalog;
 
-public sealed class Product : Aggregate<Guid> { }      // ✓ gets ProductModel
+public sealed class Product : Aggregate<Guid, Model> { }      // ✓ gets ProductModel
 ```
 
 ---
@@ -1940,14 +1940,14 @@ type split across several files, or a member that already has the field's name.
 
 **Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
-Every `Aggregate<TId>` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
+An aggregate that names `Model` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
 ([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` and
 `Product.Create(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid>
+public sealed class Product : Aggregate<Guid, Model, Deletable>
 {
     public Product(string name) => Name = name;   // ⚠ RASK086: the only constructor takes a name
 
@@ -1958,7 +1958,7 @@ public sealed class Product : Aggregate<Guid>
 **Fix:** declare no constructor, and put domain creation in a static factory:
 
 ```csharp
-public sealed class Product : Aggregate<Guid>
+public sealed class Product : Aggregate<Guid, Model, Deletable>
 {
     public string Name { get; private set; } = "";
 
@@ -2155,42 +2155,6 @@ itself always wins over an extension member, so the accessor would compile and q
 ```csharp
 db.Set<Shop.Order>()
 db.Set<Warehouse.Order>()
-```
-
----
-
-## RASK091
-
-**A child cannot choose its own form writes — its root decides** · Warning
-
-[`ModelWrites`](data.md#turning-the-form-surface-off) narrows the form surface of an **aggregate**. A child
-entity has no writes of its own to narrow — it is created, changed and removed through its root — and its
-model is part of the root's, which is what a form actually posts.
-
-```csharp
-public sealed class Order : Aggregate<Guid>
-{
-    private readonly List<OrderLine> _lines = [];
-    public IReadOnlyCollection<OrderLine> Lines => _lines;
-}
-
-public sealed class OrderLine : Entity<Guid>
-{
-    public const ModelWrites Writes = ModelWrites.None;   // ⚠ RASK091: ignored
-}
-```
-
-The const is **reported and then ignored**, not half-obeyed: `OrderModel.Lines` is a
-`List<OrderLineModel>`, so honouring it would leave the root's model holding a list of a type that was never
-generated.
-
-**Fix:** put the const on the aggregate that holds it, where it means something:
-
-```csharp
-public sealed class Order : Aggregate<Guid>
-{
-    public const ModelWrites Writes = ModelWrites.None;   // ✓ the order takes no form — nor do its lines
-}
 ```
 
 ---

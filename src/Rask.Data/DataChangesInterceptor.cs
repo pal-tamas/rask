@@ -197,7 +197,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     }
 
     /// <summary>
-    ///     Publishes a <c>DataChanged</c> for each written entity that declared <c>Broadcast = Broadcasts.OnCommit</c>,
+    ///     Publishes a <c>DataChanged</c> for each written entity whose base names <see cref="Broadcast" />,
     ///     which is what a query's <c>Live()</c> listens for.
     /// </summary>
     [SuppressMessage(
@@ -214,7 +214,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
 
         foreach (var type in types)
         {
-            if (ConventionRegistry.BroadcastsFor(type) != Broadcasts.OnCommit)
+            if (!ConventionRegistry.Has(type, TraitSet.Broadcast))
             {
                 continue;
             }

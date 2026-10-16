@@ -196,7 +196,7 @@ public sealed class RaskSqliteRangeExclusionTests : IDisposable
         var error = Assert.Throws<InvalidOperationException>(() => CreateSchema(context));
 
         Assert.Contains("'Booking'", error.Message, StringComparison.Ordinal);
-        Assert.Contains("Deletes = Deletion.Soft", error.Message, StringComparison.Ordinal);
+        Assert.Contains("SoftDelete on its base", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -64,7 +64,7 @@ public static class ModelBuilderExtensions
     /// </para>
     /// <para>
     /// <paramref name="context" /> must implement <see cref="ITenantScoped" /> once anything is
-    /// <see cref="Tenancy.PerTenant" />; the parameterless overload refuses rather than mapping a table whose
+    /// <see cref="PerTenant" />; the parameterless overload refuses rather than mapping a table whose
     /// filter could not be built.
     /// </para>
     /// </remarks>
@@ -146,37 +146,31 @@ public static class ModelBuilderExtensions
 
     private static void ApplyTimestamps(EntityTypeBuilder builder, Type clrType)
     {
-        // Both, unless the entity declared a `Stamps` const saying otherwise — an append-only table
-        // has nothing an UpdatedAt could mean. Read from the registry the generator filled at
-        // compile time, never reflected over: see TimestampRegistry.
-        var stamps = ConventionRegistry.StampsFor(clrType);
-
+        // Only what the base names — Aggregate<Guid, Timestamps> or Entity<Guid, Created> — read from the
+        // registry the generator filled at compile time, never reflected over.
+        //
         // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
-        // convention maps them whatever this does. Declining one has to say so out loud.
-        if (stamps.HasFlag(Timestamps.Created))
-        {
-            builder.Property<DateTime>(Columns.CreatedAt);
-        }
-        else
-        {
-            builder.Ignore(Columns.CreatedAt);
-        }
+        // convention maps them whatever this does. Leaving one out has to say so out loud.
+        ApplyStamp(builder, clrType, TraitSet.Created, Columns.CreatedAt);
+        ApplyStamp(builder, clrType, TraitSet.Updated, Columns.UpdatedAt);
+    }
 
-        if (stamps.HasFlag(Timestamps.Updated))
+    private static void ApplyStamp(EntityTypeBuilder builder, Type clrType, TraitSet trait, string column)
+    {
+        if (ConventionRegistry.Has(clrType, trait))
         {
-            builder.Property<DateTime>(Columns.UpdatedAt);
+            builder.Property<DateTime>(column);
         }
         else
         {
-            builder.Ignore(Columns.UpdatedAt);
+            builder.Ignore(column);
         }
     }
 
-    // On unless the aggregate declined: a lost update is invisible, which is why this default is
-    // not the one soft delete got.
+    // Only for an aggregate that names Versioned.
     private static void ApplyVersion(EntityTypeBuilder builder, Type clrType)
     {
-        if (ConventionRegistry.ChecksFor(clrType) == Concurrency.Version)
+        if (ConventionRegistry.Has(clrType, TraitSet.Versioned))
         {
             builder.Property<int>(Columns.Version).IsConcurrencyToken();
         }
@@ -186,15 +180,13 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // OFF unless the aggregate asked. A stamped row still occupies its UNIQUE constraints, "delete my
-    // account" has to be able to mean delete, and Rask already ships snapshots and Litestream for
-    // getting data back — so keeping the row is a choice an aggregate makes, not one it inherits.
+    // Only for an aggregate that names SoftDelete. A stamped row still occupies its UNIQUE constraints.
     private static void ApplySoftDelete(EntityTypeBuilder builder, Type clrType)
     {
         // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
         // DeletedAt are real properties on Aggregate<TId>, so EF Core maps them by its own convention
         // whatever this does; declining one has to say so out loud.
-        if (ConventionRegistry.DeletesFor(clrType) == Deletion.Soft)
+        if (ConventionRegistry.Has(clrType, TraitSet.SoftDelete))
         {
             builder.Property<DateTime?>(Columns.DeletedAt);
 
@@ -214,7 +206,7 @@ public static class ModelBuilderExtensions
     internal const string TenantFilter = "Tenant";
 
     /// <summary>
-    /// Gives every <see cref="Tenancy.PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
+    /// Gives every <see cref="PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
     /// indexes are what the app wrote: one that holds within a tenant names <c>TenantId</c> itself.
     /// </summary>
     /// <remarks>
@@ -239,7 +231,7 @@ public static class ModelBuilderExtensions
             if (context is not ITenantScoped)
             {
                 throw new InvalidOperationException(
-                    $"'{entityType.ClrType.Name}' declares Scope = Tenancy.PerTenant, but its DbContext " +
+                    $"'{entityType.ClrType.Name}' names PerTenant, but its DbContext " +
                     $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
                     "context as ': DbContext, ITenantScoped' and call " +
                     "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +

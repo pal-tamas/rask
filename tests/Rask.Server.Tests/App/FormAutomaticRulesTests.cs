@@ -41,17 +41,11 @@ public sealed record BerthName(string Value)
 }
 
 /// <summary>An existing table whose unique rule is over a value object's column.</summary>
-public sealed class Berth : Aggregate<int>
+public sealed class Berth : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string NameTaken = "Ilyen néven már létezik kikötőhely.";
 
     private Berth() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 
@@ -66,13 +60,9 @@ public sealed class Berth : Aggregate<int>
 }
 
 /// <summary>An aggregate of plain properties: nothing but their types says what must be filled.</summary>
-public sealed class Trailer : Aggregate<int>
+public sealed class Trailer : Aggregate<int, Model, Deletable>
 {
     private Trailer() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
 
     public int Weight { get; private set; }
 

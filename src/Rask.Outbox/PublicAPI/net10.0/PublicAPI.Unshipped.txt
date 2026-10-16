@@ -69,8 +69,6 @@ Rask.Outbox.OutboxOptions.ShutdownGracePeriod.set -> void
 Rask.Outbox.OutboxProcessor<TContext>
 Rask.Outbox.OutboxSerializerRegistry
 Rask.Outbox.RaskOutboxServiceCollectionExtensions
-const Rask.Outbox.OutboxMessage.Stamps = Rask.Data.Timestamps.Updated -> Rask.Data.Timestamps
-const Rask.Outbox.OutboxMessage.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 const Rask.Outbox.OutboxMetrics.MeterName = "Rask.Outbox" -> string!
 override Rask.Outbox.OutboxInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result) -> Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>
 override Rask.Outbox.OutboxInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData! eventData, Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>>

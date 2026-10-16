@@ -6,11 +6,9 @@ namespace Rask.Data.Tests;
 public readonly record struct PermitKind(string Name, int Rank);
 
 /// <summary>An aggregate with a computed get-only property of a record struct type: no column behind it.</summary>
-public sealed class Permit : Aggregate<int>
+public sealed class Permit : Aggregate<int, Timestamps, Model, Deletable>
 {
     private Permit() { } // EF materialization
-
-    public const Concurrency Checks = Concurrency.None;
 
     public int Level { get; private set; }
 

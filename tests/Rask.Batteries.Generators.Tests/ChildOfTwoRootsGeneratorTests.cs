@@ -11,21 +11,19 @@ public class ChildOfTwoRootsGeneratorTests
         using Rask.Data;
         namespace Fleet;
 
-        public sealed class Driver : Aggregate<string>
+        public sealed class Driver : Aggregate<string, Timestamps, Versioned, Model, Deletable, PerTenant>
         {
             private readonly List<Chip> _chips = [];
             private Driver() { }
-            public const Tenancy Scope = Tenancy.PerTenant;
             public Guid? TenantId { get; private set; }
             public string Name { get; private set; } = "";
             public IReadOnlyList<Chip> Chips => _chips;
         }
 
-        public sealed class Vehicle : Aggregate<string>
+        public sealed class Vehicle : Aggregate<string, Timestamps, Versioned, Model, Deletable>
         {
             private readonly List<Chip> _chips = [];
             private Vehicle() { }
-            public const Tenancy Scope = Tenancy.Shared;
             public string Plate { get; private set; } = "";
             public IReadOnlyList<Chip> Chips => _chips;
         }
@@ -70,11 +68,10 @@ public class ChildOfTwoRootsGeneratorTests
             using Rask.Data;
             namespace Rounds;
 
-            public sealed class Tour : Aggregate<Guid>
+            public sealed class Tour : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
             {
                 private readonly List<Drop> _drops = [];
                 private Tour() { }
-                public const Tenancy Scope = Tenancy.PerTenant;
                 public IReadOnlyList<Drop> Drops => _drops;
             }
 
@@ -101,7 +98,7 @@ public class ChildOfTwoRootsGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("class PacketModel", run.GeneratedSource("Rounds.PacketModel"), StringComparison.Ordinal);
         Assert.Contains(
-            "global::Rask.Data.ConventionRegistry.Declare(typeof(global::Rounds.Packet), (global::Rask.Data.Tenancy)1);",
+            "global::Rask.Data.ConventionRegistry.Declare(typeof(global::Rounds.Packet), (global::Rask.Data.TraitSet)128);",
             conventions,
             StringComparison.Ordinal);
     }
@@ -112,7 +109,7 @@ public class ChildOfTwoRootsGeneratorTests
         var conventions = Run().GeneratedSource("__RaskConventions");
 
         Assert.Contains(
-            "global::Rask.Data.ConventionRegistry.Declare(typeof(global::Fleet.Chip), (global::Rask.Data.Tenancy)1);",
+            "global::Rask.Data.ConventionRegistry.Declare(typeof(global::Fleet.Chip), (global::Rask.Data.TraitSet)128);",
             conventions,
             StringComparison.Ordinal);
     }

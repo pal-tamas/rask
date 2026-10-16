@@ -20,7 +20,7 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         // Fences the completion write — see Job.ClaimToken for why.
         builder.Property(x => x.ClaimToken).IsConcurrencyToken();
 
-        // Mapped EXPLICITLY, and the table is deliberately not Tenancy.PerTenant. A partitioned table takes a
+        // Mapped EXPLICITLY, and the table is deliberately not PerTenant. A partitioned table takes a
         // query filter, and a filter here would hide other tenants' rows from the drain — the processor has
         // to see everybody's work. So the tenant is data on the row, not a partition of the table, and
         // ApplyRaskConventions leaves a tenant somebody mapped themselves alone.

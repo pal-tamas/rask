@@ -13,7 +13,7 @@ public sealed partial class ModelInputGenerator
 {
     private static string Render(Entity entity)
     {
-        // What `public const ModelWrites Writes` narrows. It reaches the FORM surface only: the behaviour
+        // What the Model / CreateModel / UpdateModel traits name. It reaches the FORM surface only: the behaviour
         // writes below take no model, and the read face is generated elsewhere and not negotiable.
         var formCreate = (entity.Writes & CreateWrite) != 0;
         var formUpdate = (entity.Writes & UpdateWrite) != 0;

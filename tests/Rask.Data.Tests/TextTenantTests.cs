@@ -7,15 +7,9 @@ namespace Rask.Data.Tests;
 /// A table that already exists, whose tenant is a <see cref="Guid" /> kept as TEXT: a string key and a text
 /// <c>TenantId</c> column, as a database another tool made often has it.
 /// </summary>
-public sealed class Branch : Aggregate<string>
+public sealed class Branch : Aggregate<string, Model, Deletable, PerTenant>
 {
     private Branch() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 

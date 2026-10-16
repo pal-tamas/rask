@@ -189,7 +189,6 @@ Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.Sen
 Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).ToEveryone() -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
 Rask.WebPush.SentPushCounting.extension(Rask.Batteries.Counting<Rask.WebPush.SentPush!>).WithTitle(string! title) -> Rask.Batteries.Counting<Rask.WebPush.SentPush!>
 Rask.WebPush.WebPushModelBuilderExtensions
-const Rask.WebPush.PushSubscriber.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 override Rask.WebPush.PushKey.Equals(object? obj) -> bool
 override Rask.WebPush.PushKey.GetHashCode() -> int
 override Rask.WebPush.PushKey.ToString() -> string!

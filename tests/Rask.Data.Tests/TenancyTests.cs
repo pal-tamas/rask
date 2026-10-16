@@ -3,14 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A tenant-scoped aggregate: one const, and it never mentions the tenant again.</summary>
-public sealed class Ledger : Aggregate<Guid>
+/// <summary>A tenant-scoped aggregate: <c>PerTenant</c> on its base, and it never mentions the tenant again.</summary>
+public sealed class Ledger : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private readonly List<LedgerEntry> _entries = [];
 
     private Ledger() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public string Reference { get; private set; } = "";
 
@@ -26,7 +24,7 @@ public sealed class Ledger : Aggregate<Guid>
     }
 }
 
-/// <summary>A child. It declares nothing, takes its root's tenancy, and belongs to its tenant through its root.</summary>
+/// <summary>A child. It names nothing, takes its root's tenancy, and belongs to its tenant through its root.</summary>
 public sealed class LedgerEntry : Entity<Guid>
 {
     private LedgerEntry() { }
@@ -38,11 +36,9 @@ public sealed class LedgerEntry : Entity<Guid>
 }
 
 /// <summary>A tenant-scoped aggregate that READS its tenant, so it declares the column itself.</summary>
-public sealed class Vault : Aggregate<Guid>
+public sealed class Vault : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Vault() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 
@@ -52,7 +48,7 @@ public sealed class Vault : Aggregate<Guid>
 }
 
 /// <summary>Not partitioned, but it keeps a tenant as data of its own — the shape a queue's rows have.</summary>
-public sealed class Haulier : Aggregate<Guid>
+public sealed class Haulier : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     private Haulier() { }
 
@@ -63,8 +59,8 @@ public sealed class Haulier : Aggregate<Guid>
     public static Haulier For(string name, Guid? tenant) => new() { Id = Guid.NewGuid(), Name = name, TenantId = tenant };
 }
 
-/// <summary>An aggregate that says nothing, so it is one table for everybody.</summary>
-public sealed class RateCard : Aggregate<Guid>
+/// <summary>An aggregate that does not name <c>PerTenant</c>, so it is one table for everybody.</summary>
+public sealed class RateCard : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     private RateCard() { }
 
@@ -74,7 +70,7 @@ public sealed class RateCard : Aggregate<Guid>
 }
 
 /// <summary>
-/// A <c>Scope</c> const partitions a table by tenant: a <c>TenantId</c> column, a query filter no read can
+/// <c>PerTenant</c> on the base partitions a table by tenant: a <c>TenantId</c> column, a query filter no read can
 /// compose away, and a stamp on insert.
 /// </summary>
 /// <remarks>

@@ -12,7 +12,7 @@ namespace Rask.Data.Tests;
 /// A tenant's users, the way an existing app has them: a text key, a <see cref="Guid" /> tenant kept as text, a
 /// sign-in name that is one user's among EVERY tenant, and a badge number that is unique within one.
 /// </summary>
-public sealed class Clerk : Aggregate<string>
+public sealed class Clerk : Aggregate<string, Model, Deletable, PerTenant>
 {
     public const string UsernameTaken = "Ez a felhasználónév foglalt.";
     public const string BadgeTaken = "This badge is already handed out.";
@@ -20,12 +20,6 @@ public sealed class Clerk : Aggregate<string>
     public const string BadgeKey = "Clerk_badge_key";
 
     private Clerk() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 

@@ -132,7 +132,7 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
     private object? ValueOf(IProperty property, TModel model)
     {
         if (string.Equals(property.Name, Columns.TenantId, StringComparison.Ordinal) &&
-            ConventionRegistry.ScopeFor(typeof(TEntity)) == Tenancy.PerTenant)
+            ConventionRegistry.IsPerTenant(typeof(TEntity)))
         {
             return Current.Tenant is { } tenant && tenant != Tenant.Nobody
                 ? TenantColumn.ValueFor(tenant, property.ClrType, typeof(TEntity).Name)

@@ -6,7 +6,7 @@ namespace Rask.Cqrs;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Published for an entity that declares <c>Broadcast = Broadcasts.OnCommit</c>, and consumed by
+///         Published for an entity that names <c>Broadcast</c> on its base, and consumed by
 ///         <c>Rask.Query</c>, which refetches the queries that declared they read that entity. An application
 ///         rarely names it: declaring the const and calling <c>Live()</c> is the whole of it.
 ///     </para>

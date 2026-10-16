@@ -1,8 +1,8 @@
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-///     The <c>Broadcast</c> const, which is what makes a save announce itself to pages that did not make it.
-///     Without this the const compiles, the build is green, and <c>Live()</c> silently never fires.
+///     The <c>Broadcast</c> trait, which is what makes a save announce itself to pages that did not make it.
+///     Without this the base compiles, the build is green, and <c>Live()</c> silently never fires.
 /// </summary>
 public class BroadcastConstGeneratorTests
 {
@@ -11,15 +11,14 @@ public class BroadcastConstGeneratorTests
             source, new ModelRegistryGenerator(), "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
 
     [Fact]
-    public void An_entity_that_declares_Broadcast_is_registered()
+    public void An_aggregate_that_names_Broadcast_is_registered_with_it()
     {
         var run = Run("""
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid>
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, Broadcast>
             {
-                public const Broadcasts Broadcast = Broadcasts.OnCommit;
             }
             """);
 
@@ -27,13 +26,31 @@ public class BroadcastConstGeneratorTests
 
         var conventions = run.GeneratedSource("__RaskConventions");
         Assert.Contains(
-            "Declare(typeof(global::Shop.Order), (global::Rask.Data.Broadcasts)1)",
+            "Declare(typeof(global::Shop.Order), (global::Rask.Data.TraitSet)319)",
             conventions,
             StringComparison.Ordinal);
     }
 
     [Fact]
-    public void An_entity_that_says_nothing_declares_no_broadcast()
+    public void An_aggregate_that_does_not_name_it_is_registered_without_it()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+            {
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var conventions = run.GeneratedSource("__RaskConventions");
+        Assert.Contains("Declare(typeof(global::Shop.Order), (global::Rask.Data.TraitSet)95)", conventions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_aggregate_that_names_nothing_registers_nothing()
     {
         var run = Run("""
             using System;
@@ -41,37 +58,10 @@ public class BroadcastConstGeneratorTests
             namespace Shop;
             public sealed class Order : Aggregate<Guid>
             {
-                public const Deletion Deletes = Deletion.Soft;
             }
             """);
 
         Assert.Empty(run.GeneratedCompileErrors());
-
-        var conventions = run.GeneratedSource("__RaskConventions");
-        Assert.DoesNotContain("Broadcasts", conventions, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Declaring_Never_is_registered_too()
-    {
-        // Stating the default explicitly must not be mistaken for saying nothing: an entity that turns the
-        // announcement back off should say so in the registry rather than fall through to the same answer by luck.
-        var run = Run("""
-            using System;
-            using Rask.Data;
-            namespace Shop;
-            public sealed class Order : Aggregate<Guid>
-            {
-                public const Broadcasts Broadcast = Broadcasts.Never;
-            }
-            """);
-
-        Assert.Empty(run.GeneratedCompileErrors());
-
-        var conventions = run.GeneratedSource("__RaskConventions");
-        Assert.Contains(
-            "Declare(typeof(global::Shop.Order), (global::Rask.Data.Broadcasts)0)",
-            conventions,
-            StringComparison.Ordinal);
+        Assert.False(run.HasGeneratedSource("__RaskConventions"));
     }
 }

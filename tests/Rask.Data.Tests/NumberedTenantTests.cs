@@ -7,15 +7,9 @@ namespace Rask.Data.Tests;
 /// A table that already exists, mapped as it is: an identity key, a tenant numbered by an <c>int</c>, a name
 /// unique within the tenant, and none of the framework's columns.
 /// </summary>
-public sealed class Destination : Aggregate<int>
+public sealed class Destination : Aggregate<int, Model, Deletable, PerTenant>
 {
     private Destination() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 
@@ -34,13 +28,11 @@ public sealed class Destination : Aggregate<int>
 }
 
 /// <summary>The same with a <c>long</c> tenant, and a child that keeps the tenant in its own column.</summary>
-public sealed class Waybill : Aggregate<long>
+public sealed class Waybill : Aggregate<long, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private readonly List<WaybillLine> _lines = [];
 
     private Waybill() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public long? TenantId { get; private set; }
 
@@ -73,6 +65,15 @@ public sealed class WaybillLine : Entity<long>
 public sealed class MistypedTenant
 {
     public string TenantId { get; set; } = "";
+}
+
+/// <summary>Not an entity: what <c>PerTenant&lt;int&gt;</c> gives a table that declares no <c>TenantId</c>.</summary>
+public sealed class UndeclaredNumberedTenant;
+
+/// <summary>Not an entity: a declared <c>TenantId</c> that disagrees with <c>PerTenant&lt;long&gt;</c>.</summary>
+public sealed class DisagreeingNumberedTenant
+{
+    public int? TenantId { get; set; }
 }
 
 /// <summary>
@@ -688,6 +689,27 @@ public sealed class NumberedTenantTests : IDisposable
 
         Assert.Contains("'String'", refused.Message, StringComparison.Ordinal);
         Assert.Contains("public int? TenantId { get; private set; }", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PerTenant_of_int_gives_a_table_with_no_TenantId_an_int_column()
+    {
+        ConventionRegistry.DeclareTenantKey(typeof(UndeclaredNumberedTenant), typeof(int));
+
+        var column = TenantColumn.TypeFor(typeof(UndeclaredNumberedTenant));
+
+        Assert.Equal(typeof(int?), column);
+    }
+
+    [Fact]
+    public void A_declared_TenantId_that_disagrees_with_PerTenant_of_TKey_is_refused_with_both_types()
+    {
+        ConventionRegistry.DeclareTenantKey(typeof(DisagreeingNumberedTenant), typeof(long));
+
+        var refused = Assert.Throws<InvalidOperationException>(() => TenantColumn.TypeFor(typeof(DisagreeingNumberedTenant)));
+
+        Assert.Contains("PerTenant<Int64>", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("'Int32?'", refused.Message, StringComparison.Ordinal);
     }
 
     private static async Task<int> SaveAsync(int tenant, string name)

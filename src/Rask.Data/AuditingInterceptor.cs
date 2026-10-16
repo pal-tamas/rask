@@ -87,7 +87,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
-            // Only an aggregate that maps the token: one that declared Checks = Concurrency.None has no Version,
+            // Only an aggregate that maps the token: one that does not name Versioned has no Version,
             // and asking an entry for a property that is not mapped throws rather than no-ops.
             if (entry.State == EntityState.Modified && entry.Metadata.FindProperty(Columns.Version) is not null)
             {
@@ -108,13 +108,13 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return;
         }
 
-        foreach (var entry in context.ChangeTracker.Entries<IEntity>())
+        var written = context.ChangeTracker.Entries<IEntity>().FirstOrDefault(static entry =>
+            entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+            ConventionRegistry.IsPerTenant(entry.Metadata.ClrType));
+
+        if (written is not null)
         {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
-                ConventionRegistry.ScopeFor(entry.Metadata.ClrType) == Tenancy.PerTenant)
-            {
-                throw MissingTenantException.ForWrite(entry.Metadata.ClrType.Name);
-            }
+            throw MissingTenantException.ForWrite(written.Metadata.ClrType.Name);
         }
     }
 
@@ -187,7 +187,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
     // The REGISTRY decides, as it does for the stamp: a table that is not partitioned may keep a TenantId of its own.
     private static bool IsPartitioned(EntityEntry entry) =>
-        ConventionRegistry.ScopeFor(entry.Metadata.ClrType) == Tenancy.PerTenant &&
+        ConventionRegistry.IsPerTenant(entry.Metadata.ClrType) &&
         entry.Metadata.FindProperty(Columns.TenantId) is not null;
 
     private static bool HasTenant(EntityEntry entry) =>
@@ -195,7 +195,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
     // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it.
     //
-    // NOT gated on the tenancy registry, deliberately: the accounts table cannot declare Scope = PerTenant,
+    // NOT gated on the tenancy registry, deliberately: the accounts table cannot name PerTenant,
     // because stamping a tenant-scoped row demands an ambient tenant and an ADMINISTRATOR legitimately has
     // none — a tenant-scoped accounts table could not have an admin inserted into it at all. So Rask.Auth
     // maps the tenant itself, and this keeps the indexed copy honest wherever it is mapped.
@@ -221,7 +221,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         // The REGISTRY decides, not whether the column happens to be mapped. A table that is not partitioned
         // may declare a TenantId of its own — a queue's rows record the tenant they were enqueued for — and
         // keying off the column would then demand a tenant for a table that never asked to be partitioned.
-        if (ConventionRegistry.ScopeFor(entry.Metadata.ClrType) != Tenancy.PerTenant ||
+        if (!ConventionRegistry.IsPerTenant(entry.Metadata.ClrType) ||
             entry.Metadata.FindProperty(Columns.TenantId) is null)
         {
             return;
@@ -298,7 +298,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     // was assigned in code, being saved into a different tenant than it was read from.
     private static void RefuseTenantChange(EntityEntry entry)
     {
-        if (ConventionRegistry.ScopeFor(entry.Metadata.ClrType) != Tenancy.PerTenant ||
+        if (!ConventionRegistry.IsPerTenant(entry.Metadata.ClrType) ||
             entry.Metadata.FindProperty(Columns.TenantId) is null)
         {
             return;

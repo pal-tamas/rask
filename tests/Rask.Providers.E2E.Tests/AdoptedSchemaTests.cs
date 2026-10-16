@@ -11,17 +11,11 @@ namespace Rask.Providers.E2E.Tests;
 /// A table that already exists, mapped as it is: <c>Destinations (Id int IDENTITY, Name nvarchar(255) NOT NULL,
 /// TenantId int NULL)</c> with a unique index over <c>(Name, TenantId)</c>, and none of Rask's own columns.
 /// </summary>
-public sealed class Destination : Aggregate<int>
+public sealed class Destination : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string NameTaken = "Ilyen néven már létezik viszonylat.";
 
     private Destination() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 

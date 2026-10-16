@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // Rask.Data's key convention leaves an integer key to the store's identity and marks every other key never
 // generated, so the entity's own factory is what assigns it. Saved the way every write is — through a context.
-public sealed class Coupon : Aggregate<int>
+public sealed class Coupon : Aggregate<int, Timestamps, Versioned, Model, Deletable>
 {
     private Coupon() { }
 
@@ -16,7 +16,7 @@ public sealed class Coupon : Aggregate<int>
 }
 
 // An integer key the application assigns — a table numbered by something other than the store's identity.
-public sealed class Chit : Aggregate<int>
+public sealed class Chit : Aggregate<int, Timestamps, Versioned, Model, Deletable>
 {
     private Chit() { }
 
@@ -31,7 +31,7 @@ public readonly record struct ParcelId(Guid Value);
 
 public readonly record struct LockerCode(string Value);
 
-public sealed class Locker : Aggregate<LockerCode>
+public sealed class Locker : Aggregate<LockerCode, Timestamps, Versioned, Model, Deletable>
 {
     private Locker() { }
 
@@ -44,7 +44,7 @@ public sealed class Locker : Aggregate<LockerCode>
 
 // Value objects the way RASK084 wants them — no public setters — so EF Core has to materialise them through
 // private members; only a round trip shows it can.
-public sealed class Parcel : Aggregate<ParcelId>
+public sealed class Parcel : Aggregate<ParcelId, Timestamps, Versioned, Model, Deletable>
 {
     private Parcel() { }
 

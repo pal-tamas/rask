@@ -201,9 +201,7 @@ Rask.Batteries.CountingException
 Rask.Batteries.CountingException.CountingException() -> void
 Rask.Batteries.CountingException.CountingException(string! message) -> void
 Rask.Batteries.CountingException.CountingException(string! message, System.Exception! innerException) -> void
-const Rask.Background.Job.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 const Rask.Background.JobMetrics.MeterName = "Rask.Jobs" -> string!
-const Rask.Background.RecurringJobState.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 override Rask.Background.EnqueuedJob<TJob>.Equals(object? obj) -> bool
 override Rask.Background.EnqueuedJob<TJob>.GetHashCode() -> int
 override Rask.Background.EnqueuedJob<TJob>.ToString() -> string!

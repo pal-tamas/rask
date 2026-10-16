@@ -17,17 +17,11 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.App;
 
 /// <summary>An existing table with one unique rule, filtered the way the real one is.</summary>
-public sealed class Wharf : Aggregate<int>
+public sealed class Wharf : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string NameTaken = "Ilyen néven már létezik rakpart.";
 
     private Wharf() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 
@@ -43,17 +37,11 @@ public sealed class Wharf : Aggregate<int>
 }
 
 /// <summary>An existing table whose unique rule is over two columns the form binds.</summary>
-public sealed class Crane : Aggregate<int>
+public sealed class Crane : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string PlaceTaken = "Ezen a rakparton már áll daru ezen a helyen.";
 
     private Crane() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 

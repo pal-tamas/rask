@@ -85,21 +85,6 @@ public sealed partial class ModelInputGenerator
                      + "but gets no form model.",
         helpLinkUri: DiagnosticHelp.Link("RASK083"));
 
-    internal static readonly DiagnosticDescriptor Rask091 = new(
-        "RASK091",
-        "A child cannot choose its own form writes",
-        "'{0}' is a child of another aggregate, so its 'Writes' const is ignored — a child model exists to "
-        + "carry the ROOT's form and is generated with it; put the const on the aggregate that holds '{0}'",
-        DiagnosticHelp.Category,
-        DiagnosticSeverity.Warning,
-        true,
-        description: "ModelWrites narrows the form surface of an AGGREGATE. A child has no writes of its own "
-                     + "to narrow — it is created, changed and removed through its root — and its model is "
-                     + "part of the root's, which is what a form posts. Honouring the const here would leave "
-                     + "the root's model holding a list of a child model that was never generated, so it is "
-                     + "reported rather than obeyed.",
-        helpLinkUri: DiagnosticHelp.Link("RASK091"));
-
     internal static readonly DiagnosticDescriptor Rask102 = new(
         "RASK102",
         "A value object's Validate is not the shape of a rule, so no form runs it",
@@ -135,11 +120,6 @@ public sealed partial class ModelInputGenerator
         if (!entity.Constructible)
         {
             context.ReportDiagnostic(Diagnostic.Create(Rask086, entity.Location?.ToLocation(), entity.Name));
-        }
-
-        if (entity.IsChild && entity.DeclaresWrites)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(Rask091, entity.Location?.ToLocation(), entity.Name));
         }
 
         foreach (var held in entity.AggregateReferences)

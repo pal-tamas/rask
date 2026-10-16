@@ -6,9 +6,11 @@ No `DbContext` class, no `DbSet` property, no `IEntityTypeConfiguration`, no reg
 richer than a create, an update or a delete is EF Core exactly as you know it.
 
 - **`Aggregate<TId>` and `Entity<TId>`**: domain-driven design's building blocks as base classes. An entity carries
-  `Id`, `CreatedAt` and `UpdatedAt`; an aggregate adds a `Version` concurrency token and domain events, and
-  `DeletedAt` soft delete when it declares `Deletes = Deletion.Soft`. A source generator finds every one and builds the model, so nothing is scanned or reflected and
-  a trimmed publish cannot quietly drop a table.
+  `Id`; an aggregate adds domain events. Everything else is a **trait** named on the base, in any order —
+  `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` is the CRUD shape `rask new` scaffolds: `Timestamps`
+  (or `Created` / `Updated`), `Versioned`, `Model` (or `CreateModel` / `UpdateModel`), `Deletable` or `SoftDelete`,
+  `PerTenant`, `Broadcast`. A bare `Aggregate<Guid>` has none of them. A source generator finds every one and
+  builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop a table.
 - **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
   nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
@@ -18,16 +20,16 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   **Every read is untracked and opens and disposes its own context**, which is what makes them safe on a
   page that lives as long as a browser's socket. `AsQueryable()` is a standard `IQueryable<T>` that opens a
   context per execution: hand it to a data grid and it sorts and pages in the database.
-- **A generated `ProductModel` for forms**: a nullable, settable copy of each aggregate's mapped properties, with
+- **A generated `ProductModel` for forms** (the `Model` trait): a nullable, settable copy of the aggregate's mapped properties, with
   its DataAnnotations and `Version` carried and the key left out, so `Form.Model(model)` validates by the
   aggregate's own rules. `new ProductModel()` holds the aggregate's defaults and `product.ToModel()` fills an edit
   form.
 - **Writes off the type**: creates read like their updates: `Product.Create(model)` /
   `Product.Update(id, model)`, `Product.Create(p => …)` / `Product.Update(id, p => …)`, plus
-  `Product.Create(entity)` for one built by a factory and `Product.Delete(id)`, which removes the row (or stamps `DeletedAt` under
-  `Deletion.Soft`; `Deletion.None` generates no delete at all). A save
+  `Product.Create(entity)` for one built by a factory and `Product.Delete(id)`, which removes the row under
+  `Deletable` (or stamps `DeletedAt` under `SoftDelete`; with neither there is no delete at all). A save
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
-  the caller's, never the form's; a stale `Version` is refused. Each takes an optional `DbContext` to join a
+  the caller's, never the form's; a stale `Version` is refused (`Versioned`). Each takes an optional `DbContext` to join a
   caller's transaction.
 - **Find, change, Save**: `var order = await Order.Find(id);` loads the aggregate whole (a filtered query by key,
   so a soft-deleted row is `null`), `order.Ship(…)` runs its rule, `await order.Save()` writes only what changed,
@@ -38,11 +40,10 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **`TestDatabase.Start`**: a real database for a test in one line, so behaviour on an aggregate is
   tested against the database it ships on rather than a mocked `DbContext`.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
-  that declares it, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
+  that names `SoftDelete`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
 - **`Current` and multi-tenancy**: `Current.UserId`, `Current.Principal` and `Current.Tenant` answer from a
-  static factory or anywhere else with no constructor to inject into. `public const Tenancy Scope =
-  Tenancy.PerTenant;` gives a table a `TenantId` and a query filter no read can compose away, and an entity under
+  static factory or anywhere else with no constructor to inject into. `PerTenant` on the base gives a table a `TenantId` and a query filter no read can compose away, and an entity under
   it is read through its root; the tenant comes from the signed-in user.
 - **`BulkInsert`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.
@@ -50,7 +51,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 ## Use
 
 ```csharp
-public sealed class Product : Aggregate<Guid>
+public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     [Required, MaxLength(200)]
     public string Name { get; private set; } = "";
@@ -104,9 +105,9 @@ A class that does **not** derive from `Entity<TId>` stays an ordinary EF Core en
 and configurations and use them exactly as before. Registering an `IDbContextFactory<YourContext>` is
 the whole of opting out at the app level.
 
-A delete, `db.Remove(product)`, removes the row — or, for an aggregate that declares
-`Deletes = Deletion.Soft`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
-back); a save against a stale `Version` throws
+A delete, `db.Remove(product)`, removes the row — or, for an aggregate that names
+`SoftDelete`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
+back); a save of a `Versioned` aggregate against a stale `Version` throws
 `DbUpdateConcurrencyException`; and any `IEvent` raised on the aggregate is published after the change
 commits.
 

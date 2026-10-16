@@ -141,12 +141,9 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             SymbolLocation.From(symbol),
             valueObjects,
             StronglyTypedId.For(idType),
-            AggregateShape.ConstOf(symbol, "Stamps", "Timestamps"),
-            AggregateShape.ConstOf(symbol, "Deletes", "Deletion"),
-            AggregateShape.ConstOf(symbol, "Checks", "Concurrency"),
-            AggregateShape.ConstOf(symbol, "Broadcast", "Broadcasts"),
+            AggregateShape.TraitsOf(symbol),
+            AggregateShape.TenantKeyOf(symbol),
             ValueCollections(symbol),
-            AggregateShape.ConstOf(symbol, "Scope", "Tenancy"),
             ChildTypeNamesOf(symbol),
             AggregateShape.IsAggregate(symbol),
             unbuildable);
@@ -552,8 +549,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         "Set" or "Update" or "UpdateRange" or "Equals" or "GetHashCode" or "GetType" or "ToString";
 
     /// <summary>
-    ///     Registers every entity that narrowed a convention — <c>Stamps</c>, <c>Deletes</c>, <c>Checks</c> —
-    ///     so they can be honoured without reflecting over a const the trimmer is free to drop.
+    ///     Registers the traits every entity's base names — and a child's tenancy, which is its root's — so they can
+    ///     be honoured without reflecting over the base at runtime.
     /// </summary>
     private static void EmitConventions(SourceProductionContext context, ImmutableArray<Candidate> candidates)
     {
@@ -563,14 +560,12 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         }
 
         var distinct = candidates.Distinct().ToList();
-        var scopeByType = ScopeByType(distinct);
-        var stamps = StampsByType(distinct);
+        var partitioned = PartitionedTypes(distinct);
 
         var declared = distinct
-            .Where(c => stamps.ContainsKey(c.FullyQualifiedName) || c.Deletes is not null || c.Checks is not null ||
-                        c.Broadcast is not null ||
-                        c.Collections.Count > 0 || scopeByType.ContainsKey(c.FullyQualifiedName))
-            .OrderBy(static c => c.FullyQualifiedName, StringComparer.Ordinal)
+            .Select(c => (Entity: c, Traits: c.Traits | (partitioned.Contains(c.FullyQualifiedName) ? AggregateShape.PerTenant : 0)))
+            .Where(static d => d.Traits != 0 || d.Entity.Collections.Count > 0)
+            .OrderBy(static d => d.Entity.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
         if (declared.Count == 0)
@@ -591,9 +586,9 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         source.AppendLine("    internal static void Initialize()");
         source.AppendLine("    {");
 
-        foreach (var entity in declared)
+        foreach (var (entity, traits) in declared)
         {
-            DeclareConventions(source, entity, scopeByType, stamps);
+            DeclareConventions(source, entity, traits);
         }
 
         source.AppendLine("    }");
@@ -603,11 +598,12 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
     }
 
     // A child's tenancy is its root's, always — at any depth: a grandchild reaches the root through its parent.
-    // Declared on the root because that is where the aggregate boundary is; registered for every entity under it
-    // because each one's own read face would otherwise be unfiltered.
-    private static Dictionary<string, int> ScopeByType(List<Candidate> distinct)
+    // Named on the root because that is where the aggregate boundary is; registered for every entity under it
+    // because each one's own read face would otherwise be unfiltered. A child of two roots is partitioned when
+    // either root is: the safe answer never depends on the order.
+    private static HashSet<string> PartitionedTypes(List<Candidate> distinct)
     {
-        var scopeByType = new Dictionary<string, int>(StringComparer.Ordinal);
+        var partitioned = new HashSet<string>(StringComparer.Ordinal);
         var byName = new Dictionary<string, Candidate>(StringComparer.Ordinal);
 
         foreach (var candidate in distinct)
@@ -615,17 +611,16 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             byName[candidate.FullyQualifiedName] = candidate;
         }
 
-        foreach (var entity in distinct.Where(static c => c.Scope is not null))
+        foreach (var root in distinct.Where(static c => (c.Traits & AggregateShape.PerTenant) != 0))
         {
-            scopeByType[entity.FullyQualifiedName] = entity.Scope!.Value;
-            Descend(entity, entity.Scope.Value, depth: 0);
+            partitioned.Add(root.FullyQualifiedName);
+            Descend(root, depth: 0);
         }
 
-        return scopeByType;
+        return partitioned;
 
-        // A child of two roots is partitioned when either root is: the safe answer never depends on the order.
         // The same ceiling the runtime walks with, which also makes a cycle impossible to loop on.
-        void Descend(Candidate parent, int scope, int depth)
+        void Descend(Candidate parent, int depth)
         {
             if (depth >= 4)
             {
@@ -634,52 +629,30 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
             foreach (var child in parent.ChildTypeNames)
             {
-                scopeByType[child] = scopeByType.TryGetValue(child, out var other) ? Math.Max(other, scope) : scope;
+                partitioned.Add(child);
 
                 if (byName.TryGetValue(child, out var next))
                 {
-                    Descend(next, scope, depth + 1);
+                    Descend(next, depth + 1);
                 }
             }
         }
     }
 
-    // Timestamps are the aggregate's, like its tenant: a child carries none unless it declares its own Stamps, so
-    // an adopted child table without CreatedAt maps as it is. Registered because the runtime default is All, which a
-    // table no root holds (a battery's queue, a cache entry) keeps.
-    private static Dictionary<string, int> StampsByType(List<Candidate> distinct)
+    private static void DeclareConventions(StringBuilder source, Candidate entity, int traits)
     {
-        var stamps = new Dictionary<string, int>(StringComparer.Ordinal);
-
-        foreach (var child in distinct.SelectMany(static c => c.ChildTypeNames))
+        if (traits != 0)
         {
-            stamps[child] = 0;
+            source.Append("        global::Rask.Data.ConventionRegistry.Declare(typeof(").Append(entity.FullyQualifiedName)
+                .Append("), (global::Rask.Data.TraitSet)").Append(traits.ToString(CultureInfo.InvariantCulture))
+                .AppendLine(");");
         }
 
-        foreach (var candidate in distinct.Where(static c => c.Stamps is not null))
+        if (entity.TenantKey is { } key)
         {
-            stamps[candidate.FullyQualifiedName] = candidate.Stamps!.Value;
+            source.Append("        global::Rask.Data.ConventionRegistry.DeclareTenantKey(typeof(")
+                .Append(entity.FullyQualifiedName).Append("), typeof(").Append(key).AppendLine("));");
         }
-
-        return stamps;
-    }
-
-    private static void DeclareConventions(
-        StringBuilder source, Candidate entity, Dictionary<string, int> scopeByType, Dictionary<string, int> stamps)
-    {
-        Declare(
-            source,
-            entity.FullyQualifiedName,
-            "Timestamps",
-            stamps.TryGetValue(entity.FullyQualifiedName, out var stamp) ? stamp : null);
-        Declare(
-            source,
-            entity.FullyQualifiedName,
-            "Tenancy",
-            scopeByType.TryGetValue(entity.FullyQualifiedName, out var scope) ? scope : null);
-        Declare(source, entity.FullyQualifiedName, "Deletion", entity.Deletes);
-        Declare(source, entity.FullyQualifiedName, "Concurrency", entity.Checks);
-        Declare(source, entity.FullyQualifiedName, "Broadcasts", entity.Broadcast);
 
         foreach (var collection in entity.Collections)
         {
@@ -693,18 +666,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
     private static string Literal(string? value) =>
         value is null ? "null" : "\"" + value + "\"";
-
-    private static void Declare(StringBuilder source, string entity, string enumName, int? value)
-    {
-        if (value is not { } declared)
-        {
-            return;
-        }
-
-        source.Append("        global::Rask.Data.ConventionRegistry.Declare(typeof(").Append(entity)
-            .Append("), (global::Rask.Data.").Append(enumName).Append(')')
-            .Append(declared.ToString(CultureInfo.InvariantCulture)).AppendLine(");");
-    }
 
     private static void EmitMapEntities(StringBuilder source, List<Candidate> entities, HashSet<string> idTypes)
     {
@@ -944,12 +905,9 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         SymbolLocation? Location,
         EquatableArray<ValueObjectPath> ValueObjects,
         StronglyTypedId Id,
-        int? Stamps,
-        int? Deletes,
-        int? Checks,
-        int? Broadcast,
+        int Traits,
+        string? TenantKey,
         EquatableArray<ValueCollectionSpec> Collections,
-        int? Scope,
         EquatableArray<string> ChildTypeNames,
         bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders);

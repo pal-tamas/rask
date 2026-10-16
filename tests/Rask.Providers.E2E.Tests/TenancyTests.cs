@@ -2,12 +2,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Providers.E2E.Tests;
 
-/// <summary>A tenant-scoped aggregate: one const, nothing else configured.</summary>
-public sealed class Ledger : Aggregate<Guid>
+/// <summary>A tenant-scoped aggregate: <c>PerTenant</c> on its base, nothing else configured.</summary>
+public sealed class Ledger : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Ledger() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public string Reference { get; private set; } = "";
 
@@ -15,11 +13,9 @@ public sealed class Ledger : Aggregate<Guid>
 }
 
 /// <summary>A table whose tenants are numbered: the declared property's type is the column's.</summary>
-public sealed class Depot : Aggregate<int>
+public sealed class Depot : Aggregate<int, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Depot() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 
@@ -32,7 +28,7 @@ public sealed class Depot : Aggregate<int>
 /// The shape the accounts table has: a NULLABLE tenant inside a unique index. This is the one the providers
 /// disagree about, so it is modelled here rather than only reasoned about.
 /// </summary>
-public sealed class Member : Aggregate<Guid>
+public sealed class Member : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     private Member() { }
 

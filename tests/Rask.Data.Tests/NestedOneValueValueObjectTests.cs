@@ -65,13 +65,9 @@ public sealed class GondolaRoute
 }
 
 /// <summary>An aggregate holding one-value value objects one and two levels inside other value objects.</summary>
-public sealed class Gondola : Aggregate<int>
+public sealed class Gondola : Aggregate<int, Model, Deletable>
 {
     private Gondola() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
 
     public GondolaLabel Label { get; private set; } = new(new(""), null, default, null, 0);
 

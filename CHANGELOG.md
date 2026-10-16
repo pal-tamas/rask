@@ -54,15 +54,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: an aggregate names what its table carries on its base, and nothing is on by default.** Before: six
+  `public const`s in the class body narrowed the conventions (`Stamps`, `Checks`, `Writes`, `Deletes`, `Scope`,
+  `Broadcast`), and an aggregate that said nothing got `CreatedAt`/`UpdatedAt`, a `Version`, a form model and a
+  generated `Delete`. After: each is a trait type argument, in any order, and only what is named is there —
+  `Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete, PerTenant>`; `Reading : Aggregate<Guid, Created>`;
+  `Destination : Aggregate<int, PerTenant<int>>` (an `int?` tenant column with no property to declare). A child or a
+  table that is not an aggregate takes only a timestamp, `Entity<Guid, Timestamps>` — naming `SoftDelete` there does
+  not compile. `rask new` scaffolds `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`. The enums
+  `Timestamps`, `Deletion`, `Concurrency`, `Tenancy`, `ModelWrites` and `Broadcasts` are gone, so a leftover const
+  is a compile error rather than silently ignored; RASK091 is retired (a child can no longer name a model).
+  **Upgrading:** an aggregate that declared nothing adds `Timestamps, Versioned, Model, Deletable` to its base —
+  otherwise its next migration drops `CreatedAt`, `UpdatedAt` and `Version`, and `X.Create(model)` /
+  `X.Delete(id)` stop compiling; each const becomes its trait (`Deletes = Deletion.Soft` → `SoftDelete`,
+  `Scope = Tenancy.PerTenant` → `PerTenant`, `Checks = Concurrency.None` → leave `Versioned` out). Rask's own tables
+  name exactly what they had, so their schema is unchanged.
+
 - **BREAKING: timestamps are the aggregate's, and a child is written only through its aggregate.** Before: every
   child (`Entity<TId>` held in a root's collection, any depth) carried `CreatedAt`/`UpdatedAt` whatever its root
-  declared — so under an adopted root with `Stamps = Timestamps.None` every read and save of the child failed with
+  declared — so under an adopted root without timestamps every read and save of the child failed with
   "Invalid column name 'CreatedAt'" — and a child could be saved on its own (`db.Chips`, `db.Set<Chip>()`,
   `BulkInsert<Chip>`), skipping its root's version, `UpdatedAt` and invariants. After: a child has no timestamps
-  unless it declares `Stamps` (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
+  unless its base names them (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
   or removal; and a save or `BulkInsert` that writes a child whose root the context does not hold throws an
   `InvalidOperationException` naming the child and its root, `Tenant.Across()` included. **Upgrading:** a child
-  table that has `CreatedAt`/`UpdatedAt` declares `public const Timestamps Stamps = Timestamps.All;`; a child
+  table that has `CreatedAt`/`UpdatedAt` names them on its base, `Entity<Guid, Timestamps>`; a child
   written alone is loaded and changed through its aggregate instead. Also fixed: a root holding two kinds of
   children with rules no longer generates a form model that fails to compile (`rows` declared twice).
 

@@ -316,10 +316,7 @@ What it deliberately does not do is reach **anyone else's** screen. That is decl
 facts already live — and never at the call site:
 
 ```csharp
-public sealed class Order : Aggregate<Guid>          // the model announces its saves
-{
-    public const Broadcasts Broadcast = Broadcasts.OnCommit;
-}
+public sealed class Order : Aggregate<Guid, Broadcast> { }   // the model announces its saves
 
 [Live(typeof(Order))]                                 // the query says what it reads
 public sealed record GetOrders(int Page) : IQuery<IReadOnlyList<OrderRead>>;

@@ -177,13 +177,13 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_of_a_Deletion_None_aggregate_is_refused_before_anything_is_opened()
+    public async Task Delete_of_an_aggregate_that_is_not_deletable_is_refused_before_anything_is_opened()
     {
         // The generated JournalLine.Delete does not exist; this is the direct call into the write half.
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             GeneratedModelWrites.Delete<JournalLine>(Guid.NewGuid(), version: null, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("Deletion.None", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("names neither Deletable nor SoftDelete", refused.Message, StringComparison.Ordinal);
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
@@ -191,9 +191,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 }
 
 // An append-only record: corrected by a reversing entry, never removed.
-public sealed class JournalLine : Aggregate<Guid>
+public sealed class JournalLine : Aggregate<Guid, Timestamps, Versioned, Model>
 {
-    public const Deletion Deletes = Deletion.None;
-
     public decimal Amount { get; private set; }
 }

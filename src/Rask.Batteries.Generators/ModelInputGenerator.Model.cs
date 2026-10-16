@@ -84,43 +84,27 @@ public sealed partial class ModelInputGenerator
                 .Select(static c => c.Name)),
             new EquatableArray<ValueCollectionShape>(
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
-            WritesOf(symbol, out var declaresWrites),
-            declaresWrites,
+            WritesOf(symbol),
             DeletableOf(symbol),
             ConfiguresUniqueRule(symbol, cancellationToken));
     }
 
     /// <summary>
-    ///     False when the aggregate declares <c>public const Deletion Deletes = Deletion.None</c> — a row that is
-    ///     corrected by a new one or retired by a state change, never removed, and so gets no <c>Delete</c>.
+    ///     Whether the aggregate gets a generated <c>Delete</c>: its base names <c>Deletable</c> or <c>SoftDelete</c>.
+    ///     One that names neither is corrected by a new row or retired by a state change, never removed.
     /// </summary>
-    private static bool DeletableOf(INamedTypeSymbol symbol) =>
-        AggregateShape.ConstOf(symbol, "Deletes", "Deletion") != NoDeletion;
+    private static bool DeletableOf(INamedTypeSymbol symbol) => AggregateShape.IsDeletable(symbol);
 
     /// <summary>
-    ///     What <c>public const ModelWrites Writes</c> says, or <see cref="AllWrites" /> when the aggregate
-    ///     does not say — so an entity that declares nothing is unchanged.
+    ///     The writes a form model takes — <c>Model</c>, <c>CreateModel</c>, <c>UpdateModel</c> on the base — as
+    ///     <see cref="CreateWrite" /> / <see cref="UpdateWrite" /> bits; none when the base names none.
     /// </summary>
-    /// <remarks>
-    ///     A const rather than an attribute or a static property, because C# refuses a non-constant
-    ///     initializer: the value is always there to be read, so this can never quietly find nothing and
-    ///     emit the whole surface anyway. Carried out as an int, since an ISymbol must not cross an
-    ///     incremental-generator step.
-    /// </remarks>
-    private static int WritesOf(INamedTypeSymbol symbol, out bool declared)
+    private static int WritesOf(INamedTypeSymbol symbol)
     {
-        foreach (var field in symbol.GetMembers("Writes").OfType<IFieldSymbol>())
-        {
-            if (field is { IsConst: true, ConstantValue: int value } &&
-                field.Type is { Name: "ModelWrites", ContainingNamespace: { Name: "Data", ContainingNamespace: { Name: "Rask", ContainingNamespace.IsGlobalNamespace: true } } })
-            {
-                declared = true;
-                return value;
-            }
-        }
+        var traits = AggregateShape.TraitsOf(symbol);
 
-        declared = false;
-        return AllWrites;
+        return ((traits & AggregateShape.CreateModel) != 0 ? CreateWrite : NoWrites) |
+               ((traits & AggregateShape.UpdateModel) != 0 ? UpdateWrite : NoWrites);
     }
 
     private static ValueCollectionShape ToValueCollection(

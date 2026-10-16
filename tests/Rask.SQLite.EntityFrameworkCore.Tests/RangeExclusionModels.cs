@@ -103,11 +103,8 @@ internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext
     }
 }
 
-internal sealed class Lease : Aggregate<int>
+internal sealed class Lease : Aggregate<int, Timestamps, Versioned, Model, SoftDelete>
 {
-    // This suite is about a soft-deleted row freeing its range, so it opts in.
-    public const Deletion Deletes = Deletion.Soft;
-
     public int AssetId { get; private set; }
 
     public long StartsAt { get; private set; }
@@ -132,7 +129,7 @@ internal sealed class LeaseContext(DbContextOptions options) : DbContext(options
 }
 
 // The default aggregate: hard delete, so DeletedAt is ignored and the rule has nothing to filter on (#1131).
-internal sealed class Reservation : Aggregate<int>
+internal sealed class Reservation : Aggregate<int, Timestamps, Versioned, Model, Deletable>
 {
     public int DeskId { get; private set; }
 

@@ -4,18 +4,11 @@ namespace Rask.Data.Tests;
 
 // A test entity exercising all three opt-ins: audit stamps (via the base), soft delete, and a
 // concurrency version — and it raises a domain event when renamed.
-public sealed class Widget : Aggregate<Guid>
+public sealed class Widget : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
 {
-    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
-    public const Deletion Deletes = Deletion.Soft;
-
     private Widget() { } // EF materialization
 
     public string Name { get; private set; } = "";
-
-
-
-
 
     public static Widget Create(string name)
     {
