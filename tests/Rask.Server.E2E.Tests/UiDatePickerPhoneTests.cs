@@ -30,15 +30,21 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
         return new DateOnly(today.Year, today.Month, day).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 
-    // The sheet is open and the page has heard it is one: no day closes the popup any more.
     private static async Task<ILocator> OpenSheetAsync(IPage page, int nth)
     {
         var picker = Picker(page, nth);
         await picker.Locator("button[role=combobox]").ClickAsync();
         await Expect(picker.Locator("dialog")).ToBeVisibleAsync();
-        await Expect(picker.Locator("dialog [popovertargetaction]")).ToHaveCountAsync(0);
         return picker;
     }
+
+    // A popup open across the breakpoint keeps the place the runtime gave it beside the trigger until the frame
+    // after the resize, when rask-place.ts hands it to the sheet's stylesheet: read before that, it is still there.
+    private static async Task HandedToTheSheetAsync(IPage page, ILocator picker) =>
+        await page.WaitForFunctionAsync(
+            "d => { const r = d.getBoundingClientRect(); return Math.abs(r.left - (innerWidth - r.width) / 2) < 1; }",
+            await picker.Locator("dialog").ElementHandleAsync(),
+            new() { Timeout = 5_000 });
 
     [Fact]
     public async Task On_a_phone_the_popup_is_a_sheet_in_the_middle_and_a_pick_writes_nothing_until_select_date()
@@ -139,7 +145,7 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
         await picker.Locator("button[role=combobox]").ClickAsync();
         await Expect(picker.Locator("dialog")).ToBeVisibleAsync();
         await page.SetViewportSizeAsync(390, 844);
-        await Expect(picker.Locator("dialog [popovertargetaction]")).ToHaveCountAsync(0);
+        await HandedToTheSheetAsync(page, picker);
         var box = await picker.Locator("dialog").BoundingBoxAsync();
         await Day(picker, 15).ClickAsync();
         await Expect(picker.Locator("td[data-selected]")).ToHaveTextAsync("15");

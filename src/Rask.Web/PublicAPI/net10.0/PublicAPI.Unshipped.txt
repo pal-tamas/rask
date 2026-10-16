@@ -5,6 +5,9 @@ override Rask.Web.Types.LanguageModelToolDeclaration.ToString() -> string!
 override Rask.Web.Types.PushSubscriptionKeys.Equals(object? obj) -> bool
 override Rask.Web.Types.PushSubscriptionKeys.GetHashCode() -> int
 override Rask.Web.Types.PushSubscriptionKeys.ToString() -> string!
+override Rask.Web.Types.RTCDiagnosticLoggingOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCDiagnosticLoggingOptions.GetHashCode() -> int
+override Rask.Web.Types.RTCDiagnosticLoggingOptions.ToString() -> string!
 Rask.Web.CookieStore
 Rask.Web.CustomElements
 Rask.Web.Document
@@ -3805,6 +3808,12 @@ Rask.Web.Types.RTCConfiguration.PeerIdentity.init -> void
 Rask.Web.Types.RTCConfiguration.RTCConfiguration() -> void
 Rask.Web.Types.RTCConfiguration.RtcpMuxPolicy.get -> Rask.Web.Types.RTCRtcpMuxPolicy?
 Rask.Web.Types.RTCConfiguration.RtcpMuxPolicy.init -> void
+Rask.Web.Types.RTCDiagnosticLoggingOptions
+Rask.Web.Types.RTCDiagnosticLoggingOptions.<Clone>$() -> Rask.Web.Types.RTCDiagnosticLoggingOptions!
+Rask.Web.Types.RTCDiagnosticLoggingOptions.Equals(Rask.Web.Types.RTCDiagnosticLoggingOptions? other) -> bool
+Rask.Web.Types.RTCDiagnosticLoggingOptions.Metadata.get -> System.Collections.Generic.Dictionary<string!, string!>?
+Rask.Web.Types.RTCDiagnosticLoggingOptions.Metadata.init -> void
+Rask.Web.Types.RTCDiagnosticLoggingOptions.RTCDiagnosticLoggingOptions() -> void
 Rask.Web.Types.RTCDTMFSender
 Rask.Web.Types.RTCDTMFSender.CanInsertDTMF.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.RTCDTMFSender.InsertDTMF(string! tones) -> System.Threading.Tasks.ValueTask
@@ -6153,6 +6162,10 @@ static Rask.Web.Navigator.WakeLock.get -> Rask.Web.Types.WakeLock!
 static Rask.Web.Navigator.Webdriver.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.Personalbar.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.Personalbar.Visible.get -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Web.RTCPeerConnection.CancelDiagnosticLogging() -> System.Threading.Tasks.ValueTask
+static Rask.Web.RTCPeerConnection.StartDiagnosticLogging() -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Web.RTCPeerConnection.StartDiagnosticLogging(Rask.Web.Types.RTCDiagnosticLoggingOptions! options) -> System.Threading.Tasks.ValueTask<string!>
+static Rask.Web.RTCPeerConnection.StopDiagnosticLogging() -> System.Threading.Tasks.ValueTask
 static Rask.Web.Screen.AvailHeight.get -> System.Threading.Tasks.ValueTask<int>
 static Rask.Web.Screen.AvailWidth.get -> System.Threading.Tasks.ValueTask<int>
 static Rask.Web.Screen.ColorDepth.get -> System.Threading.Tasks.ValueTask<int>
@@ -6525,6 +6538,8 @@ static Rask.Web.Types.RTCConfiguration.operator !=(Rask.Web.Types.RTCConfigurati
 static Rask.Web.Types.RTCConfiguration.operator ==(Rask.Web.Types.RTCConfiguration? left, Rask.Web.Types.RTCConfiguration? right) -> bool
 static Rask.Web.Types.RTCDataChannelInit.operator !=(Rask.Web.Types.RTCDataChannelInit? left, Rask.Web.Types.RTCDataChannelInit? right) -> bool
 static Rask.Web.Types.RTCDataChannelInit.operator ==(Rask.Web.Types.RTCDataChannelInit? left, Rask.Web.Types.RTCDataChannelInit? right) -> bool
+static Rask.Web.Types.RTCDiagnosticLoggingOptions.operator !=(Rask.Web.Types.RTCDiagnosticLoggingOptions? left, Rask.Web.Types.RTCDiagnosticLoggingOptions? right) -> bool
+static Rask.Web.Types.RTCDiagnosticLoggingOptions.operator ==(Rask.Web.Types.RTCDiagnosticLoggingOptions? left, Rask.Web.Types.RTCDiagnosticLoggingOptions? right) -> bool
 static Rask.Web.Types.RTCDtlsFingerprint.operator !=(Rask.Web.Types.RTCDtlsFingerprint? left, Rask.Web.Types.RTCDtlsFingerprint? right) -> bool
 static Rask.Web.Types.RTCDtlsFingerprint.operator ==(Rask.Web.Types.RTCDtlsFingerprint? left, Rask.Web.Types.RTCDtlsFingerprint? right) -> bool
 static Rask.Web.Types.RTCEncodedAudioFrameMetadata.operator !=(Rask.Web.Types.RTCEncodedAudioFrameMetadata? left, Rask.Web.Types.RTCEncodedAudioFrameMetadata? right) -> bool
