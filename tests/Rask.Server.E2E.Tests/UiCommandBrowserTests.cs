@@ -35,7 +35,7 @@ public sealed class UiCommandBrowserTests(PlaywrightFixture playwright) : IClass
         var narrowed = await page.EvaluateAsync<string>(Shown);
         await page.Keyboard.PressAsync("ArrowDown");
         var walked = await page.EvaluateAsync<string>(Named);
-        await page.HoverAsync("[role=option] >> nth=0");
+        await page.HoverAsync("[role=option]:not([data-hidden]) >> nth=0");
         await page.Mouse.MoveAsync(2, 2);
         await page.Keyboard.PressAsync("Tab");
 
