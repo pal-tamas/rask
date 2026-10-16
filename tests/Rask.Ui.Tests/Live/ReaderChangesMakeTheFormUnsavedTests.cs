@@ -39,11 +39,9 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["time picker"] = (typeof(UiTimePicker<>), a => Ui.TimePicker.Bind(() => a.At), page => First(page, "button[role=\"option\"]", "click")),
         ["colour picker"] = (typeof(UiColorPicker), a => Ui.ColorPicker.Bind(() => a.Text), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "#22c55e")),
         ["slider"] = (typeof(UiSlider<>), a => Ui.Slider.Bind(() => a.Volume), page => First(page, "input[type=\"range\"]", "input", "40")),
-        ["rating"] = (typeof(UiRating), a => Ui.Rating.Bind(() => a.Stars).Group("stars").Label("Stars").Max(5), page => Last(page, "input[type=\"radio\"]", "change", "on")),
         ["otp"] = (typeof(UiOtp), a => Ui.Otp.Bind(() => a.Text).Length(6), page => First(page, "input[type=\"hidden\"][data-rask-on-input]", "input", "12")),
         ["checkbox group"] = (typeof(UiCheckboxGroup<>), a => Ui.CheckboxGroup.Bind(() => a.Many).Id("many")[Words.Select(word => Ui.Checkbox.Key(word).Value(word).Label(word))], page => page.On("#many-beta").Change("true")),
         ["radio group"] = (typeof(UiRadioGroup<>), a => Ui.RadioGroup.Bind(() => a.One).Name("one")[Words.Select(word => Ui.Radio.Key(word).Value(word).Label(word))], page => First(page, "input[type=\"radio\"]", "change", "on")),
-        ["filter"] = (typeof(UiFilter<>), a => Ui.Filter.Bind(() => a.One).Group("one").Options([.. Words.Select(word => ((string?)word, word))]), page => Last(page, "input[type=\"radio\"]", "change", "on")),
         ["menu checkbox"] = (typeof(UiMenuCheckbox), a => Ui.Menu[Ui.MenuCheckbox.Bind(() => a.Alerts)["Alerts"]], page => page.On("[data-rask-on-click]").Click()),
         ["menu radio group"] = (typeof(UiMenuRadioGroup<>), a => Ui.Menu[Ui.MenuRadioGroup.Bind(() => a.One)[Words.Select(word => Ui.MenuRadio.Key(word).Value(word)[word])]], page => First(page, "[data-rask-on-click]", "click")),
         ["toggle"] = (typeof(UiToggle), a => Ui.Toggle.Bind(() => a.Alerts).Icon(Ui.IconName.Bolt), page => page.On("[role=\"switch\"]").Click()),
@@ -76,12 +74,9 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
 
     private static Task PickOption(Page page) => First(page, "[data-ui-option]", "click");
 
-    // The first (or last) element a selector finds that hears `domEvent`, told `value` when there is one.
+    // The first element a selector finds that hears `domEvent`, told `value` when there is one.
     private static Task First(Page page, string selector, string domEvent, string? value = null) =>
         Tell(page.FindAll(selector)[0], page, domEvent, value);
-
-    private static Task Last(Page page, string selector, string domEvent, string? value = null) =>
-        Tell(page.FindAll(selector)[^1], page, domEvent, value);
 
     private static Task Tell(Rask.Testing.HtmlNode heard, Page page, string domEvent, string? value) =>
         page.Invoke(
@@ -229,7 +224,5 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         public TimeOnly? At { get; set; }
 
         public int Volume { get; set; }
-
-        public int Stars { get; set; }
     }
 }

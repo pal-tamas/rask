@@ -215,6 +215,93 @@ public sealed class FluxConformanceTests
         ["flux:carousel.controls"] = typeof(UiCarouselControls),
     };
 
+    /// <summary>
+    ///     Not Flux, and going: each is deleted by the step its tag names, and this list only shrinks. The kit holds
+    ///     only Flux UI's components (the owner, 2026-10-13); nothing new is ever added here.
+    /// </summary>
+    private static readonly Dictionary<Type, string> NotFluxYet = new()
+    {
+        [typeof(UiList)] = "site",
+        [typeof(UiListRow)] = "site",
+        [typeof(UiMockupCode)] = "site",
+        [typeof(UiStatusDot)] = "site",
+        [typeof(UiLoading)] = "site",
+        [typeof(UiEmpty)] = "console",
+        [typeof(UiMetric)] = "console",
+        [typeof(UiMetricRow)] = "console",
+        [typeof(UiDetailList)] = "console",
+        [typeof(UiDetailRow)] = "console",
+        [typeof(UiCode)] = "console",
+        [typeof(UiStat)] = "console",
+        [typeof(UiGrid)] = "console",
+        [typeof(UiDataGrid<,>)] = "grid",
+        [typeof(UiColumn<>)] = "grid",
+        [typeof(UiTree<,>)] = "tree",
+        [typeof(UiHighlight)] = "highlight",
+        [typeof(UiCommand)] = "command",
+    };
+
+    /// <summary>The ceiling <see cref="NotFluxYet" /> is held under. Lower it with every deletion; never raise it.</summary>
+    private const int NotFluxYetCeiling = 18;
+
+    /// <summary>Not Flux, and kept because the owner said so, with the day they did.</summary>
+    private static readonly Dictionary<Type, string> Approved = new()
+    {
+        [typeof(UiConfirmLeave)] = "the owner, 2026-10-13",
+    };
+
+    /// <summary>
+    ///     Flux's, under a part <c>flux.snapshot.json</c> does not list as a heading of its own, so the checks above cannot
+    ///     hold it to one yet. Each is measured on fluxui.dev and moved to <see cref="Built" />, or deleted.
+    /// </summary>
+    private static readonly Dictionary<Type, string> FluxUnlisted = new()
+    {
+        [typeof(UiNavmenu)] = "flux:navmenu",
+        [typeof(UiNavmenuItem)] = "flux:navmenu.item",
+        [typeof(UiMenuGroup)] = "flux:menu.group",
+        [typeof(UiPillboxInput)] = "flux:pillbox.input",
+        [typeof(UiCheckboxIndicator)] = "flux:checkbox.indicator",
+        [typeof(UiSpacer)] = "flux:spacer",
+        [typeof(UiChartBar)] = "flux:chart.bar",
+        [typeof(UiChartGroup)] = "flux:chart.group",
+        [typeof(UiChartStack)] = "flux:chart.stack",
+        [typeof(UiChartViewport)] = "flux:chart.viewport",
+        [typeof(UiChartLegendIndicator)] = "flux:chart.legend.indicator",
+        [typeof(UiEditorAlign)] = "flux:editor toolbar: align",
+        [typeof(UiEditorBlockquote)] = "flux:editor toolbar: blockquote",
+        [typeof(UiEditorBold)] = "flux:editor toolbar: bold",
+        [typeof(UiEditorBullet)] = "flux:editor toolbar: bullet",
+        [typeof(UiEditorCode)] = "flux:editor toolbar: code",
+        [typeof(UiEditorHeading)] = "flux:editor toolbar: heading",
+        [typeof(UiEditorHighlight)] = "flux:editor toolbar: highlight",
+        [typeof(UiEditorItalic)] = "flux:editor toolbar: italic",
+        [typeof(UiEditorLink)] = "flux:editor toolbar: link",
+        [typeof(UiEditorOrdered)] = "flux:editor toolbar: ordered",
+        [typeof(UiEditorRedo)] = "flux:editor toolbar: redo",
+        [typeof(UiEditorSeparator)] = "flux:editor toolbar: separator",
+        [typeof(UiEditorSpacer)] = "flux:editor toolbar: spacer",
+        [typeof(UiEditorStrike)] = "flux:editor toolbar: strike",
+        [typeof(UiEditorSubscript)] = "flux:editor toolbar: subscript",
+        [typeof(UiEditorSuperscript)] = "flux:editor toolbar: superscript",
+        [typeof(UiEditorUnderline)] = "flux:editor toolbar: underline",
+        [typeof(UiEditorUndo)] = "flux:editor toolbar: undo",
+    };
+
+    /// <summary>Public components that are no part of their own: a shared base, a mode of a built part, a page script.</summary>
+    private static readonly Dictionary<Type, string> Helpers = new()
+    {
+        [typeof(UiElement)] = "the base of a component that is one element",
+        [typeof(UiSelectControl<>)] = "the base of flux:select's two modes",
+        [typeof(UiSelectMultiple<>)] = "flux:select, opened on a collection",
+        [typeof(UiCalendar)] = "flux:calendar, one day",
+        [typeof(UiCalendarMultiple)] = "flux:calendar, several days",
+        [typeof(UiCalendarRange)] = "flux:calendar, a range",
+        [typeof(UiDatePicker)] = "flux:date-picker, one day",
+        [typeof(UiDatePickerRange)] = "flux:date-picker, a range",
+        [typeof(UiAppearanceScript)] = "the dark-mode script a page's head carries",
+        [typeof(UiSidebarScript)] = "the sidebar's script a page's head carries",
+    };
+
     /// <summary><c>part/prop</c> or <c>part/prop=value</c> → why Rask.Ui does not carry it.</summary>
     private static readonly Dictionary<string, string> NotTranslated = new(StringComparer.Ordinal)
     {
@@ -595,6 +682,24 @@ public sealed class FluxConformanceTests
 
         Assert.Equal(53, Snapshot.RootElement.GetProperty("pages").GetArrayLength());
         Assert.All(Built.Keys, part => Assert.Contains(part, parts));
+    }
+
+    [Fact]
+    public void Every_public_component_of_the_kit_is_Flux_or_named_as_what_else_it_is()
+    {
+        var lists = new[] { Built.Values.ToHashSet(), NotFluxYet.Keys.ToHashSet(), Approved.Keys.ToHashSet(), FluxUnlisted.Keys.ToHashSet(), Helpers.Keys.ToHashSet() };
+        var components = typeof(UiButton).Assembly.GetExportedTypes()
+            .Where(type => typeof(Rask.Core.Component).IsAssignableFrom(type))
+            .Select(type => type.IsGenericType ? type.GetGenericTypeDefinition() : type)
+            .ToList();
+
+        var unnamed = components.Where(type => !lists.Any(list => list.Contains(type))).Select(type => type.Name).ToList();
+        var twice = components.Where(type => lists.Count(list => list.Contains(type)) > 1).Select(type => type.Name).ToList();
+
+        Assert.True(unnamed.Count == 0,
+            "Rask.Ui holds only Flux UI's components. Map these in `Built`, or delete them:\n  " + string.Join("\n  ", unnamed));
+        Assert.True(twice.Count == 0, "Named in more than one list:\n  " + string.Join("\n  ", twice));
+        Assert.True(NotFluxYet.Count <= NotFluxYetCeiling, $"`NotFluxYet` only shrinks: {NotFluxYet.Count} entries over a ceiling of {NotFluxYetCeiling}.");
     }
 
     [Fact]

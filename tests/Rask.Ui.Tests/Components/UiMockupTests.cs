@@ -3,20 +3,11 @@ using System.Text.RegularExpressions;
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The four mockups. Decoration around a screenshot or a snippet, so the assertions are about
+///     The code mockup. Decoration around a snippet, so the assertions are about
 ///     structure — and about the one thing that is not decoration: the code block's text.
 /// </summary>
 public partial class UiMockupTests : global::Rask.Core.RaskMarkup
 {
-    [Fact]
-    public void The_browser_mockup_shows_the_url_it_is_given() =>
-        Assert.Contains("https://rask.sh",
-            Ui.MockupBrowser.Url("https://rask.sh")[Span["page"]].ToHtml());
-
-    [Fact]
-    public void The_browser_mockup_works_without_a_url() =>
-        Assert.Contains("mockup-browser", Ui.MockupBrowser[Span["page"]].ToHtml());
-
     [Fact]
     public void Each_code_line_carries_its_own_prefix()
     {
@@ -69,14 +60,6 @@ public partial class UiMockupTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("mockup-code", html, StringComparison.Ordinal);
         Assert.Contains("term", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_phone_and_window_mockups_wrap_their_children()
-    {
-        Assert.Contains("mockup-phone", Ui.MockupPhone[Span["screen"]].ToHtml());
-        Assert.Contains("mockup-window", Ui.MockupWindow[Span["screen"]].ToHtml());
-        Assert.Contains("screen", Ui.MockupPhone[Span["screen"]].ToHtml());
     }
 
     private static int Occurrences(string haystack, string needle)

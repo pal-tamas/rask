@@ -37,16 +37,6 @@ internal static class UiClassNames
         _ => "",
     };
 
-    internal static string ButtonVariant(Ui.Variant value) => value switch
-    {
-        Ui.Variant.Outline => "btn-outline",
-        Ui.Variant.Soft => "btn-soft",
-        Ui.Variant.Dash => "btn-dash",
-        Ui.Variant.Ghost => "btn-ghost",
-        Ui.Variant.Link => "btn-link",
-        _ => "",
-    };
-
     internal static string ButtonSize(Ui.Size value) => value switch
     {
         Ui.Size.Xs => "btn-xs",
@@ -87,19 +77,6 @@ internal static class UiClassNames
         Ui.Size.Md => "status-md",
         Ui.Size.Lg => "status-lg",
         Ui.Size.Xl => "status-xl",
-        _ => "",
-    };
-
-    internal static string StepTone(Ui.Tone value) => value switch
-    {
-        Ui.Tone.Neutral => "step-neutral",
-        Ui.Tone.Primary => "step-primary",
-        Ui.Tone.Secondary => "step-secondary",
-        Ui.Tone.Accent => "step-accent",
-        Ui.Tone.Info => "step-info",
-        Ui.Tone.Success => "step-success",
-        Ui.Tone.Warning => "step-warning",
-        Ui.Tone.Error => "step-error",
         _ => "",
     };
 
@@ -150,77 +127,6 @@ internal static class UiClassNames
         Ui.Tone.Warning => "bg-warning/10",
         Ui.Tone.Error => "bg-error/10",
         _ => "",
-    };
-
-    internal static string DockSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "dock-xs",
-        Ui.Size.Sm => "dock-sm",
-        Ui.Size.Md => "dock-md",
-        Ui.Size.Lg => "dock-lg",
-        Ui.Size.Xl => "dock-xl",
-        _ => "",
-    };
-
-    internal static string KbdSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "kbd-xs",
-        Ui.Size.Sm => "kbd-sm",
-        Ui.Size.Md => "kbd-md",
-        Ui.Size.Lg => "kbd-lg",
-        Ui.Size.Xl => "kbd-xl",
-        _ => "",
-    };
-
-    internal static string RatingSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "rating-xs",
-        Ui.Size.Sm => "rating-sm",
-        Ui.Size.Md => "rating-md",
-        Ui.Size.Lg => "rating-lg",
-        Ui.Size.Xl => "rating-xl",
-        _ => "",
-    };
-
-    internal static string AuraStyle(Ui.AuraStyle value) => value switch
-    {
-        Ui.AuraStyle.Glow => "aura-glow",
-        Ui.AuraStyle.Dual => "aura-dual",
-        Ui.AuraStyle.Holo => "aura-holo",
-        Ui.AuraStyle.Rainbow => "aura-rainbow",
-        Ui.AuraStyle.Gold => "aura-gold",
-        Ui.AuraStyle.Silver => "aura-silver",
-        _ => "",
-    };
-
-    internal static string AuraSize(Ui.Size value) => value switch
-    {
-        Ui.Size.Xs => "aura-xs",
-        Ui.Size.Sm => "aura-sm",
-        Ui.Size.Md => "aura-md",
-        Ui.Size.Lg => "aura-lg",
-        Ui.Size.Xl => "aura-xl",
-        _ => "",
-    };
-
-    internal static string MaskShape(Ui.MaskShape value) => value switch
-    {
-        Ui.MaskShape.Squircle => "mask-squircle",
-        Ui.MaskShape.Star => "mask-star",
-        Ui.MaskShape.Star2 => "mask-star-2",
-        Ui.MaskShape.Heart => "mask-heart",
-        Ui.MaskShape.Hexagon => "mask-hexagon",
-        Ui.MaskShape.Hexagon2 => "mask-hexagon-2",
-        Ui.MaskShape.Pentagon => "mask-pentagon",
-        Ui.MaskShape.Decagon => "mask-decagon",
-        Ui.MaskShape.Diamond => "mask-diamond",
-        Ui.MaskShape.Triangle => "mask-triangle",
-        Ui.MaskShape.Triangle2 => "mask-triangle-2",
-        Ui.MaskShape.Triangle3 => "mask-triangle-3",
-        Ui.MaskShape.Triangle4 => "mask-triangle-4",
-        Ui.MaskShape.Half1 => "mask-half-1",
-        Ui.MaskShape.Half2 => "mask-half-2",
-        _ => "mask-circle",
     };
 
     internal static string LoadingShape(Ui.LoadingShape value) => value switch

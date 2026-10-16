@@ -3847,6 +3847,22 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: the kit's components that are not Flux UI's are gone, and nothing of them is left.** Rask.Ui holds
+  Flux UI's components only. Deleted, with their CSS, strings and docs: `Ui.Aura` (and `Ui.AuraStyle`),
+  `Ui.ChatBubble`, `Ui.Countdown`, `Ui.Diff`, `Ui.Dock`, `Ui.Fab`, `Ui.Filter` (`UiFilter<T>`), `Ui.Footer`,
+  `Ui.Hero`, `Ui.Hover3d`, `Ui.HoverGallery`, `Ui.Indicator`, `Ui.Join`, `Ui.Kbd`, `Ui.Mask` (and
+  `Ui.MaskShape`), `Ui.MockupBrowser`, `Ui.MockupPhone`, `Ui.MockupWindow`, `Ui.Rating`, `Ui.Stack`
+  (`UiStackLayout`), `Ui.Steps` and `Ui.Step`, `Ui.TextRotate`, `Ui.Validator`, the `UiFormField<T>` base and
+  `Ui.Variant`. daisyUI's rules for them are no longer compiled into the kit's sheet (they join the plugin's
+  `exclude`), and the framework strings only they used went with them: `RaskString.DiffHandle`, `FilterReset`,
+  `FieldValidating`, `RatingNone` and `RatingValue` (a `RaskStrings.{culture}.json` that still names one is
+  now refused by the build — delete the line); the enum's values are positional, so the members after them
+  renumber — a catalog names its keys, never their numbers. Draw what you used them for with Flux's parts or with
+  Tailwind: a shortcut is a `<kbd>` element (or a button's own `Kbd`), a choice of tags a segmented
+  `Ui.RadioGroup`, a count over an avatar the avatar's `Badge`. The kit's
+  conformance test now fails on any public component that is not mapped to a Flux part, so the rest
+  (the data grid, the tree, the console chrome, `Ui.Command`) is listed there and can only shrink.
+
 - **BREAKING: `Ui.Navlist.Variant` and `Ui.NavlistVariant` are gone.** Flux's public reference gives
   `flux:navlist` no `variant`, so the kit has none: the outlined rows it drew are what `Ui.SidebarNav` and
   `Ui.SidebarItem` draw. Replace `Ui.Navlist.Variant(Ui.NavlistVariant.Outline)[Ui.NavlistItem…]` with

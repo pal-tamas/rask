@@ -262,12 +262,8 @@ public abstract partial class KitDrawsWithoutAskingTests
             Cursor(Focusing("[data-c='tree'] [role=tree]")),
             Press("press a node", "[data-c='tree'] [role=treeitem]")),
         ["data-grid"] = On<KitOwnFramePage>("data-grid", Press("sort a column", "[data-c='data-grid'] th button")),
-        ["rating"] = On<KitOwnFramePage>("rating", Press("rate", "[data-c='rating'] input >> nth=4")),
-        ["filter"] = On<KitOwnFramePage>("filter", Press("filter", "[data-c='filter'] input >> nth=1")),
         ["toggle-heard"] = On<KitOwnFramePage>("toggle-heard", Press("press", "[data-c='toggle-heard'] button")),
         ["carousel"] = On<KitOwnFramePage>("carousel"),
-        ["hover-gallery"] = On<KitOwnFramePage>("hover-gallery"),
-        ["fab"] = On<KitOwnFramePage>("fab"),
     };
 
     // A modal's own: opened by its trigger, walked, and closed each of the ways a reader closes one.

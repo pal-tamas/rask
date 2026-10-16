@@ -584,11 +584,8 @@ check is in flight:
 Validation.Indicator.Template(() => Span.Class("spinner")["Checking…"]).For(() => _model.Username)
 ```
 
-A field built on `UiFormField<T>` renders this for you, as a small spinner with an announced "Checking…"
-under the control, next to its own validation message; none of the kit's own fields is built on it any more.
-Place a `Validation.Indicator` yourself beside a raw `Input`, beside
-the kit's Flux-drawn fields (`Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, radio and switch), which draw none, or when a `UiFormField<T>`
-opts out with `ShowValidating(false)`.
+Place a `Validation.Indicator` yourself beside a raw `Input`, or beside
+the kit's fields (`Ui.Input`, `Ui.Textarea`, `Ui.Select`, the checkbox, radio and switch), which draw none.
 
 An `IAsyncFieldValidator` (the username-uniqueness check above) with the validating indicator:
 

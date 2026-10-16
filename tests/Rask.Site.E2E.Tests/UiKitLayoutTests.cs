@@ -22,7 +22,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         foreach (var id in new[]
                  {
-                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography", "ui-layout-mask", "ui-mockups",
+                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography", "ui-mockups",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
