@@ -237,6 +237,8 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ConnectionUpdating", 0),
         ("ConnectionAuthenticating", 0),
         ("ConnectionSessionTimedOut", 0),
+        ("CommandClear", 0),
+        ("CommandClose", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

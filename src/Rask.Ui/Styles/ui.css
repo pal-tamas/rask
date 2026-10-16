@@ -1258,42 +1258,6 @@
 }
 
 /*
-  A shortcut in the reader's platform's words (UiCommand.Shortcut).
-
-  The server cannot know whether the reader is on a Mac, so the kit renders both — ⌘K and Ctrl K — and the runtime
-  marks <html> with data-rask-mac on one. Until the runtime has run, a page shows the non-Mac form, which is also
-  what a reader without scripts gets.
-
-  A command palette's "No results" row, shown only while the list holds no option: CSS reading the list, so there
-  is no count to keep in step with what the filter left.
-
-  In `rask-ui-corrections` because daisyUI's `.kbd` display and `.menu li` rules live in `utilities`.
-*/
-@layer rask-ui-corrections {
-  :root[data-rask-mac] .ui-kbd-other,
-  :root:not([data-rask-mac]) .ui-kbd-mac {
-    display: none;
-  }
-
-  .ui-command-list:has(:not([hidden]) > [role="option"]) > .ui-command-empty {
-    display: none;
-  }
-
-  /* A command the query hides, and the separators with it: daisyUI's `.menu li` would still lay them out. */
-  .ui-command-list > [hidden] {
-    display: none;
-  }
-
-  /* The lit command, which the runtime moves: daisyUI's `.menu-focus`, read from the option's own state. */
-  .ui-command-list [role="option"][aria-selected="true"] {
-    cursor: pointer;
-    background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
-    color: var(--color-base-content);
-    outline-style: none;
-  }
-}
-
-/*
   TOAST (Ui.Toast, Ui.ToastGroup) — Flux's flux:toast and flux:toast.group: the motion, and the stack.
 
   The look is utilities in the component. Here is what no utility says.

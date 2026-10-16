@@ -21,13 +21,26 @@ internal static class UiModalInvoker
     /// <returns>Whether there was an element to write them on.</returns>
     internal static bool Wire(IEnumerable<Component?> children, params (string Name, string? Value)[] attributes)
     {
-        if (First(children) is not { } invoker)
+        switch (First(children))
         {
-            return false;
+            case Element element:
+                element.Attributes = Merged(element.Attributes, attributes);
+                return true;
+            case IUiPressable pressable:
+                pressable.Attributes = Merged(pressable.Attributes, attributes);
+                // What a generated step does when it writes a new value: the control is drawn again with it.
+                BuilderRuntime.MarkChanged((Component)pressable);
+                return true;
+            default:
+                return false;
         }
+    }
 
+    private static Dictionary<string, string?> Merged(
+        IReadOnlyDictionary<string, string?>? own, (string Name, string? Value)[] attributes)
+    {
         var merged = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var (name, value) in invoker.Attributes ?? merged)
+        foreach (var (name, value) in own ?? merged)
         {
             merged[name] = value;
         }
@@ -37,19 +50,18 @@ internal static class UiModalInvoker
             merged[name] = value;
         }
 
-        invoker.Attributes = merged;
-
-        return true;
+        return merged;
     }
 
-    // Depth first: a button inside a tooltip, or inside a fragment, is still the button.
-    private static Element? First(IEnumerable<Component?>? children)
+    // Depth first: a button inside a tooltip, or inside a fragment, is still the button — and so is a control drawn
+    // as one (Flux's `flux:input as="button"` inside a modal trigger).
+    private static object? First(IEnumerable<Component?>? children)
     {
         foreach (var child in children ?? [])
         {
-            if (child is Element element)
+            if (child is Element or IUiPressable)
             {
-                return element;
+                return child;
             }
 
             if (First(child?.Children) is { } inner)

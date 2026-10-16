@@ -1,113 +1,167 @@
-using System.Text.RegularExpressions;
-using Rask.Testing;
+using Rask.Core;
+using Page = Rask.Testing.Page;
 
 namespace Rask.UiTests.Components;
 
 /// <summary>
-///     The command palette: <c>Ui.Command.Label(...).Shortcut("mod+k")[Ui.MenuItem…]</c>.
+///     Flux's <c>flux:command</c>: <c>Ui.Command[Ui.CommandInput, Ui.CommandItems[Ui.CommandItem…]]</c>.
 /// </summary>
 /// <remarks>
-///     The dialog opening, the shortcut and Enter pressing a command are the platform's and the runtime's, and so
-///     are the filter and the highlight (<c>rask-command.ts</c>): typing into a palette and walking it send the
-///     page nothing. What C# owns is pinned here — the markup those hooks read. The rules are
-///     <c>CommandPaletteTests</c>' in Rask.Core.Tests, the browser is <c>UiCommandBrowserTests</c>' in
-///     Rask.Server.E2E.Tests.
+///     The filter, the lit command and Enter are the runtime's (<c>rask-command.ts</c>): typing into a palette and
+///     walking it send the page nothing, and are held to fluxui.dev step by step in a browser
+///     (<c>scripts/flux/parity-command.mjs</c>, <c>UiCommandBrowserTests</c>). What C# owns is pinned here — the
+///     markup those hooks read — and the rules are <c>CommandPaletteTests</c>' in Rask.Core.Tests.
 /// </remarks>
-public partial class UiCommandTests : global::Rask.Core.RaskMarkup
+public partial class UiCommandTests : RaskMarkup
 {
-    private static global::Rask.Core.Component Palette() =>
-        Ui.Command.Label("Search commands").Shortcut("mod+k")[
-            Ui.MenuItem.Icon(Ui.IconName.Plus)["New invoice"],
-            Ui.MenuItem.Disabled(true)["Archive"],
-            Ui.MenuSeparator,
-            Ui.MenuItem["Réglages"],
-            Ui.MenuItem.Danger["Sign out"]
+    private string _pressed = "nothing";
+
+    private Component Palette() =>
+        Ui.Command[
+            Ui.CommandInput.Placeholder("Search..."),
+            Ui.CommandItems[
+                Ui.CommandItem.Icon(Ui.IconName.UserPlus).Kbd("⌘A").OnClick(() => { _pressed = "assign"; })["Assign to…"],
+                Ui.CommandItem.Icon(Ui.IconName.DocumentPlus)["Create new file"],
+                Ui.CommandItem["Réglages"]
+            ]
         ];
 
     [Fact]
-    public void The_field_opens_a_modal_dialog_and_carries_the_shortcut()
+    public void Each_part_is_marked_as_Flux_marks_it_and_the_root_asks_the_runtime_for_the_palette()
     {
-        var html = Palette().ToHtml();
+        var page = Page.Render(Palette);
 
-        var dialog = Regex.Match(html, "<dialog id=\"([^\"]+)\"").Groups[1].Value;
-        Assert.StartsWith("uicmd-", dialog, StringComparison.Ordinal);
-        Assert.Contains("command=\"show-modal\" commandfor=\"" + dialog + "\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-rask-shortcut=\"mod+k\"", System.Net.WebUtility.HtmlDecode(html), StringComparison.Ordinal);
-        Assert.Contains("data-rask-close-on-pick", html, StringComparison.Ordinal);
+        var root = page.Find("[data-ui-command]");
+
+        Assert.True(root.Attributes.ContainsKey("data-rask-command"));
+        Assert.NotNull(page.Find("[data-ui-command] > [data-ui-command-input] > input"));
+        Assert.NotNull(page.Find("[data-ui-command] > [data-ui-command-items][role=\"listbox\"]"));
+        Assert.Equal(3, page.FindAll("[data-ui-command-items] > [data-ui-command-item][role=\"option\"]").Count);
     }
 
     [Fact]
-    public void The_shortcut_is_shown_in_both_platforms_words()
+    public void The_search_box_holds_no_value_and_no_handler_of_the_page()
+    {
+        var page = Page.Render(Palette);
+
+        var box = page.Find("[data-ui-command-input] input");
+
+        Assert.Null(box.Attribute("value"));
+        Assert.Equal("none", box.Attribute("aria-autocomplete"));
+        Assert.Equal("off", box.Attribute("autocomplete"));
+        Assert.Equal("Search...", box.Attribute("placeholder"));
+        Assert.DoesNotContain("data-rask-on-input", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-keydown", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_list_is_a_listbox_with_Flux_s_attributes_and_an_empty_row_hidden_at_its_foot()
+    {
+        var page = Page.Render(Palette);
+
+        var list = page.Find("[data-ui-command-items]");
+        var empty = page.Find("[data-rask-command-empty]");
+
+        Assert.Equal("-1", list.Attribute("tabindex"));
+        Assert.Equal("true", list.Attribute("aria-multiselectable"));
+        Assert.True(empty.Attributes.ContainsKey("data-hidden"));
+        Assert.Equal("No results found", page.TextOf("[data-rask-command-empty]"));
+    }
+
+    [Fact]
+    public void Every_command_carries_the_words_the_search_matches_and_no_lit_state()
+    {
+        var page = Page.Render(Palette);
+
+        var commands = page.FindAll("[data-ui-command-item]");
+
+        Assert.Equal(["Assign to…", "Create new file", "Réglages"], commands.Select(command => command.Attribute("data-rask-match")));
+        Assert.All(commands, command => Assert.False(command.Attributes.ContainsKey("data-active")));
+        Assert.All(commands, command => Assert.False(string.IsNullOrEmpty(command.Id)));
+    }
+
+    [Fact]
+    public void A_command_shows_its_icon_before_its_words_and_its_shortcut_after_them()
     {
         var html = System.Net.WebUtility.HtmlDecode(Palette().ToHtml());
 
-        Assert.Contains(">⌘K</kbd>", html, StringComparison.Ordinal);
-        Assert.Contains(">Ctrl K</kbd>", html, StringComparison.Ordinal);
-    }
+        var row = html[System.Text.RegularExpressions.Regex.Match(html, "data-ui-command-item[ >]").Index..];
 
-    [Theory]
-    [InlineData("mod+shift+p", true, "⌘⇧P")]
-    [InlineData("mod+shift+p", false, "Ctrl Shift P")]
-    [InlineData("alt+enter", false, "Alt Enter")]
-    public void A_shortcut_is_described_the_way_each_platform_writes_it(string shortcut, bool mac, string expected) =>
-        Assert.Equal(expected, UiShortcut.Describe(shortcut, mac));
-
-    [Fact]
-    public void The_search_box_is_a_combobox_over_a_listbox_of_options()
-    {
-        var html = Palette().ToHtml();
-
-        Assert.Contains("role=\"combobox\"", html, StringComparison.Ordinal);
-        Assert.Contains("aria-expanded=\"true\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-rask-press-active", html, StringComparison.Ordinal);
-        Assert.Contains("role=\"listbox\"", html, StringComparison.Ordinal);
-        Assert.Equal(4, Regex.Matches(html, "role=\"option\"").Count);
-        Assert.DoesNotContain("role=\"menuitem\"", html, StringComparison.Ordinal);
+        Assert.Contains("</svg></div>Assign to…<div class=\"ms-auto", row, StringComparison.Ordinal);
+        Assert.Contains(">⌘A</span></div></div>", row, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_palette_asks_the_runtime_for_its_filter_and_highlight_and_gives_the_page_no_handler_for_them()
+    public async Task Pressing_a_command_runs_its_handler()
     {
-        var page = Page.Render(Palette());
+        var page = Page.Render(Palette);
 
-        var box = page.Find("[role=\"combobox\"]");
+        await page.On("[data-ui-command-item][data-rask-match=\"Assign to…\"]").Click();
 
-        Assert.True(page.Find("dialog").Attributes.ContainsKey("data-rask-command"));
-        Assert.Null(box.Attribute("value"));
-        Assert.DoesNotContain("data-rask-on-input", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-on-keydown", page.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
+        Assert.Equal("assign", _pressed);
     }
 
     [Fact]
-    public void Every_command_is_rendered_with_the_words_the_filter_matches_and_a_separator_between_runs()
+    public void The_box_has_a_clear_button_unless_it_is_closable_and_a_close_button_when_it_is()
     {
-        var page = Page.Render(Palette());
+        var plain = Page.Render(() => Ui.CommandInput);
+        var closable = Page.Render(() => Ui.CommandInput.Closable());
+        var both = Page.Render(() => Ui.CommandInput.Closable().Clearable());
+        var neither = Page.Render(() => Ui.CommandInput.Clearable(false));
 
-        var matched = page.FindAll("[role=\"option\"]").Select(option => option.Attribute("data-rask-match"));
-
-        Assert.Equal(["New invoice", "Archive", "Réglages", "Sign out"], matched);
-        Assert.Single(page.FindAll("[role=\"separator\"]"));
-        Assert.Single(page.FindAll(".ui-command-empty"));
+        Assert.NotNull(plain.Find("[aria-label=\"Clear command input\"][data-rask-clear]"));
+        Assert.Empty(plain.FindAll("[aria-label=\"Close command modal\"]"));
+        Assert.Empty(closable.FindAll("[aria-label=\"Clear command input\"]"));
+        Assert.NotNull(closable.Find("[aria-label=\"Close command modal\"]"));
+        Assert.Equal(2, both.FindAll("button").Count);
+        Assert.Empty(neither.FindAll("button"));
     }
 
     [Fact]
-    public void The_highlight_starts_on_the_first_command_that_can_be_picked()
+    public void The_clear_button_names_the_box_it_empties_and_stays_out_of_the_tab_order()
     {
-        var palette = Ui.Command.Label("Search")[Ui.MenuItem.Disabled(true)["Archive"], Ui.MenuItem["Rename"], Ui.MenuItem["Delete"]];
+        var page = Page.Render(() => Ui.CommandInput);
 
-        var options = Page.Render(palette).FindAll("[role=\"option\"]");
+        var clear = page.Find("[data-rask-clear]");
 
-        Assert.Equal(["false", "true", "false"], options.Select(option => option.Attribute("aria-selected")));
-        Assert.Equal("true", options[0].Attribute("aria-disabled"));
+        Assert.Equal(page.Find("input").Id, clear.Attribute("data-rask-clear"));
+        Assert.Equal("-1", clear.Attribute("tabindex"));
     }
 
     [Fact]
-    public void A_menu_item_outside_a_palette_is_unchanged()
+    public void In_a_modal_the_close_button_closes_that_modal()
     {
-        var html = Ui.Dropdown[Button["Actions"], Ui.Menu[Ui.MenuItem["Archive"]]].ToHtml();
+        var html = Ui.Modal.Name("search")[Ui.Command[Ui.CommandInput.Closable()]].ToHtml();
 
-        Assert.Contains("role=\"menuitem\"", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("aria-selected", html, StringComparison.Ordinal);
+        var close = Page.Render(() => Ui.Modal.Name("search")[Ui.Command[Ui.CommandInput.Closable()]])
+            .Find("[aria-label=\"Close command modal\"]");
+
+        Assert.Contains("data-rask-command", html, StringComparison.Ordinal);
+        Assert.Equal("close", close.Attribute("command"));
+        Assert.Equal("search", close.Attribute("commandfor"));
+    }
+
+    [Fact]
+    public void The_palette_is_capped_at_480px_only_while_it_is_handed_no_class()
+    {
+        var plain = Page.Render(() => Ui.Command).Find("[data-ui-command]");
+        var classed = Page.Render(() => Ui.Command.Class("border-none")).Find("[data-ui-command]");
+
+        Assert.Contains("max-w-120", plain.Attribute("class"), StringComparison.Ordinal);
+        Assert.DoesNotContain("max-w-120", classed.Attribute("class"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_modal_trigger_opens_its_modal_from_an_input_drawn_as_a_button()
+    {
+        var trigger = Ui.ModalTrigger.Name("search").Shortcut("mod+k")[
+            Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K")
+        ];
+
+        var button = Page.Render(() => trigger).Find("button");
+
+        Assert.Equal("show-modal", button.Attribute("command"));
+        Assert.Equal("search", button.Attribute("commandfor"));
+        Assert.Equal("mod+k", button.Attribute("data-rask-shortcut"));
     }
 }

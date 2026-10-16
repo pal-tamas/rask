@@ -15,6 +15,7 @@ public sealed partial class UiInput<T>
             .Id(field.ControlId)
             .Disabled(Disabled == true)
             .Aria(field.Aria)
+            .Attributes(Attributes)
             .OnClick(OnClick)
             .Class(UiClass.Compose(UiInputLook.AsButton, UiInputLook.Padding(Icon is not null, Kbd is not null), Class))[
             Icon is { } icon ? Div.Class(UiInputLook.AsButtonLeading)[Glyph(icon)] : null,

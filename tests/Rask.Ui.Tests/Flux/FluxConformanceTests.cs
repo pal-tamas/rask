@@ -128,6 +128,10 @@ public sealed class FluxConformanceTests
         ["flux:popover"] = typeof(UiPopover),
         ["flux:menu"] = typeof(UiMenu),
         ["flux:menu.item"] = typeof(UiMenuItem),
+        ["flux:command"] = typeof(UiCommand),
+        ["flux:command.input"] = typeof(UiCommandInput),
+        ["flux:command.items"] = typeof(UiCommandItems),
+        ["flux:command.item"] = typeof(UiCommandItem),
         ["flux:menu.submenu"] = typeof(UiMenuSubmenu),
         ["flux:menu.separator"] = typeof(UiMenuSeparator),
         ["flux:menu.checkbox.group"] = typeof(UiMenuCheckboxGroup),
@@ -238,11 +242,10 @@ public sealed class FluxConformanceTests
         [typeof(UiColumn<>)] = "grid",
         [typeof(UiTree<,>)] = "tree",
         [typeof(UiHighlight)] = "highlight",
-        [typeof(UiCommand)] = "command",
     };
 
     /// <summary>The ceiling <see cref="NotFluxYet" /> is held under. Lower it with every deletion; never raise it.</summary>
-    private const int NotFluxYetCeiling = 18;
+    private const int NotFluxYetCeiling = 17;
 
     /// <summary>Not Flux, and kept because the owner said so, with the day they did.</summary>
     private static readonly Dictionary<Type, string> Approved = new()
@@ -369,6 +372,7 @@ public sealed class FluxConformanceTests
         ["flux:tabs/Bind"] = "`wire:model`, two-way: Ui.Tabs.Bind(() => Tab)",
         ["flux:tabs/OnChange"] = "`wire:model`'s write, as the event a Rask control raises",
         ["flux:tab/OnClick"] = "`wire:click`, as the dynamic-tabs example writes on its `action` tab",
+        ["flux:command.item/OnClick"] = "`wire:click`, as Flux's first example writes on every command",
         ["flux:label/For"] = "the `for` of the <label> that stands in for <ui-label>, which finds its control by script",
         ["flux:error/For"] = "`name`, as the expression a Rask form binds by: Ui.Error.For(() => order.Email)",
         ["flux:heading/Size=Xxl"] = "`2xl`: an identifier cannot start with a digit",
