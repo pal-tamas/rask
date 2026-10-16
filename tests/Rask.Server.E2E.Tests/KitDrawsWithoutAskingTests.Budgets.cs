@@ -66,6 +66,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         // A select that waits holds its pick for the next action, and the press that makes it is still sent —
         // alone, as drawing (data-rask-draws). Flux draws the picked option itself and sends nothing.
         ["select-bound: pick a row"] = 1,
+        ["slider-bound: drag and release"] = 12,
+        ["slider-bound: arrow keys"] = 5,
         ["tree: focus and blur by Tab"] = 3,
         ["tree: cursor keys"] = 9,
         ["tree: press a node"] = 1,
