@@ -2843,6 +2843,7 @@ switch and does not reach a build task:
 | [`RASKISLAND016`](#raskisland016) | error | A package island's plugin cannot be kept off another runtime's files |
 | [`RASKISLAND017`](#raskisland017) | error | The generated prop types could not be read from the compiled assembly |
 | [`RASKISLAND018`](#raskisland018) | warning | The islands' declared runtimes could not be read from the compiled assembly |
+| [`RASKISLAND019`](#raskisland019) | error | The project bundles islands but does not install Vite+ |
 
 ### RASKISLAND001
 
@@ -2864,8 +2865,7 @@ island's chunk through that file, so none would mount.
 
 **Fix:** read the bundler's own output just above the error — it names the file that failed. If
 `RaskExternalBuildCommand` is overridden, it has to run Vite with the generated config it is handed. Left
-unset, it is `npx vp build --config` in a project that installs Vite+ and `npx vite build --config`
-otherwise, chosen after the install.
+unset, it is `npx vp build --config`: islands are bundled by Vite+ alone ([`RASKISLAND019`](#raskisland019)).
 
 ### RASKISLAND003
 
@@ -3062,6 +3062,20 @@ Each island's runtime is read from the compiled assembly, because the file exten
 is right for a project with one runtime per extension and silently wrong otherwise.
 
 **Fix:** `dotnet build --no-incremental` so the assembly is written afresh.
+
+### RASKISLAND019
+
+**The project does not install Vite+** · error
+
+Islands are bundled by `vp build` and served in a dev session by `vp dev`, and nothing else: a Vite+ project
+aliases `vite` to the core Vite+ ships, which carries no `vite` command. After the install, the build looks
+for `node_modules/.bin/vp` and stops here when npm linked none, rather than failing inside npx.
+
+**Fix:** install Vite+, with `vite` aliased to its core so every plugin resolves the same one —
+`npm install -D vite-plus vite@npm:@voidzero-dev/vite-plus-core`, then add
+`"overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@<the same version>" }` to `package.json`.
+`rask new --islands` writes all of this. A project that sets `RaskExternalBuildCommand` names its own bundler
+and is not checked.
 
 ## Build errors from MSBuild
 

@@ -109,13 +109,12 @@
     <RaskExternalInstallCommand Condition="'$(RaskExternalInstallCommand)' == ''">npm ci</RaskExternalInstallCommand>
     <RaskExternalFirstInstallCommand Condition="'$(RaskExternalFirstInstallCommand)' == ''">npm install</RaskExternalFirstInstallCommand>
 
-    <!-- Vite is invoked directly with the generated config rather than through a package.json script,
-         so the project does not have to carry a script whose name Rask would then depend on.
-
-         Empty here on purpose: the default is chosen in _RaskExternalBundle, AFTER the install, because it
-         depends on what npm linked — `npx vp build` for a Vite+ project (whose `vite` is an alias to a core
-         with no `vite` command), `npx vite build` otherwise. Evaluated here, a project's first build would
-         see no node_modules yet and pick the wrong one. A value set by the project still wins. -->
+    <!-- Vite+ is invoked directly with the generated config rather than through a package.json script,
+         so the project does not have to carry a script whose name Rask would then depend on. Islands are
+         bundled by Vite+ alone (_RaskExternalRequireVitePlus says so when it is missing): its `vite` is an
+         alias to a core with no `vite` command, so `vp build` is what runs the config. Left empty in the
+         props on purpose, so the require check can tell the default from a bundler the project chose;
+         _RaskExternalBundle fills it in. -->
     <RaskExternalBuildCommand Condition="'$(RaskExternalBuildCommand)' == ''"></RaskExternalBuildCommand>
 
     <!-- The floor _RaskExternalProbeNode enforces as RASKISLAND001, so an old Node is reported here

@@ -2,37 +2,24 @@ namespace Rask.Hosting.Shared;
 
 /// <summary>
 ///     The <c>npx</c> command line that serves a project's islands from a dev server over the config an
-///     <see cref="IslandDevPointer" /> names.
+///     <see cref="IslandDevPointer" /> names: <c>vp dev</c>.
 /// </summary>
 /// <remarks>
-///     <para>
-///         <c>vp dev</c> when the project installs Vite+, and <c>vite</c> otherwise. A Vite+ project aliases
-///         <c>vite</c> to the core Vite+ ships, which carries no <c>vite</c> command, and npx refuses to run
-///         <c>vite</c> from a package that names itself something else — so <c>npx vite</c> there fails, and
-///         <c>vp</c> is what serves the same config. An older project with Vite alone keeps working as it did.
-///     </para>
-///     <para>
-///         Decided when the server starts, after the build that installed the packages, from the binary npm
-///         linked rather than from <c>package.json</c>: what npx can run is what <c>node_modules/.bin</c> holds.
-///     </para>
+///     Islands are served by Vite+ alone, as they are bundled by it (<c>_RaskExternalRequireVitePlus</c> fails a
+///     build that does not install it, <c>RASKISLAND019</c>). Its <c>vite</c> is an alias to a core that carries
+///     no <c>vite</c> command, and npx refuses to run <c>vite</c> from a package that names itself something
+///     else — so <c>vp</c> is what serves the config.
 /// </remarks>
 internal static class IslandDevCommand
 {
     /// <summary>The program both readers start.</summary>
     internal const string FileName = "npx";
 
-    /// <summary>The arguments that serve <paramref name="config" /> for the project at <paramref name="projectDirectory" />.</summary>
-    internal static IReadOnlyList<string> Arguments(string projectDirectory, string config)
+    /// <summary>The arguments that serve <paramref name="config" />.</summary>
+    internal static IReadOnlyList<string> Arguments(string config)
     {
-        ArgumentException.ThrowIfNullOrEmpty(projectDirectory);
         ArgumentException.ThrowIfNullOrEmpty(config);
 
-        return UsesVitePlus(projectDirectory)
-            ? ["--no-install", "vp", "dev", "--config", config]
-            : ["--no-install", "vite", "--config", config];
+        return ["--no-install", "vp", "dev", "--config", config];
     }
-
-    /// <summary>Whether npm linked the Vite+ command into the project at <paramref name="projectDirectory" />.</summary>
-    internal static bool UsesVitePlus(string projectDirectory) =>
-        File.Exists(Path.Combine(projectDirectory, "node_modules", ".bin", "vp"));
 }

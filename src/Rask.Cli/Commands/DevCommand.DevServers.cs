@@ -122,7 +122,7 @@ internal sealed partial class DevCommand
             await _process
                 .RunAsync(
                     IslandDevCommand.FileName,
-                    IslandDevCommand.Arguments(target.ProjectDirectory, config.Value.Config),
+                    IslandDevCommand.Arguments(config.Value.Config),
                     target.ProjectDirectory,
                     cancellationToken)
                 .ConfigureAwait(false);

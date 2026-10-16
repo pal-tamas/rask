@@ -27,28 +27,14 @@ public sealed class DevSessionHelpersTests
 
     // ---- island dev command ----
 
-    // A Vite+ project's `vite` is an alias to a core with no `vite` command, so npx runs `vp dev` there.
+    // Islands are served by Vite+ alone: its `vite` is an alias to a core with no `vite` command.
     [Fact]
-    public void A_project_that_installs_vite_plus_serves_its_islands_with_vp_dev()
+    public void Islands_are_served_with_vp_dev_over_the_pointer_s_config()
     {
-        using var project = new TempProject();
-        project.Write("node_modules/.bin/vp", "#!/bin/sh");
-
+        Assert.Equal("npx", IslandDevCommand.FileName);
         Assert.Equal(
             ["--no-install", "vp", "dev", "--config", "/c/vite.config.mjs"],
-            IslandDevCommand.Arguments(project.Path, "/c/vite.config.mjs"));
-    }
-
-    // A project from before Vite+, with Vite alone, keeps the command it always had.
-    [Fact]
-    public void A_project_with_vite_alone_serves_its_islands_with_vite()
-    {
-        using var project = new TempProject();
-        project.Write("node_modules/.bin/vite", "#!/bin/sh");
-
-        Assert.Equal(
-            ["--no-install", "vite", "--config", "/c/vite.config.mjs"],
-            IslandDevCommand.Arguments(project.Path, "/c/vite.config.mjs"));
+            IslandDevCommand.Arguments("/c/vite.config.mjs"));
     }
 
     [Theory]

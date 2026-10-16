@@ -95,6 +95,11 @@ updates:
       # install (ERESOLVE on npm ci — PR #1174). Lift this when both checkers accept 7.
       - dependency-name: "typescript"
         versions: [">=7.0.0"]
+      # The Vite+ toolchain moves as one: vite-plus exact, and vite aliased to the core at that same version in
+      # devDependencies and overrides. A bump of vite-plus alone would leave the alias behind, so both are moved
+      # together by hand: npm install -D vite-plus@X vite@npm:@voidzero-dev/vite-plus-core@X, and the override.
+      - dependency-name: "vite-plus"
+      - dependency-name: "vite"
     groups:
       # One PR for the wave rather than one per dependency.
       site-front-end:
@@ -129,6 +134,10 @@ updates:
     commit-message:
       prefix: build
       include: scope
+    ignore:
+      # Moved as one, by hand, for the reason given for /src/Rask.Site above.
+      - dependency-name: "vite-plus"
+      - dependency-name: "vite"
     groups:
       devtools-e2e:
         patterns:

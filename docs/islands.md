@@ -1108,15 +1108,15 @@ component's scoped TypeScript — and it reaches `Features/` and nothing else, s
 rest of the C# side stay `dotnet format`'s. The lint rules are each runtime's own, as in its
 [front-end template](spa.md#the-clients-toolchain-vite): Oxlint's React and Vue plugins, and
 `eslint-plugin-solid` and `eslint-plugin-lit` run inside it. Solid and React islands are both `.tsx`, so
-in a project holding both, Solid's rules apply under a `Solid/` folder only. The bundle is Vite+ too:
-the island build runs `vp build` over the config Rask generates, and a dev session serves it with `vp dev`;
-a project with Vite alone, from before, keeps `vite build` and `vite`, chosen from what `node_modules/.bin` holds.
+in a project holding both, Solid's rules apply under a `Solid/` folder only. The bundle is Vite+ too,
+and only Vite+: the island build runs `vp build` over the config Rask generates, a dev session serves it with
+`vp dev`, and a project that does not install Vite+ stops with [`RASKISLAND019`](diagnostics.md#raskisland019).
 
 By hand, if you are adding islands to a project you already have:
 
 ```bash
 npm init -y
-npm install -D vite typescript                                    # every runtime
+npm install -D vite-plus vite@npm:@voidzero-dev/vite-plus-core typescript   # every runtime
 npm install -D @vitejs/plugin-react react react-dom @types/react @types/react-dom   # React
 npm install -D @preact/preset-vite preact                         # Preact (not beside React)
 npm install -D vite-plugin-solid solid-js                         # Solid
@@ -1129,7 +1129,8 @@ npm install -D @analogjs/vite-plugin-angular @angular/compiler-cli @angular/buil
 
 These are the packages `rask new --islands` writes for each runtime. It picks their versions the way it
 does for a [front end](spa.md#which-versions-a-new-app-gets): the newest releases that install together,
-written as `^x.y.z`. Then extend the generated
+written as `^x.y.z` — except `vite-plus`, exact, with `vite` aliased to the core at that same version and the
+alias repeated under `"overrides"`, so every plugin resolves the one Vite+ ships. Then extend the generated
 tsconfig fragment ([above](#c-owns-the-props)) so `@rask/<Name>.props` resolves, and reference
 `Rask.External`.
 

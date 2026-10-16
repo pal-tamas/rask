@@ -51,8 +51,11 @@ them until tagged releases begin.
   aliased `vite` cannot answer. After: a new island project installs the same toolchain a front-end template
   does (`vite` aliased to the Vite+ core in `devDependencies` and `overrides`), the island build runs
   `npx vp build --config` and `rask dev` (or an editor-launched dev session) serves islands with
-  `npx vp dev --config`. Chosen from what `node_modules/.bin` holds after the install, so a project with Vite
-  alone keeps `vite build` and `vite`; a `RaskExternalBuildCommand` the project sets still wins.
+  `npx vp dev --config`. **Breaking:** islands are bundled and served by Vite+ alone — there is no `vite`
+  fallback. A project that installs Vite without Vite+ stops after its install with `RASKISLAND019`, naming the
+  packages to add: `npm install -D vite-plus vite@npm:@voidzero-dev/vite-plus-core`, and the same alias under
+  `"overrides"`. A `RaskExternalBuildCommand` the project sets is its own bundler and is not checked. The
+  site's and the devtools journeys' island bundles moved onto Vite+ with it.
 - **`AppStylesheet` links the app's compiled stylesheet from a hand-wired host.** Before: an app on
   `AddRask()` + `MapRask<App>()` wrote `Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")`
   itself, and that bare address is revalidated on every load. Now `HeadAssets => [Title["Shop"], AppStylesheet]`
