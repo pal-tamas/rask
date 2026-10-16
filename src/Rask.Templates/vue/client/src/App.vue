@@ -97,7 +97,9 @@ const serverTime = computed(() =>
             <p class="text-sm text-zinc-500 dark:text-zinc-400">Server time: {{ serverTime }}</p>
             <div>
               <div class="text-sm text-zinc-500 dark:text-zinc-400">Visits</div>
-              <div class="text-2xl font-semibold tabular-nums">{{ greeting.visits }}</div>
+              <div class="text-2xl font-semibold tabular-nums">
+                {{ greeting.visits }}
+              </div>
             </div>
           </template>
 

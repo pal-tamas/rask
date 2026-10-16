@@ -1,8 +1,7 @@
 {
   "devDependencies": {
     "lit": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "typescript": "latest"
   },
   "runtime": "lit"
 }

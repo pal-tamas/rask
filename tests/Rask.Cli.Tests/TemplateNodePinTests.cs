@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Rask.Cli.Scaffolding;
 
 namespace Rask.Cli.Tests;
 
@@ -84,17 +85,24 @@ public sealed class TemplateNodePinTests
     }
 
     // A version in a template is a hold, and only these have one: Tailwind is the binary the C# hosts download
-    // (TailwindVersionPinTests), @types/node is the Node LTS line. Everything else floats to the newest that installs.
+    // (TailwindVersionPinTests), @types/node is the Node LTS line. Everything else floats to the newest that installs —
+    // the Vite+ alias too, which floats as `npm:…@latest` and is pinned in step with vite-plus (VitePlusToolchain).
     [Fact]
     public void Every_template_package_floats_except_the_declared_holds()
     {
         string[] holds = ["tailwindcss", "@tailwindcss/vite", "@tailwindcss/postcss", "@types/node"];
+        // vue-tsc drives TypeScript through its JavaScript API (typescript/lib/tsc), which the native TypeScript 7
+        // no longer ships: the Vue client stays on 6.x until vue-tsc runs on 7. The other clients type-check with
+        // TypeScript's own tsc, or svelte-check, and float onto 7.
+        (string File, string Name)[] fileHolds = [("vue/client/package.json", "typescript")];
         var manifests = Directory.EnumerateFiles(Root, "package.json", SearchOption.AllDirectories)
             .Concat(Directory.EnumerateFiles(Root, "island.json", SearchOption.AllDirectories));
 
         var pinned = manifests
             .SelectMany(manifest => Dependencies(manifest).Select(d => (File: Relative(manifest), d.Name, d.Version)))
-            .Where(d => !holds.Contains(d.Name, StringComparer.Ordinal) && d.Version != "latest")
+            .Where(d => !holds.Contains(d.Name, StringComparer.Ordinal)
+                && !fileHolds.Contains((d.File, d.Name))
+                && d.Version is not "latest" and not VitePlusToolchain.FloatingAlias)
             .Select(d => $"{d.File}: {d.Name} {d.Version}")
             .ToArray();
 
