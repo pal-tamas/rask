@@ -25,21 +25,29 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 import { chromium, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
+import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
 const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
-const page = args.find(a => !a.startsWith('--') && a !== option('section') && a !== option('view'));
+const page = args.find(a => !a.startsWith('--') && a !== option('section') && a !== option('view') && a !== option('prepare'));
 // `--view 390x844`: both pages are measured in that viewport — a component that is another thing on a phone.
 const view = option('view')?.split('x').map(Number);
+// `--prepare <module>`: a state the component is only in once it is USED (typed into, opened), reached the same
+// way on both pages before they are measured. The module names Flux's page it is measured on (`flux`, a slug),
+// the runtime modules the Rask page is given (`runtime`, as in an app), how the browser is launched (`launch`), and `prepare(page, scheme, side)`, which
+// drives each page there; `<slug>` is then a page of its own (parity-command.mjs: `command-open`).
+const prepared = option('prepare') ? await import(pathToFileURL(resolve(option('prepare'))).href) : null;
 if (!page) {
-  console.error('usage: node scripts/flux/parity.mjs <page> [--refresh] [--section <id>] [--view <w>x<h>] [--all]');
+  console.error('usage: node scripts/flux/parity.mjs <page> [--refresh] [--section <id>] [--view <w>x<h>] [--prepare <module>] [--all]');
   process.exit(1);
 }
 
 const path = page.includes('/') ? page : `components/${page}`;
 const slug = path.split('/')[1];
+const fluxUrl = `https://fluxui.dev/${prepared?.flux ? `components/${prepared.flux}` : path}`;
 const out = join(root, 'artifacts', 'flux-parity');
 // A layout page (layouts/header, layouts/sidebar) has no examples of its own: it links to full-document demos,
 // and each is measured whole — at desktop and phone widths, with the sidebar as it loads, narrowed to its rail
@@ -51,7 +59,8 @@ if (!existsSync(raskPage)) {
   process.exit(1);
 }
 
-const browser = await chromium().launch();
+// …and how the browser is started for it (parity-modal.mjs's reason: a reader's shows its scrollbars).
+const browser = await chromium().launch(prepared?.launch);
 // A viewport of its own is a measurement of its own, kept beside the desktop's.
 const sized = view ? `@${view.join('x')}` : '';
 const fluxFile = join(out, 'flux', slug, `measurements${sized}.json`);
@@ -61,7 +70,7 @@ if (existsSync(fluxFile) && !flag('refresh')) {
 } else {
   flux = layout
     ? await measureLayouts(browser, await layoutDemos(browser, `https://fluxui.dev/${path}`), demo => `https://fluxui.dev/demo/${demo.name}`, join(out, 'flux', slug))
-    : await measurePage(browser, `https://fluxui.dev/${path}`, join(out, 'flux', slug + sized), undefined, view);
+    : await measurePage(browser, fluxUrl, join(out, 'flux', slug + sized), prepared ? (p, scheme) => prepared.prepare(p, scheme, 'flux') : undefined, view);
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
@@ -89,7 +98,13 @@ const demos = () => [...new Map(flux.light.map(example => example.section.split(
 const rask = layout
   ? await measureLayouts(browser, demos(), demo => pathToFileURL(join(raskPage, `${demo.name}.html`)).href, join(out, 'rask', slug),
     { prepare: inherit, only: new Set(flux.light.map(example => example.section)) })
-  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug + sized), inherit, view);
+  : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug + sized), prepared
+    ? async (p, scheme) => {
+      await withRuntime(p, ...prepared.runtime);
+      await prepared.prepare(p, scheme, 'rask');
+      await inherit(p, scheme);
+    }
+    : inherit, view);
 await browser.close();
 
 // ----- Layouts ---------------------------------------------------------------------------------------
@@ -373,7 +388,10 @@ function compareLook(theirs, a, mine, b, where, diffs) {
 
   // Flux's keyframes are named `flux-*` as its markers are; Rask's are `ui-*`.
   const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
-  if (moves(a) !== moves(b)) diffs.push(`${where}: animations: ${moves(a)} vs ${moves(b)}`);
+  // An open modal's focus placeholder: Flux's script takes it away once the dialog has focus, the kit's stylesheet
+  // by an animation (ui-modal-placeholder) — the same accepted pair parity-modal.mjs names. Each ends with it gone.
+  const placeholder = 'data-ui-focus-placeholder' in b.attrs;
+  if (!placeholder && moves(a) !== moves(b)) diffs.push(`${where}: animations: ${moves(a)} vs ${moves(b)}`);
 
   // A long example is measured for its first 60 controls only, and the two pages need not run out at the
   // same node: a state is compared where both sides measured it.

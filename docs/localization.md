@@ -501,7 +501,7 @@ they say when you set nothing.
 | `SliderRangeEnd` | Slider | `{0} end range` |
 | `SidebarToggle` | Sidebar | `Toggle sidebar` |
 | `SidebarSearch` | Sidebar | `Search` |
-| `CommandEmpty` | Command | `No results` |
+| `CommandEmpty` | Command | `No results found` |
 | `DataGridColumns` | Data grid | `Columns` |
 | `DataGridMoveUp` | Data grid | `Move up` |
 | `DataGridMoveDown` | Data grid | `Move down` |
@@ -547,6 +547,8 @@ they say when you set nothing.
 | `ConnectionUpdating` | Reconnect overlay | `Updating…` |
 | `ConnectionAuthenticating` | Reconnect overlay | `Authenticating…` |
 | `ConnectionSessionTimedOut` | Reconnect overlay | `Your session timed out. Reload to continue.` |
+| `CommandClear` | Command | `Clear command input` |
+| `CommandClose` | Command | `Close command modal` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

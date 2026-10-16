@@ -210,5 +210,8 @@
   "ConnectionReload": "Újratöltés",
   "ConnectionUpdating": "Frissítés…",
   "ConnectionAuthenticating": "Hitelesítés…",
-  "ConnectionSessionTimedOut": "A munkamenet lejárt. A folytatáshoz töltse újra az oldalt."
+  "ConnectionSessionTimedOut": "A munkamenet lejárt. A folytatáshoz töltse újra az oldalt.",
+
+  "CommandClear": "Keresőmező törlése",
+  "CommandClose": "Parancspaletta bezárása"
 }

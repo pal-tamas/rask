@@ -429,13 +429,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task The_shortcut_opens_the_palette_and_Enter_runs_the_narrowed_command() => RunAsync(async () =>
+    public Task The_shortcut_opens_the_palette_as_a_modal_and_Enter_runs_the_narrowed_command() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-command']");
-        var dialog = scope.Locator("dialog");
-        await Expect(scope.Locator("[data-rask-shortcut]")).ToBeVisibleAsync(
+        var dialog = Page.Locator("#search");
+        await Expect(Page.Locator("[data-testid='ui-command'] [data-rask-shortcut]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         // The hook is installed when the runtime loads, so press until it is there to answer.
@@ -446,49 +445,57 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         }
 
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var box = dialog.GetByRole(AriaRole.Combobox);
+        // As Flux's: the modal opens with focus on nothing in it, and Tab takes it into the box.
+        await Page.Keyboard.PressAsync("Tab");
+        var box = dialog.Locator("[data-ui-command-input] input");
         await Expect(box).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
 
-        await box.PressSequentiallyAsync("copy");
-        await Expect(dialog.GetByRole(AriaRole.Option)).ToHaveCountAsync(1,
-            new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
-        await Expect(box).ToHaveAttributeAsync("aria-activedescendant",
-            (await dialog.GetByRole(AriaRole.Option).GetAttributeAsync("id"))!);
+        await box.PressSequentiallyAsync("chang");
+        var shown = dialog.Locator("[data-ui-command-item]:not([data-hidden])");
+        await Expect(shown).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        await Expect(box).ToHaveAttributeAsync("aria-activedescendant", (await shown.GetAttributeAsync("id"))!);
 
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("copied the invoice link",
+        // The command runs and the box starts over; the palette stays open, as Flux's does, and Escape closes it.
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("opened the changelog",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(box).ToHaveValueAsync("");
+        await Page.Keyboard.PressAsync("Escape");
         await Expect(dialog).ToBeHiddenAsync();
     });
 
     [Fact]
-    public Task The_palette_field_opens_it_and_the_arrows_skip_a_disabled_command() => RunAsync(async () =>
+    public Task The_palette_on_the_page_narrows_lights_and_runs_a_command_in_the_browser() => RunAsync(async () =>
     {
         await OpenAsync();
 
-        var scope = Page.Locator("[data-testid='ui-command']");
-        var field = scope.Locator("[data-rask-shortcut]");
+        var palette = Page.Locator("[data-testid='ui-command'] > [data-ui-command]");
+        var box = palette.Locator("input");
+        await box.ScrollIntoViewIfNeededAsync();
+        await box.ClickAsync();
 
-        await field.ScrollIntoViewIfNeededAsync();
-        await field.ClickAsync();
-
-        var dialog = scope.Locator("dialog");
-        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
-        var box = dialog.GetByRole(AriaRole.Combobox);
-        await Expect(box).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
-
-        async Task<string> HighlightedAsync() =>
+        async Task<string> LitAsync() =>
             await box.EvaluateAsync<string>(
                 "b => { const r = document.getElementById(b.getAttribute('aria-activedescendant') || ''); "
-                + "return r ? r.textContent.trim() : ''; }");
+                + "return r && r.hasAttribute('data-active') ? r.textContent.trim() : ''; }");
 
+        // Focus lights the first command, and the arrows stop at the ends.
+        await WaitForCursorAsync(LitAsync, "Assign to…");
+        await Page.Keyboard.PressAsync("ArrowUp");
         await Page.Keyboard.PressAsync("ArrowDown");
-        // "Export all" is disabled, so one step from "New invoice" lands past it.
-        await WaitForCursorAsync(HighlightedAsync, "Copy invoice link");
+        await WaitForCursorAsync(LitAsync, "Create new file");
 
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(dialog).ToBeHiddenAsync();
+        await box.PressSequentiallyAsync("zz");
+        await Expect(palette.GetByText("No results found")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(palette.Locator("[data-ui-command-item]:not([data-hidden])")).ToHaveCountAsync(0);
+
+        await box.FillAsync("");
+        await box.PressSequentiallyAsync("set");
+        await palette.Locator("[data-ui-command-item]:not([data-hidden])").ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("opened the settings",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(box).ToHaveValueAsync("");
     });
 
     // The room an open modal is placed in. The page keeps a scrollbar's gutter while one is open (as Flux's

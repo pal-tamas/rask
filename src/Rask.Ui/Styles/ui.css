@@ -1139,18 +1139,6 @@
 }
 
 /*
-  The command palette (`dialog.modal`, still drawn by daisyUI) locks the page's scroll while it is open, so a
-  long page does not slide underneath it. Keyed to an OPEN dialog, which keeps this — the kit's one rule at
-  the document root — off every page not showing one. Ui.Modal needs no rule: it asks the runtime
-  (`data-rask-lock="scroll"`), which also keeps the scrollbar's gutter, as Flux does.
-*/
-@layer rask {
-  :root:has(dialog.modal[open], dialog.modal:popover-open) {
-    overflow: hidden;
-  }
-}
-
-/*
   Ui.Modal's focus placeholder. A dialog hands focus to its first field when it opens, which rings a field
   nobody chose; Flux gives it an empty element to focus instead and then takes that element away. Here the
   element is in the markup with `autofocus`, and this is the taking away: it is there for the instant the
@@ -1254,42 +1242,6 @@
     to {
       transform: translate(200%);
     }
-  }
-}
-
-/*
-  A shortcut in the reader's platform's words (UiCommand.Shortcut).
-
-  The server cannot know whether the reader is on a Mac, so the kit renders both — ⌘K and Ctrl K — and the runtime
-  marks <html> with data-rask-mac on one. Until the runtime has run, a page shows the non-Mac form, which is also
-  what a reader without scripts gets.
-
-  A command palette's "No results" row, shown only while the list holds no option: CSS reading the list, so there
-  is no count to keep in step with what the filter left.
-
-  In `rask-ui-corrections` because daisyUI's `.kbd` display and `.menu li` rules live in `utilities`.
-*/
-@layer rask-ui-corrections {
-  :root[data-rask-mac] .ui-kbd-other,
-  :root:not([data-rask-mac]) .ui-kbd-mac {
-    display: none;
-  }
-
-  .ui-command-list:has(:not([hidden]) > [role="option"]) > .ui-command-empty {
-    display: none;
-  }
-
-  /* A command the query hides, and the separators with it: daisyUI's `.menu li` would still lay them out. */
-  .ui-command-list > [hidden] {
-    display: none;
-  }
-
-  /* The lit command, which the runtime moves: daisyUI's `.menu-focus`, read from the option's own state. */
-  .ui-command-list [role="option"][aria-selected="true"] {
-    cursor: pointer;
-    background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
-    color: var(--color-base-content);
-    outline-style: none;
   }
 }
 

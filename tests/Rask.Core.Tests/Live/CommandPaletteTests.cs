@@ -23,7 +23,7 @@ public class CommandPaletteTests
     }
 
     [Fact]
-    public void An_arrow_lights_the_next_command_that_can_be_picked_and_goes_around_the_ends()
+    public void An_arrow_lights_the_next_command_shown_and_stops_at_the_ends()
     {
         if (NodeFixture.Run("CommandPaletteFixture") is not { } rules)
         {
@@ -31,16 +31,16 @@ public class CommandPaletteTests
         }
 
         var (next, back) = (Lit(rules, "next"), Lit(rules, "back"));
-        var (forward, around) = (Lit(rules, "wrapsForward"), Lit(rules, "wrapsBack"));
+        var (atTheEnd, atTheStart) = (Lit(rules, "stopsForward"), Lit(rules, "stopsBack"));
 
         Assert.Equal(2, next);
         Assert.Equal(0, back);
-        Assert.Equal(0, forward);
-        Assert.Equal(3, around);
+        Assert.Equal(3, atTheEnd);
+        Assert.Equal(0, atTheStart);
     }
 
     [Fact]
-    public void The_highlight_starts_at_the_near_end_and_stays_where_it_is_when_nothing_else_can_be_picked()
+    public void With_nothing_lit_an_arrow_lights_the_near_end_and_with_one_lit_it_stays_when_nothing_else_is_shown()
     {
         if (NodeFixture.Run("CommandPaletteFixture") is not { } rules)
         {

@@ -214,25 +214,40 @@ public sealed partial class UiKitActionsDemo : Component
                 ]
             ]);
 
+    // Flux UI's command page, example for example: the palette on the page, then the same one as a modal.
     private Component CommandPaletteSection() =>
         Section(
             "Command palette",
-            "Click the field, or press ⌘K (Ctrl K off a Mac) anywhere on this page. The commands are written as the "
-            + "rows a menu takes; typing narrows them, the arrows move the highlight while focus stays in the box, "
-            + "and Enter runs the highlighted one — its handler, or its link — and closes the palette. The "
-            + "shortcut is a runtime hook that clicks the field, so it opens the same dialog a click does.",
-            Div.Data(Testid("ui-command")).Class("max-w-sm")[
-                Ui.Command.Label("Search commands").Shortcut("mod+k")[
-                    Ui.MenuGroup.Heading("Invoices")[
-                        Ui.MenuItem.Icon(Ui.IconName.Plus).OnClick(() => { _lastAction = "started a new invoice"; })["New invoice"],
-                        Ui.MenuItem.Icon(Ui.IconName.ArrowDownTray).Disabled()["Export all"]
+            "A searchable list of commands — Flux UI's command. Typing narrows it, the arrows and the pointer move the "
+            + "lit command and Enter runs it, all in the browser: nothing is sent until a command runs. As a modal it "
+            + "opens from the field below, or with ⌘K (Ctrl K off a Mac) anywhere on this page.",
+            Div.Data(Testid("ui-command")).Class("flex flex-col items-center gap-8")[
+                Commands(Ui.Command, Ui.CommandInput.Placeholder("Search...")),
+                Div[
+                    Ui.ModalTrigger.Name("search").Shortcut("mod+k")[
+                        Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K")
                     ],
-                    Ui.MenuSeparator,
-                    Ui.MenuItem.Icon(Ui.IconName.ClipboardDocumentCheck)
-                        .OnClick(() => { _lastAction = "copied the invoice link"; })["Copy invoice link"],
-                    Ui.MenuItem.Danger.OnClick(() => { _lastAction = "signed out"; })["Sign out"]
+                    Ui.Modal.Key("m-search").Name("search").Variant(Ui.ModalVariant.Bare)
+                        .Class("my-[12vh] max-h-screen w-full max-w-[30rem] overflow-y-hidden")[
+                        Commands(
+                            Ui.Command.Class("inline-flex max-h-[76vh] flex-col border-none shadow-lg"),
+                            Ui.CommandInput.Placeholder("Search...").Closable())
+                    ]
                 ]
             ]);
+
+    private Component Commands(UiCommand command, UiCommandInput input) =>
+        command[
+            input,
+            Ui.CommandItems[
+                Ui.CommandItem.Icon(Ui.IconName.UserPlus).Kbd("⌘A").OnClick(() => { _lastAction = "assigned"; })["Assign to…"],
+                Ui.CommandItem.Icon(Ui.IconName.DocumentPlus).OnClick(() => { _lastAction = "created a file"; })["Create new file"],
+                Ui.CommandItem.Icon(Ui.IconName.FolderPlus).Kbd("⌘⇧N").OnClick(() => { _lastAction = "created a project"; })["Create new project"],
+                Ui.CommandItem.Icon(Ui.IconName.BookOpen).OnClick(() => { _lastAction = "opened the documentation"; })["Documentation"],
+                Ui.CommandItem.Icon(Ui.IconName.Newspaper).OnClick(() => { _lastAction = "opened the changelog"; })["Changelog"],
+                Ui.CommandItem.Icon(Ui.IconName.Cog6Tooth).Kbd("⌘,").OnClick(() => { _lastAction = "opened the settings"; })["Settings"]
+            ]
+        ];
 
     // Flux's first example: a named modal and the trigger that names it.
     private Component ModalSection() =>

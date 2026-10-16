@@ -18,11 +18,6 @@ public sealed partial class UiMenuGroup : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        if (Context.Get<UiMenuLevel>() is { Scope.AsOptions: true })
-        {
-            return [Heading is { } title ? UiCommandRows.Heading(title) : null, .. Children ?? []];
-        }
-
         Component?[] content =
         [
             global::Rask.UiMenuSeparator.Line("ui-menu-separator-top"),

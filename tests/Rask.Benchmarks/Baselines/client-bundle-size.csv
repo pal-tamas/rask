@@ -309,3 +309,12 @@ bundle,bytes
 rask.js,108542
 rask.wasm.js,94630
 rask-hooks.js,101532
+#
+# 2026-10-16, Ui.Command rebuilt as Flux's command palette: the palette's Enter and close-on-pick left rask-dom.ts for
+# rask-command.ts, which keeps Flux's pointer, focus and empty row too: rask.js -929, rask.wasm.js -911,
+# rask-hooks.js +480. Measured from a Release build of the branch merged with main 3f93efc88: rask.js 107,613,
+# rask.wasm.js 93,719, rask-hooks.js 102,012.
+bundle,bytes
+rask.js,107613
+rask.wasm.js,93719
+rask-hooks.js,102012
