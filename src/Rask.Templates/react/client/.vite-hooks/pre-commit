@@ -1,0 +1,5 @@
+# Hooks run from the repository root, and the client is a folder inside it: vp staged reads its
+# staged block from the vite.config.ts beside this folder. The PATH the hook runner adds is relative
+# to the root, so it is made absolute again once here.
+cd "$(dirname "$0")/.." || exit 1
+PATH="$PWD/node_modules/.bin:$PATH" vp staged

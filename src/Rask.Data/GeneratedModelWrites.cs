@@ -147,7 +147,7 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
-    /// <exception cref="InvalidOperationException">The aggregate declares <see cref="Deletion.None" />.</exception>
+    /// <exception cref="InvalidOperationException">The aggregate names neither <see cref="Deletable" /> nor <see cref="SoftDelete" />.</exception>
     public static Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
@@ -159,10 +159,10 @@ public static class GeneratedModelWrites
         ArgumentNullException.ThrowIfNull(key);
 
         // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
-        if (ConventionRegistry.DeletesFor(typeof(TEntity)) == Deletion.None)
+        if (!ConventionRegistry.IsDeletable(typeof(TEntity)))
         {
             throw new InvalidOperationException(
-                $"{typeof(TEntity).Name} declares Deletes = Deletion.None and is never deleted; " +
+                $"{typeof(TEntity).Name} names neither Deletable nor SoftDelete, so it is never deleted; " +
                 "retire it through a method of its own (Cancel, Archive) instead.");
         }
 
@@ -303,7 +303,7 @@ public static class GeneratedModelWrites
         if (entry.Metadata.FindProperty(Columns.Version) is null)
         {
             throw new InvalidOperationException(
-                $"{entry.Metadata.ClrType.Name} declares Checks = Concurrency.None, so it has no Version to compare " +
+                $"{entry.Metadata.ClrType.Name} does not name Versioned, so it has no Version to compare " +
                 $"{expected} with. Call the write without a version, or remove the const to keep the check.");
         }
 

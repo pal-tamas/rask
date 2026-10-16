@@ -148,7 +148,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     /// <remarks>
     ///     <b>It does not cross tenants.</b> The tenant filter is a separate, named filter and stays exactly
     ///     where it is, so an existing call to this never quietly becomes a cross-tenant read the day an
-    ///     aggregate declares <see cref="Tenancy.PerTenant" />. Spanning tenants is
+    ///     aggregate declares <see cref="PerTenant" />. Spanning tenants is
     ///     <see cref="Tenant.Across" />, deliberately and visibly.
     /// </remarks>
     public ModelQuery<TEntity> IgnoreQueryFilters() =>

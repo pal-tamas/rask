@@ -185,7 +185,6 @@ Rask.Mailing.SmtpSecurity.SslOnConnect = 2 -> Rask.Mailing.SmtpSecurity
 Rask.Mailing.SmtpSecurity.StartTls = 1 -> Rask.Mailing.SmtpSecurity
 RaskBuilderSettersRask_Mail
 const Rask.Mailing.MailMetrics.MeterName = "Rask.Mail" -> string!
-const Rask.Mailing.QueuedMail.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 override Rask.Mailing.EmailAddress.Equals(object? obj) -> bool
 override Rask.Mailing.EmailAddress.GetHashCode() -> int
 override Rask.Mailing.EmailAddress.ToString() -> string!

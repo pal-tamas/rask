@@ -32,8 +32,9 @@ public sealed class CompositeKeyGenerator : IIncrementalGenerator
         description: "Entity<(DeliveryNote, Transaction)> keys a child row by the aggregates it joins: Rask generates "
                      + "a DeliveryNoteId and a TransactionId of those aggregates' key types, and an Id that is the "
                      + "two values together. That needs a partial class it can add to, parts it can name, and names "
-                     + "nothing else holds. Writing such a row through its aggregate is not supported yet, so a form "
-                     + "that would carry one is refused here rather than half-written.",
+                     + "nothing else holds. Writing such a row through its aggregate is not supported yet, so an "
+                     + "aggregate whose base names Model (or CreateModel / UpdateModel) and holds one is refused here "
+                     + "rather than given a form that leaves it out.",
         helpLinkUri: DiagnosticHelp.Link("RASK105"));
 
     /// <inheritdoc />

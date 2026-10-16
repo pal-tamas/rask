@@ -40,13 +40,9 @@ public sealed class HarborAddress
 }
 
 /// <summary>An aggregate holding one value object that must be there and one that may be absent.</summary>
-public sealed class Harbor : Aggregate<int>
+public sealed class Harbor : Aggregate<int, Model, Deletable>
 {
     private Harbor() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
 
     public string Name { get; private set; } = "";
 

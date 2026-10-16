@@ -7,13 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Providers.E2E.Tests.Fuel;
 
 /// <summary>A delivery note of an existing app: numbered tenants, read only, no framework columns.</summary>
-public sealed class DeliveryNote : Aggregate<int>
+public sealed class DeliveryNote : Aggregate<int, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-    public const ModelWrites Writes = ModelWrites.None;
-    public const Timestamps Stamps = Timestamps.None;
-    public const Concurrency Checks = Concurrency.None;
-
     public int? TenantId { get; private set; }
 
     public string Number { get; private set; } = "";
@@ -22,13 +17,8 @@ public sealed class DeliveryNote : Aggregate<int>
 }
 
 /// <summary>A fuel transaction of the same app.</summary>
-public sealed class Transaction : Aggregate<int>
+public sealed class Transaction : Aggregate<int, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-    public const ModelWrites Writes = ModelWrites.None;
-    public const Timestamps Stamps = Timestamps.None;
-    public const Concurrency Checks = Concurrency.None;
-
     public int? TenantId { get; private set; }
 
     public int ProductId { get; private set; }
@@ -37,8 +27,6 @@ public sealed class Transaction : Aggregate<int>
 /// <summary>Which transactions fuelled a note, keyed by the pair: no Id, no TenantId, no stamps.</summary>
 public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
 {
-    public const Timestamps Stamps = Timestamps.None;
-
     public decimal Quantity { get; private set; }
 }
 

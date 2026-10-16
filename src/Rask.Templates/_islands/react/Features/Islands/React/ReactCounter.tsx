@@ -13,7 +13,11 @@ export default function ReactCounter({ step, caption, onTotal }: ReactCounterPro
   return (
     <div className="island-counter" data-testid="react-counter">
       <div className="caption">{caption}</div>
-      <button type="button" data-testid="react-counter-add" onClick={() => setTotal(t => t + step)}>
+      <button
+        type="button"
+        data-testid="react-counter-add"
+        onClick={() => setTotal((t) => t + step)}
+      >
         add {step}
       </button>
       <span className="total">

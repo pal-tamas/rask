@@ -14,18 +14,14 @@ public class CompositeKeyGeneratorTests
         using Rask.Data;
         namespace Fuel;
 
-        public sealed class DeliveryNote : Aggregate<int>
+        public sealed class DeliveryNote : Aggregate<int, PerTenant>
         {
-            public const Tenancy Scope = Tenancy.PerTenant;
-            public const ModelWrites Writes = ModelWrites.None;
             public string Number { get; private set; } = "";
             public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
         }
 
-        public sealed class Transaction : Aggregate<int>
+        public sealed class Transaction : Aggregate<int, PerTenant>
         {
-            public const Tenancy Scope = Tenancy.PerTenant;
-            public const ModelWrites Writes = ModelWrites.None;
             public int ProductId { get; private set; }
         }
 
@@ -34,7 +30,6 @@ public class CompositeKeyGeneratorTests
     private const string Fuelling = Aggregates + """
         public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
         {
-            public const Timestamps Stamps = Timestamps.None;
             public decimal Quantity { get; private set; }
         }
         """;
@@ -198,8 +193,8 @@ public class CompositeKeyGeneratorTests
     public void An_aggregate_whose_form_would_carry_the_row_is_refused()
     {
         var run = Run(Fuelling.Replace(
-            "public const ModelWrites Writes = ModelWrites.None;\n    public string Number",
-            "public string Number",
+            "class DeliveryNote : Aggregate<int, PerTenant>",
+            "class DeliveryNote : Aggregate<int, Model, PerTenant>",
             StringComparison.Ordinal));
 
         var message = Assert.Single(Rask105(run));

@@ -3,13 +3,11 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's delivery round: only the root carries the tenant.</summary>
-public sealed class Tour : Aggregate<Guid>
+public sealed class Tour : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private readonly List<Drop> _drops = [];
 
     private Tour() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public string Name { get; private set; } = "";
 

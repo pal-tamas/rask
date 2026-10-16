@@ -36,7 +36,7 @@ public static class RangeExclusionBuilderExtensions
     /// </param>
     /// <param name="ignoreSoftDeleted">
     /// Excludes soft-deleted rows, so a deleted row frees its slot. Defaults to <see langword="true"/> when
-    /// <typeparamref name="TEntity"/> declares <c>public const Deletion Deletes = Deletion.Soft;</c>, and to
+    /// <typeparamref name="TEntity"/> names <see cref="SoftDelete" />, and to
     /// <see langword="false"/> otherwise — a hard-deleted row has already freed its slot, and there is no
     /// <c>DeletedAt</c> column to filter on.
     /// </param>
@@ -61,13 +61,13 @@ public static class RangeExclusionBuilderExtensions
         // The same source ApplyRaskConventions maps DeletedAt from — being an aggregate no longer means having
         // the column, since soft delete is opt-in (#1131). The registry is filled by the generated module
         // initializer, so it is complete before any OnModelCreating runs.
-        var softDeletable = ConventionRegistry.DeletesFor(typeof(TEntity)) == Deletion.Soft;
+        var softDeletable = ConventionRegistry.Has(typeof(TEntity), TraitSet.SoftDelete);
 
         if (ignoreSoftDeleted == true && !softDeletable)
         {
             throw new ArgumentException(
                 $"'{typeof(TEntity).Name}' does not soft delete, so it has no DeletedAt column for a " +
-                "non-overlapping range to ignore. Declare 'public const Deletion Deletes = Deletion.Soft;' on it, " +
+                "non-overlapping range to ignore. Name SoftDelete on its base (Aggregate<Guid, SoftDelete>), " +
                 "or drop 'ignoreSoftDeleted: true' — a hard-deleted row has already freed its slot.",
                 nameof(ignoreSoftDeleted));
         }

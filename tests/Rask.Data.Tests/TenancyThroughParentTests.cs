@@ -4,17 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's driver, as an existing app has it: a text key and a <see cref="Guid" /> tenant kept as text.</summary>
-public sealed class Driver : Aggregate<string>
+public sealed class Driver : Aggregate<string, Model, Deletable, PerTenant>
 {
     private readonly List<Chip> _chips = [];
 
     private Driver() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 
@@ -41,17 +35,11 @@ public sealed class Driver : Aggregate<string>
 }
 
 /// <summary>The other parent of the same chips: a chip is a driver's or a vehicle's, never both.</summary>
-public sealed class Vehicle : Aggregate<string>
+public sealed class Vehicle : Aggregate<string, Model, Deletable, PerTenant>
 {
     private readonly List<Chip> _chips = [];
 
     private Vehicle() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 
@@ -81,8 +69,6 @@ public sealed class Chip : Entity<string>
     public const string Taken = "This chip is already handed out.";
 
     private Chip() { }
-
-    public const Timestamps Stamps = Timestamps.None;
 
     public string Code { get; private set; } = "";
 

@@ -13,11 +13,8 @@ namespace Rask.Caching;
 /// <see cref="Entity{TId}"/> rather than an <see cref="Aggregate{TId}"/>: a soft-delete filter over a cache
 /// would hide entries the purge sweep is meant to remove.
 /// </remarks>
-public sealed class CacheEntry : Entity<Guid>
+public sealed class CacheEntry : Entity<Guid, Timestamps>
 {
-    /// <summary>No form model: a cache entry is written by the cache, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
     /// <summary>The cache key.</summary>
     public string Key { get; internal set; } = "";
 

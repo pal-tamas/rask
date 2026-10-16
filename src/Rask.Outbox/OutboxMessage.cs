@@ -15,20 +15,11 @@ namespace Rask.Outbox;
 /// and the processor advances state with <c>ExecuteUpdate</c>, which never maintains one.
 /// </para>
 /// <para>
-/// Nothing creates one of these from a form, so no form model is generated — see <see cref="Writes"/>.
+/// Nothing creates one of these from a form, so no form model is generated: its base names no <c>Model</c>.
 /// </para>
 /// </remarks>
-public sealed class OutboxMessage : Entity<long>
+public sealed class OutboxMessage : Entity<long, Updated>
 {
-    /// <summary>No form model: an outbox row is written by the interceptor, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
-    /// <summary>
-    ///     No <c>CreatedAt</c>: <see cref="OccurredAt" /> is this row's creation time and says something more
-    ///     specific — when the domain event was raised.
-    /// </summary>
-    public const Timestamps Stamps = Timestamps.Updated;
-
     private OutboxMessage()
     {
     }

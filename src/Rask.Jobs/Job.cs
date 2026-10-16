@@ -13,11 +13,8 @@ namespace Rask.Background;
 /// <c>ExecuteUpdate</c> never maintains. <c>CreatedAt</c> now comes from the base — the same column it always
 /// was.
 /// </remarks>
-public sealed class Job : Entity<long>
+public sealed class Job : Entity<long, Timestamps>
 {
-    /// <summary>No form model: a job is enqueued by code, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
     private Job()
     {
     }

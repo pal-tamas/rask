@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     A child of a <see cref="Tenancy.PerTenant" /> aggregate whose table has no tenant column of its own: it
+///     A child of a <see cref="PerTenant" /> aggregate whose table has no tenant column of its own: it
 ///     belongs to a tenant through its parent, and its filter asks the parent (#1251).
 /// </summary>
 /// <remarks>
@@ -56,7 +56,7 @@ internal static class TenantParents
 
     /// <summary>Whether the write model partitions <paramref name="entity" /> by tenant.</summary>
     internal static bool IsPartitioned(Type entity) =>
-        typeof(IEntity).IsAssignableFrom(entity) && ConventionRegistry.ScopeFor(entity) == Tenancy.PerTenant;
+        typeof(IEntity).IsAssignableFrom(entity) && ConventionRegistry.IsPerTenant(entity);
 
     /// <summary>
     ///     <c>row =&gt; unrestricted || Set&lt;P1&gt;().Any(p =&gt; p.Id == row.P1Id) || …</c> over

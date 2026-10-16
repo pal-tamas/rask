@@ -23,7 +23,8 @@ rask dev
 ```
 
 That writes one project: a `Rask.Server` host — `RaskApp.Create(args).Serve()`, every battery on — and
-a React + TypeScript app in `client/`, built with Vite and styled with Tailwind. `rask dev` installs the
+a React + TypeScript app in `client/`, built, checked and tested with [Vite+](#the-clients-toolchain-vite)
+and styled with Tailwind. `rask dev` installs the
 client's dependencies the first time, then runs the host and Vite together; Vite forwards `/_rask` and
 `/api/auth` to the host.
 
@@ -65,6 +66,42 @@ In every template:
 
 Batteries are turned off the same way as on any template — `--no-data`, `--no-ops` — except `--no-cqrs`:
 the typed client *is* the CQRS wire. See [the CLI](cli.md#which-template-supports-which-flag).
+
+## The client's toolchain: Vite+
+
+Every template but Angular is a [Vite+](https://viteplus.dev/guide/) project: one `vite-plus` package
+bundles Vite, Vitest, Oxlint and Oxfmt behind the `vp` command, and one `client/vite.config.ts`
+configures all of them. There is no ESLint, Prettier or Vitest config beside it.
+
+| Script | Runs | What it does |
+|---|---|---|
+| `npm run dev` | `vp dev` | The dev server `rask dev` starts, with the `/_rask` proxy. |
+| `npm run build` | type check, then `vp build` | What `dotnet build` runs. |
+| `npm run check` | `vp check` | Format, lint and type-check in one pass. |
+| `npm run lint` · `npm run format` · `npm run format:check` | `vp lint` · `vp fmt` · `vp fmt --check` | One of those at a time. |
+| `npm test` | `vp test` | Vitest, once. The starter ships `src/push.test.ts`. |
+
+The config's blocks, in the order the file has them:
+
+- **`fmt`** — Oxfmt with the starter's style (no semicolons, single quotes, 100 columns), Tailwind
+  classes sorted against the client's stylesheet.
+- **`lint`** — Oxlint, close to the recommended sets, type-aware so `vp check` is also the type check.
+  React and Preact use Oxlint's built-in hook rules and Vue its Vue plugin; Solid and Lit, which Oxlint
+  has no plugin for, run `eslint-plugin-solid` and `eslint-plugin-lit` inside it as JS plugins. Vue's
+  and Svelte's templates are checked by `vue-tsc` and `svelte-check`, which `check` and `build` run first.
+- **`test`** — `passWithNoTests`, so a `--no-push` app with no test yet still passes.
+- **`staged`** — what the pre-commit hook runs on the files being committed: `vp check --fix`.
+
+Both `fmt` and `lint` ignore `src/rask/`: the typed client is rewritten on every build, so formatting it
+is a diff the next build undoes.
+
+**The pre-commit hook.** `npm install` runs the `prepare` script, `vp config`, which points the
+repository's git hooks at `client/.vite-hooks/`; its `pre-commit` runs `vp staged`. Outside a git
+repository it does nothing, so a CI build is unaffected. `VP_GIT_HOOKS=0` skips it.
+
+**The editor.** `client/.vscode/` recommends the Vite+ extension pack and makes Oxfmt the formatter on save.
+
+**Angular** keeps the Angular CLI and angular-eslint: its build is the CLI's builder, not a Vite config.
 
 ## Where the front end lives
 
@@ -129,9 +166,16 @@ npm registry for the newest stable releases that **install together** — peer d
 with each other, and an `engines.node` that accepts the newest Node LTS — and writes them as `^x.y.z`.
 So when Vite ships a major its React plugin does not accept yet, a new app gets the newest Vite the
 plugin does; once the plugin catches up, the next app gets both. The only ranges the templates keep are
-`tailwindcss` / `@tailwindcss/*`, which must match the Tailwind binary the host downloads, and
-`@types/node`, which follows the Node LTS major. Offline, `rask new` leaves `latest` in place with one
-warning line, and npm resolves it on the first build.
+`tailwindcss` / `@tailwindcss/*`, which must match the Tailwind binary the host downloads,
+`@types/node`, which follows the Node LTS major, and the Vue client's `typescript`, held on 6.x because
+`vue-tsc` drives TypeScript's JavaScript API, which TypeScript 7 no longer ships. Offline, `rask new`
+leaves `latest` in place with one warning line, and npm resolves it on the first build.
+
+The Vite+ toolchain is three entries that move as one: `vite-plus`, written as an **exact** version, and
+`vite` aliased to the core that release ships (`npm:@voidzero-dev/vite-plus-core@x.y.z`), in
+`devDependencies` and again in `overrides` so every plugin resolves the same one. The plugins' peer ranges
+on `vite` are held to the Vite that core bundles, so a plugin that already wants the next Vite major waits
+for a Vite+ that ships it.
 
 ### Which Node
 
@@ -416,6 +460,9 @@ already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `
 ```csharp
 protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
 ```
+
+The app's own compiled sheet is the exception: the server answers `css/app.css` under the prefix as well, so
+`AppStylesheet` (`HeadAssets => [AppStylesheet]`) links `/new/css/app.css?v={hash}`, the link `RaskApp` writes.
 
 To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
 BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.

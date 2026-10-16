@@ -96,7 +96,6 @@ Rask.Storage.StoredFileRead.UpdatedAt.init -> void
 Rask.Storage.StoredFileReadAccess
 Rask.Storage.StoredFileReadAccess.extension(Rask.Storage.StoredFile!)
 const Rask.Storage.StorageOptions.DefaultMaxFileSize = 52428800 -> long
-const Rask.Storage.StoredFile.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 static Rask.Storage.RaskStorageEndpointExtensions.MapRaskStorage(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
 static Rask.Storage.RaskStorageServiceCollectionExtensions.AddRaskStorage<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Storage.StorageOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Storage.StorageModelBuilderExtensions.AddRaskStorage(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!

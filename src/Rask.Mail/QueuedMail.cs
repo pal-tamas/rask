@@ -17,11 +17,8 @@ namespace Rask.Mailing;
 /// The setters are <c>internal</c>: this package writes its own rows through <see cref="MailSerializer"/>,
 /// and nothing outside it should.
 /// </remarks>
-public sealed class QueuedMail : Entity<long>
+public sealed class QueuedMail : Entity<long, Timestamps>
 {
-    /// <summary>No form model: an email is enqueued by code, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
     /// <summary>The sender address, as JSON (see <see cref="MailSerializer"/>).</summary>
     public string From { get; internal set; } = "";
 

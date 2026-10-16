@@ -180,6 +180,6 @@ internal static class CompositeKeyShape
     }
 
     private static bool IsRaskBase(INamedTypeSymbol type) =>
-        type is { Name: "Entity" or "Aggregate", TypeArguments.Length: 1 } &&
+        type is { Name: "Entity" or "Aggregate", TypeArguments.Length: > 0 } &&
         string.Equals(type.ContainingNamespace?.ToDisplayString(), "Rask.Data", StringComparison.Ordinal);
 }

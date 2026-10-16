@@ -15,7 +15,7 @@ namespace Rask.Batteries.Generators;
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
 /// the writes that take it: <c>Product.Create(id, model)</c> where the key is the caller's to give,
 /// <c>Product.Create(model)</c> where one can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
-/// and <c>Product.Delete(id, version)</c> — unless the aggregate declares <c>Deletes = Deletion.None</c>. Every write takes an optional <c>apply</c> (values that do not come
+/// and <c>Product.Delete(id, version)</c> — when the aggregate names <c>Deletable</c> or <c>SoftDelete</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
 /// <remarks>
@@ -43,15 +43,11 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
     /// <summary>The suffix the generated model takes after the entity's name.</summary>
     internal const string ModelSuffix = GeneratedModelShape.ModelSuffix;
 
-    // Mirrors Rask.Data.ModelWrites. A generator targets netstandard2.0 and never loads the runtime
-    // assembly, so the values are restated here and pinned against the enum by a test.
+    // The writes a form model takes, read off the Model / CreateModel / UpdateModel traits.
     private const int NoWrites = 0;
     private const int CreateWrite = 1;
     private const int UpdateWrite = 2;
     internal const int AllWrites = CreateWrite | UpdateWrite;
-
-    // Mirrors Rask.Data.Deletion.None, restated and pinned the same way.
-    internal const int NoDeletion = 2;
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
     private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
@@ -102,8 +98,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
         foreach (var candidate in entities)
         {
-            // A child's form surface is the ROOT's, always — its own const is reported by RASK091 and then
-            // genuinely ignored, rather than half-obeyed into a root model holding a type nobody generated.
+            // A child's form surface is the ROOT's, always: its model is carried by the root's form.
             var entity = candidate;
             if (candidate.IsChild)
             {
@@ -155,8 +150,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 entity.Location?.ToLocation(),
                 parts[1],
                 $"'{entity.Name}.{parts[0]}' holds it on a form, and a row keyed by several columns is not written "
-                + $"through its aggregate yet; declare 'public const ModelWrites Writes = ModelWrites.None' on "
-                + $"'{entity.Name}' and read it through {parts[1]}.Where(…)"));
+                + $"through its aggregate yet; take 'Model' (or 'CreateModel' / 'UpdateModel') off "
+                + $"'{entity.Name}''s base and read it through {parts[1]}.Where(…)"));
         }
     }
 
@@ -216,7 +211,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> UnsyncableChildren,
         EquatableArray<ValueCollectionShape> ValueCollections,
         int Writes,
-        bool DeclaresWrites,
         bool Deletable,
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
@@ -231,7 +225,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
                 new EquatableArray<Member>([]), new EquatableArray<ValueObjectShape>([]), false,
                 new EquatableArray<ChildShape>([]), new EquatableArray<string>([]), new EquatableArray<string>([]),
-                new EquatableArray<ValueCollectionShape>([]), AllWrites, false, true);
+                new EquatableArray<ValueCollectionShape>([]), AllWrites, true);
     }
 
     // A child model exists to carry its ROOT's form — it is the element type of the list the root's model

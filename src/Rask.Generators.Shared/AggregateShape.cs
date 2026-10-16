@@ -67,46 +67,100 @@ internal static class AggregateShape
         return false;
     }
 
+    // Mirrors Rask.Data.TraitSet. A generator targets netstandard2.0 and never loads the runtime assembly, so the
+    // values are restated here and pinned against the enum by a test.
+    public const int Created = 1;
+    public const int Updated = 2;
+    public const int Versioned = 4;
+    public const int CreateModel = 8;
+    public const int UpdateModel = 16;
+    public const int Deletable = 32;
+    public const int SoftDelete = 64;
+    public const int PerTenant = 128;
+    public const int Broadcast = 256;
+
     /// <summary>
-    ///     What a <c>public const</c> of one of Rask.Data's choice enums says on <paramref name="symbol" /> —
-    ///     <c>Stamps</c>, <c>Checks</c>, <c>Deletes</c>, <c>Scope</c> — or <c>null</c> when the entity does not say.
+    ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
+    ///     — as <c>Rask.Data.TraitSet</c> bits. None when it names none: a table carries only what it asks for.
     /// </summary>
     /// <remarks>
-    ///     Read at compile time, because a const is inlined at every use site and the field itself can be trimmed —
-    ///     a runtime reflection read would find nothing in a trimmed publish and quietly fall back to the default,
-    ///     so an app would carry different columns in debug and in release.
+    ///     Read at compile time and carried out as an int, since an ISymbol must not cross an incremental-generator step.
     /// </remarks>
-    public static int? ConstOf(INamedTypeSymbol symbol, string name, string enumName)
+    public static int TraitsOf(INamedTypeSymbol symbol)
     {
-        foreach (var field in symbol.GetMembers(name).OfType<IFieldSymbol>())
+        var traits = 0;
+
+        foreach (var argument in TraitArguments(symbol))
         {
-            if (field is { IsConst: true, ConstantValue: int value } &&
-                field.Type is INamedTypeSymbol type && IsRaskDataType(type) &&
-                string.Equals(type.Name, enumName, StringComparison.Ordinal))
-            {
-                return value;
-            }
+            traits |= TraitOf(argument);
         }
 
-        return null;
+        return traits;
     }
 
-    /// <summary>Whether the table has <c>CreatedAt</c>: it does unless <c>Stamps</c> leaves <c>Created</c> out.</summary>
-    public static bool StampsCreated(INamedTypeSymbol entity) => (StampsOf(entity) & 1) != 0;
+    /// <summary>Whether the base of <paramref name="symbol" /> names <paramref name="trait" />.</summary>
+    public static bool Has(INamedTypeSymbol symbol, int trait) => (TraitsOf(symbol) & trait) == trait;
 
-    /// <summary>Whether the table has <c>UpdatedAt</c>: it does unless <c>Stamps</c> leaves <c>Updated</c> out.</summary>
-    public static bool StampsUpdated(INamedTypeSymbol entity) => (StampsOf(entity) & 2) != 0;
+    /// <summary>
+    ///     The key type <c>PerTenant&lt;TKey&gt;</c> names, fully qualified — <c>global::System.Int32</c> — or null
+    ///     for plain <c>PerTenant</c> or none.
+    /// </summary>
+    public static string? TenantKeyOf(INamedTypeSymbol symbol) =>
+        TraitArguments(symbol)
+            .OfType<INamedTypeSymbol>()
+            .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
+            .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            .FirstOrDefault();
 
-    /// <summary>Whether the aggregate has a <c>Version</c>: it does unless it declares <c>Checks = Concurrency.None</c>.</summary>
-    public static bool HasVersion(INamedTypeSymbol entity) =>
-        IsAggregate(entity) && ConstOf(entity, "Checks", "Concurrency") != 0;
+    /// <summary>Whether the table has <c>CreatedAt</c>: only when its base names <c>Created</c> or <c>Timestamps</c>.</summary>
+    public static bool StampsCreated(INamedTypeSymbol entity) => Has(entity, Created);
 
-    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it declares <c>Deletes = Deletion.Soft</c>.</summary>
-    public static bool SoftDeletes(INamedTypeSymbol entity) =>
-        IsAggregate(entity) && ConstOf(entity, "Deletes", "Deletion") == 1;
+    /// <summary>Whether the table has <c>UpdatedAt</c>: only when its base names <c>Updated</c> or <c>Timestamps</c>.</summary>
+    public static bool StampsUpdated(INamedTypeSymbol entity) => Has(entity, Updated);
 
-    // Timestamps.All when the entity does not say.
-    private static int StampsOf(INamedTypeSymbol entity) => ConstOf(entity, "Stamps", "Timestamps") ?? 3;
+    /// <summary>Whether the aggregate has a <c>Version</c>: only when its base names <c>Versioned</c>.</summary>
+    public static bool HasVersion(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, Versioned);
+
+    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when its base names <c>SoftDelete</c>.</summary>
+    public static bool SoftDeletes(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, SoftDelete);
+
+    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>Deletable</c> or <c>SoftDelete</c>.</summary>
+    public static bool IsDeletable(INamedTypeSymbol entity) =>
+        IsAggregate(entity) && (TraitsOf(entity) & (Deletable | SoftDelete)) != 0;
+
+    // The type arguments after TId, on every Rask.Data base in the chain.
+    private static IEnumerable<ITypeSymbol> TraitArguments(INamedTypeSymbol symbol)
+    {
+        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current is { Name: EntityBase or AggregateBase, TypeArguments.Length: > 1 } && IsRaskDataType(current))
+            {
+                foreach (var argument in current.TypeArguments.Skip(1))
+                {
+                    yield return argument;
+                }
+            }
+        }
+    }
+
+    private static int TraitOf(ITypeSymbol argument) =>
+        argument is INamedTypeSymbol named && IsRaskDataType(named)
+            ? named.Name switch
+            {
+                "Created" => Created,
+                "Updated" => Updated,
+                "Timestamps" => Created | Updated,
+                "Versioned" => Versioned,
+                "Model" => CreateModel | UpdateModel,
+                "CreateModel" => CreateModel,
+                "UpdateModel" => UpdateModel,
+                "Deletable" => Deletable,
+                "SoftDelete" => SoftDelete,
+                "PerTenant" => PerTenant,
+                "Broadcast" => Broadcast,
+                _ => 0,
+            }
+            : 0;
 
     /// <summary>A type that becomes a table: concrete, non-static, non-generic, and an entity.</summary>
     public static bool IsMappedEntity(INamedTypeSymbol symbol) =>

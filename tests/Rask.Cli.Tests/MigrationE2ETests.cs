@@ -127,7 +127,7 @@ public sealed class MigrationE2ETests
 
                 namespace {{name}}.Features.Shared;
 
-                public sealed class Product : Aggregate<Guid>
+                public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
                 {
                     public string Name { get; private set; } = "";
                 }

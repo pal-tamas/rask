@@ -5,89 +5,51 @@ using System.Diagnostics.CodeAnalysis;
 namespace Rask.Data;
 
 /// <summary>
-///     Which <see cref="Timestamps" /> each entity type asked for, as the generator read them — a child of an
-///     aggregate that asked for nothing is registered with none: timestamps are the aggregate's.
+///     The traits each entity type's base names, as the generator read them — a child of a
+///     <see cref="PerTenant" /> root is registered partitioned too: tenancy is the aggregate's.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Populated by generated <c>[ModuleInitializer]</c> code, and consulted by
-///         <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)" /> when it decides whether to add
-///         <c>CreatedAt</c> and <c>UpdatedAt</c>.
+///         <see cref="ModelBuilderExtensions.ApplyRaskConventions(Microsoft.EntityFrameworkCore.ModelBuilder)" />,
+///         the interceptors and the generated writes.
 ///     </para>
 ///     <para>
-///         It exists because the answer cannot be reflected over. <c>Stamps</c> is a <c>const</c>, so every use
-///         is inlined and the field itself is free to be trimmed — a runtime <c>GetField</c> would find nothing
-///         in a trimmed publish and fall back to <see cref="Timestamps.All" />, giving an app one shape in
-///         debug and another in release. Read at COMPILE time and registered here, the answer travels as
-///         generated code that nothing can trim away.
+///         Read at COMPILE time and registered here, the answer travels as generated code that nothing can trim
+///         away, and the generator's rule for a child's tenancy is the one rule there is.
 ///     </para>
 ///     <para>
-///         An entity that registers nothing gets <see cref="Timestamps.All" />, so a type that says nothing is
-///         unchanged.
+///         An entity that registers nothing carries nothing: no timestamps, no version, no soft delete.
 ///     </para>
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class ConventionRegistry
 {
-    private static readonly ConcurrentDictionary<Type, Timestamps> DeclaredStamps = new();
-    private static readonly ConcurrentDictionary<Type, Deletion> DeclaredDeletes = new();
-    private static readonly ConcurrentDictionary<Type, Concurrency> DeclaredChecks = new();
+    private static readonly ConcurrentDictionary<Type, TraitSet> DeclaredTraits = new();
+    private static readonly ConcurrentDictionary<Type, Type> DeclaredTenantKeys = new();
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
-    private static readonly ConcurrentDictionary<Type, Tenancy> DeclaredScopes = new();
-    private static readonly ConcurrentDictionary<Type, Broadcasts> DeclaredBroadcasts = new();
 
-    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
+    /// <summary>Records the traits <paramref name="entity" /> named. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
-    /// <param name="stamps">The value of its <c>Stamps</c> const.</param>
-    public static void Declare(Type entity, Timestamps stamps)
+    /// <param name="traits">What its base names, and its root's tenancy for a child.</param>
+    public static void Declare(Type entity, TraitSet traits)
     {
         ArgumentNullException.ThrowIfNull(entity);
-        DeclaredStamps[entity] = stamps;
+        DeclaredTraits[entity] = traits;
     }
 
-    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
+    /// <summary>
+    ///     Records the key type of <c>PerTenant&lt;TKey&gt;</c>, for an aggregate that does not declare its
+    ///     <c>TenantId</c>. Called by generated code.
+    /// </summary>
     /// <param name="entity">The entity type.</param>
-    /// <param name="deletes">The value of its <c>Deletes</c> const.</param>
-    public static void Declare(Type entity, Deletion deletes)
+    /// <param name="key"><see cref="Guid" />, <see cref="int" /> or <see cref="long" />.</param>
+    public static void DeclareTenantKey(Type entity, Type key)
     {
         ArgumentNullException.ThrowIfNull(entity);
-        DeclaredDeletes[entity] = deletes;
+        ArgumentNullException.ThrowIfNull(key);
+        DeclaredTenantKeys[entity] = key;
     }
-
-    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
-    /// <param name="entity">The entity type.</param>
-    /// <param name="broadcasts">The value of its <c>Broadcast</c> const.</param>
-    public static void Declare(Type entity, Broadcasts broadcasts)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        DeclaredBroadcasts[entity] = broadcasts;
-    }
-
-    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
-    /// <param name="entity">The entity type.</param>
-    /// <param name="checks">The value of its <c>Checks</c> const.</param>
-    public static void Declare(Type entity, Concurrency checks)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        DeclaredChecks[entity] = checks;
-    }
-
-    /// <summary>Records what <paramref name="entity" /> declared. Called by generated code.</summary>
-    /// <param name="entity">The entity type.</param>
-    /// <param name="scope">The value of its <c>Scope</c> const, or its aggregate root&apos;s for a child.</param>
-    public static void Declare(Type entity, Tenancy scope)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        DeclaredScopes[entity] = scope;
-    }
-
-    /// <summary>Whether <paramref name="entity" /> is partitioned by tenant. It is not unless it asked.</summary>
-    /// <param name="entity">The entity type.</param>
-    internal static Tenancy ScopeFor(Type entity) =>
-        DeclaredScopes.TryGetValue(entity, out var scope) ? scope : Tenancy.Shared;
-
-    /// <summary>Whether any entity at all has asked to be partitioned by tenant.</summary>
-    internal static bool AnyTenantScoped => !DeclaredScopes.IsEmpty && DeclaredScopes.Values.Any(static s => s == Tenancy.PerTenant);
 
     /// <summary>
     ///     Records a collection of values <paramref name="entity" /> holds, for
@@ -103,9 +65,9 @@ public static class ConventionRegistry
     ///     null when it holds plain values, which makes it a primitive collection.
     /// </param>
     /// <remarks>
-    ///     Like the consts above, the answer is settled at compile time rather than reflected over: deciding
-    ///     at runtime whether an element type is a value object would mean a second implementation of a rule
-    ///     the generator already applies, free to disagree with it.
+    ///     Settled at compile time rather than reflected over: deciding at runtime whether an element type is a
+    ///     value object would mean a second implementation of a rule the generator already applies, free to
+    ///     disagree with it.
     /// </remarks>
     public static void DeclareCollection(
         Type entity, string property, string? field, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type? element)
@@ -116,31 +78,30 @@ public static class ConventionRegistry
         DeclaredCollections.GetOrAdd(entity, static _ => []).Add(new ValueCollection(property, field, element));
     }
 
+    /// <summary>Whether <paramref name="entity" /> named <paramref name="trait" />. Nothing is named unless it was.</summary>
+    /// <param name="entity">The entity type.</param>
+    /// <param name="trait">One trait.</param>
+    internal static bool Has(Type entity, TraitSet trait) =>
+        DeclaredTraits.TryGetValue(entity, out var traits) && (traits & trait) == trait;
+
+    /// <summary>Whether <paramref name="entity" /> is partitioned by tenant, on its own base or through its root.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static bool IsPerTenant(Type entity) => Has(entity, TraitSet.PerTenant);
+
+    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="Deletable" /> or <see cref="SoftDelete" />.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static bool IsDeletable(Type entity) =>
+        Has(entity, TraitSet.Deletable) || Has(entity, TraitSet.SoftDelete);
+
+    /// <summary>Whether any entity at all is partitioned by tenant.</summary>
+    internal static bool AnyTenantScoped => DeclaredTraits.Values.Any(static t => (t & TraitSet.PerTenant) != TraitSet.None);
+
+    /// <summary>The key type <c>PerTenant&lt;TKey&gt;</c> named, or null for plain <see cref="PerTenant" />.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static Type? TenantKeyFor(Type entity) => DeclaredTenantKeys.GetValueOrDefault(entity);
+
     /// <summary>The collections of values <paramref name="entity" /> declared, or none.</summary>
     /// <param name="entity">The entity type.</param>
     internal static IReadOnlyList<ValueCollection> CollectionsFor(Type entity) =>
         DeclaredCollections.TryGetValue(entity, out var collections) ? collections : [];
-
-    /// <summary>
-    ///     What <paramref name="entity" /> asked for — <see cref="Timestamps.None" /> for a child that did not ask —
-    ///     or <see cref="Timestamps.All" /> when nothing was registered.
-    /// </summary>
-    /// <param name="entity">The entity type.</param>
-    internal static Timestamps StampsFor(Type entity) =>
-        DeclaredStamps.TryGetValue(entity, out var stamps) ? stamps : Timestamps.All;
-
-    /// <summary>How <paramref name="entity" /> deletes. HARD unless it asked for soft.</summary>
-    /// <param name="entity">The entity type.</param>
-    internal static Deletion DeletesFor(Type entity) =>
-        DeclaredDeletes.TryGetValue(entity, out var deletes) ? deletes : Deletion.Hard;
-
-    /// <summary>Whether <paramref name="entity" /> carries a version token. It does unless it declined.</summary>
-    /// <param name="entity">The entity type.</param>
-    internal static Concurrency ChecksFor(Type entity) =>
-        DeclaredChecks.TryGetValue(entity, out var checks) ? checks : Concurrency.Version;
-
-    /// <summary>Whether a save of <paramref name="entity" /> is announced process-wide. It is not unless it asked.</summary>
-    /// <param name="entity">The entity type.</param>
-    internal static Broadcasts BroadcastsFor(Type entity) =>
-        DeclaredBroadcasts.TryGetValue(entity, out var broadcasts) ? broadcasts : Broadcasts.Never;
 }

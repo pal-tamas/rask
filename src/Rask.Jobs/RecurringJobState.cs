@@ -11,11 +11,8 @@ namespace Rask.Background;
 /// what the create race relies on — the instance that loses gets a constraint violation either way — so
 /// nothing about the scheduling changes; the surrogate is only what lets the row have a read face.
 /// </remarks>
-public sealed class RecurringJobState : Entity<Guid>
+public sealed class RecurringJobState : Entity<Guid, Timestamps>
 {
-    /// <summary>No form model: this row is scheduler bookkeeping, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
     private RecurringJobState()
     {
     }

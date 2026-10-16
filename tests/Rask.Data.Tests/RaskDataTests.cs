@@ -112,6 +112,16 @@ public sealed class RaskDataTests : IDisposable
     }
 
     [Fact]
+    public void An_aggregate_that_raised_nothing_has_no_events_and_clears_without_one()
+    {
+        var memo = Memo.Write("quiet");
+
+        memo.ClearDomainEvents();
+
+        Assert.Empty(memo.DomainEvents);
+    }
+
+    [Fact]
     public async Task Domain_events_are_published_after_commit_and_cleared()
     {
         Widget widget;

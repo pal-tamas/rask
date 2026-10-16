@@ -16,7 +16,11 @@ class LitBadge extends LitElement implements LitBadgeProps {
   }
 
   static styles = css`
-    :host { display: inline-flex; align-items: center; gap: 0.5rem; }
+    :host {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
   `
 
   // `declare`, never an initializer: a class field would shadow the getter and setter Lit installs
@@ -24,7 +28,7 @@ class LitBadge extends LitElement implements LitBadgeProps {
   declare step: number
   declare caption: string
   declare onTotal?: (total: number) => void
-  private declare total: number
+  declare private total: number
 
   constructor() {
     super()

@@ -6,11 +6,9 @@ namespace Rask.Data.Tests;
 
 /// <summary>A tenant-scoped table whose indexes are declared every way an index can be.</summary>
 [Index(nameof(Region))]
-public sealed class Carrier : Aggregate<Guid>
+public sealed class Carrier : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Carrier() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 

@@ -1100,6 +1100,17 @@ It refuses `--islands react preact` by name, because npm cannot install both plu
 gives each runtime its own folder so two that share an extension never overlap. `blazor` needs no npm
 at all: the Razor SDK compiles the `.razor` and Rask renders it into the first response.
 
+**Checking them.** A scaffold with npm islands also gets [Vite+](https://viteplus.dev/guide/) for the
+checks: `npm run check` formats and lints in one pass (`vp check`), `npm run lint`, `npm run format` and
+`npm run format:check` one at a time, and a pre-commit hook in `.vite-hooks/` runs `vp staged` on what
+is committed. Its config is `vite.config.mjs` — a `.mjs`, because every `.ts` in a host project is a
+component's scoped TypeScript — and it reaches `Features/` and nothing else, so `appsettings.json` and the
+rest of the C# side stay `dotnet format`'s. The lint rules are each runtime's own, as in its
+[front-end template](spa.md#the-clients-toolchain-vite): Oxlint's React and Vue plugins, and
+`eslint-plugin-solid` and `eslint-plugin-lit` run inside it. Solid and React islands are both `.tsx`, so
+in a project holding both, Solid's rules apply under a `Solid/` folder only. The bundle itself is still
+`npx vite build` over the config Rask generates, so the project keeps `vite` beside `vite-plus`.
+
 By hand, if you are adding islands to a project you already have:
 
 ```bash

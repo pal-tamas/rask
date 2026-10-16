@@ -395,8 +395,8 @@ True of the scripts wherever they run — a CI job or your terminal.
 - **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, one job per template:
   `front end react`, `front end vue`, …). Scaffolds that template with every battery on and runs the one
   command a deploy runs, `dotnet publish`: `npm install` (a template ships no lockfile), the typed client written
-  into `client/src/rask/` from the host's message records, and the bundle. Then `npm run lint` and
-  `npm run format:check`, and the **published** app is started and asked for `/` (the bundle's
+  into `client/src/rask/` from the host's message records, and the bundle. Then the client checks itself — `npm run check` (Vite+: format, lint and type check)
+  and `npm test`, or Angular's `npm run lint` and `npm run format:check` — and the **published** app is started and asked for `/` (the bundle's
   `index.html`, and the script it loads) and for the starter's query, by the wire name the generated
   client carries. No browser. The jobs come from the trees: a template with a `client/package.json` is a
   front end (`--list-front-ends`), so adding one adds its job, and `TemplateTreeContractTests` holds that

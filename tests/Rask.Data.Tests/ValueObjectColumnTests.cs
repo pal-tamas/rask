@@ -43,18 +43,12 @@ public readonly record struct ContactRank(int Value)
 }
 
 /// <summary>An adopted table whose name is a value object — and is what the unique rule is over.</summary>
-public sealed class Contact : Aggregate<int>
+public sealed class Contact : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string NameTaken = "Ilyen néven már van névjegy.";
     public const string CodeTaken = "This code is already in use.";
 
     private Contact() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 

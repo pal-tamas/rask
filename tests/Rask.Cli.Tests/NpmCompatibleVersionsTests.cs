@@ -109,6 +109,17 @@ public sealed class NpmCompatibleVersionsTests
         Assert.Equal(">=22.12.0", releases[1].Node);
     }
 
+    [Theory]
+    [InlineData("""{ "version": "1.3.0", "bundledVersions": { "vite": "8.3.4", "rolldown": "1.2.14" } }""", "8.3.4")]
+    [InlineData("""{ "version": "1.3.0" }""", null)]
+    [InlineData("""{ "version": "1.3.0", "bundledVersions": { "vite": "8.x" } }""", null)]
+    public void The_vite_a_vite_plus_core_bundles_is_read_from_its_version_document(string json, string? expected)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        Assert.Equal(expected, NpmRegistry.BundledVite(document.RootElement)?.ToString());
+    }
+
     internal static NpmRelease Release(string version, params (string Package, string Range)[] peers) =>
         new(SemVersion.Parse(version, SemVersionStyles.Strict), peers.ToDictionary(p => p.Package, p => p.Range, StringComparer.Ordinal));
 

@@ -2,12 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-// An aggregate that declares nothing but its own state: the framework's columns come from the bases.
-public sealed class Memo : Aggregate<Guid>
+// An aggregate that names every column trait: the framework's columns come from the bases.
+public sealed class Memo : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
 {
-    // Soft delete is opt-in now: this aggregate is one whose tests are about it.
-    public const Deletion Deletes = Deletion.Soft;
-
     private Memo() { } // EF materialization
 
     public string Text { get; private set; } = "";
@@ -32,7 +29,7 @@ public sealed class FrameworkColumnTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         // The default is HARD: no column, no query filter, and Delete removes the row. An aggregate
-        // that wants the row kept says so — see Memo, which declares Deletes = Deletion.Soft.
+        // that wants the row kept says so — see Memo, whose base names SoftDelete.
         var receipt = database.Context.Model.FindEntityType(typeof(Receipt))!;
         Assert.Null(receipt.FindProperty(Columns.DeletedAt));
         Assert.Empty(receipt.GetDeclaredQueryFilters());
@@ -58,11 +55,11 @@ public sealed class FrameworkColumnTests : IDisposable
 
         var ledger = database.Context.Model.FindEntityType(typeof(AppendOnlyLedger))!;
 
-        // The whole point of the const: an append-only table has nothing an UpdatedAt could mean.
+        // The point of naming only Created: an append-only table has nothing an UpdatedAt could mean.
         Assert.NotNull(ledger.FindProperty(Columns.CreatedAt));
         Assert.Null(ledger.FindProperty(Columns.UpdatedAt));
 
-        // And a neighbour that says nothing is untouched, so the default is still "both".
+        // And a neighbour that names Timestamps keeps both.
         var memo = database.Context.Model.FindEntityType(typeof(Memo))!;
         Assert.NotNull(memo.FindProperty(Columns.CreatedAt));
         Assert.NotNull(memo.FindProperty(Columns.UpdatedAt));
@@ -134,17 +131,14 @@ public sealed class FrameworkColumnTests : IDisposable
 }
 
 /// <summary>An append-only table: written once, never changed, so it declines <c>UpdatedAt</c>.</summary>
-public sealed class AppendOnlyLedger : Entity<long>
+public sealed class AppendOnlyLedger : Entity<long, Created>
 {
-    /// <summary>Only the creation stamp means anything here.</summary>
-    public const Timestamps Stamps = Timestamps.Created;
-
     /// <summary>What was recorded.</summary>
     public string Line { get; private set; } = "";
 }
 
-/// <summary>An aggregate that declares nothing, so it takes every default as it now stands.</summary>
-public sealed class Receipt : Aggregate<Guid>
+/// <summary>An aggregate that names what a CRUD table carries: timestamps, a version, a model, a delete.</summary>
+public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     /// <summary>What the receipt says.</summary>
     public string Text { get; private set; } = "";

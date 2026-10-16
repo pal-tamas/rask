@@ -4,21 +4,15 @@ namespace Rask.Data.Tests;
 
 // Behaviour on the model, of the kind an application actually writes: a guard, a state change, an event
 // — and one method that has to ask the database something before it can decide.
-public sealed class Order : Aggregate<Guid>
+public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
 {
-    // These tests are about soft delete, which is opt-in now.
-    public const Deletion Deletes = Deletion.Soft;
-
     private Order() { } // EF materialization
 
     public string Reference { get; private set; } = "";
 
-
-
     public OrderStatus Status { get; private set; } = OrderStatus.Open;
 
     public DateTime? CancelledAt { get; private set; }
-
 
     public static Order Place(string reference) =>
         new() { Id = Guid.NewGuid(), Reference = reference, Status = OrderStatus.Open };
@@ -74,11 +68,8 @@ public enum OrderStatus
     Cancelled,
 }
 
-public sealed class Shipment : Aggregate<Guid>
+public sealed class Shipment : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
 {
-    // These tests are about soft delete, which is opt-in now.
-    public const Deletion Deletes = Deletion.Soft;
-
     private Shipment() { }
 
     public Guid OrderId { get; private set; }

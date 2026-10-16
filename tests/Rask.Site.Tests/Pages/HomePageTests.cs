@@ -57,7 +57,7 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
         // Both files are tabs, and the first — the aggregate — is the pane in the prerendered HTML.
         Assert.Contains(">Product.cs</button>", html, StringComparison.Ordinal);
         Assert.Contains(">ProductsPage.cs</button>", html, StringComparison.Ordinal);
-        Assert.Contains(">Aggregate</span>&lt;<span class=\"text-ui-ok-ink\">Guid</span>&gt;", html, StringComparison.Ordinal);
+        Assert.Contains(">Aggregate</span>&lt;<span class=\"text-ui-ok-ink\">Guid</span>", html, StringComparison.Ordinal);
     }
 
     [Fact]

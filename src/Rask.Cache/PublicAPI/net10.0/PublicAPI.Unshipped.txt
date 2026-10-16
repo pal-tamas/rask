@@ -50,7 +50,6 @@ Rask.Caching.RaskDistributedCache<TContext>.Remove(string! key) -> void
 Rask.Caching.RaskDistributedCache<TContext>.RemoveAsync(string! key, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Caching.RaskDistributedCache<TContext>.Set(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options) -> void
 Rask.Caching.RaskDistributedCache<TContext>.SetAsync(string! key, byte[]! value, Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions! options, System.Threading.CancellationToken token = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-const Rask.Caching.CacheEntry.Writes = Rask.Data.ModelWrites.None -> Rask.Data.ModelWrites
 static Rask.Caching.CacheEntry.For(string! key, byte[]! value, System.DateTime expiresAt, System.DateTime savedAt, System.DateTime? absoluteExpiration = null, double? slidingSeconds = null) -> Rask.Caching.CacheEntry!
 static Rask.Caching.CacheModelBuilderExtensions.AddRaskCache(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Caching.RaskCacheServiceCollectionExtensions.AddRaskCache<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Caching.CacheOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

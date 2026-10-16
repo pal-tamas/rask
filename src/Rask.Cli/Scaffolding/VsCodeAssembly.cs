@@ -95,10 +95,13 @@ internal static class VsCodeAssembly
         ("bradlc.vscode-tailwindcss",
             "Tailwind CSS IntelliSense: class completion inside Div.Class(\"…\"), set up in settings.json.",
             CompilesTailwind),
+        // The Angular client's linting: the one front end that keeps ESLint, because angular-eslint is wired
+        // into the Angular CLI's builder rather than into a Vite config.
         ("dbaeumer.vscode-eslint", "ESLint: the front end's eslint.config.mjs, as you type.",
             static (_, files) => Any(files, name => name.StartsWith("eslint.config.", StringComparison.Ordinal))),
-        ("esbenp.prettier-vscode", "Prettier: the front end's .prettierrc, on format.",
-            static (_, files) => Any(files, name => string.Equals(name, ".prettierrc", StringComparison.Ordinal))),
+        ("VoidZero.vite-plus-extension-pack",
+            "Vite+: the front end's vite.config — Oxlint as you type, Oxfmt on save.",
+            static (_, files) => files.Any(IsVitePlusConfig)),
         ("vue.volar", "Vue (Official): .vue single-file components.",
             static (_, files) => Any(files, name => name.EndsWith(".vue", StringComparison.Ordinal))),
         ("svelte.svelte-vscode", "Svelte: .svelte components.",
@@ -109,6 +112,11 @@ internal static class VsCodeAssembly
 
     private static bool Any(IReadOnlyList<ScaffoldFile> files, Func<string, bool> name) =>
         files.Any(f => name(Path.GetFileName(f.Path)));
+
+    // A front end's or an island project's one toolchain config: lint and format live in it (VitePlusToolchain).
+    private static bool IsVitePlusConfig(ScaffoldFile file) =>
+        Path.GetFileName(file.Path) is "vite.config.ts" or "vite.config.mjs"
+        && file.Content.Contains($"from '{VitePlusToolchain.Package}'", StringComparison.Ordinal);
 
     private static ScaffoldFile ExtensionsJson(string targetDirectory, IReadOnlyList<ScaffoldFile> files)
     {

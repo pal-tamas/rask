@@ -1,10 +1,13 @@
 import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
-import { defineConfig } from 'vite'
+import { defineConfig, lazyPlugins } from 'vite-plus'
 
-// https://vite.dev/config/
+// One file for the whole toolchain (https://viteplus.dev/guide/): `vp dev` and `vp build` read the
+// Vite part, `vp check` the fmt and lint blocks, `vp test` the test block, and the pre-commit hook
+// the staged block. There is no ESLint, Prettier or Vitest config beside it to drift from it.
 export default defineConfig({
-  plugins: [solid(), tailwindcss()],
+  // Loaded only by the commands that run them, so `vp check` and `vp fmt` start without Solid's.
+  plugins: lazyPlugins(() => [solid(), tailwindcss()]),
   server: {
     // In development the browser talks to Vite, and Vite forwards the CQRS calls to the ASP.NET
     // host — so HMR is native and instant, and there is no CORS to configure because the browser
@@ -23,5 +26,57 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  // Oxfmt, Prettier-compatible. src/rask/ is generated from the C# contracts on every build, so
+  // formatting it is a diff the next build undoes.
+  fmt: {
+    semi: false,
+    singleQuote: true,
+    printWidth: 100,
+    trailingComma: 'all',
+    sortTailwindcss: { stylesheet: './src/index.css' },
+    ignorePatterns: ['dist/**', 'src/rask/**', 'package-lock.json'],
+  },
+  // Oxlint, close to the recommended sets on purpose: a starter that argues with you about style on
+  // its first run is a starter people delete the config from. Oxlint has no Solid plugin of its
+  // own, so eslint-plugin-solid runs inside it as a JS plugin, with its TypeScript recommended set
+  // (jsx-no-undef is the type check's job there). Type-aware, so `vp check` is also the type check.
+  lint: {
+    ignorePatterns: ['dist/**', 'src/rask/**'],
+    plugins: ['typescript', 'oxc', 'vitest'],
+    jsPlugins: [
+      { name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' },
+      { name: 'solid', specifier: 'eslint-plugin-solid' },
+    ],
+    rules: {
+      'solid/components-return-once': 'warn',
+      'solid/event-handlers': 'warn',
+      'solid/imports': 'warn',
+      'solid/jsx-no-duplicate-props': 'error',
+      'solid/jsx-no-script-url': 'error',
+      'solid/jsx-uses-vars': 'error',
+      'solid/no-destructure': 'error',
+      'solid/no-innerhtml': 'error',
+      'solid/no-react-deps': 'warn',
+      'solid/no-react-specific-props': 'warn',
+      'solid/prefer-for': 'error',
+      'solid/reactivity': 'warn',
+      'solid/self-closing-comp': 'warn',
+      'solid/style-prop': 'warn',
+      'vite-plus/prefer-vite-plus-imports': 'error',
+    },
+    options: { typeAware: true, typeCheck: true },
+  },
+  test: {
+    // vite-plugin-solid would otherwise default every test to jsdom, which the starter does not
+    // install: its test needs no DOM. Add jsdom and set this per file when a component test does.
+    environment: 'node',
+    // A starter with Web Push off has no test yet; that is not a failure.
+    passWithNoTests: true,
+  },
+  // What the pre-commit hook (.vite-hooks/pre-commit, installed by `npm install`) runs on the files
+  // being committed.
+  staged: {
+    '*': 'vp check --fix',
   },
 })

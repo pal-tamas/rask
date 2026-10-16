@@ -19,8 +19,27 @@ them until tagged releases begin.
   parts, navigates to `t.Transaction`, and filters by tenant through the note. `DeliveryNote.Include(n =>
   n.Fuellings)` loads them. A named value part (`Entity<(Order, int LineNo)>`) is a property the entity declares.
   Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK105 (error) refuses
-  a form that would carry one. RASK105 also catches a class that is not `partial`, an unnamed or undeclared value
+  a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK105 also catches a class that is not `partial`, an unnamed or undeclared value
   part, a name already taken, and a key of several columns on an aggregate root.
+- **The Vite front-end templates are Vite+ projects, and island projects check themselves with it.**
+  Before: `rask new --template react|preact|vue|svelte|solid|lit` wrote a client with Vite plus ESLint
+  (typescript-eslint, a framework plugin, eslint-config-prettier) and Prettier — three configs, a dozen
+  packages and no tests. After: one `vite-plus` package and one `client/vite.config.ts` carry the dev server,
+  the build, Oxfmt, type-aware Oxlint (React's and Vue's built-in rules; `eslint-plugin-solid` and
+  `eslint-plugin-lit` run inside it as JS plugins), Vitest and a `vp staged` pre-commit hook installed by
+  `npm install` (`prepare: vp config`, a no-op outside git). `npm run check` formats, lints and type-checks in
+  one pass, `npm test` runs the starter's first test (`src/push.test.ts`), and `client/.vscode/` makes Oxfmt the
+  formatter on save. `rask new` pins the toolchain as one: `vite-plus` exact, and `vite` aliased to the core it
+  ships in `devDependencies` and `overrides`, with every plugin's `vite` peer held to the Vite that core
+  bundles. The Vue client holds `typescript` on 6.x, because `vue-tsc` drives TypeScript's JavaScript API,
+  which TypeScript 7 no longer ships. `--islands` projects get the same checks from a `vite.config.mjs` scoped
+  to `Features/` (Solid's rules confined to `Solid/` beside React or Preact), and keep `vite` itself for the
+  island build. Angular keeps the Angular CLI and angular-eslint. See [the client's toolchain](docs/spa.md#the-clients-toolchain-vite).
+- **`AppStylesheet` links the app's compiled stylesheet from a hand-wired host.** Before: an app on
+  `AddRask()` + `MapRask<App>()` wrote `Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")`
+  itself, and that bare address is revalidated on every load. Now `HeadAssets => [Title["Shop"], AppStylesheet]`
+  writes the link `RaskApp` writes, `css/app.css?v={hash}` under the path base, kept by the browser until a
+  rebuild changes the sheet; on a `RaskApp` page that writes it too the head carries it once.
 
 - **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
   Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
@@ -67,15 +86,34 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: an aggregate names what its table carries on its base, and nothing is on by default.** Before: six
+  `public const`s in the class body narrowed the conventions (`Stamps`, `Checks`, `Writes`, `Deletes`, `Scope`,
+  `Broadcast`), and an aggregate that said nothing got `CreatedAt`/`UpdatedAt`, a `Version`, a form model and a
+  generated `Delete`. After: each is a trait type argument, in any order, and only what is named is there —
+  `Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete, PerTenant>`; `Reading : Aggregate<Guid, Created>`;
+  `Destination : Aggregate<int, PerTenant<int>>` (an `int?` tenant column with no property to declare). A child or a
+  table that is not an aggregate takes only a timestamp, `Entity<Guid, Timestamps>` — naming `SoftDelete` there does
+  not compile. `rask new` scaffolds `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`. The enums
+  `Timestamps`, `Deletion`, `Concurrency`, `Tenancy`, `ModelWrites` and `Broadcasts` are gone, so a leftover const
+  is a compile error rather than silently ignored; RASK091 is retired (a child can no longer name a model).
+  **Upgrading:** an aggregate that declared nothing adds `Timestamps, Versioned, Model, Deletable` to its base —
+  otherwise its next migration drops `CreatedAt`, `UpdatedAt` and `Version`, and `X.Create(model)` /
+  `X.Delete(id)` stop compiling; each const becomes its trait (`Deletes = Deletion.Soft` → `SoftDelete`,
+  `Scope = Tenancy.PerTenant` → `PerTenant`, `Checks = Concurrency.None` → leave `Versioned` out). A declared
+  `public Guid? TenantId` stays plain `PerTenant` whatever its column is — one mapped to text with
+  `HasConversion<string>()` in `Configure` included: the key is the property's type, the conversion is the column's;
+  `PerTenant<int>`/`<long>` is only for a numbered tenant. Rask's own tables name exactly what they had, so their
+  schema is unchanged.
+
 - **BREAKING: timestamps are the aggregate's, and a child is written only through its aggregate.** Before: every
   child (`Entity<TId>` held in a root's collection, any depth) carried `CreatedAt`/`UpdatedAt` whatever its root
-  declared — so under an adopted root with `Stamps = Timestamps.None` every read and save of the child failed with
+  declared — so under an adopted root without timestamps every read and save of the child failed with
   "Invalid column name 'CreatedAt'" — and a child could be saved on its own (`db.Chips`, `db.Set<Chip>()`,
   `BulkInsert<Chip>`), skipping its root's version, `UpdatedAt` and invariants. After: a child has no timestamps
-  unless it declares `Stamps` (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
+  unless its base names them (model, read face, stamping); the root's `UpdatedAt` moves on any child add, change
   or removal; and a save or `BulkInsert` that writes a child whose root the context does not hold throws an
   `InvalidOperationException` naming the child and its root, `Tenant.Across()` included. **Upgrading:** a child
-  table that has `CreatedAt`/`UpdatedAt` declares `public const Timestamps Stamps = Timestamps.All;`; a child
+  table that has `CreatedAt`/`UpdatedAt` names them on its base, `Entity<Guid, Timestamps>`; a child
   written alone is loaded and changed through its aggregate instead. Also fixed: a root holding two kinds of
   children with rules no longer generates a form model that fails to compile (`rows` declared twice).
 
@@ -106,6 +144,10 @@ them until tagged releases begin.
   changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Performance
+
+- **Reading an aggregate no longer allocates a domain-events list per row.** The list is made on the first `Raise`, so
+  a read that raises nothing — a queue's poll, a list page — saves one allocation a row: 1,000 rows of a small
+  aggregate went from 393.25 KB to 362 KB (`AggregateMaterializationBenchmarks`).
 
 - **`Ui.TimePicker` asks the server nothing to be opened, walked or closed.** The list's cursor, the row under
   the pointer and whether it is open were the component's state, a round trip each; they are the browser's now

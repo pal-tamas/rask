@@ -5,7 +5,7 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Every read and write on a <see cref="Tenancy.PerTenant" /> table is filtered by this. It is
+///         Every read and write on a <see cref="PerTenant" /> table is filtered by this. It is
 ///         ambient rather than a parameter because a Rask read is a static call that opens its own context —
 ///         <c>Invoice.Where(…)</c> — so there is nowhere to pass it; and it flows on
 ///         <see cref="AsyncLocal{T}" />, so it follows an await without being handed on.
@@ -153,7 +153,7 @@ public static class Tenant
     /// <exception cref="MissingTenantException">The resolver named no tenant for this work.</exception>
     internal static void DemandForWrite(Type entity)
     {
-        if (ConventionRegistry.ScopeFor(entity) == Tenancy.PerTenant && IsUnresolved)
+        if (ConventionRegistry.IsPerTenant(entity) && IsUnresolved)
         {
             throw MissingTenantException.ForWrite(entity.Name);
         }

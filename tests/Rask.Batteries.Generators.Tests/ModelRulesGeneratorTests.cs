@@ -47,7 +47,7 @@ public class ModelRulesGeneratorTests
     private const string Required = "global::Rask.Data.GeneratedModelRules.Required(__RequiredText())";
 
     private const string Product = """
-        public sealed class Product : Aggregate<Guid>
+        public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
         {
             private Product() { }
             public Sku Sku { get; private set; } = new("");
@@ -109,7 +109,7 @@ public class ModelRulesGeneratorTests
     public void A_nullable_value_object_property_is_not_asked_about_nothing_and_one_with_no_rule_only_has_to_be_filled()
     {
         var run = RunWithForms("""
-            public sealed class Item : Aggregate<Guid>
+            public sealed class Item : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Item() { }
                 public Sku? Sku { get; private set; }
@@ -166,7 +166,7 @@ public class ModelRulesGeneratorTests
     public void A_plain_property_that_cannot_be_null_is_required_by_a_generated_rule_with_the_catalogs_sentence()
     {
         var run = RunWithForms("""
-            public sealed class Trailer : Aggregate<Guid>
+            public sealed class Trailer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Trailer() { }
                 public int Weight { get; private set; }
@@ -205,7 +205,7 @@ public class ModelRulesGeneratorTests
     public void Each_generated_model_type_announces_exactly_the_fields_its_write_refuses_unfilled()
     {
         var run = RunWithForms("""
-            public sealed class Order : Aggregate<Guid>
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private readonly List<OrderLine> _lines = [];
                 private Order() { }
@@ -243,7 +243,7 @@ public class ModelRulesGeneratorTests
     public void A_model_whose_rules_refuse_nothing_unfilled_announces_no_required_field()
     {
         var run = RunWithForms("""
-            public sealed class Item : Aggregate<Guid>
+            public sealed class Item : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Item() { }
                 public Sku? Sku { get; private set; }
@@ -262,7 +262,7 @@ public class ModelRulesGeneratorTests
     public void Without_the_strings_catalog_the_one_sentence_is_the_english_constant()
     {
         var run = RunWithoutForms("""
-            public sealed class Trailer : Aggregate<Guid>
+            public sealed class Trailer : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Trailer() { }
                 public int Weight { get; private set; }
@@ -281,7 +281,7 @@ public class ModelRulesGeneratorTests
     public void A_model_with_no_rule_and_no_attribute_is_asked_nothing_and_builds_nothing()
     {
         var run = RunWithForms("""
-            public sealed class Note : Aggregate<Guid>
+            public sealed class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Note() { }
                 public string? Title { get; private set; }
@@ -302,7 +302,7 @@ public class ModelRulesGeneratorTests
     public void A_root_asks_its_rows_under_the_path_a_form_names_them_by_and_only_the_rows_that_have_something_to_ask()
     {
         var run = RunWithForms("""
-            public sealed class Order : Aggregate<Guid>
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private readonly List<OrderLine> _lines = [];
                 private readonly List<OrderNote> _notes = [];
@@ -342,7 +342,7 @@ public class ModelRulesGeneratorTests
             {
                 public static IEnumerable<string> Validate(string? value) => string.IsNullOrEmpty(value) ? ["Name it."] : [];
             }
-            public sealed class Shelf : Aggregate<Guid>
+            public sealed class Shelf : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Shelf() { }
                 public Label Label { get; private set; } = new("");
@@ -371,7 +371,7 @@ public class ModelRulesGeneratorTests
         var run = RunWithForms("""
             public sealed record Box(Sku Code, int Units);
             public sealed record Crate(Size Size, Sku Code);
-            public sealed class Pallet : Aggregate<Guid>
+            public sealed class Pallet : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Pallet() { }
                 public Size Size { get; private set; } = new(new(""), 0);
@@ -447,7 +447,7 @@ public class ModelRulesGeneratorTests
     public void An_aggregate_with_no_unique_rule_that_carries_a_message_gives_its_forms_nothing_to_wait_for(string configure)
     {
         var run = RunWithForms($$"""
-            public sealed class Note : Aggregate<Guid>
+            public sealed class Note : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Note() { }
                 public string? Title { get; private set; }
@@ -466,7 +466,7 @@ public class ModelRulesGeneratorTests
     public void A_row_inside_an_aggregate_gets_its_value_objects_rules_and_no_store_rules_or_key_of_its_own()
     {
         var run = RunWithForms("""
-            public sealed class Order : Aggregate<Guid>
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private readonly List<OrderLine> _lines = [];
                 private Order() { }

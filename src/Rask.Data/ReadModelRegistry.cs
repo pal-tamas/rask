@@ -90,7 +90,7 @@ public static class ReadModelRegistry
     private static void FilterThroughParents(ModelBuilder modelBuilder, List<ReadEntityMapping> all, DbContext? context)
     {
         var partitioned = all
-            .Where(static m => ConventionRegistry.ScopeFor(m.WriteType) == Tenancy.PerTenant)
+            .Where(static m => ConventionRegistry.IsPerTenant(m.WriteType))
             .Select(static m => m.ReadType)
             .ToHashSet();
 
@@ -244,7 +244,7 @@ public static class ReadModelRegistry
         // The write side's answer, mirrored like everything else here rather than re-derived: if the entity
         // behind this face is partitioned, so is the face — children included, which is why a child's own
         // read face is safe to query on its own.
-        if (ConventionRegistry.ScopeFor(mapping.WriteType) == Tenancy.PerTenant)
+        if (ConventionRegistry.IsPerTenant(mapping.WriteType))
         {
             if (context is not ITenantScoped)
             {

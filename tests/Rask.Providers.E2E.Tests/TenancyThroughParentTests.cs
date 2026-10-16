@@ -5,17 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant's driver: a text key, the tenant a <see cref="Guid" /> kept as text (#1251).</summary>
-public sealed class Driver : Aggregate<string>
+public sealed class Driver : Aggregate<string, Model, Deletable, PerTenant>
 {
     private readonly List<Chip> _chips = [];
 
     private Driver() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 
@@ -34,17 +28,11 @@ public sealed class Driver : Aggregate<string>
 }
 
 /// <summary>The other parent of the same chips.</summary>
-public sealed class Vehicle : Aggregate<string>
+public sealed class Vehicle : Aggregate<string, Model, Deletable, PerTenant>
 {
     private readonly List<Chip> _chips = [];
 
     private Vehicle() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 
@@ -64,8 +52,6 @@ public sealed class Vehicle : Aggregate<string>
 public sealed class Chip : Entity<string>
 {
     private Chip() { }
-
-    public const Timestamps Stamps = Timestamps.None;
 
     public string Code { get; private set; } = "";
 

@@ -20,8 +20,8 @@ namespace Rask.Querying;
 ///         no attribute: the key already names it.
 ///     </para>
 ///     <para>
-///         <b>It takes two.</b> The entity must also announce its saves, with <c>public const Broadcasts Broadcast
-///         = Broadcasts.OnCommit;</c>, or nothing is published for it to hear. That way a table no page watches
+///         <b>It takes two.</b> The entity must also announce its saves, with <c>Broadcast</c> on its base
+///         (<c>Aggregate&lt;Guid, Broadcast&gt;</c>), or nothing is published for it to hear. That way a table no page watches
 ///         costs nothing, and turning it on is one declaration on the model — never a change to a page.
 ///     </para>
 ///     <para>

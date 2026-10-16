@@ -25,7 +25,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Products;
 
-public sealed class Product : Aggregate<Guid>
+public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     [MaxLength(200)]
     public string Name { get; private set; } = "";
@@ -39,16 +39,20 @@ public sealed class Product : Aggregate<Guid>
 
 `Aggregate<Guid>` comes from [Rask.Data](../data.md). An **aggregate** is the unit your app loads, changes and
 saves as one: here, a product. Deriving from it is all the mapping there is (no `DbSet` property, no
-configuration class, no registration) and it brings the columns every aggregate needs:
+configuration class, no registration). The key comes first, and every name after it is a **trait** — something
+the table opts into:
 
-- **`Id`**, the key: a `Guid`, generated for you when a product is created.
-- **`CreatedAt` / `UpdatedAt`**, stamped on every save.
-- **`Version`**, a concurrency token bumped on every update. It's what stops two people editing the same
-  product from silently overwriting each other, and you'll see it at work in section 4.
+- **`Guid`** is the `Id`, the key, generated for you when a product is created.
+- **`Timestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
+- **`Versioned`** adds `Version`, a concurrency token bumped on every update. It's what stops two people editing
+  the same product from silently overwriting each other, and you'll see it at work in section 4.
+- **`Model`** generates the `ProductModel` the forms below bind, with `Product.Create(model)` and
+  `Product.Update(id, model)`.
+- **`Deletable`** generates `Product.Delete(id)`.
 
-They're ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete removes the
-row; an aggregate whose deleted rows must stay recoverable declares `public const Deletion Deletes = Deletion.Soft;`
-and gets a `DeletedAt` column instead (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
+The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete
+removes the row; an aggregate whose deleted rows must stay recoverable names `SoftDelete` instead of `Deletable`
+and gets a `DeletedAt` column (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
 
 Two rules shape the class, and the build enforces both:
 
@@ -315,8 +319,8 @@ public sealed partial class DeleteProduct : Component
 ```
 
 A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. `Product`
-declares no `Deletes` const and takes that default; declaring `Deletion.Soft` would keep deleted products in the
-table behind a `DeletedAt` stamp instead.
+names `Deletable`; naming `SoftDelete` instead would keep deleted products in the table behind a `DeletedAt`
+stamp.
 
 ## 5. The list page
 
@@ -370,7 +374,7 @@ shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes
 becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
 it is what the grid identifies a row by when it redraws. Every column but `Name` has a width, so the columns
 [stay where they are](../data-grid.md#columns-that-stay-put) from one page or sort order to the next. The grid shows read faces, read-only by
-construction; `UpdatedAt` is one of the columns `Aggregate<Guid>` brought, sortable like any other.
+construction; `UpdatedAt` is one of the columns `Timestamps` brought, sortable like any other.
 
 Note what the page doesn't have: an `OnMount`. The grid runs its `IQueryable` when it renders, and the
 count in the heading is a **query** — asked for in `Render`, cached for the session, loading on its own. Its

@@ -12,48 +12,43 @@ table has nothing to configure.
 
 ## Declaring a tenant-scoped table
 
-One `const` partitions a table by tenant — the fifth member of the family that
+One trait on the base partitions a table by tenant — `PerTenant`, one of the family that
 [chooses what a table carries](data.md#choosing-what-a-table-carries):
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid>
+public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-
     public string Reference { get; private set; } = "";
 }
 ```
 
 That gives the table a `TenantId` column and a query filter no read can compose away; its indexes are
-[what you write](#an-index-is-what-you-write). The default, `Tenancy.Shared`, is what a table that declares nothing gets. A child entity
+[what you write](#an-index-is-what-you-write). A table that does not name it is shared. A child entity
 takes its root's answer and needs no tenant column — see [A child belongs to its root's tenant](#a-child-belongs-to-its-roots-tenant).
 
 The column is the framework's, so the entity does not mention it. One that wants to read its tenant declares
 the property, and Rask maps the column to it:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid>
+public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-
     public Guid? TenantId { get; private set; }
 }
 ```
 
-**Why a `const`.** Like the other four, it is read at compile time rather than reflected over, so a trimmed
-publish cannot lose it and quietly fall back to "shared".
+**Why a type argument.** Like the other traits, it is read at compile time rather than reflected over, so a
+trimmed publish cannot lose it and quietly fall back to "shared".
 
 ### Tenants that are numbered
 
-An app whose tenants are rows with an integer key declares the column in that type, and the declared type is
-the column's, the filter's and the stamp's:
+An app whose tenants are rows with an integer key names `PerTenant<int>` (or `PerTenant<long>`), and that type is
+the column's, the filter's and the stamp's. The column is a shadow `int?` until the aggregate declares it, and a
+declared `TenantId` must have the same type:
 
 ```csharp
-public sealed class Destination : Aggregate<int>
+public sealed class Destination : Aggregate<int, PerTenant<int>>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-
-    public int? TenantId { get; private set; }     // or long?
+    public int? TenantId { get; private set; }     // optional — to read it; long? under PerTenant<long>
 
     public string Name { get; private set; } = "";
 }
@@ -66,7 +61,7 @@ using (Tenant.Use(42))
 ```
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
-it is saved — and any other is refused when the model is built. An aggregate that declares nothing keeps a shadow
+it is saved — and any other is refused when the model is built. An aggregate that names plain `PerTenant` and declares nothing keeps a shadow
 `Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
 it follows the root's number without saying anything.
 
@@ -88,10 +83,8 @@ the `Guid?` and say how it is stored; Rask filters and stamps in the column's ow
 read face alike:
 
 ```csharp
-public sealed class Company : Aggregate<string>
+public sealed class Company : Aggregate<string, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
-
     public Guid? TenantId { get; private set; }
 
     public static void Configure(EntityTypeBuilder<Company> builder)
@@ -111,21 +104,19 @@ the text as a parameter, so an index on the column is used.
 
 **Only the aggregate root carries the tenant.** Every entity under it — a child in the root's collection, a
 grandchild in the child's — is part of that aggregate and belongs to the root's tenant, so it needs no tenant
-column and you write nothing for it: no `TenantId`, no const, no configuration, no filter. Its own read face
+column and you write nothing for it: no `TenantId`, no trait, no configuration, no filter. Its own read face
 (`Chip.Where(…)`) is filtered **through the root**, along the path the aggregate's own collections already make —
 an `EXISTS` on the parent's key and tenant, one per level for a grandchild.
 
 ```csharp
-public sealed class Driver : Aggregate<string>
+public sealed class Driver : Aggregate<string, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
     public Guid? TenantId { get; private set; }                   // tenantId, text
     public IReadOnlyList<Chip> Chips => _chips;                   // by driverId
 }
 
-public sealed class Vehicle : Aggregate<string>
+public sealed class Vehicle : Aggregate<string, PerTenant>
 {
-    public const Tenancy Scope = Tenancy.PerTenant;
     public Guid? TenantId { get; private set; }
     public IReadOnlyList<Chip> Chips => _chips;                   // by vehicleId
 }
@@ -356,7 +347,7 @@ await Invoice.IgnoreQueryFilters();   // includes soft-deleted; SAME tenant
 ```
 
 It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call
-never quietly becomes a cross-tenant read the day an aggregate declares `Scope`. Crossing tenants is
+never quietly becomes a cross-tenant read the day an aggregate names `PerTenant`. Crossing tenants is
 `Tenant.Across()`. This uses EF Core 10's named query filters.
 
 ## An index is what you write

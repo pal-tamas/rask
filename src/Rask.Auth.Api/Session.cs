@@ -16,15 +16,8 @@ namespace Rask.Auth;
 /// creates and ends sessions; an app does not.
 /// </para>
 /// </remarks>
-public sealed class Session : Aggregate<Guid>
+public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
 {
-    /// <summary>
-    ///     Ending a session KEEPS the row: the devices list shows it, and an audit of who signed in from
-    ///     where would be worthless if signing out erased the evidence. Soft delete is opt-in now, so this
-    ///     says so.
-    /// </summary>
-    public const Deletion Deletes = Deletion.Soft;
-
     /// <summary>The signed-in user.</summary>
     public Guid UserId { get; private set; }
 

@@ -5,19 +5,13 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant-scoped table whose unique indexes say what a collision means — and one that does not.</summary>
-public sealed class Lane : Aggregate<int>
+public sealed class Lane : Aggregate<int, Model, Deletable, PerTenant>
 {
     public const string NameTaken = "Ilyen néven már létezik viszonylat.";
     public const string CodeTaken = "This code is already in use.";
     public const string RouteTaken = "A lane between these two places already exists.";
 
     private Lane() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public int? TenantId { get; private set; }
 
@@ -65,7 +59,7 @@ public sealed class Lane : Aggregate<int>
 }
 
 /// <summary>One table for everybody, with one unique column.</summary>
-public sealed class Badge : Aggregate<int>
+public sealed class Badge : Aggregate<int, Timestamps, Versioned, Model, Deletable>
 {
     public const string SerialTaken = "That serial number is already registered.";
 

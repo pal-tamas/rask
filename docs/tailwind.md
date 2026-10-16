@@ -65,19 +65,23 @@ One file and one link — the whole of it, and all of it already there:
 
 2. **One `<link>`.** `RaskApp` and the WASM host write it into every document — the build records
    where `css/app.css` is served as the app assembly's `Rask.Stylesheet` metadata — so `App.cs` names
-   no stylesheet. A hand-wired `MapRask<App>()` host writes it itself:
+   no stylesheet. A hand-wired `AddRask()` + `MapRask<App>()` host writes its own document, so it puts
+   `AppStylesheet` in its `HeadAssets` — the same link, hash and path base `RaskApp` writes:
 
    ```csharp
    // Compiled from Styles/app.css by Rask.Tailwind: Tailwind, the kit, and this project's own classes.
-   Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")
+   protected override Component? HeadAssets => [Title["Shop"], AppStylesheet];
    ```
+
+   On a `RaskApp` page that writes it too, the head carries the link once. In a WebAssembly app it
+   renders nothing: the host links the sheet already.
 
    **How it is served.** The server answers the sheet's address itself, ahead of the app's own static
    files: brotli or gzip as the browser accepts (a 750 KB Tailwind + kit sheet is about 80 KB on the
    wire), with an ETag, so a repeat load is a 304 with no body. `RaskApp` links it as
    `css/app.css?v={hash}` — the first 16 hex digits of its SHA-256 — and that address is
    `Cache-Control: public, max-age=31536000, immutable`: the browser keeps it until a rebuild changes the
-   hash. The bare address, the one a hand-wired host links, is `no-cache` (revalidated, never stale).
+   hash, and so does `AppStylesheet`. The bare address is `no-cache` (revalidated, never stale).
    A host that calls `UseStaticFiles()` itself needs no line for any of this.
 
 **Nothing in the `.csproj`.** There is no Tailwind package to add — the compiler, its MSBuild targets

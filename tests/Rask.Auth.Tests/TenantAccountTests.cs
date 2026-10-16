@@ -11,7 +11,7 @@ namespace Rask.Auth.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The accounts table maps its tenant itself rather than declaring <c>Scope = Tenancy.PerTenant</c>. It has
+/// The accounts table maps its tenant itself rather than naming <c>PerTenant</c>. It has
 /// to: a tenant-scoped row is stamped from the ambient tenant and refused without one, and an administrator
 /// legitimately has none — a <c>PerTenant</c> accounts table could not have an admin inserted into it at all.
 /// </para>

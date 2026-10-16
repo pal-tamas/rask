@@ -2,7 +2,6 @@
   "devDependencies": {
     "solid-js": "latest",
     "typescript": "latest",
-    "vite": "latest",
     "vite-plugin-solid": "latest"
   },
   "overrides": {

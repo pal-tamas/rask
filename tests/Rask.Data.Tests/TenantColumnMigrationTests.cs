@@ -30,21 +30,17 @@ public sealed class FormerCrate : FormerAggregate
 }
 
 /// <summary>Tenant-scoped, and silent about the column: it is a shadow one.</summary>
-public sealed class Pallet : Aggregate<Guid>
+public sealed class Pallet : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Pallet() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public string Reference { get; private set; } = "";
 }
 
 /// <summary>Tenant-scoped, and it declares the column because it reads it.</summary>
-public sealed class Crate : Aggregate<Guid>
+public sealed class Crate : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
 {
     private Crate() { }
-
-    public const Tenancy Scope = Tenancy.PerTenant;
 
     public Guid? TenantId { get; private set; }
 

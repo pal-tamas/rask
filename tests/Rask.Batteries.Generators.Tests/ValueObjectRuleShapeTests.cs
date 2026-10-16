@@ -27,7 +27,7 @@ public class ValueObjectRuleShapeTests
 
     private const string Holder = """
 
-        public sealed class Product : Aggregate<Guid>
+        public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
         {
             private Product() { }
             public Sku Sku { get; private set; } = new("");
@@ -87,7 +87,7 @@ public class ValueObjectRuleShapeTests
 
     private const string PercentHolder = """
 
-        public sealed class Norm : Aggregate<Guid>
+        public sealed class Norm : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
         {
             private Norm() { }
             public NormPercent Percent { get; private set; }
@@ -194,7 +194,7 @@ public class ValueObjectRuleShapeTests
 
         var diagnostics = Rask102(source, """
 
-            public sealed class Norm : Aggregate<Guid>
+            public sealed class Norm : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Norm() { }
                 public NormPercent? Discount { get; private set; }
@@ -271,7 +271,7 @@ public class ValueObjectRuleShapeTests
             """,
             """
 
-            public sealed class Product : Aggregate<Guid>
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Product() { }
                 public Money Price { get; private set; } = new(0, "EUR");
@@ -298,7 +298,7 @@ public class ValueObjectRuleShapeTests
             """,
             """
 
-            public sealed class Product : Aggregate<Guid>
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Product() { }
                 public string Title { get; private set; } = "";
@@ -327,13 +327,13 @@ public class ValueObjectRuleShapeTests
             """,
             """
 
-            public sealed class Product : Aggregate<Guid>
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Product() { }
                 public Sku Sku { get; private set; } = new("");
                 public Size Size { get; private set; } = new(new(""), 0);
             }
-            public sealed class Bundle : Aggregate<Guid>
+            public sealed class Bundle : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private Bundle() { }
                 public Sku Sku { get; private set; } = new("");
@@ -357,7 +357,7 @@ public class ValueObjectRuleShapeTests
             """,
             """
 
-            public sealed class Order : Aggregate<Guid>
+            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
             {
                 private readonly List<OrderLine> _lines = [];
                 private Order() { }

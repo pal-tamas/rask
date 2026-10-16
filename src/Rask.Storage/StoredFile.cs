@@ -9,11 +9,8 @@ namespace Rask.Storage;
 /// value equality. An <see cref="Entity{TId}"/> and not an <see cref="Aggregate{TId}"/> for now — soft delete
 /// is arguably wanted for files, but it would arrive with a version this row has no use for.
 /// </remarks>
-public sealed class StoredFile : Entity<Guid>
+public sealed class StoredFile : Entity<Guid, Timestamps>
 {
-    /// <summary>No form model: a file row is written by the store after the bytes land, never posted.</summary>
-    public const ModelWrites Writes = ModelWrites.None;
-
     /// <summary>The display name the file was uploaded with, reduced to a safe leaf.</summary>
     public string Name { get; internal set; } = "";
 

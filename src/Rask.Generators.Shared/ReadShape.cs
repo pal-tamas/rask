@@ -17,7 +17,6 @@ namespace Rask.Generators.Shared;
 /// <param name="TableName">The table the convention derives, overridden at runtime by the write model.</param>
 /// <param name="IdTypeName">The key's fully-qualified type.</param>
 /// <param name="IsAggregate">Whether the source is an aggregate root rather than a child.</param>
-/// <param name="Stamps">Its own <c>Stamps</c> const, or null when it declares none.</param>
 /// <param name="Members">The primitive columns, in the order they are emitted.</param>
 /// <param name="References">The ids that might be references, for the emit pass to resolve.</param>
 /// <param name="Children">The child collections.</param>
@@ -33,7 +32,6 @@ internal sealed record ReadShape(
     string TableName,
     string IdTypeName,
     bool IsAggregate,
-    int? Stamps,
     EquatableArray<ReadMember> Members,
     EquatableArray<ReadReference> References,
     EquatableArray<ReadChildCollection> Children,

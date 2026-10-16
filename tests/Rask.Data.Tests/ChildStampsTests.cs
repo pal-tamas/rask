@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A root that says nothing, so it carries both timestamps — and its children carry none.</summary>
-public sealed class Roster : Aggregate<Guid>
+/// <summary>A root that names Timestamps, so it carries both — and its children carry none.</summary>
+public sealed class Roster : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
     private readonly List<RosterSlot> _slots = [];
     private readonly List<RosterBadge> _badges = [];
@@ -29,7 +29,7 @@ public sealed class Roster : Aggregate<Guid>
     public void Close(string slot) => _slots.RemoveAll(s => s.Label == slot);
 }
 
-/// <summary>A child that says nothing about timestamps: they are its aggregate's, so it has none.</summary>
+/// <summary>A child that names no timestamps, so it has none.</summary>
 public sealed class RosterSlot : Entity<Guid>
 {
     private readonly List<SlotNote> _notes = [];
@@ -50,7 +50,7 @@ public sealed class RosterSlot : Entity<Guid>
     }
 }
 
-/// <summary>A grandchild that says nothing either.</summary>
+/// <summary>A grandchild that names none either.</summary>
 public sealed class SlotNote : Entity<Guid>
 {
     private SlotNote() { }
@@ -61,11 +61,9 @@ public sealed class SlotNote : Entity<Guid>
 }
 
 /// <summary>A child that opts in, which it keeps.</summary>
-public sealed class RosterBadge : Entity<Guid>
+public sealed class RosterBadge : Entity<Guid, Timestamps>
 {
     private RosterBadge() { }
-
-    public const Timestamps Stamps = Timestamps.All;
 
     public string Title { get; private set; } = "";
 

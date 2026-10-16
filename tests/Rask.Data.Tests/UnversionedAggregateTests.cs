@@ -4,15 +4,11 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>The shape of a table Rask did not create: an identity key, a name of its own, and no framework columns.</summary>
-public sealed class Depot : Aggregate<int>
+public sealed class Depot : Aggregate<int, Model, Deletable>
 {
     private readonly List<DepotBay> _bays = [];
 
     private Depot() { }
-
-    public const Timestamps Stamps = Timestamps.None;
-
-    public const Concurrency Checks = Concurrency.None;
 
     public string Name { get; private set; } = "";
 
@@ -40,8 +36,6 @@ public sealed class Depot : Aggregate<int>
 public sealed class DepotBay : Entity<int>
 {
     private DepotBay() { }
-
-    public const Timestamps Stamps = Timestamps.None;
 
     public string Label { get; private set; } = "";
 
@@ -180,7 +174,7 @@ public sealed class UnversionedAggregateTests : IDisposable
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => GeneratedModelWrites.Update<Depot>(
             depot.Id, version: 3, d => d.Rename("south"), cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("Concurrency.None", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("does not name Versioned", refused.Message, StringComparison.Ordinal);
         Assert.Equal("north", (await database.Load<Depot>(depot.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
