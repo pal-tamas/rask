@@ -7,6 +7,9 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
 {
     public void Configure(EntityTypeBuilder<PushSubscriber> entity)
     {
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        entity.Ignore(s => s.Version);
+        entity.Ignore(s => s.DeletedAt);
         entity.HasKey(s => s.Id);
         entity.Property(s => s.Endpoint).HasMaxLength(2048).IsRequired();
         entity.Property(s => s.P256dh).HasMaxLength(512).IsRequired();

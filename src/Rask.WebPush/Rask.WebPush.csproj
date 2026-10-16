@@ -50,7 +50,7 @@
     <InternalsVisibleTo Include="Rask.WebPush.Tests"/>
   </ItemGroup>
 
-  <!-- The subscriber table is an Entity<TId>, which is what brings Rask.Data (and the tenant, the clock, Current). -->
+  <!-- The subscriber table is an Aggregate<TId>, which is what brings Rask.Data (and the tenant, the clock, Current). -->
   <ItemGroup>
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>

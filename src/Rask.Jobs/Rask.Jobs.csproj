@@ -62,7 +62,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
 
-    <!-- The table is an Entity<TId> so it has a read face, which is what this brings. -->
+    <!-- The table is an Aggregate<TId> so it has a read face, which is what this brings. -->
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
 

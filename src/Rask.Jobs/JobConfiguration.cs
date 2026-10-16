@@ -10,6 +10,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
     public void Configure(EntityTypeBuilder<Job> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        builder.Ignore(x => x.Version);
+        builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Payload).IsRequired();

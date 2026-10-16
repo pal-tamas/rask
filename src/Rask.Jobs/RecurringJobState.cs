@@ -11,7 +11,7 @@ namespace Rask.Background;
 /// what the create race relies on — the instance that loses gets a constraint violation either way — so
 /// nothing about the scheduling changes; the surrogate is only what lets the row have a read face.
 /// </remarks>
-public sealed class RecurringJobState : Entity<Guid, Timestamps>
+public sealed class RecurringJobState : Aggregate<Guid, Timestamps>
 {
     private RecurringJobState()
     {

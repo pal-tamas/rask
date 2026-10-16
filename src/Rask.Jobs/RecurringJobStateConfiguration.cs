@@ -10,6 +10,9 @@ public sealed class RecurringJobStateConfiguration : IEntityTypeConfiguration<Re
     public void Configure(EntityTypeBuilder<RecurringJobState> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        builder.Ignore(x => x.Version);
+        builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         // The name is still what identifies a recurring job, and still what makes two instances racing to

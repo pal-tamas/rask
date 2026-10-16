@@ -54,6 +54,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Rask's own tables are aggregates.** `Job`, `RecurringJobState`, `QueuedMail`, `OutboxMessage`, `CacheEntry`,
+  `StoredFile` and `PushSubscriber` derive from `Aggregate<TId, …>` instead of `Entity<TId, …>`, with the same traits
+  and the same columns — their configurations leave `Version` and `DeletedAt` off, so a context that maps them with
+  `AddRaskJobs()` and the like but no `ApplyRaskConventions` is unchanged too. An `Entity` is now only ever a child.
+
 - **BREAKING: an aggregate names what its table carries on its base, and nothing is on by default.** Before: six
   `public const`s in the class body narrowed the conventions (`Stamps`, `Checks`, `Writes`, `Deletes`, `Scope`,
   `Broadcast`), and an aggregate that said nothing got `CreatedAt`/`UpdatedAt`, a `Version`, a form model and a
