@@ -113,6 +113,10 @@ them until tagged releases begin.
 
 ### Performance
 
+- **Reading an aggregate no longer allocates a domain-events list per row.** The list is made on the first `Raise`, so
+  a read that raises nothing — a queue's poll, a list page — saves one allocation a row: 1,000 rows of a small
+  aggregate went from 393.25 KB to 362 KB (`AggregateMaterializationBenchmarks`).
+
 - **`Ui.TimePicker` asks the server nothing to be opened, walked or closed.** The list's cursor, the row under
   the pointer and whether it is open were the component's state, a round trip each; they are the browser's now
   (`rask-time-list.ts`, `data-rask-time-list`), with Flux UI's rules measured on its live page: opening lights

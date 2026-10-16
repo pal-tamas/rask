@@ -33,7 +33,8 @@ namespace Rask.Data;
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
 public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 {
-    private readonly List<IEvent> _domainEvents = [];
+    // Made on the first Raise: a row that is only read never raises one, and a queue or a list page reads thousands.
+    private List<IEvent>? _domainEvents;
 
     /// <summary>Initializes the base.</summary>
     protected Aggregate()
@@ -57,17 +58,17 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 #pragma warning restore S1144
 
     /// <inheritdoc/>
-    public IReadOnlyList<IEvent> DomainEvents => _domainEvents;
+    public IReadOnlyList<IEvent> DomainEvents => _domainEvents ?? (IReadOnlyList<IEvent>)[];
 
     /// <summary>Records a domain event to be published after the aggregate's change commits.</summary>
     protected void Raise(IEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
-        _domainEvents.Add(domainEvent);
+        (_domainEvents ??= []).Add(domainEvent);
     }
 
     /// <inheritdoc/>
-    public void ClearDomainEvents() => _domainEvents.Clear();
+    public void ClearDomainEvents() => _domainEvents?.Clear();
 }
 
 /// <summary>An aggregate that asks for one trait, in any order — see <see cref="IAggregateTrait" />.</summary>
