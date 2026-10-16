@@ -4,7 +4,7 @@ namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
 /// A key of several columns, declared as a tuple of TYPES — <c>Entity&lt;(DeliveryNote, Transaction)&gt;</c> — read
-/// only, in this slice: the generated half, the read face, the model and the refusals (RASK105).
+/// only, in this slice: the generated half, the read face, the model and the refusals (RASK106).
 /// </summary>
 public class CompositeKeyGeneratorTests
 {
@@ -45,8 +45,8 @@ public class CompositeKeyGeneratorTests
             "Rask.Cqrs",
             "Microsoft.EntityFrameworkCore");
 
-    private static IEnumerable<string> Rask105(GeneratorRun run) =>
-        run.Diagnostics.Where(static d => d.Id == "RASK105").Select(static d => d.GetMessage(System.Globalization.CultureInfo.InvariantCulture));
+    private static IEnumerable<string> Rask106(GeneratorRun run) =>
+        run.Diagnostics.Where(static d => d.Id == "RASK106").Select(static d => d.GetMessage(System.Globalization.CultureInfo.InvariantCulture));
 
     [Fact]
     public void Each_aggregate_the_key_names_is_a_generated_id_of_that_aggregates_key_type()
@@ -113,7 +113,7 @@ public class CompositeKeyGeneratorTests
         var run = Run(Fuelling);
 
         Assert.False(run.HasGeneratedSource("DeliveryNoteTransactionModel"));
-        Assert.Empty(Rask105(run));
+        Assert.Empty(Rask106(run));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class CompositeKeyGeneratorTests
     {
         var run = Run(Fuelling.Replace("sealed partial class DeliveryNoteTransaction", "sealed class DeliveryNoteTransaction", StringComparison.Ordinal));
 
-        var message = Assert.Single(Rask105(run));
+        var message = Assert.Single(Rask106(run));
 
         Assert.Contains("declare it 'partial'", message, StringComparison.Ordinal);
         Assert.False(run.HasGeneratedSource("DeliveryNoteTransaction.Key"));
@@ -136,7 +136,7 @@ public class CompositeKeyGeneratorTests
             }
             """);
 
-        Assert.Contains(Rask105(run), static m => m.Contains("has no name", StringComparison.Ordinal));
+        Assert.Contains(Rask106(run), static m => m.Contains("has no name", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class CompositeKeyGeneratorTests
             }
             """);
 
-        Assert.Contains(Rask105(run), static m => m.Contains("declares no property 'LineNo'", StringComparison.Ordinal));
+        Assert.Contains(Rask106(run), static m => m.Contains("declares no property 'LineNo'", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class CompositeKeyGeneratorTests
             }
             """);
 
-        Assert.Contains(Rask105(run), static m => m.Contains("'LineNo' is 'long'", StringComparison.Ordinal));
+        Assert.Contains(Rask106(run), static m => m.Contains("'LineNo' is 'long'", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class CompositeKeyGeneratorTests
             }
             """);
 
-        Assert.Contains(Rask105(run), static m => m.Contains("declares 'TransactionId'", StringComparison.Ordinal));
+        Assert.Contains(Rask106(run), static m => m.Contains("declares 'TransactionId'", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -186,7 +186,7 @@ public class CompositeKeyGeneratorTests
             }
             """);
 
-        Assert.Contains(Rask105(run), static m => m.Contains("is an aggregate root", StringComparison.Ordinal));
+        Assert.Contains(Rask106(run), static m => m.Contains("is an aggregate root", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -197,9 +197,9 @@ public class CompositeKeyGeneratorTests
             "class DeliveryNote : Aggregate<int, Model, PerTenant>",
             StringComparison.Ordinal));
 
-        var message = Assert.Single(Rask105(run));
+        var message = Assert.Single(Rask106(run));
 
         Assert.Contains("'DeliveryNote.Fuellings' holds it on a form", message, StringComparison.Ordinal);
-        Assert.Equal(DiagnosticSeverity.Error, Assert.Single(run.Diagnostics, static d => d.Id == "RASK105").Severity);
+        Assert.Equal(DiagnosticSeverity.Error, Assert.Single(run.Diagnostics, static d => d.Id == "RASK106").Severity);
     }
 }

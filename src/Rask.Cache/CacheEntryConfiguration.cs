@@ -10,6 +10,9 @@ public sealed class CacheEntryConfiguration : IEntityTypeConfiguration<CacheEntr
     public void Configure(EntityTypeBuilder<CacheEntry> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        builder.Ignore(x => x.Version);
+        builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Key).IsRequired().HasMaxLength(512);
         // The key is still what identifies an entry, and still what a second writer collides with — as a

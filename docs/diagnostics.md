@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK105, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK106, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -129,7 +129,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
-| [RASK105](#rask105) | Error | A key of several columns cannot be built, or an aggregate's form would write a row keyed by one |
+| [RASK105](#rask105) | Error | A value object compares by reference |
+| [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would write a row keyed by one |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2314,6 +2315,50 @@ public static Component Spacer => Div.Class("gap");
 
 ## RASK105
 
+**A value object compares by reference** · Error
+
+What an aggregate holds that is not an entity is a [value object](data.md#value-objects): it is its values, so two
+with the same values are the same. A `record` or a `record struct` compares that way as written. A plain class
+compares by reference, so the app's own code would find two equal amounts different — EF Core still saves it right,
+which is why nothing else would notice.
+
+```csharp
+public sealed class Money                       // ✗ RASK105: compares by reference
+{
+    public decimal Amount { get; private set; }
+    public string Currency { get; private set; } = "";
+}
+
+public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+{
+    public Money Total { get; private set; } = null!;
+}
+```
+
+**Fix:** make it a record, or derive it from `ValueObject` and name the values that make it the same:
+
+```csharp
+public sealed record Money(decimal Amount, string Currency);   // ✓
+
+public sealed class Money : ValueObject                         // ✓
+{
+    public decimal Amount { get; private set; }
+    public string Currency { get; private set; } = "";
+
+    protected override IEnumerable<object?> EqualityComponents()
+    {
+        yield return Amount;
+        yield return Currency;
+    }
+}
+```
+
+A strongly-typed id another aggregate is keyed by is a column, not a value object, and is never reported.
+
+---
+
+## RASK106
+
 **A key of several columns cannot be built** · Error
 
 `Entity<(DeliveryNote, Transaction)>` keys a child row by the aggregates it joins. Rask generates a `DeliveryNoteId`
@@ -2322,9 +2367,9 @@ must be `partial`, each part must have a name, and nothing else may hold those n
 [A key of several columns](data.md#a-key-of-several-columns).
 
 ```csharp
-public sealed class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)> { }   // ✗ RASK105: not partial
-public sealed partial class DeliveryNoteLine : Entity<(DeliveryNote, int)> { }           // ✗ RASK105: the int has no name
-public sealed partial class Pairing : Aggregate<(DeliveryNote, Transaction)> { }         // ✗ RASK105: a root
+public sealed class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)> { }   // ✗ RASK106: not partial
+public sealed partial class DeliveryNoteLine : Entity<(DeliveryNote, int)> { }           // ✗ RASK106: the int has no name
+public sealed partial class Pairing : Aggregate<(DeliveryNote, Transaction)> { }         // ✗ RASK106: a root
 ```
 
 > 'DeliveryNoteLine' has a key of several columns, but its key part 'int' has no name; name it — 'int LineNo' — and

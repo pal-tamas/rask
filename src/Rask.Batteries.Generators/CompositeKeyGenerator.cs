@@ -22,8 +22,8 @@ namespace Rask.Batteries.Generators;
 [Generator]
 public sealed class CompositeKeyGenerator : IIncrementalGenerator
 {
-    internal static readonly DiagnosticDescriptor Rask105 = new(
-        "RASK105",
+    internal static readonly DiagnosticDescriptor Rask106 = new(
+        "RASK106",
         "A key of several columns cannot be built",
         "'{0}' has a key of several columns, but {1}",
         DiagnosticHelp.Category,
@@ -35,7 +35,7 @@ public sealed class CompositeKeyGenerator : IIncrementalGenerator
                      + "nothing else holds. Writing such a row through its aggregate is not supported yet, so an "
                      + "aggregate whose base names Model (or CreateModel / UpdateModel) and holds one is refused here "
                      + "rather than given a form that leaves it out.",
-        helpLinkUri: DiagnosticHelp.Link("RASK105"));
+        helpLinkUri: DiagnosticHelp.Link("RASK106"));
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -85,7 +85,7 @@ public sealed class CompositeKeyGenerator : IIncrementalGenerator
             {
                 foreach (var problem in key.Problems)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(Rask105, key.Location?.ToLocation(), key.Name, problem));
+                    context.ReportDiagnostic(Diagnostic.Create(Rask106, key.Location?.ToLocation(), key.Name, problem));
                 }
 
                 continue;

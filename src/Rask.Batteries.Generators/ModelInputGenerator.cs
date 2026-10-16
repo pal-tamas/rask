@@ -146,7 +146,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         {
             var parts = held.Split('|');
             context.ReportDiagnostic(Diagnostic.Create(
-                CompositeKeyGenerator.Rask105,
+                CompositeKeyGenerator.Rask106,
                 entity.Location?.ToLocation(),
                 parts[1],
                 $"'{entity.Name}.{parts[0]}' holds it on a form, and a row keyed by several columns is not written "

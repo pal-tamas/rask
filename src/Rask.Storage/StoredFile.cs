@@ -4,12 +4,11 @@ namespace Rask.Storage;
 
 /// <summary>One stored file: what it is, where its bytes are, and whether it is public.</summary>
 /// <remarks>
-/// A class rather than a record since it became an <see cref="Entity{TId}"/>: a record class can only derive
-/// from another record, and <c>Id</c>/<c>CreatedAt</c> now come from the base. Nothing used <c>with</c> or its
-/// value equality. An <see cref="Entity{TId}"/> and not an <see cref="Aggregate{TId}"/> for now — soft delete
-/// is arguably wanted for files, but it would arrive with a version this row has no use for.
+/// A class rather than a record: a record class can only derive from another record, and <c>Id</c>/<c>CreatedAt</c>
+/// come from the base. No <see cref="SoftDelete"/> and no <see cref="Versioned"/>: the orphan sweep removes
+/// rows for real, and nothing edits one twice.
 /// </remarks>
-public sealed class StoredFile : Entity<Guid, Timestamps>
+public sealed class StoredFile : Aggregate<Guid, Timestamps>
 {
     /// <summary>The display name the file was uploaded with, reduced to a safe leaf.</summary>
     public string Name { get; internal set; } = "";

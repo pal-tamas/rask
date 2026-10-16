@@ -10,14 +10,13 @@ namespace Rask.Mailing;
 /// since this package ships a global <c>using Rask.Mailing</c>.)
 /// </summary>
 /// <remarks>
-/// An <see cref="Entity{TId}"/> rather than an <see cref="Aggregate{TId}"/>: an aggregate's soft-delete query
-/// filter would hide rows from the send query and turn the dashboard's purge into a stamp, and its
-/// <c>Version</c> would be a second concurrency token beside <see cref="ClaimToken"/> that the processor's
-/// <c>ExecuteUpdate</c> never maintains. <c>CreatedAt</c> comes from the base — the same column it always was.
+/// Names neither <see cref="SoftDelete"/> nor <see cref="Versioned"/>: a soft-delete query filter would hide rows
+/// from the send query and turn the dashboard's purge into a stamp, and a <c>Version</c> would be a second
+/// concurrency token beside <see cref="ClaimToken"/> that the processor's <c>ExecuteUpdate</c> never maintains.
 /// The setters are <c>internal</c>: this package writes its own rows through <see cref="MailSerializer"/>,
 /// and nothing outside it should.
 /// </remarks>
-public sealed class QueuedMail : Entity<long, Timestamps>
+public sealed class QueuedMail : Aggregate<long, Timestamps>
 {
     /// <summary>The sender address, as JSON (see <see cref="MailSerializer"/>).</summary>
     public string From { get; internal set; } = "";

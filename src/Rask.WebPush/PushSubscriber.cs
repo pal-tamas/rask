@@ -14,7 +14,7 @@ namespace Rask.WebPush;
 /// that signed in. The row is written by <see cref="Push.Subscribe" /> and the <c>/_rask/push/subscribe</c>
 /// endpoint, and removed when the push service says the subscription is gone (<see cref="WebPushResult.ShouldDelete" />).
 /// </remarks>
-public sealed class PushSubscriber : Entity<Guid, Timestamps>
+public sealed class PushSubscriber : Aggregate<Guid, Timestamps>
 {
     /// <summary>The push service URL a message is POSTed to. Unique: a browser that subscribes again replaces its row.</summary>
     public string Endpoint { get; internal set; } = "";

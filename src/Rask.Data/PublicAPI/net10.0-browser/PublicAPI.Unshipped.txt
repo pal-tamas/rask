@@ -1,4 +1,9 @@
 #nullable enable
+abstract Rask.Data.ValueObject.EqualityComponents() -> System.Collections.Generic.IEnumerable<object?>!
+override Rask.Data.Entity<TId>.Equals(object? obj) -> bool
+override Rask.Data.Entity<TId>.GetHashCode() -> int
+override Rask.Data.ValueObject.Equals(object? obj) -> bool
+override Rask.Data.ValueObject.GetHashCode() -> int
 Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>
 Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>.Aggregate() -> void
 Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5>
@@ -49,6 +54,7 @@ Rask.Data.Entity<TId, T1>.Entity() -> void
 Rask.Data.Entity<TId>
 Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
 Rask.Data.Entity<TId>.Entity() -> void
+Rask.Data.Entity<TId>.Equals(Rask.Data.Entity<TId>? other) -> bool
 Rask.Data.Entity<TId>.Id.get -> TId
 Rask.Data.Entity<TId>.Id.set -> void
 Rask.Data.Entity<TId>.Stamp(System.DateTime at) -> void
@@ -107,6 +113,9 @@ Rask.Data.Updated
 Rask.Data.Updated.Updated() -> void
 Rask.Data.UpdateModel
 Rask.Data.UpdateModel.UpdateModel() -> void
+Rask.Data.ValueObject
+Rask.Data.ValueObject.Equals(Rask.Data.ValueObject? other) -> bool
+Rask.Data.ValueObject.ValueObject() -> void
 Rask.Data.Versioned
 Rask.Data.Versioned.Versioned() -> void
 Rask.Data.ViolationMessageBuilderExtensions
@@ -242,6 +251,8 @@ static Rask.Data.Db.Configure<TContext>(Microsoft.EntityFrameworkCore.IDbContext
 static Rask.Data.Db.IsOn.get -> bool
 static Rask.Data.Db.Reset() -> void
 static Rask.Data.Db.UseScope(System.IServiceProvider! scope) -> System.IDisposable!
+static Rask.Data.Entity<TId>.operator !=(Rask.Data.Entity<TId>? left, Rask.Data.Entity<TId>? right) -> bool
+static Rask.Data.Entity<TId>.operator ==(Rask.Data.Entity<TId>? left, Rask.Data.Entity<TId>? right) -> bool
 static Rask.Data.FullText.Highlight(string? property) -> string?
 static Rask.Data.FullText.Snippet(string? property, int words = 12) -> string?
 static Rask.Data.FullTextQueryableExtensions.Search<TEntity>(this System.Linq.IQueryable<TEntity>! source, string? text) -> System.Linq.IQueryable<TEntity>!
@@ -336,6 +347,8 @@ Rask.Data.Projection<TEntity, TResult>.ConfigureAwait(bool continueOnCapturedCon
 Rask.Data.DomainEventInterceptor.DomainEventInterceptor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory! scopeFactory) -> void
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, System.Guid?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskTenant(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, long?>! resolve) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Data.ValueObject.operator !=(Rask.Data.ValueObject? left, Rask.Data.ValueObject? right) -> bool
+static Rask.Data.ValueObject.operator ==(Rask.Data.ValueObject? left, Rask.Data.ValueObject? right) -> bool
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder!
 static Rask.Data.ViolationMessageBuilderExtensions.IsUnique<TEntity>(this Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>! index, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.IndexBuilder<TEntity>!
 static Rask.Data.ViolationMessageBuilderExtensions.OnDelete(this Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder! relationship, Microsoft.EntityFrameworkCore.DeleteBehavior deleteBehavior, string! message) -> Microsoft.EntityFrameworkCore.Metadata.Builders.ReferenceCollectionBuilder!

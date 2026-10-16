@@ -10,6 +10,9 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
     public void Configure(EntityTypeBuilder<QueuedMail> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        builder.Ignore(x => x.Version);
+        builder.Ignore(x => x.DeletedAt);
         builder.HasKey(x => x.Id);
         builder.Property(x => x.From).IsRequired();
         builder.Property(x => x.To).IsRequired();

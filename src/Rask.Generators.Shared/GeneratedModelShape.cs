@@ -277,7 +277,7 @@ internal static class GeneratedModelShape
 
             if (DescribeChild(entity, property) is { } child)
             {
-                // Not carried: a row keyed by several columns is not written through its aggregate yet (RASK105).
+                // Not carried: a row keyed by several columns is not written through its aggregate yet (RASK106).
                 if (!CompositeKeyShape.HasCompositeKey(child.ChildType))
                 {
                     children.Add(child);

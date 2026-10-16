@@ -14,14 +14,29 @@ namespace Rask.Data;
 /// Derive an aggregate root from <see cref="Aggregate{TId}" />. Derive from <see cref="Entity{TId}" /> directly
 /// for a child the aggregate holds, such as the lines of an order.
 /// </para>
+/// <para>
+/// Two entities are equal when they are of the same type and have the same <see cref="Id" />, however they were
+/// loaded. One with no id yet — an integer key before its insert — is equal only to itself.
+/// </para>
 /// </remarks>
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
-public abstract class Entity<TId> : IEntity
+#pragma warning disable S4035 // a base by design: Equals compares GetType(), so a derived type never equals its base
+public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>
+#pragma warning restore S4035
 {
+    // Taken once: an integer key is assigned on insert, and a set holding the entity must still find it after.
+    private int? _hash;
+
     /// <summary>Initializes the base.</summary>
     protected Entity()
     {
     }
+
+    /// <summary>Equal when of the same type with the same <see cref="Id" />; see <see cref="Equals(Entity{TId})" />.</summary>
+    public static bool operator ==(Entity<TId>? left, Entity<TId>? right) => Equals(left, right);
+
+    /// <summary>Not equal: see <see cref="op_Equality" />.</summary>
+    public static bool operator !=(Entity<TId>? left, Entity<TId>? right) => !Equals(left, right);
 
     /// <summary>The entity's identity. Set by the derived type's constructor or factory (or EF on materialization).</summary>
     public TId Id { get; protected set; } = default!;
@@ -31,6 +46,31 @@ public abstract class Entity<TId> : IEntity
 
     /// <summary>When the row last changed, in UTC. Stamped by the framework on every insert and update.</summary>
     public DateTime UpdatedAt { get; private set; }
+
+    private bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default!);
+
+    /// <summary>
+    ///     The same entity: the same type and the same <see cref="Id" />. One with no id yet is equal only to itself.
+    /// </summary>
+    /// <param name="other">The entity to compare with.</param>
+    public bool Equals(Entity<TId>? other) =>
+        other is not null &&
+        (ReferenceEquals(this, other) ||
+         (other.GetType() == GetType() && !IsTransient && !other.IsTransient &&
+          EqualityComparer<TId>.Default.Equals(Id, other.Id)));
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Entity<TId> other && Equals(other);
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     Fixed the first time it is asked for: from the type and the id, or — before the entity has an id — from the
+    ///     instance, so the id an insert assigns does not move it inside a set.
+    /// </remarks>
+#pragma warning disable S2328 // taken once on purpose: an insert assigns the id, and a set must still find the entity
+    public override int GetHashCode() =>
+        _hash ??= IsTransient ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this) : HashCode.Combine(GetType(), Id);
+#pragma warning restore S2328
 
     /// <summary>
     ///     Stamps this row's own times, for an entity whose package writes it and knows when.

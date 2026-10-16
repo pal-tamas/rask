@@ -11,7 +11,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   (or `Created` / `Updated`), `Versioned`, `Model` (or `CreateModel` / `UpdateModel`), `Deletable` or `SoftDelete`,
   `PerTenant`, `Broadcast`. A bare `Aggregate<Guid>` has none of them. A source generator finds every one and
   builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop a table.
-- **Value objects with no marker**: any record, struct or class an entity holds that is not an entity maps as an
+- **Value objects that compare by value**: a record, a record struct, or a class on `ValueObject` an entity holds maps as an
   EF **complex type**, columns on the owner's row. **Strongly-typed ids** get a generated value converter with
   nothing declared; mapping rules live in a plain `public static void Configure(EntityTypeBuilder<T>)` on the type.
 - **Queries off the type, rows from a generated read face**: `Product.Where(...)`, `Product.Count()`,

@@ -89,6 +89,38 @@ public class ReadModelGeneratorTests
     }
 
     [Fact]
+    public void An_id_naming_another_aggregates_child_becomes_a_navigation_on_the_read_face()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Pump : Aggregate<Guid>
+            {
+                private readonly List<Pistol> _pistols = [];
+                private Pump() { }
+                public IReadOnlyList<Pistol> Pistols => _pistols;
+            }
+            public sealed class Pistol : Entity<Guid>
+            {
+                private Pistol() { }
+                public int TankId { get; private set; }
+            }
+            public sealed class Fueling : Aggregate<Guid>
+            {
+                private Fueling() { }
+                public Guid PistolId { get; private set; }
+            }
+            """);
+
+        var face = run.GeneratedSource("Fuel_FuelingRead");
+
+        Assert.Contains("public global::Fuel.PistolRead Pistol { get; init; }", face, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void An_id_whose_name_and_key_match_an_aggregate_becomes_a_navigation()
     {
         var source = Run(Shop).GeneratedSource("Shop_OrderRead");
@@ -179,7 +211,7 @@ public class ReadModelGeneratorTests
             """);
 
         var diagnostic = Assert.Single(run.Diagnostics, d => d.Id == "RASK089");
-        Assert.Contains("not that aggregate's key type", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("not that entity's key type", diagnostic.GetMessage(), StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CustomerRead Customer", run.GeneratedSource("Shop_OrderRead"), StringComparison.Ordinal);
     }

@@ -24,7 +24,7 @@ public sealed record ContactName(string Value)
 }
 
 /// <summary>The shape RASK084 asks for: nothing public to set, built through a private constructor.</summary>
-public sealed class ContactCode
+public sealed record ContactCode
 {
     private ContactCode() { }
 
