@@ -301,3 +301,11 @@ bundle,bytes
 rask.js,108240
 rask.wasm.js,94350
 rask-hooks.js,98994
+#
+# 2026-10-16, tabs and the command palette drawn in the browser, merged onto the time picker: rask-hooks.js +3,738,
+# rask.js and rask.wasm.js +8 each over the time picker's block. Measured from a Release build of the merge on main
+# 6421cc137: rask.js 108,542, rask.wasm.js 94,630, rask-hooks.js 101,532.
+bundle,bytes
+rask.js,108542
+rask.wasm.js,94630
+rask-hooks.js,101532
