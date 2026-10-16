@@ -9,6 +9,19 @@ them until tagged releases begin.
 
 ### Added
 
+- **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**
+  Before: a row whose key is a pair, like Eszaf's `DeliveryNoteTransactions (DeliveryNoteId, TransactionId)`, could
+  not be an `Entity<TId>` at all, and an adopted table like it had to stay outside Rask.Data. After:
+  `public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates a
+  `DeliveryNoteId` and a `TransactionId` of those aggregates' key types, plus `new (int DeliveryNoteId, int
+  TransactionId) Id`. The table is keyed by the pair in tuple order, never generated, whether the context is
+  Rask's or wired by hand. `DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))` reads the key
+  parts, navigates to `t.Transaction`, and filters by tenant through the note. `DeliveryNote.Include(n =>
+  n.Fuellings)` loads them. A named value part (`Entity<(Order, int LineNo)>`) is a property the entity declares.
+  Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK105 (error) refuses
+  a form that would carry one. RASK105 also catches a class that is not `partial`, an unnamed or undeclared value
+  part, a name already taken, and a key of several columns on an aggregate root.
+
 - **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
   Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
   of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over

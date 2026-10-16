@@ -54,6 +54,18 @@ public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Tran
 /// <summary>The context the read tests open.</summary>
 public sealed class FuelContext(DbContextOptions<FuelContext> options) : RaskDbContext(options);
 
+/// <summary>A context of the app's own, wired by hand: it maps the tables and asks for Rask's conventions.</summary>
+public sealed class HandWiredFuelContext(DbContextOptions<HandWiredFuelContext> options) : DbContext(options), ITenantScoped
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DeliveryNote>().ToTable("DeliveryNotes");
+        modelBuilder.Entity<Transaction>().ToTable("Transactions");
+        modelBuilder.Entity<DeliveryNoteTransaction>().ToTable("DeliveryNoteTransactions");
+        modelBuilder.ApplyRaskConventions(this);
+    }
+}
+
 /// <summary>
 /// An entity keyed by several columns, declared as a tuple of types, read over a table an existing app made: the key
 /// parts, a filter on one of them, the navigation to the other aggregate, the tenant through the note, and the
@@ -115,6 +127,18 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
 
         Assert.Equal(["DeliveryNoteId", "TransactionId"], key.Properties.Select(static p => p.Name));
         Assert.All(key.Properties, static p => Assert.Equal(Microsoft.EntityFrameworkCore.Metadata.ValueGenerated.Never, p.ValueGenerated));
+    }
+
+    [Fact]
+    public void A_context_wired_by_hand_keys_the_table_by_the_same_parts()
+    {
+        using var context = new HandWiredFuelContext(new DbContextOptionsBuilder<HandWiredFuelContext>()
+            .UseSqlite($"Data Source={_dbPath}").Options);
+
+        var entity = context.Model.FindEntityType(typeof(DeliveryNoteTransaction))!;
+
+        Assert.Equal(["DeliveryNoteId", "TransactionId"], entity.FindPrimaryKey()!.Properties.Select(static p => p.Name));
+        Assert.Null(entity.FindProperty("Id"));
     }
 
     [Fact]

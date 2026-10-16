@@ -443,9 +443,14 @@ public static class ModelBuilderExtensions
     private static void ApplyKeyConvention(
         ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
     {
-        // A key of several columns is keyed, part by part, where its entity is mapped: there is no Id to set.
-        if (IdTypeOf(clrType) is not { } idType || IsInteger(idType) || IsComposite(idType))
+        if (IdTypeOf(clrType) is not { } idType || IsInteger(idType))
         {
+            return;
+        }
+
+        if (IsComposite(idType))
+        {
+            ApplyCompositeKey(modelBuilder, clrType);
             return;
         }
 
@@ -464,6 +469,38 @@ public static class ModelBuilderExtensions
 
         key.ValueGeneratedNever();
     }
+
+    // Entity<(DeliveryNote, Transaction)>: keyed by the parts the generated Id names, in its order, each the entity's
+    // to set. The names are the generated Id's own tuple names — a context wired by hand gets the same key as the
+    // generated registry's. The inherited Id — the tuple, and the generated one that reads it — is no column.
+    private static void ApplyCompositeKey(
+        ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
+    {
+        var builder = modelBuilder.Entity(clrType);
+        var conventional = (IConventionEntityType)builder.Metadata;
+
+        if (SaidByApp(conventional.GetPrimaryKeyConfigurationSource()) ||
+            KeyPartsOf(clrType) is not { Length: > 0 } parts)
+        {
+            return;
+        }
+
+        builder.Ignore(nameof(Entity<int>.Id));
+        builder.HasKey(parts);
+
+        foreach (var part in parts)
+        {
+            builder.Property(part).ValueGeneratedNever();
+        }
+    }
+
+    /// <summary>The parts of a key of several columns, as the generated <c>Id</c> names them, or null.</summary>
+    internal static string[]? KeyPartsOf([DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType) =>
+        clrType.GetProperty(nameof(Entity<int>.Id), BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            ?.GetCustomAttribute<TupleElementNamesAttribute>()?.TransformNames is { Count: > 0 } names &&
+        names.All(static n => n is not null)
+            ? [.. names.Select(static n => n!)]
+            : null;
 
     private static bool SaidByApp(ConfigurationSource? source) =>
         source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;

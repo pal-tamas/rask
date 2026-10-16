@@ -78,18 +78,6 @@ public class CompositeKeyGeneratorTests
     }
 
     [Fact]
-    public void The_model_registry_keys_the_table_by_its_parts_and_maps_no_id()
-    {
-        var registry = Run(Fuelling).GeneratedSource("__RaskModelRegistry");
-
-        Assert.Contains("__Fuel_DeliveryNoteTransaction.Ignore(\"Id\");", registry, StringComparison.Ordinal);
-        Assert.Contains(
-            "__Fuel_DeliveryNoteTransaction.HasKey(\"DeliveryNoteId\", \"TransactionId\");", registry, StringComparison.Ordinal);
-        Assert.Contains(
-            "__Fuel_DeliveryNoteTransaction.Property(\"TransactionId\").ValueGeneratedNever();", registry, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void The_read_face_lists_the_key_parts_instead_of_an_id_and_navigates_to_both_aggregates()
     {
         var run = Run(Fuelling);
