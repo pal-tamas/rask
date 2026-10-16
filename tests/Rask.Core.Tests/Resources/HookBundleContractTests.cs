@@ -62,6 +62,7 @@ public partial class HookBundleContractTests
         ["data-rask-on-input"] = "the runtime's own input mark; the list hook tells such a field what it rewrote in it",
         ["data-rask-tabs"] = "on a role=tablist, which is what loads the hooks",
         ["data-rask-match"] = "inside a data-rask-command",
+        ["data-rask-command-empty"] = "inside a data-rask-command",
         ["data-rask-tab"] = "inside a role=tablist, which is what loads the hooks",
         ["data-rask-locked"] = "written by the lock hook",
         ["data-rask-gutter"] = "written by the lock hook",

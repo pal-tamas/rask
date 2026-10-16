@@ -9,10 +9,7 @@ namespace Rask;
 public sealed partial class UiMenuSeparator : Component
 {
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Context.Get<UiMenuLevel>() is { Scope.AsOptions: true }
-            ? UiCommandRows.Separator()
-            : Line();
+    protected override Component? Render() => Line();
 
     /// <summary>
     ///     The line, edge to edge across the menu's padding: Flux's separator inside a marked box.

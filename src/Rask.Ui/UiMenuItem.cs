@@ -61,12 +61,6 @@ public sealed partial class UiMenuItem : Component
     {
         var level = Context.Get<UiMenuLevel>();
         var label = UiMenuRow.Label(Children);
-        if (level?.Scope.AsOptions == true)
-        {
-            // Inside Ui.Command, which is still drawn the old way until it is rebuilt on Flux's own item.
-            return UiCommandRows.Option(level, label, Icon, Kbd, Href, Disabled == true, OnClick, Class);
-        }
-
         var disabled = Disabled == true;
         var ordinal = level?.Scope.Register(level.Parent, label, disabled, isSub: false) ?? -1;
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal);

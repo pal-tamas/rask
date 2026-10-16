@@ -606,4 +606,10 @@ public enum RaskString
 
     /// <summary>The reconnect overlay's message once the page's session is gone.</summary>
     ConnectionSessionTimedOut,
+
+    /// <summary>The accessible name of a command palette's button that empties its search box.</summary>
+    CommandClear,
+
+    /// <summary>The accessible name of a command palette's button that closes the modal it is in.</summary>
+    CommandClose,
 }

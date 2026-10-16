@@ -24,7 +24,7 @@ namespace Rask;
 /// <c>InputClass</c> to the input.
 /// </para>
 /// </remarks>
-public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormControl
+public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormControl, IUiPressable
 {
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
@@ -93,7 +93,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     public string? InputClass { get; set; }
 
     /// <summary>
-    ///     Attributes for the <c>&lt;input&gt;</c> itself, written as given — what Flux forwards to it:
+    ///     Attributes for the <c>&lt;input&gt;</c> itself (the button, drawn <see cref="Ui.InputAs.Button" />), written as given — what Flux forwards to it:
     ///     <c>.Attributes(("aria-label", "Search keys"))</c>, <c>("required", "")</c>, <c>("autocomplete", "email")</c>.
     /// </summary>
     public IReadOnlyDictionary<string, string?>? Attributes { get; set; }

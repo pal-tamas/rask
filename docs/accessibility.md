@@ -221,8 +221,8 @@ links, reached with Tab. `Ui.Context` is the same menu opened by a right-click: 
 the pointer (`data-rask-contextmenu`), the ContextMenu key and Shift+F10 open it at the focused element, the
 menu takes focus as it opens, and focus goes back where it was when it closes —
 so give its area something focusable, or a keyboard user has no way in. `Ui.Command`, the command palette,
-is the combobox pattern instead: focus stays in its search box, the commands are the `option`s of the `listbox` it
-controls, the highlighted one is `aria-activedescendant` and says `aria-selected="true"`, and Enter presses it.
+keeps focus in its search box instead: the commands are the `option`s of a `listbox`, the lit one is the box's
+`aria-activedescendant`, and Enter presses it — as Flux writes it, the box has no `combobox` role.
 
 A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidden to match whenever the attribute
 changes — how a controlled menu opens from C#, which cannot call `showPopover()`. Escape and a press outside

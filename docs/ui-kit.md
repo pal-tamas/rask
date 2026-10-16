@@ -1626,7 +1626,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Empty` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Highlight` `Ui.List` `Ui.ListRow` `Ui.Stat` `Ui.StatusDot` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.DataGrid` `Ui.Column` `Ui.Tree` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Loading` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
@@ -2431,34 +2431,50 @@ key and Shift+F10 open it at the focused element, which is why the area above is
 the menu takes focus as it opens, so the arrow keys work at once. Nothing in a context menu should be the ONLY way
 to do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
 
-**`Ui.Command` is a command palette.** A search field that opens a dialog of commands — from a click, or from
-anywhere on the page with its `Shortcut`:
+**`Ui.Command` is Flux's command palette: a searchable list of commands.** Flux's parts, Flux's names —
+`Ui.Command` around a `Ui.CommandInput` and the `Ui.CommandItems` list of `Ui.CommandItem`s:
 
 ```csharp
-Ui.Command.Label("Search commands").Shortcut("mod+k")[
-    Ui.MenuGroup.Heading("Invoices")[
-        Ui.MenuItem.Icon(Ui.IconName.Plus).OnClick(NewInvoice)["New invoice"]
-    ],
-    Ui.MenuItem.Href(Routes.Settings())["Settings"]
+Ui.Command[
+    Ui.CommandInput.Placeholder("Search..."),
+    Ui.CommandItems[
+        Ui.CommandItem.Icon(Ui.IconName.UserPlus).Kbd("⌘A").OnClick(Assign)["Assign to…"],
+        Ui.CommandItem.Icon(Ui.IconName.DocumentPlus).OnClick(CreateFile)["Create new file"],
+        Ui.CommandItem.Icon(Ui.IconName.Cog6Tooth).Kbd("⌘,").OnClick(OpenSettings)["Settings"]
+    ]
 ]
 ```
 
-The commands are written as the `Ui.MenuItem`s a menu takes (and drawn the palette's own way until it is rebuilt
-on Flux's `command.item`). The dialog is the platform's modal `<dialog>`, opened by
-the invoker command as `Ui.Modal` is. Inside, the search box is a `combobox` over a `listbox` whose options are the
-commands: typing narrows them in the browser (case- and accent-insensitive, and a command that does not match is
-`hidden`, so the keyboard cannot land on it), ArrowUp and ArrowDown move the highlight while focus stays in the box,
-and Enter presses the highlighted command — its handler runs or its link is followed — and closes the palette.
-Opening the palette, typing into it, walking it and closing it send the server nothing (`data-rask-command`), as
-Flux's palette asks its server nothing; the command that is pressed is the page's own action.
+`OnClick` is Flux's `wire:click`: what pressing the command does. Everything else is the browser's, as Flux's custom
+element keeps it (`data-rask-command`): focus in the box lights the first command; typing hides the commands that do
+not contain it (any case, any accents), lights the first one left and shows "No results found" when none is;
+ArrowUp and ArrowDown move the lit command and stop at the ends; the pointer lights the command under it; Enter
+presses the lit one. A pressed command empties the box and nothing else — the palette stays where it is. None of
+that sends the server anything. `Ui.CommandInput` takes Flux's `Icon` (the magnifying glass unless set),
+`Placeholder`, `Clearable` and `Closable`; Flux draws the clear button whether or not it is asked to (measured), so
+it is there unless `Clearable(false)`, or the box is `Closable` and not also clearable. `Ui.CommandItem` takes
+`Icon`, `IconVariant` (outline unless set) and `Kbd`, a hint: the page binds the key.
 
-Three generic runtime hooks do what C# cannot. `data-rask-shortcut="mod+k"` CLICKS its element when the combination
-is pressed (`mod` is ⌘ on a Mac and Ctrl elsewhere; `ctrl`, `alt`, `shift`, `meta`; a shortcut with no modifier
-does not fire while the reader is typing), so a shortcut does exactly what a click on its element does.
-`data-rask-press-active` makes Enter click the element a combobox's `aria-activedescendant` names, because following
-a link is only reachable by clicking it. `data-rask-close-on-pick` closes a dialog after a click on an option in it
-has reached its handler. The field shows the shortcut in both platforms' words and the runtime marks a Mac
-(`data-rask-mac` on `<html>`), so the stylesheet shows ⌘K there and Ctrl K everywhere else.
+As a palette it is Flux's "As a modal" example — a bare `Ui.Modal` opened by a trigger, from anywhere on the page
+with its `Shortcut`, and `Closable` puts the box's close button on it:
+
+```csharp
+Ui.ModalTrigger.Name("search").Shortcut("mod+k")[
+    Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K")
+],
+Ui.Modal.Name("search").Variant(Ui.ModalVariant.Bare).Class("my-[12vh] max-h-screen w-full max-w-[30rem] overflow-y-hidden")[
+    Ui.Command.Class("inline-flex max-h-[76vh] flex-col border-none shadow-lg")[
+        Ui.CommandInput.Placeholder("Search...").Closable(),
+        Ui.CommandItems[/* … */]
+    ]
+]
+```
+
+`data-rask-shortcut="mod+k"` CLICKS its element when the combination is pressed (`mod` is ⌘ on a Mac and Ctrl
+elsewhere; `ctrl`, `alt`, `shift`, `meta`; a shortcut with no modifier does not fire while the reader is typing).
+As on Flux's page, the modal opens with focus on nothing inside it (Tab takes it into the box), Escape closes it,
+and what was typed is still there when it opens again. Flux caps the palette at 480px only while it is handed no
+class; the modal example's classes take the cap away.
 
 **`Ui.Popover` is Flux's popover: extra content in a panel beside a button.** For what is not a menu — a form,
 a set of filters, a card about a person. It is the second child of the `Ui.Dropdown` that holds its trigger,

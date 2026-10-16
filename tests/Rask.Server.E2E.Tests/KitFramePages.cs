@@ -192,11 +192,29 @@ public sealed partial class KitOverlayFramePage : KitFramePage
                 Ui.Modal.Key("state").Open(_confirming).OnClose(() => { _confirming = false; })[
                     Ui.Heading["Delete order"], Ui.ModalClose[Ui.Button.Id("state-cancel")["Cancel"]]
                 ]),
-            Part("command", Ui.Command.Label("Search commands")[
-                Ui.MenuItem["New invoice"], Ui.MenuItem["Copy invoice link"], Ui.MenuItem["Export all"], Ui.MenuItem.Danger["Sign out"]
-            ]),
+            Part("command", KitCommands.Of(Ui.Command, Ui.CommandInput.Placeholder("Search..."))),
+            Part("command-modal",
+                Ui.ModalTrigger.Name("palette")[Ui.Button.Id("command-open")["Search"]],
+                Ui.Modal.Key("palette").Name("palette").Variant(Ui.ModalVariant.Bare)[
+                    KitCommands.Of(Ui.Command, Ui.CommandInput.Placeholder("Search...").Closable())
+                ]),
             Part("toast", Ui.Button.Id("toast-raise").OnClick(() => Toast.Info("Your changes have been saved.").UntilDismissed())["Raise"]),
             Ui.ToastGroup[Ui.Toast]
+        ];
+}
+
+// Commands none of which the page heard: what a reader does to them is the palette's alone to draw.
+internal static class KitCommands
+{
+    internal static Component Of(UiCommand command, UiCommandInput input) =>
+        command[
+            input,
+            Ui.CommandItems[
+                Ui.CommandItem.Icon(Ui.IconName.Plus)["New invoice"],
+                Ui.CommandItem.Kbd("⌘L")["Copy invoice link"],
+                Ui.CommandItem["Export all"],
+                Ui.CommandItem["Sign out"]
+            ]
         ];
 }
 
