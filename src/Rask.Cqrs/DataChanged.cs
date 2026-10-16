@@ -8,7 +8,7 @@ namespace Rask.Cqrs;
 ///     <para>
 ///         Published for an entity that names <c>Broadcast</c> on its base, and consumed by
 ///         <c>Rask.Query</c>, which refetches the queries that declared they read that entity. An application
-///         rarely names it: declaring the const and calling <c>Live()</c> is the whole of it.
+///         rarely names it: <c>Broadcast</c> on the aggregate's base and a live query are the whole of it.
 ///     </para>
 ///     <para>
 ///         The entity travels as a name rather than a <see cref="System.Type" /> so the same event crosses

@@ -67,8 +67,11 @@ them until tagged releases begin.
   **Upgrading:** an aggregate that declared nothing adds `Timestamps, Versioned, Model, Deletable` to its base —
   otherwise its next migration drops `CreatedAt`, `UpdatedAt` and `Version`, and `X.Create(model)` /
   `X.Delete(id)` stop compiling; each const becomes its trait (`Deletes = Deletion.Soft` → `SoftDelete`,
-  `Scope = Tenancy.PerTenant` → `PerTenant`, `Checks = Concurrency.None` → leave `Versioned` out). Rask's own tables
-  name exactly what they had, so their schema is unchanged.
+  `Scope = Tenancy.PerTenant` → `PerTenant`, `Checks = Concurrency.None` → leave `Versioned` out). A declared
+  `public Guid? TenantId` stays plain `PerTenant` whatever its column is — one mapped to text with
+  `HasConversion<string>()` in `Configure` included: the key is the property's type, the conversion is the column's;
+  `PerTenant<int>`/`<long>` is only for a numbered tenant. Rask's own tables name exactly what they had, so their
+  schema is unchanged.
 
 - **BREAKING: timestamps are the aggregate's, and a child is written only through its aggregate.** Before: every
   child (`Entity<TId>` held in a root's collection, any depth) carried `CreatedAt`/`UpdatedAt` whatever its root
