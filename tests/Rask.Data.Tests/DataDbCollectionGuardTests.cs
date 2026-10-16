@@ -18,5 +18,7 @@ public sealed class DataDbCollectionGuardTests
             // Index builders over a bare ModelBuilder; it never builds a context.
             nameof(UniqueWithAMessageTests),
             // Lists of failures built from strings; it never builds a context.
-            nameof(GeneratedModelRulesTests));
+            nameof(GeneratedModelRulesTests),
+            // Value objects compared in memory; it never builds a context.
+            nameof(ValueObjectEqualityTests));
 }

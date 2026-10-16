@@ -133,15 +133,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             .OrderBy(static s => s.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
-        // Only an aggregate is a reference target: a child is part of somebody, and an id naming one would
-        // be a reference into the middle of an aggregate, which is the thing the border exists to stop.
-        var aggregates = new Dictionary<string, ReadModelShape.ReadTarget>(StringComparer.Ordinal);
-
-        foreach (var shape in shapes.Where(static s => s.IsAggregate))
-        {
-            aggregates[shape.SourceName] =
-                new ReadModelShape.ReadTarget(shape.FullyQualifiedName, shape.IdTypeName, shape.SourceTypeName);
-        }
+        var (aggregates, children) = ReferenceTargets(shapes);
 
         // A child's navigation back to its root is declared on the ROOT's shape, so the child's own face has
         // to be told about it before it can be emitted.
@@ -168,7 +160,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
 
         foreach (var shape in shapes)
         {
-            mappings.Add((shape, Resolve(context, shape, aggregates, inverses)));
+            mappings.Add((shape, Resolve(context, shape, aggregates, children, inverses)));
         }
 
         foreach (var (shape, navigations) in mappings)
@@ -181,11 +173,30 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         context.AddSource("__RaskReadModelRegistry.g.cs", SourceText.From(EmitRegistry(mappings), Encoding.UTF8));
     }
 
+    // An aggregate is the reference target first. A child of another aggregate is one too, on the READ side only —
+    // a fueling's PistolId reaches the pistol under its pump — but only for a name no aggregate takes, so a
+    // navigation an app already has never changes. The write side still holds nothing but the id.
+    private static (Dictionary<string, ReadModelShape.ReadTarget> Aggregates, Dictionary<string, ReadModelShape.ReadTarget> Children)
+        ReferenceTargets(List<ReadShape> shapes)
+    {
+        var aggregates = new Dictionary<string, ReadModelShape.ReadTarget>(StringComparer.Ordinal);
+        var children = new Dictionary<string, ReadModelShape.ReadTarget>(StringComparer.Ordinal);
+
+        foreach (var shape in shapes)
+        {
+            (shape.IsAggregate ? aggregates : children)[shape.SourceName] =
+                new ReadModelShape.ReadTarget(shape.FullyQualifiedName, shape.IdTypeName, shape.SourceTypeName);
+        }
+
+        return (aggregates, children);
+    }
+
     // Every {X}Id that resolves, with the ones that cannot reported rather than silently dropped.
     private static List<ReadNavigation> Resolve(
         SourceProductionContext context,
         ReadShape shape,
         IReadOnlyDictionary<string, ReadModelShape.ReadTarget> aggregates,
+        IReadOnlyDictionary<string, ReadModelShape.ReadTarget> children,
         Dictionary<string, List<(string RootReadType, string Name)>> inverses)
     {
         var navigations = new List<ReadNavigation>();
@@ -214,7 +225,10 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
 
         foreach (var reference in shape.References)
         {
-            var navigation = ReadModelShape.Resolve(reference, shape.SourceTypeName, aggregates, out var problem);
+            var navigation = ReadModelShape.Resolve(reference, shape.SourceTypeName, aggregates, out var problem) ??
+                             (problem is ReadModelShape.ReadReferenceProblem.None
+                                 ? ReadModelShape.Resolve(reference, shape.SourceTypeName, children, out problem)
+                                 : null);
 
             if (problem is not ReadModelShape.ReadReferenceProblem.None)
             {
@@ -225,8 +239,8 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
                     reference.Property,
                     reference.Target,
                     problem is ReadModelShape.ReadReferenceProblem.KeyTypeMismatch
-                        ? $"'{reference.IdTypeName}' is not that aggregate's key type"
-                        : "more than one aggregate's name ends there"));
+                        ? $"'{reference.IdTypeName}' is not that entity's key type"
+                        : "more than one entity's name ends there"));
 
                 continue;
             }

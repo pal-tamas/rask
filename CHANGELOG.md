@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
+  taking the name — infers a navigation on the read face, as one naming an aggregate always has:
+  `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side
+  gains it; the aggregate still holds just the id, and an existing navigation never changes.
+
 - **Entities compare by identity, and value objects by value — the build says when one does not.** Two entities of
   the same type with the same `Id` are now `Equals` and `==` (two loads of one row are the same entity); one with
   no id yet is equal only to itself, and its hash is fixed when first taken, so an integer key assigned on insert

@@ -377,7 +377,8 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `Guid CustomerId` + a `Customer : Aggregate<Guid>` | exact name match | `Customer` |
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
-| `Guid CustomerId`, no `Customer` aggregate | none | none — an ordinary `Guid` column |
+| `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
+| `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
 
@@ -394,7 +395,9 @@ await Order
     .Select(o => new { o.Reference, Customer = o.Customer.Name, o.TotalAmount });
 ```
 
-Four aggregates in one statement, from a write model that holds nothing but ids.
+Four aggregates in one statement, from a write model that holds nothing but ids. An id may name another
+aggregate's **child** too — `Fueling.Where(f => f.Pistol.TankId == tank)` reaches the pistol under its pump — and
+the child is filtered by its root's tenant like any other read.
 
 ### By id: a row, or the aggregate
 
