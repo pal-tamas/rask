@@ -32,6 +32,8 @@ public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Tran
 {
     public decimal Quantity { get; private set; }
 
+    internal static DeliveryNoteTransaction Blank() => new();
+
     public static void Configure(EntityTypeBuilder<DeliveryNoteTransaction> builder)
     {
         builder.ToTable("DeliveryNoteTransactions");
@@ -204,7 +206,7 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
     public async Task Writing_a_row_keyed_by_several_columns_is_refused_while_writes_are_not_supported()
     {
         await using var context = await OpenAsync();
-        context.Add(new DeliveryNoteTransaction());
+        context.Add(DeliveryNoteTransaction.Blank());
 
         var refused = await Assert.ThrowsAsync<NotSupportedException>(
             () => context.SaveChangesAsync(TestContext.Current.CancellationToken));

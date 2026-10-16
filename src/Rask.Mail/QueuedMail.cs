@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Rask.Data;
 
 namespace Rask.Mailing;
@@ -18,6 +19,26 @@ namespace Rask.Mailing;
 /// </remarks>
 public sealed class QueuedMail : Aggregate<long, Timestamps>
 {
+    /// <summary>The row for <paramref name="email" />, sent from <paramref name="from" /> once <paramref name="runAt" /> comes.</summary>
+    internal static QueuedMail For(Email email, EmailAddress from, DateTime runAt) => new()
+    {
+        From = MailSerializer.SerializeAddress(from),
+        To = JsonSerializer.Serialize(email.ToRecipients, MailSerializer.Options),
+        Cc = MailSerializer.ToJsonOrNull(email.CcRecipients),
+        Bcc = MailSerializer.ToJsonOrNull(email.BccRecipients),
+        ReplyTo = email.ReplyToAddress is { } r ? MailSerializer.SerializeAddress(r) : null,
+        Subject = email.SubjectText ?? "",
+        HtmlBody = email.HtmlBody,
+        TextBody = email.TextBody,
+        Attachments = MailSerializer.ToJsonOrNull(email.Attachments),
+        RunAt = runAt,
+        UserId = Current.UserId,
+
+        // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
+        // tenant-scoped table would otherwise throw, since background work carries no principal.
+        TenantId = Current.Tenant,
+    };
+
     /// <summary>The sender address, as JSON (see <see cref="MailSerializer"/>).</summary>
     public string From { get; internal set; } = "";
 

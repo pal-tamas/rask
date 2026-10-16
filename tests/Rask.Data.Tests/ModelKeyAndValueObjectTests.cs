@@ -198,7 +198,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         var first = await Chit.Create(1000, new ChitModel { Code = "SPRING" }, cancellationToken: TestContext.Current.CancellationToken);
-        var second = await Chit.Create(1001, chit => chit.Recode("SUMMER"), cancellationToken: TestContext.Current.CancellationToken);
+        var second = await Chit.Create(1001, new ChitModel { Code = "SUMMER" }, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal((1000, 1001), (first.Id, second.Id));
         Assert.Equal("SPRING", (await database.Load<Chit>(1000, TestContext.Current.CancellationToken))!.Code);
@@ -214,7 +214,7 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
         // It would insert the row under 0: the first lands and the second collides.
         var creates = typeof(ChitModelExtensions).GetMethods().Where(m => m.Name == "Create").ToList();
 
-        Assert.Equal(2, creates.Count);
+        Assert.Single(creates);
         Assert.All(creates, create => Assert.Equal(typeof(int), create.GetParameters()[0].ParameterType));
     }
 
@@ -258,11 +258,6 @@ public sealed class ModelKeyAndValueObjectTests : IDisposable
             m => m.Name == "Create" &&
                  (m.GetParameters()[0].ParameterType == typeof(LockerModel) ||
                   m.GetParameters()[0].ParameterType == typeof(Action<Locker>)));
-
-        // The lambda form takes the key the same way.
-        var moved = await Locker.Create(new LockerCode("B-7"), locker => locker.MoveTo("Debrecen"), cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal(new LockerCode("B-7"), moved.Id);
-        Assert.Equal("Debrecen", (await database.Load<Locker>(new LockerCode("B-7"), TestContext.Current.CancellationToken))!.Site);
     }
 
     [Fact]
