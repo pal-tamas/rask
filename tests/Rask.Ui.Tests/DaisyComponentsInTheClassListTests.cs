@@ -26,9 +26,10 @@ public sealed partial class DaisyComponentsInTheClassListTests
     // The kit's scan reads no comments since #1214, which took "collapse", "skeleton", "stat" and "toast" off:
     // what is left is in the list from an identifier (`card`, `badge`). "footer" and "textarea" joined when the daisy
     // components that wrote them as classes were deleted (the daisy footer and form field): the words are Flux's own
-    // identifiers now (a card's footer, the textarea), and the rules go with the plugin.
+    // identifiers now (a card's footer, the textarea), and the rules go with the plugin. "kbd" joined the same way
+    // when the daisy-drawn command palette went: the word is Flux's `kbd` prop and the editor's tag list now.
     private static readonly string[] _knownFromProse =
-        ["badge", "card", "footer", "textarea"];
+        ["badge", "card", "footer", "kbd", "textarea"];
 
     [Fact]
     public void Every_daisy_component_in_the_class_list_is_written_by_a_kit_component()
