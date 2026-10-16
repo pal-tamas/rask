@@ -189,6 +189,19 @@ public sealed class TemplateLintingTests
     }
 
     [Fact]
+    public void Vue_islands_hold_typescript_where_the_vue_template_does()
+    {
+        // vue-tsc cannot drive TypeScript 7, so a Vue island project floating onto it fails its island build.
+        using var vue = JsonDocument.Parse(Islands("vue")["package.json"]);
+        using var react = JsonDocument.Parse(Islands("react")["package.json"]);
+        using var template = JsonDocument.Parse(Client("vue")["package.json"]);
+
+        Assert.Equal(IslandAssembly.VueTypeScript, vue.RootElement.GetProperty("devDependencies").GetProperty("typescript").GetString());
+        Assert.Equal(IslandAssembly.VueTypeScript, template.RootElement.GetProperty("devDependencies").GetProperty("typescript").GetString());
+        Assert.Equal(FrontEndVersions.Latest, react.RootElement.GetProperty("devDependencies").GetProperty("typescript").GetString());
+    }
+
+    [Fact]
     public void An_island_config_reaches_features_and_nothing_else()
     {
         // appsettings.json, the vendored wwwroot/js bundles and the rest are the C# side's to format.

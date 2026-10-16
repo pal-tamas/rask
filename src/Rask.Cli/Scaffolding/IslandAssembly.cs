@@ -106,6 +106,12 @@ internal static class IslandAssembly
     internal const string ToolchainConfigFile = "vite.config.mjs";
 
     /// <summary>
+    ///     The TypeScript a project with Vue islands is held to: the last line vue-tsc can drive, kept equal to the
+    ///     Vue front-end template's by a test.
+    /// </summary>
+    internal const string VueTypeScript = "~6.0.3";
+
+    /// <summary>
     ///     The lint plugin each runtime adds to the project's Oxlint, and the rules it turns on.
     /// </summary>
     /// <remarks>
@@ -433,6 +439,13 @@ internal static class IslandAssembly
         // installs (VitePlusToolchain): the core it points `vite` at ships no `vite` command for that build to run.
         dependencies.TryAdd(VitePlusToolchain.Vite, FrontEndVersions.Latest);
         dependencies.TryAdd(VitePlusToolchain.Package, FrontEndVersions.Latest);
+
+        // The island build type-checks a .vue with vue-tsc, which drives TypeScript's JavaScript API — and the
+        // native TypeScript 7 no longer ships it. The same hold the Vue front-end template carries.
+        if (runtimes.Contains("vue", StringComparer.Ordinal))
+        {
+            dependencies["typescript"] = VueTypeScript;
+        }
 
         foreach (var runtime in runtimes)
         {
