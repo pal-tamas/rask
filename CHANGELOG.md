@@ -46,6 +46,13 @@ them until tagged releases begin.
   which TypeScript 7 no longer ships. `--islands` projects get the same checks from a `vite.config.mjs` scoped
   to `Features/` (Solid's rules confined to `Solid/` beside React or Preact), and keep `vite` itself for the
   island build. Angular keeps the Angular CLI and angular-eslint. See [the client's toolchain](docs/spa.md#the-clients-toolchain-vite).
+- **Islands bundle and hot-reload on Vite+.** Before: an `--islands` project kept `vite` itself beside
+  `vite-plus`, because the island build and the island dev server ran `npx vite`, which a Vite+ project's
+  aliased `vite` cannot answer. After: a new island project installs the same toolchain a front-end template
+  does (`vite` aliased to the Vite+ core in `devDependencies` and `overrides`), the island build runs
+  `npx vp build --config` and `rask dev` (or an editor-launched dev session) serves islands with
+  `npx vp dev --config`. Chosen from what `node_modules/.bin` holds after the install, so a project with Vite
+  alone keeps `vite build` and `vite`; a `RaskExternalBuildCommand` the project sets still wins.
 - **`AppStylesheet` links the app's compiled stylesheet from a hand-wired host.** Before: an app on
   `AddRask()` + `MapRask<App>()` wrote `Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")`
   itself, and that bare address is revalidated on every load. Now `HeadAssets => [Title["Shop"], AppStylesheet]`

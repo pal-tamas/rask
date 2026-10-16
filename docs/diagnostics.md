@@ -2835,7 +2835,9 @@ Vite exited without an error but `manifest.json` is not where the build expects 
 island's chunk through that file, so none would mount.
 
 **Fix:** read the bundler's own output just above the error — it names the file that failed. If
-`RaskExternalBuildCommand` is overridden, it has to run Vite with the generated config it is handed.
+`RaskExternalBuildCommand` is overridden, it has to run Vite with the generated config it is handed. Left
+unset, it is `npx vp build --config` in a project that installs Vite+ and `npx vite build --config`
+otherwise, chosen after the install.
 
 ### RASKISLAND003
 

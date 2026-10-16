@@ -935,13 +935,20 @@
                      AND '$(_RaskExternalDevUrl)' == ''"
           Inputs="@(_RaskExternalFile);$(_RaskExternalConfig)"
           Outputs="$(_RaskExternalManifest);$(IntermediateOutputPath)rask-external.build.stamp">
+    <!-- Chosen here rather than in the props: the install above is what linked node_modules/.bin, and a
+         Vite+ project's `vite` is an alias npx will not run (IslandDevCommand says why for the dev server). -->
+    <PropertyGroup>
+      <_RaskExternalBuildCmd>$(RaskExternalBuildCommand)</_RaskExternalBuildCmd>
+      <_RaskExternalBuildCmd Condition="'$(_RaskExternalBuildCmd)' == '' AND Exists('$(MSBuildProjectDirectory)/node_modules/.bin/vp')">npx --no-install vp build --config</_RaskExternalBuildCmd>
+      <_RaskExternalBuildCmd Condition="'$(_RaskExternalBuildCmd)' == ''">npx --no-install vite build --config</_RaskExternalBuildCmd>
+    </PropertyGroup>
     <Message Importance="high" Text="Rask islands: bundling @(_RaskExternalFile->Count()) island(s) ($(Configuration))"/>
-    <Exec Command="$(RaskExternalBuildCommand) &quot;$(_RaskExternalConfig)&quot;"
+    <Exec Command="$(_RaskExternalBuildCmd) &quot;$(_RaskExternalConfig)&quot;"
           WorkingDirectory="$(MSBuildProjectDirectory)"
           IgnoreStandardErrorWarningFormat="true"/>
     <Error Condition="!Exists('$(_RaskExternalManifest)')"
            Code="RASKISLAND002"
-           Text="Rask islands: the bundler finished but wrote no manifest at '$(_RaskExternalManifest)'. The client runtime resolves an island's chunk through that file, so every island on the page would fail to mount. Read the bundler's output just above this error for the file that failed. If RaskExternalBuildCommand is overridden, it has to run 'vite build' with the generated config it is handed ('$(_RaskExternalConfig)'): the manifest is written by a plugin in that config."/>
+           Text="Rask islands: the bundler finished but wrote no manifest at '$(_RaskExternalManifest)'. The client runtime resolves an island's chunk through that file, so every island on the page would fail to mount. Read the bundler's output just above this error for the file that failed. If RaskExternalBuildCommand is overridden, it has to run 'vp build' or 'vite build' with the generated config it is handed ('$(_RaskExternalConfig)'): the manifest is written by a plugin in that config."/>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <Touch Files="$(IntermediateOutputPath)rask-external.build.stamp" AlwaysCreate="true"/>
   </Target>

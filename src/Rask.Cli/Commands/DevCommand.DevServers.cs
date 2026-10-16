@@ -121,8 +121,8 @@ internal sealed partial class DevCommand
         {
             await _process
                 .RunAsync(
-                    "npx",
-                    ["--no-install", "vite", "--config", config.Value.Config],
+                    IslandDevCommand.FileName,
+                    IslandDevCommand.Arguments(target.ProjectDirectory, config.Value.Config),
                     target.ProjectDirectory,
                     cancellationToken)
                 .ConfigureAwait(false);

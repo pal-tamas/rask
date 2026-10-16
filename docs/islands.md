@@ -1108,8 +1108,9 @@ component's scoped TypeScript — and it reaches `Features/` and nothing else, s
 rest of the C# side stay `dotnet format`'s. The lint rules are each runtime's own, as in its
 [front-end template](spa.md#the-clients-toolchain-vite): Oxlint's React and Vue plugins, and
 `eslint-plugin-solid` and `eslint-plugin-lit` run inside it. Solid and React islands are both `.tsx`, so
-in a project holding both, Solid's rules apply under a `Solid/` folder only. The bundle itself is still
-`npx vite build` over the config Rask generates, so the project keeps `vite` beside `vite-plus`.
+in a project holding both, Solid's rules apply under a `Solid/` folder only. The bundle is Vite+ too:
+the island build runs `vp build` over the config Rask generates, and a dev session serves it with `vp dev`;
+a project with Vite alone, from before, keeps `vite build` and `vite`, chosen from what `node_modules/.bin` holds.
 
 By hand, if you are adding islands to a project you already have:
 

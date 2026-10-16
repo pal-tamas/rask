@@ -434,11 +434,13 @@ internal static class IslandAssembly
         SortedDictionary<string, string> overrides,
         IReadOnlyList<string> runtimes)
     {
-        // Vite itself, which the island build runs as `npx vite` over the config it generates under obj/, and
-        // vite-plus beside it for check, lint, format and the pre-commit hook. Not the alias a front-end template
-        // installs (VitePlusToolchain): the core it points `vite` at ships no `vite` command for that build to run.
-        dependencies.TryAdd(VitePlusToolchain.Vite, FrontEndVersions.Latest);
+        // vite-plus, and vite aliased to its core in both places, as a front-end template has them
+        // (VitePlusToolchain): the island build's generated config imports `vite` and the runtimes' plugins peer
+        // on it, so all of them meet the one core. The build and the dev server run it through `vp`
+        // (IslandDevCommand, _RaskExternalBundle): the core carries no `vite` command.
+        dependencies[VitePlusToolchain.Vite] = VitePlusToolchain.FloatingAlias;
         dependencies.TryAdd(VitePlusToolchain.Package, FrontEndVersions.Latest);
+        overrides[VitePlusToolchain.Vite] = VitePlusToolchain.FloatingAlias;
 
         // The island build type-checks a .vue with vue-tsc, which drives TypeScript's JavaScript API — and the
         // native TypeScript 7 no longer ships it. The same hold the Vue front-end template carries.

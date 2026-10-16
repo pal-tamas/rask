@@ -126,6 +126,7 @@
     <!-- An app VS Code's F5 launched starts its islands' Vite dev server itself (Dev/IslandDevServer). -->
     <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevPointer.cs" Link="Shared\Dev\IslandDevPointer.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevCommand.cs" Link="Shared\Dev\IslandDevCommand.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
   </ItemGroup>
 

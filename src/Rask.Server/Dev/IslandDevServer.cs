@@ -80,8 +80,8 @@ internal sealed partial class IslandDevServer : BackgroundService
         {
             process = DevServerProcess.Start(
                 "islands-vite",
-                "npx",
-                ["--no-install", "vite", "--config", found.Config],
+                IslandDevCommand.FileName,
+                IslandDevCommand.Arguments(contentRoot, found.Config),
                 contentRoot,
                 Path.Combine(contentRoot, "obj", "rask"),
                 LogViteLine);

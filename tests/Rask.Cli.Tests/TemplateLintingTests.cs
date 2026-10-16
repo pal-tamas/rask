@@ -116,12 +116,8 @@ public sealed class TemplateLintingTests
         Assert.Contains(".vite-hooks/pre-commit", files.Keys);
 
         using var manifest = JsonDocument.Parse(files["package.json"]);
-        // Vite itself for the island build, which runs `npx vite` (the alias's core ships no `vite` command),
-        // and vite-plus beside it for the checks.
-        var deps = manifest.RootElement.GetProperty("devDependencies");
-        Assert.Equal(FrontEndVersions.Latest, deps.GetProperty(VitePlusToolchain.Vite).GetString());
-        Assert.Equal(FrontEndVersions.Latest, deps.GetProperty(VitePlusToolchain.Package).GetString());
-        Assert.False(manifest.RootElement.TryGetProperty("overrides", out _));
+        // The same toolchain a front-end template installs; the island build and dev server run it through `vp`.
+        AssertToolchain(manifest.RootElement);
         var scripts = manifest.RootElement.GetProperty("scripts");
         Assert.All(new[] { "check", "lint", "format", "format:check", "prepare" },
             script => Assert.True(scripts.TryGetProperty(script, out _), script));

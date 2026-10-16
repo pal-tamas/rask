@@ -123,7 +123,12 @@ public sealed class IslandScaffoldTests
 
         Assert.Equal("^1.6.8", overrides.GetProperty("seroval").GetString());
         Assert.Equal("^1.6.8", overrides.GetProperty("seroval-plugins").GetString());
-        Assert.False(react.RootElement.TryGetProperty("overrides", out _));
+        // Every island project overrides `vite` with the Vite+ core (VitePlusToolchain), and nothing else
+        // unless a runtime it holds asks.
+        Assert.Equal(
+            [VitePlusToolchain.Vite],
+            react.RootElement.GetProperty("overrides").EnumerateObject().Select(o => o.Name));
+        Assert.Equal(VitePlusToolchain.FloatingAlias, overrides.GetProperty(VitePlusToolchain.Vite).GetString());
 
         static string Manifest(IReadOnlyList<ScaffoldFile> files) => files.Single(f =>
             string.Equals(Path.GetFileName(f.Path), "package.json", StringComparison.Ordinal)).Content;
