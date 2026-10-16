@@ -25,7 +25,7 @@ namespace Rask.Server.Http;
 ///         slowed by a file system call.
 ///     </para>
 /// </remarks>
-internal sealed class AppStylesheet
+internal sealed class AppStylesheet : Rask.Core.Components.IAppStylesheetSource
 {
     private const string ContentType = "text/css; charset=utf-8";
 
@@ -52,6 +52,9 @@ internal sealed class AppStylesheet
     /// <summary>Where the sheet is asked for, under the host's root: <c>/css/app.css</c>.</summary>
     public PathString RequestPath { get; }
 
+    /// <summary>The sheet's path in the web root: <c>css/app.css</c>.</summary>
+    public string Path => _path;
+
     /// <summary>The sheet's content hash, for its <c>?v=</c>; null when the app has none.</summary>
     public string? Hash => Current()?.Hash;
 
@@ -67,6 +70,7 @@ internal sealed class AppStylesheet
     {
         services.TryAddSingleton(static sp =>
             For(sp.GetRequiredService<IWebHostEnvironment>(), Assembly.GetEntryAssembly()));
+        services.TryAddSingleton<Rask.Core.Components.IAppStylesheetSource>(static sp => sp.GetRequiredService<AppStylesheet>());
         services.TryAddEnumerable(ServiceDescriptor.Transient<IStartupFilter, Startup>());
     }
 

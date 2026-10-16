@@ -80,8 +80,8 @@ internal sealed class RootErrorBoundary : Component
         if (defaults.AppStylesheet is { } stylesheet)
         {
             // Named by its hash where the host serves it, so the browser keeps it until it changes.
-            var version = defaults.AppStylesheetVersion?.Invoke();
-            head.Add(Link.Rel("stylesheet").Href(pathBase + "/" + stylesheet + (version is null ? "" : "?v=" + version)));
+            // The same link an app's own AppStylesheet writes, so a page that writes both gets it once.
+            head.Add(global::Rask.Core.Components.AppStylesheet.Of(stylesheet, defaults.AppStylesheetVersion?.Invoke()));
         }
 
         return [.. head];
