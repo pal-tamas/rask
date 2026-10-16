@@ -84,7 +84,17 @@ internal static class ReadModelShape
         var children = new List<ReadChildCollection>();
         var valueCollections = new List<ReadValueCollection>();
 
-        foreach (var property in StoredProperties(entity))
+        // A key of several columns stands where Id does, part by part: the generated {Aggregate}Id columns are
+        // nowhere in this compilation's symbols, and a scalar part the entity declares is listed once, with them.
+        var keyParts = CompositeKeyShape.HasCompositeKey(entity) ? CompositeKeyShape.ValidPartsOf(entity) : null;
+        if (keyParts is { Count: 0 })
+        {
+            return null;
+        }
+
+        var partNames = new HashSet<string>(keyParts?.Select(static p => p.Name) ?? [], StringComparer.Ordinal);
+
+        foreach (var property in StoredProperties(entity).Where(p => !partNames.Contains(p.Name)))
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -98,27 +108,10 @@ internal static class ReadModelShape
                 continue;
             }
 
-            if (IsIgnored(property) || IsCollectionOfEntities(property.Type))
+            if (!IsIgnored(property) && !IsCollectionOfEntities(property.Type))
             {
-                continue;
+                AddMember(entity, property, members, references, valueCollections, cancellationToken);
             }
-
-            // One column, not a set of flattened ones — see ReadValueCollection.
-            if (GeneratedModelShape.DescribeValueCollection(entity, property) is { } values)
-            {
-                valueCollections.Add(new ReadValueCollection(
-                    property.Name, TypeOf(values.Element), values.ValueObject is not null));
-                continue;
-            }
-
-            // A value object is not a member of its own: it is the columns it maps to.
-            if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
-            {
-                Flatten(property.Type, property.Name, property.Name, property.Name, members, 0, cancellationToken);
-                continue;
-            }
-
-            AddColumn(property, members, references);
         }
 
         if (!AggregateShape.TryGetIdType(entity, out var idType) || idType is null)
@@ -126,8 +119,59 @@ internal static class ReadModelShape
             return null;
         }
 
+        AddKey(entity, members, references, keyParts);
         AddFrameworkColumns(entity, members);
         return Shape(entity, idType, members, references, children, valueCollections);
+    }
+
+    // A collection of values, the columns of a value object, or one plain column.
+    private static void AddMember(
+        INamedTypeSymbol entity,
+        IPropertySymbol property,
+        List<ReadMember> members,
+        List<ReadReference> references,
+        List<ReadValueCollection> valueCollections,
+        CancellationToken cancellationToken)
+    {
+        // One column, not a set of flattened ones — see ReadValueCollection.
+        if (GeneratedModelShape.DescribeValueCollection(entity, property) is { } values)
+        {
+            valueCollections.Add(new ReadValueCollection(
+                property.Name, TypeOf(values.Element), values.ValueObject is not null));
+            return;
+        }
+
+        // A value object is not a member of its own: it is the columns it maps to.
+        if (AggregateShape.ValueObjectTypeOf(property.Type) is not null)
+        {
+            Flatten(property.Type, property.Name, property.Name, property.Name, members, 0, cancellationToken);
+            return;
+        }
+
+        AddColumn(property, members, references);
+    }
+
+    // Id — or the parts of a key of several columns, first and in the declaration's order, which the runtime keys the
+    // face by when it has no write model to read the key from. Each aggregate a part names is a reference like any
+    // other {X}Id: the same rule gives it its navigation.
+    private static void AddKey(
+        INamedTypeSymbol entity, List<ReadMember> members, List<ReadReference> references, IReadOnlyList<KeyPart>? keyParts)
+    {
+        if (keyParts is null)
+        {
+            if (AggregateShape.TryGetIdType(entity, out var idType) && idType is not null)
+            {
+                members.Insert(0, new ReadMember("Id", "Id", "Id", TypeOf(idType), false, IsReferenceType(idType)));
+            }
+
+            return;
+        }
+
+        members.InsertRange(0, keyParts.Select(static p =>
+            new ReadMember(p.Name, p.Name, p.Name, TypeOf(p.Type), false, IsReferenceType(p.Type))));
+        references.InsertRange(0, keyParts
+            .Where(static p => p.Aggregate is not null)
+            .Select(static p => new ReadReference(p.Name, p.Aggregate!.Name, TypeOf(p.Type), false)));
     }
 
     // A primitive column, and — for a {X}Id — the candidate reference it might be.
@@ -371,15 +415,10 @@ internal static class ReadModelShape
         }
     }
 
-    // Id for every entity, and the framework columns its consts leave it: the timestamps unless Stamps declines
-    // them, Version on a root unless Checks declines it, DeletedAt on a root that asked for soft delete.
+    // The framework columns an entity's consts leave it: the timestamps unless Stamps declines them, Version on a root
+    // unless Checks declines it, DeletedAt on a root that asked for soft delete.
     private static void AddFrameworkColumns(INamedTypeSymbol entity, List<ReadMember> members)
     {
-        if (AggregateShape.TryGetIdType(entity, out var idType) && idType is not null)
-        {
-            members.Insert(0, new ReadMember("Id", "Id", "Id", TypeOf(idType), false, IsReferenceType(idType)));
-        }
-
         // Only the columns the table has. A face that showed one the consts ruled out would compile —
         // OrderBy(d => d.CreatedAt) — and fail at the first query, on a column that was never there.
         if (AggregateShape.StampsCreated(entity))

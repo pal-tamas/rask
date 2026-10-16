@@ -123,7 +123,11 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                     context.ReportDiagnostic(Diagnostic.Create(
                         Rask082, entity.Location?.ToLocation(), entity.Name, entity.RefusalDetail));
                     continue;
+                case Refusal.CompositeKey:
+                    continue;
             }
+
+            ReportFormsOverCompositeChildren(context, entity);
 
             ReportShapeProblems(context, entity);
             ReportRuleMisses(context, entity, reportedMisses);
@@ -131,6 +135,28 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
             var hint = entity.FullyQualifiedName.Replace("global::", "") + ModelSuffix + ".g.cs";
             context.AddSource(hint, SourceText.From(Render(entity), Encoding.UTF8));
+        }
+    }
+
+    // A form saves what it carries, and a row keyed by several columns is not written through its aggregate yet: an
+    // aggregate whose form would hold one is refused rather than given a form that silently leaves it out.
+    private static void ReportFormsOverCompositeChildren(SourceProductionContext context, Entity entity)
+    {
+        if (entity.Writes == NoWrites)
+        {
+            return;
+        }
+
+        foreach (var held in entity.CompositeChildren)
+        {
+            var parts = held.Split('|');
+            context.ReportDiagnostic(Diagnostic.Create(
+                CompositeKeyGenerator.Rask105,
+                entity.Location?.ToLocation(),
+                parts[1],
+                $"'{entity.Name}.{parts[0]}' holds it on a form, and a row keyed by several columns is not written "
+                + $"through its aggregate yet; declare 'public const ModelWrites Writes = ModelWrites.None' on "
+                + $"'{entity.Name}' and read it through {parts[1]}.Where(…)"));
         }
     }
 
@@ -155,6 +181,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         None,
         Nested,
         Clash,
+        CompositeKey,
     }
 
     // Who produces the key of a row Create(model) inserts. See KeySourceOf.
@@ -197,7 +224,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool AnnouncesRequiredFields = false,
         bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,
-        EquatableArray<string> AwaitingChildren = default)
+        EquatableArray<string> AwaitingChildren = default,
+        EquatableArray<string> CompositeChildren = default)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,

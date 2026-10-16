@@ -149,7 +149,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             AggregateShape.ConstOf(symbol, "Scope", "Tenancy"),
             ChildTypeNamesOf(symbol),
             AggregateShape.IsAggregate(symbol),
-            unbuildable);
+            unbuildable,
+            new EquatableArray<string>([.. CompositeKeyShape.ValidPartsOf(symbol).Select(static p => p.Name)]));
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
@@ -716,6 +717,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             source.Append("        var ").Append(Local(entity)).Append(" = modelBuilder.Entity<")
                 .Append(entity.FullyQualifiedName).AppendLine(">();");
 
+            EmitCompositeKey(source, Local(entity), entity.KeyParts);
+
             // Value objects become complex properties: part of the row, not a joined table.
             var paths = entity.ValueObjects.Where(p => !p.Types.Any(idTypes.Contains)).ToList();
             EmitComplexProperties(source, Local(entity), paths, depth: 0, indent: "        ");
@@ -723,6 +726,26 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         source.AppendLine("    }");
         source.AppendLine();
+    }
+
+    // A key of several columns: its parts, in the declaration's order, each the entity's to set. The inherited Id —
+    // the tuple, and the generated one that reads it — is no column at all.
+    private static void EmitCompositeKey(StringBuilder source, string receiver, EquatableArray<string> parts)
+    {
+        if (parts.Count == 0)
+        {
+            return;
+        }
+
+        source.Append("        ").Append(receiver).AppendLine(".Ignore(\"Id\");");
+        source.Append("        ").Append(receiver).Append(".HasKey(")
+            .Append(string.Join(", ", parts.Select(static p => "\"" + p + "\""))).AppendLine(");");
+
+        foreach (var part in parts)
+        {
+            source.Append("        ").Append(receiver).Append(".Property(\"").Append(part)
+                .AppendLine("\").ValueGeneratedNever();");
+        }
     }
 
     // Nested value objects are configured through the lambda overload rather than by chaining onto a
@@ -952,5 +975,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         int? Scope,
         EquatableArray<string> ChildTypeNames,
         bool IsAggregate,
-        EquatableArray<UnbuildableHolder> UnbuildableHolders);
+        EquatableArray<UnbuildableHolder> UnbuildableHolders,
+        EquatableArray<string> KeyParts);
 }

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -442,7 +443,8 @@ public static class ModelBuilderExtensions
     private static void ApplyKeyConvention(
         ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
     {
-        if (IdTypeOf(clrType) is not { } idType || IsInteger(idType))
+        // A key of several columns is keyed, part by part, where its entity is mapped: there is no Id to set.
+        if (IdTypeOf(clrType) is not { } idType || IsInteger(idType) || IsComposite(idType))
         {
             return;
         }
@@ -479,6 +481,12 @@ public static class ModelBuilderExtensions
 
         return null;
     }
+
+    /// <summary>Whether <paramref name="idType" /> is a key of several columns — <c>Entity&lt;(DeliveryNote, Transaction)&gt;</c>.</summary>
+    internal static bool IsComposite(Type idType) => typeof(ITuple).IsAssignableFrom(idType);
+
+    /// <summary>Whether <paramref name="clrType" /> is keyed by several columns.</summary>
+    internal static bool HasCompositeKey(Type clrType) => IdTypeOf(clrType) is { } idType && IsComposite(idType);
 
     /// <summary>Whether <paramref name="type" /> is an integer key type the store's identity produces.</summary>
     internal static bool IsInteger(Type type)
