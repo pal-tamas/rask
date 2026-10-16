@@ -16,7 +16,8 @@ public abstract partial class KitDrawsWithoutAskingTests
     private const string ADay = " [role=gridcell] button >> nth=20";
     private const string ColorButton = "[data-c='color-picker'] [data-ui-color-picker-swatch-button]";
     private const string ColorArea = "[data-c='color-picker'] dialog [data-rask-drag]";
-    private const string CommandButton = "[data-c='command'] > button";
+    private const string CommandBox = "[data-c='command'] input";
+    private const string CommandOpen = "#command-open";
     private const string RangeStart = "[data-c='calendar-range'] [role=gridcell] button >> nth=10";
     private const string Rail = "label[for=sidebar-rail][role=button]";
     private const string PhoneNumber = "[data-c='phone'] input[type=tel]";
@@ -122,11 +123,19 @@ public abstract partial class KitDrawsWithoutAskingTests
             Escape(Pressing("#state-open")),
             Press("close by its button", "#state-cancel", Pressing("#state-open"))),
         ["command"] = On<KitOverlayFramePage>("command",
-            Press("open by a press", CommandButton),
-            Typing("[data-c='command'] input", "inv", "typing to filter", Pressing(CommandButton)),
-            Cursor(Pressing(CommandButton)),
-            Pointer("[data-c='command'] dialog", Pressing(CommandButton), "pointer over the open popup"),
-            Escape(Pressing(CommandButton))),
+            Press("focus the box by a press", CommandBox),
+            Typing(CommandBox, "inv", "typing to filter", Pressing(CommandBox)),
+            Cursor(Pressing(CommandBox)),
+            Pointer("[data-c='command'] [role=listbox]", Pressing(CommandBox), "pointer over the commands"),
+            Keys("press the lit command by Enter", Pressing(CommandBox), "Enter"),
+            Press("press a command", "[data-c='command'] [role=option] >> nth=1", Pressing(CommandBox)),
+            Press("empty the box by its button", "[data-c='command'] [aria-label='Clear command input']", TypingInto(CommandBox, "inv")),
+            Tab("[data-c='command']")),
+        ["command-modal"] = On<KitOverlayFramePage>("command-modal",
+            Press("open by its trigger", CommandOpen),
+            Typing("[data-c='command-modal'] input", "inv", "typing to filter", Pressing(CommandOpen)),
+            Escape(Pressing(CommandOpen)),
+            Press("close by its button", "[data-c='command-modal'] [aria-label='Close command modal']", Pressing(CommandOpen))),
         ["toast"] = On<KitOverlayFramePage>("toast",
             Press("raise one from the page's handler", "#toast-raise"),
             Pointer("[data-ui-toast-dialog]", Pressing("#toast-raise"), "pointer over the shown toast"),

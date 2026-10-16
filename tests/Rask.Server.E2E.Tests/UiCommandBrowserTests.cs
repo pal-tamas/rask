@@ -9,93 +9,110 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     <c>Ui.Command</c> on a live SERVER page: the palette is opened, narrowed by typing, walked by the arrows and
-///     closed in the browser, and the server hears only the command that is pressed — as Flux's palette asks its
+///     <c>Ui.Command</c> on a live SERVER page: the palette is narrowed by typing, walked by the arrows and the pointer
+///     and left in the browser, and the server hears only the command that is pressed — as Flux's palette asks its
 ///     server nothing until then.
 /// </summary>
 public sealed class UiCommandBrowserTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
-    private const string Lit = "() => document.getElementById(document.querySelector('[role=combobox]').getAttribute('aria-activedescendant') || '')?.dataset.raskMatch || ''";
+    private const string Box = "#palette input";
 
-    private const string Shown = "() => [...document.querySelectorAll('dialog [role=option]')].filter(o => !o.parentElement.hidden).map(o => o.dataset.raskMatch).join(', ')";
+    private const string Lit = "() => [...document.querySelectorAll('[role=option][data-active]')].map(o => o.dataset.raskMatch).join(', ')";
+
+    private const string Named = "() => document.getElementById(document.querySelector('#palette input').getAttribute('aria-activedescendant') || '')?.dataset.raskMatch || ''";
+
+    private const string Shown = "() => [...document.querySelectorAll('[role=option]')].filter(o => !o.hasAttribute('data-hidden')).map(o => o.dataset.raskMatch).join(', ')";
 
     [Fact]
-    public async Task Opening_typing_walking_and_closing_a_palette_sends_the_server_nothing()
+    public async Task Focusing_typing_walking_and_leaving_a_palette_sends_the_server_nothing()
     {
         await using var watched = await Watched.OpenAsync(playwright);
         var page = watched.Session.Page;
 
-        await page.ClickAsync("#palette > button");
-        var opened = await page.EvaluateAsync<string>(Lit);
-        await page.Keyboard.TypeAsync("r");
+        await page.ClickAsync(Box);
+        var focused = await page.EvaluateAsync<string>(Lit);
+        await page.Keyboard.TypeAsync("g");
         var narrowed = await page.EvaluateAsync<string>(Shown);
         await page.Keyboard.PressAsync("ArrowDown");
-        var walked = await page.EvaluateAsync<string>(Lit);
-        await page.Keyboard.PressAsync("Escape");
+        var walked = await page.EvaluateAsync<string>(Named);
+        await page.HoverAsync("[role=option] >> nth=0");
+        await page.Mouse.MoveAsync(2, 2);
+        await page.Keyboard.PressAsync("Tab");
 
-        // "Archive" matches and cannot be picked: it is shown, and the highlight passes over it.
-        Assert.Equal("New invoice", opened);
-        Assert.Equal("Archive, Réglages", narrowed);
-        Assert.Equal("Réglages", walked);
-        await Expect(page.Locator("dialog")).Not.ToBeVisibleAsync();
-        Assert.Equal((0, 0), watched.Frames());
-    }
-
-    [Fact]
-    public async Task The_arrows_pass_over_a_command_that_cannot_be_picked_and_go_around_the_ends()
-    {
-        await using var watched = await Watched.OpenAsync(playwright);
-        var page = watched.Session.Page;
-        await page.ClickAsync("#palette > button");
-
-        var lit = new List<string>();
-        foreach (var key in new[] { "ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp" })
-        {
-            await page.Keyboard.PressAsync(key);
-            lit.Add(await page.EvaluateAsync<string>(Lit));
-        }
-
-        Assert.Equal(["Réglages", "Sign out", "New invoice", "Sign out"], lit);
-        await Expect(page.Locator("dialog [role=option][aria-selected=true]")).ToHaveCountAsync(1);
-        Assert.Equal((0, 0), watched.Frames());
-    }
-
-    [Fact]
-    public async Task A_query_matches_without_accents_hides_the_separator_and_says_so_when_nothing_is_left()
-    {
-        await using var watched = await Watched.OpenAsync(playwright);
-        var page = watched.Session.Page;
-        await page.ClickAsync("#palette > button");
-
-        await page.Keyboard.TypeAsync("REGL");
-        var accents = await page.EvaluateAsync<string>(Shown);
-        var separator = page.Locator("dialog [role=separator]");
-        await Expect(separator).ToBeHiddenAsync();
-        await page.Keyboard.TypeAsync("zzz");
-
-        Assert.Equal("Réglages", accents);
-        await Expect(page.Locator("dialog .ui-command-empty")).ToBeVisibleAsync();
+        Assert.Equal("New invoice", focused);
+        Assert.Equal("Réglages, Sign out", narrowed);
+        Assert.Equal("Sign out", walked);
         Assert.Equal("", await page.EvaluateAsync<string>(Lit));
         Assert.Equal((0, 0), watched.Frames());
     }
 
     [Fact]
-    public async Task Enter_presses_the_lit_command_which_is_the_pages_own_action_and_the_palette_starts_over()
+    public async Task The_arrows_light_the_commands_shown_and_stop_at_the_ends()
     {
         await using var watched = await Watched.OpenAsync(playwright);
         var page = watched.Session.Page;
-        await page.ClickAsync("#palette > button");
+        await page.ClickAsync(Box);
+
+        var lit = new List<string>();
+        foreach (var key in new[] { "ArrowUp", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowDown", "ArrowUp" })
+        {
+            await page.Keyboard.PressAsync(key);
+            lit.Add(await page.EvaluateAsync<string>(Lit));
+        }
+
+        Assert.Equal(["New invoice", "Archive", "Réglages", "Sign out", "Sign out", "Réglages"], lit);
+        Assert.Equal("Réglages", await page.EvaluateAsync<string>(Named));
+        Assert.Equal((0, 0), watched.Frames());
+    }
+
+    [Fact]
+    public async Task A_query_matches_without_accents_and_says_so_when_nothing_is_left()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+        await page.ClickAsync(Box);
+
+        await page.Keyboard.TypeAsync("REGL");
+        var accents = await page.EvaluateAsync<string>(Shown);
+        await page.Keyboard.TypeAsync("zzz");
+
+        Assert.Equal("Réglages", accents);
+        await Expect(page.GetByText("No results found")).ToBeVisibleAsync();
+        await Expect(page.Locator("#palette [aria-label='Clear command input']")).ToBeVisibleAsync();
+        Assert.Equal("", await page.EvaluateAsync<string>(Lit));
+        Assert.Equal((0, 0), watched.Frames());
+    }
+
+    [Fact]
+    public async Task Enter_presses_the_lit_command_which_is_the_pages_own_action_and_the_box_starts_over()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+        await page.ClickAsync(Box);
         await page.Keyboard.TypeAsync("sign");
 
         await page.Keyboard.PressAsync("Enter");
 
         await Expect(page.Locator("#ran")).ToHaveTextAsync("Sign out");
-        await Expect(page.Locator("dialog")).Not.ToBeVisibleAsync();
         Assert.Equal(1, watched.Frames().Sent);
-        await page.ClickAsync("#palette > button");
-        await Expect(page.Locator("dialog input")).ToHaveValueAsync("");
+        await Expect(page.Locator(Box)).ToHaveValueAsync("");
         Assert.Equal("New invoice, Archive, Réglages, Sign out", await page.EvaluateAsync<string>(Shown));
         Assert.Equal("New invoice", await page.EvaluateAsync<string>(Lit));
+    }
+
+    [Fact]
+    public async Task The_clear_button_empties_the_box_and_every_command_is_back()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+        await page.ClickAsync(Box);
+        await page.Keyboard.TypeAsync("sign");
+
+        await page.ClickAsync("#palette [aria-label='Clear command input']");
+
+        await Expect(page.Locator(Box)).ToHaveValueAsync("");
+        Assert.Equal("New invoice, Archive, Réglages, Sign out", await page.EvaluateAsync<string>(Shown));
+        Assert.Equal((0, 0), watched.Frames());
     }
 
     // A session whose socket is counted from the moment the page and its hooks are in.
@@ -132,7 +149,7 @@ public sealed class UiCommandBrowserTests(PlaywrightFixture playwright) : IClass
     }
 }
 
-/// <summary>A palette of four commands, one of which cannot be picked, on a Server page.</summary>
+/// <summary>A palette of four commands on a Server page.</summary>
 public sealed partial class CommandBrowserPage : Component
 {
     private string _ran = "";
@@ -144,12 +161,14 @@ public sealed partial class CommandBrowserPage : Component
     protected override Component? Render() =>
         Div.Style("width:480px;margin:16px")[
             P.Id("ran")[_ran],
-            Div.Id("palette")[Ui.Command.Label("Search commands")[
-                Ui.MenuItem.OnClick(() => _ran = "New invoice")["New invoice"],
-                Ui.MenuItem.Disabled(true)["Archive"],
-                Ui.MenuSeparator,
-                Ui.MenuItem.OnClick(() => _ran = "Réglages")["Réglages"],
-                Ui.MenuItem.Danger.OnClick(() => _ran = "Sign out")["Sign out"]
+            Div.Id("palette")[Ui.Command[
+                Ui.CommandInput.Placeholder("Search..."),
+                Ui.CommandItems[
+                    Ui.CommandItem.OnClick(() => _ran = "New invoice")["New invoice"],
+                    Ui.CommandItem["Archive"],
+                    Ui.CommandItem.OnClick(() => _ran = "Réglages")["Réglages"],
+                    Ui.CommandItem.OnClick(() => _ran = "Sign out")["Sign out"]
+                ]
             ]]
         ];
 }

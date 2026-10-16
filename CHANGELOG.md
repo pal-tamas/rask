@@ -97,6 +97,20 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `Ui.Command` is Flux's command palette, in Flux's parts.** Before: `Ui.Command.Label("Search
+  commands").Shortcut("mod+k")[Ui.MenuItem…]` drew a field that opened a daisyUI dialog of menu rows, closed it on a
+  pick and emptied it on close. After: `Ui.Command[Ui.CommandInput.Placeholder("Search..."), Ui.CommandItems[
+  Ui.CommandItem.Icon(Ui.IconName.UserPlus).Kbd("⌘A").OnClick(Assign)["Assign to…"]]]` is the palette itself, held to
+  fluxui.dev as loaded, typed into, left with no match and opened as a modal (`scripts/flux/parity-command.mjs`, five
+  walks step for step). The filter, the lit command (`data-active`), the arrows (which now stop at the ends), the
+  pointer and Enter stay in the browser and send nothing; a pressed command empties the box and leaves the palette
+  open, as Flux's does. As a palette it is Flux's "As a modal" example: a bare `Ui.Modal` opened by
+  `Ui.ModalTrigger.Name("search").Shortcut("mod+k")`, whose trigger may now be `Ui.Input.As(Ui.InputAs.Button)` (it
+  carries the invoker, and an as-button input now forwards its `Attributes`), with `Ui.CommandInput.Closable()`.
+  `Label`, `Placeholder`, `Shortcut` and `EmptyText` on `Ui.Command`, the menu rows inside it and their `Href`,
+  `Disabled` and `Danger` are gone; "No results found", "Clear command input" and "Close command modal" are
+  `RaskString.CommandEmpty`, `CommandClear` and `CommandClose`, in English and Hungarian.
+
 - **Rask's own tables are aggregates.** `Job`, `RecurringJobState`, `QueuedMail`, `OutboxMessage`, `CacheEntry`,
   `StoredFile` and `PushSubscriber` derive from `Aggregate<TId, …>` instead of `Entity<TId, …>`, with the same traits
   and the same columns — their configurations leave `Version` and `DeletedAt` off, so a context that maps them with
