@@ -49,6 +49,27 @@ internal sealed class RaskTestHost : IDisposable
         LiveOptions.PathBase = string.Empty;
     }
 
+    // The path base is the process's (LiveOptions.PathBase), and every page writes it into its runtime tag: a host
+    // mounted under one, beside a test that reads its frames, adds 27 bytes to a frame of that other test's page and
+    // makes it a frame of its own. So a test that mounts one runs alone, in a collection that never runs in parallel.
+    private static void RunsAloneUnderAPathBase(string pathBase)
+    {
+        if (pathBase.Length == 0
+            || TestContext.Current.TestCollection is not Xunit.v3.IXunitTestCollection collection)
+        {
+            return;
+        }
+
+        var definition = collection.CollectionDefinition?.GetCustomAttributes(typeof(CollectionDefinitionAttribute), false)
+            .OfType<CollectionDefinitionAttribute>().SingleOrDefault();
+        if (definition is not { DisableParallelization: true })
+        {
+            throw new InvalidOperationException(
+                $"A host under the path base '{pathBase}' changes every page rendered beside it: put "
+                + $"{TestContext.Current.TestClass?.TestClassName} in a collection with DisableParallelization = true.");
+        }
+    }
+
     public static RaskTestHost Create<TApp>(
         Action<IServiceCollection>? configureServices = null,
         Action<IApplicationBuilder>? configureMiddleware = null,
@@ -60,6 +81,8 @@ internal sealed class RaskTestHost : IDisposable
         bool endpointRouting = false)
         where TApp : Component
     {
+        RunsAloneUnderAPathBase(pathBase);
+
         // Defaults to whatever WebApplication picks (Production under test, absent an env var).
         // Pass `environment` to exercise the Development-gated dev-time behaviour.
         var builder = environment is null

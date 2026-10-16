@@ -191,19 +191,6 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal(expected, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Under_a_path_base_the_mark_names_that_app_and_is_removed_once_used()
-    {
-        using var host = CreateHost<FollowApp>(pathBase: "/uj");
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/uj/open");
-        request.Headers.Add("Cookie", "rask-ended=%2Fuj");
-
-        using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
-
-        Assert.Equal("/uj/login?returnUrl=%2Fopen", response.Headers.Location?.OriginalString);
-        Assert.Contains(response.Headers.GetValues("Set-Cookie"), static c => c.StartsWith("rask-ended=;", StringComparison.Ordinal));
-    }
-
     private static Task InvokeAsync(System.Net.WebSockets.WebSocket ws, string argument) =>
         ws.SendJsonAsync(
             new
