@@ -91,143 +91,176 @@ internal static class IslandAssembly
         }
 
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies, overrides, runtimes)));
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "eslint.config.mjs"), EsLintConfig(runtimes)));
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierrc"), PrettierRc));
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".prettierignore"), PrettierIgnore));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ToolchainConfigFile), ToolchainConfig(runtimes)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".vite-hooks", "pre-commit"), PreCommitHook));
         return files;
     }
 
     /// <summary>
-    ///     The linting packages every island project gets, and the plugin each runtime adds.
+    ///     The project's Vite+ config — lint, format and the pre-commit hook's staged block, and no build.
     /// </summary>
     /// <remarks>
-    ///     The same set the front-end templates declare, kept in step by a test: an island written in
-    ///     React and a React client that lint under different rules is a project that argues with
-    ///     itself. Angular's plugin is deliberately absent here as it is there — angular-eslint expects
-    ///     its own builder wiring, and half-connecting someone else's linting is worse than the base.
+    ///     A <c>.mjs</c>, not the <c>vite.config.ts</c> a front-end template has: every <c>.ts</c> in a host
+    ///     project is a component's scoped TypeScript, and a config file paired with no component is RASK015.
     /// </remarks>
-    private static readonly (string Package, string Version)[] LintBase =
-    [
-        ("eslint", FrontEndVersions.Latest),
-        ("@eslint/js", FrontEndVersions.Latest),
-        ("typescript-eslint", FrontEndVersions.Latest),
-        ("prettier", FrontEndVersions.Latest),
-        ("eslint-config-prettier", FrontEndVersions.Latest),
-        ("globals", FrontEndVersions.Latest),
-    ];
+    internal const string ToolchainConfigFile = "vite.config.mjs";
 
-    private static readonly FrozenDictionary<string, (string Package, string Version)> LintPlugin =
-        new Dictionary<string, (string, string)>(StringComparer.Ordinal)
+    /// <summary>
+    ///     The lint plugin each runtime adds to the project's Oxlint, and the rules it turns on.
+    /// </summary>
+    /// <remarks>
+    ///     The same set each front-end template's <c>vite.config.ts</c> carries, kept in step by a test: an island
+    ///     written in React and a React client that lint under different rules is a project that argues with
+    ///     itself. React, Preact and Vue have plugins built into Oxlint; Solid and Lit have none, so their ESLint
+    ///     plugin runs inside it as a JS plugin and is the one package a runtime adds. Svelte and Angular add
+    ///     nothing: their templates are their compilers' to check, which the island build already runs.
+    /// </remarks>
+    private static readonly FrozenDictionary<string, LintPlugin> LintPlugins =
+        new Dictionary<string, LintPlugin>(StringComparer.Ordinal)
         {
-            ["react"] = ("eslint-plugin-react-hooks", FrontEndVersions.Latest),
-            ["preact"] = ("eslint-plugin-react-hooks", FrontEndVersions.Latest),
-            ["vue"] = ("eslint-plugin-vue", FrontEndVersions.Latest),
-            ["svelte"] = ("eslint-plugin-svelte", FrontEndVersions.Latest),
-            ["solid"] = ("eslint-plugin-solid", FrontEndVersions.Latest),
-            ["lit"] = ("eslint-plugin-lit", FrontEndVersions.Latest),
+            ["react"] = new("react", null, ["'react/rules-of-hooks': 'error'", "'react/exhaustive-deps': 'warn'"]),
+            ["preact"] = new("react", null, ["'react/rules-of-hooks': 'error'", "'react/exhaustive-deps': 'warn'"]),
+            ["vue"] = new("vue", null, []),
+            ["solid"] = new(null, "eslint-plugin-solid",
+            [
+                "'solid/components-return-once': 'warn'", "'solid/event-handlers': 'warn'", "'solid/imports': 'warn'",
+                "'solid/jsx-no-duplicate-props': 'error'", "'solid/jsx-no-script-url': 'error'", "'solid/jsx-uses-vars': 'error'",
+                "'solid/no-destructure': 'error'", "'solid/no-innerhtml': 'error'", "'solid/no-react-deps': 'warn'",
+                "'solid/no-react-specific-props': 'warn'", "'solid/prefer-for': 'error'", "'solid/reactivity': 'warn'",
+                "'solid/self-closing-comp': 'warn'", "'solid/style-prop': 'warn'",
+            ]),
+            ["lit"] = new(null, "eslint-plugin-lit",
+            [
+                "'lit/attribute-value-entities': 'error'", "'lit/binding-positions': 'error'",
+                "'lit/no-duplicate-template-bindings': 'error'", "'lit/no-invalid-html': 'error'",
+                "'lit/no-legacy-template-syntax': 'error'", "'lit/no-property-change-update': 'error'",
+            ]),
         }.ToFrozenDictionary(StringComparer.Ordinal);
 
-    private const string PrettierRc = """
-        {
-          "semi": false,
-          "singleQuote": true,
-          "printWidth": 100,
-          "trailingComma": "all"
-        }
-
-        """;
-
-    private const string PrettierIgnore = """
-        # Everything under obj/ and bin/ is generated or built — including the island prop types and the
-        # Vite config Rask writes for the bundle.
-        obj/
-        bin/
-        node_modules/
-        wwwroot/_rask/
-
-        # Written by npm; reformatting one makes every diff unreadable.
-        package-lock.json
-
-        """;
-
-    /// <summary>The flat config, carrying a plugin for each runtime the project actually holds.</summary>
-    private static string EsLintConfig(IReadOnlyList<string> runtimes)
+    /// <summary>One runtime's lint: an Oxlint built-in plugin, or an ESLint plugin run as a JS plugin, and its rules.</summary>
+    private sealed record LintPlugin(string? BuiltIn, string? JsPlugin, IReadOnlyList<string> Rules)
     {
-        var (imports, blocks) = EsLintPlugins(runtimes);
+        /// <summary>The name the plugin's rules are prefixed with: <c>eslint-plugin-solid</c> is <c>solid</c>.</summary>
+        public string? JsPluginName => JsPlugin?["eslint-plugin-".Length..];
+    }
+
+    // Hooks run from the repository root; this project may be a folder inside it.
+    private const string PreCommitHook = """
+        # Hooks run from the repository root, and this project may be a folder inside it: vp staged reads
+        # its staged block from the vite.config.mjs beside this folder. The PATH the hook runner adds is
+        # relative to the root, so it is made absolute again once here.
+        cd "$(dirname "$0")/.." || exit 1
+        PATH="$PWD/node_modules/.bin:$PATH" vp staged
+
+        """;
+
+    /// <summary>
+    ///     Where the Solid fragment puts its islands, and so the files Solid's rules are scoped to when they
+    ///     would otherwise reach another runtime's.
+    /// </summary>
+    /// <remarks>
+    ///     A Solid island and a React or Preact one are both <c>.tsx</c>, and only the <c>.cs</c> beside each says
+    ///     which runtime it is — so in a project holding both, Solid's rules (no destructured props, <c>class</c>
+    ///     over <c>className</c>) would fail the React component on its first <c>vp check</c>.
+    /// </remarks>
+    internal const string SolidFolder = "**/Solid/**";
+
+    /// <summary>The Oxlint plugins, JS plugins and project-wide rules for <paramref name="runtimes" />.</summary>
+    private static (string[] Plugins, string[] JsPlugins, string[] Rules, bool ScopeSolid) LintFor(IReadOnlyList<string> runtimes)
+    {
+        var chosen = runtimes
+            .Select(r => (Runtime: r, Plugin: LintPlugins.GetValueOrDefault(r)))
+            .Where(c => c.Plugin is not null)
+            .ToList();
+        var scopeSolid = runtimes.Contains("solid", StringComparer.Ordinal) && runtimes.Any(r => r is "react" or "preact");
+        string[] plugins = ["typescript", "oxc", .. chosen.Select(c => c.Plugin!.BuiltIn).OfType<string>().Distinct(StringComparer.Ordinal)];
+        string[] jsPlugins =
+        [
+            $"{{ name: 'vite-plus', specifier: '{VitePlusToolchain.Package}/oxlint-plugin' }}",
+            .. chosen
+                .Where(c => c.Plugin!.JsPlugin is not null)
+                .Select(c => $"{{ name: '{c.Plugin!.JsPluginName}', specifier: '{c.Plugin.JsPlugin}' }}")
+                .Distinct(StringComparer.Ordinal),
+        ];
+        string[] rules =
+        [
+            .. chosen
+                .Where(c => !(scopeSolid && string.Equals(c.Runtime, "solid", StringComparison.Ordinal)))
+                .SelectMany(c => c.Plugin!.Rules)
+                .Distinct(StringComparer.Ordinal),
+            "'vite-plus/prefer-vite-plus-imports': 'error'",
+        ];
+        return (plugins, jsPlugins, rules, scopeSolid);
+    }
+
+    /// <summary>The project's <see cref="ToolchainConfigFile" />, linting with each runtime's plugin.</summary>
+    private static string ToolchainConfig(IReadOnlyList<string> runtimes)
+    {
+        var (plugins, jsPlugins, rules, scopeSolid) = LintFor(runtimes);
+        var svelte = runtimes.Contains("svelte", StringComparer.Ordinal);
 
         // $$ so that a single brace is literal and {{…}} interpolates: this emits JavaScript, which is
         // mostly braces, and a raw string literal does not use the {{ doubling that a plain
         // interpolated string does.
         return $$"""
-            // ESLint's flat config for this project's islands. Close to the recommended sets on purpose:
-            // a starter that argues about style on its first run is a starter people delete the config
-            // from. eslint-config-prettier goes LAST and turns off every rule the formatter would fight.
+            {{(svelte ? "import { svelte } from '@sveltejs/vite-plugin-svelte'\nimport { defineConfig, lazyPlugins } from 'vite-plus'" : "import { defineConfig } from 'vite-plus'")}}
+
+            // The lint and format half of Vite+ for this project's islands (https://viteplus.dev/guide/):
+            // `vp check` reads the fmt and lint blocks, and the pre-commit hook the staged block. The
+            // islands are not bundled from here — Rask writes the Vite config that does that under obj/ on
+            // every build. Not type-aware: `dotnet build` type-checks every island already.
             //
-            // obj/ is ignored: the prop types and the Vite config Rask generates live there, and linting
-            // generated code reports problems in files nobody may edit.
-            {{imports}}
-            export default ts.config(
-              {
-                ignores: ['obj/**', 'bin/**', 'node_modules/**', 'wwwroot/_rask/**'],
+            // Both blocks reach Features/ and nothing else: the islands are written there, and the rest of
+            // the project is the C# side's, formatted by dotnet format and .editorconfig.
+            export default defineConfig({
+            {{(svelte ? SveltePlugins : "")}}  fmt: {
+                semi: false,
+                singleQuote: true,
+                printWidth: 100,
+                trailingComma: 'all',
+                ignorePatterns: ['/*', '!/Features/'],
               },
-            {{blocks}}  {
-                languageOptions: {
-                  globals: { ...globals.browser },
+              lint: {
+                ignorePatterns: ['/*', '!/Features/'],
+                plugins: [{{string.Join(", ", plugins.Select(p => $"'{p}'"))}}],
+                jsPlugins: [
+            {{Lines(jsPlugins, "      ")}}
+                ],
+                rules: {
+            {{Lines(rules, "      ")}}
                 },
+            {{(scopeSolid ? SolidOverride() : "")}}  },
+              staged: {
+                'Features/**/*.{js,mjs,cjs,ts,tsx,jsx,vue,svelte}': 'vp check --fix',
               },
-              prettier,
-            )
+            })
 
             """;
     }
 
-    /// <summary>The import lines and config blocks for each runtime's lint plugin.</summary>
-    private static (StringBuilder Imports, StringBuilder Blocks) EsLintPlugins(IReadOnlyList<string> runtimes)
-    {
-        var imports = new StringBuilder()
-            .AppendLine("import js from '@eslint/js'")
-            .AppendLine("import ts from 'typescript-eslint'")
-            .AppendLine("import globals from 'globals'")
-            .AppendLine("import prettier from 'eslint-config-prettier/flat'");
+    // svelte-check reads the Svelte config from the nearest vite.config: without the plugin named here it
+    // finds this file, sees no Svelte, and fails the island build's type check.
+    private const string SveltePlugins = """
+          // Not to bundle: svelte-check reads the Svelte config from the nearest vite.config, which is this one.
+          plugins: lazyPlugins(() => [svelte()]),
 
-        var blocks = new StringBuilder()
-            .AppendLine("  js.configs.recommended,")
-            .AppendLine("  ...ts.configs.recommended,");
+        """;
 
-        if (runtimes.Any(r => r is "react" or "preact"))
-        {
-            imports.AppendLine("import reactHooks from 'eslint-plugin-react-hooks'");
-            blocks.AppendLine("  reactHooks.configs.flat['recommended-latest'],");
-        }
+    private static string SolidOverride() => $$"""
+            // Solid and React islands are both .tsx; Solid's rules stay on the Solid ones (IslandAssembly.SolidFolder).
+            overrides: [
+              {
+                files: ['{{SolidFolder}}'],
+                rules: {
+        {{Lines(LintPlugins["solid"].Rules, "          ")}}
+                },
+              },
+            ],
 
-        if (runtimes.Contains("vue", StringComparer.Ordinal))
-        {
-            imports.AppendLine("import vue from 'eslint-plugin-vue'");
-            blocks.AppendLine("  ...vue.configs['flat/recommended'],");
-            blocks.AppendLine("  { files: ['**/*.vue'], languageOptions: { parserOptions: { parser: ts.parser } } },");
-        }
+        """;
 
-        if (runtimes.Contains("svelte", StringComparer.Ordinal))
-        {
-            imports.AppendLine("import svelte from 'eslint-plugin-svelte'");
-            blocks.AppendLine("  ...svelte.configs.recommended,");
-            blocks.AppendLine("  { files: ['**/*.svelte'], languageOptions: { parserOptions: { parser: ts.parser } } },");
-        }
-
-        if (runtimes.Contains("solid", StringComparer.Ordinal))
-        {
-            imports.AppendLine("import solid from 'eslint-plugin-solid'");
-            blocks.AppendLine("  solid.configs['flat/typescript'],");
-        }
-
-        if (runtimes.Contains("lit", StringComparer.Ordinal))
-        {
-            imports.AppendLine("import lit from 'eslint-plugin-lit'");
-            blocks.AppendLine("  lit.configs['flat/recommended'],");
-        }
-
-        return (imports, blocks);
-    }
+    private static string Lines(IEnumerable<string> entries, string indent) =>
+        string.Join("\n", entries.Select(e => $"{indent}{e},"));
 
     /// <summary>The flags the templates' island regions are marked with.</summary>
     /// <remarks>
@@ -386,8 +419,8 @@ internal static class IslandAssembly
     }
 
     /// <summary>
-    ///     The root manifest an island project needs: the chosen runtimes' packages, plus vite and
-    ///     TypeScript, which every one of them is bundled and checked by.
+    ///     The root manifest an island project needs: the chosen runtimes' packages, plus the Vite+
+    ///     toolchain and TypeScript, which every one of them is bundled and checked by.
     /// </summary>
     private static string Manifest(
         string name,
@@ -395,16 +428,17 @@ internal static class IslandAssembly
         SortedDictionary<string, string> overrides,
         IReadOnlyList<string> runtimes)
     {
-        foreach (var (package, version) in LintBase)
-        {
-            dependencies.TryAdd(package, version);
-        }
+        // Vite itself, which the island build runs as `npx vite` over the config it generates under obj/, and
+        // vite-plus beside it for check, lint, format and the pre-commit hook. Not the alias a front-end template
+        // installs (VitePlusToolchain): the core it points `vite` at ships no `vite` command for that build to run.
+        dependencies.TryAdd(VitePlusToolchain.Vite, FrontEndVersions.Latest);
+        dependencies.TryAdd(VitePlusToolchain.Package, FrontEndVersions.Latest);
 
         foreach (var runtime in runtimes)
         {
-            if (LintPlugin.TryGetValue(runtime, out var plugin))
+            if (LintPlugins.GetValueOrDefault(runtime)?.JsPlugin is { } plugin)
             {
-                dependencies.TryAdd(plugin.Package, plugin.Version);
+                dependencies.TryAdd(plugin, FrontEndVersions.Latest);
             }
         }
 
@@ -418,9 +452,12 @@ internal static class IslandAssembly
                 + "and bundles it with Vite; there is no entry point here and nothing to run by hand.",
             ["scripts"] = new JsonObject
             {
-                ["lint"] = "eslint .",
-                ["format"] = "prettier --write .",
-                ["format:check"] = "prettier --check .",
+                ["check"] = "vp check",
+                ["lint"] = "vp lint",
+                ["format"] = "vp fmt",
+                ["format:check"] = "vp fmt --check",
+                // Points git at .vite-hooks/, so the pre-commit hook runs `vp staged`; a no-op outside a repository.
+                ["prepare"] = "vp config",
             },
             ["devDependencies"] = new JsonObject(
                 dependencies.Select(d => new KeyValuePair<string, JsonNode?>(d.Key, d.Value))),

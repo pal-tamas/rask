@@ -764,7 +764,8 @@ install the list when the folder opens:
 | --- | --- |
 | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit), [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig), [Error Lens](https://marketplace.visualstudio.com/items?itemName=usernamehw.errorlens) | Every template. |
 | [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss) | `server`, `wasm`, `wasm-hosted` — the templates that compile Tailwind. |
-| [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint), [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) | An app with islands that use npm (every `--islands` runtime but `blazor`). |
+| [Vite+](https://marketplace.visualstudio.com/items?itemName=VoidZero.vite-plus-extension-pack) | Every Vite front end (`react`, `preact`, `vue`, `solid`, `svelte`, `lit`), and an app with islands that use npm (every `--islands` runtime but `blazor`): Oxlint and Oxfmt from its `vite.config`. |
+| [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) | `angular`, whose client keeps angular-eslint. |
 | [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) | An app with a `.vue` island (`--islands vue`). |
 | [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) | An app with a `.svelte` island (`--islands svelte`). |
 

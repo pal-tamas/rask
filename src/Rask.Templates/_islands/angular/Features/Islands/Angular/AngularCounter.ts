@@ -8,7 +8,9 @@ import type { AngularCounterProps } from '@rask/AngularCounter.props'
   template: `
     <div class="island-counter" data-testid="angular-counter">
       <div class="caption">{{ caption }}</div>
-      <button type="button" data-testid="angular-counter-add" (click)="add()">add {{ step }}</button>
+      <button type="button" data-testid="angular-counter-add" (click)="add()">
+        add {{ step }}
+      </button>
       <span class="total">
         total <strong data-testid="angular-counter-total">{{ total() }}</strong>
       </span>
@@ -23,7 +25,7 @@ export default class AngularCounter implements AngularCounterProps {
   readonly total = signal(0)
 
   add() {
-    this.total.update(t => t + this.step)
+    this.total.update((t) => t + this.step)
     this.onTotal?.(this.total())
   }
 }

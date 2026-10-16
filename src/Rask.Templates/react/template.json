@@ -21,6 +21,10 @@
     "client/src/push.ts": [
       "push",
       "pwa"
+    ],
+    "client/src/push.test.ts": [
+      "push",
+      "pwa"
     ]
   },
   "template": "react"

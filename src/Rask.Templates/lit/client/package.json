@@ -1,30 +1,31 @@
 {
   "name": "client",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "dev": "vp dev",
+    "build": "tsc && vp build",
+    "preview": "vp preview",
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "test": "vp test",
+    "prepare": "vp config"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
     "lit": "latest",
-    "tailwindcss": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0"
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "latest",
-    "eslint": "latest",
-    "eslint-config-prettier": "latest",
     "eslint-plugin-lit": "latest",
-    "globals": "latest",
-    "prettier": "latest",
     "typescript": "latest",
-    "typescript-eslint": "latest",
-    "vite": "latest"
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest"
   }
 }

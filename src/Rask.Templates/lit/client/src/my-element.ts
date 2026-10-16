@@ -204,9 +204,9 @@ export class MyElement extends LitElement {
                       <!-- seenAt is a real Date, revived because the C# type said so. -->
                       <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         Server time:
-                        ${new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                          this.greeting.seenAt,
-                        )}
+                        ${new Intl.DateTimeFormat(undefined, {
+                          timeStyle: 'medium',
+                        }).format(this.greeting.seenAt)}
                       </p>
                       <div>
                         <div class="text-sm text-zinc-500 dark:text-zinc-400">Visits</div>

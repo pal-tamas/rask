@@ -61,15 +61,18 @@ public sealed partial class FrontEndBuildE2ETests
 
             var (publish, publishOutput) = await CliBuildE2E.RunDotnet(
                 $"publish \"{Path.Combine(project, name + ".csproj")}\" -c Release -warnaserror -m:1 -o \"{published}\"");
-            var (lint, lintOutput) = await Npm("run lint", client);
-            var (format, formatOutput) = await Npm("run format:check", client);
+            var checks = new List<(string Command, int Exit, string Output)>();
+            foreach (var command in ClientChecks(key))
+            {
+                var (exit, output) = await Npm(command, client);
+                checks.Add((command, exit, output));
+            }
 
             Assert.True(publish == 0, $"--template {key} does not publish:\n{CliBuildE2E.Diagnostics(publishOutput)}");
             // The template ships no lockfile: the first build resolves the versions `rask new` chose, from the
             // live registry, so this gate is what proves the newest set still installs, builds, lints and serves.
             Assert.Contains("Rask.Spa.Hosting: npm install in", publishOutput, StringComparison.Ordinal);
-            Assert.True(lint == 0, $"{key}: npm run lint failed\n{Tail(lintOutput)}");
-            Assert.True(format == 0, $"{key}: npm run format:check failed\n{Tail(formatOutput)}");
+            Assert.All(checks, c => Assert.True(c.Exit == 0, $"{key}: npm {c.Command} failed\n{Tail(c.Output)}"));
             await AssertServesItsStarter(key, name, client, published);
         }
         finally
@@ -77,6 +80,14 @@ public sealed partial class FrontEndBuildE2ETests
             CliBuildE2E.TryDeleteDirectory(work);
         }
     }
+
+    /// <summary>
+    ///     What a client runs on itself after the publish: a Vite+ client's <c>check</c> (format, lint and type check
+    ///     in one pass) and its tests — the starter ships one, and a toolchain that cannot run it is broken — and
+    ///     Angular's angular-eslint and Prettier, which its own CLI keeps.
+    /// </summary>
+    private static string[] ClientChecks(string key) =>
+        key == "angular" ? ["run lint", "run format:check"] : ["run check", "test"];
 
     /// <summary>The published app answers <c>/</c> with the bundle's page and the starter's query with a greeting.</summary>
     private static async Task AssertServesItsStarter(string key, string name, string client, string published)

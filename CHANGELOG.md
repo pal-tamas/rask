@@ -9,6 +9,21 @@ them until tagged releases begin.
 
 ### Added
 
+- **The Vite front-end templates are Vite+ projects, and island projects check themselves with it.**
+  Before: `rask new --template react|preact|vue|svelte|solid|lit` wrote a client with Vite plus ESLint
+  (typescript-eslint, a framework plugin, eslint-config-prettier) and Prettier — three configs, a dozen
+  packages and no tests. After: one `vite-plus` package and one `client/vite.config.ts` carry the dev server,
+  the build, Oxfmt, type-aware Oxlint (React's and Vue's built-in rules; `eslint-plugin-solid` and
+  `eslint-plugin-lit` run inside it as JS plugins), Vitest and a `vp staged` pre-commit hook installed by
+  `npm install` (`prepare: vp config`, a no-op outside git). `npm run check` formats, lints and type-checks in
+  one pass, `npm test` runs the starter's first test (`src/push.test.ts`), and `client/.vscode/` makes Oxfmt the
+  formatter on save. `rask new` pins the toolchain as one: `vite-plus` exact, and `vite` aliased to the core it
+  ships in `devDependencies` and `overrides`, with every plugin's `vite` peer held to the Vite that core
+  bundles. The Vue client holds `typescript` on 6.x, because `vue-tsc` drives TypeScript's JavaScript API,
+  which TypeScript 7 no longer ships. `--islands` projects get the same checks from a `vite.config.mjs` scoped
+  to `Features/` (Solid's rules confined to `Solid/` beside React or Preact), and keep `vite` itself for the
+  island build. Angular keeps the Angular CLI and angular-eslint. See [the client's toolchain](docs/spa.md#the-clients-toolchain-vite).
+
 - **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
   Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
   of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over

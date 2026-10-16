@@ -1,35 +1,34 @@
 {
   "name": "client",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "svelte-check --tsconfig ./tsconfig.app.json && vite build",
-    "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "dev": "vp dev",
+    "build": "svelte-check --tsconfig ./tsconfig.app.json && vp build",
+    "preview": "vp preview",
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "format:check": "vp fmt --check",
+    "test": "vp test",
+    "prepare": "vp config"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "latest",
     "@sveltejs/vite-plugin-svelte": "latest",
     "@tsconfig/svelte": "latest",
     "@types/node": "^24.13.3",
-    "eslint": "latest",
-    "eslint-config-prettier": "latest",
-    "eslint-plugin-svelte": "latest",
-    "globals": "latest",
-    "prettier": "latest",
     "svelte": "latest",
     "svelte-check": "latest",
     "typescript": "latest",
-    "typescript-eslint": "latest",
-    "vite": "latest"
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest"
   },
-  "dependencies": {
-    "tailwindcss": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0"
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest"
   }
 }
