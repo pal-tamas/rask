@@ -108,8 +108,17 @@ public sealed class NoBootstrapClassesTests
     ///         kit's stylesheet, a genuine Bootstrap leftover spelled like a daisyUI class now goes
     ///         unreported. The alternative was a list that silently rots.
     ///     </para>
+    ///     <para>
+    ///         The bundle's own names count too: the shipped sheet carries only what the kit writes, and a
+    ///         project with its own Tailwind build (the site, a scaffolded app) gets any daisyUI class it
+    ///         writes itself.
+    ///     </para>
     /// </remarks>
-    private static readonly HashSet<string> DaisyUi = DefinedClassNames(UiStylesheet.Css);
+    private static readonly HashSet<string> DaisyUi =
+    [
+        .. DefinedClassNames(UiStylesheet.Css),
+        .. DefinedClassNames(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Styles", "daisyui.mjs"))),
+    ];
 
     private static HashSet<string> DefinedClassNames(string css)
     {

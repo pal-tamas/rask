@@ -50,16 +50,6 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_rating_bound_to_a_nullable_int_reads_null_as_unrated()
-    {
-        var model = new Form();
-
-        var html = Ui.Rating.Bind(() => model.Stars).Group("score").Label("Rate this").Max(5).ToHtml();
-
-        Assert.Contains("value=\"0\" checked", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_calendar_bound_to_a_nullable_date_marks_its_day_and_nothing_for_null()
     {
         var set = new Form { Due = new DateOnly(2026, 3, 14) };
@@ -75,14 +65,14 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
     public async Task A_commit_through_the_lifted_bind_writes_the_nullable_property()
     {
         var model = new Form();
-        var control = new UiRating { Group = "score", Label = "Rate this", Bind = ExpressionAccessor.NonNullable(() => model.Stars) };
+        var control = new UiSlider<double> { Bind = ExpressionAccessor.NonNullable(() => model.Volume) };
 
-        var (acc, ctx, current) = UiFormCommit.Resolve<int>(control);
+        var (acc, ctx, current) = UiFormCommit.Resolve<double>(control);
         Assert.Equal(0, current);
 
         await UiFormCommit.CommitAsync(control, acc, ctx, 4);
 
-        Assert.Equal(4, model.Stars);
+        Assert.Equal(4, model.Volume);
     }
 
     [Fact]
@@ -131,8 +121,6 @@ public partial class UiNullableBindingTests : global::Rask.Core.RaskMarkup
         public bool? InStock { get; set; }
 
         public double? Volume { get; set; }
-
-        public int? Stars { get; set; }
 
         public DateOnly? Due { get; set; }
     }

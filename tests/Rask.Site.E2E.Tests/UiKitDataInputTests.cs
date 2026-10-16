@@ -23,8 +23,8 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
 
         foreach (var id in new[]
                  {
-                     "ui-text-controls", "ui-toggle", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-rating", "ui-otp", "ui-otp-layout", "ui-filter",
-                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-file-upload", "ui-bound", "ui-mask",
+                     "ui-text-controls", "ui-toggle", "ui-input-group", "ui-textarea", "ui-select", "ui-listbox", "ui-select-search", "ui-combobox", "ui-autocomplete", "ui-pillbox", "ui-pillbox-combobox", "ui-checkbox", "ui-radio", "ui-switch", "ui-slider", "ui-slider-ticks", "ui-slider-range", "ui-otp", "ui-otp-layout",
+                     "ui-calendar", "ui-date-picker", "ui-time-picker", "ui-file-upload", "ui-bound",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -333,23 +333,6 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
-    public Task The_filter_narrows_and_resets() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-filter']");
-        var state = Page.Locator("[data-testid='ui-filter-state']");
-
-        await Expect(state).ToContainTextAsync("Showing everything");
-
-        await scope.Locator("input[value='feature']").CheckAsync();
-        await Expect(state).ToContainTextAsync("Filtered to feature");
-
-        await scope.Locator(".filter-reset").CheckAsync();
-        await Expect(state).ToContainTextAsync("Showing everything");
-    });
-
-    [Fact]
     public Task The_calendar_changes_month_and_picks_a_day() => RunAsync(async () =>
     {
         await OpenAsync();
@@ -398,11 +381,6 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         await scope.Locator("[data-ui-checkbox]").ClickAsync();
         await Expect(scope.Locator("[data-ui-checkbox] input")).ToBeCheckedAsync();
         await Expect(state).ToContainTextAsync("agreed yes");
-
-        // A rating is radios sharing a name, and a bound radio's state is `checked` rather than a
-        // value attribute — which is exactly what used to be wrong.
-        await scope.Locator("input.mask-star-2").Nth(2).CheckAsync();
-        await Expect(state).ToContainTextAsync("3 stars");
     });
 
     [Fact]

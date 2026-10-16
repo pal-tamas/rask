@@ -36,10 +36,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
         CardSection(),
         KanbanSection(),
         AccordionSection(),
-        AuraSection(),
-        TextRotateSection(),
-        Hover3DSection(),
-        HoverGallerySection(),
         CardsFiguresEmptySection(),
         ChartSection(),
         TableSection(),
@@ -156,52 +152,6 @@ public sealed partial class UiKitDataDisplayDemo : Component
         Ui.AccordionItem.Heading("How do I track my order?")[Tracking]
     ];
 
-    private static Component AuraSection() =>
-        Section(
-            "Aura",
-            "Decoration, and only decoration — it says nothing a reader who cannot see it would miss. "
-            + "Use it on the one thing a surface is steering towards.",
-            Div.Data(Testid("ui-aura")).Class("flex flex-wrap gap-6")[
-                Aura("holo", Ui.AuraStyle.Holo, "Holo"),
-                Aura("gold", Ui.AuraStyle.Gold, "Gold"),
-                Aura("rainbow", Ui.AuraStyle.Rainbow, "Rainbow")
-            ]);
-
-    private static Component TextRotateSection() =>
-        Section(
-            "Text rotate",
-            "One slot of text cycling through several words. Every word is in the markup, so the phrase "
-            + "has to make sense with all of them — this rotates a word, it does not rewrite a sentence.",
-            P.Class("text-2xl font-semibold tracking-tight").Data(Testid("ui-text-rotate"))[
-                "Ship it ",
-                Ui.TextRotate.Words(["fast", "typed", "small", "whole"]).Class("text-primary"),
-                "."
-            ]);
-
-    private static Component Hover3DSection() =>
-        Section(
-            "Hover 3D",
-            "Pointer-only by construction: there is no hover on a touch screen and none from a "
-            + "keyboard, so nothing may depend on the tilt.",
-            Div.Data(Testid("ui-hover-3d")).Class("max-w-xs")[
-                Ui.Hover3d[
-                    Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)["Tilt me"]], Ui.CardBody[P["The content is complete without the effect."]]]
-                ]
-            ]);
-
-    private static Component HoverGallerySection() =>
-        Section(
-            "Hover gallery",
-            "Several images in the space of one. The first is what shows at rest — and on a touch "
-            + "screen it is the only one anybody sees, so put the one that works alone first.",
-            Div.Data(Testid("ui-hover-gallery")).Class("max-w-sm")[
-                Ui.HoverGallery.Class("h-48 rounded-xl")[
-                    Swatch("one", "bg-primary"),
-                    Swatch("two", "bg-secondary"),
-                    Swatch("three", "bg-accent")
-                ]
-            ]);
-
     private static Component CardsFiguresEmptySection() =>
         Section(
             "Cards, figures and empty states",
@@ -266,29 +216,14 @@ public sealed partial class UiKitDataDisplayDemo : Component
             "Static, and covered by unit tests for their class composition.",
             Div.Data(Testid("ui-display-rest")).Class("flex flex-wrap items-center gap-3")[
                 Ui.Badge.Key("badge").Color(Ui.Color.Blue)["Beta"],
-                Ui.Kbd.Key("kbd").Text("⌘K").Sm,
                 // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
                 Span.Key("highlight").Data(Testid("ui-highlight"))[
                     Ui.Highlight.Text("…SQLite is small, and fast…")
                 ],
-                Ui.StatusDot.Key("status").Label("Healthy").Success,
-                Ui.Countdown.Key("countdown").Value(42).Label("seconds left"),
-                Ui.ChatBubble.Key("chat").Message("On my way").Author("Ada").When("09:14")
+                Ui.StatusDot.Key("status").Label("Healthy").Success
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);
-
-    private static Component Aura(string key, Ui.AuraStyle style, string label) =>
-        Div.Key(key)[
-            Ui.Aura.Style(style).Lg[
-                Div.Class("rounded-xl border border-base-300 bg-base-100 px-6 py-4 text-sm font-medium")[
-                    label
-                ]
-            ]
-        ];
-
-    private static Rask.Core.HTMLDivElement Swatch(string key, string colour) =>
-        Div.Key(key).Class($"h-full w-full {colour}");
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[
