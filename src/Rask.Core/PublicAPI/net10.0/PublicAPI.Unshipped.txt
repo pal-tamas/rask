@@ -1,4 +1,6 @@
 #nullable enable
+Rask.Core.Components.AppStylesheet
+Rask.Core.Components.AppStylesheet.AppStylesheet() -> void
 const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
 override Rask.Core.Css.GetHashCode() -> int
 override Rask.Core.Css.ToString() -> string!
@@ -7323,6 +7325,7 @@ static Rask.Core.RaskHostContracts.All.get -> System.Collections.Generic.IReadOn
 static Rask.Core.RaskHostContracts.BrowserApis.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
 static Rask.Core.RaskHostContracts.HostServices.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
 static Rask.Core.RaskHostContracts.NonServiceBrowserTypes.get -> System.Collections.Generic.IReadOnlyList<System.Type!>!
+static Rask.Core.RaskMarkup.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
 static Rask.Core.RaskMarkup.Authorize.get -> Rask.Core.Components.Authorize!
 static Rask.Core.RaskMarkup.DefaultNotFoundPage.get -> Rask.Core.Components.DefaultNotFoundPage!
 static Rask.Core.RaskMarkup.Doctype.get -> Rask.Core.Components.Doctype!
@@ -7397,6 +7400,7 @@ static Rask.Core.Virtualization.ItemsProviderResult<T>.operator !=(Rask.Core.Vir
 static Rask.Core.Virtualization.ItemsProviderResult<T>.operator ==(Rask.Core.Virtualization.ItemsProviderResult<T>? left, Rask.Core.Virtualization.ItemsProviderResult<T>? right) -> bool
 static Rask.Core.Virtualization.VirtualItem<T>.operator !=(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
 static Rask.Core.Virtualization.VirtualItem<T>.operator ==(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
+static Rask.Markup.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
 static RaskBuilderSettersRask_Core.ActiveClass(this Rask.Core.Components.NavLink! __b, string? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.ActiveMatch(this Rask.Core.Components.NavLink! __b, Rask.Core.Components.NavLinkMatch? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.Aria<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
@@ -7586,6 +7590,7 @@ static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Valid
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_VirtualizeModel(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Routing_Router(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.Wrap<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, string? value) -> Rask.Core.HTMLTextAreaElement<T>!
+static RaskEntriesRask_Core.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
 static RaskEntriesRask_Core.Authorize.get -> Rask.Core.Components.Authorize!
 static RaskEntriesRask_Core.DefaultNotFoundPage.get -> Rask.Core.Components.DefaultNotFoundPage!
 static RaskEntriesRask_Core.Doctype.get -> Rask.Core.Components.Doctype!

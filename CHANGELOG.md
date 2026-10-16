@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **`AppStylesheet` links the app's compiled stylesheet from a hand-wired host.** Before: an app on
+  `AddRask()` + `MapRask<App>()` wrote `Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css")`
+  itself, and that bare address is revalidated on every load. Now `HeadAssets => [Title["Shop"], AppStylesheet]`
+  writes the link `RaskApp` writes, `css/app.css?v={hash}` under the path base, kept by the browser until a
+  rebuild changes the sheet; on a `RaskApp` page that writes it too the head carries it once.
+
 - **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
   Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
   of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over

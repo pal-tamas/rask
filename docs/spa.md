@@ -417,6 +417,9 @@ already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `
 protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
 ```
 
+The app's own compiled sheet is the exception: the server answers `css/app.css` under the prefix as well, so
+`AppStylesheet` (`HeadAssets => [AppStylesheet]`) links `/new/css/app.css?v={hash}`, the link `RaskApp` writes.
+
 To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
 BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.
 
