@@ -68,7 +68,7 @@
 
 
   <!--
-    The table is an Entity<TId> so that it has a read face, which is what this brings. EF Core was already a
+    The table is an Aggregate<TId> so that it has a read face, which is what this brings. EF Core was already a
     dependency of this package; what is new is Rask.Data itself.
   -->
   <ItemGroup>

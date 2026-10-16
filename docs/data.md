@@ -29,7 +29,7 @@ the write side only; the read side has none.**
 ## The whole of it
 
 ```csharp
-public sealed record Money(decimal Amount, string Currency);   // a value object: no marker
+public sealed record Money(decimal Amount, string Currency);   // a value object: a record needs no base
 
 public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
@@ -87,13 +87,15 @@ publish cannot quietly drop an aggregate and leave you a missing table with a gr
 
 ### Aggregates, entities and value objects
 
-Rask.Data speaks domain-driven design, and the base class you derive from says which of the three a type is:
+Rask.Data speaks domain-driven design, and the base class you derive from says which of the three a type is. Two
+entities are equal when they are of the same type with the same `Id` — two loads of one row are the same entity —
+and one with no id yet (an integer key before its insert) is equal only to itself:
 
 | You declare | What it is | What it gets |
 | --- | --- | --- |
 | `Aggregate<TId, …>` | A consistency boundary: the thing you load, change and save as one | Its table, the static writes, its read face, domain events — and the [traits](#choosing-what-a-table-carries) it names: timestamps, `Version`, a form model, a `Delete` |
 | `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
-| anything else it holds | A value object: `Money`, `Address`, `Email`. No base class, no marker | Columns on the owner's row ([below](#value-objects)) |
+| a `record`, a `record struct`, or a class on `ValueObject` it holds | A value object: `Money`, `Address`, `Email` | Columns on the owner's row ([below](#value-objects)) |
 
 `Aggregate<TId>` derives from `Entity<TId>`, and the framework's columns are the ones its base names. They are
 real properties with private setters, so a screen can show them and a query can sort by them, while only the
@@ -253,6 +255,55 @@ public sealed class OrderLine : Entity<Guid, Timestamps>   // this child table h
 }
 ```
 
+### A key of several columns
+
+A child that is the meeting of two aggregates (which transactions fuelled which delivery note) is keyed by the pair,
+not by an `Id` of its own. Declare the key as a tuple of the **types** it joins, and make the class `partial`:
+
+```csharp
+public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model: read-only for now, see below
+{
+    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+}
+
+public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
+{
+    public decimal Quantity { get; private set; }
+}
+```
+
+Rask generates the rest. Each aggregate in the tuple becomes a `{Aggregate}Id` of **that aggregate's own key
+type**, so it is never written twice. `Id` becomes the key's values together:
+
+```csharp
+// generated
+public int DeliveryNoteId { get; private set; }
+public int TransactionId { get; private set; }
+public new (int DeliveryNoteId, int TransactionId) Id => (DeliveryNoteId, TransactionId);
+```
+
+The table's primary key is `(DeliveryNoteId, TransactionId)`, in the order the tuple names them, and nothing
+generates either value. A part that is a plain value is named, and the entity declares it:
+`Entity<(Order, int LineNo)>` with `public int LineNo { get; private set; }`. The same key reaches a context you
+wired yourself, through `ApplyRaskConventions`.
+
+It reads like any child. The read face lists the key's parts where `Id` would be. Each part infers its navigation
+by the usual `{X}Id` rule. The tenant comes through the aggregate that holds it, so the row needs no `TenantId`
+of its own:
+
+```csharp
+var fuellings = await DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))
+    .Select(t => new { t.DeliveryNoteId, t.TransactionId, t.Quantity, t.Transaction.ProductId });
+
+var note = await DeliveryNote.Include(n => n.Fuellings).First(n => n.Id == id);
+```
+
+**Writes come later.** For now a row keyed by several columns is read-only through Rask. A save that adds, changes
+or deletes one is refused with a `NotSupportedException`, and an aggregate whose form would carry one is
+[RASK106](diagnostics.md#rask106). Leave `Model` (and `CreateModel` / `UpdateModel`) off that aggregate's base,
+and write the table the way your app writes it today. A class that is not `partial`, a value part with no name, a name that is already
+taken, and a key of several columns on an aggregate **root** are RASK106 too.
+
 ### Collections of values
 
 A collection whose elements are **values** rather than entities is one column, not a table. Declare it the same
@@ -375,7 +426,8 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `Guid CustomerId` + a `Customer : Aggregate<Guid>` | exact name match | `Customer` |
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
-| `Guid CustomerId`, no `Customer` aggregate | none | none — an ordinary `Guid` column |
+| `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
+| `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
 
@@ -392,7 +444,9 @@ await Order
     .Select(o => new { o.Reference, Customer = o.Customer.Name, o.TotalAmount });
 ```
 
-Four aggregates in one statement, from a write model that holds nothing but ids.
+Four aggregates in one statement, from a write model that holds nothing but ids. An id may name another
+aggregate's **child** too — `Fueling.Where(f => f.Pistol.TankId == tank)` reaches the pistol under its pump — and
+the child is filtered by its root's tenant like any other read.
 
 ### By id: a row, or the aggregate
 
@@ -1587,10 +1641,45 @@ Which sentence, in this order:
 
 ## Value objects
 
-A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
-entity (a record, a struct or a plain class) is a value object, and its values become columns on the owning
-row: one that holds a single value is that value's column, and one that holds several is an EF Core **complex
-type**.
+A value object is **its values**: two with the same values are the same. Any composite an entity holds that is
+not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
+value's column, and one that holds several is an EF Core **complex type**.
+
+It must compare by value, or the build says so ([RASK106](diagnostics.md#rask106)). A `record` or a
+`record struct` already does, and needs nothing else. A plain class derives from `ValueObject` and names the values
+that make it the same:
+
+```csharp
+public sealed class Address : ValueObject
+{
+    private Address() { }
+
+    public string Street { get; private set; } = "";
+    public string City { get; private set; } = "";
+
+    protected override IEnumerable<object?> EqualityComponents()
+    {
+        yield return Street;
+        yield return City;
+    }
+}
+```
+
+A record that compares some other way says so in its own `Equals` — the language uses it for `==` too:
+
+```csharp
+public sealed record Email(string Value)
+{
+    public bool Equals(Email? other) =>
+        other is not null && string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Value);
+}
+```
+
+**The database may disagree with C#.** A string record compares ordinally and case-sensitively, while SQL Server's
+default `*_CI_*` collation — and a unique index under it — treats `"Abc"` and `"abc"` as one. Compare the value
+object the way its column does, as `Email` above does.
 
 ```csharp
 public sealed record Money(decimal Amount, string Currency);

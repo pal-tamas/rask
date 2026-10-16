@@ -9,6 +9,29 @@ them until tagged releases begin.
 
 ### Added
 
+- **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**
+  Before: a row whose key is a pair, like Eszaf's `DeliveryNoteTransactions (DeliveryNoteId, TransactionId)`, could
+  not be an `Entity<TId>` at all, and an adopted table like it had to stay outside Rask.Data. After:
+  `public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>` generates a
+  `DeliveryNoteId` and a `TransactionId` of those aggregates' key types, plus `new (int DeliveryNoteId, int
+  TransactionId) Id`. The table is keyed by the pair in tuple order, never generated, whether the context is
+  Rask's or wired by hand. `DeliveryNoteTransaction.Where(t => noteIds.Contains(t.DeliveryNoteId))` reads the key
+  parts, navigates to `t.Transaction`, and filters by tenant through the note. `DeliveryNote.Include(n =>
+  n.Fuellings)` loads them. A named value part (`Entity<(Order, int LineNo)>`) is a property the entity declares.
+  Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK106 (error) refuses
+  a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK106 also catches a class that is not `partial`, an unnamed or undeclared value
+  part, a name already taken, and a key of several columns on an aggregate root.
+- **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
+  taking the name — infers a navigation on the read face, as one naming an aggregate always has:
+  `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side
+  gains it; the aggregate still holds just the id, and an existing navigation never changes.
+
+- **Entities compare by identity, and value objects by value — the build says when one does not.** Two entities of
+  the same type with the same `Id` are now `Equals` and `==` (two loads of one row are the same entity); one with
+  no id yet is equal only to itself, and its hash is fixed when first taken, so an integer key assigned on insert
+  does not lose it from a `HashSet`. A value object is a `record`, a `record struct`, or — new — a plain class
+  deriving from `ValueObject` that names its `EqualityComponents()`. **BREAKING:** a plain class or struct held as
+  a value object is now RASK105, an error: make it a record (or record struct), or derive it from `ValueObject`.
 - **The Vite front-end templates are Vite+ projects, and island projects check themselves with it.**
   Before: `rask new --template react|preact|vue|svelte|solid|lit` wrote a client with Vite plus ESLint
   (typescript-eslint, a framework plugin, eslint-config-prettier) and Prettier — three configs, a dozen
@@ -73,6 +96,11 @@ them until tagged releases begin.
   See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
+
+- **Rask's own tables are aggregates.** `Job`, `RecurringJobState`, `QueuedMail`, `OutboxMessage`, `CacheEntry`,
+  `StoredFile` and `PushSubscriber` derive from `Aggregate<TId, …>` instead of `Entity<TId, …>`, with the same traits
+  and the same columns — their configurations leave `Version` and `DeletedAt` off, so a context that maps them with
+  `AddRaskJobs()` and the like but no `ApplyRaskConventions` is unchanged too. An `Entity` is now only ever a child.
 
 - **BREAKING: an aggregate names what its table carries on its base, and nothing is on by default.** Before: six
   `public const`s in the class body narrowed the conventions (`Stamps`, `Checks`, `Writes`, `Deletes`, `Scope`,

@@ -71,6 +71,8 @@
     <Compile Include="..\Rask.Generators.Shared\ModelValueCollection.cs" Link="Shared\ModelValueCollection.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelShape.cs" Link="Shared\ModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\CompositeKeyShape.cs" Link="Shared\CompositeKeyShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\KeyPart.cs" Link="Shared\KeyPart.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadModelShape.cs" Link="Shared\ReadModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadMember.cs" Link="Shared\ReadMember.cs"/>

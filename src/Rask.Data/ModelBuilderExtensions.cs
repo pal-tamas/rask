@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -439,6 +440,12 @@ public static class ModelBuilderExtensions
             return;
         }
 
+        if (IsComposite(idType))
+        {
+            ApplyCompositeKey(modelBuilder, clrType);
+            return;
+        }
+
         var key = modelBuilder.Entity(clrType).Property(nameof(Entity<int>.Id));
         var property = (IConventionProperty)key.Metadata;
 
@@ -454,6 +461,38 @@ public static class ModelBuilderExtensions
 
         key.ValueGeneratedNever();
     }
+
+    // Entity<(DeliveryNote, Transaction)>: keyed by the parts the generated Id names, in its order, each the entity's
+    // to set. The names are the generated Id's own tuple names — a context wired by hand gets the same key as the
+    // generated registry's. The inherited Id — the tuple, and the generated one that reads it — is no column.
+    private static void ApplyCompositeKey(
+        ModelBuilder modelBuilder, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType)
+    {
+        var builder = modelBuilder.Entity(clrType);
+        var conventional = (IConventionEntityType)builder.Metadata;
+
+        if (SaidByApp(conventional.GetPrimaryKeyConfigurationSource()) ||
+            KeyPartsOf(clrType) is not { Length: > 0 } parts)
+        {
+            return;
+        }
+
+        builder.Ignore(nameof(Entity<int>.Id));
+        builder.HasKey(parts);
+
+        foreach (var part in parts)
+        {
+            builder.Property(part).ValueGeneratedNever();
+        }
+    }
+
+    /// <summary>The parts of a key of several columns, as the generated <c>Id</c> names them, or null.</summary>
+    internal static string[]? KeyPartsOf([DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType) =>
+        clrType.GetProperty(nameof(Entity<int>.Id), BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            ?.GetCustomAttribute<TupleElementNamesAttribute>()?.TransformNames is { Count: > 0 } names &&
+        names.All(static n => n is not null)
+            ? [.. names.Select(static n => n!)]
+            : null;
 
     private static bool SaidByApp(ConfigurationSource? source) =>
         source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;
@@ -471,6 +510,12 @@ public static class ModelBuilderExtensions
 
         return null;
     }
+
+    /// <summary>Whether <paramref name="idType" /> is a key of several columns — <c>Entity&lt;(DeliveryNote, Transaction)&gt;</c>.</summary>
+    internal static bool IsComposite(Type idType) => typeof(ITuple).IsAssignableFrom(idType);
+
+    /// <summary>Whether <paramref name="clrType" /> is keyed by several columns.</summary>
+    internal static bool HasCompositeKey(Type clrType) => IdTypeOf(clrType) is { } idType && IsComposite(idType);
 
     /// <summary>Whether <paramref name="type" /> is an integer key type the store's identity produces.</summary>
     internal static bool IsInteger(Type type)

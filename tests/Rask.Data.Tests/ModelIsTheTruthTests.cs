@@ -15,8 +15,11 @@ public sealed record HarborBerth(string Dock, string? Note);
 /// <summary>A value object of several values that is only ever held where it must be there.</summary>
 public sealed record HarborGate(string Code, int Lane);
 
-/// <summary>A value object of several values: text and a number that may be empty, and text that may not.</summary>
-public sealed class HarborAddress
+/// <summary>
+/// A value object of several values, written as a plain class on <see cref="ValueObject" />: text and a number that
+/// may be empty, and text that may not.
+/// </summary>
+public sealed class HarborAddress : ValueObject
 {
     public const string OutOfRange = "A door is numbered 1 to 99.";
 
@@ -37,6 +40,16 @@ public sealed class HarborAddress
 
     public static HarborAddress Of(string street, string? floor, int? door, string? pin, HarborBerth berth) =>
         new() { Street = street, Floor = floor, Door = door, Pin = pin is null ? null : new HarborPin(pin), Berth = berth };
+
+    protected override IEnumerable<object?> EqualityComponents()
+    {
+        yield return Street;
+        yield return Floor;
+        yield return Door;
+        yield return Pin;
+        yield return Lit;
+        yield return Berth;
+    }
 }
 
 /// <summary>An aggregate holding one value object that must be there and one that may be absent.</summary>

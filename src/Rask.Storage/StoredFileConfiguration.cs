@@ -8,6 +8,9 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
 {
     public void Configure(EntityTypeBuilder<StoredFile> entity)
     {
+        // Not versioned and never soft-deleted, mapped with or without ApplyRaskConventions.
+        entity.Ignore(f => f.Version);
+        entity.Ignore(f => f.DeletedAt);
         entity.HasKey(f => f.Id);
         entity.Property(f => f.Name).HasMaxLength(255).IsRequired();
         entity.Property(f => f.ContentType).HasMaxLength(127).IsRequired();

@@ -127,7 +127,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         var name = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var (configures, configureProblem) = FindConfigure(symbol, name);
-        var valueObjects = ValueObjectPaths(symbol, out var unbuildable);
+        var valueObjects = ValueObjectPaths(symbol, out var unbuildable, out var referenceValues);
 
         return new Candidate(
             name,
@@ -146,7 +146,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             ValueCollections(symbol),
             ChildTypeNamesOf(symbol),
             AggregateShape.IsAggregate(symbol),
-            unbuildable);
+            unbuildable,
+            referenceValues);
     }
 
     // The child entities this aggregate holds. Needed because tenancy is declared on the ROOT and a child
@@ -193,12 +194,15 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
     // A value object of several values EF Core cannot build is noted on the way (RASK103): it is found exactly
     // where it would be mapped as a complex type, so nothing the mapping skips is ever reported.
     private static EquatableArray<ValueObjectPath> ValueObjectPaths(
-        INamedTypeSymbol entity, out EquatableArray<UnbuildableHolder> unbuildable)
+        INamedTypeSymbol entity, out EquatableArray<UnbuildableHolder> unbuildable,
+        out EquatableArray<ReferenceValue> referenceValues)
     {
         var paths = new List<ValueObjectPath>();
         var holders = new List<UnbuildableHolder>();
+        var byReference = new List<ReferenceValue>();
         Walk(entity, [], [], ImmutableHashSet.Create<string>(StringComparer.Ordinal));
         unbuildable = new EquatableArray<UnbuildableHolder>([.. holders]);
+        referenceValues = new EquatableArray<ReferenceValue>([.. byReference]);
         return new EquatableArray<ValueObjectPath>([.. paths]);
 
         void Walk(ITypeSymbol owner, ImmutableArray<string> prefix, ImmutableArray<string> types, ImmutableHashSet<string> seen)
@@ -238,6 +242,11 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
                 if (singleValue is null && UnbuildableHolderOf(type) is { } holder)
                 {
                     holders.Add(holder);
+                }
+
+                if (!ComparesByValue(type))
+                {
+                    byReference.Add(new ReferenceValue(typeName, type.Name, SymbolLocation.From(property)));
                 }
 
                 Walk(type, path, pathTypes, seen.Add(typeName));
@@ -362,6 +371,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             entities.Select(static e => e.Id.TypeName).Where(static t => t is not null).Select(static t => t!),
             StringComparer.Ordinal);
 
+        ReportReferenceValues(context, entities, idTypes);
         EmitMapEntities(source, entities, idTypes);
         EmitConfigureConventions(source, entities);
         EmitApplyConfigurations(source, entities);
@@ -910,5 +920,6 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         EquatableArray<ValueCollectionSpec> Collections,
         EquatableArray<string> ChildTypeNames,
         bool IsAggregate,
-        EquatableArray<UnbuildableHolder> UnbuildableHolders);
+        EquatableArray<UnbuildableHolder> UnbuildableHolders,
+        EquatableArray<ReferenceValue> ReferenceValues);
 }

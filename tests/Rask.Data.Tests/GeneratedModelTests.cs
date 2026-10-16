@@ -17,7 +17,7 @@ public sealed record Money(decimal Amount, string Currency);
 // says so at model build ("Cannot bind 'Cost' in Packaging(Money Cost, string Material)"). So a value
 // object that contains another value object needs a parameterless constructor and writable properties —
 // both may be private (RASK084), since EF Core reaches them the way it reaches an entity's. One holding only scalars, like Money above, has no such constraint.
-public sealed class Packaging
+public sealed record Packaging
 {
     private Packaging() { } // EF materialization
 
