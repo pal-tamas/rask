@@ -47,6 +47,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["slider: drag, still held"] = (12, "the value, as it moves: a frame a step of the pointer"),
         ["toggle-heard: press"] = (1, "the value"),
         ["switch: flip"] = (1, "the value"),
+        ["tabs-heard: switch by a press"] = (1, "the page's OnChange"),
+        ["tabs-heard: switch by the arrows"] = (3, "the page's OnChange, once per tab chosen"),
         ["textarea: typing, then leaving the field"] = (1, "the value, on change"),
         ["time-picker: pick a time"] = (1, "the page's OnChange"),
         ["time-picker-input: typing a part of the time"] = (1, "the value: the hour typed over 09:30 makes 10:30, as Flux's field says it"),
@@ -61,17 +63,11 @@ public abstract partial class KitDrawsWithoutAskingTests
     /// </summary>
     private static readonly Dictionary<string, int> Known = new(StringComparer.Ordinal)
     {
-        ["command: open by a press"] = 1,
-        ["command: typing to filter"] = 6,
-        ["command: cursor keys"] = 9,
-        ["command: close by Escape"] = 2,
         // A select that waits holds its pick for the next action, and the press that makes it is still sent —
         // alone, as drawing (data-rask-draws). Flux draws the picked option itself and sends nothing.
         ["select-bound: pick a row"] = 1,
-        ["tabs-segmented: switch by a press"] = 1,
-        ["tabs-segmented: switch by the arrows"] = 3,
-        ["tabs: switch by a press"] = 1,
-        ["tabs: switch by the arrows"] = 3,
+        ["slider-bound: drag and release"] = 12,
+        ["slider-bound: arrow keys"] = 5,
         ["tree: focus and blur by Tab"] = 3,
         ["tree: cursor keys"] = 9,
         ["tree: press a node"] = 1,

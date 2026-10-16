@@ -45,7 +45,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
         var button = await devTools.Page.Locator("#add-task").BoundingBoxAsync();
         Assert.NotNull(button);
         await devTools.Panel.GetByRole(AriaRole.Button, new() { Name = "Pick" }).ClickAsync();
-        await Expect(devTools.Panel.Locator("[aria-pressed=\"true\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.Locator('[aria-pressed='true']', new() { HasText = 'Pick' })", () => Expect(devTools.Panel.Locator("[aria-pressed=\"true\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible));
 
         // By the pointer, not the element: while picking, a glass over the page takes every pointer event, which is what
         // keeps the click from the app. The button is the board's own markup, so the board is what the pick selects.
@@ -57,7 +57,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
 
         await Expect(Details(devTools).Locator(".font-semibold").First).ToHaveTextAsync("Board", DevToolsPage.Text);
         await Expect(devTools.Page.Locator("#board li")).ToHaveCountAsync(2);
-        await Expect(devTools.Panel.Locator("[aria-pressed=\"false\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.Locator('[aria-pressed='false']', new() { HasText = 'Pick' })", () => Expect(devTools.Panel.Locator("[aria-pressed=\"false\"]", new() { HasText = "Pick" })).ToBeVisibleAsync(DevToolsPage.Visible));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
         var reads = devTools.Panel.Locator("[data-rask-devtools-reads]");
         await Expect(reads).ToContainTextAsync("Release", DevToolsPage.Contains);
         await reads.GetByRole(AriaRole.Button, new() { Name = "Board" }).ClickAsync();
-        await Expect(devTools.Panel.Locator("[data-rask-devtools-provides]")).ToContainTextAsync("Ship 1.4", DevToolsPage.Contains);
+        await DevToolsPage.Step("panel.Locator('[data-rask-devtools-provides]')", () => Expect(devTools.Panel.Locator("[data-rask-devtools-provides]")).ToContainTextAsync("Ship 1.4", DevToolsPage.Contains));
     }
 
     private static async Task<DevToolsPage> OpenTreeAsync(IBrowserContext context, DevToolsServerHost host)
@@ -86,7 +86,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
         var devTools = await DevToolsPage.OpenAsync(context, host.BaseUrl + "/");
         await devTools.OpenPanelAsync();
         await devTools.ShowTabAsync("Tree");
-        await Expect(devTools.Panel.GetByRole(AriaRole.Tree)).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.GetByRole(AriaRole.Tree)", () => Expect(devTools.Panel.GetByRole(AriaRole.Tree)).ToBeVisibleAsync(DevToolsPage.Visible));
         return devTools;
     }
 
