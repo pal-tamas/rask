@@ -12,11 +12,12 @@
 //       <div data-rask-command-empty data-hidden>…</div>
 //
 // What Flux does, measured on its page, and so what this does:
-// * Focus in the box lights the first command shown; focus leaving it lights none.
+// * Focus in the box selects what it holds and lights the first command shown; focus leaving it lights none.
 // * Typing hides, by `data-hidden`, every command whose `data-rask-match` does not contain what was typed — whatever
 //   its case or accents — shows the empty row while none is left, and lights the first one left.
 // * ArrowDown and ArrowUp light the next command shown that way and stop at the ends. Home and End are the box's.
-// * The pointer over a command lights it; leaving the commands lights none.
+// * The pointer over a command lights it; leaving the commands lights none, unless an arrow has lit one since.
+// * A press on a command leaves focus on the list, which takes the arrows and does nothing with them.
 // * Enter presses the lit command. A command pressed — by Enter or a click — empties the box and lights the first
 //   command again, and nothing else: the palette stays open, and Escape is the modal's.
 // The lit command is `data-active` on it and `aria-activedescendant` on the box. All of it is held against the morph
@@ -77,10 +78,14 @@ function shown(option: Element): boolean {
     return !option.hasAttribute("data-hidden");
 }
 
+// The commands the pointer lit, rather than the keys or a search: only those go out with it.
+const pointed = new WeakSet<Element>();
+
 // Lights `lit`, or nothing.
 function light(palette: Element, lit: HTMLElement | null): void {
     for (const option of optionsOf(palette)) {
         set(option, "data-active", option === lit ? "" : null);
+        pointed.delete(option);
     }
     const box = boxOf(palette);
     if (box) {
@@ -125,6 +130,7 @@ if (page) {
     listen("focusin", function (e) {
         const palette = inBox(e.target);
         if (palette) {
+            (e.target as HTMLInputElement).select();
             light(palette, first(palette));
         }
     });
@@ -137,6 +143,12 @@ if (page) {
     });
 
     listen("keydown", function (e) {
+        // The list itself, focused by a press on a command, takes the arrows and does nothing with them, as Flux's.
+        const list = e.key === "ArrowDown" || e.key === "ArrowUp" ? near(e.target, PALETTE + " [role=listbox]") : null;
+        if (list && e.target === list) {
+            e.preventDefault();
+            return;
+        }
         const palette = !e.ctrlKey && !e.altKey && !e.metaKey && !e.isComposing ? inBox(e.target) : null;
         if (!palette) {
             return;
@@ -167,13 +179,15 @@ if (page) {
         const palette = option ? near(option, PALETTE) : null;
         if (palette && option && !option.hasAttribute("data-active")) {
             light(palette, option);
+            pointed.add(option);
         }
     });
 
+    // Only the command the POINTER lit goes out with it: one an arrow has lit since stays.
     listen("mouseout", function (e) {
         const option = near(e.target, OPTION);
         const palette = option ? near(option, PALETTE) : null;
-        if (palette && near(e.relatedTarget, OPTION) === null) {
+        if (palette && option && pointed.has(option) && option.hasAttribute("data-active") && near(e.relatedTarget, OPTION) === null) {
             light(palette, null);
         }
     });
