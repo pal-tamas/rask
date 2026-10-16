@@ -46,7 +46,7 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
 
         var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
-        Assert.Contains($"href=\"/css/app.css?v={Hash}\"", Assert.Single(Links(html)), StringComparison.Ordinal);
+        Assert.Contains($"href=\"/css/app.css?v={Hash}\"", Assert.Single(AppSheetLinks(html)), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
 
         var html = await host.Http.GetStringAsync("/appA/", TestContext.Current.CancellationToken);
 
-        Assert.Contains($"href=\"/appA/css/app.css?v={Hash}\"", Assert.Single(Links(html)), StringComparison.Ordinal);
+        Assert.Contains($"href=\"/appA/css/app.css?v={Hash}\"", Assert.Single(AppSheetLinks(html)), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
         var raskApp = StyledRaskApp<QuietApp>();
         using var host = RaskTestHost.Create<LinkingApp>(ServeSheet);
 
-        var fromRaskApp = Assert.Single(Links(await PageAsync(raskApp)));
-        var fromEntry = Assert.Single(Links(await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken)));
+        var fromRaskApp = Assert.Single(AppSheetLinks(await PageAsync(raskApp)));
+        var fromEntry = Assert.Single(AppSheetLinks(await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken)));
 
         Assert.Equal(fromRaskApp, fromEntry);
     }
@@ -78,7 +78,7 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
 
         var html = await PageAsync(raskApp);
 
-        Assert.Contains($"href=\"/css/app.css?v={Hash}\"", Assert.Single(Links(html)), StringComparison.Ordinal);
+        Assert.Contains($"href=\"/css/app.css?v={Hash}\"", Assert.Single(AppSheetLinks(html)), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
 
         var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
-        Assert.Empty(Links(html));
+        Assert.Empty(AppSheetLinks(html));
     }
 
     private void ServeSheet(IServiceCollection services) =>
@@ -115,8 +115,8 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
             .Build<TApp>();
     }
 
-    private static List<string> Links(string html) =>
-        [.. StylesheetLink().Matches(html).Select(m => m.Value)];
+    private static List<string> AppSheetLinks(string html) =>
+        [.. AppSheetLink().Matches(html).Select(m => m.Value)];
 
     private static async Task<string> PageAsync(WebApplication app)
     {
@@ -135,8 +135,9 @@ public sealed partial class AppStylesheetEntryTests : IDisposable
         }
     }
 
-    [GeneratedRegex("<link [^>]*rel=\"stylesheet\"[^>]*>")]
-    private static partial Regex StylesheetLink();
+    // The app sheet's link only: a page also links its scoped CSS (/_rask/a/{hash}.css), which is not this.
+    [GeneratedRegex("<link [^>]*href=\"[^\"]*/css/app\\.css(\\?v=[^\"]*)?\"[^>]*>")]
+    private static partial Regex AppSheetLink();
 }
 
 /// <summary>A hand-wired App that links its sheet itself.</summary>
