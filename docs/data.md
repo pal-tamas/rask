@@ -73,8 +73,9 @@ And to write it, from a form, from code, or inside a transaction you already hol
 var product = await Product.Create(model);                                     // ProductModel from a form
 await Product.Update(product.Id, edit);                                        // stale Version throws
 
-var other = await Product.Create(p => p.Reprice(new(9.90m, "EUR")));           // no form at all …
-await Product.Update(other.Id, p => p.Reprice(new(12.50m, "EUR")));            // … and the same shape to change it
+var other = Product.Create("Anvil", new(9.90m, "EUR"));                        // no form: the aggregate's own factory …
+await other.Save();                                                            // … inserts it
+await Product.Update(other.Id, p => p.Reprice(new(12.50m, "EUR")));            // and a lambda changes it
 
 await Product.Delete(product.Id);                                              // removes the row
 ```
@@ -491,17 +492,21 @@ update just names the row first:
 | --- | --- | --- |
 | `Product.Create(model)` | `Product.Update(id, model)` | a form: the generated `ProductModel` |
 | `Product.Create(model, p => …)` | `Product.Update(id, model, p => …)` | a form, plus values it does not carry |
-| `Product.Create(p => …)` | `Product.Update(id, p => …)` | code, with no form behind it |
+| `Product.Create(name, price)` (its factory) + `Save()` | `Product.Update(id, p => …)` | code, with no form behind it |
 
 - **A create** builds an empty `Product`, applies the model and then the lambda, and inserts it. The key is a new
-  version-7 `Guid` (or the store's identity for an integer key).
-- **`Product.Create(id, model)` / `Product.Create(id, p => …)`** do the same under a key you give. They
+  version-7 `Guid` (or the store's identity for an integer key). The lambda is for what a form must not carry —
+  the signed-in user, a parent from the route, a domain event: `Ticket.Create(model, t => t.Open(Current.UserId))`.
+- **From code, an aggregate is born by its own factory** — so its invariants hold from the first moment — and
+  `Save()` inserts it. There is no `Create(p => …)`: an empty aggregate put together afterwards is the shape a
+  factory exists to prevent, and `new Product()` outside `Product` is [RASK106](diagnostics.md#rask106).
+- **`Product.Create(id, model)`** does the same under a key you give. They
   are the only creates for a key nothing can produce, such as a strongly-typed id over a `string`. They are not
   generated for an integer key the database produces: an explicit identity value fails on SQL Server and leaves
   PostgreSQL's sequence behind.
 - **An integer key your application assigns** is a key you give, too. Say so in the aggregate's own `Configure`
-  — `b.Property(x => x.Id).ValueGeneratedNever();` — and the aggregate gets `Create(id, model)` and
-  `Create(id, x => …)` **instead of** the creates that take no key, which would insert the row under `0`:
+  — `b.Property(x => x.Id).ValueGeneratedNever();` — and the aggregate gets `Create(id, model)` **instead of**
+  the create that takes no key, which would insert the row under `0`:
 
   ```csharp
   public sealed class Destination : Aggregate<int, Model>
@@ -726,8 +731,7 @@ each links to its edit page.
 
 A table carries only what its base names. The type arguments after the key are **traits**, in any order, and an
 aggregate that names none — `Aggregate<Guid>` — has no timestamps, no `Version`, no form model and no generated
-`Delete`: its own columns, its read face, and the writes that take a lambda (`X.Create(x => …)`,
-`X.Update(id, x => …)`, [`Find` and `Save`](#find-change-save)).
+`Delete`: its own columns, its read face, `X.Update(id, x => …)`, and [`Find` and `Save`](#find-change-save).
 
 | trait | what the table gets |
 |---|---|
@@ -850,7 +854,7 @@ public sealed class Passkey : Aggregate<Guid, Timestamps, Versioned, Deletable>
 **It reaches the form surface and nothing else.** These take no model, so they are there either way:
 
 ```csharp
-await Passkey.Create(p => p.Rename("laptop"));            // behaviour — takes no model
+var passkey = Passkey.For(me, "laptop"); await passkey.Save();   // its factory, then Save — takes no model
 await Passkey.Update(id, p => p.Rename("desktop"));       // behaviour
 await Passkey.Delete(id);                                 // never took a model (there under Deletable or SoftDelete)
 await Passkey.Where(p => p.UserId == me);   // the read face is not negotiable

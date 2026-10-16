@@ -85,6 +85,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: from code, an aggregate is born by its own factory — `X.Create(x => …)` is gone, and so is the
+  private constructor.** An empty aggregate put together afterwards was the shape a factory exists to prevent:
+  `Order.Create(o => o.Rename("A-1"))` read as a rename. Now `var order = Order.Place("A-1"); await order.Save();`
+  — or `Order.Create(order)` — and from a form `Order.Create(model)` / `Order.Create(model, o => …)` as before, the
+  lambda for what a form must not carry (the signed-in user, a parent from the route, a domain event).
+  `Create(id, x => …)` is gone the same way. `new Order()` outside `Order` is now RASK106, an error — a child may
+  be made by its own type or the entity that holds it — so `private Order() { }` need not be written.
+
 - **Rask's own tables are aggregates.** `Job`, `RecurringJobState`, `QueuedMail`, `OutboxMessage`, `CacheEntry`,
   `StoredFile` and `PushSubscriber` derive from `Aggregate<TId, …>` instead of `Entity<TId, …>`, with the same traits
   and the same columns — their configurations leave `Version` and `DeletedAt` off, so a context that maps them with

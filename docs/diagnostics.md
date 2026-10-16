@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK105, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK106, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -130,6 +130,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
 | [RASK105](#rask105) | Error | A value object compares by reference |
+| [RASK106](#rask106) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1942,8 +1943,8 @@ type split across several files, or a member that already has the field's name.
 **Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
 An aggregate that names `Model` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
-([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` and
-`Product.Create(p => …)` both start from a new, empty aggregate, and so does `new ProductModel()`, which
+([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` starts from a new, empty
+aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
@@ -2376,6 +2377,31 @@ public sealed class Money : ValueObject                         // ✓
 ```
 
 A strongly-typed id another aggregate is keyed by is a column, not a value object, and is never reported.
+
+---
+
+## RASK106
+
+**An aggregate or a child entity is made with `new` outside the type that guards it** · Error
+
+An aggregate keeps its invariants by being born in one place: a member of its own type — its factory — or, from
+a form, the generated `X.Create(model)`. A child is made by its own type or by the entity that holds it. This is
+what a `private` parameterless constructor used to say, so that constructor need not be written.
+
+```csharp
+public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+{
+    public string Reference { get; private set; } = "";
+
+    public static Order Place(string reference) => new() { Id = Guid.CreateVersion7(), Reference = reference };   // ✓
+}
+
+var order = new Order();                       // ✗ RASK106
+var order = Order.Place("A-1");                // ✓ then: await order.Save();
+```
+
+Generated code is not analyzed — the generated writes start from `new Order()` on purpose — and EF Core builds a
+row through reflection, so loading is never affected.
 
 ---
 

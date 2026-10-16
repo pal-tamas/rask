@@ -45,8 +45,8 @@ public sealed partial class ModelInputGenerator
         s.Append("    extension(").Append(entityType).AppendLine(")");
         s.AppendLine("    {");
 
-        // Creates mirror the updates: `Create(model, apply?)` beside `Update(id, model, apply?)`, and
-        // `Create(apply)` beside `Update(id, apply)` for a row with no form behind it.
+        // A create takes a form: `Create(model, apply?)` beside `Update(id, model, apply?)`. A row with no form behind
+        // it is born by the aggregate's own factory and saved with `Save()`, so its invariants hold from the start.
         if (idLessCreate)
         {
             AppendIdLessCreates(s, entity, formCreate);
@@ -103,23 +103,6 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
 
         Keep(s, formCreate, createMark);
-
-        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-            .AppendLine("\" /> whose values <paramref name=\"apply\" /> sets.</summary>");
-        s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
-        s.AppendLine(DbDoc);
-        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-        s.AppendLine("        /// <returns>The inserted entity, with its key.</returns>");
-        AppendKeyRemarks(s, entity);
-        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(global::System.Action<")
-            .Append(entityType).Append("> apply, ").Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
-        s.AppendLine("        {");
-        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
-        AppendNewEntity(s, entity, withId: false);
-        s.AppendLine("            apply(entity);");
-        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
-        s.AppendLine("        }");
-        s.AppendLine();
     }
 
     private static void AppendKeyedCreates(StringBuilder s, Entity entity, bool formCreate)
@@ -150,24 +133,6 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
 
         Keep(s, formCreate, keyedMark);
-
-        s.Append("        /// <summary>Inserts a new <see cref=\"").Append(entityType)
-            .AppendLine("\" /> under <paramref name=\"id\" />, whose values <paramref name=\"apply\" /> sets.</summary>");
-        s.AppendLine("        /// <param name=\"id\">The key of the new row.</param>");
-        s.AppendLine("        /// <param name=\"apply\">Sets the new row's values.</param>");
-        s.AppendLine(DbDoc);
-        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
-        s.AppendLine("        /// <returns>The inserted entity.</returns>");
-        s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("> Create(")
-            .Append(entity.IdTypeName).Append(" id, global::System.Action<").Append(entityType).Append("> apply, ")
-            .Append(DbParameter).Append(TokenFqn).AppendLine(" cancellationToken = default)");
-        s.AppendLine("        {");
-        s.AppendLine("            global::System.ArgumentNullException.ThrowIfNull(apply);");
-        AppendNewEntity(s, entity, withId: true);
-        s.AppendLine("            apply(entity);");
-        s.Append("            return ").Append(WritesFqn).AppendLine(".Create(entity, db, cancellationToken);");
-        s.AppendLine("        }");
-        s.AppendLine();
     }
 
     private static void AppendModelUpdate(StringBuilder s, Entity entity, string idType, bool formUpdate)

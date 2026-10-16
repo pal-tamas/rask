@@ -111,15 +111,9 @@ public class ModelInputGeneratorTests
 
         Assert.Contains("Create(global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("Create(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
-        // The creates mirror the updates: a lambda-only form beside each model form.
-        Assert.Contains(
-            "Create(global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
-            source,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "Create(global::System.Guid id, global::System.Action<global::Shop.Product> apply, global::Microsoft.EntityFrameworkCore.DbContext? db = null, ",
-            source,
-            StringComparison.Ordinal);
+        // A create takes a form; with no form, the aggregate's own factory makes it and Save inserts it.
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Product> apply, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Guid id, global::System.Action<global::Shop.Product> apply, ", source, StringComparison.Ordinal);
         Assert.Contains("Update(global::System.Guid id, global::Shop.ProductModel model, ", source, StringComparison.Ordinal);
         Assert.Contains("Delete(global::System.Guid id, int? version = null, ", source, StringComparison.Ordinal);
         Assert.Contains("public global::Shop.ProductModel ToModel()", source, StringComparison.Ordinal);
@@ -578,7 +572,7 @@ public class ModelInputGeneratorTests
         Assert.Contains("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Create(int id, ", source, StringComparison.Ordinal);
         Assert.Contains("Update(int id, global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
-        Assert.Equal(2, source.Split("/// <remarks>The key is assigned by the database when the row is inserted.</remarks>").Length - 1);
+        Assert.Equal(1, source.Split("/// <remarks>The key is assigned by the database when the row is inserted.</remarks>").Length - 1);
     }
 
     [Theory]
@@ -610,7 +604,7 @@ public class ModelInputGeneratorTests
         // The same two creates a string key gets, in the same order: the key, then the model or the lambda.
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains($"Create({id} id, global::Shop.CouponModel model, global::System.Action<global::Shop.Coupon>? apply = null, ", source, StringComparison.Ordinal);
-        Assert.Contains($"Create({id} id, global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain($"Create({id} id, global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
         Assert.Contains("/// <param name=\"id\">The key of the new row.</param>", source, StringComparison.Ordinal);
         Assert.Contains($"__SetterKey_Id<{id}>.Invoke(entity, id);", source, StringComparison.Ordinal);
 
@@ -651,7 +645,7 @@ public class ModelInputGeneratorTests
 
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains("Create(global::Shop.CouponModel model, ", source, StringComparison.Ordinal);
-        Assert.Contains("Create(global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Coupon> apply, ", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Create(int id, ", source, StringComparison.Ordinal);
         Assert.Contains("assigned by the database", source, StringComparison.Ordinal);
     }
@@ -974,7 +968,6 @@ public class ModelInputGeneratorTests
 
     [Theory]
     [InlineData("Product.Create(model)", false)]
-    [InlineData("Product.Create(p => { })", false)]
     [InlineData("Product.Create(Product.Make())", false)]
     [InlineData("Product.Update(id, model)", false)]
     [InlineData("Product.Update(id, p => { })", false)]
@@ -1210,7 +1203,7 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
-    public void An_aggregate_naming_no_Model_gets_no_form_model_and_keeps_every_write_without_one()
+    public void An_aggregate_naming_no_Model_gets_no_form_model_and_keeps_its_update_and_delete()
     {
         var run = Run("""
             using System;
@@ -1236,7 +1229,7 @@ public class ModelInputGeneratorTests
         Assert.DoesNotContain("__Fill", source, StringComparison.Ordinal);
 
         // The BEHAVIOUR writes are untouched — none of them ever took a model.
-        Assert.Contains("Create(global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
         Assert.Contains("Update(global::System.Guid id, global::System.Action<global::Shop.Passkey> apply", source, StringComparison.Ordinal);
         Assert.Contains("Delete(global::System.Guid id", source, StringComparison.Ordinal);
     }
@@ -1262,7 +1255,7 @@ public class ModelInputGeneratorTests
 
         var source = run.GeneratedSource("Shop.InvoiceModel");
         Assert.DoesNotContain("Delete(", source, StringComparison.Ordinal);
-        Assert.Contains("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
         Assert.Contains("Update(global::System.Guid id, global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
         Assert.Contains("Update(global::System.Guid id, global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
     }
@@ -1366,7 +1359,7 @@ public class ModelInputGeneratorTests
 
         // A row a form may edit but never make.
         Assert.DoesNotContain("Create(global::Shop.InvoiceModel model", source, StringComparison.Ordinal);
-        Assert.Contains("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Create(global::System.Action<global::Shop.Invoice> apply", source, StringComparison.Ordinal);
     }
 
     [Fact]

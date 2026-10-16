@@ -207,45 +207,6 @@ public sealed class GeneratedInputModelTests : IDisposable
     }
 
     [Fact]
-    public async Task Create_without_a_form_builds_the_row_the_lambda_describes_the_way_Update_does()
-    {
-        await using var database = await StartDatabaseAsync();
-
-        var created = await Invoice.Create(invoice =>
-        {
-            invoice.Retitle("Walk-in");
-            invoice.Viewed();
-        }, cancellationToken: TestContext.Current.CancellationToken);
-
-        Assert.Equal(7, created.Id.Version);
-        var stored = (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!;
-        Assert.Equal("Walk-in", stored.Title);
-        Assert.Equal(1, stored.Views);
-        Assert.Equal(Start.UtcDateTime, stored.CreatedAt);
-
-        // The same shape, one write later.
-        await Invoice.Update(created.Id, invoice => invoice.Retitle("Walk-in, paid"), cancellationToken: TestContext.Current.CancellationToken);
-        Assert.Equal("Walk-in, paid", (await database.Load<Invoice>(created.Id, TestContext.Current.CancellationToken))!.Title);
-    }
-
-    [Fact]
-    public async Task Create_without_a_form_stages_on_a_given_context_and_takes_a_given_id()
-    {
-        await using var database = await StartDatabaseAsync();
-        var id = Guid.NewGuid();
-
-        var created = await Invoice.Create(id, invoice => invoice.Retitle("Keyed"), db: database.Context, cancellationToken: TestContext.Current.CancellationToken);
-
-        // The caller chose the key, so it is already there — but the row is not, because `db:` stages.
-        Assert.Equal(id, created.Id);
-        Assert.Equal(EntityState.Added, database.Context.Entry(created).State);
-        Assert.Null(await database.Load<Invoice>(id, TestContext.Current.CancellationToken));
-
-        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-        Assert.Equal("Keyed", (await database.Load<Invoice>(id, TestContext.Current.CancellationToken))!.Title);
-    }
-
-    [Fact]
     public async Task Create_of_a_built_entity_inserts_it_as_it_was_built()
     {
         await using var database = await StartDatabaseAsync();
