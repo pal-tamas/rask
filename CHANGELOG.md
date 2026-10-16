@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **Entities compare by identity, and value objects by value — the build says when one does not.** Two entities of
+  the same type with the same `Id` are now `Equals` and `==` (two loads of one row are the same entity); one with
+  no id yet is equal only to itself, and its hash is fixed when first taken, so an integer key assigned on insert
+  does not lose it from a `HashSet`. A value object is a `record`, a `record struct`, or — new — a plain class
+  deriving from `ValueObject` that names its `EqualityComponents()`. **BREAKING:** a plain class or struct held as
+  a value object is now RASK105, an error: make it a record (or record struct), or derive it from `ValueObject`.
+
 - **`rask deploy` redirects names to an app, wildcards included, with certificates proven over Azure DNS.**
   Before: a name the app shouldn't serve but should send on (`*.example.com` to `example.com`) needed a proxy
   of your own, and a `*.` host could not get a certificate at all, since Let's Encrypt issues wildcards only over

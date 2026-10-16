@@ -45,7 +45,7 @@ public sealed class Offer : Aggregate<int, Model, Deletable>
 }
 
 /// <summary>A value object of several values, built through its members, that holds an optional one-value struct.</summary>
-public sealed class OfferTerms
+public sealed record OfferTerms
 {
     private OfferTerms() { }
 

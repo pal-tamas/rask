@@ -29,7 +29,7 @@ the write side only; the read side has none.**
 ## The whole of it
 
 ```csharp
-public sealed record Money(decimal Amount, string Currency);   // a value object: no marker
+public sealed record Money(decimal Amount, string Currency);   // a value object: a record needs no base
 
 public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
@@ -87,13 +87,15 @@ publish cannot quietly drop an aggregate and leave you a missing table with a gr
 
 ### Aggregates, entities and value objects
 
-Rask.Data speaks domain-driven design, and the base class you derive from says which of the three a type is:
+Rask.Data speaks domain-driven design, and the base class you derive from says which of the three a type is. Two
+entities are equal when they are of the same type with the same `Id` — two loads of one row are the same entity —
+and one with no id yet (an integer key before its insert) is equal only to itself:
 
 | You declare | What it is | What it gets |
 | --- | --- | --- |
 | `Aggregate<TId, …>` | A consistency boundary: the thing you load, change and save as one | Its table, the static writes, its read face, domain events — and the [traits](#choosing-what-a-table-carries) it names: timestamps, `Version`, a form model, a `Delete` |
 | `Entity<TId>` | Something with identity inside an aggregate, such as an order's line | Its table, and a form model its parent's carries ([below](#children)); it is loaded, saved and deleted with its aggregate |
-| anything else it holds | A value object: `Money`, `Address`, `Email`. No base class, no marker | Columns on the owner's row ([below](#value-objects)) |
+| a `record`, a `record struct`, or a class on `ValueObject` it holds | A value object: `Money`, `Address`, `Email` | Columns on the owner's row ([below](#value-objects)) |
 
 `Aggregate<TId>` derives from `Entity<TId>`, and the framework's columns are the ones its base names. They are
 real properties with private setters, so a screen can show them and a query can sort by them, while only the
@@ -1587,10 +1589,45 @@ Which sentence, in this order:
 
 ## Value objects
 
-A value object needs **no marker and no base class**. Any composite an entity holds that is not itself an
-entity (a record, a struct or a plain class) is a value object, and its values become columns on the owning
-row: one that holds a single value is that value's column, and one that holds several is an EF Core **complex
-type**.
+A value object is **its values**: two with the same values are the same. Any composite an entity holds that is
+not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
+value's column, and one that holds several is an EF Core **complex type**.
+
+It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a
+`record struct` already does, and needs nothing else. A plain class derives from `ValueObject` and names the values
+that make it the same:
+
+```csharp
+public sealed class Address : ValueObject
+{
+    private Address() { }
+
+    public string Street { get; private set; } = "";
+    public string City { get; private set; } = "";
+
+    protected override IEnumerable<object?> EqualityComponents()
+    {
+        yield return Street;
+        yield return City;
+    }
+}
+```
+
+A record that compares some other way says so in its own `Equals` — the language uses it for `==` too:
+
+```csharp
+public sealed record Email(string Value)
+{
+    public bool Equals(Email? other) =>
+        other is not null && string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+
+    public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(Value);
+}
+```
+
+**The database may disagree with C#.** A string record compares ordinally and case-sensitively, while SQL Server's
+default `*_CI_*` collation — and a unique index under it — treats `"Abc"` and `"abc"` as one. Compare the value
+object the way its column does, as `Email` above does.
 
 ```csharp
 public sealed record Money(decimal Amount, string Currency);

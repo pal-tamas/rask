@@ -64,7 +64,7 @@ public sealed class Parcel : Aggregate<ParcelId, Timestamps, Versioned, Model, D
 }
 
 // A private parameterless constructor and private setters.
-public sealed class DeliveryAddress
+public sealed record DeliveryAddress
 {
     private DeliveryAddress() { }
 
@@ -76,7 +76,7 @@ public sealed class DeliveryAddress
 }
 
 // A private constructor naming every property.
-public sealed class ParcelWeight
+public sealed record ParcelWeight
 {
     private ParcelWeight(decimal amount, string unit)
     {

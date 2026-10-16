@@ -21,7 +21,7 @@ public readonly record struct GondolaWeight(int Value);
 public sealed record GondolaLabel(GondolaCode Code, GondolaCode? Alias, GondolaWeight Weight, GondolaWeight? Tare, int Copies);
 
 /// <summary>Built through its MEMBERS — the shape that always worked, whose columns must stay as they were.</summary>
-public sealed class GondolaCrate
+public sealed record GondolaCrate
 {
     private GondolaCrate() { }
 
@@ -53,7 +53,7 @@ public readonly record struct GondolaSpot(GondolaCode Code, int Row);
 /// Holds a value object that holds one-value value objects: two levels down. Built through its members, because
 /// EF Core binds no value object of SEVERAL values to a constructor parameter — only a column.
 /// </summary>
-public sealed class GondolaRoute
+public sealed record GondolaRoute
 {
     private GondolaRoute() { }
 
