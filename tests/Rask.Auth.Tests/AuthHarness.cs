@@ -18,6 +18,8 @@ public sealed class TestUser : Authenticatable
 
     public void Rename(string name) => DisplayName = name;
 
+    public static TestUser Blank() => new();
+
     /// <summary>The type of the one claim this user gives for itself; empty gives none.</summary>
     public string BadgeType { get; private set; } = "";
 

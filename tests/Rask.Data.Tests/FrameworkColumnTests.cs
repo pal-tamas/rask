@@ -37,8 +37,10 @@ public sealed class FrameworkColumnTests : IDisposable
         // And the version token is still there, because that default did NOT move.
         Assert.NotNull(receipt.FindProperty(Columns.Version));
 
-        var kept = await Receipt.Create(r => r.Note("keep"), cancellationToken: TestContext.Current.CancellationToken);
-        var gone = await Receipt.Create(r => r.Note("go"), cancellationToken: TestContext.Current.CancellationToken);
+        var kept = Receipt.Saying("keep");
+        await kept.Save(cancellationToken: TestContext.Current.CancellationToken);
+        var gone = Receipt.Saying("go");
+        await gone.Save(cancellationToken: TestContext.Current.CancellationToken);
 
         await Receipt.Delete(gone.Id, cancellationToken: TestContext.Current.CancellationToken);
 
@@ -146,4 +148,8 @@ public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Dele
     /// <summary>Sets the text.</summary>
     /// <param name="text">The new text.</param>
     public void Note(string text) => Text = text;
+
+    /// <summary>A receipt that says <paramref name="text" />.</summary>
+    /// <param name="text">What it says.</param>
+    public static Receipt Saying(string text) => new() { Id = Guid.CreateVersion7(), Text = text };
 }

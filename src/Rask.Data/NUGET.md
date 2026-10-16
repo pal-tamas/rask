@@ -25,8 +25,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   aggregate's own rules. `new ProductModel()` holds the aggregate's defaults and `product.ToModel()` fills an edit
   form.
 - **Writes off the type**: creates read like their updates: `Product.Create(model)` /
-  `Product.Update(id, model)`, `Product.Create(p => …)` / `Product.Update(id, p => …)`, plus
-  `Product.Create(entity)` for one built by a factory and `Product.Delete(id)`, which removes the row under
+  `Product.Update(id, model)`, `Product.Update(id, p => …)`, plus `product.Save()` or
+  `Product.Create(entity)` for one built by its factory and `Product.Delete(id)`, which removes the row under
   `Deletable` (or stamps `DeletedAt` under `SoftDelete`; with neither there is no delete at all). A save
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
   the caller's, never the form's; a stale `Version` is refused (`Versioned`). Each takes an optional `DbContext` to join a

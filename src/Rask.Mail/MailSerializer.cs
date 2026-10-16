@@ -10,7 +10,7 @@ namespace Rask.Mailing;
 /// </summary>
 internal static class MailSerializer
 {
-    private static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+    internal static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
 
     /// <summary>Builds a persisted row from a built <see cref="Email"/>, defaulting the sender and stamping times.</summary>
     internal static QueuedMail ToQueuedMail(Email email, EmailAddress from, DateTime runAt, DateTime createdAt)
@@ -25,24 +25,7 @@ internal static class MailSerializer
             throw new ArgumentException("An email must have a body — call Body(...) or PlainText(...).", nameof(email));
         }
 
-        return new QueuedMail
-        {
-            From = SerializeAddress(from),
-            To = JsonSerializer.Serialize(email.ToRecipients, Options),
-            Cc = ToJsonOrNull(email.CcRecipients),
-            Bcc = ToJsonOrNull(email.BccRecipients),
-            ReplyTo = email.ReplyToAddress is { } r ? SerializeAddress(r) : null,
-            Subject = email.SubjectText ?? "",
-            HtmlBody = email.HtmlBody,
-            TextBody = email.TextBody,
-            Attachments = ToJsonOrNull(email.Attachments),
-            RunAt = runAt,
-            UserId = Current.UserId,
-
-            // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
-            // tenant-scoped table would otherwise throw, since background work carries no principal.
-            TenantId = Current.Tenant,
-        };
+        return QueuedMail.For(email, from, runAt);
     }
 
     /// <summary>Materializes a send-ready <see cref="OutgoingMail"/> from a persisted row.</summary>
@@ -61,7 +44,7 @@ internal static class MailSerializer
             : [],
     };
 
-    private static string SerializeAddress(EmailAddress address) => JsonSerializer.Serialize(address, Options);
+    internal static string SerializeAddress(EmailAddress address) => JsonSerializer.Serialize(address, Options);
 
     private static EmailAddress DeserializeAddress(string json) =>
         JsonSerializer.Deserialize<EmailAddress>(json, Options)
@@ -70,6 +53,6 @@ internal static class MailSerializer
     private static List<EmailAddress> DeserializeAddresses(string? json) =>
         string.IsNullOrEmpty(json) ? [] : JsonSerializer.Deserialize<List<EmailAddress>>(json, Options) ?? [];
 
-    private static string? ToJsonOrNull<T>(IReadOnlyList<T> items) =>
+    internal static string? ToJsonOrNull<T>(IReadOnlyList<T> items) =>
         items.Count == 0 ? null : JsonSerializer.Serialize(items, Options);
 }

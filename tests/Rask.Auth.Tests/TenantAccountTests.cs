@@ -151,7 +151,7 @@ public sealed class TenantAccountTests
     private static async Task AddAsync(AuthHarness harness, string email, Guid? tenant, string? password = null)
     {
         await using var db = harness.NewContext();
-        var user = new TestUser();
+        var user = TestUser.Blank();
 
         db.Add(user);
 
