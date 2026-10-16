@@ -126,13 +126,16 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_tab_nobody_listens_to_switches_as_drawing_and_one_the_page_hears_is_an_action()
+    public void A_tab_is_switched_in_the_browser_so_no_tab_hears_a_press_to_mark_and_a_heard_row_is_an_action()
     {
+        // Selecting is the runtime's (rask-tabs.ts): nothing is sent for it, so there is no event to call drawing.
         var silent = Page.Render(() => Ui.Tabs[Ui.Tab.Name("a")["A"], Ui.Tab.Name("b")["B"]]);
         var heard = Page.Render(() => Ui.Tabs.OnChange(_ => { })[Ui.Tab.Name("a")["A"], Ui.Tab.Name("b")["B"]]);
 
-        Assert.Equal("click", Draws(silent, "[role=\"tab\"]"));
-        Assert.Null(Draws(heard, "[role=\"tab\"]"));
+        Assert.DoesNotContain("data-rask-on-", silent.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-draws", silent.Html, StringComparison.Ordinal);
+        Assert.NotNull(heard.Find("[role=\"tablist\"] > input").Attribute("data-rask-on-change"));
+        Assert.Null(Draws(heard, "[role=\"tablist\"] > input"));
     }
 
     [Fact]

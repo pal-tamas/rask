@@ -47,14 +47,14 @@ public sealed partial class ServerPanelJourneyTests(PlaywrightFixture playwright
 
         await devTools.Page.ClickAsync("#add-task");
         await Expect(devTools.Page.Locator("#board li")).ToHaveCountAsync(3, new() { Timeout = (float)DevToolsPage.Wait.TotalMilliseconds });
-        await Expect(devTools.Panel.GetByText(FramesSentOne()).First).ToBeVisibleAsync(DevToolsPage.Visible);
-        await Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.GetByText(FramesSentOne()).First", () => Expect(devTools.Panel.GetByText(FramesSentOne()).First).ToBeVisibleAsync(DevToolsPage.Visible));
+        await DevToolsPage.Step("panel.Locator('tbody tr', new() { HasText = 'click' }).First", () => Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible));
 
         // The panel is a live page too: switching its tabs sends frames of its own, none of which is the app's.
         await devTools.ShowTabAsync("Tree");
         await devTools.ShowTabAsync("Renders");
         await devTools.ShowTabAsync("Wire");
-        await Expect(devTools.Panel.GetByText(FramesSentOne()).First).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.GetByText(FramesSentOne()).First", () => Expect(devTools.Panel.GetByText(FramesSentOne()).First).ToBeVisibleAsync(DevToolsPage.Visible));
     }
 
     [GeneratedRegex(@"Frames sent\s*1\b")]

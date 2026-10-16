@@ -15,17 +15,16 @@ namespace Rask;
 ///     <c>"1"</c>…
 ///     </para>
 ///     <para>
+///     A press selects it in the browser and sends the page nothing; what paints it selected reads
+///     <c>data-selected</c>, as Flux's does. <see cref="OnClick" /> is the page's own, and is all a press sends.
+///     </para>
+///     <para>
 ///     <see cref="Action" /> makes it a plain button that sits in the row and selects nothing — "Add tab".
 ///     It is never a link, as Flux's is not: a row that navigates reads its <c>OnChange</c>.
 ///     </para>
 /// </remarks>
-public sealed partial class UiTab : Component, IDeferredBind
+public sealed partial class UiTab : Component
 {
-    private UiTabScope? _tabs;
-
-    // A tab answers for its row: selecting it is the row's value, written when the row says.
-    bool? IDeferredBind.Live => _tabs?.Live;
-
     private static readonly UiPartMarker Marker = new("ui-tab");
     private static readonly UiPartMarker SelectedMarker = Marker.And("selected");
 
@@ -78,7 +77,7 @@ public sealed partial class UiTab : Component, IDeferredBind
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var scope = _tabs = Context.Get<UiTabScope>() ?? Alone();
+        var scope = Context.Get<UiTabScope>() ?? Alone();
         if (Action == true)
         {
             return ActionButton(scope);
@@ -92,7 +91,7 @@ public sealed partial class UiTab : Component, IDeferredBind
     // Outside a Ui.Tabs there is no row to ask: the tab draws as the default variant, is selected only if it
     // says so, and pressing it selects nothing.
     private static UiTabScope Alone() =>
-        new(Ui.TabsVariant.Default, Ui.TabsSize.Base, chosen: null, flagged: true, _ => Task.CompletedTask);
+        new(Ui.TabsVariant.Default, Ui.TabsSize.Base, chosen: null, flagged: true);
 
     private Component Tab(UiTabScope scope, string name, bool selected)
     {
@@ -102,43 +101,41 @@ public sealed partial class UiTab : Component, IDeferredBind
 
         var button = Button
             .Id(group?.TabId(name))
-            .Class(TabClass(scope, selected))
-            .Data((selected ? SelectedMarker : Marker).With(null))
+            .Class(TabClass(scope))
+            .Data((selected ? SelectedMarker : Marker).With(null, "rask-tab", name))
             .Role("tab")
             // Roving tabindex: only the selected tab is a tab stop, so Tab leaves the row for the panel
             // rather than walking every remaining tab. The arrows move between them instead.
             .TabIndex(selected ? 0 : -1)
             .Type(ButtonType.Button)
-            .Disabled(Disabled == true)
-            .Attributes(UiDraws.Marks(("click", scope.SelectDraws && !OnClick.HasValue)))
-            .OnClick(() => PickAsync(scope, name));
+            .Disabled(Disabled == true);
+
+        // Selecting is the runtime's (rask-tabs.ts): a press is the page's only when the page listens.
+        if (OnClick.HasValue)
+        {
+            button = button.OnClick(() => OnClick.Invoke().AsTask());
+        }
 
         button = group is null
             ? button.Aria("selected", pressed)
             : button.Aria(("selected", pressed), ("controls", group.PanelId(name)));
 
-        return button[Glyph(Icon, scope, selected), Children ?? [], Glyph(IconTrailing, scope, selected)];
-    }
-
-    private async Task PickAsync(UiTabScope scope, string name)
-    {
-        await scope.Select(name).ConfigureAwait(false);
-        await OnClick.Invoke().ConfigureAwait(false);
+        return button[Glyph(Icon, scope), Children ?? [], Glyph(IconTrailing, scope)];
     }
 
     private Component ActionButton(UiTabScope scope) =>
         Button
-            .Class(TabClass(scope, selected: false))
+            .Class(TabClass(scope))
             .Data(Marker.With(null))
             .Type(ButtonType.Button)
             .Disabled(Disabled == true)
             .OnClick(() => OnClick.Invoke().AsTask())[
-            Glyph(Icon, scope, selected: false), Children ?? [], Glyph(IconTrailing, scope, selected: false)
+            Glyph(Icon, scope), Children ?? [], Glyph(IconTrailing, scope)
         ];
 
     // 20px whatever the drawing: the outline beside an underlined or pill tab, the mini inside a segment —
     // where the icon of a tab that is not selected stays a shade quieter than its label, hovered or not.
-    private UiIcon? Glyph(Ui.IconName? name, UiTabScope scope, bool selected)
+    private UiIcon? Glyph(Ui.IconName? name, UiTabScope scope)
     {
         if (name is not { } icon)
         {
@@ -149,48 +146,64 @@ public sealed partial class UiTab : Component, IDeferredBind
         return Ui.Icon
             .Name(icon)
             .Variant(IconVariant ?? (segmented ? Ui.IconVariant.Mini : Ui.IconVariant.Outline))
-            .Class(segmented && !selected ? "size-5 text-zinc-500 dark:text-zinc-400" : "size-5");
+            .Class(segmented ? SegmentIcon : "size-5");
     }
 
-    private string TabClass(UiTabScope scope, bool selected)
+    // One class list whichever tab is selected: the selected one is painted from `data-selected`, which the
+    // runtime moves as a tab is chosen.
+    private string TabClass(UiTabScope scope)
     {
         var segment = (Size ?? scope.Size) == Ui.TabsSize.Sm ? SegmentSm : Segment;
-        var (shape, state) = (scope.Variant, selected, Accent != false) switch
+        var (shape, paint) = (scope.Variant, Accent != false) switch
         {
-            (Ui.TabsVariant.Segmented, true, _) => (segment, SegmentOn),
-            (Ui.TabsVariant.Segmented, false, _) => (segment, SegmentOff),
-            (Ui.TabsVariant.Pills, true, true) => (Pill, PillOn),
-            (Ui.TabsVariant.Pills, true, false) => (Pill, PillOnBase),
-            (Ui.TabsVariant.Pills, false, _) => (Pill, PillOff),
-            (_, true, true) => (Underlined, UnderlinedOn),
-            (_, true, false) => (Underlined, UnderlinedOnBase),
-            _ => (Underlined, UnderlinedOff),
+            (Ui.TabsVariant.Segmented, _) => (segment, SegmentPaint),
+            (Ui.TabsVariant.Pills, true) => (Pill, PillPaint),
+            (Ui.TabsVariant.Pills, false) => (Pill, PillPaintBase),
+            (_, true) => (Underlined, UnderlinedPaint),
+            _ => (Underlined, UnderlinedPaintBase),
         };
 
-        return UiClass.Compose(shape, state, Unavailable, Class);
+        return UiClass.Compose(shape, paint, Unavailable, Class);
     }
 
     // A 2px underline that sits ON the row's hairline (-mb-px), in the accent's readable shade.
-    private const string Underlined = "flex items-center gap-2 px-2 -mb-px border-b-2 text-sm font-medium whitespace-nowrap";
-    private const string UnderlinedOn = "border-fx-accent-content text-fx-accent-content";
-    private const string UnderlinedOnBase = "border-zinc-800 text-zinc-800 dark:border-white dark:text-white";
-    private const string UnderlinedOff =
-        "border-transparent text-zinc-400 hover:text-zinc-800 dark:text-white/50 dark:hover:text-white";
+    private const string Underlined =
+        "flex items-center gap-2 px-2 -mb-px border-b-2 border-transparent text-sm font-medium whitespace-nowrap "
+        + "text-zinc-400 hover:text-zinc-800 dark:text-white/50 dark:hover:text-white";
+    private const string UnderlinedPaint =
+        "data-selected:border-fx-accent-content data-selected:text-fx-accent-content "
+        + "dark:data-selected:border-fx-accent-content dark:data-selected:text-fx-accent-content "
+        + "hover:data-selected:text-fx-accent-content dark:hover:data-selected:text-fx-accent-content";
+    private const string UnderlinedPaintBase =
+        "data-selected:border-zinc-800 data-selected:text-zinc-800 "
+        + "dark:data-selected:border-white dark:data-selected:text-white";
 
     // The selected segment is the base colour whatever the accent: white lifted out of the track.
     private const string Segment =
         "flex flex-1 items-center justify-center gap-2 px-4 rounded-md text-sm font-medium whitespace-nowrap";
     private const string SegmentSm =
         "flex flex-1 items-center justify-center gap-2 px-3 rounded-md text-sm font-medium whitespace-nowrap";
-    private const string SegmentOn = "bg-white text-zinc-800 shadow-xs dark:bg-white/20 dark:text-white";
-    private const string SegmentOff = "text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white";
+    private const string SegmentPaint =
+        "text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white "
+        + "data-selected:bg-white data-selected:text-zinc-800 data-selected:shadow-xs "
+        + "dark:data-selected:bg-white/20 dark:data-selected:text-white";
+    private const string SegmentIcon =
+        "size-5 text-zinc-500 dark:text-zinc-400 "
+        + "[[data-ui-tab][data-selected]_&]:text-zinc-800 dark:[[data-ui-tab][data-selected]_&]:text-white";
 
-    private const string Pill = "flex items-center gap-2 px-3 rounded-full text-sm font-medium whitespace-nowrap";
-    private const string PillOn = "bg-fx-accent text-fx-accent-foreground";
-    private const string PillOnBase = "bg-zinc-800 text-white dark:bg-white dark:text-zinc-800";
-    private const string PillOff =
-        "bg-zinc-800/5 text-zinc-600 hover:bg-zinc-800/10 hover:text-zinc-800 "
+    private const string Pill =
+        "flex items-center gap-2 px-3 rounded-full text-sm font-medium whitespace-nowrap "
+        + "bg-zinc-800/5 text-zinc-600 hover:bg-zinc-800/10 hover:text-zinc-800 "
         + "dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white";
+    private const string PillPaint =
+        "data-selected:bg-fx-accent hover:data-selected:bg-fx-accent dark:data-selected:bg-fx-accent "
+        + "dark:hover:data-selected:bg-fx-accent data-selected:text-fx-accent-foreground "
+        + "hover:data-selected:text-fx-accent-foreground dark:data-selected:text-fx-accent-foreground "
+        + "dark:hover:data-selected:text-fx-accent-foreground";
+    private const string PillPaintBase =
+        "data-selected:bg-zinc-800 hover:data-selected:bg-zinc-800 data-selected:text-white "
+        + "hover:data-selected:text-white dark:data-selected:bg-white dark:hover:data-selected:bg-white "
+        + "dark:data-selected:text-zinc-800 dark:hover:data-selected:text-zinc-800";
 
     private const string Unavailable = "disabled:pointer-events-none disabled:opacity-50 dark:disabled:opacity-75";
 }

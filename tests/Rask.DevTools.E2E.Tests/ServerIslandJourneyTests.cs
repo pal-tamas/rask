@@ -64,6 +64,6 @@ public sealed class ServerIslandJourneyTests(PlaywrightFixture playwright)
         await devTools.Page.ClickAsync("#blazor .ticker strong");
 
         await Expect(devTools.Page.Locator("#picked")).ToHaveTextAsync("picked=RASK", DevToolsPage.Text);
-        await Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible);
+        await DevToolsPage.Step("panel.Locator('tbody tr', new() { HasText = 'click' }).First", () => Expect(devTools.Panel.Locator("tbody tr", new() { HasText = "click" }).First).ToBeVisibleAsync(DevToolsPage.Visible));
     }
 }

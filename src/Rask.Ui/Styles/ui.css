@@ -1342,8 +1342,21 @@
     display: none;
   }
 
-  .ui-command-list:has([role="option"]) > .ui-command-empty {
+  .ui-command-list:has(:not([hidden]) > [role="option"]) > .ui-command-empty {
     display: none;
+  }
+
+  /* A command the query hides, and the separators with it: daisyUI's `.menu li` would still lay them out. */
+  .ui-command-list > [hidden] {
+    display: none;
+  }
+
+  /* The lit command, which the runtime moves: daisyUI's `.menu-focus`, read from the option's own state. */
+  .ui-command-list [role="option"][aria-selected="true"] {
+    cursor: pointer;
+    background-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    color: var(--color-base-content);
+    outline-style: none;
   }
 }
 

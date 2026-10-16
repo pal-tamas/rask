@@ -23,7 +23,7 @@ public sealed partial class KitCallbackLifetimeTests : global::Rask.Core.RaskMar
     [InlineData(Kit.ModalEditor, "click", 0, "{}")]
     [InlineData(Kit.Select, "change", 0, "{\"value\":\"b\"}")]
     [InlineData(Kit.Pagination, "click", 0, "{}")]
-    [InlineData(Kit.Tabs, "click", 2, "{}")]
+    [InlineData(Kit.Tabs, "change", 0, "{\"value\":\"billing\"}")]
     public async Task A_page_that_unmounts_the_component_that_raised_its_callback_still_reloads(
         Kit kit, string domEvent, int handler, string payload)
     {

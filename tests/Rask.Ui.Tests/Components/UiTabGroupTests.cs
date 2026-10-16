@@ -63,11 +63,11 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task Clicking_a_tab_shows_its_panel_and_hides_the_other()
+    public async Task A_tab_the_page_hears_of_shows_its_panel_and_hides_the_other()
     {
-        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs));
+        var page = Page.Render(Group(Ui.TabGroup, Ui.Tabs.OnChange(_ => { })));
 
-        await page.On("[role=\"tab\"]:has-text(\"Account\")").Click();
+        await page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("account");
 
         var panels = page.FindAll("[role=\"tabpanel\"]");
         Assert.True(panels[0].Attributes.ContainsKey("hidden"));
@@ -93,19 +93,19 @@ public partial class UiTabGroupTests : global::Rask.Core.RaskMarkup
 
         Assert.False(panels[0].Attributes.ContainsKey("hidden"));
         Assert.Equal("until-found", panels[1].Attribute("hidden"));
-        Assert.True(panels[1].HasClass("absolute"));
+        Assert.All(panels, panel => Assert.True(panel.HasClass("not-data-selected:absolute")));
     }
 
     [Fact]
-    public async Task A_match_found_in_a_hidden_panel_selects_its_tab()
+    public void A_match_found_in_a_hidden_panel_is_the_browsers_to_select_and_asks_the_page_nothing()
     {
         // `beforematch` is what the browser raises on an until-found element it is about to reveal.
         var page = Page.Render(Group(Ui.TabGroup.Findable(), Ui.Tabs));
 
-        await page.On("[role=\"tabpanel\"][hidden]").Raise("beforematch");
+        var hidden = page.Find("[role=\"tabpanel\"][hidden]");
 
-        Assert.Equal("Account", page.Find("[role=\"tab\"][aria-selected=\"true\"]").TextContent);
-        Assert.Equal("Your account.", page.Find("[role=\"tabpanel\"][data-selected]").TextContent);
+        Assert.Null(hidden.Attribute("data-rask-on-beforematch"));
+        Assert.NotNull(page.Find("#" + hidden.Attribute("aria-labelledby")));
     }
 
     [Fact]
