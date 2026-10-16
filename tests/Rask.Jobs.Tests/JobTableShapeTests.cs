@@ -8,6 +8,7 @@ namespace Rask.Background.Tests;
 /// <c>ApplyRaskConventions</c> — still gets exactly the columns they always had: no <c>Version</c>, no
 /// <c>DeletedAt</c>.
 /// </summary>
+[Collection(JobsDbCollection.Name)]
 public sealed class JobTableShapeTests
 {
     [Theory]
