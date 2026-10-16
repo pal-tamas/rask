@@ -38,7 +38,7 @@ internal sealed class DevToolsPage(IPage page)
     internal async Task OpenPanelAsync()
     {
         await Pill.ClickAsync();
-        await Expect(Tab("Wire")).ToBeVisibleAsync(Visible);
+        await Step("the panel's Wire tab", () => Expect(Tab("Wire")).ToBeVisibleAsync(Visible));
     }
 
     // By the name's first word: a tab with news carries its count too, "Errors 1".
@@ -49,6 +49,22 @@ internal sealed class DevToolsPage(IPage page)
     internal async Task ShowTabAsync(string name)
     {
         await Tab(name).ClickAsync();
-        await Expect(Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync(name, Contains);
+        await Step("the panel's selected tab", () => Expect(Panel.Locator("[role=tab][aria-selected=\"true\"]")).ToContainTextAsync(name, Contains));
+    }
+
+    /// <summary>
+    ///     One expectation on the panel, named when it fails: a locator in the panel's frame that resolves nothing says only
+    ///     "But was: 'null'", which does not say which step of a journey it was.
+    /// </summary>
+    internal static async Task Step(string what, Func<Task> expectation)
+    {
+        try
+        {
+            await expectation();
+        }
+        catch (PlaywrightException e)
+        {
+            throw new PlaywrightException(what + ": " + e.Message, e);
+        }
     }
 }

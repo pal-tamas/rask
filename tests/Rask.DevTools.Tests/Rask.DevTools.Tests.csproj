@@ -74,8 +74,10 @@
     <_RaskNodeFixture Include="Host\*Fixture.ts"/>
     <_RaskNodeFixtureDependency Include="..\..\src\Rask.DevTools\Resources\**\*.ts"
                                 Exclude="..\..\src\Rask.DevTools\Resources\**\*.d.ts"/>
-    <!-- The overlay resolves places through the runtime's own path walk. -->
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\rask-dom-path.ts"/>
+    <!-- The frame client bundles the runtime's DOM, morph and event modules and the behaviour hooks. -->
+    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"/>
+    <!-- The stub DOM a fixture imports first. -->
+    <_RaskNodeFixtureDependency Include="Host\*.ts" Exclude="@(_RaskNodeFixture)"/>
   </ItemGroup>
 
   <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>

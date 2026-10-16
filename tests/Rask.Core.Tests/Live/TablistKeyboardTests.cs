@@ -60,6 +60,37 @@ public sealed class TablistKeyboardTests
     }
 
     [Fact]
+    public void The_pages_answer_to_what_the_reader_chose_is_not_drawn_over_a_later_choice()
+    {
+        if (NodeFixture.Run("TablistKeyboardFixture") is not { } said)
+        {
+            return;
+        }
+
+        var (echo, late, past) = (Word(said, "echo"), Word(said, "lateEcho"), Word(said, "echoPastOne"));
+
+        Assert.Equal((null, ""), echo);
+        Assert.Equal((null, "billing"), late);
+        Assert.Equal((null, ""), past);
+    }
+
+    [Fact]
+    public void A_tab_the_page_chose_itself_is_shown_whatever_the_reader_last_picked()
+    {
+        if (NodeFixture.Run("TablistKeyboardFixture") is not { } said)
+        {
+            return;
+        }
+
+        var (alone, over, owed) = (Word(said, "pageChose"), Word(said, "pageChoseOverTheReader"), Word(said, "pageChoseWhatWasOwed"));
+
+        Assert.Equal(("billing", ""), alone);
+        Assert.Equal(("profile", ""), over);
+        Assert.Equal(("account", ""), owed);
+        Assert.Equal((null, "account"), Word(said, "nothingSaid"));
+    }
+
+    [Fact]
     public void An_arrow_key_goes_nowhere_when_no_other_tab_can_be_reached()
     {
         if (NodeFixture.Run("TablistKeyboardFixture") is not { } moves)
@@ -75,4 +106,8 @@ public sealed class TablistKeyboardTests
     }
 
     private static int Landed(JsonElement moves, string move) => moves.GetProperty(move).GetInt32();
+
+    // The tab a tablist shows for the page's word (none when it is an echo), and what the page still owes it.
+    private static (string? Shows, string Owed) Word(JsonElement said, string word) =>
+        (said.GetProperty(word).GetProperty("shows").GetString(), said.GetProperty(word).GetProperty("owed").GetString()!);
 }

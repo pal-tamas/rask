@@ -260,7 +260,9 @@ Tab leaves the row for whatever comes next, which in a `Ui.TabGroup` is the show
 (`tabindex="0"`, named by its tab through `aria-labelledby`; the tab names it back with `aria-controls`).
 Home and End are not handled and stay the page's — the behaviour of the Flux tabs Rask UI mirrors. Only
 buttons take part: a link you give `role="tab"` goes somewhere, and an arrow key must not navigate.
-Rask UI's `Ui.Tabs` builds on this; so does any `tablist` you write by hand. See
+Rask UI's `Ui.Tabs` builds on this; so does any `tablist` you write by hand. `Ui.Tabs` also leaves the
+selecting to the runtime (`data-rask-tabs`): `aria-selected`, the tab stop and the shown panel move in the
+press itself, before any answer from the server, so a screen reader hears the new tab at once. See
 [ui-kit.md](ui-kit.md#tabs).
 
 ## Controls that are waiting

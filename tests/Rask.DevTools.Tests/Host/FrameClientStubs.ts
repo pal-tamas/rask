@@ -23,14 +23,23 @@ export class StubElement {
         return names.some(n => this.attributes.has(n)) ? this : null;
     }
     addEventListener() {}
+    // What the behaviour hooks ask of the document as they load: nothing here is one of theirs.
+    matches() { return false; }
+    querySelector() { return null; }
     querySelectorAll() { return []; }
 }
 
 const body = new StubElement("BODY");
 const noop = () => {};
 const globals = globalThis as unknown as Record<string, unknown>;
+globals.Node = StubElement;
 globals.Element = StubElement;
 globals.HTMLElement = StubElement;
+// What the behaviour hooks ask an element to be before they act on it: none of the stubs here is one.
+for (const name of ["HTMLInputElement", "HTMLDialogElement", "HTMLButtonElement", "HTMLTextAreaElement", "HTMLSelectElement",
+    "HTMLLabelElement", "HTMLAnchorElement"]) {
+    globals[name] = class extends StubElement {};
+}
 globals.MutationObserver = class { observe() {} disconnect() {} };
 globals.document = {
     addEventListener: (type: string, handler: Handler) => documentListeners.push({type, handler}),
@@ -42,6 +51,8 @@ globals.document = {
     querySelectorAll: () => [],
     getElementById: () => null,
 };
+// The behaviour hooks the frame bundles read where they are as they load: a srcdoc frame is at about:srcdoc.
+globals.location = {href: "about:srcdoc"};
 const parent = {postMessage: (message: unknown) => posted.push(message)};
 globals.window = {
     addEventListener: (type: string, handler: Handler) => windowListeners.push({type, handler}),
