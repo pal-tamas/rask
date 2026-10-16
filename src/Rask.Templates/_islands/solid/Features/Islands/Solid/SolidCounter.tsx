@@ -13,7 +13,11 @@ export default function SolidCounter(props: SolidCounterProps) {
   return (
     <div class="island-counter" data-testid="solid-counter">
       <div class="caption">{props.caption}</div>
-      <button type="button" data-testid="solid-counter-add" onClick={() => setTotal(t => t + props.step)}>
+      <button
+        type="button"
+        data-testid="solid-counter-add"
+        onClick={() => setTotal((t) => t + props.step)}
+      >
         add {props.step}
       </button>
       <span class="total">

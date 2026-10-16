@@ -76,9 +76,9 @@ export default function App() {
                   {/* seenAt is a real Date, revived because the C# type said it was an instant. */}
                   <p class="text-sm text-zinc-500 dark:text-zinc-400">
                     Server time:{' '}
-                    {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                      data().seenAt,
-                    )}
+                    {new Intl.DateTimeFormat(undefined, {
+                      timeStyle: 'medium',
+                    }).format(data().seenAt)}
                   </p>
                   <div>
                     <div class="text-sm text-zinc-500 dark:text-zinc-400">Visits</div>

@@ -3,8 +3,7 @@
     "@sveltejs/vite-plugin-svelte": "latest",
     "svelte": "latest",
     "svelte-check": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "typescript": "latest"
   },
   "runtime": "svelte"
 }

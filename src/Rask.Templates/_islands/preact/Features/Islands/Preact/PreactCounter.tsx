@@ -13,7 +13,11 @@ export default function PreactCounter({ step, caption, onTotal }: PreactCounterP
   return (
     <div className="island-counter" data-testid="preact-counter">
       <div className="caption">{caption}</div>
-      <button type="button" data-testid="preact-counter-add" onClick={() => setTotal(t => t + step)}>
+      <button
+        type="button"
+        data-testid="preact-counter-add"
+        onClick={() => setTotal((t) => t + step)}
+      >
         add {step}
       </button>
       <span className="total">

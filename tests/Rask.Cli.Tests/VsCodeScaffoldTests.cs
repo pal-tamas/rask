@@ -193,14 +193,19 @@ public sealed class VsCodeScaffoldTests
         }
 
         Assert.DoesNotContain(recommended["server"], frameworks.Contains);
-        Assert.DoesNotContain("dbaeumer.vscode-eslint", recommended["server"]);
-        Assert.DoesNotContain("esbenp.prettier-vscode", recommended["wasm"]);
-        Assert.Contains("dbaeumer.vscode-eslint", recommended["server --islands react"]);
-        Assert.Contains("esbenp.prettier-vscode", recommended["server --islands react"]);
+        // Vite+ lints and formats every Vite front end and island project; only Angular keeps ESLint, and
+        // nothing ships Prettier any more.
+        const string vitePlus = "VoidZero.vite-plus-extension-pack";
+        Assert.DoesNotContain(vitePlus, recommended["server"]);
+        Assert.DoesNotContain(vitePlus, recommended["wasm"]);
+        Assert.Contains(vitePlus, recommended["server --islands react"]);
         Assert.DoesNotContain(recommended["server --islands react"], frameworks.Contains);
-        Assert.Contains("dbaeumer.vscode-eslint", recommended["react"]);
-        Assert.Contains("esbenp.prettier-vscode", recommended["react"]);
+        Assert.Contains(vitePlus, recommended["react"]);
         Assert.DoesNotContain(recommended["react"], frameworks.Contains);
+        Assert.Contains("dbaeumer.vscode-eslint", recommended["angular"]);
+        Assert.DoesNotContain(vitePlus, recommended["angular"]);
+        Assert.All(recommended.Where(r => r.Key != "angular"), r => Assert.DoesNotContain("dbaeumer.vscode-eslint", r.Value));
+        Assert.All(recommended.Values, ids => Assert.DoesNotContain("esbenp.prettier-vscode", ids));
         Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended["react"]);
         Assert.Contains("vue.volar", recommended["server --islands vue"]);
         Assert.Contains("vue.volar", recommended["vue"]);

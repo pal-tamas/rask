@@ -96,9 +96,9 @@ export default function App() {
                     own time zone. */}
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   Server time:{' '}
-                  {new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' }).format(
-                    greeting.seenAt,
-                  )}
+                  {new Intl.DateTimeFormat(undefined, {
+                    timeStyle: 'medium',
+                  }).format(greeting.seenAt)}
                 </p>
                 <div>
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">Visits</div>

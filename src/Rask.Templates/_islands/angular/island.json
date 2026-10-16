@@ -8,8 +8,7 @@
     "@angular/core": "latest",
     "@angular/platform-browser": "latest",
     "rxjs": "latest",
-    "typescript": "latest",
-    "vite": "latest"
+    "typescript": "latest"
   },
   "runtime": "angular"
 }

@@ -11,15 +11,28 @@ namespace Rask.Cli.Scaffolding;
 ///     never a reason to stop a scaffold. Set on <c>NewCommand</c> by <c>CliApplication</c>; tests leave it unset or
 ///     pass their own lookup, so none of them reaches the network.
 /// </remarks>
-internal sealed class NpmRegistry(Func<string, CancellationToken, Task<IReadOnlyList<NpmRelease>?>> releasesOf)
+internal sealed class NpmRegistry(
+    Func<string, CancellationToken, Task<IReadOnlyList<NpmRelease>?>> releasesOf,
+    Func<SemVersion, CancellationToken, Task<SemVersion?>>? bundledViteOf = null)
 {
     /// <summary>registry.npmjs.org, read through its abbreviated ("corgi") documents.</summary>
-    internal static NpmRegistry Public { get; } = new(FetchFromNpmjsAsync);
+    internal static NpmRegistry Public { get; } = new(FetchFromNpmjsAsync, FetchBundledViteFromNpmjsAsync);
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     internal Task<IReadOnlyList<NpmRelease>?> ReleasesAsync(string package, CancellationToken cancellationToken) =>
         releasesOf(package, cancellationToken);
+
+    /// <summary>
+    ///     The Vite that release <paramref name="toolchain" /> of the Vite+ core bundles — what a plugin's peer range
+    ///     on <c>vite</c> is met by once <c>vite</c> is aliased to that core (<see cref="VitePlusToolchain" />).
+    /// </summary>
+    /// <remarks>
+    ///     Read from that one version's document, the only one that carries <c>bundledVersions</c>; the abbreviated
+    ///     document leaves it out. <see langword="null" /> when it cannot be asked, and then nothing holds the plugins.
+    /// </remarks>
+    internal Task<SemVersion?> BundledViteAsync(SemVersion toolchain, CancellationToken cancellationToken) =>
+        bundledViteOf is null ? Task.FromResult<SemVersion?>(null) : bundledViteOf(toolchain, cancellationToken);
 
     private static async Task<IReadOnlyList<NpmRelease>?> FetchFromNpmjsAsync(string package, CancellationToken cancellationToken)
     {
@@ -46,6 +59,40 @@ internal sealed class NpmRegistry(Func<string, CancellationToken, Task<IReadOnly
             return null;
         }
     }
+
+    private static async Task<SemVersion?> FetchBundledViteFromNpmjsAsync(SemVersion toolchain, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var core = VitePlusToolchain.Core.Replace("/", "%2F", StringComparison.Ordinal);
+            using var response = await Http.GetAsync(
+                new Uri($"https://registry.npmjs.org/{core}/{toolchain}"), HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var disposeBody = body.ConfigureAwait(false);
+            using var document = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return BundledVite(document.RootElement);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The <c>bundledVersions.vite</c> of one Vite+ core version's document, or null when it names none.</summary>
+    internal static SemVersion? BundledVite(JsonElement release) =>
+        release.TryGetProperty("bundledVersions", out var bundled)
+        && bundled.ValueKind == JsonValueKind.Object
+        && bundled.TryGetProperty(VitePlusToolchain.Vite, out var vite)
+        && vite.ValueKind == JsonValueKind.String
+        && SemVersion.TryParse(vite.GetString(), SemVersionStyles.Strict, out var version)
+            ? version
+            : null;
 
     /// <summary>The stable, undeprecated releases in a registry document, newest first.</summary>
     internal static IReadOnlyList<NpmRelease>? Installable(JsonElement document)
