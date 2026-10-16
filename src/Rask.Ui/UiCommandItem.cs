@@ -47,11 +47,11 @@ public sealed partial class UiCommandItem : Component
         Component?[] content =
         [
             Icon is { } icon
-                ? Div.Class("relative")[Ui.Icon.Name(icon).Variant(IconVariant ?? Ui.IconVariant.Outline).Class("me-2 text-zinc-400")]
+                ? Div.Class("relative")[Ui.Icon.Name(icon).Variant(IconVariant ?? Ui.IconVariant.Outline).Class("me-2 text-zinc-400 in-data-active:text-current")]
                 : null,
             .. Children ?? [],
             Kbd is { } kbd
-                ? Div.Class("ms-auto flex rounded-sm bg-zinc-800/5 px-1 py-0.5 dark:bg-white/10")[
+                ? Div.Class("ms-auto inline-flex rounded-sm bg-zinc-800/5 px-1 py-0.5 dark:bg-white/10")[
                     Span.Class("text-xs font-medium text-zinc-500 dark:text-zinc-300")[kbd]
                 ]
                 : null

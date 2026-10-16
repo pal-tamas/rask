@@ -21,7 +21,7 @@ public sealed partial class UiCommandInput : Component
         + "outline-none peer focus:ring-0 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
 
     private const string Leading =
-        "absolute top-0 bottom-0 start-0 flex items-center justify-center ps-3.5 text-xs text-zinc-400";
+        "absolute top-0 bottom-0 start-0 flex items-center justify-center ps-3.5 text-xs text-zinc-400 has-[+input:focus]:text-zinc-800 dark:has-[+input:focus]:text-zinc-400";
 
     private const string Trailing = "absolute top-0 bottom-0 end-0 flex items-center justify-center pe-2";
 
