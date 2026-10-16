@@ -1,17 +1,17 @@
 {
  "schema": 1,
  "sources": {
-  "@mdn/browser-compat-data": "8.1.5",
+  "@mdn/browser-compat-data": "8.1.6",
   "@webref/css": "8.7.7",
   "@webref/elements": "2.9.2",
   "@webref/events": "1.27.1",
   "@webref/idl": "3.85.2",
   "parse5": "8.0.1",
   "webidl2": "24.5.0",
-  "webref/dfns": "fe954a991e86c3dae5b0a85205edd7d06d8bdff2",
+  "webref/dfns": "206c95cc81af9f04eea541b790ac29ec857bd2b7",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
-  "w3c/aria": "79cd9d0ee032933c692d91e8f4b3db953524e28e"
+  "w3c/aria": "8bf52aad22aa15e0fac28e9bfeb950d1c23dc65a"
  },
  "engines": [
   "chrome",
@@ -3313,7 +3313,7 @@
    "bubbles": true,
    "on": "Element",
    "support": {
-    "chrome": "83",
+    "chrome": "145",
     "firefox": "54",
     "safari": "13.1"
    },
@@ -43021,12 +43021,6 @@
        "value": "auto"
       }
      ]
-    },
-    {
-     "attr": "controls",
-     "property": "controls",
-     "type": "boolean",
-     "reflect": true
     }
    ],
    "members": [
@@ -75613,6 +75607,45 @@
    "statics": [
     {
      "kind": "operation",
+     "name": "startDiagnosticLogging",
+     "returns": "DOMString",
+     "args": [
+      {
+       "name": "options",
+       "type": "RTCDiagnosticLoggingOptions",
+       "optional": true
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "156"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcpeerconnection-startdiagnosticlogging"
+    },
+    {
+     "kind": "operation",
+     "name": "stopDiagnosticLogging",
+     "returns": "undefined",
+     "args": [],
+     "experimental": true,
+     "support": {
+      "chrome": "156"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcpeerconnection-stopdiagnosticlogging"
+    },
+    {
+     "kind": "operation",
+     "name": "cancelDiagnosticLogging",
+     "returns": "undefined",
+     "args": [],
+     "experimental": true,
+     "support": {
+      "chrome": "156"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcpeerconnection-canceldiagnosticlogging"
+    },
+    {
+     "kind": "operation",
      "name": "generateCertificate",
      "returns": "Promise<RTCCertificate>",
      "args": [
@@ -82349,6 +82382,7 @@
       "firefox": "61",
       "safari": "14"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/rel",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/linking.html#AElementRelAttribute"
     },
     {
@@ -82360,6 +82394,7 @@
       "firefox": "52",
       "safari": "14"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/referrerpolicy",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/linking.html#AElementReferrerpolicyAttribute"
     },
     {
@@ -92172,6 +92207,7 @@
       "firefox": "1.5",
       "safari": "3"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/offset",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/pservers.html#StopElementOffsetAttribute"
     }
    ],
@@ -92395,6 +92431,7 @@
       "firefox": "1.5",
       "safari": "3"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/title",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/styling.html#StyleElementTitleAttribute"
     },
     {
@@ -113048,6 +113085,7 @@
       "firefox": "158",
       "safari": "26.4"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransport/supportsReliableOnly_static",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-supportsreliableonly"
     }
    ]
@@ -130321,6 +130359,14 @@
     {
      "name": "id",
      "type": "unsigned short"
+    }
+   ]
+  },
+  "RTCDiagnosticLoggingOptions": {
+   "members": [
+    {
+     "name": "metadata",
+     "type": "record<DOMString, DOMString>"
     }
    ]
   },

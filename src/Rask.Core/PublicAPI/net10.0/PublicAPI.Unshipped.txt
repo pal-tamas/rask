@@ -9845,8 +9845,6 @@ Rask.Core.HTMLIFrameElement.Width.set -> void
 Rask.Core.HTMLImageElement
 Rask.Core.HTMLImageElement.Alt.get -> string?
 Rask.Core.HTMLImageElement.Alt.set -> void
-Rask.Core.HTMLImageElement.Controls.get -> bool?
-Rask.Core.HTMLImageElement.Controls.set -> void
 Rask.Core.HTMLImageElement.CrossOrigin.set -> void
 Rask.Core.HTMLImageElement.Decoding.set -> void
 Rask.Core.HTMLImageElement.FetchPriority.set -> void
@@ -12843,7 +12841,6 @@ static RaskBuilderSettersRask_Core.ConfirmLeave<TModel>(this Rask.Core.HTMLFormE
 static RaskBuilderSettersRask_Core.Content(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
 static RaskBuilderSettersRask_Core.Context<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, Rask.Core.Forms.EditContext? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLAudioElement! __b, bool? value) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLImageElement! __b, bool? value) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLVideoElement! __b, bool? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.Coords(this Rask.Core.HTMLAreaElement! __b, string? value) -> Rask.Core.HTMLAreaElement!
 static RaskBuilderSettersRask_Core.CrossOrigin(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
@@ -17631,7 +17628,6 @@ static RaskBuilderSettersRask_Core.Autoplay(this Rask.Core.HTMLVideoElement! __b
 static RaskBuilderSettersRask_Core.Checked<T>(this Rask.Core.HTMLInputElement<T>! __b) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Class<T>(this T! __b, params System.ReadOnlySpan<string?> parts) -> T!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLAudioElement! __b) -> Rask.Core.HTMLAudioElement!
-static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLImageElement! __b) -> Rask.Core.HTMLImageElement!
 static RaskBuilderSettersRask_Core.Controls(this Rask.Core.HTMLVideoElement! __b) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.Default(this Rask.Core.HTMLTrackElement! __b) -> Rask.Core.HTMLTrackElement!
 static RaskBuilderSettersRask_Core.Defer(this Rask.Core.HTMLScriptElement! __b) -> Rask.Core.HTMLScriptElement!
