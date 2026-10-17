@@ -237,11 +237,22 @@ fi
 # and it adds a line rather than making a decision, so it has no false-positive cost.
 set +e
 e2e_status=0
+# A filter that names nothing makes `dotnet test` print "No test matches" and exit 0 — a green run that
+# ran no test. One suite matching nothing is normal (one filter goes to both), so a run only fails when
+# no suite ran a single test.
+test_log="$(mktemp)"
+matched=0
+rask_e2e_note_matches() {
+  if ! grep -q "No test matches the given testcase filter" "$test_log"; then
+    matched=1
+  fi
+}
 if [ "$suite" != "server" ]; then
   dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dll \
     --filter "$e2e_filter" \
-    --logger "console;verbosity=normal"
-  e2e_status=$?
+    --logger "console;verbosity=normal" | tee "$test_log"
+  e2e_status=${PIPESTATUS[0]}
+  rask_e2e_note_matches
 fi
 
 # Server-rendered live pages in a real browser — what the WebAssembly site above cannot exercise: the
@@ -253,11 +264,17 @@ if [ "$suite" != "site" ]; then
   echo "==> Browser journey E2E (Rask.Server.E2E.Tests)"
   dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net10.0/Rask.Server.E2E.Tests.dll \
     --filter "$server_filter" \
-    --logger "console;verbosity=normal"
-  server_status=$?
+    --logger "console;verbosity=normal" | tee "$test_log"
+  server_status=${PIPESTATUS[0]}
+  rask_e2e_note_matches
 fi
 if [ "$e2e_status" -eq 0 ]; then
   e2e_status=$server_status
+fi
+rm -f "$test_log"
+if [ "$e2e_status" -eq 0 ] && [ "$matched" -eq 0 ]; then
+  echo "run-e2e-local: no test matched '$e2e_filter' in any suite — nothing ran, so this is not a pass." >&2
+  e2e_status=1
 fi
 set -e
 
