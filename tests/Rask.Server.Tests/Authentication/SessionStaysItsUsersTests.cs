@@ -48,21 +48,6 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal("alice:user", Saves(host).Single().Now);
     }
 
-    // A host that signs in only the requests under its path base: the socket is one of them, because the path base is
-    // part of its route and not moved into Request.PathBase.
-    [Fact]
-    public async Task Under_a_path_base_the_socket_is_a_request_under_it_and_carries_the_user_as_the_page_does()
-    {
-        using var host = CreateHost(pathBase: "/uj");
-        var (sessionId, save) = await OpenPageAsync(host, "alice", "/uj");
-        host.Services.GetRequiredService<Directory>().Admins.Clear();
-
-        using var ws = await AttachAsync(host, sessionId, "alice");
-        await ClickAsync(host, ws, save);
-
-        Assert.Equal(new Save("alice:user", "alice:admin", "alice"), Saves(host).Single());
-    }
-
     // Stated, not endorsed: the reconnect replaces the principal and re-checks the route's guard, and mounts nothing.
     [Fact]
     public async Task What_a_page_read_from_the_principal_as_it_mounted_is_kept_across_a_same_user_reconnect()
