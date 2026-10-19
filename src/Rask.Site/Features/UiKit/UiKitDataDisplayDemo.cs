@@ -176,11 +176,18 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         ]
                     ],
                     Ui.Card
-                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Class("font-mono max-w-full break-all whitespace-normal!")["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
-                        Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
-                            .Label("Last error")
-                            .Error
-                    ]],
+                        .Key("detail")[
+                        // The id goes under the heading, not beside it: a phone has no room for both on one line.
+                        Ui.CardHeader.Class("flex-col items-start gap-2")[
+                            Ui.CardHeading.Level(2)["A failed job"],
+                            Ui.Badge.Class("font-mono h-auto max-w-full py-1 break-all whitespace-normal!")["requestId=0HN8Q2V3R1T0K:00000001"]
+                        ],
+                        Ui.CardBody[
+                            Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
+                                .Label("Last error")
+                                .Error
+                        ]
+                    ],
                     Ui.Card.Key("empty")[
                         Ui.Empty.Title("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")

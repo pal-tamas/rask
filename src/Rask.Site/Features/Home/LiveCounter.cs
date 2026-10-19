@@ -30,7 +30,7 @@ public sealed partial class LiveCounter : Component
                 // .count and .count-btn are a TEST contract, not styling: SiteExampleTests reads the
                 // value and clicks the button by these names, and a Playwright locator that resolves to
                 // nothing fails by timing out rather than by naming what moved.
-                Div.Class("count text-5xl font-semibold tabular-nums tracking-tight text-ui-ink")[_count],
+                Ui.Heading.Size(Ui.HeadingSize.Xxl).Class("count tabular-nums")[_count],
                 Ui.Button.Primary.Class("count-btn").OnClick(() => _count++)["Click me"]
             ],
             Ui.CardFooter[
