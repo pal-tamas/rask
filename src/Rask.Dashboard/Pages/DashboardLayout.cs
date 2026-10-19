@@ -56,7 +56,7 @@ public sealed partial class DashboardLayout(
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
         // ONE sheet: the console's own, with the kit compiled into it (Styles/dashboard.css) — so a
         // utility a page here writes and a class a kit component writes are ranked by Tailwind, in one
-        // build. The frame's reset travels with the kit, keyed to Ui.Shell.
+        // build. The document reset travels with the kit, keyed to UiStylesheet.DocumentAttribute.
         // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
         // /_rask, and a <link> would point at a file nothing in that host's wwwroot produced.
         Style[Raw.Value(DashboardStylesheet.Css)],

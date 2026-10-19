@@ -54,6 +54,7 @@
        that starts reading a new file outside this project must add it here. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Dashboard\**" />
+    <RaskTestReads Include="..\Rask.Ui.Tests\Flux\flux.snapshot.json" />
   </ItemGroup>
 
 </Project>

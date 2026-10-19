@@ -7,8 +7,8 @@
   beside the kit's own — ranked by Tailwind, as in any app that says `@import "./vendor/rask-ui.css"`.
 
   These are that file's lines written out, for one difference: no preflight. Only Tailwind's theme and
-  utilities are imported, because the reset this document gets is the kit's own, keyed to Ui.Shell's
-  `.rask-ops` — the same rules the console has always been drawn against.
+  utilities are imported, because the reset this document gets is the kit's own, keyed to the
+  `data-rask-ui-document` attribute RaskDashboardShell writes on <html> — light, and dark under Flux's `.dark`.
 
   Styles/vendor/ is written by the build (src/Rask.Ui/build/Rask.Ui.targets) and is not committed.
 */

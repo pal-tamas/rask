@@ -85,13 +85,14 @@ public sealed partial class DashboardChromeTests : global::Rask.Core.RaskMarkup
     private static DashboardHarness Harness(Batteries batteries) =>
         new(batteries, environment: Environments.Development);
 
-    // The brand is not in a <nav>, and the Docs link leaves the console (no data-rask-nav): neither is a section.
+    // The sidebar only: a queue page has a navbar of its own. The brand is not in a <nav>, and the Docs link leaves
+    // the console (no data-rask-nav): neither is a section.
     private List<string> Sections(DashboardHarness h, string path) =>
-        RenderChrome(h, path).FindAll("nav a[data-rask-nav]").Select(a => a.TextContent.Trim()).ToList();
+        RenderChrome(h, path).FindAll("[data-ui-sidebar] nav a[data-rask-nav]").Select(a => a.TextContent.Trim()).ToList();
 
     private List<string> Current(DashboardHarness h, string path) =>
         RenderChrome(h, path)
-            .FindAll("nav a[data-rask-nav][aria-current=\"page\"]")
+            .FindAll("[data-ui-sidebar] nav a[data-rask-nav][aria-current=\"page\"]")
             .Select(a => a.TextContent.Trim())
             .ToList();
 

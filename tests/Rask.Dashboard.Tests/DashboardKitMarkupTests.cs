@@ -12,7 +12,7 @@ namespace Rask.Dashboard.Tests;
 public sealed class DashboardKitMarkupTests
 {
     [Fact]
-    public async Task A_dead_letter_row_carries_the_error_tone()
+    public async Task A_dead_letter_row_says_so_in_a_red_badge()
     {
         await using var h = new DashboardHarness(Batteries.Jobs);
         var now = h.Clock.GetUtcNow().UtcDateTime;
@@ -24,8 +24,10 @@ public sealed class DashboardKitMarkupTests
         var page = Page.Render(component, h.Services);
         page.Shows("dead letter");
 
-        var row = Assert.Single(page.FindAll("tbody tr"));
-        Assert.Contains("bg-error/10", row.Attribute("class") ?? "", StringComparison.Ordinal);
+        Assert.Single(page.FindAll("tbody tr"));
+        var badge = Assert.Single(page.FindAll("tbody tr [data-ui-badge]"));
+        Assert.Equal("dead letter", badge.TextContent.Trim());
+        Assert.Contains("bg-red-400/20", badge.Attribute("class") ?? "", StringComparison.Ordinal);
     }
 
     [Fact]
@@ -48,7 +50,7 @@ public sealed class DashboardKitMarkupTests
     public async Task Queue_row_buttons_are_keyed_siblings_with_no_text_between_them()
     {
         // Unkeyed text among keyed buttons forces the diff to match by position, so a focused Retry could be
-        // patched into Delete. The grid cell spaces the buttons instead.
+        // patched into Delete. The cell's flex row spaces the buttons instead.
         await using var h = new DashboardHarness(
             Batteries.Jobs,
             configure: o => o.Actions = RaskDashboardActions.Safe | RaskDashboardActions.Destructive);
