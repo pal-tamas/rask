@@ -19,6 +19,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Storage keeps files in the app's own database: `Rask__Storage__Provider=Database`.** Before: a file's bytes
+  went to a directory, an S3 bucket or an Azure container. After: they can go to a `StoredFileBytes` table beside
+  `StoredFile`, one row per file under the same id, written in one transaction with the row and streamed in and out
+  on SQL Server and PostgreSQL (SQLite reads the spooled upload once). `Url`, `Share(id).For(…)` and `Download(id)`
+  are served by the same `/_rask/files/…` routes, ranges, `ETag` and `304`s included; delete removes the bytes row and
+  the orphan sweep removes bytes no file claims. `modelBuilder.AddRaskStorage()` maps both tables (an app on Rask's
+  migrations runs `rask db add AddStoredFileBytes`), the boot stops naming the line when the provider is on and the
+  table is not mapped, and `PublicBaseUrl` is refused with it. The storage guide carries the SQL Server DDL for an
+  adopted schema that creates its tables by hand.
+
 - **Rask.Ui ships Inter and draws in it.** Before: the kit was laid out for Inter (a chart measures its labels with
   Inter's metrics) but shipped no font, so every app drew it in the system face. After: the kit's theme names
   `"Inter"` first in `--font-sans`, and every app's build copies the variable face, latin and latin-ext, into
@@ -130,6 +140,17 @@ them until tagged releases begin.
   See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
+
+- **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
+  tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped
+  table in the model numbers its tenants (`PerTenant<int>`, or a declared `int? TenantId`), the column is an `int`
+  holding the number (`bigint` for `long`); the C# property is still `Guid?`, and a non-number tenant in flight is
+  refused rather than compared. A Guid app's table is unchanged, column for column. **Migrating a numbered app with
+  stored files**: the column changes type and EF cannot convert the values, so write the migration's `Up` by hand —
+  on SQL Server add `TenantNumber int NULL`, fill it with
+  `CONVERT(int, CONVERT(varbinary(4), RIGHT(CONVERT(char(36), TenantId), 8), 2))`, drop `TenantId` and rename the
+  new column to `TenantId`; on PostgreSQL `ALTER COLUMN "TenantId" TYPE integer USING
+  ('x' || right("TenantId"::text, 8))::bit(32)::int`.
 
 - **The DevTools panel is drawn with Flux UI's pieces only.** Before: the Wire, Renders and Perf tabs opened on a
   `Ui.MetricRow` of `Ui.Metric` tiles, and the Tree tab was a `Ui.Tree`. After: a figure is Flux's text over a Flux

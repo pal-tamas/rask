@@ -135,7 +135,7 @@ run them on more than one host. What the processors themselves do about several 
 **And files kept on disk stay on the host that saved them.** [`Rask.Storage`](file-storage.md)'s default disk
 provider writes to the local filesystem, so a file saved on one host does not exist on the next. Affinity
 doesn't fix that — a file is read by people other than the one who uploaded it, from whichever host they
-land on. Point `Rask__Storage__Provider` at S3 or Azure before adding a second host; temporary links the app signs
+land on. Point `Rask__Storage__Provider` at S3, Azure or `Database` before adding a second host; temporary links the app signs
 itself also need the shared key ring above.
 
 **And a published event reaches only its own process's subscriptions.** A [subscription](subscriptions.md) hears the

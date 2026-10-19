@@ -1,7 +1,8 @@
 # Rask.Storage
 
 Keep the files your users upload — on a directory on the deploy volume by default, or in S3-compatible
-storage or Azure Blob Storage by configuration — with a row per file on your application's own database.
+storage, Azure Blob Storage or your application's own database by configuration — with a row per file on that
+database.
 
 ```csharp
 builder.Services.AddRaskStorage<AppDbContext>();
@@ -27,6 +28,9 @@ app.MapGet("/invoices/{id}", (Guid id) => Files.Download(id));       // behind y
 - **Content types are sniffed from the bytes**, never taken from the browser. Only images, audio and video
   are served inline; everything else — SVG and HTML included — downloads as an attachment.
 - **Uploads are capped** at 50 MB by default (`MaxFileSize`), and `AllowedTypes` narrows what is accepted.
+- **`Rask__Storage__Provider=Database`** keeps the bytes in a `StoredFileBytes` table beside the file rows, written in
+  one transaction with the row and streamed in and out on SQL Server and PostgreSQL (SQLite works too): the
+  database backup is the file backup.
 - **Orphaned bytes are swept**: a file whose row was never written is removed after a grace period.
 - **A file belongs to the tenant that saved it** in a multi-tenant app: finding, opening, linking and deleting
   it by id are scoped to the tenant in flight, so another tenant holding the id cannot reach it.
