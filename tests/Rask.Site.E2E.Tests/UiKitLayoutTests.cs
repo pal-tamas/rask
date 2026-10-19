@@ -22,7 +22,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         foreach (var id in new[]
                  {
-                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography", "ui-mockups",
+                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -255,18 +255,6 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task The_code_mockup_shows_its_prefixes_and_its_text() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var code = Page.Locator("[data-testid='ui-mockups'] .mockup-code");
-
-        await Expect(code).ToBeVisibleAsync();
-        await Expect(code).ToContainTextAsync("rask new shop");
-        await Expect(code.Locator("pre[data-prefix='$']")).ToHaveCountAsync(2);
-    });
-
-    [Fact]
     public Task A_collapsed_rail_says_an_items_label_in_a_tooltip_beside_it_and_a_wide_sidebar_does_not() => RunAsync(async () =>
     {
         await OpenSidebarDemoAsync();
@@ -384,7 +372,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
 
-        await ClickSidebar("Layout & mockups");
+        await ClickSidebar("Layout & flyouts");
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Layout",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     }

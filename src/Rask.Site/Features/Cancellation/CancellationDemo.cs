@@ -24,10 +24,8 @@ public sealed partial class CancellationDemo : Component
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _log.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Mount and unmount the probe to populate this log."]
-                : Ui.List.Ordered().Class("cancel-log").Id("cancel-log")[
-                    _log.Select(line => Li
-                        .Key(line)
-                        .Class("ps-2")[Code.Class("text-sm")[line]])]
+                : Ol.Class($"cancel-log {DemoList.Numbered}").Id("cancel-log")[
+                    _log.Select(line => Li.Key(line)[Code.Class("text-sm")[line]])]
         ];
 
     private void MountProbe()

@@ -38,7 +38,7 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)["Remove top"]
             ],
-            Ui.List.Id("kl-list")[BuildRows()]
+            Ul.Class(DemoList.Rows).Id("kl-list")[BuildRows()]
         ];
 
     private List<Component> BuildRows()

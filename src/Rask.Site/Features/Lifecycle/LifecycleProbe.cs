@@ -66,7 +66,7 @@ public sealed partial class LifecycleProbe : Component
                     .OnClick(() => _clicks++)["Trigger re-render"]
             ],
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
-            Ui.List.Ordered()[
+            Ol.Class(DemoList.Numbered)[
                 Row("OnMount (before its await)", Ran(_onMount)),
                 Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
                 Row("OnUpdated", Ran(_onUpdated)),
@@ -87,8 +87,7 @@ public sealed partial class LifecycleProbe : Component
     // function of its state. `data-hook` gives a test something stable to select on — a data-* attribute
     // is explicitly one of the places the golden contract allows a value to move.
     private static Component Row(string hook, string status) =>
-        Li.Class("ps-2")
-            .Data("hook", hook)[
+        Li.Data("hook", hook)[
             Code.Class("text-sm")[hook],
             Span.Class("text-ui-muted ms-2")[status]
         ];

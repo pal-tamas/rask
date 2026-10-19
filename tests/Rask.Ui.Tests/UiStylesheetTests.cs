@@ -191,37 +191,6 @@ public sealed class UiStylesheetTests
         }
     }
 
-    [Fact]
-    public void The_mockup_prompt_keeps_its_gap_from_the_command()
-    {
-        // #1032. daisyUI gives the prompt pseudo-element `margin-right: 2ch` in its base rule and then
-        // REPLACES that declaration block in the nested rule that supplies the content, so the gap is
-        // lost and a terminal renders `$curl` with the prompt flush against the command.
-        //
-        // WIDTH, and this test exists mostly to say why it is not margin. The correcting rule went in
-        // three times as `margin-right: 2ch` — the exact declaration daisyUI's own base rule sets and its
-        // nested rule drops — at two different specificities and in two different layers, and the browser
-        // computed 0px every time. A consuming app's Tailwind preflight resets margin and padding on
-        // ::before from its own <link>, and layers do not merge across separate sheets, so nothing layered
-        // in this sheet can win that. Widening the box daisyUI already right-aligns the prompt inside
-        // uses a property the reset does not touch.
-        //
-        // So the assertion is: the correction sets width, and it does NOT set margin — because a margin
-        // here reads as a fix and is not one.
-        var correction = Assert.Single(
-            LayersOf(UiStylesheet.Css, ".mockup-code pre[data-prefix]:before")
-                .Where(r => r.Body.Contains("width", StringComparison.Ordinal)
-                            && !r.Body.Contains("content", StringComparison.Ordinal))
-                .ToList());
-
-        Assert.Contains("2ch", correction.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("margin", correction.Body, StringComparison.Ordinal);
-
-        // Outside daisyUI's own sublayer, so it is a correction rather than part of what it corrects.
-        var layer = Assert.Single(correction.Layers);
-        Assert.DoesNotContain("daisyui", layer, StringComparison.Ordinal);
-    }
-
     /// <summary>
     ///     Every rule in <paramref name="css" /> whose selector is <paramref name="selector" />, with the
     ///     stack of at-rules enclosing it. The stack is what decides which of two identical selectors wins.

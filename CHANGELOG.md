@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Removed
+
+- **BREAKING: `Ui.List`, `Ui.ListRow` and `Ui.MockupCode` are gone (`UiList`, `UiListRow`, `UiMockupCode`).** None of
+  them is Flux UI's, and the site was their last user. Their stylesheet rules went with them (the `ui-list` row
+  padding and the `mockup-code` prompt correction); no `RaskString` was theirs, so nothing renumbers. Draw a list as
+  a plain `Ul`/`Ol` with Tailwind (`divide-y rounded-xl border …`, the rows padded), and a terminal as a `Pre` per
+  line inside a dark rounded box, the prompt a `before:content-[attr(data-prefix)]` so it is never copied.
+  `Ui.StatusDot`, `Ui.Loading` and `UiStyles` stay for now: the operator console still draws with them.
+
 ### Added
 
 - **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**

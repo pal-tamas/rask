@@ -13,7 +13,7 @@ public sealed partial class DragDropSortableDemo : Component
     protected override Component? Render() => DragDrop.Body(SortableBody).OnDrop(ReorderFruit);
 
     private Component SortableBody(DragDropContext ctx) =>
-        Ui.List.Class("dd-list").Id("dd-fruit-list")[_fruits.Select((fruit, index) => Li
+        Ul.Class($"dd-list {DemoList.Rows}").Id("dd-fruit-list")[_fruits.Select((fruit, index) => Li
             .Key(fruit)
             .Class(
                 "flex items-center gap-2 dd-item",

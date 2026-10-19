@@ -23,7 +23,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
 
         foreach (var id in new[]
                  {
-                     "ui-callout", "ui-loading", "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
+                     "ui-callout", "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -66,24 +66,6 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(dismissible.Locator("[data-ui-callout]")).ToHaveCountAsync(1);
         await dismissible.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show them again" }).ClickAsync();
         await Expect(dismissible.Locator("[data-ui-callout]")).ToHaveCountAsync(2);
-    });
-
-    [Fact]
-    public Task Every_loading_shape_is_drawn_rather_than_being_an_empty_span() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        // `loading` on its own is an unstyled span. Six shapes, six non-zero boxes: this is the check
-        // that a shape class reached the compiled sheet at all.
-        var indicators = Page.Locator("[data-testid='ui-loading'] .loading");
-        await Expect(indicators).ToHaveCountAsync(6);
-
-        for (var i = 0; i < 6; i++)
-        {
-            var box = await indicators.Nth(i).BoundingBoxAsync();
-            Assert.NotNull(box);
-            Assert.True(box!.Width > 0 && box.Height > 0, $"loading indicator {i} drew nothing.");
-        }
     });
 
     [Fact]

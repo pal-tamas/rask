@@ -39,7 +39,7 @@ public sealed partial class GamepadDemo : Component
                     "Connected pads: ", Code.Id("gamepad-count")[_pads.Count]],
                 _pads.Count == 0
                     ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
-                    : Ui.List[
+                    : Ul.Class(DemoList.Rows)[
                         _pads.Select(p => Li.Key(p.Index)[
                             Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
                             Div.Class("text-sm text-ui-muted")[$"axes [{p.Axes}] · buttons pressed {p.Pressed}/{p.Buttons}"]

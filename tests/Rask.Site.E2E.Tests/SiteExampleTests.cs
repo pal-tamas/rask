@@ -133,10 +133,8 @@ public sealed class SiteExampleTests
             // only place this is decided and because the obvious reading of the stylesheet is wrong: a
             // sheet that contains a correcting rule and a page that shows the gap are different claims.
             //
-            // The gap is made of WIDTH, not margin. daisyUI right-aligns the prompt inside a fixed 2rem
-            // box, and the kit widens that box; a margin cannot work here at all, because a consuming
-            // app's Tailwind preflight resets margin on ::before from its own <link> and layers do not
-            // merge across sheets. So this asserts the box is wider than the 2rem daisyUI sets — which
+            // The gap is made of WIDTH, not margin: the prompt is an inline-block ::before wider than its one
+            // character, so the command starts clear of it. This asserts that box is wider than 2rem — which
             // is exactly the difference between the prompt sitting on the command and clear of it.
             var prompt = await page.Locator(".term pre[data-prefix]").First.EvaluateAsync<string>(
                 @"el => {
@@ -293,7 +291,7 @@ public sealed class SiteExampleTests
     [Theory]
     [InlineData("/docs/guides/one-person-framework/index.html")]
     // A page whose DEMOS carry scoped CSS (ScopedRed/ScopedBlue), not only its chrome. This was the data-grid page,
-    // whose only scoped stylesheet was CodeSample's own — gone since CodeSample became daisyUI's mockup-code (#1101),
+    // whose only scoped stylesheet was CodeSample's own — gone since CodeSample went to utilities (#1101),
     // which left that page with nothing to scope and this assertion with nothing to find.
     [InlineData("/docs/guides/js-interop/index.html")]
     public async Task Published_pages_carry_their_scoped_styles_before_the_runtime_boots(string path)

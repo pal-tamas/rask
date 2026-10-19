@@ -18,9 +18,10 @@ public sealed partial class LiveCounter : Component
     protected override Component? Render() =>
         Div.Class("rounded-2xl border border-ui-line bg-ui-bg")[
             Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
-                // The kit's status dot, unchanged from the console — where it reports whether a queue is
-                // healthy. Here it reports that this component is the running one.
-                Ui.StatusDot.Label("running · /counter").Success
+                // A green dot and what it means: this component is the running one. The dot is decoration,
+                // the words beside it are the status.
+                Span.Class("size-2 rounded-full bg-green-500").Aria("hidden", "true"),
+                Span.Class("text-xs text-ui-muted")["running · /counter"]
             ],
             Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
                 // A <p>, not an <h3>. It is a field label inside a demo card, and the page's only other

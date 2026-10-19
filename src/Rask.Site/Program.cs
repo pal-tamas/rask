@@ -73,7 +73,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitNavigation
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitTreePage(), "Tree", Ui.IconName.FolderOpen, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitFeedbackPage(), "Feedback", Ui.IconName.ExclamationTriangle, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataInputPage(), "Data input", Ui.IconName.Pencil, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitLayoutPage(), "Layout & mockups", Ui.IconName.ComputerDesktop, "UI kit"));
+host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitLayoutPage(), "Layout & flyouts", Ui.IconName.ComputerDesktop, "UI kit"));
 // The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.
 // Only the prerender publish sets this variable, and it is the one run with a publish directory to write
 // into — a browser boot never takes this branch.

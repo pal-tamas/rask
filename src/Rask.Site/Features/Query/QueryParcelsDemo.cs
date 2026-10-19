@@ -48,7 +48,7 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
                         _ => "fresh",
                     }]
             ],
-            Ui.List.Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[
+            Ul.Class(DemoList.Rows).Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[
                 parcels.Data is { } page ? page.Rows.Select(Row) : Enumerable.Range(0, ParcelStore.PageSize).Select(Placeholder)],
             Div.Class("flex flex-col gap-1")[
                 Strong["Picked parcel"],

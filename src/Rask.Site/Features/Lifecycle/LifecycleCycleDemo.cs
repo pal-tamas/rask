@@ -27,12 +27,9 @@ public sealed partial class LifecycleCycleDemo : Component
             H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
             _cycleLog.Count == 0
                 ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
-                : Ui.List
-                    .Ordered()
+                : Ol.Class(DemoList.Numbered)
                     .Id("lifecycle-cycle-log")[
-                    _cycleLog.Select((l, i) => Li
-                        .Key(i)
-                        .Class("ps-2")[Code.Class("text-sm")[l]]).ToArray()]
+                    _cycleLog.Select((l, i) => Li.Key(i)[Code.Class("text-sm")[l]]).ToArray()]
         ];
 
     private void MountCycle()
