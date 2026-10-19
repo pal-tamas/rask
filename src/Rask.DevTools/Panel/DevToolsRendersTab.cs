@@ -102,11 +102,11 @@ internal sealed partial class DevToolsRendersTab : Component
 
     private Component Counted(DevToolsCommit[] commits, List<ComponentStat> stats, int renders, long ticks) =>
         Div.Class("flex flex-col gap-3")[
-            Ui.MetricRow[
-                Ui.Metric.Label("Commits").Value(Count(commits.Length)),
-                Ui.Metric.Label("Renders").Value(Count(renders)),
-                Ui.Metric.Label("Components").Value(Count(stats.Count)),
-                Ui.Metric.Label("Render time").Value(Milliseconds(ticks))
+            DevToolsFigures[
+                DevToolsFigure.Label("Commits").Value(Count(commits.Length)),
+                DevToolsFigure.Label("Renders").Value(Count(renders)),
+                DevToolsFigure.Label("Components").Value(Count(stats.Count)),
+                DevToolsFigure.Label("Render time").Value(Milliseconds(ticks))
             ],
             _byCommit ? CommitTable(commits) : ComponentTable(stats)
         ];

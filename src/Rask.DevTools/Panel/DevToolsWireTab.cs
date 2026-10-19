@@ -88,11 +88,11 @@ internal sealed partial class DevToolsWireTab : Component
         }
 
         return Div.Class("flex flex-col gap-3")[
-            Ui.MetricRow[
-                Ui.Metric.Label("Frames sent").Value(Count(sent)),
-                Ui.Metric.Label("Frames received").Value(Count(received)),
-                Ui.Metric.Label("Bytes sent").Value(Size(bytesSent)),
-                Ui.Metric.Label("Bytes received").Value(Size(bytesReceived))
+            DevToolsFigures[
+                DevToolsFigure.Label("Frames sent").Value(Count(sent)),
+                DevToolsFigure.Label("Frames received").Value(Count(received)),
+                DevToolsFigure.Label("Bytes sent").Value(Size(bytesSent)),
+                DevToolsFigure.Label("Bytes received").Value(Size(bytesReceived))
             ],
             P.Class("text-xs opacity-60")[
                 shown == events.Length

@@ -49,7 +49,7 @@ try {
     await tree.waitFor({timeout: 10000});
     const row = tree.locator('[role="treeitem"]', {hasText: "TaskRow"}).first();
     await row.waitFor({timeout: 10000});
-    await row.locator(".ui-tree-row").first().click();
+    await row.locator(".rask-devtools-row").first().click();
     await page.keyboard.type("DeployCard");
     await panel.getByText("ApiToken=••••").first().waitFor({timeout: 10000});
     // The selected row's detail pane, down to the release it read from the board.
@@ -59,7 +59,7 @@ try {
 
     // Pointing at a row: the page shows the box around what that component rendered, with its label.
     const taskRow = tree.locator('[role="treeitem"]', {hasText: "Tag the release"}).first();
-    await taskRow.locator(".ui-tree-row").hover();
+    await taskRow.locator(".rask-devtools-row").hover();
     await page.waitForFunction(() => {
         const root = document.querySelector("rask-devtools")?.shadowRoot;
         const label = root?.querySelector(".hl-label");

@@ -38,7 +38,7 @@ public sealed class WasmJourneyTests(PlaywrightFixture playwright, WasmFixtureHo
         await devTools.OpenPanelAsync();
         await devTools.ShowTabAsync("Tree");
 
-        var row = devTools.Panel.Locator("[role=treeitem]", new() { HasText = "FixtureCounter" }).Last.Locator(".ui-tree-row").First;
+        var row = devTools.Panel.Locator("[role=treeitem]", new() { HasText = "FixtureCounter" }).Last.Locator(".rask-devtools-row").First;
         await row.HoverAsync();
         await Expect(devTools.Page.Locator("rask-devtools .hl-label"))
             .ToHaveTextAsync(new System.Text.RegularExpressions.Regex("^FixtureCounter"), DevToolsPage.Text);

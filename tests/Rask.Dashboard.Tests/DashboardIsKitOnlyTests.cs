@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Rask.Core.Routing;
+using Rask.TestFiles;
 using Rask.Testing;
 
 namespace Rask.Dashboard.Tests;
@@ -24,20 +24,6 @@ namespace Rask.Dashboard.Tests;
 /// </remarks>
 public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMarkup
 {
-    // `Ui.Table`, `Ui.IconName` — an entry or a type of the kit, named through its static class.
-    private static readonly Regex KitMember = new(@"\bUi\.([A-Z][A-Za-z]*)\b", RegexOptions.Compiled);
-
-    // `UiNavbarItem`, `UiPaginator` — a kit type named directly.
-    private static readonly Regex KitType = new(@"\bUi([A-Z][A-Za-z]*)\b", RegexOptions.Compiled);
-
-    // Flux's, but under no part of the snapshot's own (FluxConformanceTests.FluxUnlisted), and the dark-mode script
-    // every Flux page's head carries (a helper there).
-    private static readonly string[] FluxBesidesTheSnapshot = ["Navmenu", "NavmenuItem", "Spacer", "AppearanceScript"];
-
-    // The kit's own vocabulary for things Flux says otherwise: daisyUI's tones, themes and breakpoints, and the
-    // class lists that went with them.
-    private static readonly string[] NotFlux = ["Tone", "ThemeName", "Breakpoint", "Styles", "Theme"];
-
     // Every paged or listed table: from its column heads to the end of them.
     private static readonly Regex TableHead = new(@"Ui\.TableColumns\[(.*?)\]\s*,\s*\r?\n\s*Ui\.TableRows", RegexOptions.Compiled | RegexOptions.Singleline);
 
@@ -46,11 +32,9 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
     [Fact]
     public void The_console_draws_with_Flux_pieces_only()
     {
-        var flux = FluxParts();
+        var source = PackageSourcePath();
 
-        var offenders = CodeLines()
-            .SelectMany(line => NotFluxNames(line.Text, flux).Select(name => $"{line.Where}: Ui.{name} in {line.Text.Trim()}"))
-            .ToList();
+        var offenders = FluxKitScan.Offenders(source, SnapshotPath());
 
         Assert.True(
             offenders.Count == 0,
@@ -61,7 +45,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
     [Fact]
     public void Every_table_gives_all_but_one_of_its_columns_a_width()
     {
-        var tables = SourceFiles().SelectMany(file => TableHead.Matches(File.ReadAllText(file))).ToList();
+        var tables = FluxKitScan.SourceFiles(PackageSourcePath()).SelectMany(file => TableHead.Matches(File.ReadAllText(file))).ToList();
 
         var loose = tables
             .Select(table => TableColumn.Matches(table.Groups[1].Value))
@@ -76,9 +60,9 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
     [Fact]
     public void The_scan_reads_the_pages_and_the_flux_catalogue()
     {
-        var files = SourceFiles();
+        var files = FluxKitScan.SourceFiles(PackageSourcePath());
 
-        var parts = FluxParts();
+        var parts = FluxKitScan.FluxParts(SnapshotPath());
 
         // Vacuous-pass guards: a path that stopped resolving would find no files and no offenders.
         Assert.Contains(files, f => f.EndsWith("QueuePage.cs", StringComparison.Ordinal));
@@ -134,59 +118,6 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
         var page = Page.RenderDocument(RaskDashboardShell).Html;
 
         Assert.Contains(UiStylesheet.DocumentAttribute, page, StringComparison.Ordinal);
-    }
-
-    // A name is Flux's when the snapshot lists its part, or it is one of the few Flux pieces the snapshot does not
-    // head. A type of the kit that is no component — an enum, the paginator, the stylesheet's constants — is a
-    // value, not a piece drawn, except the daisyUI-era vocabulary in NotFlux.
-    private static IEnumerable<string> NotFluxNames(string line, HashSet<string> flux)
-    {
-        var kit = typeof(UiTable).Assembly;
-        var names = KitMember.Matches(line).Select(m => m.Groups[1].Value)
-            .Concat(KitType.Matches(line).Select(m => m.Groups[1].Value))
-            .Distinct(StringComparer.Ordinal);
-
-        foreach (var name in names)
-        {
-            if (NotFlux.Contains(name, StringComparer.Ordinal))
-            {
-                yield return name;
-                continue;
-            }
-
-            var component = kit.GetType($"Rask.Ui{name}") ?? kit.GetType($"Rask.Ui{name}`1") ?? kit.GetType($"Rask.Ui{name}`2");
-            var drawn = component is not null && typeof(global::Rask.Core.Component).IsAssignableFrom(component);
-            if (drawn && !flux.Contains(name) && !FluxBesidesTheSnapshot.Contains(name, StringComparer.Ordinal))
-            {
-                yield return name;
-            }
-        }
-    }
-
-    // flux:table.column -> TableColumn, flux:date-picker -> DatePicker, flux:icon.* -> Icon.
-    private static HashSet<string> FluxParts()
-    {
-        using var snapshot = JsonDocument.Parse(File.ReadAllText(SnapshotPath()));
-        return snapshot.RootElement.GetProperty("pages").EnumerateArray()
-            .SelectMany(page => page.GetProperty("parts").EnumerateArray())
-            .Select(part => part.GetProperty("name").GetString()!)
-            .Select(name => string.Concat(name["flux:".Length..].Split('-', '.', '*').Where(w => w.Length > 0).Select(w => char.ToUpperInvariant(w[0]) + w[1..])))
-            .ToHashSet(StringComparer.Ordinal);
-    }
-
-    private static IEnumerable<(string Where, string Text)> CodeLines() =>
-        SourceFiles().SelectMany(file => File.ReadAllLines(file)
-            .Select((text, i) => (Where: $"{Path.GetRelativePath(PackageSourcePath(), file)}:{i + 1}", Text: text))
-            // Comments may name the thing they explain; only code draws it.
-            .Where(line => !line.Text.TrimStart().StartsWith("//", StringComparison.Ordinal)));
-
-    private static List<string> SourceFiles()
-    {
-        var separator = Path.DirectorySeparatorChar;
-        return Directory.EnumerateFiles(PackageSourcePath(), "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{separator}obj{separator}", StringComparison.Ordinal)
-                        && !f.Contains($"{separator}bin{separator}", StringComparison.Ordinal))
-            .ToList();
     }
 
     // Resolved from the compiler rather than copied to the output directory: the files under test are the

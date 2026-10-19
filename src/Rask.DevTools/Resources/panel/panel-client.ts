@@ -65,7 +65,7 @@ export function installPanelClient(options: PanelClientOptions): void {
     // Delegated, so rows the virtualized tree renders later are covered without binding anything to them.
     document.addEventListener("pointerover", (e: PointerEvent) => {
         const target = e.target instanceof Element ? e.target : null;
-        const row = target ? target.closest(".ui-tree-row") : null;
+        const row = target ? target.closest(".rask-devtools-row") : null;
         const place = row ? row.querySelector("[data-rask-devtools-at]") : null;
         highlight(
             place ? place.getAttribute("data-rask-devtools-at") : null,

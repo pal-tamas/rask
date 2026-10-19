@@ -66,6 +66,7 @@
     <Compile Include="..\Rask.Server.Tests\Infrastructure\WebSocketHelper.cs" Link="Infrastructure\WebSocketHelper.cs"/>
     <Compile Include="..\Rask.Server.Tests\Infrastructure\LiveFrames.cs" Link="Infrastructure\LiveFrames.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <Compile Include="..\Shared.TestFiles\FluxKitScan.cs" Link="FluxKitScan.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
@@ -87,6 +88,7 @@
        that starts reading a new file outside this project must add it here. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.DevTools\**" />
+    <RaskTestReads Include="..\Rask.Ui.Tests\Flux\flux.snapshot.json" />
   </ItemGroup>
 
 </Project>
