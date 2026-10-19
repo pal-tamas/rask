@@ -743,7 +743,7 @@ public abstract partial class SharedSmokeTests
 
         // Lifecycle hooks: the awaited Mount continuation must run, and "Trigger re-render" bumps
         // the render counter (an event-handler render — it does not re-fire Mount / Updated).
-        await Expect(Page.Locator("li code:has-text('Mount (after')"))
+        await Expect(Page.Locator("tr[data-hook] td:has-text('Mount (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         var badge = Page.GetByText(new Regex("Render #\\d+")).First;
         var before = ExtractRenderCount(await badge.TextContentAsync());
