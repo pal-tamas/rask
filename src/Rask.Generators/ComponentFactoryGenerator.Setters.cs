@@ -128,7 +128,7 @@ public sealed partial class ComponentFactoryGenerator
             // though the setter's receiver is the component itself.
             //
             // Once, over the component: there is one chain shape now (see "THE CHAIN'S RECEIVER IS THE
-            // COMPONENT" below), so `Input.Bind(…).Class("x")` and `Ui.DataGrid.Data(…).RowKey(…).Class("x")`
+            // COMPONENT" below), so `Input.Bind(…).Class("x")` and `Grid.Data(…).RowKey(…).Class("x")`
             // hand back exactly the control or grid they were called on, and the next step still knows
             // its type. A form control or a grid that could not say `.Class(…)` would be no trade at all.
             //

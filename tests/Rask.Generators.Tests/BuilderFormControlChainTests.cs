@@ -7,7 +7,7 @@ namespace Rask.Generators.Tests;
 // That is what forced required steps to come first and produced the mode machinery whose members kept
 // going silently dead. It is gone — the steps are ordinary extensions on the control, any order compiles,
 // and the two things the type system used to say are said in words instead: a required step never taken
-// is RASK038, and `Bind` together with `Value` is RASK076.
+// is RASK038, and `Bind` together with `Value` cannot be written: both open the chain on its entry.
 //
 // What these tests hold onto is the part that was never about the type system: the RUNTIME difference
 // between the two openings, which no diagnostic can state and which costs a bound control its render
@@ -113,8 +113,8 @@ public class BuilderFormControlChainTests
     }
 
     // Every step is now reachable from one chain — which is the redesign, not an oversight. A control
-    // that took both openings, or a controlled one given a Validate, is RASK076/RASK038 at the call site
-    // rather than a member the compiler withheld.
+    // given a Validate while controlled is RASK038 at the call site rather than a member the compiler
+    // withheld.
     [Theory]
     [InlineData("Validate")]
     [InlineData("AfterBind")]

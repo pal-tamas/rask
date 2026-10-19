@@ -101,7 +101,6 @@ public sealed class AnAppsClassWinsTests
         ["UiCommandItems"] = "padding",
         ["UiComposer"] = "display, padding",
         ["UiContext"] = "display",
-        ["UiDataGrid"] = "display, gap",
         ["UiDatePicker"] = "width",
         ["UiDatePickerRange"] = "width",
         ["UiDescription"] = "text colour, text size",
@@ -128,7 +127,6 @@ public sealed class AnAppsClassWinsTests
         ["UiLabel"] = "display, text colour, text size",
         ["UiLegend"] = "margin, text colour, text size, width",
         ["UiLink"] = "text colour",
-        ["UiLoading"] = "display, gap",
         ["UiMain"] = "margin, padding, width",
         ["UiMenu"] = "padding, rounded, text colour, width",
         ["UiMenuCheckbox"] = "display, padding, rounded, text colour, text size, width",
@@ -176,7 +174,6 @@ public sealed class AnAppsClassWinsTests
         ["UiTimelineIndicator"] = "display, text colour, text size",
         ["UiToggle"] = "text colour",
         ["UiTooltipContent"] = "padding, rounded, text colour, text size",
-        ["UiTree"] = "display, padding, text size, width",
     };
 
     /// <summary>
@@ -187,7 +184,7 @@ public sealed class AnAppsClassWinsTests
     {
         "UiAutocompleteItem", "UiChartArea", "UiChartAxisGrid", "UiChartAxisLine", "UiChartAxisMark", "UiChartAxisTick",
         "UiChartBar", "UiChartCursor", "UiChartGroup", "UiChartLine", "UiChartPie", "UiChartPoint", "UiChartStack", "UiChartSvg",
-        "UiChartZeroLine", "UiColorPickerArea", "UiColorPickerDropper", "UiColorPickerSwatches", "UiColumn", "UiDatePickerButton", "UiDatePickerInput", "UiPagination",
+        "UiChartZeroLine", "UiColorPickerArea", "UiColorPickerDropper", "UiColorPickerSwatches", "UiDatePickerButton", "UiDatePickerInput", "UiPagination",
         "UiPillboxInput", "UiPillboxOption", "UiPillboxOptionCreate", "UiPillboxOptionEmpty", "UiPillboxSearch",
         "UiPillboxTrigger", "UiSelectButton", "UiSelectInput", "UiSelectMultiple", "UiSelectOptionCreate", "UiSelectOptionEmpty",
         "UiSelectSearch", "UiToast", "UiToastGroup",

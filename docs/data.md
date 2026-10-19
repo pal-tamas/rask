@@ -60,7 +60,7 @@ a `db.Products` accessor on any `DbContext`, a read face — `ProductRead`, quer
 ```csharp
 var cheap = await Product.Where(p => p.PriceAmount < 10).OrderBy(p => p.Name);
 var anvil = await Product.Where(p => p.Id == id).First();
-var grid  = Product.OrderBy(p => p.Name).AsQueryable();   // for Ui.DataGrid, sorted and paged in SQL
+var page  = await Product.OrderBy(p => p.Name).Skip(40).Take(20);   // one page of a table, in SQL
 ```
 
 Note `p.PriceAmount`: the read face is **primitives**, so the `Money Price` value object arrives as the two
@@ -538,33 +538,40 @@ var byMonth = await Product.Query((q, ct) =>
 
 ### Handing a query to a component: `AsQueryable()`
 
-A data grid composes its own LINQ — it sorts with `OrderBy`, pages with `Skip`/`Take`, counts with
-`Count()` — so what it wants is a standard `IQueryable<T>`, not a query somebody has to run.
-`Product.AsQueryable()` is that, and it holds no context either: **each time it is executed, a context is
-opened for that one execution and disposed after it.** So it is safe to keep in a field for as long as
-the page lives:
+A component that composes its own LINQ — sorting with `OrderBy`, paging with `Skip`/`Take`, counting with
+`Count()` — wants a standard `IQueryable<T>`, not a query somebody has to run. `Product.AsQueryable()` is
+that, and it holds no context either: **each time it is executed, a context is opened for that one execution
+and disposed after it.** So it is safe to keep in a field for as long as the page lives:
 
 ```csharp
 [Route("/products")]
 public sealed partial class ProductsPage : Component
 {
     private readonly IQueryable<ProductRead> _products = Product.Where(p => p.PriceAmount > 0).AsQueryable();
+    private int _page = 1;
 
     protected override Component Render() =>
-        Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(25)[c => [
-            c.Field(p => p.Name).Title("Product").Sortable(),
-            c.Field(p => p.PriceAmount).Title("Price").Sortable().Class("sm:w-32"),
-        ]];
+        Ui.Table.Paginate(Ui.Pagination
+            .Paginator(new UiPaginator { Page = _page, PerPage = 25, Total = _products.Count() })
+            .OnPage(page => { _page = page; }))[
+            Ui.TableColumns[Ui.TableColumn["Product"], Ui.TableColumn.End["Price"]],
+            Ui.TableRows[
+                _products.OrderBy(p => p.Name).Skip((_page - 1) * 25).Take(25).ToList().Select(p => Ui.TableRow.Key(p.Id)[
+                    Ui.TableCell[p.Name],
+                    Ui.TableCell.End[$"{p.PriceAmount:C}"]
+                ])
+            ]
+        ];
 }
 ```
 
-A grid spanning two aggregates is possible for the first time here, because the read face carries the
-navigation: `c.Field(o => o.Customer.Name)` needs nothing declared.
+A list spanning two aggregates is possible here, because the read face carries the navigation:
+`OrderBy(o => o.Customer.Name)` needs nothing declared.
 
-The grid's sort becomes `ORDER BY` and its page becomes `LIMIT`/`OFFSET`, in the database — the table
-never reaches memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both
-work against it; each is its own short-lived context. See [the data grid](data-grid.md) for the rest of
-what the grid does with a query.
+The sort becomes `ORDER BY` and the page becomes `LIMIT`/`OFFSET`, in the database — the table never reaches
+memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both work against it;
+each is its own short-lived context. The [tutorial's product list](tutorial/02-first-feature.md#5-the-list-page)
+does the same through a query, so the read stays off the render and a write refreshes it.
 
 **EF Core's own operators go on first.** `Include`, `IgnoreQueryFilters` and `AsSplitQuery` are EF Core
 extension methods, and EF applies them only to its own query provider — called on the queryable
@@ -817,7 +824,7 @@ public sealed partial class EditProductPage : Component
 }
 ```
 
-The list those pages link from is a [data grid](data-grid.md) over `Product.AsQueryable()`
+The list those pages link from is a [table](ui-kit.md#tables) over one page of `Product` at a time
 ([above](#handing-a-query-to-a-component-asqueryable)): the rows are read faces, read-only by construction, and
 each links to its edit page.
 
@@ -2250,19 +2257,19 @@ the migration creates a real full-text index:
 modelBuilder.Entity<Product>().HasFullTextSearch(p => new { p.Name, p.Description });
 ```
 
-Then search from the read face, a context, or a grid:
+Then search from the read face or a context:
 
 ```csharp
 await Product.Search(query).Where(p => p.Active).Take(20);
 await db.Set<Product>().Search(query).CountAsync();
-Ui.DataGrid.Data(Product.Search(query).AsQueryable())
+await Product.Search(query).Skip(20).Take(20);      // a table's second page, best match first
 ```
 
 `Search(text)` keeps every row containing all of the typed words — any order, any case, diacritics
 ignored, the last word as a prefix — **best match first**, and keeps composing; a later `OrderBy`
 replaces the rank order. The text is always words, never query syntax, so nothing a user types can break
 the query. `FullText.Highlight(p.Name)` and `FullText.Snippet(p.Description)` inside a `Select` return the
-matched terms marked, rendered safely by `Ui.Highlight.Text(...)`.
+matched terms marked, for the page to wrap in `<mark>` ([how](full-text-search.md#showing-why-each-row-matched)).
 
 It runs on **SQLite** (`UseRaskSqlite`, or a plain `UseSqlite` plus `UseRaskFullTextSearch()`), **in the
 browser** on the same FTS5 index, and on **PostgreSQL** (`UseRaskPostgres`, a generated `tsvector` column with a

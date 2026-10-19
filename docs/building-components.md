@@ -28,14 +28,14 @@ Li.Class("item", _active ? "active" : null)
 ## Components that need something first
 
 Some components cannot exist until you have told them something. A form control does not know what type it
-binds until you say; a stat has nothing to show until you give it a label and a value. Those properties
+binds until you say, and a component of your own can ask for a title before anything else. Those properties
 are **steps** rather than setters, and the chain asks for them first:
 
 ```csharp
-Ui.Stat.Label("Orders").Value("1,204").Caption("this week")
+Ui.Input.Bind(() => order.Email).Label("Email")
 ```
 
-`Label` and `Value` are required, so they come first — in either order. Everything optional follows. Miss
+`Bind` comes first because it says what the input holds; several required steps come first in any order. Everything optional follows. Miss
 one and there is nothing to render: the component does not exist yet, so the mistake is a compile error at
 the point you made it, not a null at runtime.
 

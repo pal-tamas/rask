@@ -261,9 +261,9 @@ public sealed partial class ComponentFactoryGenerator
     // This is the whole rule for when a delegate may pin. `Func<TItem, TValue>` cannot OPEN a chain:
     // the lambda's parameter has no type and its body cannot be bound, which is the BsSelect trap the
     // greedy loop below carries a note about. The same property as a LATER pin, with TItem fixed by the
-    // step before it, infers TValue perfectly well — which is what `Ui.DataGrid.Data(rows).RowKey(r =>
-    // r.Id)` needs, and what kept a REQUIRED delegate step from being able to pin anything at all.
-    // A delegate whose inputs are all concrete — `Fn<UiGridRequest, Task<UiGridPage<T>>>` — opens one
+    // step before it, infers TValue perfectly well — which is what `Grid.Data(rows).RowKey(r => r.Id)`
+    // needs, and what kept a REQUIRED delegate step from being able to pin anything at all.
+    // A delegate whose inputs are all concrete — `Fn<PageRequest, Task<Page<T>>>` — opens one
     // perfectly well, so the test is the inputs rather than the delegate-ness.
     private static HashSet<string> LambdaInputTypeParameters(string typeFqn, HashSet<string> names)
     {
@@ -333,13 +333,13 @@ public sealed partial class ComponentFactoryGenerator
     // The subset of a component's constraint clauses that applies to the type parameters a generated
     // struct actually DECLARES.
     //
-    // A stage declares only what its opening step pinned — `RaskStage_UiDataGrid_Selected<TKey>` — so the
+    // A stage declares only what its opening step pinned — `RaskStage_Grid_Selected<TKey>` — so the
     // component's whole clause would name type parameters the struct does not have (CS0699), while no
     // clause at all drops a constraint the component requires the moment the struct names the component
     // again (CS8714). Both of those were live: the constraint was being written onto the STEP inside the
     // stage, where TKey is not the method's to constrain.
     //
-    // Nothing had a CONSTRAINED type parameter pinned by a step until UiDataGrid<T, TKey>'s `where TKey :
+    // Nothing had a CONSTRAINED type parameter pinned by a step until a grid's `Grid<T, TKey> where TKey :
     // notnull`, which is why a generator this heavily tested had no reason to have got it right.
     private static string ConstraintsDeclaredBy(Candidate c, string typeParameters)
     {

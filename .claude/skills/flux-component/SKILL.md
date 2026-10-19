@@ -352,8 +352,6 @@ a local `node scripts/flux/sync.mjs <slug>` measures for `parity.mjs` but compar
 component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 
 ## Leftovers, each to delete with what it waits for
-- `UiStyles.Card` points at the default Flux surface and is still used by `UiStat`, HttpFetchDemo, GuideCards
-  and PropsIdClassStyleDemo: goes with the old chrome.
 - `Ui.ThemeName` / `UiTheme` / `Ui.Shell.Theme` remain for the Dashboard's light pin and three DevTools test
   apps, and go with daisyUI; then `.dark` must set `color-scheme: dark` in `ui.css`, and the OS-preference
   arm of `@custom-variant dark` goes too. `AppearanceToggle` is `Ui.Button.Subtle` with the button's own
@@ -520,11 +518,10 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (4) ArrowUp, ArrowDown and Home collapse the selection in Flux's cell (the browser's own); the hook cancels them.
   `Label` and `DescriptionTrailing` are from Flux's examples (rows in `Translations`); `Description`, `Invalid`
   and an `autofocus` are not Flux's and not built. `Name` is the hidden field's.
-- Badge: `Ui.NavItem` / `Ui.NavTab` still take `BadgeTone` (`Ui.Tone`), mapped to a colour by
-  `UiBadge.ToneColor`; both go with the old chrome. `Mono()` and the close button's default `aria-label` were
+- Badge: `Mono()` and the close button's default `aria-label` were
   removed as non-Flux: a long token says `.Class("font-mono max-w-full break-all whitespace-normal!")` —
   named in `UiBadge`'s remarks so the kit's sheet carries it for the Dashboard and DevTools, whose sources
-  Tailwind never reads (`UiConsoleChromeTests` pins it; `DashboardIsKitOnlyTests` allows exactly that call
+  Tailwind never reads (`UiBadgeTests` pins it; `DashboardIsKitOnlyTests` allows exactly that call
   until the Dashboard has a sheet of its own). daisyUI's `.badge` is STILL in the compiled sheet: the bare
   word stands in some sixty kit comments and identifiers (the last rule of section 4 was not applied) — reword them, then
   assert its absence in `UiStylesheetTests`.

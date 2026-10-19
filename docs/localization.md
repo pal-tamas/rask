@@ -502,23 +502,6 @@ they say when you set nothing.
 | `SidebarToggle` | Sidebar | `Toggle sidebar` |
 | `SidebarSearch` | Sidebar | `Search` |
 | `CommandEmpty` | Command | `No results found` |
-| `DataGridColumns` | Data grid | `Columns` |
-| `DataGridMoveUp` | Data grid | `Move up` |
-| `DataGridMoveDown` | Data grid | `Move down` |
-| `DataGridGrouping` | Data grid | `Grouping` |
-| `DataGridGroupingHint` | Data grid | `Group by a column with its header button.` |
-| `DataGridMoveGroupLeft` | Data grid | `Move group left` |
-| `DataGridMoveGroupRight` | Data grid | `Move group right` |
-| `DataGridUngroup` | Data grid | `Stop grouping by {0}` |
-| `DataGridGroupBy` | Data grid | `Group by {0}` |
-| `DataGridExpandGroup` | Data grid | `Expand group` |
-| `DataGridCollapseGroup` | Data grid | `Collapse group` |
-| `DataGridExpand` | Data grid | `Expand` |
-| `DataGridSelectAll` | Data grid | `Select all rows on this page` |
-| `DataGridEmpty` | Data grid | `Nothing to show.` |
-| `DataGridSelectRow` | Data grid | `Select row` |
-| `DataGridExpandRow` | Data grid | `Expand row` |
-| `DataGridCollapseRow` | Data grid | `Collapse row` |
 | `FileItemRemove` | File upload | `Remove file` |
 | `ValidationRequired` | Validation | `This field is required.` |
 | `ValidationWholeNumber` | Validation | `Enter a whole number.` |

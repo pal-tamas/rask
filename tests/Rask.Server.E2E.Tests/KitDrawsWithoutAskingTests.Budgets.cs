@@ -17,7 +17,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["date-picker-input: typing a part of the date"] = (2, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20"),
         ["date-picker-input: typing a whole date"] = (3, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20, then 2027 once its fourth digit is in"),
         ["date-picker: pick a day"] = (1, "the value, and the popup closes in the browser"),
-        ["data-grid: sort a column"] = (1, "the rows are sorted on the server"),
         ["input-clearable: clear"] = (1, "the value, emptied"),
         ["input: typing, then leaving the field"] = (1, "the value, on change"),
         ["composer: send by Ctrl+Enter"] = (1, "the page's OnSubmit, with what was typed"),
@@ -66,9 +65,6 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["select-bound: pick a row"] = 1,
         ["slider-bound: drag and release"] = 12,
         ["slider-bound: arrow keys"] = 5,
-        ["tree: focus and blur by Tab"] = 3,
-        ["tree: cursor keys"] = 9,
-        ["tree: press a node"] = 1,
     };
 
     /// <summary>

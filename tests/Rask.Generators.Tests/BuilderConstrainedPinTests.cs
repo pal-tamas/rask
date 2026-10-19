@@ -3,7 +3,7 @@ namespace Rask.Generators.Tests;
 // A component whose type is pinned by more than one step, where one of those type parameters is
 // CONSTRAINED and the step that pins it takes a lambda.
 //
-// Nothing in the repo had that shape until UiDataGrid<T, TKey> made its row key required, and all three
+// Nothing in the repo had that shape until the kit's data grid (since removed) made its row key required, and all three
 // halves of it were broken in a way no existing test could see:
 //
 //   - the constraint was written onto the STEP inside a stage rather than onto the stage that declares

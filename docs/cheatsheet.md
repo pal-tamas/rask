@@ -50,7 +50,7 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 | `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
 | `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
 | `DeleteProduct.cs` | a button per row — `Product.Delete(id, version)` behind a command |
-| `ProductsPage.cs` | `[Route("/products")]` — a `Ui.DataGrid` over `Product.OrderBy(…).AsQueryable()` |
+| `ProductsPage.cs` | `[Route("/products")]` — a `Ui.Table` with a `Ui.Pagination` under it, one page of `Product.OrderBy(…).Skip(…).Take(…)` at a time |
 
 Nothing else is written: the build generates `ProductModel`, the queries off the type (`Product.Where(…)`,
 rows of `ProductRead`), `Product.Find(id)` + `product.Save()`, and the writes, `RaskDbContext` maps the aggregate, and a write refreshes every query keyed
@@ -159,11 +159,11 @@ var edit     = product.ToModel();                                               
 await Product.Update(id, edit, p => p.Touch(now));        // + values not from the form
 await Product.Delete(id, db: db);                        // join a context you hold
 await dispatcher.Send(new EditProduct { Id = id, Name = name, Version = version }, CancellationToken);
-Ui.DataGrid.Data(Product.AsQueryable()).RowKey(p => p.Id)[c => [ c.Field(p => p.Name) ]];   // pages in SQL
+var page     = await Product.OrderBy(p => p.Name).Skip(20).Take(20);  // a table's page, in SQL
 
 // Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):
 var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
-count.IsLoading ? Ui.Loading.Text("Loading…") : Text($"{count.Data} products")
+count.IsLoading ? Ui.Text.Role("status")["Loading…"] : Text($"{count.Data} products")
 var save = QueryClient.Command();                    // pending/error state for a write; save.IsPending disables Save
 
 // Cache an expensive read; invalidate on write:

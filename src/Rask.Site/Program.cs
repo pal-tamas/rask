@@ -68,9 +68,7 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.IslandsPage(), 
 // components themselves, live, which is the half a paragraph cannot do.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitActionsPage(), "Actions", Ui.IconName.Check, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataDisplayPage(), "Data display", Ui.IconName.Squares2x2, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataGridPage(), "Data grid", Ui.IconName.RectangleStack, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitNavigationPage(), "Navigation", Ui.IconName.Bars3, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitTreePage(), "Tree", Ui.IconName.FolderOpen, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitFeedbackPage(), "Feedback", Ui.IconName.ExclamationTriangle, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataInputPage(), "Data input", Ui.IconName.Pencil, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitLayoutPage(), "Layout & flyouts", Ui.IconName.ComputerDesktop, "UI kit"));

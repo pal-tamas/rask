@@ -5,7 +5,13 @@ namespace Rask.Site.Features.UiKit;
 /// <summary>
 ///     The kit's Data display components, live.
 /// </summary>
+/// <remarks>
+///     It also answers the data grid's and the tree's old pages: both left the kit, and the table here is what a
+///     list of rows is drawn with now, so a link or a bookmark to either lands on it rather than on a 404.
+/// </remarks>
 [Route("ui/data-display")]
+[Route("ui/data-grid")]
+[Route("ui/tree")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitDataDisplayPage : Component
 {

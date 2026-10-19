@@ -338,57 +338,6 @@ public enum RaskString
     /// <summary>What a command palette says when nothing matches.</summary>
     CommandEmpty,
 
-    /// <summary>The data grid's column chooser, its button and its panel.</summary>
-    DataGridColumns,
-
-    /// <summary>The accessible name of the control that moves a column earlier.</summary>
-    DataGridMoveUp,
-
-    /// <summary>The accessible name of the control that moves a column later.</summary>
-    DataGridMoveDown,
-
-    /// <summary>The accessible name of the data grid's grouping panel.</summary>
-    DataGridGrouping,
-
-    /// <summary>What the data grid's grouping panel says while nothing is grouped.</summary>
-    DataGridGroupingHint,
-
-    /// <summary>The accessible name of the control that moves a grouping earlier.</summary>
-    DataGridMoveGroupLeft,
-
-    /// <summary>The accessible name of the control that moves a grouping later.</summary>
-    DataGridMoveGroupRight,
-
-    /// <summary>The accessible name of the control that stops grouping by the named column.</summary>
-    DataGridUngroup,
-
-    /// <summary>The accessible name of the control that groups by the named column.</summary>
-    DataGridGroupBy,
-
-    /// <summary>The accessible name of the control that opens a collapsed group.</summary>
-    DataGridExpandGroup,
-
-    /// <summary>The accessible name of the control that collapses a group.</summary>
-    DataGridCollapseGroup,
-
-    /// <summary>The accessible name of the column that holds the row expanders.</summary>
-    DataGridExpand,
-
-    /// <summary>The accessible name of the box that selects every row on the page.</summary>
-    DataGridSelectAll,
-
-    /// <summary>What a data grid says when it has no rows.</summary>
-    DataGridEmpty,
-
-    /// <summary>The accessible name of a row's selection box.</summary>
-    DataGridSelectRow,
-
-    /// <summary>The accessible name of the control that opens a row's detail.</summary>
-    DataGridExpandRow,
-
-    /// <summary>The accessible name of the control that closes a row's detail.</summary>
-    DataGridCollapseRow,
-
     /// <summary>The accessible name of the control that removes a file from an upload's list.</summary>
     FileItemRemove,
 

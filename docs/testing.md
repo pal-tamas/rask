@@ -126,12 +126,14 @@ is in markup — a component is built through its chain, never with `new` (RASK0
   one of several same-event elements — a grid's sort headers, a list's row buttons:
 
   ```csharp
-  var grid = Page.Render(() => Ui.DataGrid.Data(rows).RowKey(r => r.Id)[c => [
-      c.Field(r => r.Name).Sortable(),
-      c.Field(r => r.Total).Sortable(),
-  ]]);
+  var table = Page.Render(() => Ui.Table[
+      Ui.TableColumns[
+          Ui.TableColumn.Sortable().OnSort(() => sortBy = "name")["Name"],
+          Ui.TableColumn.Sortable().OnSort(() => sortBy = "total")["Total"]
+      ]
+  ]);
 
-  await grid.Invoke(grid.HandlerIds("click")[1]);   // click the second sortable header
+  await table.Invoke(table.HandlerIds("click")[1]);   // click the second sortable header
   ```
 
   Re-read the list after every render, for the same reason a single id can't be cached.

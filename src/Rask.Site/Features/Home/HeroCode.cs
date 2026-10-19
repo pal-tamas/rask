@@ -71,13 +71,13 @@ public sealed partial class HeroCode : Component
     private static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
     {
         "public", "private", "protected", "sealed", "partial", "class", "override", "readonly", "get",
-        "set", "return", "var", "string", "decimal", "bool", "true", "false", "new",
+        "set", "return", "var", "string", "decimal", "bool", "int", "true", "false", "new",
     };
 
     private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
     {
         "Product", "Aggregate", "Guid", "MaxLength", "Range", "Route", "ProductsPage",
-        "Component", "IQueryable", "ProductRead", "QueryClient", "QueryKey", "Ui",
+        "Component", "QueryClient", "QueryKey", "Ui",
     };
 
     // Declared after Keywords and Types on purpose: static initializers run in textual order, and
@@ -105,23 +105,29 @@ public sealed partial class HeroCode : Component
             [Route("/products")]
             public sealed partial class ProductsPage : Component
             {
-                private readonly IQueryable<ProductRead> _products =
-                    Product.OrderBy(p => p.Name).AsQueryable();
+                private int _page = 1;
 
                 protected override Component? Render()
                 {
                     // Cached, and refetched after any Product write.
                     var count = QueryClient.Query(QueryKey.For<Product>(),
                         () => Product.Count());
+                    var rows = QueryClient.Query(QueryKey.For<Product>(
+                        "page"), _page, (page, ct) => Product
+                        .OrderBy(p => p.Name).Skip((page - 1) * 20)
+                        .Take(20).AsQueryable().ToListAsync(ct));
 
                     return
                     [
                         Ui.Heading.Level(1)[$"Products ({count.Data})"],
-                        Ui.DataGrid.Data(_products).RowKey(p => p.Id)
-                            .Label("Products")[c => [
-                                c.Field(p => p.Name).Sortable(),
-                                c.Field(p => p.Price).Sortable().Class("sm:w-32"),
-                            ]]
+                        Ui.Table.Paginate(Ui.Pagination.Paginator(new() {
+                            Page = _page, PerPage = 20, Total = count.Data
+                        }).OnPage(page => { _page = page; }))[
+                            Ui.TableRows[(rows.Data ?? []).Select(p =>
+                                Ui.TableRow.Key(p.Id)[
+                                    Ui.TableCell[p.Name],
+                                    Ui.TableCell[$"{p.Price:C}"]])]
+                        ]
                     ];
                 }
             }
