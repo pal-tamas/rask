@@ -14,7 +14,8 @@ them until tagged releases begin.
   padding and the `mockup-code` prompt correction); no `RaskString` was theirs, so nothing renumbers. Draw a list as
   a plain `Ul`/`Ol` with Tailwind (`divide-y rounded-xl border …`, the rows padded), and a terminal as a `Pre` per
   line inside a dark rounded box, the prompt a `before:content-[attr(data-prefix)]` so it is never copied.
-  `Ui.StatusDot`, `Ui.Loading` and `UiStyles` stay for now: the operator console still draws with them.
+  `Ui.StatusDot`, `Ui.Loading` and `UiStyles` stay for now; since the console moved to Flux's pieces nothing in the
+  repository draws with them, and they go with the kit's other leftovers.
 
 ### Added
 
@@ -129,6 +130,19 @@ them until tagged releases begin.
   See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
+
+- **The operator console (`/_rask`) is drawn with Flux UI's pieces only, and follows the operator into dark mode.**
+  Before: its seven lists were `Ui.DataGrid`s, its figures `Ui.Metric`/`Ui.Stat` tiles, its facts `Ui.DetailList`s,
+  its payloads `Ui.Code`, and `<html>` pinned daisyUI's light theme. After: every list is a `Ui.Table` with a width
+  on every column but one and a `Ui.Pagination` under it (the logs' History pages are still links; the cache, queue
+  and storage pages still page in place), the search and filters sit above it, a figure is Flux's text and heading
+  in a `Ui.Card`, a queue's counts are a `Ui.Navbar` whose items carry them as badges and link to `?show=`, and an
+  empty panel is Flux's heading and text. Dark is Flux's: `Ui.AppearanceScript` puts `dark` on `<html>` from the
+  operator's stored choice or the system's. Routes, access, paging, search, actions and every link are unchanged;
+  on a phone a table scrolls inside its own box rather than stacking its columns. The console no longer names
+  `Ui.DataGrid`, `Ui.Empty`, `Ui.Metric`, `Ui.MetricRow`, `Ui.DetailList`, `Ui.DetailRow`, `Ui.Code`, `Ui.Stat`,
+  `Ui.Grid`, `Ui.StatusDot`, `Ui.Loading`, `Ui.Tone`, `UiStyles` or `UiTheme`, and `DashboardIsKitOnlyTests` holds it
+  to Flux's catalogue; the kit keeps them until DevTools and the site's kit showcase have moved off them too.
 
 - **BREAKING: `Ui.Command` is Flux's command palette, in Flux's parts.** Before: `Ui.Command.Label("Search
   commands").Shortcut("mod+k")[Ui.MenuItem…]` drew a field that opened a daisyUI dialog of menu rows, closed it on a

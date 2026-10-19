@@ -262,7 +262,7 @@
 /*
   `dark:` is Flux's — a `dark` class on an ancestor, which Ui.AppearanceScript sets — and, on a kit surface
   that runs no such script and pins no theme (DevTools), the operating system's preference. A surface pinned
-  with `data-theme` (the Dashboard, light) matches neither arm. The second arm goes with daisyUI.
+  with `data-theme` matches neither arm. The second arm goes with daisyUI.
 */
 @custom-variant dark {
   &:where(.dark, .dark *) {
@@ -1573,13 +1573,28 @@
     margin-top: calc(var(--spacing) * 6);
   }
 
-  @variant dark {
-    :where([data-rask-ui-document]) body {
+  /*
+    Dark, keyed on the document element itself. `@variant dark` cannot say it: at the top of a rule it puts the
+    `.dark` ancestor ABOVE `[data-rask-ui-document]`, and both sit on the one <html>, so the ground stayed white
+    under white text. The two arms are the `dark` variant's: Flux's class, and the OS for an unpinned kit scope.
+  */
+  :where([data-rask-ui-document].dark) body {
+    background-color: var(--color-zinc-800);
+  }
+
+  :where([data-rask-ui-document].dark) [data-ui-sidebar],
+  :where([data-rask-ui-document].dark) [data-ui-header] {
+    background-color: var(--color-zinc-900);
+    border-color: var(--color-zinc-700);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) body {
       background-color: var(--color-zinc-800);
     }
 
-    :where([data-rask-ui-document]) [data-ui-sidebar],
-    :where([data-rask-ui-document]) [data-ui-header] {
+    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) [data-ui-sidebar],
+    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) [data-ui-header] {
       background-color: var(--color-zinc-900);
       border-color: var(--color-zinc-700);
     }

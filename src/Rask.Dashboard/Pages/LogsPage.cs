@@ -155,7 +155,7 @@ public sealed partial class LogsPage(
         if (!options.CaptureLogs && !HasStore)
         {
             return Ui.Card[
-                Ui.Empty
+                DashboardEmpty
                     .Title("Log capture is off")
                     .Detail("Set CaptureLogs = true on OpsOptions to keep a tail of recent entries, or add "
                     + "Rask.Logging to keep them across restarts.")
@@ -166,6 +166,7 @@ public sealed partial class LogsPage(
         return [
             DashboardHeading.Title("Logs").Caption(Caption()).Actions(HasStore ? ModeTabs() : null),
             DashboardError.Message(LoadError),
+            Filters(),
             IsHistory ? HistoryBody(now) : LiveBody(now),
             DashboardParked.Parked(IsParked).Resume(Resume),
         ];
@@ -196,18 +197,22 @@ public sealed partial class LogsPage(
         return Task.CompletedTask;
     }
 
-    // The grid's toolbar lays these out as one row from sm up and one control per line below it, which is
-    // what three filters at 360px need: side by side, each is too narrow to show the value it is set to.
+    // One row from sm up and one control per line below it, which is what three filters at 360px need: side by
+    // side, each is too narrow to show the value it is set to.
     private Component Filters() =>
-        [
+        Div.Class("flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end")[
             Ui.Tabs.Pills.Value(MinimumLevel?.ToString() ?? AllLevels).OnChange(LevelChangedAsync)[
                 LevelPill(null, "All"),
                 LevelPill(LogLevel.Information, "Info+"),
                 LevelPill(LogLevel.Warning, "Warning+"),
                 LevelPill(LogLevel.Error, "Error+")
             ],
-            CategoryFilter(),
-            IsHistory ? SearchBox() : null
+            Div.Class("sm:w-64")[CategoryFilter()],
+            IsHistory
+                ? Div.Class("min-w-0 flex-1 sm:min-w-64")[
+                    DashboardSearch.Placeholder("Search message or exception").Value(Query).OnChange(SearchAsync)
+                ]
+                : null
         ];
 
     private static Component LevelPill(LogLevel? level, string label) =>
@@ -246,15 +251,6 @@ public sealed partial class LogsPage(
         return Task.CompletedTask;
     }
 
-    private UiInput<string> SearchBox() =>
-        Ui.Input
-            .Value(Query ?? string.Empty)
-            .Type(InputType.Search)
-            .Icon(Ui.IconName.MagnifyingGlass)
-            .Placeholder("Search message or exception")
-            .Attributes(("aria-label", "Search message or exception"))
-            .OnChange(SearchAsync);
-
     private Task SearchAsync(string value)
     {
         // Navigate, do not merely reload (#936). The property is declared [QueryParam("q")] and the page
@@ -284,70 +280,82 @@ public sealed partial class LogsPage(
             Page: page is > 1 ? page : null);
 
     private Component LiveBody(DateTime now) =>
-        LogGrid(
+        LogTable(
             [.. buffer.Snapshot(MinimumLevel, Category).Select(ToRow)],
             now,
-            Ui.Empty
+            DashboardEmpty
                 .Title("Nothing captured yet")
                 .Detail("Entries appear here as the application logs them — subject to the app's own "
                 + "Logging:LogLevel configuration, which filters before the dashboard sees them."),
-            paged: false);
+            pager: null);
 
     private Component HistoryBody(DateTime now) =>
-        LogGrid(
+        LogTable(
             [.. _history.Entries.Select(ToRow)],
             now,
             IsLoading
                 ? DashboardLoading
-                : Ui.Empty
+                : DashboardEmpty
                     .Title("Nothing stored matches")
                     .Detail("Either nothing has been logged into the store yet, or no entry matches this filter. "
                     + "Retention drops entries by age and by count."),
-            paged: true);
+            // History's pages are LINKS: paging is navigation, so it stays shareable, back-navigable, and needs no
+            // round trip to the server to decide where it goes. The store's page size, not the option: the store
+            // caps it, and a pager counting in the option would offer pages past the rows the store can hand back.
+            pager: Ui.Pagination
+                .Paginator(new UiPaginator
+                {
+                    Page = CurrentPage,
+                    PerPage = _history.PageSize,
+                    Total = (int)Math.Min(_history.TotalCount, int.MaxValue),
+                })
+                .Href(page => Link(Level, Category, page)));
 
-    // One grid for both surfaces, so the two modes cannot drift into rendering an entry differently.
-    //
-    // History's pages are LINKS: paging is navigation, so it stays shareable, back-navigable, and needs no
-    // round trip to the server to decide where it goes. The grid counts pages from zero and the address from
-    // one, and the conversion happens here, once.
-    private Component LogGrid(IReadOnlyList<LogRow> rows, DateTime now, Component empty, bool paged)
+    // One table for both surfaces, so the two modes cannot drift into rendering an entry differently. The message
+    // is the one column without a width, and the one that wraps.
+    private static Component LogTable(IReadOnlyList<LogRow> rows, DateTime now, Component empty, Component? pager)
     {
-        var grid = Ui.DataGrid.Data(rows)
-            .RowKey(r => r.Key)
-            .Label(paged ? "Stored log entries" : "Recent log entries")
-            .Toolbar(Filters())
-            .Loading(paged && IsLoading)
-            .Empty(empty);
-
-        if (paged)
+        if (rows.Count == 0)
         {
-            grid = grid
-                // The store's page size, not the option: the store caps it, and a pager counting in the option
-                // would offer pages past the rows the store can hand back.
-                .PageSize(_history.PageSize)
-                .Page(CurrentPage - 1)
-                .TotalCount((int)Math.Min(_history.TotalCount, int.MaxValue))
-                .PageHref(page => Link(Level, Category, page + 1));
+            return Ui.Card[empty];
         }
 
-        // Every column at every table width. The category used to fold under the message on a narrow screen, so
-        // hiding it between sm and lg would lose a fact the old table kept; on a phone each column becomes its own
-        // labelled line.
-        return grid[c => [
-            c.Field(r => r.Timestamp).Title("When").Class("sm:w-36").Cell(r =>
-                Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]),
-            c.Field(r => r.Level).Title("Level").Class("sm:w-32").Cell(r => LevelBadge(r.Level)),
-            c.Field(r => r.Category).Title("Category").Mono().Class("sm:w-64"),
-            c.Field(r => r.Message).Title("Message").Cell(MessageCell),
-        ]];
+        var label = pager is null ? "Recent log entries" : "Stored log entries";
+        return Ui.Table
+                .Class("w-full md:min-w-200")
+                .AriaLabel(label)
+                .Paginate(pager)[
+                Ui.TableColumns[
+                    Ui.TableColumn.Class("w-20")["When"],
+                    Ui.TableColumn.Class("w-28 hidden md:table-cell")["Level"],
+                    Ui.TableColumn.Class("w-56 hidden md:table-cell")["Category"],
+                    Ui.TableColumn["Message"]
+                ],
+                Ui.TableRows[
+                    rows.Select(r => Ui.TableRow.Key(r.Key)[
+                        Ui.TableCell.Class("align-top")[
+                            Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]
+                        ],
+                        Ui.TableCell.Class("hidden align-top md:table-cell")[LevelBadge(r.Level)],
+                        Ui.TableCell.Class("hidden truncate align-top font-mono md:table-cell").Title(r.Category)[r.Category],
+                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("align-top whitespace-normal")[MessageCell(r)]
+                    ])
+                ]
+            ];
     }
 
     // The stack trace is the reason an error entry is worth surfacing at all, but it would drown the table,
     // so it renders muted beneath the message rather than in a separate view.
     private static Component MessageCell(LogRow row) =>
-        Div[
-            Div[row.Message],
-            row.Exception is { } ex ? Ui.Code.Content(ex) : null,
+        Div.Class("grid gap-2")[
+            Div.Class("wrap-anywhere")[row.Message],
+            // Below md the level and the category have no column of their own: they go under the message they label,
+            // which keeps the whole width of a phone for the message.
+            Div.Class("flex min-w-0 items-center gap-2 md:hidden")[
+                LevelBadge(row.Level),
+                Ui.Text.Size(Ui.TextSize.Sm).Class("truncate font-mono").Title(row.Category)[row.Category]
+            ],
+            row.Exception is { } ex ? DashboardCode.Content(ex).Danger(true) : null,
             ScopeChips(row.Scopes)
         ];
 
@@ -367,16 +375,11 @@ public sealed partial class LogsPage(
     private static Component? ScopeChips(IReadOnlyList<LogScopeValue>? scopes) =>
         scopes is null || scopes.Count == 0
             ? null
-            : Div[
-                scopes.SelectMany(s => new Component[]
-                {
-                    // The one class string the console writes (DashboardIsKitOnlyTests): the kit's sheet carries it.
-                    Ui.Badge.Key(s.Key).Class("font-mono max-w-full break-all whitespace-normal!")[$"{s.Key}={s.Value}"],
-                    " ",
-                })
+            : Div.Class("flex flex-wrap gap-1")[
+                scopes.Select(s => Ui.Badge.Sm.Key(s.Key).Class("max-w-full font-mono break-all whitespace-normal!")[$"{s.Key}={s.Value}"])
             ];
 
-    private static Component LevelBadge(LogLevel level) => Ui.Badge
+    private static Component LevelBadge(LogLevel level) => Ui.Badge.Sm
         .Color(level switch
         {
             LogLevel.Critical or LogLevel.Error => Ui.Color.Red,

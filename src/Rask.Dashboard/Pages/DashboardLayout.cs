@@ -14,9 +14,9 @@ namespace Rask.Dashboard.Pages;
 /// protected by construction rather than by remembering to annotate it.
 /// </para>
 /// <para>
-/// The layout inlines the kit's stylesheet via <see cref="HeadAssets" />, and that is the only stylesheet the
-/// console has: every page is drawn with <c>Rask.Ui</c> components, so every class on it is one the kit's
-/// compiled sheet already carries. Head-asset contributions are collected from every component in the tree
+/// The layout inlines the console's stylesheet via <see cref="HeadAssets" />, and that is the only stylesheet it
+/// has: the kit compiled with the console's own layout utilities, as an app's one sheet is. Every page is drawn
+/// with Flux's pieces from <c>Rask.Ui</c>. Head-asset contributions are collected from every component in the tree
 /// and deduplicated by rendered HTML, so the console is styled correctly inside a host that links no
 /// stylesheet of its own, without being emitted twice.
 /// </para>
@@ -50,10 +50,13 @@ public sealed partial class DashboardLayout(
         Title["Ops"],
         // An operator surface has no business in a search index, even behind a policy.
         Meta.Name("robots").Content("noindex, nofollow"),
+        // Flux's dark mode: the `dark` class on <html>, from the operator's stored appearance or the system's, put
+        // there before the first paint — so it goes ahead of the sheet.
+        Ui.AppearanceScript,
         // Raw, because CSS is not HTML: encoding it would break every selector containing > or &.
         // ONE sheet: the console's own, with the kit compiled into it (Styles/dashboard.css) — so a
         // utility a page here writes and a class a kit component writes are ranked by Tailwind, in one
-        // build. The frame's reset travels with the kit, keyed to Ui.Shell.
+        // build. The document reset travels with the kit, keyed to UiStylesheet.DocumentAttribute.
         // INLINED here, unlike the apps, and deliberately. The console is mounted into somebody else's host at
         // /_rask, and a <link> would point at a file nothing in that host's wwwroot produced.
         Style[Raw.Value(DashboardStylesheet.Css)],
