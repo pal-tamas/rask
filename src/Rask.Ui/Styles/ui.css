@@ -49,8 +49,8 @@
   replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle, the old vertical track).
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
-  scanned source. So every class a component writes must appear as a COMPLETE literal in C# — which is
-  what UiClassNames.cs is for — never built by concatenating ("btn-" + tone). A composed name is
+  scanned source. So every class a component writes must appear as a COMPLETE literal in C#, never
+  built by concatenating ("btn-" + tone). A composed name is
   invisible to the scan, and the failure is silent: the component renders with no styling at all and the
   build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB.
 */
@@ -62,9 +62,6 @@
   class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the compiled sheet
   carried every component whether or not anything used one. It reads as correct, because a sheet
   containing too much looks exactly like a sheet containing enough.
-
-  It also quietly weakened UiClassNamesTests, which checks that every name the kit can write exists in
-  the sheet. With the bundle scanned, every daisyUI name was in there for reasons unrelated to the kit.
 */
 @source not "./daisyui.mjs";
 
@@ -830,93 +827,6 @@
       animation: ui-carousel-fade linear both;
       animation-timeline: scroll(self inline);
     }
-  }
-}
-
-/*
-  A TREE IS ONE FOCUSABLE ELEMENT, AND ITS CURSOR IS NOT THE FOCUS RING.
-
-  The focus is on the tree; the cursor is a row inside it, named by aria-activedescendant. A ring around the
-  control's own box would be a 40vh outline that says nothing about where the keyboard is, so the ring goes on
-  the row — and the tree keeps one of its own only while it has no rows to point at.
-
-  The flat mode is the virtualized one: every row must be exactly the height the scroll window was computed
-  from, or the rows drift out of step with the offset. daisyUI's menu padding would otherwise decide it. The
-  depth is a CSS variable rather than a class, because a composed class name (`ps-` + depth) is invisible to
-  Tailwind's scan and would emit nothing; nested mode needs none of this, since the nested lists indent
-  themselves.
-*/
-@layer rask {
-  .ui-tree:focus,
-  .ui-tree:focus-visible {
-    outline: none;
-  }
-
-  .ui-tree:focus:not(:has([role="treeitem"])) {
-    outline: 2px solid var(--color-base-content);
-    outline-offset: 2px;
-  }
-
-  .ui-tree:focus .ui-tree-cursor,
-  .ui-tree:focus-visible .ui-tree-cursor {
-    outline: 2px solid var(--color-base-content);
-    outline-offset: -2px;
-  }
-
-  /* On a leaf too, so a leaf's label lines up with its siblings' labels rather than with their chevrons. */
-  .ui-tree-toggle {
-    display: inline-flex;
-    inline-size: 1rem;
-    flex-shrink: 0;
-    justify-content: center;
-  }
-
-  .ui-tree-flat > li[role="treeitem"] {
-    block-size: var(--ui-tree-row);
-    overflow: hidden;
-  }
-}
-
-/*
-  The flat tree's indent, in `rask-ui-corrections` rather than `rask`, for the reason that layer exists: the
-  rule it has to beat is daisyUI's `.menu :where(li > …)` padding-inline, which daisyUI emits inside
-  `@layer utilities`. Written in `rask` it lost — every row of a virtualized tree computed the same 12px
-  whatever its depth, with the variable set on every row and this rule in the compiled sheet.
-*/
-@layer rask-ui-corrections {
-  .ui-tree-flat > li[role="treeitem"] > .ui-tree-row {
-    padding-inline-start: calc(0.75rem + var(--ui-tree-depth, 0) * 1rem);
-  }
-}
-
-/*
-  A GRID CELL MAY BREAK A LONG TOKEN; THE CONTROLS INSIDE IT MAY NOT.
-
-  "anywhere" rather than "break-word", because only "anywhere" counts while the table's column widths are worked
-  out: one unbroken type name or request id otherwise sets the table's minimum width and pushes it out of a phone.
-
-  But overflow-wrap inherits, and a badge or a button is a fixed-height pill with a label that must stay whole. The
-  console shipped a level badge reading "mati": "Information", broken letter by letter under the cell's rule, with
-  its middle line centred in the pill. So controls inside a cell take the normal behaviour back — except a mono
-  badge, which exists to wrap a long token and says so with its own utilities.
-*/
-@layer rask {
-  .ui-grid-cell {
-    overflow-wrap: anywhere;
-  }
-
-  .ui-grid-cell :where([data-ui-badge]:not(.font-mono), .btn, .tab, .status, .loading) {
-    overflow-wrap: normal;
-    white-space: nowrap;
-  }
-
-  /*
-    Buttons side by side in a cell — Retry, Delete, Details — keep a gap without a " " text node between them.
-    A text node there made the row's children a mix of keyed buttons and unkeyed text, which forces the live
-    diff to match by position: after a Retry, the focused Retry button could be patched into Delete in place.
-  */
-  .ui-grid-cell :where(.btn + .btn) {
-    margin-inline-start: 0.25rem;
   }
 }
 

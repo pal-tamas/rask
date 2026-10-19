@@ -8,8 +8,8 @@ namespace Rask.Data;
 /// <see cref="Highlight"/> and <see cref="Snippet"/> are translated to SQL — use them inside a <c>Select</c> on a
 /// query that calls <c>Search</c>. They mark each matched term between <see cref="MatchStart"/> and
 /// <see cref="MatchEnd"/> rather than with HTML, because the text is whatever was stored in the row: rendering
-/// it as markup would hand anyone who can write a row a way to inject script. Render the result with
-/// <c>UiHighlight</c>, which encodes the text and wraps each match in <c>&lt;mark&gt;</c>.
+/// it as markup would hand anyone who can write a row a way to inject script. Render the result by splitting it on
+/// the two markers, so every piece is encoded, and wrapping each marked piece in <c>&lt;mark&gt;</c>.
 /// </remarks>
 /// <example>
 /// <code>

@@ -24,7 +24,7 @@ namespace Rask.Postgres;
 /// (<c>IsGeneratedTsVectorColumn</c>) and a GIN index on it — no triggers, because the database keeps a generated
 /// column current itself. <c>Search(text)</c> becomes <c>vector @@ to_tsquery(config, 'w1' &amp; 'w2':*)</c> ranked by
 /// <c>ts_rank_cd</c>, and the highlight markers become <c>ts_headline</c> with Rask's U+E000/U+E001 around each match,
-/// so <c>UiHighlight</c> renders it unchanged.
+/// so the text renders the same way whichever provider marked it.
 /// </para>
 /// <para>
 /// The tokenizers map to text search configurations: <see cref="FullTextTokenizer.English" /> to PostgreSQL's

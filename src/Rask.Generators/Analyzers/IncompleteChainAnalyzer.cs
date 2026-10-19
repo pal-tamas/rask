@@ -257,7 +257,7 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
             _ => expression.WithoutTrivia().ToString(),
         };
 
-    // What the chain builds, as its entry spells it (`Card`, `Ui.Stat`); for a chain held in a local, the
+    // What the chain builds, as its entry spells it (`Card`, `Ui.Badge`); for a chain held in a local, the
     // component it builds.
     private static string Subject(
         ExpressionSyntax outer, INamedTypeSymbol state, SemanticModel? model, OperationAnalysisContext context)

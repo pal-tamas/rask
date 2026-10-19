@@ -289,7 +289,7 @@ public sealed partial class ComponentFactoryGenerator
     // been constructible and permanently incomplete. A REQUIRED property is a step on the seed or a
     // pending stage — never on the component — so it is not on the receiver and cannot swallow its step
     // whatever its type; Validation.Message, Validation.Summary, Validation.Indicator, ToastOutlet, Shareable, the
-    // Trigger.Gesture family and Ui.DataGrid's RowKey simply have entries.
+    // Trigger.Gesture family and a grid's RowKey simply have entries.
     //
     // …and a name Component already declares (`Head`) still blocks too, which would be CS0102.
     // The entries an unseeded component is reached by: its own name, or one per tag of a [Tag] type several

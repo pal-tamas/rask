@@ -139,8 +139,8 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
             hits.Data is { Count: 0 }
                 ? P.Id("no-hits").Class("note-body")["Nothing matches every word. The last word also matches as a prefix."]
                 : Ul.Id("hits").Class("notes-list")[(hits.Data ?? []).Select(h => Li.Key(h.Id).Class("hit")[
-                    Ui.Highlight.Text(h.Title ?? "").Class("hit-title"),
-                    Ui.Highlight.Text(h.Excerpt ?? "").Class("note-body")
+                    MarkedText.Text(h.Title ?? "").Class("hit-title"),
+                    MarkedText.Text(h.Excerpt ?? "").Class("note-body")
                 ])]
         ];
 

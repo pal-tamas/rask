@@ -52,7 +52,7 @@ on SQLite:
 builder.HasFullTextSearch(p => new { p.Title, p.Body });                 // in the entity's configuration
 
 var hits = await db.Posts.Search("postgres sqli")                         // every word, the last as a prefix
-    .Select(p => new { p.Id, Title = FullText.Highlight(p.Title) })       // matches marked for Ui.Highlight
+    .Select(p => new { p.Id, Title = FullText.Highlight(p.Title) })       // matches between U+E000 and U+E001
     .ToListAsync();                                                       // best match first
 ```
 

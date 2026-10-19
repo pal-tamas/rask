@@ -1291,14 +1291,6 @@ Rask.UiCheckboxIndicator
 Rask.UiCheckboxIndicator.Class.get -> string?
 Rask.UiCheckboxIndicator.Class.set -> void
 Rask.UiCheckboxIndicator.UiCheckboxIndicator() -> void
-Rask.UiCode
-Rask.UiCode.Content.get -> string!
-Rask.UiCode.Content.set -> void
-Rask.UiCode.Label.get -> string?
-Rask.UiCode.Label.set -> void
-Rask.UiCode.Tone.get -> Rask.Ui.Tone?
-Rask.UiCode.Tone.set -> void
-Rask.UiCode.UiCode() -> void
 Rask.UiColorPicker
 Rask.UiColorPicker.AfterBind.get -> Rask.Core.Callback<string!>
 Rask.UiColorPicker.AfterBind.set -> void
@@ -1378,44 +1370,6 @@ Rask.UiColorSwatch.UiColorSwatch() -> void
 Rask.UiColorSwatch.UiColorSwatch(string! Value, string? Label = null) -> void
 Rask.UiColorSwatch.Value.get -> string!
 Rask.UiColorSwatch.Value.init -> void
-Rask.UiColumn<T>
-Rask.UiColumn<T>.Cell.get -> Rask.Core.Fn<T, Rask.Core.Component!>?
-Rask.UiColumn<T>.Cell.set -> void
-Rask.UiColumn<T>.Class.get -> string?
-Rask.UiColumn<T>.Class.set -> void
-Rask.UiColumn<T>.Field.get -> System.Linq.Expressions.Expression<System.Func<T, object?>!>?
-Rask.UiColumn<T>.Field.set -> void
-Rask.UiColumn<T>.Footer.get -> Rask.Core.Fn<System.Collections.Generic.IReadOnlyList<T>!, object?>?
-Rask.UiColumn<T>.Footer.set -> void
-Rask.UiColumn<T>.FooterCell.get -> Rask.Core.Fn<System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>?
-Rask.UiColumn<T>.FooterCell.set -> void
-Rask.UiColumn<T>.GroupHeader.get -> Rask.Core.Fn<object?, System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>?
-Rask.UiColumn<T>.GroupHeader.set -> void
-Rask.UiColumn<T>.GroupKey.get -> Rask.Core.Fn<T, object?>?
-Rask.UiColumn<T>.GroupKey.set -> void
-Rask.UiColumn<T>.Groupable.get -> bool?
-Rask.UiColumn<T>.Groupable.set -> void
-Rask.UiColumn<T>.Hideable.get -> bool?
-Rask.UiColumn<T>.Hideable.set -> void
-Rask.UiColumn<T>.Mono.get -> bool?
-Rask.UiColumn<T>.Mono.set -> void
-Rask.UiColumn<T>.Reorderable.get -> bool?
-Rask.UiColumn<T>.Reorderable.set -> void
-Rask.UiColumn<T>.RowClickable.get -> bool?
-Rask.UiColumn<T>.RowClickable.set -> void
-Rask.UiColumn<T>.ShowFrom.get -> Rask.Ui.Breakpoint?
-Rask.UiColumn<T>.ShowFrom.set -> void
-Rask.UiColumn<T>.SortBy.get -> System.Linq.Expressions.Expression<System.Func<T, object?>!>?
-Rask.UiColumn<T>.SortBy.set -> void
-Rask.UiColumn<T>.SortKey.get -> Rask.Core.Fn<T, System.IComparable?>?
-Rask.UiColumn<T>.SortKey.set -> void
-Rask.UiColumn<T>.Sortable.get -> bool?
-Rask.UiColumn<T>.Sortable.set -> void
-Rask.UiColumn<T>.Title.get -> string?
-Rask.UiColumn<T>.Title.set -> void
-Rask.UiColumn<T>.UiColumn() -> void
-Rask.UiColumn<T>.Value.get -> Rask.Core.Fn<T, object?>?
-Rask.UiColumn<T>.Value.set -> void
 Rask.UiCommand
 Rask.UiCommand.Class.get -> string?
 Rask.UiCommand.Class.set -> void
@@ -1534,89 +1488,6 @@ Rask.UiContext.Position.set -> void
 Rask.UiContext.Target.get -> string?
 Rask.UiContext.Target.set -> void
 Rask.UiContext.UiContext() -> void
-Rask.UiDataGrid<T, TKey>
-Rask.UiDataGrid<T, TKey>.Card.get -> Rask.Core.Fn<T, Rask.Core.Component!>?
-Rask.UiDataGrid<T, TKey>.Card.set -> void
-Rask.UiDataGrid<T, TKey>.Class.get -> string?
-Rask.UiDataGrid<T, TKey>.Class.set -> void
-Rask.UiDataGrid<T, TKey>.Column() -> Rask.UiColumn<T>!
-Rask.UiDataGrid<T, TKey>.ColumnChooser.get -> bool?
-Rask.UiDataGrid<T, TKey>.ColumnChooser.set -> void
-Rask.UiDataGrid<T, TKey>.ColumnOrder.get -> System.Collections.Generic.IReadOnlyList<string!>?
-Rask.UiDataGrid<T, TKey>.ColumnOrder.set -> void
-Rask.UiDataGrid<T, TKey>.Data.get -> System.Collections.Generic.IEnumerable<T>?
-Rask.UiDataGrid<T, TKey>.Data.set -> void
-Rask.UiDataGrid<T, TKey>.Detail.get -> Rask.Core.Fn<T, Rask.Core.Component?>?
-Rask.UiDataGrid<T, TKey>.Detail.set -> void
-Rask.UiDataGrid<T, TKey>.Empty.get -> Rask.Core.Component?
-Rask.UiDataGrid<T, TKey>.Empty.set -> void
-Rask.UiDataGrid<T, TKey>.Field(System.Linq.Expressions.Expression<System.Func<T, object?>!>! field) -> Rask.UiColumn<T>!
-Rask.UiDataGrid<T, TKey>.GroupCollapsible.get -> bool?
-Rask.UiDataGrid<T, TKey>.GroupCollapsible.set -> void
-Rask.UiDataGrid<T, TKey>.GroupPanel.get -> bool?
-Rask.UiDataGrid<T, TKey>.GroupPanel.set -> void
-Rask.UiDataGrid<T, TKey>.GroupSubtotals.get -> bool?
-Rask.UiDataGrid<T, TKey>.GroupSubtotals.set -> void
-Rask.UiDataGrid<T, TKey>.Grouped.get -> System.Collections.Generic.IReadOnlyList<string!>?
-Rask.UiDataGrid<T, TKey>.Grouped.set -> void
-Rask.UiDataGrid<T, TKey>.HiddenColumns.get -> System.Collections.Generic.IReadOnlyList<string!>?
-Rask.UiDataGrid<T, TKey>.HiddenColumns.set -> void
-Rask.UiDataGrid<T, TKey>.Hover.get -> bool?
-Rask.UiDataGrid<T, TKey>.Hover.set -> void
-Rask.UiDataGrid<T, TKey>.Label.get -> string?
-Rask.UiDataGrid<T, TKey>.Label.set -> void
-Rask.UiDataGrid<T, TKey>.Loading.get -> bool?
-Rask.UiDataGrid<T, TKey>.Loading.set -> void
-Rask.UiDataGrid<T, TKey>.MaxHeight.get -> string?
-Rask.UiDataGrid<T, TKey>.MaxHeight.set -> void
-Rask.UiDataGrid<T, TKey>.OnReorder.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnReorder.set -> void
-Rask.UiDataGrid<T, TKey>.OnGroup.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnGroup.set -> void
-Rask.UiDataGrid<T, TKey>.OnHide.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>
-Rask.UiDataGrid<T, TKey>.OnHide.set -> void
-Rask.UiDataGrid<T, TKey>.OnPage.get -> Rask.Core.Callback<int>
-Rask.UiDataGrid<T, TKey>.OnPage.set -> void
-Rask.UiDataGrid<T, TKey>.OnRowClick.get -> Rask.Core.Callback<T>
-Rask.UiDataGrid<T, TKey>.OnRowClick.set -> void
-Rask.UiDataGrid<T, TKey>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiDataGrid<T, TKey>.OnSelect.set -> void
-Rask.UiDataGrid<T, TKey>.OnSort.get -> Rask.Core.Callback<Rask.UiGridSort>
-Rask.UiDataGrid<T, TKey>.OnSort.set -> void
-Rask.UiDataGrid<T, TKey>.Page.get -> int?
-Rask.UiDataGrid<T, TKey>.Page.set -> void
-Rask.UiDataGrid<T, TKey>.PageHref.get -> Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>?
-Rask.UiDataGrid<T, TKey>.PageHref.set -> void
-Rask.UiDataGrid<T, TKey>.PageSize.get -> int?
-Rask.UiDataGrid<T, TKey>.PageSize.set -> void
-Rask.UiDataGrid<T, TKey>.RowClass.get -> Rask.Core.Fn<T, string?>?
-Rask.UiDataGrid<T, TKey>.RowClass.set -> void
-Rask.UiDataGrid<T, TKey>.RowKey.get -> System.Func<T, TKey>!
-Rask.UiDataGrid<T, TKey>.RowKey.set -> void
-Rask.UiDataGrid<T, TKey>.RowTone.get -> Rask.Core.Fn<T, Rask.Ui.Tone?>?
-Rask.UiDataGrid<T, TKey>.RowTone.set -> void
-Rask.UiDataGrid<T, TKey>.Selected.get -> System.Collections.Generic.IReadOnlyList<TKey>?
-Rask.UiDataGrid<T, TKey>.Selected.set -> void
-Rask.UiDataGrid<T, TKey>.ShowGroupedColumns.get -> bool?
-Rask.UiDataGrid<T, TKey>.ShowGroupedColumns.set -> void
-Rask.UiDataGrid<T, TKey>.Size.get -> Rask.Ui.Size?
-Rask.UiDataGrid<T, TKey>.Size.set -> void
-Rask.UiDataGrid<T, TKey>.Sort.get -> string?
-Rask.UiDataGrid<T, TKey>.Sort.set -> void
-Rask.UiDataGrid<T, TKey>.SortDescending.get -> bool?
-Rask.UiDataGrid<T, TKey>.SortDescending.set -> void
-Rask.UiDataGrid<T, TKey>.Source.get -> Rask.Core.Fn<Rask.UiGridRequest, System.Threading.Tasks.Task<Rask.UiGridPage<T>!>!>?
-Rask.UiDataGrid<T, TKey>.Source.set -> void
-Rask.UiDataGrid<T, TKey>.StickyHeader.get -> bool?
-Rask.UiDataGrid<T, TKey>.StickyHeader.set -> void
-Rask.UiDataGrid<T, TKey>.Toolbar.get -> Rask.Core.Component?
-Rask.UiDataGrid<T, TKey>.Toolbar.set -> void
-Rask.UiDataGrid<T, TKey>.TotalCount.get -> int?
-Rask.UiDataGrid<T, TKey>.TotalCount.set -> void
-Rask.UiDataGrid<T, TKey>.UiDataGrid() -> void
-Rask.UiDataGrid<T, TKey>.Zebra.get -> bool?
-Rask.UiDataGrid<T, TKey>.Zebra.set -> void
-Rask.UiDataGrid<T, TKey>.this[System.Func<Rask.UiDataGrid<T, TKey>!, System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>! columns].get -> Rask.Core.Component!
 Rask.UiDatePicker
 Rask.UiDatePicker.UiDatePicker() -> void
 Rask.UiDatePickerButton
@@ -1757,18 +1628,6 @@ Rask.UiDateRange.Start.get -> System.DateOnly
 Rask.UiDateRange.Start.init -> void
 Rask.UiDateRange.UiDateRange() -> void
 Rask.UiDateRange.UiDateRange(System.DateOnly Start, System.DateOnly End) -> void
-Rask.UiDetailList
-Rask.UiDetailList.UiDetailList() -> void
-Rask.UiDetailRow
-Rask.UiDetailRow.Label.get -> string!
-Rask.UiDetailRow.Label.set -> void
-Rask.UiDetailRow.Mono.get -> bool?
-Rask.UiDetailRow.Mono.set -> void
-Rask.UiDetailRow.Tone.get -> Rask.Ui.Tone?
-Rask.UiDetailRow.Tone.set -> void
-Rask.UiDetailRow.UiDetailRow() -> void
-Rask.UiDetailRow.Value.get -> string!
-Rask.UiDetailRow.Value.set -> void
 Rask.UiDropdown
 Rask.UiDropdown.Align.get -> Rask.Ui.DropdownAlign?
 Rask.UiDropdown.Align.set -> void
@@ -1877,12 +1736,6 @@ Rask.UiEditorUndo
 Rask.UiEditorUndo.UiEditorUndo() -> void
 Rask.UiElement
 Rask.UiElement.UiElement() -> void
-Rask.UiEmpty
-Rask.UiEmpty.Detail.get -> string?
-Rask.UiEmpty.Detail.set -> void
-Rask.UiEmpty.Title.get -> string!
-Rask.UiEmpty.Title.set -> void
-Rask.UiEmpty.UiEmpty() -> void
 Rask.UiFieldset
 Rask.UiFieldset.Class.get -> string?
 Rask.UiFieldset.Class.set -> void
@@ -1961,39 +1814,6 @@ Rask.UiFlag.Size.set -> void
 Rask.UiFlag.Src.get -> string?
 Rask.UiFlag.Src.set -> void
 Rask.UiFlag.UiFlag() -> void
-Rask.UiGrid
-Rask.UiGrid.UiGrid() -> void
-Rask.UiGridPage<T>
-Rask.UiGridPage<T>.<Clone>$() -> Rask.UiGridPage<T>!
-Rask.UiGridPage<T>.Deconstruct(out System.Collections.Generic.IReadOnlyList<T>! Rows, out int Total) -> void
-Rask.UiGridPage<T>.Equals(Rask.UiGridPage<T>? other) -> bool
-Rask.UiGridPage<T>.Rows.get -> System.Collections.Generic.IReadOnlyList<T>!
-Rask.UiGridPage<T>.Rows.init -> void
-Rask.UiGridPage<T>.Total.get -> int
-Rask.UiGridPage<T>.Total.init -> void
-Rask.UiGridPage<T>.UiGridPage(System.Collections.Generic.IReadOnlyList<T>! Rows, int Total) -> void
-Rask.UiGridRequest
-Rask.UiGridRequest.Deconstruct(out string? Sort, out bool Descending, out int Page, out int PageSize) -> void
-Rask.UiGridRequest.Descending.get -> bool
-Rask.UiGridRequest.Descending.init -> void
-Rask.UiGridRequest.Equals(Rask.UiGridRequest other) -> bool
-Rask.UiGridRequest.Page.get -> int
-Rask.UiGridRequest.Page.init -> void
-Rask.UiGridRequest.PageSize.get -> int
-Rask.UiGridRequest.PageSize.init -> void
-Rask.UiGridRequest.Sort.get -> string?
-Rask.UiGridRequest.Sort.init -> void
-Rask.UiGridRequest.UiGridRequest() -> void
-Rask.UiGridRequest.UiGridRequest(string? Sort, bool Descending, int Page, int PageSize) -> void
-Rask.UiGridSort
-Rask.UiGridSort.Deconstruct(out string? Field, out bool Descending) -> void
-Rask.UiGridSort.Descending.get -> bool
-Rask.UiGridSort.Descending.init -> void
-Rask.UiGridSort.Equals(Rask.UiGridSort other) -> bool
-Rask.UiGridSort.Field.get -> string?
-Rask.UiGridSort.Field.init -> void
-Rask.UiGridSort.UiGridSort() -> void
-Rask.UiGridSort.UiGridSort(string? Field, bool Descending) -> void
 Rask.UiHeader
 Rask.UiHeader.Class.get -> string?
 Rask.UiHeader.Class.set -> void
@@ -6121,12 +5941,6 @@ Rask.UiHeading.Level.get -> int?
 Rask.UiHeading.Level.set -> void
 Rask.UiHeading.Size.set -> void
 Rask.UiHeading.UiHeading() -> void
-Rask.UiHighlight
-Rask.UiHighlight.Class.get -> string?
-Rask.UiHighlight.Class.set -> void
-Rask.UiHighlight.Text.get -> string!
-Rask.UiHighlight.Text.set -> void
-Rask.UiHighlight.UiHighlight() -> void
 Rask.UiIcon
 Rask.UiIcon.Class.get -> string?
 Rask.UiIcon.Class.set -> void
@@ -6496,23 +6310,6 @@ Rask.UiLink.External.get -> bool?
 Rask.UiLink.External.set -> void
 Rask.UiLink.Href.set -> void
 Rask.UiLink.UiLink() -> void
-Rask.UiLoading
-Rask.UiLoading.Class.get -> string?
-Rask.UiLoading.Class.set -> void
-Rask.UiLoading.Shape.get -> Rask.Ui.LoadingShape?
-Rask.UiLoading.Shape.set -> void
-Rask.UiLoading.Size.get -> Rask.Ui.Size?
-Rask.UiLoading.Size.set -> void
-Rask.UiLoading.Text.get -> string!
-Rask.UiLoading.Text.set -> void
-Rask.UiLoading.UiLoading() -> void
-Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Ball = 3 -> Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Bars = 4 -> Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Dots = 1 -> Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Infinity = 5 -> Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Ring = 2 -> Rask.Ui.LoadingShape
-Rask.Ui.LoadingShape.Spinner = 0 -> Rask.Ui.LoadingShape
 Rask.UiMain
 Rask.UiMain.Class.get -> string?
 Rask.UiMain.Class.set -> void
@@ -6580,24 +6377,6 @@ Rask.UiMenuRadioGroup<T>.Value.get -> T?
 Rask.UiMenuRadioGroup<T>.Value.set -> void
 Rask.UiMenuSeparator
 Rask.UiMenuSeparator.UiMenuSeparator() -> void
-Rask.UiMetric
-Rask.UiMetric.Active.get -> bool?
-Rask.UiMetric.Active.set -> void
-Rask.UiMetric.Caption.get -> string?
-Rask.UiMetric.Caption.set -> void
-Rask.UiMetric.Href.get -> string?
-Rask.UiMetric.Href.set -> void
-Rask.UiMetric.Label.get -> string!
-Rask.UiMetric.Label.set -> void
-Rask.UiMetric.Tone.get -> Rask.Ui.Tone?
-Rask.UiMetric.Tone.set -> void
-Rask.UiMetric.UiMetric() -> void
-Rask.UiMetric.Value.get -> string!
-Rask.UiMetric.Value.set -> void
-Rask.UiMetricRow
-Rask.UiMetricRow.Columns.get -> int?
-Rask.UiMetricRow.Columns.set -> void
-Rask.UiMetricRow.UiMetricRow() -> void
 Rask.UiModal
 Rask.UiModal.Class.get -> string?
 Rask.UiModal.Class.set -> void
@@ -6683,13 +6462,6 @@ Rask.UiSidebarToggle
 Rask.UiSidebarToggle.Class.get -> string?
 Rask.UiSidebarToggle.Class.set -> void
 Rask.UiSidebarToggle.UiSidebarToggle() -> void
-Rask.Ui.Size
-Rask.Ui.Size.Default = 0 -> Rask.Ui.Size
-Rask.Ui.Size.Lg = 4 -> Rask.Ui.Size
-Rask.Ui.Size.Md = 3 -> Rask.Ui.Size
-Rask.Ui.Size.Sm = 2 -> Rask.Ui.Size
-Rask.Ui.Size.Xl = 5 -> Rask.Ui.Size
-Rask.Ui.Size.Xs = 1 -> Rask.Ui.Size
 Rask.UiSkeleton
 Rask.UiSkeleton.Animate.set -> void
 Rask.UiSkeleton.Class.get -> string?
@@ -6697,31 +6469,6 @@ Rask.UiSkeleton.Class.set -> void
 Rask.UiSkeleton.UiSkeleton() -> void
 Rask.UiSpacer
 Rask.UiSpacer.UiSpacer() -> void
-Rask.UiStat
-Rask.UiStat.Caption.get -> string?
-Rask.UiStat.Caption.set -> void
-Rask.UiStat.Href.get -> Rask.Core.Routing.RouteUrl?
-Rask.UiStat.Href.set -> void
-Rask.UiStat.Icon.get -> Rask.Ui.IconName?
-Rask.UiStat.Icon.set -> void
-Rask.UiStat.Label.get -> string!
-Rask.UiStat.Label.set -> void
-Rask.UiStat.Tone.get -> Rask.Ui.Tone?
-Rask.UiStat.Tone.set -> void
-Rask.UiStat.UiStat() -> void
-Rask.UiStat.Value.get -> string!
-Rask.UiStat.Value.set -> void
-Rask.UiStatusDot
-Rask.UiStatusDot.Animated.get -> bool?
-Rask.UiStatusDot.Animated.set -> void
-Rask.UiStatusDot.Label.get -> string!
-Rask.UiStatusDot.Label.set -> void
-Rask.UiStatusDot.Size.get -> Rask.Ui.Size?
-Rask.UiStatusDot.Size.set -> void
-Rask.UiStatusDot.Tone.get -> Rask.Ui.Tone?
-Rask.UiStatusDot.Tone.set -> void
-Rask.UiStatusDot.UiStatusDot() -> void
-Rask.UiStyles
 Rask.UiStylesheet
 Rask.UiTab
 Rask.UiTab.Class.get -> string?
@@ -6810,15 +6557,6 @@ Rask.UiToast.Class.get -> string?
 Rask.UiToast.Class.set -> void
 Rask.UiToast.Position.set -> void
 Rask.UiToast.UiToast() -> void
-Rask.Ui.Tone
-Rask.Ui.Tone.Accent = 3 -> Rask.Ui.Tone
-Rask.Ui.Tone.Error = 7 -> Rask.Ui.Tone
-Rask.Ui.Tone.Info = 4 -> Rask.Ui.Tone
-Rask.Ui.Tone.Neutral = 0 -> Rask.Ui.Tone
-Rask.Ui.Tone.Primary = 1 -> Rask.Ui.Tone
-Rask.Ui.Tone.Secondary = 2 -> Rask.Ui.Tone
-Rask.Ui.Tone.Success = 5 -> Rask.Ui.Tone
-Rask.Ui.Tone.Warning = 6 -> Rask.Ui.Tone
 Rask.UiTooltip
 Rask.UiTooltip.Align.set -> void
 Rask.UiTooltip.Class.get -> string?
@@ -6829,45 +6567,6 @@ Rask.UiTooltip.Position.set -> void
 Rask.UiTooltip.Toggleable.get -> bool?
 Rask.UiTooltip.Toggleable.set -> void
 Rask.UiTooltip.UiTooltip() -> void
-Rask.UiTree<T, TKey>
-Rask.UiTree<T, TKey>.Class.get -> string?
-Rask.UiTree<T, TKey>.Class.set -> void
-Rask.UiTree<T, TKey>.ExpandDepth.get -> int?
-Rask.UiTree<T, TKey>.ExpandDepth.set -> void
-Rask.UiTree<T, TKey>.Expanded.get -> System.Collections.Generic.IReadOnlyList<TKey>?
-Rask.UiTree<T, TKey>.Expanded.set -> void
-Rask.UiTree<T, TKey>.Height.get -> int?
-Rask.UiTree<T, TKey>.Height.set -> void
-Rask.UiTree<T, TKey>.Item.get -> System.Func<T, Rask.Core.Component!>!
-Rask.UiTree<T, TKey>.Item.set -> void
-Rask.UiTree<T, TKey>.ItemSize.get -> int?
-Rask.UiTree<T, TKey>.ItemSize.set -> void
-Rask.UiTree<T, TKey>.Label.get -> string!
-Rask.UiTree<T, TKey>.Label.set -> void
-Rask.UiTree<T, TKey>.NodeKey.get -> System.Func<T, TKey>!
-Rask.UiTree<T, TKey>.NodeKey.set -> void
-Rask.UiTree<T, TKey>.NodeText.get -> Rask.Core.Fn<T, string!>?
-Rask.UiTree<T, TKey>.NodeText.set -> void
-Rask.UiTree<T, TKey>.OnExpand.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiTree<T, TKey>.OnExpand.set -> void
-Rask.UiTree<T, TKey>.OnHover.get -> Rask.Core.Callback<T?>
-Rask.UiTree<T, TKey>.OnHover.set -> void
-Rask.UiTree<T, TKey>.OnSelect.get -> Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>
-Rask.UiTree<T, TKey>.OnSelect.set -> void
-Rask.UiTree<T, TKey>.Roots.get -> System.Collections.Generic.IEnumerable<T>?
-Rask.UiTree<T, TKey>.Roots.set -> void
-Rask.UiTree<T, TKey>.Selected.get -> System.Collections.Generic.IReadOnlyList<TKey>?
-Rask.UiTree<T, TKey>.Selected.set -> void
-Rask.UiTree<T, TKey>.Selection.get -> Rask.Ui.TreeSelection?
-Rask.UiTree<T, TKey>.Selection.set -> void
-Rask.UiTree<T, TKey>.Size.get -> Rask.Ui.Size?
-Rask.UiTree<T, TKey>.Size.set -> void
-Rask.UiTree<T, TKey>.UiTree() -> void
-Rask.UiTree<T, TKey>.this[System.Func<T, System.Collections.Generic.IEnumerable<T>?>! children].get -> Rask.Core.Component!
-Rask.Ui.TreeSelection
-Rask.Ui.TreeSelection.Many = 2 -> Rask.Ui.TreeSelection
-Rask.Ui.TreeSelection.None = 0 -> Rask.Ui.TreeSelection
-Rask.Ui.TreeSelection.One = 1 -> Rask.Ui.TreeSelection
 RaskBuilderSettersRask_Ui
 RaskBuilderSettersRask_Ui.extension(Rask.UiAccordion!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiAccordion!).Default.get -> Rask.UiAccordion!
@@ -6955,21 +6654,11 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiBadgeClose!).Mini.get -> Rask.UiBadge
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadgeClose!).Outline.get -> Rask.UiBadgeClose!
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadgeClose!).Solid.get -> Rask.UiBadgeClose!
 RaskEntriesRask_Ui
-const Rask.UiStyles.Caption = "mt-1 text-xs opacity-60" -> string!
-const Rask.UiStyles.Heading = "text-base font-semibold tracking-tight text-base-content sm:text-lg" -> string!
-const Rask.UiStyles.Label = "text-xs font-medium tracking-wide opacity-60" -> string!
-const Rask.UiStyles.Mono = "font-mono text-xs" -> string!
-const Rask.UiStyles.Value = "mt-2 text-2xl font-semibold tabular-nums tracking-tight text-base-content sm:text-3xl" -> string!
 const Rask.UiStylesheet.Path = "/css/rask-ui.css" -> string!
 const Rask.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!
 const Rask.UiTheme.SystemValue = "system" -> string!
 override Rask.UiDateRange.GetHashCode() -> int
 override Rask.UiElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
-override Rask.UiGridPage<T>.Equals(object? obj) -> bool
-override Rask.UiGridPage<T>.GetHashCode() -> int
-override Rask.UiGridPage<T>.ToString() -> string!
-override Rask.UiGridRequest.GetHashCode() -> int
-override Rask.UiGridSort.GetHashCode() -> int
 static Rask.Ui.AppearanceScript.get -> Rask.UiAppearanceScript!
 static Rask.Ui.AccordionContent.get -> Rask.UiAccordionContent!
 static Rask.Ui.AccordionHeading.get -> Rask.UiAccordionHeading!
@@ -6983,12 +6672,6 @@ static Rask.Ui.BadgeClose.get -> Rask.UiBadgeClose!
 static Rask.UiDateRange.Between(System.DateOnly a, System.DateOnly b) -> Rask.UiDateRange
 static Rask.UiDateRange.operator !=(Rask.UiDateRange left, Rask.UiDateRange right) -> bool
 static Rask.UiDateRange.operator ==(Rask.UiDateRange left, Rask.UiDateRange right) -> bool
-static Rask.UiGridPage<T>.operator !=(Rask.UiGridPage<T>? left, Rask.UiGridPage<T>? right) -> bool
-static Rask.UiGridPage<T>.operator ==(Rask.UiGridPage<T>? left, Rask.UiGridPage<T>? right) -> bool
-static Rask.UiGridRequest.operator !=(Rask.UiGridRequest left, Rask.UiGridRequest right) -> bool
-static Rask.UiGridRequest.operator ==(Rask.UiGridRequest left, Rask.UiGridRequest right) -> bool
-static Rask.UiGridSort.operator !=(Rask.UiGridSort left, Rask.UiGridSort right) -> bool
-static Rask.UiGridSort.operator ==(Rask.UiGridSort left, Rask.UiGridSort right) -> bool
 static Rask.UiStylesheet.Css.get -> string!
 static Rask.UiStylesheet.Href(string? pathBase = null) -> string!
 static Rask.UiStylesheet.Version.get -> string!
@@ -7018,7 +6701,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBadgeClose(Rask.Core.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBadgeClose(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiHeading! __b, bool? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Actions(this Rask.UiCallout! __b, Rask.Core.Component? value) -> Rask.UiCallout!
-static RaskBuilderSettersRask_Ui.Active(this Rask.UiMetric! __b, bool? value) -> Rask.UiMetric!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Action<System.DateOnly>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.Task!>? value) -> Rask.UiCalendar!
@@ -7063,7 +6745,6 @@ static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, Syst
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Align(this Rask.UiButton! __b, Rask.Ui.Align? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Alt(this Rask.UiAvatar! __b, string? value) -> Rask.UiAvatar!
-static RaskBuilderSettersRask_Ui.Animated(this Rask.UiStatusDot! __b, bool? value) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiButton! __b, Rask.Ui.ButtonAs? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.As(this Rask.UiBadge! __b, Rask.Ui.BadgeAs? value) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Autofocus<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
@@ -7071,12 +6752,6 @@ static RaskBuilderSettersRask_Ui.Badge(this Rask.UiDatePicker! __b, string? valu
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Caption(this Rask.UiMetric! __b, string? value) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.Caption(this Rask.UiStat! __b, string? value) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.Card<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, Rask.Core.Component!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Card<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, Rask.Core.Component!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Cell<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<T, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Cell<T>(this Rask.UiColumn<T>! __b, System.Func<T, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Chevron(this Rask.UiProfile! __b, bool? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.Circle(this Rask.UiProfile! __b, bool? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiAccordion! __b, string? value) -> Rask.UiAccordion!
@@ -7103,10 +6778,8 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePicker! __b, string? valu
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDropdown! __b, string? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFieldset! __b, string? value) -> Rask.UiFieldset!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiHighlight! __b, string? value) -> Rask.UiHighlight!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiIcon! __b, string? value) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiLabel! __b, string? value) -> Rask.UiLabel!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiLoading! __b, string? value) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMain! __b, string? value) -> Rask.UiMain!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenu! __b, string? value) -> Rask.UiMenu!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckbox! __b, string? value) -> Rask.UiMenuCheckbox!
@@ -7131,10 +6804,7 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiTabs! __b, string? value) -> 
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTimeline! __b, string? value) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToast! __b, string? value) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, string? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.UiTree<T, TKey>! __b, string? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiCheckboxGroup<T>! __b, string? value) -> Rask.UiCheckboxGroup<T>!
-static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiColumn<T>! __b, string? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiMenuRadioGroup<T>! __b, string? value) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiRadioGroup<T>! __b, string? value) -> Rask.UiRadioGroup<T>!
@@ -7146,20 +6816,12 @@ static RaskBuilderSettersRask_Ui.Closable(this Rask.UiModal! __b, bool? value) -
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiCallout! __b, Rask.Ui.Color? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiButton! __b, Rask.Ui.Color? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Color(this Rask.UiBadge! __b, Rask.Ui.Color? value) -> Rask.UiBadge!
-static RaskBuilderSettersRask_Ui.ColumnChooser<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.ColumnOrder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Columns(this Rask.UiMetricRow! __b, int? value) -> Rask.UiMetricRow!
 static RaskBuilderSettersRask_Ui.Command(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.CommandFor(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Container(this Rask.UiMain! __b, bool? value) -> Rask.UiMain!
-static RaskBuilderSettersRask_Ui.Content(this Rask.UiCode! __b, string! value) -> Rask.UiCode!
 static RaskBuilderSettersRask_Ui.Controls(this Rask.UiCallout! __b, Rask.Core.Component? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.CustomIcon(this Rask.UiCallout! __b, Rask.Core.Component? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.CustomIcon(this Rask.UiCalloutHeading! __b, Rask.Core.Component? value) -> Rask.UiCalloutHeading!
-static RaskBuilderSettersRask_Ui.Data<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IEnumerable<T>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Detail(this Rask.UiEmpty! __b, string? value) -> Rask.UiEmpty!
-static RaskBuilderSettersRask_Ui.Detail<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, Rask.Core.Component?>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Detail<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, Rask.Core.Component?>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAccordionItem! __b) -> Rask.UiAccordionItem!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiAccordionItem! __b, bool? value) -> Rask.UiAccordionItem!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
@@ -7175,22 +6837,14 @@ static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiInput<T>! __b, bool? va
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Dismissible(this Rask.UiModal! __b, bool? value) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.Empty<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Escapable(this Rask.UiModal! __b, bool? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Exclusive(this Rask.UiAccordion! __b) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.Exclusive(this Rask.UiAccordion! __b, bool? value) -> Rask.UiAccordion!
-static RaskBuilderSettersRask_Ui.ExpandDepth<T, TKey>(this Rask.UiTree<T, TKey>! __b, int? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Expanded(this Rask.UiAccordionItem! __b) -> Rask.UiAccordionItem!
 static RaskBuilderSettersRask_Ui.Expanded(this Rask.UiAccordionItem! __b, bool? value) -> Rask.UiAccordionItem!
-static RaskBuilderSettersRask_Ui.Expanded<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.External(this Rask.UiCalloutLink! __b) -> Rask.UiCalloutLink!
 static RaskBuilderSettersRask_Ui.External(this Rask.UiCalloutLink! __b, bool? value) -> Rask.UiCalloutLink!
 static RaskBuilderSettersRask_Ui.External(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
-static RaskBuilderSettersRask_Ui.Field<T>(this Rask.UiColumn<T>! __b, System.Linq.Expressions.Expression<System.Func<T, object?>!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Footer<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<System.Collections.Generic.IReadOnlyList<T>!, object?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Footer<T>(this Rask.UiColumn<T>! __b, System.Func<System.Collections.Generic.IReadOnlyList<T>!, object?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.FooterCell<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.FooterCell<T>(this Rask.UiColumn<T>! __b, System.Func<System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiDropdown! __b, int? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiAccordion! __b) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.get_Reverse(Rask.UiAccordion! __b) -> Rask.UiAccordion!
@@ -7273,15 +6927,6 @@ static RaskBuilderSettersRask_Ui.get_Mini(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Mini(Rask.UiBadgeClose! __b) -> Rask.UiBadgeClose!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiBadgeClose! __b) -> Rask.UiBadgeClose!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiBadgeClose! __b) -> Rask.UiBadgeClose!
-static RaskBuilderSettersRask_Ui.GroupCollapsible<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.GroupHeader<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<object?, System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.GroupHeader<T>(this Rask.UiColumn<T>! __b, System.Func<object?, System.Collections.Generic.IReadOnlyList<T>!, Rask.Core.Component!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.GroupKey<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<T, object?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.GroupKey<T>(this Rask.UiColumn<T>! __b, System.Func<T, object?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.GroupPanel<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.GroupSubtotals<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Groupable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Grouped<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.StorageKey(this Rask.UiAppearanceScript! __b, string! value) -> Rask.UiAppearanceScript!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiAccordionItem! __b, string? value) -> Rask.UiAccordionItem!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiCallout! __b, string? value) -> Rask.UiCallout!
@@ -7308,18 +6953,10 @@ static RaskBuilderSettersRask_Ui.IconVariant(this Rask.UiBadgeClose! __b, Rask.U
 static RaskBuilderSettersRask_Ui.Rounded(this Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Rounded(this Rask.UiBadge! __b, bool? value) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiBadge! __b, Rask.Ui.BadgeSize? value) -> Rask.UiBadge!
-static RaskBuilderSettersRask_Ui.Title(this Rask.UiEmpty! __b, string! value) -> Rask.UiEmpty!
-static RaskBuilderSettersRask_Ui.Height<T, TKey>(this Rask.UiTree<T, TKey>! __b, int? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.HiddenColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<string!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Hideable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Hover<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiButton! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.Href(this Rask.UiMetric! __b, string? value) -> Rask.UiMetric!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiPagination! __b, Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.Href(this Rask.UiPagination! __b, System.Func<int, Rask.Core.Routing.RouteUrl>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.Href(this Rask.UiStat! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiStat!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiMenuItem! __b, Rask.Ui.IconName? value) -> Rask.UiMenuItem!
-static RaskBuilderSettersRask_Ui.Icon(this Rask.UiStat! __b, Rask.Ui.IconName? value) -> Rask.UiStat!
 static RaskBuilderSettersRask_Ui.Icon(this Rask.UiTab! __b, Rask.Ui.IconName? value) -> Rask.UiTab!
 static RaskBuilderSettersRask_Ui.IconTrailing(this Rask.UiMenuItem! __b, Rask.Ui.IconName? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiCheckbox! __b, string? value) -> Rask.UiCheckbox!
@@ -7331,23 +6968,14 @@ static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiRadioGroup<T>! __b, string? v
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Id<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Inline(this Rask.UiText! __b, bool? value) -> Rask.UiText!
-static RaskBuilderSettersRask_Ui.Item<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T, Rask.Core.Component!>! value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.ItemSize<T, TKey>(this Rask.UiTree<T, TKey>! __b, int? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Kbd(this Rask.UiMenuItem! __b, string? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.Kbd(this Rask.UiTooltip! __b, string? value) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.Kbd<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuCheckbox! __b, bool? value) -> Rask.UiMenuCheckbox!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuItem! __b, bool? value) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.KeepOpen<T>(this Rask.UiMenuRadioGroup<T>! __b, bool? value) -> Rask.UiMenuRadioGroup<T>!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiCode! __b, string? value) -> Rask.UiCode!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiDetailRow! __b, string! value) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiMetric! __b, string! value) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiStat! __b, string! value) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.Label(this Rask.UiStatusDot! __b, string! value) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.Label<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, string? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Label<T, TKey>(this Rask.UiTree<T, TKey>! __b, string! value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiCheckboxGroup<T>! __b, string? value) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiRadioGroup<T>! __b, string? value) -> Rask.UiRadioGroup<T>!
@@ -7355,7 +6983,6 @@ static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiSelect<T>! __b, string? va
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Level(this Rask.UiHeading! __b, int? value) -> Rask.UiHeading!
 static RaskBuilderSettersRask_Ui.Loading(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.Loading<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendar! __b, System.DateOnly? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiCalendarRange! __b, System.DateOnly? value) -> Rask.UiCalendarRange!
@@ -7363,7 +6990,6 @@ static RaskBuilderSettersRask_Ui.Max(this Rask.UiDatePicker! __b, System.DateOnl
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiDatePickerRange! __b, System.DateOnly? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Max(this Rask.UiProgress! __b, double? value) -> Rask.UiProgress!
 static RaskBuilderSettersRask_Ui.Max<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.MaxHeight<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, string? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.MaxLength<T>(this Rask.UiInput<T>! __b, int? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendar! __b, System.DateOnly? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendarMultiple! __b, System.DateOnly? value) -> Rask.UiCalendarMultiple!
@@ -7371,17 +6997,12 @@ static RaskBuilderSettersRask_Ui.Min(this Rask.UiCalendarRange! __b, System.Date
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatePicker! __b, System.DateOnly? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatePickerRange! __b, System.DateOnly? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Min<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.Mono(this Rask.UiDetailRow! __b, bool? value) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.Mono<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiAvatar! __b, string? value) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiIcon! __b, Rask.Ui.IconName value) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiTab! __b, string? value) -> Rask.UiTab!
 static RaskBuilderSettersRask_Ui.Name(this Rask.UiTabPanel! __b, string! value) -> Rask.UiTabPanel!
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Name<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.NodeKey<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T, TKey>! value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Fn<T, string!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.NodeText<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T, string!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Offset(this Rask.UiDropdown! __b, int? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, Rask.Core.Callback<System.DateOnly>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Action<System.DateOnly>? value) -> Rask.UiCalendar!
@@ -7431,57 +7052,23 @@ static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuItem! __b, System.Func<
 static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, Rask.Core.Callback? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, System.Action? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, Rask.Core.Callback<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Action<string!>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<string!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<T?>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<T?>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T?, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Action<string!>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Callback<string!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Action<string!>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<string!, System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<int>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<int>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<T>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<T>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, Rask.Core.Callback<int>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Action<int>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Core.Callback<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action<System.Collections.Generic.IReadOnlyList<TKey>!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Callback<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action<Rask.UiGridSort>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, Rask.Core.Callback<bool>? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Action<bool>? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Func<bool, System.Threading.Tasks.Task!>? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiDropdown! __b, bool? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiModal! __b, bool? value) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.Page<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, int? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.PageHref<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<int, Rask.Core.Routing.RouteUrl>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.PageHref<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, Rask.Core.Routing.RouteUrl>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.PageSize<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, int? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePicker! __b, string? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.Placeholder(this Rask.UiDatePickerRange! __b, string? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
@@ -7489,21 +7076,7 @@ static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiSelect<T>! __b, stri
 static RaskBuilderSettersRask_Ui.Placeholder<T>(this Rask.UiTextarea<T>! __b, string? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Position(this Rask.UiModal! __b, Rask.Ui.ModalPosition? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Ref<T>(this Rask.UiInput<T>! __b, Rask.Core.ElementRef? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.Reorderable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Roots<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Collections.Generic.IEnumerable<T>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.RowClass<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, string?>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.RowClass<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, string?>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.RowClickable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.RowKey<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, TKey>! value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<T, Rask.Ui.Tone?>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.RowTone<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, Rask.Ui.Tone?>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Selected<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Collections.Generic.IReadOnlyList<TKey>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.Selection<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Ui.TreeSelection? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.Shape(this Rask.UiLoading! __b, Rask.Ui.LoadingShape? value) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.ShowFrom<T>(this Rask.UiColumn<T>! __b, Rask.Ui.Breakpoint? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePicker! __b, bool? value) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiCheckboxGroup<T>! __b, bool? value) -> Rask.UiCheckboxGroup<T>!
@@ -7511,35 +7084,12 @@ static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiInput<T>! __b, bo
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiRadioGroup<T>! __b, bool? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelect<T>! __b, bool? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiLoading! __b, Rask.Ui.Size? value) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.Size(this Rask.UiStatusDot! __b, Rask.Ui.Size? value) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.Size<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Ui.Size? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Size<T, TKey>(this Rask.UiTree<T, TKey>! __b, Rask.Ui.Size? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.Sort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, string? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.SortBy<T>(this Rask.UiColumn<T>! __b, System.Linq.Expressions.Expression<System.Func<T, object?>!>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.SortDescending<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.SortKey<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<T, System.IComparable?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.SortKey<T>(this Rask.UiColumn<T>! __b, System.Func<T, System.IComparable?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Sortable<T>(this Rask.UiColumn<T>! __b, bool? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Source<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Fn<Rask.UiGridRequest, System.Threading.Tasks.Task<Rask.UiGridPage<T>!>!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Source<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridRequest, System.Threading.Tasks.Task<Rask.UiGridPage<T>!>!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Square(this Rask.UiButton! __b, bool? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Src(this Rask.UiAvatar! __b, string? value) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.Step<T>(this Rask.UiInput<T>! __b, string? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.StickyHeader<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Text(this Rask.UiHighlight! __b, string! value) -> Rask.UiHighlight!
-static RaskBuilderSettersRask_Ui.Text(this Rask.UiLoading! __b, string! value) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.Title<T>(this Rask.UiColumn<T>! __b, string? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Toggleable(this Rask.UiTooltip! __b, bool? value) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiCode! __b, Rask.Ui.Tone? value) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiDetailRow! __b, Rask.Ui.Tone? value) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiMetric! __b, Rask.Ui.Tone? value) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiStat! __b, Rask.Ui.Tone? value) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.Tone(this Rask.UiStatusDot! __b, Rask.Ui.Tone? value) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.Toolbar<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, Rask.Core.Component? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Tooltip(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.TooltipKbd(this Rask.UiButton! __b, string? value) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.TotalCount<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, int? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Transition(this Rask.UiAccordion! __b) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.Transition(this Rask.UiAccordion! __b, bool? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.Type(this Rask.UiButton! __b, Rask.Ui.ButtonType? value) -> Rask.UiButton!
@@ -7572,11 +7122,6 @@ static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, Rask.Co
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Forms.Validate<T>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, Rask.Core.Validator<T>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Value(this Rask.UiDetailRow! __b, string! value) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.Value(this Rask.UiMetric! __b, string! value) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.Value(this Rask.UiStat! __b, string! value) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.Value<T>(this Rask.UiColumn<T>! __b, Rask.Core.Fn<T, object?>? value) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Value<T>(this Rask.UiColumn<T>! __b, System.Func<T, object?>? value) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiAccordion! __b, Rask.Ui.AccordionVariant? value) -> Rask.UiAccordion!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiCallout! __b, Rask.Ui.CalloutVariant? value) -> Rask.UiCallout!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiButton! __b, Rask.Ui.ButtonVariant? value) -> Rask.UiButton!
@@ -7631,16 +7176,11 @@ static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePicker! __b, bool? va
 static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.WithToday(this Rask.UiDatePickerRange! __b, bool? value) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Wrap(this Rask.UiCarousel! __b, Rask.Ui.CarouselWrap? value) -> Rask.UiCarousel!
-static RaskBuilderSettersRask_Ui.Zebra<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, bool? value) -> Rask.UiDataGrid<T, TKey>!
 virtual Rask.UiElement.ResolveAria() -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>?
 ~override Rask.UiColorSwatch.Equals(object obj) -> bool
 ~override Rask.UiColorSwatch.ToString() -> string
 ~override Rask.UiDateRange.Equals(object obj) -> bool
 ~override Rask.UiDateRange.ToString() -> string
-~override Rask.UiGridRequest.Equals(object obj) -> bool
-~override Rask.UiGridRequest.ToString() -> string
-~override Rask.UiGridSort.Equals(object obj) -> bool
-~override Rask.UiGridSort.ToString() -> string
 Rask.UiModal.OnCancel.get -> Rask.Core.Callback
 Rask.UiModal.OnCancel.set -> void
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, Rask.Core.Callback? value) -> Rask.UiModal!
@@ -7650,105 +7190,16 @@ static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiOtp! __b, bool? value) -> 
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiOtp! __b, string? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.Label(this Rask.UiOtp! __b, string? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiOtp! __b, bool? value) -> Rask.UiOtp!
-Rask.RaskPending_UiDataGrid<T, TKey>
-Rask.RaskPending_UiDataGrid<T, TKey>.Key(object? key) -> Rask.RaskPending_UiDataGrid<T, TKey>
-Rask.RaskPending_UiDataGrid<T, TKey>.RaskPending_UiDataGrid() -> void
-Rask.RaskPending_UiDataGrid<T, TKey>.RowKey(System.Func<T, TKey>! RowKey) -> Rask.UiDataGrid<T, TKey>!
-Rask.RaskPending_UiDetailRow_Label
-Rask.RaskPending_UiDetailRow_Label.Key(object? key) -> Rask.RaskPending_UiDetailRow_Label
-Rask.RaskPending_UiDetailRow_Label.RaskPending_UiDetailRow_Label() -> void
-Rask.RaskPending_UiDetailRow_Label.Value(string! Value) -> Rask.UiDetailRow!
-Rask.RaskPending_UiDetailRow_Value
-Rask.RaskPending_UiDetailRow_Value.Key(object? key) -> Rask.RaskPending_UiDetailRow_Value
-Rask.RaskPending_UiDetailRow_Value.Label(string! Label) -> Rask.UiDetailRow!
-Rask.RaskPending_UiDetailRow_Value.RaskPending_UiDetailRow_Value() -> void
-Rask.RaskPending_UiMetric_Label
-Rask.RaskPending_UiMetric_Label.Key(object? key) -> Rask.RaskPending_UiMetric_Label
-Rask.RaskPending_UiMetric_Label.RaskPending_UiMetric_Label() -> void
-Rask.RaskPending_UiMetric_Label.Value(string! Value) -> Rask.UiMetric!
-Rask.RaskPending_UiMetric_Value
-Rask.RaskPending_UiMetric_Value.Key(object? key) -> Rask.RaskPending_UiMetric_Value
-Rask.RaskPending_UiMetric_Value.Label(string! Label) -> Rask.UiMetric!
-Rask.RaskPending_UiMetric_Value.RaskPending_UiMetric_Value() -> void
-Rask.RaskPending_UiStat_Label
-Rask.RaskPending_UiStat_Label.Key(object? key) -> Rask.RaskPending_UiStat_Label
-Rask.RaskPending_UiStat_Label.RaskPending_UiStat_Label() -> void
-Rask.RaskPending_UiStat_Label.Value(string! Value) -> Rask.UiStat!
-Rask.RaskPending_UiStat_Value
-Rask.RaskPending_UiStat_Value.Key(object? key) -> Rask.RaskPending_UiStat_Value
-Rask.RaskPending_UiStat_Value.Label(string! Label) -> Rask.UiStat!
-Rask.RaskPending_UiStat_Value.RaskPending_UiStat_Value() -> void
-Rask.RaskPending_UiTree<T, TKey>
-Rask.RaskPending_UiTree<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.RaskPending_UiTree_Item<T, TKey>
-Rask.RaskPending_UiTree<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree<T, TKey>
-Rask.RaskPending_UiTree<T, TKey>.Label(string! Label) -> Rask.RaskPending_UiTree_Label<T, TKey>
-Rask.RaskPending_UiTree<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.RaskPending_UiTree_NodeKey<T, TKey>
-Rask.RaskPending_UiTree<T, TKey>.RaskPending_UiTree() -> void
-Rask.RaskPending_UiTree_Item<T, TKey>
-Rask.RaskPending_UiTree_Item<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_Item<T, TKey>
-Rask.RaskPending_UiTree_Item<T, TKey>.Label(string! Label) -> Rask.RaskPending_UiTree_Item_Label<T, TKey>
-Rask.RaskPending_UiTree_Item<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Item<T, TKey>.RaskPending_UiTree_Item() -> void
-Rask.RaskPending_UiTree_Item_Label<T, TKey>
-Rask.RaskPending_UiTree_Item_Label<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_Item_Label<T, TKey>
-Rask.RaskPending_UiTree_Item_Label<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.UiTree<T, TKey>!
-Rask.RaskPending_UiTree_Item_Label<T, TKey>.RaskPending_UiTree_Item_Label() -> void
-Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>.Label(string! Label) -> Rask.UiTree<T, TKey>!
-Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>.RaskPending_UiTree_Item_NodeKey() -> void
-Rask.RaskPending_UiTree_Label<T, TKey>
-Rask.RaskPending_UiTree_Label<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.RaskPending_UiTree_Item_Label<T, TKey>
-Rask.RaskPending_UiTree_Label<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_Label<T, TKey>
-Rask.RaskPending_UiTree_Label<T, TKey>.NodeKey(System.Func<T, TKey>! NodeKey) -> Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Label<T, TKey>.RaskPending_UiTree_Label() -> void
-Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.UiTree<T, TKey>!
-Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>.RaskPending_UiTree_Label_NodeKey() -> void
-Rask.RaskPending_UiTree_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_NodeKey<T, TKey>.Item(System.Func<T, Rask.Core.Component!>! Item) -> Rask.RaskPending_UiTree_Item_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_NodeKey<T, TKey>.Key(object? key) -> Rask.RaskPending_UiTree_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_NodeKey<T, TKey>.Label(string! Label) -> Rask.RaskPending_UiTree_Label_NodeKey<T, TKey>
-Rask.RaskPending_UiTree_NodeKey<T, TKey>.RaskPending_UiTree_NodeKey() -> void
 Rask.RaskSeed_UiCalendar
 Rask.RaskSeed_UiCalendar.RaskSeed_UiCalendar() -> void
 Rask.RaskSeed_UiCheckboxGroup
 Rask.RaskSeed_UiCheckboxGroup.Key(object? key) -> Rask.RaskSeed_UiCheckboxGroup
 Rask.RaskSeed_UiCheckboxGroup.RaskSeed_UiCheckboxGroup() -> void
-Rask.RaskSeed_UiCode
-Rask.RaskSeed_UiCode.Content(string! Content) -> Rask.UiCode!
-Rask.RaskSeed_UiCode.Key(object? key) -> Rask.RaskSeed_UiCode
-Rask.RaskSeed_UiCode.RaskSeed_UiCode() -> void
-Rask.RaskSeed_UiColumn
-Rask.RaskSeed_UiColumn.Field<T>(System.Linq.Expressions.Expression<System.Func<T, object?>!>? Field) -> Rask.UiColumn<T>!
-Rask.RaskSeed_UiColumn.Key(object? key) -> Rask.RaskSeed_UiColumn
-Rask.RaskSeed_UiColumn.Of<T>() -> Rask.UiColumn<T>!
-Rask.RaskSeed_UiColumn.RaskSeed_UiColumn() -> void
-Rask.RaskSeed_UiColumn.SortBy<T>(System.Linq.Expressions.Expression<System.Func<T, object?>!>? SortBy) -> Rask.UiColumn<T>!
-Rask.RaskSeed_UiDataGrid
-Rask.RaskSeed_UiDataGrid.Data<T>(System.Collections.Generic.IEnumerable<T>? Data) -> Rask.RaskStage_UiDataGrid_Data<T>
-Rask.RaskSeed_UiDataGrid.Key(object? key) -> Rask.RaskSeed_UiDataGrid
-Rask.RaskSeed_UiDataGrid.Of<T, TKey>() -> Rask.RaskPending_UiDataGrid<T, TKey>
-Rask.RaskSeed_UiDataGrid.RaskSeed_UiDataGrid() -> void
-Rask.RaskSeed_UiDataGrid.Selected<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Selected) -> Rask.RaskStage_UiDataGrid_Selected<TKey>
 Rask.RaskSeed_UiDatePicker
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly>!>! Bind) -> Rask.UiDatePicker!
 Rask.RaskSeed_UiDatePicker.Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! Bind) -> Rask.UiDatePicker!
 Rask.RaskSeed_UiDatePicker.RaskSeed_UiDatePicker() -> void
 Rask.RaskSeed_UiDatePicker.Value(System.DateOnly Value) -> Rask.UiDatePicker!
-Rask.RaskSeed_UiDetailRow
-Rask.RaskSeed_UiDetailRow.Key(object? key) -> Rask.RaskSeed_UiDetailRow
-Rask.RaskSeed_UiDetailRow.Label(string! Label) -> Rask.RaskPending_UiDetailRow_Label
-Rask.RaskSeed_UiDetailRow.RaskSeed_UiDetailRow() -> void
-Rask.RaskSeed_UiDetailRow.Value(string! Value) -> Rask.RaskPending_UiDetailRow_Value
-Rask.RaskSeed_UiEmpty
-Rask.RaskSeed_UiEmpty.Key(object? key) -> Rask.RaskSeed_UiEmpty
-Rask.RaskSeed_UiEmpty.RaskSeed_UiEmpty() -> void
-Rask.RaskSeed_UiHighlight
-Rask.RaskSeed_UiHighlight.Key(object? key) -> Rask.RaskSeed_UiHighlight
-Rask.RaskSeed_UiHighlight.RaskSeed_UiHighlight() -> void
-Rask.RaskSeed_UiHighlight.Text(string! Text) -> Rask.UiHighlight!
 Rask.RaskSeed_UiIcon
 Rask.RaskSeed_UiIcon.Key(object? key) -> Rask.RaskSeed_UiIcon
 Rask.RaskSeed_UiIcon.Name(Rask.Ui.IconName Name) -> Rask.UiIcon!
@@ -7759,20 +7210,11 @@ Rask.RaskSeed_UiInput.Key(object? key) -> Rask.RaskSeed_UiInput
 Rask.RaskSeed_UiInput.Of<T>() -> Rask.UiInput<T>!
 Rask.RaskSeed_UiInput.RaskSeed_UiInput() -> void
 Rask.RaskSeed_UiInput.Value<T>(T? Value) -> Rask.UiInput<T>!
-Rask.RaskSeed_UiLoading
-Rask.RaskSeed_UiLoading.Key(object? key) -> Rask.RaskSeed_UiLoading
-Rask.RaskSeed_UiLoading.RaskSeed_UiLoading() -> void
-Rask.RaskSeed_UiLoading.Text(string! Text) -> Rask.UiLoading!
 Rask.RaskSeed_UiMenuCheckbox
 Rask.RaskSeed_UiMenuCheckbox.RaskSeed_UiMenuCheckbox() -> void
 Rask.RaskSeed_UiMenuRadioGroup
 Rask.RaskSeed_UiMenuRadioGroup.Key(object? key) -> Rask.RaskSeed_UiMenuRadioGroup
 Rask.RaskSeed_UiMenuRadioGroup.RaskSeed_UiMenuRadioGroup() -> void
-Rask.RaskSeed_UiMetric
-Rask.RaskSeed_UiMetric.Key(object? key) -> Rask.RaskSeed_UiMetric
-Rask.RaskSeed_UiMetric.Label(string! Label) -> Rask.RaskPending_UiMetric_Label
-Rask.RaskSeed_UiMetric.RaskSeed_UiMetric() -> void
-Rask.RaskSeed_UiMetric.Value(string! Value) -> Rask.RaskPending_UiMetric_Value
 Rask.RaskSeed_UiOtp
 Rask.RaskSeed_UiOtp.RaskSeed_UiOtp() -> void
 Rask.RaskSeed_UiPagination
@@ -7784,15 +7226,6 @@ Rask.RaskSeed_UiRadioGroup.RaskSeed_UiRadioGroup() -> void
 Rask.RaskSeed_UiSelect
 Rask.RaskSeed_UiSelect.Key(object? key) -> Rask.RaskSeed_UiSelect
 Rask.RaskSeed_UiSelect.RaskSeed_UiSelect() -> void
-Rask.RaskSeed_UiStat
-Rask.RaskSeed_UiStat.Key(object? key) -> Rask.RaskSeed_UiStat
-Rask.RaskSeed_UiStat.Label(string! Label) -> Rask.RaskPending_UiStat_Label
-Rask.RaskSeed_UiStat.RaskSeed_UiStat() -> void
-Rask.RaskSeed_UiStat.Value(string! Value) -> Rask.RaskPending_UiStat_Value
-Rask.RaskSeed_UiStatusDot
-Rask.RaskSeed_UiStatusDot.Key(object? key) -> Rask.RaskSeed_UiStatusDot
-Rask.RaskSeed_UiStatusDot.Label(string! Label) -> Rask.UiStatusDot!
-Rask.RaskSeed_UiStatusDot.RaskSeed_UiStatusDot() -> void
 Rask.RaskSeed_UiTabPanel
 Rask.RaskSeed_UiTabPanel.Key(object? key) -> Rask.RaskSeed_UiTabPanel
 Rask.RaskSeed_UiTabPanel.Name(string! Name) -> Rask.UiTabPanel!
@@ -7803,29 +7236,6 @@ Rask.RaskSeed_UiTextarea.Key(object? key) -> Rask.RaskSeed_UiTextarea
 Rask.RaskSeed_UiTextarea.Of<T>() -> Rask.UiTextarea<T>!
 Rask.RaskSeed_UiTextarea.RaskSeed_UiTextarea() -> void
 Rask.RaskSeed_UiTextarea.Value<T>(T? Value) -> Rask.UiTextarea<T>!
-Rask.RaskSeed_UiTree
-Rask.RaskSeed_UiTree.Expanded<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Expanded) -> Rask.RaskStage_UiTree_Expanded<TKey>
-Rask.RaskSeed_UiTree.Key(object? key) -> Rask.RaskSeed_UiTree
-Rask.RaskSeed_UiTree.Of<T, TKey>() -> Rask.RaskPending_UiTree<T, TKey>
-Rask.RaskSeed_UiTree.RaskSeed_UiTree() -> void
-Rask.RaskSeed_UiTree.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.RaskStage_UiTree_Roots<T>
-Rask.RaskSeed_UiTree.Selected<TKey>(System.Collections.Generic.IReadOnlyList<TKey>? Selected) -> Rask.RaskStage_UiTree_Selected<TKey>
-Rask.RaskStage_UiDataGrid_Data<T>
-Rask.RaskStage_UiDataGrid_Data<T>.RaskStage_UiDataGrid_Data() -> void
-Rask.RaskStage_UiDataGrid_Data<T>.RowKey<TKey>(System.Func<T, TKey>! RowKey) -> Rask.UiDataGrid<T, TKey>!
-Rask.RaskStage_UiDataGrid_Selected<TKey>
-Rask.RaskStage_UiDataGrid_Selected<TKey>.Data(System.Collections.Generic.IEnumerable<TKey>? Data) -> Rask.UiDataGrid<TKey, TKey>!
-Rask.RaskStage_UiDataGrid_Selected<TKey>.Data<T>(System.Collections.Generic.IEnumerable<T>? Data) -> Rask.RaskPending_UiDataGrid<T, TKey>
-Rask.RaskStage_UiDataGrid_Selected<TKey>.RaskStage_UiDataGrid_Selected() -> void
-Rask.RaskStage_UiTree_Expanded<TKey>
-Rask.RaskStage_UiTree_Expanded<TKey>.RaskStage_UiTree_Expanded() -> void
-Rask.RaskStage_UiTree_Expanded<TKey>.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.RaskPending_UiTree<T, TKey>
-Rask.RaskStage_UiTree_Roots<T>
-Rask.RaskStage_UiTree_Roots<T>.NodeKey<TKey>(System.Func<T, TKey>! NodeKey) -> Rask.RaskPending_UiTree_NodeKey<T, TKey>
-Rask.RaskStage_UiTree_Roots<T>.RaskStage_UiTree_Roots() -> void
-Rask.RaskStage_UiTree_Selected<TKey>
-Rask.RaskStage_UiTree_Selected<TKey>.RaskStage_UiTree_Selected() -> void
-Rask.RaskStage_UiTree_Selected<TKey>.Roots<T>(System.Collections.Generic.IEnumerable<T>? Roots) -> Rask.RaskPending_UiTree<T, TKey>
 Rask.Ui
 static Rask.Ui.Accordion.get -> Rask.UiAccordion!
 static Rask.Ui.Avatar.get -> Rask.UiAvatar!
@@ -7836,28 +7246,17 @@ static Rask.Ui.Card.get -> Rask.UiCard!
 static Rask.Ui.Carousel.get -> Rask.UiCarousel!
 static Rask.Ui.ChartAxis.get -> Rask.UiChartAxis!
 static Rask.Ui.CheckboxGroup.get -> Rask.RaskSeed_UiCheckboxGroup
-static Rask.Ui.Code.get -> Rask.RaskSeed_UiCode
-static Rask.Ui.Column.get -> Rask.RaskSeed_UiColumn
-static Rask.Ui.DataGrid.get -> Rask.RaskSeed_UiDataGrid
 static Rask.Ui.DatePicker.get -> Rask.RaskSeed_UiDatePicker
-static Rask.Ui.DetailList.get -> Rask.UiDetailList!
-static Rask.Ui.DetailRow.get -> Rask.RaskSeed_UiDetailRow
-static Rask.Ui.Empty.get -> Rask.RaskSeed_UiEmpty
-static Rask.Ui.Grid.get -> Rask.UiGrid!
 static Rask.Ui.Heading.get -> Rask.UiHeading!
-static Rask.Ui.Highlight.get -> Rask.RaskSeed_UiHighlight
 static Rask.Ui.Icon.get -> Rask.RaskSeed_UiIcon
 static Rask.Ui.Input.get -> Rask.RaskSeed_UiInput
 static Rask.Ui.Label.get -> Rask.UiLabel!
-static Rask.Ui.Loading.get -> Rask.RaskSeed_UiLoading
 static Rask.Ui.Main.get -> Rask.UiMain!
 static Rask.Ui.Menu.get -> Rask.UiMenu!
 static Rask.Ui.MenuCheckbox.get -> Rask.RaskSeed_UiMenuCheckbox
 static Rask.Ui.MenuGroup.get -> Rask.UiMenuGroup!
 static Rask.Ui.MenuRadioGroup.get -> Rask.RaskSeed_UiMenuRadioGroup
 static Rask.Ui.MenuSeparator.get -> Rask.UiMenuSeparator!
-static Rask.Ui.Metric.get -> Rask.RaskSeed_UiMetric
-static Rask.Ui.MetricRow.get -> Rask.UiMetricRow!
 static Rask.Ui.Navbar.get -> Rask.UiNavbar!
 static Rask.Ui.Otp.get -> Rask.RaskSeed_UiOtp
 static Rask.Ui.Pagination.get -> Rask.RaskSeed_UiPagination
@@ -7866,8 +7265,6 @@ static Rask.Ui.Select.get -> Rask.RaskSeed_UiSelect
 static Rask.Ui.SidebarHeader.get -> Rask.UiSidebarHeader!
 static Rask.Ui.Skeleton.get -> Rask.UiSkeleton!
 static Rask.Ui.Spacer.get -> Rask.UiSpacer!
-static Rask.Ui.Stat.get -> Rask.RaskSeed_UiStat
-static Rask.Ui.StatusDot.get -> Rask.RaskSeed_UiStatusDot
 static Rask.Ui.TabGroup.get -> Rask.UiTabGroup!
 static Rask.Ui.TabPanel.get -> Rask.RaskSeed_UiTabPanel
 static Rask.Ui.Table.get -> Rask.UiTable!
@@ -7875,7 +7272,6 @@ static Rask.Ui.Tabs.get -> Rask.UiTabs!
 static Rask.Ui.Text.get -> Rask.UiText!
 static Rask.Ui.Textarea.get -> Rask.RaskSeed_UiTextarea
 static Rask.Ui.Timeline.get -> Rask.UiTimeline!
-static Rask.Ui.Tree.get -> Rask.RaskSeed_UiTree
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAccordion(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAvatar(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiBrand(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -7887,30 +7283,21 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCard(Rask.Core.Compone
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCarousel(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCheckbox(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCheckboxGroup_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCode(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiColumn_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCommand(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePicker(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerRange(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDetailRow(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDropdown(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiEmpty(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFieldset(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiHeader(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiHighlight(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiIcon(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiInput_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiLabel(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiLoading(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMain(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenu(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuCheckbox(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuRadioGroup_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMetric(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMetricRow(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiModal(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavbar(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiOtp(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -7925,8 +7312,6 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarCollapse(Rask.C
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarHeader(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarToggle(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSkeleton(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiStat(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiStatusDot(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTab(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTabGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTabPanel(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -7935,7 +7320,6 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTextarea_1<T>(Rask.Cor
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimeline(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToast(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltip(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
-static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTree_2<T, TKey>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAccordion(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAvatar(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBadge(Rask.Core.Component! __c0) -> void
@@ -7949,32 +7333,23 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCard(Rask.Core.Componen
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCarousel(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCheckbox(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCheckboxGroup_1<T>(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCode(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiColumn_1<T>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCommand(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePicker(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDatePickerRange(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDetailRow(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiDropdown(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiEmpty(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFieldset(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiHeading(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiHighlight(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiIcon(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInput_1<T>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiLabel(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiLink(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiLoading(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMain(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenu(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuCheckbox(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMenuRadioGroup_1<T>(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMetric(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiMetricRow(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiModal(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavbar(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiOtp(Rask.Core.Component! __c0) -> void
@@ -7990,8 +7365,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarCollapse(Rask.Co
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarToggle(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSkeleton(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiStat(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiStatusDot(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTab(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTabGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTabPanel(Rask.Core.Component! __c0) -> void
@@ -8002,7 +7375,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTextarea_1<T>(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimeline(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToast(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltip(Rask.Core.Component! __c0) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTree_2<T, TKey>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAccordion(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAvatar(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBadge(Rask.Core.Component! __c0, ulong __p) -> void
@@ -8016,32 +7388,23 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCard(Rask.Core.Compon
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCarousel(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCheckbox(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCheckboxGroup_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCode(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiColumn_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCommand(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDataGrid_2<T, TKey>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePicker(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDatePickerRange(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDetailRow(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiDropdown(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiEmpty(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFieldset(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiHeading(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiHighlight(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiIcon(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInput_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiLabel(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiLink(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiLoading(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMain(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenu(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuCheckbox(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuItem(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMenuRadioGroup_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMetric(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiMetricRow(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiModal(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiNavbar(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiOtp(Rask.Core.Component! __c0, ulong __p) -> void
@@ -8057,8 +7420,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSidebarCollapse(Rask.
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSidebarHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSidebarToggle(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSkeleton(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiStat(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiStatusDot(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTab(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTabGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTabPanel(Rask.Core.Component! __c0, ulong __p) -> void
@@ -8069,7 +7430,6 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTextarea_1<T>(Rask.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimeline(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToast(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltip(Rask.Core.Component! __c0, ulong __p) -> void
-static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTree_2<T, TKey>(Rask.Core.Component! __c0, ulong __p) -> void
 RaskBuilderSettersRask_Ui.extension(Rask.UiAvatar!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiAvatar!).Lg.get -> Rask.UiAvatar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiAvatar!).Md.get -> Rask.UiAvatar!
@@ -8099,15 +7459,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Lg.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Md.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Sm.get -> Rask.UiCard!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCard!).Xs.get -> Rask.UiCard!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Accent.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Error.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Info.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Neutral.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Primary.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Secondary.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Success.get -> Rask.UiCode!
-RaskBuilderSettersRask_Ui.extension(Rask.UiCode!).Warning.get -> Rask.UiCode!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Default.get -> Rask.UiDatePicker!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePicker!).Lg.get -> Rask.UiDatePicker!
@@ -8118,15 +7469,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Default.get -> Rask
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Lg.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Sm.get -> Rask.UiDatePickerRange!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDatePickerRange!).Xl.get -> Rask.UiDatePickerRange!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Accent.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Error.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Info.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Neutral.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Primary.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Secondary.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Success.get -> Rask.UiDetailRow!
-RaskBuilderSettersRask_Ui.extension(Rask.UiDetailRow!).Warning.get -> Rask.UiDetailRow!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDropdown!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiDropdown!).Bottom.get -> Rask.UiDropdown!
 RaskBuilderSettersRask_Ui.extension(Rask.UiDropdown!).Center.get -> Rask.UiDropdown!
@@ -8144,29 +7486,7 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiIcon!).Mini.get -> Rask.UiIcon!
 RaskBuilderSettersRask_Ui.extension(Rask.UiIcon!).Outline.get -> Rask.UiIcon!
 RaskBuilderSettersRask_Ui.extension(Rask.UiIcon!).Solid.get -> Rask.UiIcon!
 RaskBuilderSettersRask_Ui.extension(Rask.UiLink!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Ball.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Bars.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Default.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Dots.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Infinity.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Lg.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Md.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Ring.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Sm.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Spinner.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Xl.get -> Rask.UiLoading!
-RaskBuilderSettersRask_Ui.extension(Rask.UiLoading!).Xs.get -> Rask.UiLoading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiMenuItem!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Accent.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Error.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Info.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Neutral.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Primary.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Secondary.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Success.get -> Rask.UiMetric!
-RaskBuilderSettersRask_Ui.extension(Rask.UiMetric!).Warning.get -> Rask.UiMetric!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Bottom.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Default.get -> Rask.UiModal!
@@ -8179,30 +7499,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiSidebar!).Sm.get -> Rask.UiSidebar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiSidebar!).Xl.get -> Rask.UiSidebar!
 RaskBuilderSettersRask_Ui.extension(Rask.UiSidebarCollapse!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiSidebarToggle!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Accent.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Error.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Info.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Neutral.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Primary.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Secondary.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Success.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStat!).Warning.get -> Rask.UiStat!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!)
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Accent.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Default.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Error.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Info.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Lg.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Md.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Neutral.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Primary.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Secondary.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Sm.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Success.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Warning.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Xl.get -> Rask.UiStatusDot!
-RaskBuilderSettersRask_Ui.extension(Rask.UiStatusDot!).Xs.get -> Rask.UiStatusDot!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTabs!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiTabs!).Default.get -> Rask.UiTabs!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTabs!).Sm.get -> Rask.UiTabs!
@@ -8220,31 +7516,11 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTooltip!).Left.get -> Rask.UiTooltip!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTooltip!).Right.get -> Rask.UiTooltip!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTooltip!).Start.get -> Rask.UiTooltip!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTooltip!).Top.get -> Rask.UiTooltip!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!)
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Default.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Lg.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Md.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Sm.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Xl.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiDataGrid<T, TKey>!).Xs.get -> Rask.UiDataGrid<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!)
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Default.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Lg.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Md.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).None.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Sm.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Xl.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Xs.get -> Rask.UiTree<T, TKey>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiCheckboxGroup<T>!)
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiCheckboxGroup<T>!).Buttons.get -> Rask.UiCheckboxGroup<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiCheckboxGroup<T>!).Cards.get -> Rask.UiCheckboxGroup<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiCheckboxGroup<T>!).Default.get -> Rask.UiCheckboxGroup<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiCheckboxGroup<T>!).Pills.get -> Rask.UiCheckboxGroup<T>!
-RaskBuilderSettersRask_Ui.extension<T>(Rask.UiColumn<T>!)
-RaskBuilderSettersRask_Ui.extension<T>(Rask.UiColumn<T>!).Lg.get -> Rask.UiColumn<T>!
-RaskBuilderSettersRask_Ui.extension<T>(Rask.UiColumn<T>!).Md.get -> Rask.UiColumn<T>!
-RaskBuilderSettersRask_Ui.extension<T>(Rask.UiColumn<T>!).Sm.get -> Rask.UiColumn<T>!
-RaskBuilderSettersRask_Ui.extension<T>(Rask.UiColumn<T>!).Xl.get -> Rask.UiColumn<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiInput<T>!)
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiInput<T>!).Outline.get -> Rask.UiInput<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiInput<T>!).Sm.get -> Rask.UiInput<T>!
@@ -8265,13 +7541,6 @@ RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).Both.get -> Rask.UiT
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).Horizontal.get -> Rask.UiTextarea<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).None.get -> Rask.UiTextarea<T>!
 RaskBuilderSettersRask_Ui.extension<T>(Rask.UiTextarea<T>!).Vertical.get -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Accent(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.get_Ball(Rask.UiLoading! __b) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.get_Bars(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Both<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Bottom(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Bottom(Rask.UiModal! __b) -> Rask.UiModal!
@@ -8287,32 +7556,16 @@ static RaskBuilderSettersRask_Ui.get_Default(Rask.UiButton! __b) -> Rask.UiButto
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
-static RaskBuilderSettersRask_Ui.get_Default(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiModal! __b) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.get_Default(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiTabs! __b) -> Rask.UiTabs!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiText! __b) -> Rask.UiText!
-static RaskBuilderSettersRask_Ui.get_Default<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Default<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiCheckboxGroup<T>! __b) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Default<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.get_Dots(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_End(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_End(Rask.UiTooltip! __b) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.get_Error(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Error(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Error(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Error(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Error(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Ghost(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Horizontal<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.get_Infinity(Rask.UiLoading! __b) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Info(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Left(Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiAvatar! __b) -> Rask.UiAvatar!
@@ -8321,31 +7574,15 @@ static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiHeading! __b) -> Rask.UiHeading!
-static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiSidebar! __b) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Lg(Rask.UiText! __b) -> Rask.UiText!
-static RaskBuilderSettersRask_Ui.get_Lg<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Lg<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Lg<T>(Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiCard! __b) -> Rask.UiCard!
-static RaskBuilderSettersRask_Ui.get_Md(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiSidebar! __b) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.get_Md(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.get_Md<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Md<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Md<T>(Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.get_Micro(Rask.UiIcon! __b) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.get_Mini(Rask.UiIcon! __b) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Neutral(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.get_None<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.get_None<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Outline(Rask.UiButton! __b) -> Rask.UiButton!
@@ -8354,19 +7591,8 @@ static RaskBuilderSettersRask_Ui.get_Outline<T>(Rask.UiInput<T>! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.get_Pills<T>(Rask.UiCheckboxGroup<T>! __b) -> Rask.UiCheckboxGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Pills<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Primary(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Right(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Right(Rask.UiTooltip! __b) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.get_Ring(Rask.UiLoading! __b) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Secondary(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Segmented<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiBadge! __b) -> Rask.UiBadge!
@@ -8374,14 +7600,9 @@ static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiCard! __b) -> Rask.UiCard!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
-static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiSidebar! __b) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiTabs! __b) -> Rask.UiTabs!
 static RaskBuilderSettersRask_Ui.get_Sm(Rask.UiText! __b) -> Rask.UiText!
-static RaskBuilderSettersRask_Ui.get_Sm<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Sm<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.get_Sm<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
@@ -8389,41 +7610,21 @@ static RaskBuilderSettersRask_Ui.get_Soft(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiBadge! __b) -> Rask.UiBadge!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Solid(Rask.UiIcon! __b) -> Rask.UiIcon!
-static RaskBuilderSettersRask_Ui.get_Spinner(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Start(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Start(Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.get_Submit(Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Success(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Top(Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.get_Top(Rask.UiTooltip! __b) -> Rask.UiTooltip!
 static RaskBuilderSettersRask_Ui.get_Vertical<T>(Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiCode! __b) -> Rask.UiCode!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiMetric! __b) -> Rask.UiMetric!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiStat! __b) -> Rask.UiStat!
-static RaskBuilderSettersRask_Ui.get_Warning(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiHeading! __b) -> Rask.UiHeading!
-static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiLoading! __b) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiSidebar! __b) -> Rask.UiSidebar!
-static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.get_Xl(Rask.UiText! __b) -> Rask.UiText!
-static RaskBuilderSettersRask_Ui.get_Xl<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Xl<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Xl<T>(Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiCard! __b) -> Rask.UiCard!
-static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiLoading! __b) -> Rask.UiLoading!
-static RaskBuilderSettersRask_Ui.get_Xs(Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
-static RaskBuilderSettersRask_Ui.get_Xs<T, TKey>(Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Xs<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.get_Xs<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Action? value) -> Rask.UiCalendar!
@@ -8482,41 +7683,16 @@ static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiSelect<T>! __b, System.
 static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiSelect<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnChange<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Action? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiOtp!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Action? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Action? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Action? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Action? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Action? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Action? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDropdown!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).Many.get -> Rask.UiTree<T, TKey>!
-RaskBuilderSettersRask_Ui.extension<T, TKey>(Rask.UiTree<T, TKey>!).One.get -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_Many<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.get_One<T, TKey>(Rask.UiTree<T, TKey>! __b) -> Rask.UiTree<T, TKey>!
-Rask.RaskSeed_UiEmpty.Title(string! Title) -> Rask.UiEmpty!
 Rask.ToastOptions
 Rask.ToastOptions.Duration.get -> System.TimeSpan
 Rask.ToastOptions.Duration.set -> void
@@ -8524,7 +7700,6 @@ Rask.ToastOptions.For(System.TimeSpan duration) -> Rask.ToastOptions!
 Rask.ToastOptions.Position.set -> void
 Rask.ToastOptions.ToastOptions() -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiHeading! __b) -> Rask.UiHeading!
-static RaskBuilderSettersRask_Ui.Active(this Rask.UiMetric! __b) -> Rask.UiMetric!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.AfterBind(this Rask.UiCalendarMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendarMultiple!
@@ -8553,7 +7728,6 @@ static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelect<T>! __b, System
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiSelect<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.AfterBind<T>(this Rask.UiTextarea<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.Animated(this Rask.UiStatusDot! __b) -> Rask.UiStatusDot!
 static RaskBuilderSettersRask_Ui.Autofocus<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Chevron(this Rask.UiProfile! __b) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.Circle(this Rask.UiProfile! __b) -> Rask.UiProfile!
@@ -8571,10 +7745,8 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePicker! __b, params Syste
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDatePickerRange! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiDropdown! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFieldset! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiFieldset!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiHighlight! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiHighlight!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiIcon! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiIcon!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiLabel! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiLabel!
-static RaskBuilderSettersRask_Ui.Class(this Rask.UiLoading! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiLoading!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMain! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMain!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenu! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenu!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiMenuCheckbox! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuCheckbox!
@@ -8599,10 +7771,7 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiTabs! __b, params System.Read
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTimeline! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiToast! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiToast!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTooltip! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Class<T, TKey>(this Rask.UiTree<T, TKey>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiCheckboxGroup<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiCheckboxGroup<T>!
-static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiColumn<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiInput<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiMenuRadioGroup<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiRadioGroup<T>! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiRadioGroup<T>!
@@ -8611,7 +7780,6 @@ static RaskBuilderSettersRask_Ui.Class<T>(this Rask.UiTextarea<T>! __b, params S
 static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiInput<T>! __b) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Clearable<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Closable(this Rask.UiModal! __b) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.ColumnChooser<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Container(this Rask.UiMain! __b) -> Rask.UiMain!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiButton! __b) -> Rask.UiButton!
 static RaskBuilderSettersRask_Ui.Disabled(this Rask.UiCheckbox! __b) -> Rask.UiCheckbox!
@@ -8629,20 +7797,11 @@ static RaskBuilderSettersRask_Ui.Disabled<T>(this Rask.UiTextarea<T>! __b) -> Ra
 static RaskBuilderSettersRask_Ui.Dismissible(this Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Escapable(this Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.External(this Rask.UiLink! __b) -> Rask.UiLink!
-static RaskBuilderSettersRask_Ui.GroupCollapsible<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.GroupPanel<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.GroupSubtotals<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Groupable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Hideable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.Hover<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Inline(this Rask.UiText! __b) -> Rask.UiText!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuCheckbox! __b) -> Rask.UiMenuCheckbox!
 static RaskBuilderSettersRask_Ui.KeepOpen(this Rask.UiMenuItem! __b) -> Rask.UiMenuItem!
 static RaskBuilderSettersRask_Ui.KeepOpen<T>(this Rask.UiMenuRadioGroup<T>! __b) -> Rask.UiMenuRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Loading(this Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.Loading<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Mono(this Rask.UiDetailRow! __b) -> Rask.UiDetailRow!
-static RaskBuilderSettersRask_Ui.Mono<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.OnCancel(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiCalendar! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiCalendar!
@@ -8676,22 +7835,15 @@ static RaskBuilderSettersRask_Ui.OnClick(this Rask.UiMenuItem! __b, System.Func<
 static RaskBuilderSettersRask_Ui.OnClose(this Rask.UiModal! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.OnComplete(this Rask.UiOtp! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiOtp!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHover<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<T?, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiInput<T>! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.OnInput<T>(this Rask.UiTextarea<T>! __b, System.Func<string!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnRowClick<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.OnToggle(this Rask.UiDropdown! __b, System.Func<bool, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiDropdown! __b) -> Rask.UiDropdown!
 static RaskBuilderSettersRask_Ui.Open(this Rask.UiModal! __b) -> Rask.UiModal!
-static RaskBuilderSettersRask_Ui.Reorderable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
-static RaskBuilderSettersRask_Ui.RowClickable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Searchable<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
-static RaskBuilderSettersRask_Ui.ShowGroupedColumns<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePicker! __b) -> Rask.UiDatePicker!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.ShowValidation(this Rask.UiOtp! __b) -> Rask.UiOtp!
@@ -8700,12 +7852,8 @@ static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiInput<T>! __b) ->
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiRadioGroup<T>! __b) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.ShowValidation<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.SortDescending<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.Sortable<T>(this Rask.UiColumn<T>! __b) -> Rask.UiColumn<T>!
 static RaskBuilderSettersRask_Ui.Square(this Rask.UiButton! __b) -> Rask.UiButton!
-static RaskBuilderSettersRask_Ui.StickyHeader<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Toggleable(this Rask.UiTooltip! __b) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.Zebra<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendar! __b, System.Func<System.DateOnly, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarMultiple! __b, System.Func<System.Collections.Generic.ICollection<System.DateOnly>!, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendarMultiple!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiCalendarRange! __b, System.Func<Rask.UiDateRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiCalendarRange!
@@ -8720,24 +7868,8 @@ static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiMenuRadioGroup<T>! __b,
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiRadioGroup<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiRadioGroup<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiSelect<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Validate<T>(this Rask.UiTextarea<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiTextarea<T>!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnExpand<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnGroup<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnHide<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
 static RaskBuilderSettersRask_Ui.OnPage(this Rask.UiPagination! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiPagination!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnPage<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<int, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<string!>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnReorder<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Collections.Generic.IReadOnlyList<TKey>!, System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSelect<T, TKey>(this Rask.UiTree<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiTree<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<Rask.UiGridSort, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
-static RaskBuilderSettersRask_Ui.OnSort<T, TKey>(this Rask.UiDataGrid<T, TKey>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDataGrid<T, TKey>!
 Rask.Ui.FieldVariant
 Rask.Ui.FieldVariant.Block = 0 -> Rask.Ui.FieldVariant
 Rask.Ui.FieldVariant.Inline = 1 -> Rask.Ui.FieldVariant
@@ -9151,7 +8283,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Base.get -> Rask.UiCardHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Lg.get -> Rask.UiCardHeading!
 RaskBuilderSettersRask_Ui.extension(Rask.UiCardHeading!).Xl.get -> Rask.UiCardHeading!
-const Rask.UiStyles.Card = "rounded-xl border border-zinc-900/10 bg-white p-6 shadow-xs dark:border-white/10 dark:bg-white/10 dark:shadow-none" -> string!
 static Rask.Ui.CardActions.get -> Rask.UiCardActions!
 static Rask.Ui.CardBleed.get -> Rask.UiCardBleed!
 static Rask.Ui.CardBody.get -> Rask.UiCardBody!

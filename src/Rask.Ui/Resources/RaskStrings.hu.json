@@ -114,23 +114,6 @@
 
   "CommandEmpty": "Nincs találat",
 
-  "DataGridColumns": "Oszlopok",
-  "DataGridMoveUp": "Mozgatás fel",
-  "DataGridMoveDown": "Mozgatás le",
-  "DataGridGrouping": "Csoportosítás",
-  "DataGridGroupingHint": "Csoportosítson egy oszlop szerint a fejlécében lévő gombbal.",
-  "DataGridMoveGroupLeft": "Csoport mozgatása balra",
-  "DataGridMoveGroupRight": "Csoport mozgatása jobbra",
-  "DataGridUngroup": "Csoportosítás megszüntetése: {0}",
-  "DataGridGroupBy": "Csoportosítás: {0}",
-  "DataGridExpandGroup": "Csoport kinyitása",
-  "DataGridCollapseGroup": "Csoport összecsukása",
-  "DataGridExpand": "Kinyitás",
-  "DataGridSelectAll": "Az oldal összes sorának kijelölése",
-  "DataGridEmpty": "Nincs megjeleníthető adat.",
-  "DataGridSelectRow": "Sor kijelölése",
-  "DataGridExpandRow": "Sor kinyitása",
-  "DataGridCollapseRow": "Sor összecsukása",
 
   "FileItemRemove": "Fájl eltávolítása",
 
