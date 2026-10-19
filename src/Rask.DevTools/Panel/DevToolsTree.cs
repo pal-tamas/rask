@@ -176,7 +176,8 @@ internal sealed partial class DevToolsTree : Component
 
         // An empty span holds each optional part's place, so a row keeps its shape as a key or a badge comes and goes.
         return Span.Class("flex items-center gap-2 truncate").Data(Place(node))[
-            Span.Class("truncate")[node.Type],
+            // The name never gives way: it is what a row is read by, and the props after it are the part that truncates.
+            Span.Class("shrink-0")[node.Type],
             node.Badge is { } badge ? Ui.Badge.Sm.Color(Ui.Color.Blue)[badge] : Span,
             node.Key is { Length: > 0 } key ? Ui.Badge.Sm[key] : Span,
             // What the component was given, on the row itself: a tree whose rows say only their type names makes a
