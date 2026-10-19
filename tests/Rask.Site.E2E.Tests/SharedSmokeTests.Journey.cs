@@ -591,10 +591,10 @@ public abstract partial class SharedSmokeTests
         // caret riding its keyed row across the move — is exercised by the keyed-reconciliation unit
         // tests in Rask.Core.Tests; asserting it through the browser on the co-mounted guide is
         // timing-fragile, so the E2E proves the reverse re-renders the live keyed list instead.)
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
+        await Expect(Page.Locator("#kl-list tbody tr").First.Locator(".kl-name"))
             .ToContainTextAsync("Apple", contains);
         await Page.Locator("#kl-reverse").ClickAsync();
-        await Expect(Page.Locator("#kl-list li").First.Locator("span.font-semibold"))
+        await Expect(Page.Locator("#kl-list tbody tr").First.Locator(".kl-name"))
             .ToContainTextAsync("Elderberry", contains);
 
         // Master-detail (its /master-detail page folded into this section): expanding a row inserts a keyed
@@ -743,7 +743,7 @@ public abstract partial class SharedSmokeTests
 
         // Lifecycle hooks: the awaited Mount continuation must run, and "Trigger re-render" bumps
         // the render counter (an event-handler render — it does not re-fire Mount / Updated).
-        await Expect(Page.Locator("li code:has-text('Mount (after')"))
+        await Expect(Page.Locator("tr[data-hook] td:has-text('Mount (after')"))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         var badge = Page.GetByText(new Regex("Render #\\d+")).First;
         var before = ExtractRenderCount(await badge.TextContentAsync());

@@ -34,16 +34,17 @@ public sealed partial class GamepadDemo : Component
 
     protected override Component? Render() =>
         Ui.Card[
-                Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
-                Div.Class("text-sm text-ui-muted mb-2")[
-                    "Connected pads: ", Code.Id("gamepad-count")[_pads.Count]],
+                Ui.Text.Class("mb-2")["Status: ", Code.Id("gamepad-status")[_status]],
+                Ui.Text.Class("mb-2")["Connected pads: ", Code.Id("gamepad-count")[_pads.Count]],
                 _pads.Count == 0
-                    ? Div.Class("text-ui-muted text-sm")["No controllers connected."]
-                    : Ui.List[
-                        _pads.Select(p => Li.Key(p.Index)[
-                            Div.Class("text-sm font-semibold")[$"#{p.Index} — {p.Id}"],
-                            Div.Class("text-sm text-ui-muted")[$"axes [{p.Axes}] · buttons pressed {p.Pressed}/{p.Buttons}"]
-                        ])
+                    ? Ui.Text["No controllers connected."]
+                    : Ui.Table[
+                        Ui.TableColumns[Ui.TableColumn["Pad"], Ui.TableColumn["Axes"], Ui.TableColumn["Buttons pressed"]],
+                        Ui.TableRows[_pads.Select(p => Ui.TableRow.Key(p.Index)[
+                            Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[$"#{p.Index} — {p.Id}"],
+                            Ui.TableCell[p.Axes],
+                            Ui.TableCell[$"{p.Pressed}/{p.Buttons}"]
+                        ])]
                     ]
             ];
 

@@ -24,11 +24,11 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         // demo's markup depend on when it was sampled), so the click's effect is the clicks row moving
         // off "not yet". Same claim, and it pins the count rather than just the presence of a string.
         Assert.Contains("Button clicks", page.Render());
-        Assert.Matches(@"Button clicks</code>\s*<span[^>]*>not yet", page.Render());
+        Assert.Matches(@"Button clicks</td>\s*<td[^>]*>not yet", page.Render());
 
         await page.Invoke(clickId);
 
-        Assert.Matches(@"Button clicks</code>\s*<span[^>]*>ran 1x", page.Render());
+        Assert.Matches(@"Button clicks</td>\s*<td[^>]*>ran 1x", page.Render());
     }
 
     [Fact]
@@ -40,19 +40,19 @@ public sealed partial class LifecycleProbeTests : global::Rask.Core.RaskMarkup
         // pass before a single hook had run. The claim worth making is about each row's STATUS: the
         // awaited row starts pending and becomes resolved, which is the sequence this test is named for.
         var first = page.Render();
-        Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>awaiting", first);
+        Assert.Matches(@"OnMount \(after a 450ms await\)</td>\s*<td[^>]*>awaiting", first);
 
         // Mount awaits 450ms; allow time for the full sequence.
         await WaitFor.True(() => page.Render().Contains("resolved"));
 
         var html = page.Render();
-        Assert.Matches(@"OnMount \(before its await\)</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"OnMount \(after a 450ms await\)</code>\s*<span[^>]*>resolved", html);
-        Assert.Matches(@"OnUpdated</code>\s*<span[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMount \(before its await\)</td>\s*<td[^>]*>ran 1x", html);
+        Assert.Matches(@"OnMount \(after a 450ms await\)</td>\s*<td[^>]*>resolved", html);
+        Assert.Matches(@"OnUpdated</td>\s*<td[^>]*>ran 1x", html);
 
         // OnFirstRender runs once however many renders follow; OnRendered runs after every one of them.
-        Assert.Matches(@"OnFirstRender</code>\s*<span[^>]*>ran 1x", html);
-        Assert.Matches(@"OnRendered</code>\s*<span[^>]*>ran \d+x", html);
+        Assert.Matches(@"OnFirstRender</td>\s*<td[^>]*>ran 1x", html);
+        Assert.Matches(@"OnRendered</td>\s*<td[^>]*>ran \d+x", html);
     }
 
     [Fact]

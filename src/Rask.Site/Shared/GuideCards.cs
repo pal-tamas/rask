@@ -34,8 +34,7 @@ public sealed partial class GuideCards : Component
         }
     }
 
-    // The surface is the kit's own card (UiStyles.Card), so these read as the same object as every
-    // other panel the framework draws.
+    // The surface is Flux's card, so these read as the same object as every other panel the framework draws.
     //
     // The icon sits INLINE with the title rather than in a block above it, and it is small. GuideEntry
     // derives it from the guide's GROUP, so every card under one heading shows the identical glyph —
@@ -53,9 +52,7 @@ public sealed partial class GuideCards : Component
                 .ActiveClass("")
                 .Class("block h-full no-underline")[
                 // A card is a link, so it needs a hover and a focus state. It had neither.
-                Div.Class(
-                    $"{UiStyles.Card} h-full transition-colors hover:border-ui-brand "
-                    + "focus-within:border-ui-brand")[
+                Ui.Card.Class("h-full transition-colors hover:border-ui-brand focus-within:border-ui-brand")[
                     Div.Class("flex items-start gap-3")[
                         Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
                         // min-w-0: without it this flex item cannot shrink below the longest

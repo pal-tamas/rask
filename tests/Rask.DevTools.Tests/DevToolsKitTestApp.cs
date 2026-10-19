@@ -16,7 +16,7 @@ public sealed partial class DevToolsKitTestApp : Component
             Ui.Header[Ui.Brand.Name("Kit").Href("#")],
             Ui.Main[
                 DevToolsKitBoard.Heading("Board")[
-                    Ui.List[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],
+                    Ul.Class("divide-y")[_rows.Select(r => DevToolsKitRow.Key(r).Done(r == "one").Label(r))],
                     Ui.Button.OnClick(() => _rows.Add("more"))["Add"]
                 ]
             ]
@@ -39,5 +39,5 @@ public sealed partial class DevToolsKitRow : Component
     public bool Done { get; set; }
 
     protected override Component? Render() =>
-        Ui.ListRow.Grow(Span[Label ?? ""]).Trailing(Ui.Badge[Done ? "done" : "open"]);
+        Li.Class("flex items-center justify-between py-2")[Span[Label ?? ""], Ui.Badge[Done ? "done" : "open"]];
 }

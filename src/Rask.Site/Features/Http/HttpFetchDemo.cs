@@ -81,15 +81,21 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
 
         if (_post is null)
         {
-            return Ui.Loading.Text("Loading…").Sm.Class("text-ui-muted");
+            // Flux's loading icon spins; the words beside it are what a screen reader hears.
+            return Ui.Text.Role("status").Class("flex items-center gap-2")[
+                Ui.Icon.Name(Ui.IconName.Loading).Variant(Ui.IconVariant.Mini),
+                "Loading…"
+            ];
         }
 
-        // An <article> rather than Ui.Card's <div>: this is a self-contained syndicated item, and the
-        // element is the semantics. It takes the KIT's own card class so there is still one vocabulary.
-        return Article.Class($"{UiStyles.Card} bg-ui-well")[
-            Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],
-            H3.Class("text-base font-semibold")[_post.Title],
-            P.Class("mb-0 text-sm")[_post.Body]
+        // An <article> around Flux's card: this is a self-contained syndicated item, and the element is the
+        // semantics.
+        return Article[
+            Ui.Card[
+                Ui.Text.Class("mb-1 uppercase")[$"Post #{_post.Id}"],
+                Ui.Heading.Level(3)[_post.Title],
+                Ui.Text.Class("mt-2")[_post.Body]
+            ]
         ];
     }
 

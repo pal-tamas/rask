@@ -19,7 +19,6 @@ public sealed partial class UiKitFeedbackDemo : Component
     protected override Component? Render() =>
     [
         CalloutSection(),
-        LoadingSection(),
         ProgressSection(),
         TooltipSection(),
         SkeletonSection(),
@@ -32,20 +31,6 @@ public sealed partial class UiKitFeedbackDemo : Component
             "Flux UI's callout, example for example: an icon, a heading, text, and what to do about it. It "
             + "announces nothing by itself — one that appears because something happened says so with Role.",
             UiKitCalloutDemo.Key("callouts"));
-
-    private static Component LoadingSection() =>
-        Section(
-            "Loading",
-            "Six shapes, all saying the same thing — and none of them saying it to a screen reader. "
-            + "The words beside the indicator are what gets announced.",
-            Div.Data(Testid("ui-loading")).Class("flex flex-wrap items-center gap-6")[
-                Spin("spinner", Ui.LoadingShape.Spinner, "Spinner"),
-                Spin("dots", Ui.LoadingShape.Dots, "Dots"),
-                Spin("ring", Ui.LoadingShape.Ring, "Ring"),
-                Spin("ball", Ui.LoadingShape.Ball, "Ball"),
-                Spin("bars", Ui.LoadingShape.Bars, "Bars"),
-                Spin("infinity", Ui.LoadingShape.Infinity, "Infinity")
-            ]);
 
     private Component ProgressSection() =>
         Section(
@@ -256,9 +241,6 @@ public sealed partial class UiKitFeedbackDemo : Component
     }
 
     private static AttrBag Testid(string value) => new("testid", value);
-
-    private static UiLoading Spin(string key, Ui.LoadingShape shape, string label) =>
-        Ui.Loading.Key(key).Text(label).Shape(shape).Lg;
 
     private static Component Section(string heading, string blurb, Component body) =>
         Div.Key(heading).Class("mb-8")[

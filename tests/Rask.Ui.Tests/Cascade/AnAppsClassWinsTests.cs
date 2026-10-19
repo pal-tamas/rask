@@ -128,7 +128,6 @@ public sealed class AnAppsClassWinsTests
         ["UiLabel"] = "display, text colour, text size",
         ["UiLegend"] = "margin, text colour, text size, width",
         ["UiLink"] = "text colour",
-        ["UiList"] = "display, text size",
         ["UiLoading"] = "display, gap",
         ["UiMain"] = "margin, padding, width",
         ["UiMenu"] = "padding, rounded, text colour, width",
@@ -188,7 +187,7 @@ public sealed class AnAppsClassWinsTests
     {
         "UiAutocompleteItem", "UiChartArea", "UiChartAxisGrid", "UiChartAxisLine", "UiChartAxisMark", "UiChartAxisTick",
         "UiChartBar", "UiChartCursor", "UiChartGroup", "UiChartLine", "UiChartPie", "UiChartPoint", "UiChartStack", "UiChartSvg",
-        "UiChartZeroLine", "UiColorPickerArea", "UiColorPickerDropper", "UiColorPickerSwatches", "UiColumn", "UiDatePickerButton", "UiDatePickerInput", "UiMockupCode", "UiPagination",
+        "UiChartZeroLine", "UiColorPickerArea", "UiColorPickerDropper", "UiColorPickerSwatches", "UiColumn", "UiDatePickerButton", "UiDatePickerInput", "UiPagination",
         "UiPillboxInput", "UiPillboxOption", "UiPillboxOptionCreate", "UiPillboxOptionEmpty", "UiPillboxSearch",
         "UiPillboxTrigger", "UiSelectButton", "UiSelectInput", "UiSelectMultiple", "UiSelectOptionCreate", "UiSelectOptionEmpty",
         "UiSelectSearch", "UiToast", "UiToastGroup",

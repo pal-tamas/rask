@@ -164,7 +164,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[
                             Ui.CardHeader[
                                 Ui.CardHeading.Level(2).Class("flex items-center gap-2")[Ui.Icon.Name(Ui.IconName.Cog6Tooth).Class("opacity-60"), "Jobs"],
-                                Ui.CardSubheading[Ui.StatusDot.Label("2 failed").Error]
+                                Ui.CardSubheading[Ui.Badge.Sm.Color(Ui.Color.Red).Class("w-fit")["2 failed"]]
                             ],
                             Ui.CardBody[
                                 Ui.MetricRow.Columns(2)[
@@ -176,11 +176,18 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         ]
                     ],
                     Ui.Card
-                        .Key("detail")[Ui.CardHeader[Ui.CardHeading.Level(2)["A failed job"], Ui.CardActions[Ui.Badge.Class("font-mono max-w-full break-all whitespace-normal!")["requestId=0HN8Q2V3R1T0K:00000001"]]], Ui.CardBody[
-                        Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
-                            .Label("Last error")
-                            .Error
-                    ]],
+                        .Key("detail")[
+                        // The id goes under the heading, not beside it: a phone has no room for both on one line.
+                        Ui.CardHeader.Class("flex-col items-start gap-2")[
+                            Ui.CardHeading.Level(2)["A failed job"],
+                            Ui.Badge.Class("font-mono h-auto max-w-full py-1 break-all whitespace-normal!")["requestId=0HN8Q2V3R1T0K:00000001"]
+                        ],
+                        Ui.CardBody[
+                            Ui.Code.Content("System.TimeoutException: The SMTP server did not answer in 30 seconds.")
+                                .Label("Last error")
+                                .Error
+                        ]
+                    ],
                     Ui.Card.Key("empty")[
                         Ui.Empty.Title("Nothing stored matches")
                             .Detail("Retention drops entries by age and by count.")
@@ -219,8 +226,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                 // What FullText.Snippet returns for a search of "sqlite fast": matches between U+E000 and U+E001.
                 Span.Key("highlight").Data(Testid("ui-highlight"))[
                     Ui.Highlight.Text("…SQLite is small, and fast…")
-                ],
-                Ui.StatusDot.Key("status").Label("Healthy").Success
+                ]
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);

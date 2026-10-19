@@ -40,7 +40,7 @@ public sealed partial class TaskBoard : Component
     protected override Component? Render() =>
         Context.Provide(new Release(Heading ?? "Tasks"))[
             Ui.Card[Ui.CardHeader[Ui.CardHeading.Level(2)[Heading ?? "Tasks"]], Ui.CardBody[
-                Ui.List[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
+                Ul.Class("mb-4 divide-y divide-zinc-900/10 dark:divide-white/10")[_tasks.Select((task, i) => TaskRow.Key(task).Done(i == 0).Label(task).Assignee(Owner))],
                 Ui.Button.Primary.OnClick(() => _tasks.Add($"Follow-up {_tasks.Count - 2}"))["Add task"]
             ]]
         ];
@@ -60,10 +60,11 @@ public sealed partial class TaskRow : Component
     protected override Component? Render()
     {
         var release = Context.Get<Release>();
-        return Ui.ListRow
-            .Grow(Span[Label ?? string.Empty])
-            .Trailing(Ui.Badge.Color(Done ? Ui.Color.Green : Ui.Color.Blue)
-                .Title(release is null ? null : "Part of " + release.Name)[Done ? "done" : Assignee ?? "open"]);
+        return Li.Class("flex items-center justify-between gap-3 py-2")[
+            Span[Label ?? string.Empty],
+            Ui.Badge.Color(Done ? Ui.Color.Green : Ui.Color.Blue)
+                .Title(release is null ? null : "Part of " + release.Name)[Done ? "done" : Assignee ?? "open"]
+        ];
     }
 }
 

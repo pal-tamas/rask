@@ -3,7 +3,7 @@ using Rask.Core.Routing;
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's Layout components and the code mockup, live.
+///     The kit's Layout components, live.
 /// </summary>
 [Route("ui/layout")]
 [ParentRoute(typeof(ShowcaseLayout))]
@@ -14,13 +14,13 @@ public sealed partial class UiKitLayoutPage : Component
         PageMeta.For(
             "Header and sidebar layouts and flyouts in C# — Rask",
             "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script, plus a "
-            + "flyout panel, separator and a code mockup.",
+            + "flyout panel and a separator.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        H1.Class("text-3xl font-bold mb-1")["Layout & mockups"],
+        H1.Class("text-3xl font-bold mb-1")["Layout & flyouts"],
         P.Class("text-ui-muted")[
             "The application layout is Flux UI's: ", Code["Ui.Header"], ", ", Code["Ui.Sidebar"], " and ",
             Code["Ui.Main"], " side by side, and whatever holds them is the grid. The sidebar's two states — slid ",
@@ -33,8 +33,6 @@ public sealed partial class UiKitLayoutPage : Component
         ],
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])
-            .Notes("The code mockup is a frame with no state, and it encodes its text: a snippet containing "
-                + "markup has to read as that markup rather than becoming it.")
             .Result(UiKitLayoutDemo)
     ];
 }

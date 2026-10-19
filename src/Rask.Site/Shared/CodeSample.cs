@@ -1,3 +1,4 @@
+using System.Globalization;
 using ColorCode;
 
 namespace Rask.Site;
@@ -27,7 +28,7 @@ public sealed partial class CodeSample : Component
     public string? Notes { get; set; }
 
     // Index of the visible tab into Files. A plain component field (not a reactive prop): the
-    // tab buttons set it and re-render through Rask's live diff — the framework way, no client JS.
+    // tabs' OnChange sets it and re-renders through Rask's live diff.
     private int _active;
 
     // The (file name, raw source, ColorCode language, <code> class) tuple for a tab. The
@@ -36,7 +37,8 @@ public sealed partial class CodeSample : Component
     private (string File, string Source, ILanguage? Language, string CodeClass) Pane(int index)
     {
         var file = Files[index];
-        var source = EmbeddedSource.Read(file);
+        // A file's first line is its first line of code, not the blank one under a stripped header.
+        var source = EmbeddedSource.Read(file).TrimStart('\r', '\n');
         var ext = Path.GetExtension(file).ToLowerInvariant();
         var codeClass = ext switch
         {
@@ -70,35 +72,33 @@ public sealed partial class CodeSample : Component
         return P.Class($"text-ui-muted text-sm mb-0 {spacing}")[Notes];
     }
 
-    // The header sits in the row daisyUI's `mockup-code` opens with its three window dots, to their right. The dots
-    // are the component's own ::before now — the three spans and their literal traffic-light colours are gone.
+    // The header is a strip above the code: the file name, or Flux's small segmented tabs when there are several
+    // files, and a ghost button that copies the file shown.
     private Component Header()
     {
         Component files = Files.Count == 1
-            ? Span.Class("sample-code-label font-mono text-xs opacity-60")[Files[0]]
-            // One row that scrolls sideways rather than wrapping: the header sits in mockup-code's fixed top band, and
-            // a second row of tabs on a phone spilled into the code beneath it.
-            : Div.Class("sample-tabs tabs tabs-xs min-w-0 flex-nowrap overflow-x-auto")[
-                Files.Select((file, index) => Button
-                    .Type(ButtonType.Button)
-                    // "sample-tab active" stays one run of text: a unit test reads the pair, and the browser suite
-                    // selects on .sample-tab. `tab`/`tab-active` are what daisyUI draws.
-                    .Class(index == _active
-                        ? "sample-tab active tab tab-active shrink-0 font-mono text-[#e7e3ff]!"
-                        : "sample-tab tab shrink-0 font-mono text-[#e7e3ff]! opacity-60 hover:opacity-100")
-                    .Key(file)
-                    .OnClick(() => _active = index)[file])
+            ? Span.Class("sample-code-label truncate font-mono text-xs text-ui-muted")[Files[0]]
+            // Flux's scrollable row, faded at the edge it continues past: a second row of tabs on a phone is a
+            // second header.
+            : Div.Class("min-w-0")[
+                Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)
+                    .Scrollable()
+                    .ScrollableFade()
+                    .Class("sample-tabs")
+                    .Value(TabName(_active))
+                    .OnChange(name => _active = int.Parse(name, CultureInfo.InvariantCulture))[
+                    Files.Select((file, index) => Ui.Tab.Key(file).Name(TabName(index)).Class("sample-tab font-mono")[file])
+                ]
             ];
 
-        return Div.Class("sample-code-header absolute inset-x-0 top-0 flex h-11 items-center gap-1 ps-20 pe-3")[
+        return Div.Class("sample-code-header flex min-h-11 items-center gap-2 border-b border-ui-line bg-ui-well px-3 py-1.5")[
             files,
-            Button
-                .Type(ButtonType.Button)
+            Ui.Button.Ghost.Sm
+                .Icon(Ui.IconName.ClipboardDocumentCheck)
                 // `copied` is toggled by the scoped script for the moment it flashes "Copied!".
-                .Class("sample-copy btn btn-ghost btn-xs ms-auto shrink-0 font-normal text-[#e7e3ff]! opacity-60 hover:opacity-100 [&.copied]:text-success! [&.copied]:opacity-100")
+                .Class("sample-copy ms-auto shrink-0 [&.copied]:text-green-600 dark:[&.copied]:text-green-400")
                 .Ref(_copyButton)
                 .OnClick(CopyAsync)[
-                    Ui.Icon.Name(Ui.IconName.ClipboardDocumentCheck).Class("size-4"),
                     // A real text node (not a CSS pseudo-element) so the button has an
                     // accessible name; the scoped JS swaps it to "Copied!" on click.
                     Span.Class("sample-copy-text")["Copy"]
@@ -106,20 +106,17 @@ public sealed partial class CodeSample : Component
         ];
     }
 
+    private static string TabName(int index) => index.ToString(CultureInfo.InvariantCulture);
+
     protected override Component? Render()
     {
         var (_, activeSource, activeLanguage, codeClass) = Pane(_active);
-        // daisyUI's `card` supplies the panel: the flex column, the --radius-box corner and the focus
-        // ring. What is left on the element is the border, the surface and the overflow clip that keeps
-        // the dark code pane inside that corner — .sample-card used to carry the radius as an
-        // `!important` override of the kit card's, which is what an unlayered rule needs to beat a utility.
-        // The name stays: five assertions across the unit and browser suites select on it.
+        // A panel drawn as Flux's card is: hairline border, rounded corners, the overflow clip that keeps the dark
+        // code pane inside them. The name stays: five assertions across the unit and browser suites select on it.
         return Div.Class(
-            "sample-card card mb-4 overflow-hidden border border-ui-line bg-ui-bg shadow-sm")[
+            "sample-card mb-4 flex flex-col overflow-hidden rounded-xl border border-ui-line bg-ui-bg shadow-xs")[
             Title is null && Notes is null
                 ? null
-                // bg-ui-bg, not the bg-white this used to hard-code: the panel is the palette's, and a
-                // literal white was the one colour on this card that could not follow a theme.
                 : Div.Class("border-b border-ui-line px-5 py-3 font-medium bg-ui-bg")[
                     TitleLine(),
                     NotesLine()
@@ -127,12 +124,11 @@ public sealed partial class CodeSample : Component
             // Stacked, code first: the source pane on top, the live result below (full width). Reads
             // top-to-bottom — the code you'd write, then what it renders — and never squeezes either
             // pane into a narrow column on smaller viewports.
-            // daisyUI's `mockup-code`: the window chrome and the code pane's spacing. The ground stays the site's ink
-            // rather than the theme's `neutral` because the syntax colours in global.css are one palette tuned for
-            // that ink, and a neutral that is light in some themes would put them on a background they fail on.
-            Div.Class("sample-code-col mockup-code relative min-w-0 rounded-none bg-(--rask-ink) text-[#e7e3ff]")[
+            Div.Class("sample-code-col relative min-w-0")[
                 Header(),
-                Pre.Class("sample-code m-0 overflow-x-auto px-5 pb-1 text-[0.82rem] leading-relaxed")[
+                // The ground stays the site's ink in both schemes, because the syntax colours in global.css are one
+                // palette tuned for it.
+                Pre.Class("sample-code m-0 overflow-x-auto rounded-none bg-(--rask-ink) px-5 py-4 text-[0.82rem] leading-relaxed text-[#e7e3ff]")[
                     Code.Class(codeClass)[
                         // A known language is tokenized server-side and injected verbatim, while
                         // an unknown extension falls back to plain, HTML-encoded text.
@@ -143,10 +139,10 @@ public sealed partial class CodeSample : Component
                 ]
             ],
             Div.Class("sample-result-col flex flex-col border-t border-ui-line bg-ui-bg p-4")[
-                // The output side of the pairing: daisyUI's `status` dot, pulsing unless the visitor asked for less
-                // motion, beside a mono label that rhymes with the code header above.
+                // The output side of the pairing: a dot in the brand colour, pulsing unless the visitor asked for
+                // less motion, beside a mono label that rhymes with the code header above.
                 Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-ui-brand-ink")[
-                    Span.Class("status status-primary motion-safe:animate-pulse").Aria("hidden", "true"),
+                    Span.Class("sample-dot size-2 rounded-full bg-ui-brand motion-safe:animate-pulse").Aria("hidden", "true"),
                     "Live result"
                 ],
                 Div.Class("sample-result-body flex-1")[Result ?? null]

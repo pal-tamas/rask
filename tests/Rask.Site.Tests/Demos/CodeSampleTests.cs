@@ -71,9 +71,10 @@ public sealed partial class CodeSampleTests : global::Rask.Core.RaskMarkup
 
         var html = host.RenderAsLiveRoot();
 
-        // A tab strip with one button per file, labelled by file name, first file active.
+        // A tab strip with one button per file, labelled by file name, first file selected.
         Assert.Contains("sample-tabs", html);
-        Assert.Contains("sample-tab active", html);
+        Assert.Matches("<button[^>]* data-selected[ =>][^>]*>ElementRefDemo.cs</button>", html);
+        Assert.DoesNotMatch("<button[^>]* data-selected[ =>][^>]*>ElementRefDemo.ts</button>", html);
         Assert.Contains(">ElementRefDemo.cs</button>", html);
         Assert.Contains(">ElementRefDemo.ts</button>", html);
         // Only the active (first, C#) pane is rendered — the JS pane appears after a tab switch.

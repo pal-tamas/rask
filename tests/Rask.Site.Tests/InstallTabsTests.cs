@@ -29,12 +29,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
     {
         var page = Page.Render(() => InstallTabs);
 
-        // Driven through the handler ids rather than a CSS selector: the two tabs differ only by an aria
-        // attribute, and the second click handler is unambiguously the WASM tab.
-        var tabs = page.HandlerIds("click");
-        Assert.Equal(2, tabs.Count);
-
-        await page.Invoke(tabs[1]);
+        await ChooseWasm(page);
 
         Assert.Contains("browser-WASM SPA", page.Html, StringComparison.Ordinal);
         Assert.Contains(Installer, page.Html, StringComparison.Ordinal);
@@ -60,8 +55,7 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
 
-        var tabs = page.HandlerIds("click");
-        await page.Invoke(tabs[1]);
+        await ChooseWasm(page);
 
         Assert.DoesNotContain("dotnet tool install", page.Html, StringComparison.Ordinal);
     }
@@ -76,9 +70,12 @@ public partial class InstallTabsTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("browser-WASM SPA", page.Html, StringComparison.Ordinal);
 
-        var tabs = page.HandlerIds("click");
-        await page.Invoke(tabs[1]);
+        await ChooseWasm(page);
 
         Assert.DoesNotContain("ASP.NET live-server app", page.Html, StringComparison.Ordinal);
     }
+
+    // Choosing a tab is drawn in the browser, and the page hears it through the row's one hidden field.
+    private static Task<string> ChooseWasm(Page page) =>
+        page.On("[role=\"tablist\"] > input[type=\"hidden\"]").Change("wasm");
 }

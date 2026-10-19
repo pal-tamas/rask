@@ -225,9 +225,6 @@ public sealed class FluxConformanceTests
     /// </summary>
     private static readonly Dictionary<Type, string> NotFluxYet = new()
     {
-        [typeof(UiList)] = "site",
-        [typeof(UiListRow)] = "site",
-        [typeof(UiMockupCode)] = "site",
         [typeof(UiStatusDot)] = "site",
         [typeof(UiLoading)] = "site",
         [typeof(UiEmpty)] = "console",
@@ -245,7 +242,7 @@ public sealed class FluxConformanceTests
     };
 
     /// <summary>The ceiling <see cref="NotFluxYet" /> is held under. Lower it with every deletion; never raise it.</summary>
-    private const int NotFluxYetCeiling = 17;
+    private const int NotFluxYetCeiling = 14;
 
     /// <summary>Not Flux, and kept because the owner said so, with the day they did.</summary>
     private static readonly Dictionary<Type, string> Approved = new()

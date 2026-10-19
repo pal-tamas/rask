@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     daisyUI's Layout category and the code mockup, drawn with the kit.
+///     The kit's layout pieces: a flyout, separators, avatars, the application layout and typography.
 /// </summary>
 public sealed partial class UiKitLayoutDemo : Component
 {
@@ -14,8 +14,7 @@ public sealed partial class UiKitLayoutDemo : Component
         SeparatorSection(),
         AvatarSection(),
         ApplicationLayoutSection(),
-        TypographySection(),
-        MockupsSection()
+        TypographySection()
     ];
 
     private Component DrawerSection() =>
@@ -176,19 +175,6 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Text.Key("subtle")[Ui.Link.Key("l").Href("#").Subtle["Subtle link"]],
                     Ui.Text.Key("button")[Ui.Link.Key("l").As(Ui.LinkAs.Button)["Create new account →"]]
                 ]
-            ]);
-
-    private static Component MockupsSection() =>
-        Section(
-            "Code mockup",
-            "A frame for a snippet. It encodes its text — a snippet containing markup has to read as that "
-            + "markup, not become it.",
-            Div.Data(Testid("ui-mockups")).Class("space-y-4")[
-                Ui.MockupCode.Key("code").Lines([
-                    ("$", "dotnet new install Rask.Templates"),
-                    ("$", "rask new shop"),
-                    (">", "Scaffolded shop in 1.2s")
-                ])
             ]);
 
     private static AttrBag Testid(string value) => new("testid", value);
