@@ -5,12 +5,12 @@ namespace Rask.Dashboard.Pages;
 internal sealed partial class DashboardCode : Component
 {
     private const string Plain =
-        "max-h-80 overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs whitespace-pre-wrap "
-        + "break-all text-zinc-800 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200";
+        "max-h-80 overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs whitespace-pre-wrap wrap-anywhere "
+        + "text-zinc-800 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200";
 
     private const string Error =
-        "max-h-80 overflow-auto rounded-lg border border-red-200 bg-red-50 p-3 font-mono text-xs whitespace-pre-wrap "
-        + "break-all text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200";
+        "max-h-80 overflow-auto rounded-lg border border-red-200 bg-red-50 p-3 font-mono text-xs whitespace-pre-wrap wrap-anywhere "
+        + "text-red-800 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200";
 
     public required string Content { get; set; }
 

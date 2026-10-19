@@ -240,7 +240,7 @@ public sealed partial class QueuePage(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var isDead = IsDead(row);
 
-        Component actions = [.. RowActionButtons(row, isDead), Ui.Button.Key("close").OnClick(Close)["Close"]];
+        Component actions = [.. RowActionButtons(row, isDead), Ui.Button.Sm.Key("close").OnClick(Close)["Close"]];
 
         // Rendered only while a row is selected, and Close flips that back — which is the whole of the
         // dialog's open state. Ui.Modal.Open is for a sheet kept mounted while hidden; this one has
