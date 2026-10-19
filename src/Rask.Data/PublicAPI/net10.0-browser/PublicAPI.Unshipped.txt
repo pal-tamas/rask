@@ -194,6 +194,7 @@ Rask.Data.ReadReferenceMapping
 Rask.Data.ReadReferenceMapping.ForeignKey.get -> string!
 Rask.Data.ReadReferenceMapping.Navigation.get -> string!
 Rask.Data.ReadReferenceMapping.ReadReferenceMapping(string! navigation, System.Type! targetReadType, string! foreignKey) -> void
+Rask.Data.ReadReferenceMapping.ReadReferenceMapping(string! navigation, System.Type! targetReadType, string! foreignKey, string! inverse) -> void
 Rask.Data.ReadReferenceMapping.TargetReadType.get -> System.Type!
 Rask.Data.ReadValueCollectionMapping
 Rask.Data.ReadValueCollectionMapping.Member.get -> string!

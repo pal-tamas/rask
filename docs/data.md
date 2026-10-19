@@ -412,6 +412,7 @@ from a form.
 | `OrderStatus Status` (enum) | `OrderStatus Status` — one column, unchanged |
 | `Guid CustomerId` | `Guid CustomerId`, **and** `CustomerRead Customer` — the navigation, inferred |
 | `IReadOnlyCollection<OrderLine> Lines` | `IReadOnlyList<OrderLineRead> Lines` |
+| *another aggregate's* `Guid OrderId`, on `Invoice` | `IReadOnlyList<InvoiceRead> Invoices` — the rows that point here, [below](#the-rows-that-point-here) |
 | `bool IsShipped => …` (computed) | *dropped* — no column behind it |
 | `[NotMapped] string Display` | *dropped* |
 | every method, every domain event | *dropped* — there is nothing here to change or save |
@@ -428,9 +429,13 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
+| `string VirtualTankId` + a `VirtualTank` child of `Tank` | exact child name, though it also *ends with* the aggregate `Tank` | `VirtualTank` — an exact name beats a suffix |
 | `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
+
+The first rule that matches wins, in this order: an aggregate's **exact** name, a child's **exact** name, the
+longest aggregate name it **ends with**, the longest child name it **ends with**.
 
 The navigation is named after the **property**, not the target, so two references to the same aggregate never
 collide. (`CategoryId` on `Category` — the exact name of its own type — stays a plain column: it reads as the row's own id.) And it is the one thing the write model cannot do, so this is the join you came for:
@@ -448,6 +453,46 @@ await Order
 Four aggregates in one statement, from a write model that holds nothing but ids. An id may name another
 aggregate's **child** too — `Fueling.Where(f => f.Pistol.TankId == tank)` reaches the pistol under its pump — and
 the child is filtered by its root's tenant like any other read.
+
+### The rows that point here
+
+Every navigation the read face infers also works backwards: the **target** gets a collection of the rows that point
+at it. A distribution moves fuel from one fueling to another, and holds nothing but their ids:
+
+```csharp
+public sealed class Distribution : Aggregate<string, Deletable>
+{
+    public string FromFuelingId { get; private set; } = "";
+    public string ToFuelingId { get; private set; } = "";
+    public decimal Quantity { get; private set; }
+}
+```
+
+`DistributionRead` gets `FromFueling` and `ToFueling`, as above, and `FuelingRead` gets the other end of each:
+
+```csharp
+await Fueling
+    .Where(f => !f.DistributionsFrom.Any())
+    .OrderBy(f => f.Quantity + f.DistributionsTo.Sum(d => d.Quantity));
+```
+
+That is one statement: `NOT EXISTS` for the `Any`, a correlated `SUM` for the sort. The same goes for `Count`,
+`Select` and a `GroupBy` whose rows the collection filters, on SQLite, SQL Server and PostgreSQL alike.
+
+| Id on the referencing entity | Collection on the target's read face |
+|---|---|
+| `Distribution.FromFuelingId` | `FuelingRead.DistributionsFrom` — the plural of the referencing type, then the id's words before the target's name |
+| `Distribution.ToFuelingId` | `FuelingRead.DistributionsTo` — two ids to one target are two collections |
+| `Distribution.FuelingId` | `FuelingRead.Distributions` — nothing before the name, nothing after the plural |
+| `SupplyPart.VirtualTankId`, a child of `Tank` | `VirtualTankRead.SupplyParts` — a child target gets one too, by the same rules |
+
+The collection is an `IReadOnlyList<DistributionRead>`, and it exists exactly when the navigation it mirrors does,
+inferred by the same rules. **Its rows go through their own filters**: a soft-deleted distribution is not in it, and
+when the referencing aggregate is `PerTenant`, only the current tenant's rows are, even if the target is shared by
+every tenant. The target keeps its own filters too, so another tenant's fueling and the rows pointing at it never
+appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
+would both claim gets no collection and a [RASK108](diagnostics.md#rask108) warning;
+the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row.
 
 ### By id: a row, or the aggregate
 

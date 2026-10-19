@@ -21,6 +21,14 @@ them until tagged releases begin.
   Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK106 (error) refuses
   a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK106 also catches a class that is not `partial`, an unnamed or undeclared value
   part, a name already taken, and a key of several columns on an aggregate root.
+- **A read face carries the rows that point at it.** Every navigation the read face infers now has its other end on
+  the target: `Distribution.FromFuelingId` and `ToFuelingId` give `FuelingRead.DistributionsFrom` and
+  `DistributionsTo` (`IReadOnlyList<DistributionRead>`; a bare `FuelingId` gives `Distributions`), and a child
+  target such as `VirtualTankRead` gets one too. Before: "fuelings with no outgoing distribution, ordered by quantity
+  plus what came in" was a second query and a join in memory. After: `Fueling.Where(f =>
+  !f.DistributionsFrom.Any()).OrderBy(f => f.Quantity + f.DistributionsTo.Sum(d => d.Quantity))` is one statement on
+  SQLite, SQL Server and PostgreSQL. The rows are read through their own aggregate's tenant and soft-delete filters,
+  so a shared target never shows another tenant's rows. A name the target already uses, or two ids would both claim, gets no collection and the new warning RASK108 ("FuelingRead does not get 'DistributionsFrom': the name is already a column of Fueling. Rename the id (Distribution.FromFuelingId) or the column.").
 - **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
   taking the name — infers a navigation on the read face, as one naming an aggregate always has:
   `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side
@@ -774,6 +782,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A read-face id that names a child exactly is no longer taken by an aggregate its name only ends in.** Before:
+  `SupplyPart.VirtualTankId`, with `VirtualTank` a child of the aggregate `Tank`, generated `SupplyPartRead.VirtualTank`
+  as a `TankRead`, joining the id to `Tank.Id` and reading the wrong rows. After: it is a `VirtualTankRead`. The
+  rules now go exact aggregate name, exact child name, then the longest aggregate suffix, then the longest child
+  suffix.
 - **Choosing a tab no longer makes a guarded form unsaved.** Before: in a `Form.Model(m).ConfirmLeave("…")`
   form, pressing a `Ui.Tabs` tab wrote the row's hidden field, the leave guard counted it as an edit, and
   leaving asked about unsaved changes though nothing was typed. After: the tab row's field says

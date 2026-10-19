@@ -5,8 +5,13 @@ namespace Rask.Generators.Shared;
 /// <param name="TargetReadType">The read face it points at — <c>global::Shop.UserRead</c>.</param>
 /// <param name="ForeignKey">The id property it is inferred from — <c>ShippedByUserId</c>.</param>
 /// <param name="Nullable">Whether the id is nullable, and so the navigation too.</param>
+/// <param name="Inverse">
+/// The collection of these rows on the target's face — <c>DistributionsFrom</c> on <c>FuelingRead</c> for a
+/// <c>Distribution.FromFuelingId</c> — or null when its name is already taken there.
+/// </param>
 internal sealed record ReadNavigation(
     string Name,
     string TargetReadType,
     string ForeignKey,
-    bool Nullable);
+    bool Nullable,
+    string? Inverse = null);

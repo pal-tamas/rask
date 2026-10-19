@@ -1,3 +1,6 @@
+using System.Globalization;
+using Microsoft.CodeAnalysis;
+
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
@@ -121,6 +124,46 @@ public class ReadModelGeneratorTests
     }
 
     [Fact]
+    public void An_id_naming_a_child_exactly_beats_an_aggregate_its_name_only_ends_in()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Tank : Aggregate<string>
+            {
+                private readonly List<VirtualTank> _virtualTanks = [];
+                private Tank() { }
+                public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+            }
+            public sealed class VirtualTank : Entity<string>
+            {
+                private VirtualTank() { }
+                public string Name { get; private set; } = "";
+            }
+            public sealed class Supply : Aggregate<string>
+            {
+                private readonly List<SupplyPart> _parts = [];
+                private Supply() { }
+                public IReadOnlyList<SupplyPart> Parts => _parts;
+            }
+            public sealed class SupplyPart : Entity<string>
+            {
+                private SupplyPart() { }
+                public string VirtualTankId { get; private set; } = "";
+            }
+            """);
+
+        var face = run.GeneratedSource("Fuel_SupplyPartRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("public global::Fuel.VirtualTankRead VirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.DoesNotContain("TankRead VirtualTank", face.Replace("VirtualTankRead", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void An_id_whose_name_and_key_match_an_aggregate_becomes_a_navigation()
     {
         var source = Run(Shop).GeneratedSource("Shop_OrderRead");
@@ -214,6 +257,170 @@ public class ReadModelGeneratorTests
         Assert.Contains("not that entity's key type", diagnostic.GetMessage(), StringComparison.Ordinal);
         Assert.DoesNotContain(
             "CustomerRead Customer", run.GeneratedSource("Shop_OrderRead"), StringComparison.Ordinal);
+    }
+
+    private const string Distributions = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Fuel;
+        public sealed class Tank : Aggregate<string>
+        {
+            private readonly List<VirtualTank> _virtualTanks = [];
+            private Tank() { }
+            public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+        }
+        public sealed class VirtualTank : Entity<string>
+        {
+            private VirtualTank() { }
+        }
+        public sealed class Fueling : Aggregate<string>
+        {
+            private Fueling() { }
+            public decimal Quantity { get; private set; }
+        }
+        public sealed class Distribution : Aggregate<string, Deletable>
+        {
+            private Distribution() { }
+            public string FromFuelingId { get; private set; } = "";
+            public string ToFuelingId { get; private set; } = "";
+            public string? FuelingId { get; private set; }
+            public string VirtualTankId { get; private set; } = "";
+            public decimal Quantity { get; private set; }
+        }
+        """;
+
+    [Fact]
+    public void Every_inferred_navigation_gives_its_target_the_rows_that_point_there_named_by_the_ids_prefix()
+    {
+        var run = Run(Distributions);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var registry = run.GeneratedSource("__RaskReadModelRegistry");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> DistributionsFrom { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> DistributionsTo { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> Distributions { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("\"FromFueling\", typeof(global::Fuel.FuelingRead), \"FromFuelingId\", \"DistributionsFrom\")", registry, StringComparison.Ordinal);
+        Assert.Contains("\"Fueling\", typeof(global::Fuel.FuelingRead), \"FuelingId\", \"Distributions\")", registry, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_child_an_id_points_at_gets_the_rows_that_point_there_too()
+    {
+        var run = Run(Distributions);
+
+        var face = run.GeneratedSource("Fuel_VirtualTankRead");
+
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> Distributions { get; init; }", face, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reverse_name_the_target_already_uses_is_left_out_and_its_navigation_kept()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Fueling : Aggregate<string>
+            {
+                private Fueling() { }
+                public int DistributionsFrom { get; private set; }
+            }
+            public sealed class Distribution : Aggregate<string>
+            {
+                private Distribution() { }
+                public string FromFuelingId { get; private set; } = "";
+                public string ToFuelingId { get; private set; } = "";
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var registry = run.GeneratedSource("__RaskReadModelRegistry");
+
+        Assert.Contains("public int DistributionsFrom { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("DistributionRead> DistributionsTo { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("\"FromFueling\", typeof(global::Fuel.FuelingRead), \"FromFuelingId\"),", registry, StringComparison.Ordinal);
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal(("RASK108", DiagnosticSeverity.Warning), (diagnostic.Id, diagnostic.Severity));
+        Assert.Equal(
+            "FuelingRead does not get 'DistributionsFrom': the name is already a column of Fueling. Rename the id (Distribution.FromFuelingId) or the column.",
+            diagnostic.GetMessage(CultureInfo.InvariantCulture));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_reverse_name_that_is_already_a_navigation_of_the_target_is_reported_and_left_out()
+    {
+        var run = Run("""
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Lines : Aggregate<string>
+            {
+                private Lines() { }
+            }
+            public sealed class Fueling : Aggregate<string>
+            {
+                private Fueling() { }
+                public string LinesId { get; private set; } = "";
+            }
+            public sealed class Line : Aggregate<string>
+            {
+                private Line() { }
+                public string FuelingId { get; private set; } = "";
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+
+        Assert.Contains("public global::Fuel.LinesRead Lines { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.DoesNotContain("IReadOnlyList<global::Fuel.LineRead>", fueling, StringComparison.Ordinal);
+        Assert.Equal(
+            "FuelingRead does not get 'Lines': the name is already a navigation of FuelingRead. Rename the id (Line.FuelingId) or the navigation's id.",
+            Assert.Single(run.Diagnostics, d => d.Id == "RASK108").GetMessage(CultureInfo.InvariantCulture));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void Two_ids_that_would_give_one_target_the_same_collection_are_both_reported_and_left_out()
+    {
+        var run = Run("""
+            using Rask.Data;
+            namespace Fuel
+            {
+                public sealed class Fueling : Aggregate<string>
+                {
+                    private Fueling() { }
+                }
+            }
+            namespace Fuel.Old
+            {
+                public sealed class Distribution : Aggregate<string>
+                {
+                    private Distribution() { }
+                    public string FuelingId { get; private set; } = "";
+                }
+            }
+            namespace Fuel.New
+            {
+                public sealed class Distribution : Aggregate<string>
+                {
+                    private Distribution() { }
+                    public string FuelingId { get; private set; } = "";
+                }
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var messages = run.Diagnostics.Where(d => d.Id == "RASK108").Select(d => d.GetMessage(CultureInfo.InvariantCulture)).ToList();
+
+        Assert.DoesNotContain("Distributions", fueling, StringComparison.Ordinal);
+        Assert.Equal(2, messages.Count);
+        Assert.All(messages, m => Assert.Contains(
+            "the name is already the collection for Distribution.FuelingId. Rename the id (Distribution.FuelingId) or the other id.", m, StringComparison.Ordinal));
+        Assert.Empty(run.GeneratedCompileErrors());
     }
 
     [Fact]

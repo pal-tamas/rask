@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK107, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK108, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -132,6 +132,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK105](#rask105) | Error | A value object compares by reference |
 | [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would write a row keyed by one |
 | [RASK107](#rask107) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
+| [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2428,6 +2429,39 @@ var order = Order.Place("A-1");                // ✓ then: await order.Save();
 
 Generated code is not analyzed — the generated writes start from `new Order()` on purpose — and EF Core builds a
 row through reflection, so loading is never affected.
+
+---
+
+## RASK108
+
+**A read face's collection of the rows that point at it would take a name already used** · Warning
+
+Every navigation the read face infers from an id gives its target the rows that point there, named after the
+referencing type and whatever the id says before the target's name: `Distribution.FromFuelingId` gives
+`FuelingRead.DistributionsFrom` ([the rows that point here](data.md#the-rows-that-point-here)). When the target's face
+already uses that name — a column, a navigation, a collection — or another id would give it the same one, the
+collection is left out rather than renamed by a guess, and this warning names the clash. The build stays green, and
+the forward navigation (`DistributionRead.FromFueling`) is still there.
+
+```csharp
+public sealed class Fueling : Aggregate<string>
+{
+    public int DistributionsFrom { get; private set; }      // a column of that name
+}
+
+public sealed class Distribution : Aggregate<string>
+{
+    public string FromFuelingId { get; private set; } = "";   // ⚠ RASK108
+}
+```
+
+```text
+FuelingRead does not get 'DistributionsFrom': the name is already a column of Fueling. Rename the id (Distribution.FromFuelingId) or the column.
+```
+
+**Fix:** rename one side. Renaming the id (`SourceFuelingId` gives `DistributionsSource`) changes its column, so
+keep the column with `[Column("FromFuelingId")]` on an existing table; renaming the target's member works the same
+way. Two ids that clash with each other are reported on both, each naming the other.
 
 ---
 
