@@ -68,7 +68,7 @@ public sealed partial class InstallTabs : Component
     /// </remarks>
     private Component Terminal() =>
         Div.Class("term overflow-x-auto rounded-xl bg-zinc-900 py-4 text-left font-mono text-sm leading-7 text-zinc-100 shadow-xs ring-1 ring-zinc-900/10 dark:bg-zinc-800 dark:ring-white/10")[
-            (_template == "wasm" ? WasmLines : ServerLines).Select((line, index) =>
+            (string.Equals(_template, "wasm", StringComparison.Ordinal) ? WasmLines : ServerLines).Select((line, index) =>
                 Pre
                     .Key(index)
                     .Class("m-0 pe-5 ps-4 before:inline-block before:w-9 before:text-zinc-500 before:content-[attr(data-prefix)]")
