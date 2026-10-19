@@ -156,18 +156,21 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
     }
 
     [Fact]
-    public async Task A_tab_chosen_in_a_form_that_asks_before_it_is_left_is_an_unsaved_change_as_any_bound_pick_is()
+    public async Task A_tab_chosen_in_a_form_that_asks_before_it_is_left_is_no_unsaved_change_even_when_bound()
     {
         await using var watched = await Watched.OpenAsync(playwright);
         var page = watched.Session.Page;
-        await page.ClickAsync("#guarded [role=tab] >> nth=1");
-        var chosen = watched.Frames();
+        var confirms = 0;
+        page.Dialog += (_, dialog) => { Interlocked.Increment(ref confirms); _ = dialog.DismissAsync(); };
+        await page.EvaluateAsync(CountsQuestions);
 
+        await page.ClickAsync("#guarded [role=tab] >> nth=1");
+        await page.ClickAsync("#guarded [role=tab] >> nth=0");
         await page.ClickAsync("#away");
 
-        Assert.Equal((0, 0), chosen);
-        await Expect(page.Locator("dialog[open] button").Filter(new() { HasTextString = "Stay" })).ToBeVisibleAsync();
-        Assert.DoesNotContain("/elsewhere", page.Url, StringComparison.Ordinal);
+        await Expect(page).ToHaveURLAsync(new Regex("/elsewhere$"));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__questions"));
+        Assert.Equal(0, Volatile.Read(ref confirms));
     }
 
     [Fact]

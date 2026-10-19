@@ -117,21 +117,22 @@ public sealed partial class UiTabs : Component
         return chosen is null ? null : string.Create(CultureInfo.InvariantCulture, $"{_turn} {chosen}");
     }
 
-    // The one field the page reads the selected tab from, written by the runtime as a tab is chosen.
+    // The one field the page reads the selected tab from, written by the runtime as a tab is chosen. A tab
+    // chosen is never data the reader would lose, so a form that asks before it is left does not count it.
     private HTMLInputElement<string>? Field(string? chosen)
     {
         if (Bind is { } bind)
         {
-            var bound = Input.Bind(bind).Type(InputType.Hidden).AfterBind(ToldAsync);
+            var bound = Input.Bind(bind).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).AfterBind(ToldAsync);
             return Live == true ? bound.Live() : bound;
         }
 
         if (OnChange.HasValue)
         {
-            return Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).OnChange(ToldAsync);
+            return Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).OnChange(ToldAsync);
         }
 
-        return Value is null ? null : Input.Value(chosen ?? string.Empty).Type(InputType.Hidden);
+        return Value is null ? null : Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData);
     }
 
     private async Task ToldAsync(string name)
