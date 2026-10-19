@@ -99,6 +99,19 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
                      + "the only symptom is a join the author expected and never got.",
         helpLinkUri: DiagnosticHelp.Link("RASK089"));
 
+    private static readonly DiagnosticDescriptor Rask108 = new(
+        "RASK108",
+        "A collection of the rows that point at a read face has a name already taken",
+        "{0} does not get '{1}': the name is already {2}. Rename the id ({4}.{5}) or the {3}.",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "Every navigation a read face infers from an id gives its target the rows that point there, named "
+                     + "after the referencing type and the id's prefix: Distribution.FromFuelingId gives "
+                     + "FuelingRead.DistributionsFrom. When the target already uses that name, or two ids would both "
+                     + "claim it, the collection is left out rather than renamed by a guess.",
+        helpLinkUri: DiagnosticHelp.Link("RASK108"));
+
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -163,7 +176,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             mappings.Add((shape, Resolve(context, shape, aggregates, children, inverses)));
         }
 
-        var reverses = Reverses(mappings, inverses);
+        var reverses = Reverses(context, mappings, inverses);
 
         foreach (var (shape, navigations) in mappings)
         {
@@ -256,52 +269,98 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
     // The rows of another entity that point at this one, one collection per navigation that points here:
     // Distribution.FromFuelingId gives FuelingRead.DistributionsFrom — the referencing type's plural, then whatever
     // the id says before the target's name. A name the target already uses, or that two navigations would both
-    // claim, gets no collection: the navigation it mirrors is still there, and a guessed second name is not.
+    // claim, gets no collection and RASK108: the navigation it mirrors is still there, and a guessed second name is not.
     private static Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>> Reverses(
+        SourceProductionContext context,
         List<(ReadShape Shape, List<ReadNavigation> Navigations)> mappings,
         Dictionary<string, List<(string RootReadType, string Name)>> inverses)
     {
         var faces = mappings.ToDictionary(static m => m.Shape.FullyQualifiedName, StringComparer.Ordinal);
-        var proposed = new List<(List<ReadNavigation> Navigations, int Index, string Source, string Target, string Name)>();
+        var proposed = new List<(ReadShape Source, string ForeignKey, ReadShape Target, string Name)>();
 
         foreach (var (shape, navigations) in mappings)
         {
-            for (var i = 0; i < navigations.Count; i++)
+            foreach (var navigation in navigations)
             {
-                var target = faces[navigations[i].TargetReadType].Shape;
-                var prefix = navigations[i].Name.Substring(0, navigations[i].Name.Length - target.SourceName.Length);
-                proposed.Add((navigations, i, shape.FullyQualifiedName, target.FullyQualifiedName,
-                    ModelRegistryGenerator.SetNameOf(shape.SourceName) + prefix));
+                var target = faces[navigation.TargetReadType].Shape;
+                var prefix = navigation.Name.Substring(0, navigation.Name.Length - target.SourceName.Length);
+                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + prefix));
             }
         }
-
-        var claimed = new HashSet<(string Target, string Name)>(proposed
-            .GroupBy(static p => (p.Target, p.Name))
-            .Where(static g => g.Count() > 1)
-            .Select(static g => g.Key));
 
         var reverses = new Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>>(StringComparer.Ordinal);
 
-        foreach (var (navigations, index, source, target, name) in proposed)
+        foreach (var (source, foreignKey, target, name) in proposed)
         {
-            var face = faces[target];
-            if (claimed.Contains((target, name)) || Taken(face.Shape, inverses).Contains(name) ||
-                face.Navigations.Exists(n => string.Equals(n.Name, name, StringComparison.Ordinal)))
+            var face = faces[target.FullyQualifiedName];
+            if ((Clash(target, face.Navigations, inverses, name) ?? Rival(proposed, source, foreignKey, target, name)) is { } clash)
             {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask108, source.Location?.ToLocation(), target.Name, name, clash.Taken, clash.Rename, source.SourceName, foreignKey));
                 continue;
             }
 
+            var navigations = faces[source.FullyQualifiedName].Navigations;
+            var index = navigations.FindIndex(n => string.Equals(n.ForeignKey, foreignKey, StringComparison.Ordinal));
             navigations[index] = navigations[index] with { Inverse = name };
 
-            if (!reverses.TryGetValue(target, out var list))
+            if (!reverses.TryGetValue(target.FullyQualifiedName, out var list))
             {
-                reverses[target] = list = [];
+                reverses[target.FullyQualifiedName] = list = [];
             }
 
-            list.Add((name, source, navigations[index].ForeignKey));
+            list.Add((name, source.FullyQualifiedName, foreignKey));
         }
 
         return reverses;
+    }
+
+    // What the target's face already calls this name, and what to rename instead of the id — or null when it is free.
+    private static (string Taken, string Rename)? Clash(
+        ReadShape target,
+        List<ReadNavigation> navigations,
+        Dictionary<string, List<(string RootReadType, string Name)>> inverses,
+        string name)
+    {
+        if (target.Members.Any(m => string.Equals(m.Name, name, StringComparison.Ordinal)))
+        {
+            return ($"a column of {target.SourceName}", "column");
+        }
+
+        if (navigations.Exists(n => string.Equals(n.Name, name, StringComparison.Ordinal)) ||
+            (inverses.TryGetValue(target.FullyQualifiedName, out var roots) &&
+             roots.Exists(r => string.Equals(r.Name, name, StringComparison.Ordinal))))
+        {
+            return ($"a navigation of {target.Name}", "navigation's id");
+        }
+
+        if (target.Children.Any(c => string.Equals(c.Name, name, StringComparison.Ordinal)) ||
+            target.ValueCollections.Any(c => string.Equals(c.Name, name, StringComparison.Ordinal)))
+        {
+            return ($"a collection of {target.SourceName}", "collection");
+        }
+
+        return null;
+    }
+
+    // Another id that would give the same target the same collection name.
+    private static (string Taken, string Rename)? Rival(
+        List<(ReadShape Source, string ForeignKey, ReadShape Target, string Name)> proposed,
+        ReadShape source,
+        string foreignKey,
+        ReadShape target,
+        string name)
+    {
+        foreach (var other in proposed)
+        {
+            if (ReferenceEquals(other.Target, target) && string.Equals(other.Name, name, StringComparison.Ordinal) &&
+                !(ReferenceEquals(other.Source, source) && string.Equals(other.ForeignKey, foreignKey, StringComparison.Ordinal)))
+            {
+                return ($"the collection for {other.Source.SourceName}.{other.ForeignKey}", "other id");
+            }
+        }
+
+        return null;
     }
 
     // Exact before suffix, and an aggregate before a child within each: a VirtualTankId reaches the VirtualTank child

@@ -28,7 +28,7 @@ them until tagged releases begin.
   plus what came in" was a second query and a join in memory. After: `Fueling.Where(f =>
   !f.DistributionsFrom.Any()).OrderBy(f => f.Quantity + f.DistributionsTo.Sum(d => d.Quantity))` is one statement on
   SQLite, SQL Server and PostgreSQL. The rows are read through their own aggregate's tenant and soft-delete filters,
-  so a shared target never shows another tenant's rows. A name the target already uses gets no collection.
+  so a shared target never shows another tenant's rows. A name the target already uses, or two ids would both claim, gets no collection and the new warning RASK108 ("FuelingRead does not get 'DistributionsFrom': the name is already a column of Fueling. Rename the id (Distribution.FromFuelingId) or the column.").
 - **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
   taking the name — infers a navigation on the read face, as one naming an aggregate always has:
   `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side

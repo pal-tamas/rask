@@ -491,7 +491,7 @@ inferred by the same rules. **Its rows go through their own filters**: a soft-de
 when the referencing aggregate is `PerTenant`, only the current tenant's rows are, even if the target is shared by
 every tenant. The target keeps its own filters too, so another tenant's fueling and the rows pointing at it never
 appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
-would both claim gets no collection;
+would both claim gets no collection and a [RASK108](diagnostics.md#rask108) warning;
 the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row.
 
 ### By id: a row, or the aggregate

@@ -1,3 +1,6 @@
+using System.Globalization;
+using Microsoft.CodeAnalysis;
+
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
@@ -340,6 +343,83 @@ public class ReadModelGeneratorTests
         Assert.Contains("public int DistributionsFrom { get; init; }", fueling, StringComparison.Ordinal);
         Assert.Contains("DistributionRead> DistributionsTo { get; init; }", fueling, StringComparison.Ordinal);
         Assert.Contains("\"FromFueling\", typeof(global::Fuel.FuelingRead), \"FromFuelingId\"),", registry, StringComparison.Ordinal);
+        var diagnostic = Assert.Single(run.Diagnostics);
+        Assert.Equal(("RASK108", DiagnosticSeverity.Warning), (diagnostic.Id, diagnostic.Severity));
+        Assert.Equal(
+            "FuelingRead does not get 'DistributionsFrom': the name is already a column of Fueling. Rename the id (Distribution.FromFuelingId) or the column.",
+            diagnostic.GetMessage(CultureInfo.InvariantCulture));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_reverse_name_that_is_already_a_navigation_of_the_target_is_reported_and_left_out()
+    {
+        var run = Run("""
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Lines : Aggregate<string>
+            {
+                private Lines() { }
+            }
+            public sealed class Fueling : Aggregate<string>
+            {
+                private Fueling() { }
+                public string LinesId { get; private set; } = "";
+            }
+            public sealed class Line : Aggregate<string>
+            {
+                private Line() { }
+                public string FuelingId { get; private set; } = "";
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+
+        Assert.Contains("public global::Fuel.LinesRead Lines { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.DoesNotContain("IReadOnlyList<global::Fuel.LineRead>", fueling, StringComparison.Ordinal);
+        Assert.Equal(
+            "FuelingRead does not get 'Lines': the name is already a navigation of FuelingRead. Rename the id (Line.FuelingId) or the navigation's id.",
+            Assert.Single(run.Diagnostics, d => d.Id == "RASK108").GetMessage(CultureInfo.InvariantCulture));
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void Two_ids_that_would_give_one_target_the_same_collection_are_both_reported_and_left_out()
+    {
+        var run = Run("""
+            using Rask.Data;
+            namespace Fuel
+            {
+                public sealed class Fueling : Aggregate<string>
+                {
+                    private Fueling() { }
+                }
+            }
+            namespace Fuel.Old
+            {
+                public sealed class Distribution : Aggregate<string>
+                {
+                    private Distribution() { }
+                    public string FuelingId { get; private set; } = "";
+                }
+            }
+            namespace Fuel.New
+            {
+                public sealed class Distribution : Aggregate<string>
+                {
+                    private Distribution() { }
+                    public string FuelingId { get; private set; } = "";
+                }
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var messages = run.Diagnostics.Where(d => d.Id == "RASK108").Select(d => d.GetMessage(CultureInfo.InvariantCulture)).ToList();
+
+        Assert.DoesNotContain("Distributions", fueling, StringComparison.Ordinal);
+        Assert.Equal(2, messages.Count);
+        Assert.All(messages, m => Assert.Contains(
+            "the name is already the collection for Distribution.FuelingId. Rename the id (Distribution.FuelingId) or the other id.", m, StringComparison.Ordinal));
         Assert.Empty(run.GeneratedCompileErrors());
     }
 
