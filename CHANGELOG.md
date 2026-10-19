@@ -271,6 +271,12 @@ them until tagged releases begin.
 
 ### Security
 
+- **A child row is read only by the tenant of the aggregate that holds it.** Before: since the unreleased reverse
+  navigation on the read face, a child with no tenant column of its own was also readable by the tenant of any
+  aggregate it merely names by id, and stayed readable through such an aggregate when its own root was soft-deleted.
+  After: only the aggregates that hold the child in a collection partition it, as before that change; the reverse
+  collections still read the rows that point at an aggregate, through those rows' own filters.
+
 - **`rask deploy`'s container firewall loads, and keeps ufw on across a reload and a reboot.** Before: the
   `DOCKER-USER` block in `/etc/ufw/after.rules` jumped to `ufw-user-forward`, which ufw only makes after it has
   loaded `after.rules`, so every `ufw reload` and ufw's start at boot failed ("Chain 'ufw-user-forward' does not

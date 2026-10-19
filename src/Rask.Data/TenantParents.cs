@@ -28,6 +28,12 @@ internal static class TenantParents
     /// <summary>The entity-type annotation marking a child partitioned through its parent.</summary>
     internal const string Annotation = "Rask:TenantThroughParent";
 
+    /// <summary>
+    ///     The read face's annotation on a relationship that holds a child in its aggregate's collection, as opposed
+    ///     to an id's reverse collection, which is only a way to read the rows that point somewhere.
+    /// </summary>
+    internal const string HeldAnnotation = "Rask:HeldByParent";
+
     private static readonly MethodInfo SetMethod =
         ((MethodCallExpression)((Expression<Func<DbContext, object>>)(c => c.Set<object>())).Body)
         .Method.GetGenericMethodDefinition();
@@ -53,6 +59,13 @@ internal static class TenantParents
     /// <summary>The same, for a write model's entity type, where the registry says which parent is partitioned.</summary>
     internal static List<IForeignKey> KeysOf(IEntityType child) =>
         [.. KeysOf(child, IsPartitioned).Cast<IForeignKey>()];
+
+    /// <summary>
+    ///     The tenant parents of a read face, where an id's reverse collection is a collection of the child too: only the
+    ///     relationships the face's aggregate holds it through count, never an aggregate it merely points at.
+    /// </summary>
+    internal static List<IReadOnlyForeignKey> HeldKeysOf(IReadOnlyEntityType face, Func<Type, bool> partitioned) =>
+        [.. KeysOf(face, partitioned).Where(static key => key.FindAnnotation(HeldAnnotation)?.Value is true)];
 
     /// <summary>Whether the write model partitions <paramref name="entity" /> by tenant.</summary>
     internal static bool IsPartitioned(Type entity) =>

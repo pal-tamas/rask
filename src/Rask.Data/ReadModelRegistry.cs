@@ -102,7 +102,7 @@ public static class ReadModelRegistry
                 continue;
             }
 
-            var keys = TenantParents.KeysOf(face, partitioned.Contains);
+            var keys = TenantParents.HeldKeysOf(face, partitioned.Contains);
             if (keys.Count == 0)
             {
                 // Never left unfiltered: a child face with no column and no parent to ask would read every tenant.
@@ -345,7 +345,8 @@ public static class ReadModelRegistry
                 .HasForeignKey(foreignKey is null
                     ? [mapping.WriteType.Name + nameof(Entity<int>.Id)]
                     : [.. foreignKey.Properties.Select(static p => p.Name)])
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasAnnotation(TenantParents.HeldAnnotation, true);
 
             // Optional where the write side's is: a child of two parents holds a NULL in one of its keys.
             if (foreignKey is { IsRequired: false })
