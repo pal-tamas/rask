@@ -21,6 +21,14 @@ them until tagged releases begin.
   Writes are not supported yet: a save of such a row throws `NotSupportedException`, and RASK106 (error) refuses
   a form that would carry one (a holding aggregate whose base names `Model`, `CreateModel` or `UpdateModel`). RASK106 also catches a class that is not `partial`, an unnamed or undeclared value
   part, a name already taken, and a key of several columns on an aggregate root.
+- **A read face carries the rows that point at it.** Every navigation the read face infers now has its other end on
+  the target: `Distribution.FromFuelingId` and `ToFuelingId` give `FuelingRead.DistributionsFrom` and
+  `DistributionsTo` (`IReadOnlyList<DistributionRead>`; a bare `FuelingId` gives `Distributions`), and a child
+  target such as `VirtualTankRead` gets one too. Before: "fuelings with no outgoing distribution, ordered by quantity
+  plus what came in" was a second query and a join in memory. After: `Fueling.Where(f =>
+  !f.DistributionsFrom.Any()).OrderBy(f => f.Quantity + f.DistributionsTo.Sum(d => d.Quantity))` is one statement on
+  SQLite, SQL Server and PostgreSQL. The rows are read through their own aggregate's tenant and soft-delete filters,
+  so a shared target never shows another tenant's rows. A name the target already uses gets no collection.
 - **A read can join to another aggregate's child by its id.** An `{X}Id` that names a child entity — no aggregate
   taking the name — infers a navigation on the read face, as one naming an aggregate always has:
   `Fueling.Where(f => f.Pistol.TankId == tank)` is one statement, with the pistol under its pump. Only the read side

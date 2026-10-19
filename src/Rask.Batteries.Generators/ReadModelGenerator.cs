@@ -163,11 +163,13 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             mappings.Add((shape, Resolve(context, shape, aggregates, children, inverses)));
         }
 
+        var reverses = Reverses(mappings, inverses);
+
         foreach (var (shape, navigations) in mappings)
         {
             context.AddSource(
                 HintName(shape),
-                SourceText.From(EmitFace(shape, navigations, inverses), Encoding.UTF8));
+                SourceText.From(EmitFace(shape, navigations, inverses, reverses), Encoding.UTF8));
         }
 
         context.AddSource("__RaskReadModelRegistry.g.cs", SourceText.From(EmitRegistry(mappings), Encoding.UTF8));
@@ -201,27 +203,8 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
     {
         var navigations = new List<ReadNavigation>();
 
-        // A name the face already uses: a column, or the navigation back to the root. A child holding an
-        // explicit OrderId is exactly this case — the relationship is already there, under that name.
-        var taken = new HashSet<string>(shape.Members.Select(static m => m.Name), StringComparer.Ordinal);
-
-        if (inverses.TryGetValue(shape.FullyQualifiedName, out var roots))
-        {
-            foreach (var root in roots)
-            {
-                taken.Add(root.Name);
-            }
-        }
-
-        foreach (var child in shape.Children)
-        {
-            taken.Add(child.Name);
-        }
-
-        foreach (var collection in shape.ValueCollections)
-        {
-            taken.Add(collection.Name);
-        }
+        // A child holding an explicit OrderId is exactly this case — the relationship is already there, under that name.
+        var taken = Taken(shape, inverses);
 
         foreach (var reference in shape.References)
         {
@@ -253,6 +236,74 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         return navigations;
     }
 
+    // A name the face already uses: a column, the navigation back to the root, a collection.
+    private static HashSet<string> Taken(
+        ReadShape shape, Dictionary<string, List<(string RootReadType, string Name)>> inverses)
+    {
+        var taken = new HashSet<string>(shape.Members.Select(static m => m.Name), StringComparer.Ordinal);
+
+        if (inverses.TryGetValue(shape.FullyQualifiedName, out var roots))
+        {
+            taken.UnionWith(roots.Select(static r => r.Name));
+        }
+
+        taken.UnionWith(shape.Children.Select(static c => c.Name));
+        taken.UnionWith(shape.ValueCollections.Select(static c => c.Name));
+
+        return taken;
+    }
+
+    // The rows of another entity that point at this one, one collection per navigation that points here:
+    // Distribution.FromFuelingId gives FuelingRead.DistributionsFrom — the referencing type's plural, then whatever
+    // the id says before the target's name. A name the target already uses, or that two navigations would both
+    // claim, gets no collection: the navigation it mirrors is still there, and a guessed second name is not.
+    private static Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>> Reverses(
+        List<(ReadShape Shape, List<ReadNavigation> Navigations)> mappings,
+        Dictionary<string, List<(string RootReadType, string Name)>> inverses)
+    {
+        var faces = mappings.ToDictionary(static m => m.Shape.FullyQualifiedName, StringComparer.Ordinal);
+        var proposed = new List<(List<ReadNavigation> Navigations, int Index, string Source, string Target, string Name)>();
+
+        foreach (var (shape, navigations) in mappings)
+        {
+            for (var i = 0; i < navigations.Count; i++)
+            {
+                var target = faces[navigations[i].TargetReadType].Shape;
+                var prefix = navigations[i].Name.Substring(0, navigations[i].Name.Length - target.SourceName.Length);
+                proposed.Add((navigations, i, shape.FullyQualifiedName, target.FullyQualifiedName,
+                    ModelRegistryGenerator.SetNameOf(shape.SourceName) + prefix));
+            }
+        }
+
+        var claimed = new HashSet<(string Target, string Name)>(proposed
+            .GroupBy(static p => (p.Target, p.Name))
+            .Where(static g => g.Count() > 1)
+            .Select(static g => g.Key));
+
+        var reverses = new Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>>(StringComparer.Ordinal);
+
+        foreach (var (navigations, index, source, target, name) in proposed)
+        {
+            var face = faces[target];
+            if (claimed.Contains((target, name)) || Taken(face.Shape, inverses).Contains(name) ||
+                face.Navigations.Exists(n => string.Equals(n.Name, name, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            navigations[index] = navigations[index] with { Inverse = name };
+
+            if (!reverses.TryGetValue(target, out var list))
+            {
+                reverses[target] = list = [];
+            }
+
+            list.Add((name, source, navigations[index].ForeignKey));
+        }
+
+        return reverses;
+    }
+
     // Exact before suffix, and an aggregate before a child within each: a VirtualTankId reaches the VirtualTank child
     // even though it also ends in an aggregate's name, Tank. The first rule whose name matches settles it.
     private static (ReadNavigation? Navigation, ReadModelShape.ReadReferenceProblem Problem) Infer(
@@ -278,7 +329,8 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
     private static string EmitFace(
         ReadShape shape,
         List<ReadNavigation> navigations,
-        Dictionary<string, List<(string RootReadType, string Name)>> inverses)
+        Dictionary<string, List<(string RootReadType, string Name)>> inverses,
+        Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>> reverses)
     {
         var s = new StringBuilder();
         s.AppendLine("// <auto-generated/>");
@@ -301,6 +353,11 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             .AppendLine(" : global::Rask.Data.IReadModel");
         s.AppendLine("{");
         AppendFaceMembers(s, shape, navigations, inverses);
+
+        if (reverses.TryGetValue(shape.FullyQualifiedName, out var pointing))
+        {
+            AppendReverses(s, pointing);
+        }
 
         s.AppendLine("}");
         s.AppendLine();
@@ -364,6 +421,18 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
                 .AppendLine(collection.IsValueObject ? ", held as JSON.</summary>" : ".</summary>");
             s.Append("    public global::System.Collections.Generic.List<").Append(collection.ElementTypeName)
                 .Append("> ").Append(collection.Name).AppendLine(" { get; init; } = [];");
+            s.AppendLine();
+        }
+    }
+
+    private static void AppendReverses(StringBuilder s, List<(string Name, string SourceReadType, string ForeignKey)> reverses)
+    {
+        foreach (var (name, source, foreignKey) in reverses)
+        {
+            s.Append("    /// <summary>The <see cref=\"").Append(source).Append("\" /> rows whose <c>").Append(foreignKey)
+                .AppendLine("</c> is this one.</summary>");
+            s.Append("    public global::System.Collections.Generic.IReadOnlyList<").Append(source).Append("> ").Append(name)
+                .Append(" { get; init; } = new global::System.Collections.Generic.List<").Append(source).AppendLine(">();");
             s.AppendLine();
         }
     }
@@ -455,7 +524,9 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             s.Append("                new global::Rask.Data.ReadReferenceMapping(")
                 .Append(Literal(navigation.Name)).Append(", typeof(")
                 .Append(navigation.TargetReadType).Append("), ")
-                .Append(Literal(navigation.ForeignKey)).AppendLine("),");
+                .Append(Literal(navigation.ForeignKey))
+                .Append(navigation.Inverse is null ? string.Empty : ", " + Literal(navigation.Inverse))
+                .AppendLine("),");
         }
 
         s.AppendLine("            ],");

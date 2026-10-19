@@ -88,8 +88,10 @@ public sealed class TrimmingContractTests
         var child = typeof(ReadChildMapping).GetConstructors().Single();
         AssertEntity(child.GetParameters().Single(p => p.Name == "childReadType"), "ReadChildMapping(childReadType)");
 
-        var reference = typeof(ReadReferenceMapping).GetConstructors().Single();
-        AssertEntity(reference.GetParameters().Single(p => p.Name == "targetReadType"), "ReadReferenceMapping(targetReadType)");
+        foreach (var reference in typeof(ReadReferenceMapping).GetConstructors())
+        {
+            AssertEntity(reference.GetParameters().Single(p => p.Name == "targetReadType"), "ReadReferenceMapping(targetReadType)");
+        }
     }
 
     [Fact]

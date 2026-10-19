@@ -256,6 +256,93 @@ public class ReadModelGeneratorTests
             "CustomerRead Customer", run.GeneratedSource("Shop_OrderRead"), StringComparison.Ordinal);
     }
 
+    private const string Distributions = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Fuel;
+        public sealed class Tank : Aggregate<string>
+        {
+            private readonly List<VirtualTank> _virtualTanks = [];
+            private Tank() { }
+            public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+        }
+        public sealed class VirtualTank : Entity<string>
+        {
+            private VirtualTank() { }
+        }
+        public sealed class Fueling : Aggregate<string>
+        {
+            private Fueling() { }
+            public decimal Quantity { get; private set; }
+        }
+        public sealed class Distribution : Aggregate<string, Deletable>
+        {
+            private Distribution() { }
+            public string FromFuelingId { get; private set; } = "";
+            public string ToFuelingId { get; private set; } = "";
+            public string? FuelingId { get; private set; }
+            public string VirtualTankId { get; private set; } = "";
+            public decimal Quantity { get; private set; }
+        }
+        """;
+
+    [Fact]
+    public void Every_inferred_navigation_gives_its_target_the_rows_that_point_there_named_by_the_ids_prefix()
+    {
+        var run = Run(Distributions);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var registry = run.GeneratedSource("__RaskReadModelRegistry");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> DistributionsFrom { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> DistributionsTo { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> Distributions { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("\"FromFueling\", typeof(global::Fuel.FuelingRead), \"FromFuelingId\", \"DistributionsFrom\")", registry, StringComparison.Ordinal);
+        Assert.Contains("\"Fueling\", typeof(global::Fuel.FuelingRead), \"FuelingId\", \"Distributions\")", registry, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_child_an_id_points_at_gets_the_rows_that_point_there_too()
+    {
+        var run = Run(Distributions);
+
+        var face = run.GeneratedSource("Fuel_VirtualTankRead");
+
+        Assert.Contains("IReadOnlyList<global::Fuel.DistributionRead> Distributions { get; init; }", face, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_reverse_name_the_target_already_uses_is_left_out_and_its_navigation_kept()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Fueling : Aggregate<string>
+            {
+                private Fueling() { }
+                public int DistributionsFrom { get; private set; }
+            }
+            public sealed class Distribution : Aggregate<string>
+            {
+                private Distribution() { }
+                public string FromFuelingId { get; private set; } = "";
+                public string ToFuelingId { get; private set; } = "";
+            }
+            """);
+
+        var fueling = run.GeneratedSource("Fuel_FuelingRead");
+        var registry = run.GeneratedSource("__RaskReadModelRegistry");
+
+        Assert.Contains("public int DistributionsFrom { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("DistributionRead> DistributionsTo { get; init; }", fueling, StringComparison.Ordinal);
+        Assert.Contains("\"FromFueling\", typeof(global::Fuel.FuelingRead), \"FromFuelingId\"),", registry, StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
     [Fact]
     public void A_self_reference_stays_a_column()
     {

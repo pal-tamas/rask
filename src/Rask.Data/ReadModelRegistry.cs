@@ -325,9 +325,11 @@ public static class ReadModelRegistry
             // Nothing is ever saved through the read context, so the delete behaviour is only there to stop
             // EF Core seeing a cycle it has to break. NoAction says "this join describes the data, it does
             // not govern it".
+            // The target's collection of these rows, when the generator gave it one, is this same relationship
+            // read from the other end — so it carries the referencing rows' own filters and nothing else.
             builder
                 .HasOne(reference.TargetReadType, reference.Navigation)
-                .WithMany()
+                .WithMany(reference.Inverse)
                 .HasForeignKey(reference.ForeignKey)
                 .OnDelete(DeleteBehavior.NoAction);
         }
