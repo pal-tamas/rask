@@ -32,6 +32,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <!-- The Database provider streams bytes through the context's own connection, addressed by the relational model. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
   </ItemGroup>
 
   <!-- No Rask.Core reference, deliberately (#1086). Core is IsPackable=false and travels inside the hosts that

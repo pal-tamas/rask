@@ -195,23 +195,25 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var size = await SpoolAsync(content, buffer, read, spool, hash, cancellationToken).ConfigureAwait(false);
 
+            var sha256 = Convert.ToHexStringLower(hash.GetHashAndReset());
+            StoredFile Row() => StoredFile.For(
+                id, fileName, contentType, size, sha256, backend.Provider, key, isPublic, runtime.Time.GetUtcNow().UtcDateTime);
+
+            // In the database, the bytes and the row are one transaction.
+            if (backend is DatabaseBlobBackend<TContext> database)
+            {
+                var row = Row();
+                await database.SaveAsync(row, spool, size, cancellationToken).ConfigureAwait(false);
+                return row;
+            }
+
             var headers = new BlobHeaders(
                 ContentTypePolicy.ServedType(contentType),
                 StoredFileHeaders.Disposition(contentType, fileName),
                 isPublic ? StoredFileHeaders.PublicCacheControl : StoredFileHeaders.PrivateCacheControl);
             await backend.PutFileAsync(key, spool, size, headers, cancellationToken).ConfigureAwait(false);
 
-            var stored = StoredFile.For(
-                id,
-                fileName,
-                contentType,
-                size,
-                Convert.ToHexStringLower(hash.GetHashAndReset()),
-                backend.Provider,
-                key,
-                isPublic,
-                runtime.Time.GetUtcNow().UtcDateTime);
-
+            var stored = Row();
             await AddRowAsync(stored, cancellationToken).ConfigureAwait(false);
             return stored;
         }

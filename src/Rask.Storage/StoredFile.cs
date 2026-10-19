@@ -37,6 +37,11 @@ public sealed class StoredFile : Aggregate<Guid, Timestamps>
     public bool Public { get; internal set; }
 
     /// <summary>The tenant the file was saved for, or <c>null</c> for one the host itself saved.</summary>
+    /// <remarks>
+    /// A <see cref="Guid"/>, like <c>Current.Tenant</c>. In an app whose tenant-scoped tables number their tenants
+    /// (<c>PerTenant&lt;int&gt;</c>) the column is that number, and this is the <see cref="Guid"/> that carries it —
+    /// the one <c>Tenant.Use(42)</c> opens.
+    /// </remarks>
     public Guid? TenantId { get; private set; }
 
     /// <summary>Records a file whose bytes are already stored.</summary>
