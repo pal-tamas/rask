@@ -89,6 +89,21 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_field_a_tab_is_chosen_into_is_no_data_a_form_that_asks_before_it_is_left_counts()
+    {
+        var settings = new Settings();
+
+        var fields = new[]
+        {
+            Page.Render(Three(Ui.Tabs.Bind(() => settings.Tab))),
+            Page.Render(Three(Ui.Tabs.OnChange(_ => { }))),
+            Page.Render(Three(Ui.Tabs.Value("account"))),
+        }.Select(page => page.Find("[role=\"tablist\"] > input[type=\"hidden\"]"));
+
+        Assert.All(fields, field => Assert.True(field.Attributes.ContainsKey("data-rask-unguarded")));
+    }
+
+    [Fact]
     public async Task A_tab_chosen_in_the_browser_is_reported_by_name_and_rendered_selected()
     {
         string? heard = null;

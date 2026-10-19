@@ -774,6 +774,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Choosing a tab no longer makes a guarded form unsaved.** Before: in a `Form.Model(m).ConfirmLeave("…")`
+  form, pressing a `Ui.Tabs` tab wrote the row's hidden field, the leave guard counted it as an edit, and
+  leaving asked about unsaved changes though nothing was typed. After: the tab row's field says
+  `data-rask-unguarded`, bound or not, so a tab chosen is never asked about; what is typed or picked in the
+  tabs' panels still is.
 - **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
   `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
   `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised
