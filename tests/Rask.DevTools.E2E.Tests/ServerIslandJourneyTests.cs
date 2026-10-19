@@ -29,7 +29,7 @@ public sealed class ServerIslandJourneyTests(PlaywrightFixture playwright)
         var ticker = devTools.Panel.Locator("[role=treeitem]", new() { HasText = "DevToolsTicker" }).Last;
         await Expect(ticker).ToContainTextAsync("Blazor", DevToolsPage.Contains);
 
-        await meter.Locator(".ui-tree-row").First.ClickAsync();
+        await meter.Locator(".rask-devtools-row").First.ClickAsync();
         var details = devTools.Panel.Locator("[data-rask-devtools-details]");
         await Expect(details).ToContainTextAsync("An island", DevToolsPage.Contains);
         await Expect(details).ToContainTextAsync("Value", DevToolsPage.Contains);

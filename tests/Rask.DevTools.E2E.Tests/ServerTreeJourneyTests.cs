@@ -119,7 +119,7 @@ public sealed class ServerTreeJourneyTests(PlaywrightFixture playwright)
 
     // A tree row by the text on it: a component's type or one of its prop values.
     private static ILocator Row(DevToolsPage devTools, string text) =>
-        devTools.Panel.Locator("[role=treeitem]", new() { HasText = text }).Last.Locator(".ui-tree-row").First;
+        devTools.Panel.Locator("[role=treeitem]", new() { HasText = text }).Last.Locator(".rask-devtools-row").First;
 
     private static ILocator Details(DevToolsPage devTools) => devTools.Panel.Locator("[data-rask-devtools-details]");
 }

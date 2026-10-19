@@ -250,7 +250,7 @@ installPanelClient({post: m => panelPosts.push(m), fromPage: e => e.source === p
 const place1 = new StubEl();
 place1.attributes.set("data-rask-devtools-at", "1|0|1");
 place1.attributes.set("data-rask-devtools-label", "Card");
-const row = new StubEl("ui-tree-row", place1);
+const row = new StubEl("rask-devtools-row", place1);
 const inRow = new StubEl("", null, row);
 const outside = new StubEl();
 const over = (target: StubEl) => docListeners.filter(l => l.type === "pointerover").forEach(l => l.handler({target}));

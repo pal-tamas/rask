@@ -50,6 +50,8 @@
   because a doc comment named them, which is the scan #1214 ended — so they are named here, on purpose.
   `aspect-3/1` is the chart's: Ui.Chart draws at the size its caller gives it and its remarks say to give it
   one, so a surface with no Tailwind build (the kit frames the browser suites draw) sizes it with that class —
-  without it the plot has no height and nothing in it can be hovered.
+  without it the plot has no height and nothing in it can be hovered. The `group-focus:` outline is the devtools
+  tree's keyboard cursor, ringed only while the tree has focus.
 */
 @source inline("my-2 whitespace-normal whitespace-normal! aspect-3/1");
+@source inline("group-focus:outline-2 group-focus:-outline-offset-2 group-focus:outline-zinc-800 dark:group-focus:outline-white");

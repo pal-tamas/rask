@@ -33,9 +33,6 @@ internal sealed partial class DevToolsTreeTab : Component
     /// <summary>The <c>key</c> of the keydown a pick arrives as: this, then the picked node's id, or <c>cancel</c>.</summary>
     internal const string PickKeyPrefix = "pick:";
 
-    // One row's height, so a page with thousands of components renders only the rows on screen.
-    private const int RowHeight = 24;
-
     // How deep a view opens the first time it is shown: far enough to reach a page's own components through the layout
     // and kit components around them — and, with the elements in between, through <html>, <body> and their wrappers too.
     private const int ComponentDepth = 8;
@@ -136,25 +133,18 @@ internal sealed partial class DevToolsTreeTab : Component
         ];
     }
 
-    private Component TreeView(DevToolsComponentNode root) =>
-            Ui.Tree.Roots([root])
-                .NodeKey(n => n.Id)
-                .Item(Row)
-                .Label("Component tree")
-                .NodeText(n => n.Type)
-                .Selection(Ui.TreeSelection.One)
-                // Both held here, so a pick can open the picked node's ancestors and select it in one render — which is
-                // also what moves the tree's cursor to it, and so scrolls it into view.
-                .Expanded([.. _expanded])
-                .OnExpand(keys =>
-                {
-                    _expanded.Clear();
-                    _expanded.UnionWith(keys);
-                })
-                .Selected(_selected is { } selected ? [selected] : [])
-                .OnSelect(keys => _selected = keys.Count > 0 ? keys[0] : null)
-                .ItemSize(RowHeight)
-                .Height(320)[n => n.Children];
+    // Both axes held here, so a pick can open the picked node's ancestors and select it in one render — which is also what
+    // moves the tree's cursor to it, and so scrolls it into view.
+    private DevToolsTree TreeView(DevToolsComponentNode root) =>
+        DevToolsTree.Root(root)
+            .Expanded([.. _expanded])
+            .Selected(_selected)
+            .OnExpand(ids =>
+            {
+                _expanded.Clear();
+                _expanded.UnionWith(ids);
+            })
+            .OnSelect(id => _selected = id);
 
     // What the selected node is and what it was given, in full: a row has room for a line of props, this has room for
     // their types and every value — and for the context it provides and reads, each read naming, as a link, the component
@@ -472,39 +462,8 @@ internal sealed partial class DevToolsTreeTab : Component
         }
     }
 
-    private static string Label(DevToolsComponentNode node) => node.IsTag ? "<" + node.Type + ">" : node.Type;
-
-    private static readonly IReadOnlyDictionary<string, string?> Nowhere = new Dictionary<string, string?>(StringComparer.Ordinal);
-
-    // Where the node is, for the panel's script to hand to the page when the pointer is on this row.
-    private static IReadOnlyDictionary<string, string?> Place(DevToolsComponentNode node) =>
-        node.At is null
-            ? Nowhere
-            : new AttrBag([("rask-devtools-at", node.At), ("rask-devtools-label", Label(node))]);
-
-    private static Component Row(DevToolsComponentNode node) =>
-        node.IsTag
-            ? Span.Class("truncate font-mono text-xs opacity-60").Data(Place(node))[Label(node)]
-            : ComponentRow(node);
-
-    private static Component ComponentRow(DevToolsComponentNode node) =>
-        Span.Class("flex items-center gap-2 truncate").Data(Place(node))[
-            Span.Class("truncate")[node.Type],
-            node.Badge is { } badge
-                ? Ui.Badge.Sm.Color(Ui.Color.Blue)[badge]
-                : Span,
-            node.Key is { Length: > 0 } key
-                ? Ui.Badge.Sm[key]
-                : Span,
-            // What the component was given, on the row itself: a tree whose rows say only their type names makes a
-            // developer click every one of them to find the value they came for.
-            node.Props.Count == 0
-                ? Span
-                : Span.Class("truncate text-xs opacity-60")[string.Join("  ", node.Props.Select(Described))]
-        ];
-
-    private static string Described(DescribedProp prop) =>
-        prop.Name + "=" + (prop.Value is null ? "null" : prop.Value);
+    /// <summary>A node as the panel names it: a component by its type, an element as its tag.</summary>
+    internal static string Label(DevToolsComponentNode node) => node.IsTag ? "<" + node.Type + ">" : node.Type;
 
     private static int Count(DevToolsComponentNode node)
     {

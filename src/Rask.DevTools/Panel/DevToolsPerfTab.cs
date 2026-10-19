@@ -75,11 +75,11 @@ internal sealed partial class DevToolsPerfTab : Component
             interactions.Length == 0
                 ? Ui.Callout.Secondary.Heading("No interactions yet.").Text("Use the page, and each event's handler, render, diff and patch are timed here.")
                 : Div.Class("flex flex-col gap-3")[
-                    Ui.MetricRow[
-                        Ui.Metric.Label("Interactions").Value(Count(interactions.Length)),
-                        Ui.Metric.Label("Server p50").Value(Milliseconds(Percentile(interactions, 0.50))),
-                        Ui.Metric.Label("Server p95").Value(Milliseconds(Percentile(interactions, 0.95))),
-                        Ui.Metric.Label("Patch p50").Value(PatchPercentile(interactions, 0.50))
+                    DevToolsFigures[
+                        DevToolsFigure.Label("Interactions").Value(Count(interactions.Length)),
+                        DevToolsFigure.Label("Server p50").Value(Milliseconds(Percentile(interactions, 0.50))),
+                        DevToolsFigure.Label("Server p95").Value(Milliseconds(Percentile(interactions, 0.95))),
+                        DevToolsFigure.Label("Patch p50").Value(PatchPercentile(interactions, 0.50))
                     ],
                     InteractionTable(interactions)
                 ],

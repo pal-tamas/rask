@@ -131,6 +131,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The DevTools panel is drawn with Flux UI's pieces only.** Before: the Wire, Renders and Perf tabs opened on a
+  `Ui.MetricRow` of `Ui.Metric` tiles, and the Tree tab was a `Ui.Tree`. After: a figure is Flux's text over a Flux
+  heading in a small `Ui.Card`, two across in a narrow drawer and four once there is room, and the component tree is
+  the panel's own (Flux has none), drawn with Flux's chevron icons and its navigation-list colours. The tree behaves
+  as before: one focusable WAI-ARIA tree with `aria-activedescendant`, arrow keys, Home/End/Page keys, `*`, Enter and
+  Space, type-ahead on component names, a click selects, a chevron opens and closes, pointing at a row boxes its
+  component on the page, picks and "Show in tree" open the way to a node, and only the rows on screen are rendered.
+  The row hook the panel's script reads is now `rask-devtools-row` (was the kit's `ui-tree-row`).
+  `DevToolsIsKitOnlyTests` holds the panel to Flux's catalogue, as `DashboardIsKitOnlyTests` holds the console.
+
 - **The operator console (`/_rask`) is drawn with Flux UI's pieces only, and follows the operator into dark mode.**
   Before: its seven lists were `Ui.DataGrid`s, its figures `Ui.Metric`/`Ui.Stat` tiles, its facts `Ui.DetailList`s,
   its payloads `Ui.Code`, and `<html>` pinned daisyUI's light theme. After: every list is a `Ui.Table` with a width
