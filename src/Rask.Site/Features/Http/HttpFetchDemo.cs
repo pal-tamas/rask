@@ -82,7 +82,7 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
         if (_post is null)
         {
             // Flux's loading icon spins; the words beside it are what a screen reader hears.
-            return Div.Role("status").Class("flex items-center gap-2 text-sm text-ui-muted")[
+            return Ui.Text.Role("status").Class("flex items-center gap-2")[
                 Ui.Icon.Name(Ui.IconName.Loading).Variant(Ui.IconVariant.Mini),
                 "Loading…"
             ];
@@ -92,9 +92,9 @@ public sealed partial class HttpFetchDemo(HttpClient http, TimeProvider time) : 
         // semantics.
         return Article[
             Ui.Card[
-                Div.Class("text-sm text-ui-muted uppercase mb-1")[$"Post #{_post.Id}"],
-                H3.Class("text-base font-semibold")[_post.Title],
-                P.Class("mb-0 text-sm")[_post.Body]
+                Ui.Text.Class("mb-1 uppercase")[$"Post #{_post.Id}"],
+                Ui.Heading.Level(3)[_post.Title],
+                Ui.Text.Class("mt-2")[_post.Body]
             ]
         ];
     }

@@ -65,14 +65,17 @@ public sealed partial class LifecycleProbe : Component
                 Ui.Button.Primary.Icon(Ui.IconName.ArrowPath)
                     .OnClick(() => _clicks++)["Trigger re-render"]
             ],
-            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm")["Hook log"],
-            Ol.Class(DemoList.Numbered)[
-                Row("OnMount (before its await)", Ran(_onMount)),
-                Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
-                Row("OnUpdated", Ran(_onUpdated)),
-                Row("OnFirstRender", Ran(_onFirstRender)),
-                Row("OnRendered", _onRendered == 0 ? "not yet" : Ran(_onRendered)),
-                Row("Button clicks", Ran(_clicks))
+            Ui.Heading.Level(3).Class("mb-2")["Hook log"],
+            Ui.Table[
+                Ui.TableColumns[Ui.TableColumn["Hook"], Ui.TableColumn["Status"]],
+                Ui.TableRows[
+                    Row("OnMount (before its await)", Ran(_onMount)),
+                    Row("OnMount (after a 450ms await)", _onMountSettled ? "resolved" : "awaiting…"),
+                    Row("OnUpdated", Ran(_onUpdated)),
+                    Row("OnFirstRender", Ran(_onFirstRender)),
+                    Row("OnRendered", _onRendered == 0 ? "not yet" : Ran(_onRendered)),
+                    Row("Button clicks", Ran(_clicks))
+                ]
             ]
         ];
 
@@ -87,8 +90,8 @@ public sealed partial class LifecycleProbe : Component
     // function of its state. `data-hook` gives a test something stable to select on — a data-* attribute
     // is explicitly one of the places the golden contract allows a value to move.
     private static Component Row(string hook, string status) =>
-        Li.Data("hook", hook)[
-            Code.Class("text-sm")[hook],
-            Span.Class("text-ui-muted ms-2")[status]
+        Ui.TableRow.Data("hook", hook)[
+            Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[hook],
+            Ui.TableCell[status]
         ];
 }

@@ -16,32 +16,28 @@ public sealed partial class LiveCounter : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("rounded-2xl border border-ui-line bg-ui-bg")[
-            Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
-                // A green dot and what it means: this component is the running one. The dot is decoration,
-                // the words beside it are the status.
-                Span.Class("size-2 rounded-full bg-green-500").Aria("hidden", "true"),
-                Span.Class("text-xs text-ui-muted")["running · /counter"]
+        // Flux's divided card: a header, the counter, a footer, a hairline between each.
+        Ui.Card.Divided[
+            Ui.CardHeader[
+                // Flux has no status dot: a green badge says this component is the running one.
+                Ui.Badge.Sm.Color(Ui.Color.Green).Icon(Ui.IconName.Bolt)["running · /counter"]
             ],
-            Div.Class("flex flex-col items-center gap-3 px-6 py-8")[
-                // A <p>, not an <h3>. It is a field label inside a demo card, and the page's only other
+            Ui.CardBody.Class("flex flex-col items-center gap-3 py-8")[
+                // Text, not a heading. It is a field label inside a demo card, and the page's only other
                 // headings are the section <h2>s below the hero — so as a heading it jumped from <h1>
-                // straight to <h3> and broke the document outline a screen reader navigates by. Nothing
-                // about it is a section of the page.
-                P.Class("text-sm font-medium text-ui-muted")["Current count"],
+                // straight to <h3> and broke the document outline a screen reader navigates by.
+                Ui.Text["Current count"],
                 // .count and .count-btn are a TEST contract, not styling: SiteExampleTests reads the
                 // value and clicks the button by these names, and a Playwright locator that resolves to
                 // nothing fails by timing out rather than by naming what moved.
                 Div.Class("count text-5xl font-semibold tabular-nums tracking-tight text-ui-ink")[_count],
-                Button
-                    .Class(
-                        "count-btn inline-flex min-h-11 items-center rounded-xl bg-ui-ink px-5 text-sm "
-                        + "font-semibold text-ui-bg transition-colors hover:bg-ui-ink/90")
-                    .Type(ButtonType.Button)
-                    .OnClick(() => _count++)["Click me"]
+                Ui.Button.Primary.Class("count-btn").OnClick(() => _count++)["Click me"]
             ],
-            Div.Class("border-t border-ui-line px-4 py-3 text-center text-xs text-ui-muted")[
-                "Each click ships a ", B.Class("text-ui-ink")["~41-byte diff"], " — not a re-render of the page."
+            Ui.CardFooter[
+                Ui.Text.Class("w-full text-center")[
+                    "Each click ships a ", Ui.Text.Inline().Variant(Ui.TextVariant.Strong)["~41-byte diff"],
+                    " — not a re-render of the page."
+                ]
             ]
         ];
 }

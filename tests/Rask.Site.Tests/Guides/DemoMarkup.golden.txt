@@ -2,7 +2,10 @@
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -34,7 +37,10 @@ code
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -69,7 +75,10 @@ strong
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -104,7 +113,10 @@ div
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -1747,11 +1759,11 @@ div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .tex
 span .bg-ui-brand .motion-safe:animate-pulse .rounded-full .sample-dot .size-2
 div .flex-1 .sample-result-body
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
-div .mb-2 .text-sm .text-ui-muted
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .mb-2 .text-sm .text-zinc-500
 code
-div .mb-2 .text-sm .text-ui-muted
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .mb-2 .text-sm .text-zinc-500
 code
-div .text-sm .text-ui-muted
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === browser-geolocation ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -2864,7 +2876,10 @@ div .italic .text-sm .text-ui-muted
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -2958,15 +2973,18 @@ path .opacity-75
 svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-4 .transition-opacity
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-p .italic .mb-0 .text-ui-muted
-h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
-p .mb-0 .text-sm .text-ui-muted
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
+h3 .dark:text-white .font-medium .mb-2 .mt-4 .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === component-tiers ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3022,7 +3040,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3051,7 +3072,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3081,7 +3105,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3115,7 +3142,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3153,7 +3183,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3191,8 +3224,10 @@ svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-ul .*:px-4 .*:py-2.5 .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:divide-white/10 .dark:shadow-none .divide-y .divide-zinc-900/10 .overflow-hidden .rounded-xl .shadow-xs .text-sm
-li
+div
+div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:0px] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-lg)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .relative .rounded-lg .shadow-xs
+div .[--ui-bleed-bottom:--spacing(4)] .[--ui-bleed-top:--spacing(4)] .[--ui-bleed-x:--spacing(4)] .[--ui-bleed:--spacing(4)] .not-first:[--ui-bleed-top-radius:0px] .not-last:[--ui-bleed-bottom-radius:0px] .p-4
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === data-download ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -3234,7 +3269,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -3257,9 +3295,9 @@ span .bg-ui-brand .motion-safe:animate-pulse .rounded-full .sample-dot .size-2
 div .flex-1 .sample-result-body
 article
 div .[--ui-bleed-bottom-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-bottom:var(--ui-bleed-x)] .[--ui-bleed-top-radius:calc(var(--ui-card-radius)-1px)] .[--ui-bleed-top:var(--ui-bleed-x)] .[--ui-bleed-x:--spacing(6)] .[--ui-bleed:var(--ui-bleed-x)] .[--ui-card-radius:var(--radius-xl)] .after:[mask-image:linear-gradient(black,transparent)] .after:absolute .after:inset-0 .after:inset-ring .after:inset-ring-white/25 .after:pointer-events-none .after:rounded-[calc(var(--ui-card-radius)-1px)] .bg-clip-padding .bg-white .border .border-zinc-900/10 .dark:after:hidden .dark:bg-white/10 .dark:border-white/10 .dark:shadow-none .p-6 .relative .rounded-xl .shadow-xs
-div .mb-1 .text-sm .text-ui-muted .uppercase
-h3 .font-semibold .text-base
-p .mb-0 .text-sm
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .mb-1 .text-sm .text-zinc-500 .uppercase
+h3 .dark:text-white .font-medium .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .mt-2 .text-sm .text-zinc-500
 
 === data-http-register ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -3367,8 +3405,8 @@ svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 p .italic .mb-0 .text-ui-muted
-h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
-p .mb-0 .text-sm .text-ui-muted
+h3 .dark:text-white .font-medium .mb-2 .mt-4 .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === disposal-sync ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -3410,8 +3448,8 @@ svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 p .italic .mb-0 .text-ui-muted
-h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
-p .mb-0 .text-sm .text-ui-muted
+h3 .dark:text-white .font-medium .mb-2 .mt-4 .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === disposal-unmount ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -3453,8 +3491,8 @@ svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 p .italic .mb-0 .text-ui-muted
-h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
-p .mb-0 .text-sm .text-ui-muted
+h3 .dark:text-white .font-medium .mb-2 .mt-4 .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === drag-drop-kanban ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -3543,27 +3581,35 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .bg-ui-brand .motion-safe:animate-pulse .rounded-full .sample-dot .size-2
 div .flex-1 .sample-result-body
-ul .*:px-4 .*:py-2.5 .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:divide-white/10 .dark:shadow-none .dd-list .divide-y .divide-zinc-900/10 .overflow-hidden .rounded-xl .shadow-xs .text-sm
-li .dd-item .flex .gap-2 .items-center
-svg .[:where(&amp;)]:size-6 .shrink-0 .size-5 .text-ui-muted
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
+div .block .overflow-auto .relative
+table .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .dd-list .isolate
+tbody
+tr .dd-item
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20 .w-8
+svg .[:where(&amp;)]:size-5 .shrink-0
 path
-span .font-semibold
-li .dd-item .flex .gap-2 .items-center
-svg .[:where(&amp;)]:size-6 .shrink-0 .size-5 .text-ui-muted
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+tr .dd-item
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20 .w-8
+svg .[:where(&amp;)]:size-5 .shrink-0
 path
-span .font-semibold
-li .dd-item .flex .gap-2 .items-center
-svg .[:where(&amp;)]:size-6 .shrink-0 .size-5 .text-ui-muted
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+tr .dd-item
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20 .w-8
+svg .[:where(&amp;)]:size-5 .shrink-0
 path
-span .font-semibold
-li .dd-item .flex .gap-2 .items-center
-svg .[:where(&amp;)]:size-6 .shrink-0 .size-5 .text-ui-muted
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+tr .dd-item
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20 .w-8
+svg .[:where(&amp;)]:size-5 .shrink-0
 path
-span .font-semibold
-li .dd-item .flex .gap-2 .items-center
-svg .[:where(&amp;)]:size-6 .shrink-0 .size-5 .text-ui-muted
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+tr .dd-item
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20 .w-8
+svg .[:where(&amp;)]:size-5 .shrink-0
 path
-span .font-semibold
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
 
 === elements-forms ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -4170,7 +4216,10 @@ strong
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -4603,7 +4652,10 @@ strong
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -4731,7 +4783,10 @@ code .text-base
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -4764,7 +4819,10 @@ span .dot
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -4877,47 +4935,63 @@ path .opacity-75
 svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-4 .transition-opacity
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-ul .*:px-4 .*:py-2.5 .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:divide-white/10 .dark:shadow-none .divide-y .divide-zinc-900/10 .overflow-hidden .rounded-xl .shadow-xs .text-sm
-li .flex .gap-3 .items-center
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
+div .block .overflow-auto .relative
+table .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .isolate
+thead
+tr
+th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+div .flex
+th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+div .flex
+th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+div .flex
+tbody
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
-span .font-semibold
-div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
-label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .kl-name
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+label
+span .sr-only
 div .block .kl-note .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
-li .flex .gap-3 .items-center
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
-span .font-semibold
-div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
-label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .kl-name
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+label
+span .sr-only
 div .block .kl-note .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
-li .flex .gap-3 .items-center
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
-span .font-semibold
-div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
-label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .kl-name
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+label
+span .sr-only
 div .block .kl-note .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
-li .flex .gap-3 .items-center
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
-span .font-semibold
-div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
-label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .kl-name
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+label
+span .sr-only
 div .block .kl-note .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
-li .flex .gap-3 .items-center
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 div .bg-zinc-400/15 .dark:bg-zinc-400/40 .dark:text-zinc-200 .font-medium .inline-flex .items-center .px-2 .py-1 .rounded-md .text-sm .text-zinc-700 .whitespace-nowrap
-span .font-semibold
-div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
-label .cursor-default .dark:text-white .font-medium .inline-flex .items-center .text-sm .text-zinc-800
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium .kl-name
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+label
+span .sr-only
 div .block .kl-note .relative .w-full
 input .appearance-none .bg-white .block .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .dark:disabled:placeholder:text-zinc-500 .dark:disabled:text-zinc-400 .dark:shadow-none .dark:text-zinc-300 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:placeholder:text-zinc-400/70 .disabled:shadow-none .disabled:text-zinc-500 .h-10 .leading-[1.375rem] .pe-3 .placeholder:text-zinc-400 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .text-zinc-700 .w-full
-div .dark:text-red-400 .font-medium .hidden .mt-3 .text-red-500 .text-sm
 
 === lifecycle-cycle ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -4958,9 +5032,9 @@ path .opacity-75
 svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-4 .transition-opacity
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-p .italic .mb-0 .text-ui-muted
-h3 .font-semibold .mt-4 .text-base .text-sm .text-ui-muted .uppercase
-p .mb-0 .text-sm .text-ui-muted
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
+h3 .dark:text-white .font-medium .mb-2 .mt-4 .text-sm .text-zinc-800
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .text-sm .text-zinc-500
 
 === lifecycle-hooks ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -4993,26 +5067,35 @@ path .opacity-75
 svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-4 .transition-opacity
 path
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-h3 .font-semibold .text-base .text-sm .text-ui-muted .uppercase
-ol .*:px-4 .*:py-2.5 .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:divide-white/10 .dark:shadow-none .divide-y .divide-zinc-900/10 .list-decimal .list-inside .overflow-hidden .rounded-xl .shadow-xs .text-sm
-li
-code .text-sm
-span .ms-2 .text-ui-muted
-li
-code .text-sm
-span .ms-2 .text-ui-muted
-li
-code .text-sm
-span .ms-2 .text-ui-muted
-li
-code .text-sm
-span .ms-2 .text-ui-muted
-li
-code .text-sm
-span .ms-2 .text-ui-muted
-li
-code .text-sm
-span .ms-2 .text-ui-muted
+h3 .dark:text-white .font-medium .mb-2 .text-sm .text-zinc-800
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
+div .block .overflow-auto .relative
+table .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .isolate
+thead
+tr
+th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+div .flex
+th .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-start .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .border-b .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+div .flex
+tbody
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+tr
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-white .dark:border-white/20 .font-medium
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
 
 === localization-formats ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -5363,7 +5446,10 @@ td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -5461,7 +5547,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -5537,7 +5626,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -5623,7 +5715,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -5949,7 +6044,7 @@ div .bg-ui-bg .border-t .border-ui-line .flex .flex-col .p-4 .sample-result-col
 div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-ui-brand-ink .tracking-[0.12em] .uppercase
 span .bg-ui-brand .motion-safe:animate-pulse .rounded-full .sample-dot .size-2
 div .flex-1 .sample-result-body
-div .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .ring-2 .ring-ui-brand .rounded-xl .shadow-xs
+p .[:where(&amp;)]:font-normal .dark:text-white/70 .ring-2 .ring-ui-brand .rounded-lg .text-sm .text-zinc-500
 
 === query-parcels ===
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
@@ -5957,7 +6052,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -6002,58 +6100,65 @@ circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 span .text-sm .text-ui-muted
-ul .*:px-4 .*:py-2.5 .bg-white .border .border-zinc-900/10 .dark:bg-white/10 .dark:border-white/10 .dark:divide-white/10 .dark:shadow-none .divide-y .divide-zinc-900/10 .overflow-hidden .rounded-xl .shadow-xs .text-sm
-li .flex .gap-2 .items-center .query-row
-span
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-ship .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+div .*:data-ui-pagination:shrink-0 .flex .flex-col
+div .block .overflow-auto .relative
+table .[:where(&amp;)]:min-w-full .[:where(&amp;)]:table-fixed .[:where(&amp;)]:text-zinc-800 .[:where(&amp;)]:whitespace-nowrap .border-separate .border-spacing-0 .isolate
+tbody
+tr .query-row
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-end .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-ship .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-pick .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-pick .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-li .flex .gap-2 .items-center .query-row
-span
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-ship .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+tr .query-row
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-end .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-ship .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-pick .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-pick .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-li .flex .gap-2 .items-center .query-row
-span
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-ship .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+tr .query-row
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-end .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-ship .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-pick .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-pick .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-li .flex .gap-2 .items-center .query-row
-span
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-ship .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+tr .query-row
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+td .[:where(&amp;)]:py-3 .[:where(&amp;)]:text-end .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .[:where(&amp;:not(:first-child))]:ps-3 .[:where(&amp;:not(:last-child))]:pe-3 .[:where([data-ui-table-bleed]_&amp;:first-child)]:ps-[var(--ui-bleed,1.5rem)] .[:where([data-ui-table-bleed]_&amp;:last-child)]:pe-[var(--ui-bleed,1.5rem)] .[[data-ui-row]:not(:first-child)&gt;&amp;]:border-t .border-zinc-800/10 .dark:[:where(&amp;)]:text-zinc-300 .dark:border-white/20
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-ship .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
 path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
-button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-10 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-4 .query-pick .relative .rounded-lg .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
+button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-zinc-700 .dark:border-b-zinc-600 .dark:border-zinc-600 .dark:hover:bg-zinc-600/75 .dark:hover:border-b-zinc-600 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-75 .disabled:pointer-events-none .font-medium .gap-2 .h-8 .hover:bg-zinc-50 .hover:border-b-zinc-200 .in-data-ui-button-group:first:rounded-s-md .in-data-ui-button-group:last:rounded-e-md .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .inline-flex .items-center .justify-center .px-3 .query-pick .relative .rounded-md .shadow-xs .text-sm .text-zinc-800 .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
 svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
 circle .opacity-25
@@ -6149,7 +6254,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -6201,7 +6309,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -6581,7 +6692,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -6625,7 +6739,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -6732,7 +6849,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7388,7 +7508,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7525,7 +7648,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7568,7 +7694,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7615,7 +7744,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7659,7 +7791,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7712,7 +7847,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7754,7 +7892,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7865,7 +8006,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7915,7 +8059,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -7958,7 +8105,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -8080,7 +8230,10 @@ span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 div .bg-ui-bg .border .border-ui-line .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap
@@ -8742,7 +8895,10 @@ div .bg-ui-bg .border-b .border-ui-line .font-medium .px-5 .py-3
 p .mb-0 .text-sm .text-ui-muted
 div .min-w-0 .relative .sample-code-col
 div .bg-ui-well .border-b .border-ui-line .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
-div .min-w-0 .overflow-x-auto
+div .min-w-0
+div .relative
+div .flex .overflow-auto .relative .ui-tabs-fade
+div .min-w-full .shrink-0
 div .bg-zinc-800/5 .cursor-default .dark:bg-white/10 .h-8.5 .inline-flex .p-[3px] .rounded-lg .sample-tabs
 input
 button .dark:data-selected:bg-white/20 .dark:data-selected:text-white .dark:disabled:opacity-75 .dark:hover:text-white .dark:text-white/70 .data-selected:bg-white .data-selected:shadow-xs .data-selected:text-zinc-800 .disabled:opacity-50 .disabled:pointer-events-none .flex .flex-1 .font-medium .font-mono .gap-2 .hover:text-zinc-800 .items-center .justify-center .px-3 .rounded-md .sample-tab .text-sm .text-zinc-600 .whitespace-nowrap

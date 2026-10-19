@@ -37,7 +37,8 @@ public sealed partial class CodeSample : Component
     private (string File, string Source, ILanguage? Language, string CodeClass) Pane(int index)
     {
         var file = Files[index];
-        var source = EmbeddedSource.Read(file);
+        // A file's first line is its first line of code, not the blank one under a stripped header.
+        var source = EmbeddedSource.Read(file).TrimStart('\r', '\n');
         var ext = Path.GetExtension(file).ToLowerInvariant();
         var codeClass = ext switch
         {
@@ -77,9 +78,12 @@ public sealed partial class CodeSample : Component
     {
         Component files = Files.Count == 1
             ? Span.Class("sample-code-label truncate font-mono text-xs text-ui-muted")[Files[0]]
-            // The row scrolls sideways rather than wrapping: a second row of tabs on a phone is a second header.
-            : Div.Class("min-w-0 overflow-x-auto")[
+            // Flux's scrollable row, faded at the edge it continues past: a second row of tabs on a phone is a
+            // second header.
+            : Div.Class("min-w-0")[
                 Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)
+                    .Scrollable()
+                    .ScrollableFade()
                     .Class("sample-tabs")
                     .Value(TabName(_active))
                     .OnChange(name => _active = int.Parse(name, CultureInfo.InvariantCulture))[

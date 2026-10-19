@@ -23,13 +23,13 @@ public sealed partial class LifecycleCycleDemo : Component
             ],
             _cycleMounted
                 ? LifecycleCycleProbe.InstanceId(_nextCycleId).Log(AppendCycleLog)
-                : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
-            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
+                : Ui.Text["Probe not mounted."],
+            Ui.Heading.Level(3).Class("mt-4 mb-2")["Log"],
             _cycleLog.Count == 0
-                ? P.Class("text-ui-muted text-sm mb-0")["Empty — mount and unmount the probe."]
-                : Ol.Class(DemoList.Numbered)
-                    .Id("lifecycle-cycle-log")[
-                    _cycleLog.Select((l, i) => Li.Key(i)[Code.Class("text-sm")[l]]).ToArray()]
+                ? Ui.Text["Empty — mount and unmount the probe."]
+                : Div.Id("lifecycle-cycle-log")[
+                    Ui.Card.Divided.Sm[_cycleLog.Select((l, i) => Ui.CardBody.Key(i)[Ui.Text[l]]).ToArray()]
+                ]
         ];
 
     private void MountCycle()

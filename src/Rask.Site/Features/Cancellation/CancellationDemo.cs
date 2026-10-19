@@ -20,12 +20,14 @@ public sealed partial class CancellationDemo : Component
             ],
             _mounted
                 ? CancellationProbe.InstanceId(_nextInstance).Log(AppendLog)
-                : P.Class("text-ui-muted italic mb-0")["Probe is not mounted."],
-            H3.Class("text-base font-semibold text-ui-muted uppercase text-sm mt-4")["Log"],
+                : Ui.Text["Probe is not mounted."],
+            Ui.Heading.Level(3).Class("mt-4 mb-2")["Log"],
             _log.Count == 0
-                ? P.Class("text-ui-muted text-sm mb-0")["Mount and unmount the probe to populate this log."]
-                : Ol.Class($"cancel-log {DemoList.Numbered}").Id("cancel-log")[
-                    _log.Select(line => Li.Key(line)[Code.Class("text-sm")[line]])]
+                ? Ui.Text["Mount and unmount the probe to populate this log."]
+                // A divided card is Flux's list: one body per line, a hairline between them.
+                : Div.Id("cancel-log").Class("cancel-log")[
+                    Ui.Card.Divided.Sm[_log.Select(line => Ui.CardBody.Key(line)[Ui.Text[line]])]
+                ]
         ];
 
     private void MountProbe()

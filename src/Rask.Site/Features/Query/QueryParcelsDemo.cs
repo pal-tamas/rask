@@ -48,8 +48,8 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
                         _ => "fresh",
                     }]
             ],
-            Ul.Class(DemoList.Rows).Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[
-                parcels.Data is { } page ? page.Rows.Select(Row) : Enumerable.Range(0, ParcelStore.PageSize).Select(Placeholder)],
+            Ui.Table.Id("query-rows").Aria("busy", parcels.Data is null ? "true" : "false")[Ui.TableRows[
+                parcels.Data is { } page ? page.Rows.Select(Row) : Enumerable.Range(0, ParcelStore.PageSize).Select(Placeholder)]],
             Div.Class("flex flex-col gap-1")[
                 Strong["Picked parcel"],
                 P.Id("query-picked").Class("mb-0")[Picked.FetchStatus switch
@@ -78,23 +78,29 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
         var ship = QueryClient.Command<ShipParcel>(key: parcel.Id);
 
         var shipLabel = ship.IsPending ? "shipping…" : "Ship";
-        return Li.Key(parcel.Id).Class("query-row flex gap-2 items-center")[
-            Span[$"#{parcel.Id} {parcel.Recipient} — {parcel.Contents}"],
-            parcel.Shipped
-                ? Span.Class("query-shipped text-ui-ok-ink")["shipped"]
-                : Ui.Button.Class("query-ship").Disabled(ship.IsPending)
-                    .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[shipLabel],
-            Ui.Button.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
+        return Ui.TableRow.Key(parcel.Id).Class("query-row")[
+            Ui.TableCell[$"#{parcel.Id} {parcel.Recipient} — {parcel.Contents}"],
+            Ui.TableCell.End[
+                parcel.Shipped
+                    ? Ui.Badge.Sm.Color(Ui.Color.Green).Class("query-shipped")["shipped"]
+                    : Ui.Button.Sm.Class("query-ship").Disabled(ship.IsPending)
+                        .OnClick(async () => await ship.Send(new ShipParcel(parcel.Id)))[shipLabel],
+                " ",
+                Ui.Button.Sm.Class("query-pick").OnClick(() => _picked = parcel.Id)["Details"]
+            ]
         ];
     }
 
     // Until the first page arrives, a full page of rows shaped exactly like a waiting parcel's, so the list keeps its
     // height and its markup when the data lands. Only the text and data-loading change.
     private static Component Placeholder(int index) =>
-        Li.Key($"placeholder-{index}").Class("query-row flex gap-2 items-center").Data("loading", null)[
-            Span["loading…"],
-            Ui.Button.Class("query-ship").Disabled().Loading(false)["Ship"],
-            Ui.Button.Class("query-pick").Disabled().Loading(false)["Details"]
+        Ui.TableRow.Key($"placeholder-{index}").Class("query-row").Data("loading", null)[
+            Ui.TableCell["loading…"],
+            Ui.TableCell.End[
+                Ui.Button.Sm.Class("query-ship").Disabled().Loading(false)["Ship"],
+                " ",
+                Ui.Button.Sm.Class("query-pick").Disabled().Loading(false)["Details"]
+            ]
         ];
 
     private static void GoTo(int page)

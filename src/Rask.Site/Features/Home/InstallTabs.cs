@@ -48,7 +48,7 @@ public sealed partial class InstallTabs : Component
         ];
 
     /// <summary>
-    ///     A terminal, drawn as a code block on Flux's docs is: dark, rounded, monospace.
+    ///     A terminal: Flux's card, filled dark, around one line of code per command.
     /// </summary>
     /// <remarks>
     ///     <para>
@@ -67,11 +67,11 @@ public sealed partial class InstallTabs : Component
     ///     </para>
     /// </remarks>
     private Component Terminal() =>
-        Div.Class("term overflow-x-auto rounded-xl bg-zinc-900 py-4 text-left font-mono text-sm leading-7 text-zinc-100 shadow-xs ring-1 ring-zinc-900/10 dark:bg-zinc-800 dark:ring-white/10")[
+        Ui.Card.Filled.Class("term overflow-x-auto bg-zinc-900 text-left font-mono text-sm leading-7 text-zinc-100 dark:bg-zinc-800")[
             (string.Equals(_template, "wasm", StringComparison.Ordinal) ? WasmLines : ServerLines).Select((line, index) =>
                 Pre
                     .Key(index)
-                    .Class("m-0 pe-5 ps-4 before:inline-block before:w-9 before:text-zinc-500 before:content-[attr(data-prefix)]")
+                    .Class("m-0 before:inline-block before:w-9 before:text-zinc-500 before:content-[attr(data-prefix)]")
                     .Attributes(("data-prefix", line.Prefix))[Code[line.Text]])
         ];
 

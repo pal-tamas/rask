@@ -38,7 +38,10 @@ public sealed partial class KeyedListsReorderDemo : Component
                     .Disabled(_items.Count == 0)
                     .OnClick(RemoveTop)["Remove top"]
             ],
-            Ul.Class(DemoList.Rows).Id("kl-list")[BuildRows()]
+            Ui.Table.Id("kl-list")[
+                Ui.TableColumns[Ui.TableColumn["#"], Ui.TableColumn["Fruit"], Ui.TableColumn["Note"]],
+                Ui.TableRows[BuildRows()]
+            ]
         ];
 
     private List<Component> BuildRows()
@@ -51,8 +54,8 @@ public sealed partial class KeyedListsReorderDemo : Component
             // reconciliation; RASK022 would otherwise flag it.
 #pragma warning disable RASK022
             rows.Add(_useKeys
-                ? Li.Key(f.Id).Class("flex items-center gap-3")[Row(f, i)]
-                : Li.Class("flex items-center gap-3")[Row(f, i)]);
+                ? Ui.TableRow.Key(f.Id)[Row(f, i)]
+                : Ui.TableRow[Row(f, i)]);
 #pragma warning restore RASK022
         }
 
@@ -61,11 +64,17 @@ public sealed partial class KeyedListsReorderDemo : Component
 
     private static List<Component> Row(Fruit f, int index) =>
     [
-        Ui.Badge[(index + 1).ToString(CultureInfo.InvariantCulture)],
-        Span.Class("font-semibold").Style("min-width: 7rem;")[f.Name],
-        Ui.Input.Of<string>().Label("type here, then reorder…")
-            .Type(InputType.Text)
-            .Placeholder("type here, then reorder…").Class("kl-note")
+        Ui.TableCell[Ui.Badge[(index + 1).ToString(CultureInfo.InvariantCulture)]],
+        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("kl-name")[f.Name],
+        // The column says "Note" to the eye; the label around the field says it to a screen reader.
+        Ui.TableCell[
+            Label[
+                Span.Class("sr-only")[$"Note for {f.Name}"],
+                Ui.Input.Of<string>()
+                    .Type(InputType.Text)
+                    .Placeholder("type here, then reorder…").Class("kl-note")
+            ]
+        ]
     ];
 
     private void Rotate()

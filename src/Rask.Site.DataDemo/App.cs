@@ -125,7 +125,7 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         Section.Aria("label", "Your notes")[
             H2["Your notes"],
             notes.Data is not { } rows
-                ? Span.Role("status").Class("inline-flex items-center gap-2")[
+                ? Ui.Text.Role("status").Class("inline-flex items-center gap-2")[
                     Ui.Icon.Name(Ui.IconName.Loading).Variant(Ui.IconVariant.Mini), "Opening the database…"]
                 : Ul.Id("notes").Class("notes-list")[rows.Select(n => Li.Key(n.Id).Class("note")[
                     Strong.Class("note-title")[n.Title],
