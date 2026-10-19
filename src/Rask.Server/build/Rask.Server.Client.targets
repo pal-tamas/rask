@@ -253,6 +253,9 @@
       -->
       <_RaskClientLine Condition=" '$(RaskUiWriteFlags)' == 'true' OR '$(RaskUiWriteFlags)' == 'false' "
                        Include="    &lt;RaskUiWriteFlags&gt;$(RaskUiWriteFlags)&lt;/RaskUiWriteFlags&gt;"/>
+      <!-- The kit's typeface (wwwroot/fonts/inter-*.woff2) crosses for the editor's reason. -->
+      <_RaskClientLine Condition=" '$(RaskUiWriteFonts)' == 'false' AND '$(UsingMicrosoftNETSdkWeb)' == 'true' "
+                       Include="    &lt;RaskUiWriteFonts&gt;false&lt;/RaskUiWriteFonts&gt;"/>
       <_RaskClientLine Include="  &lt;/PropertyGroup&gt;"/>
       <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
       <_RaskClientLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>

@@ -612,4 +612,81 @@
           SkipUnchangedFiles="true"/>
   </Target>
 
+  <!--
+    THE KIT'S TYPEFACE, for every app that references the kit, as the editor's engine is.
+
+    The kit is drawn in Inter — Flux's face, and the one UiChartInter measures a chart's labels with — and its
+    theme names it first in its default sans (font-sans, Styles/ui.css), which an app's preflight and the kit's own document
+    reset both read. A family the page cannot load is skipped for the next one in the stack, so without the
+    files every app drew in the system face and every chart label was measured for a font it was not painted
+    in. Two woff2 files, Inter's variable face (every weight in one) cut at latin and latin-ext: the second is
+    not optional, it is where ő and ű are. A page fetches only the subset its text uses, and only once text
+    is drawn in the face.
+
+    ON BY DEFAULT, as the editor's engine is: an APP gets the files, a library does not.
+        <RaskUiWriteFonts>false</RaskUiWriteFonts>   an app that serves Inter itself, or draws in another face
+        <RaskUiWriteFonts>true</RaskUiWriteFonts>    a host that is not a Web SDK project (a test host on Kestrel)
+    The path is fixed (the @font-face rules in the kit's theme ask for /fonts/inter-latin.woff2): a sheet
+    cannot know where it is served from, so the url is absolute. The folder is SHARED — an app keeps its own
+    fonts in wwwroot/fonts too — so the files are named one by one, never the folder, and the notice the OFL
+    asks to travel with them is inter.LICENSE.txt rather than a LICENSE.txt an app may already have there.
+
+    NOT THE SERVER HALF OF A ONE-PROJECT WEBASSEMBLY APP ($(RaskClient)), for the editor's reason (NETSDK1152):
+    the browser half owns the files, and Rask.Server.Client.targets hands it the switch.
+  -->
+  <PropertyGroup>
+    <RaskUiWriteFonts Condition="'$(RaskUiWriteFonts)' == '' AND ('$(UsingMicrosoftNETSdkWeb)' == 'true' OR '$(UsingMicrosoftNETSdkWebAssembly)' == 'true')">true</RaskUiWriteFonts>
+    <RaskUiWriteFonts Condition="'$(RaskUiWriteFonts)' == ''">false</RaskUiWriteFonts>
+    <!-- From the package: fonts/ at its root, one folder up from these targets and from their twin in
+         buildTransitive/, as the flags are. In this repository: the kit's own Fonts folder. -->
+    <_RaskUiFontsSource>$(MSBuildThisFileDirectory)../fonts</_RaskUiFontsSource>
+    <_RaskUiFontsSource Condition="!Exists('$(_RaskUiFontsSource)/LICENSE.txt')">$(MSBuildThisFileDirectory)../Fonts</_RaskUiFontsSource>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RaskUiWriteFonts)' == 'true' AND '$(RaskClient)' != 'true'">
+    <!-- Not ../fonts: on a case-insensitive disk that is this repository's ../Fonts too, and every Web SDK
+         project here would count as a consumer. The kit's sheet beside the targets is in the package alone. -->
+    <_RaskUiFontsKit Include="package" Condition="Exists('$(MSBuildThisFileDirectory)rask-ui.kit.css')"/>
+    <_RaskUiFontsKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Ui'))"/>
+    <_RaskUiFontsKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Server'))"/>
+    <_RaskUiFontsKit Include="@(ProjectReference->WithMetadataValue('Filename', 'Rask.Wasm'))"/>
+  </ItemGroup>
+
+  <!-- The three files: what each is called where it lands, and where it comes from. -->
+  <ItemGroup>
+    <_RaskUiFontFile Include="wwwroot/fonts/inter-latin.woff2" Source="$(_RaskUiFontsSource)/inter-latin.woff2"/>
+    <_RaskUiFontFile Include="wwwroot/fonts/inter-latin-ext.woff2" Source="$(_RaskUiFontsSource)/inter-latin-ext.woff2"/>
+    <_RaskUiFontFile Include="wwwroot/fonts/inter.LICENSE.txt" Source="$(_RaskUiFontsSource)/LICENSE.txt"/>
+  </ItemGroup>
+
+  <!-- Declared before they exist, so a FIRST build serves them: see the stylesheet's own note above (#1105).
+       One by one, since the folder may already exist with an app's own fonts in it. -->
+  <ItemGroup Condition=" '@(_RaskUiFontsKit)' != '' ">
+    <Content Include="wwwroot/fonts/inter-latin.woff2" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/fonts/inter-latin.woff2')" Pack="false"/>
+    <Content Include="wwwroot/fonts/inter-latin-ext.woff2" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/fonts/inter-latin-ext.woff2')" Pack="false"/>
+    <Content Include="wwwroot/fonts/inter.LICENSE.txt" Condition="!Exists('$(MSBuildProjectDirectory)/wwwroot/fonts/inter.LICENSE.txt')" Pack="false"/>
+  </ItemGroup>
+
+  <!-- Copies an earlier build left in the server half, before it had a browser half: the collision again. -->
+  <ItemGroup Condition="'$(RaskClient)' == 'true'">
+    <Content Remove="@(_RaskUiFontFile)"/>
+  </ItemGroup>
+
+  <Target Name="RaskUiLeaveFontsToClient"
+          Condition="'$(RaskClient)' == 'true'"
+          BeforeTargets="BeforeBuild">
+    <Delete Files="@(_RaskUiFontFile->'$(MSBuildProjectDirectory)/%(Identity)')"/>
+  </Target>
+
+  <Target Name="RaskUiWriteFonts"
+          Condition="'@(_RaskUiFontsKit)' != ''"
+          BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('%(_RaskUiFontFile.Source)')"
+           Text="Rask.Ui: the kit's typeface file %(_RaskUiFontFile.Source) could not be found, so %(_RaskUiFontFile.Identity) cannot be written and the kit would draw in the system face. From the package it ships as fonts/ at its root; in this repository it is in src/Rask.Ui/Fonts. An app that serves its own face can say &lt;RaskUiWriteFonts&gt;false&lt;/RaskUiWriteFonts&gt;."/>
+    <MakeDir Directories="$(MSBuildProjectDirectory)/wwwroot/fonts"/>
+    <Copy SourceFiles="@(_RaskUiFontFile->'%(Source)')"
+          DestinationFiles="@(_RaskUiFontFile->'$(MSBuildProjectDirectory)/%(Identity)')"
+          SkipUnchangedFiles="true"/>
+  </Target>
+
 </Project>

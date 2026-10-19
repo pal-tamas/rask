@@ -379,6 +379,57 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Contains("<RaskUiPhoneEngine>false</RaskUiPhoneEngine>", optedOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_server_half_leaves_the_kits_typeface_to_its_browser_app()
+    {
+        // As with the editor's engine: both halves writing wwwroot/fonts/inter-latin.woff2 is NETSDK1152.
+        WriteProject(clientSwitch: null, WebSdk);
+
+        var result = await Run("-t:RaskUiWriteFonts;RaskUiLeaveFontsToClient", "-v:minimal");
+        var content = Slashes(await Evaluate("-getItem:Content"));
+
+        Assert.True(result.ExitCode == 0, result.Output);
+        Assert.False(File.Exists(Path.Combine(_dir, InterLatin)), "the server half wrote the typeface too");
+        Assert.DoesNotContain("wwwroot/fonts/inter", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_server_app_with_no_browser_half_writes_the_kits_typeface_unless_it_says_no()
+    {
+        // The folder is shared: a font the app keeps there itself must survive the kit's copy.
+        Write("wwwroot/fonts/mine.woff2", "mine");
+        WriteProject(clientSwitch: false, WebSdk, fonts: false);
+        var refused = await Run("-t:RaskUiWriteFonts", "-v:minimal");
+        var before = File.Exists(Path.Combine(_dir, InterLatin));
+
+        WriteProject(clientSwitch: false, WebSdk);
+        var content = Slashes(await Evaluate("-getItem:Content"));
+        var asked = await Run("-t:RaskUiWriteFonts", "-v:minimal");
+
+        Assert.True(refused.ExitCode == 0, refused.Output);
+        Assert.False(before, "the typeface was written for an app that said it serves its own");
+        Assert.True(asked.ExitCode == 0, asked.Output);
+        // Declared before they exist, so the first build already serves them, though the folder already existed.
+        Assert.Contains(InterLatin, content, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(_dir, InterLatin)), asked.Output);
+        Assert.True(File.Exists(Path.Combine(_dir, "wwwroot/fonts/inter-latin-ext.woff2")), "latin-ext is where ő and ű are");
+        Assert.Contains("SIL Open Font License", File.ReadAllText(Path.Combine(_dir, "wwwroot/fonts/inter.LICENSE.txt")), StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(_dir, "wwwroot/fonts/mine.woff2")));
+    }
+
+    [Fact]
+    public async Task The_browser_app_writes_the_kits_typeface_unless_the_app_said_it_serves_its_own()
+    {
+        WriteProject(clientSwitch: null, WebSdk);
+        var unsaid = await Generate();
+
+        WriteProject(clientSwitch: null, WebSdk, fonts: false);
+        var optedOut = await Generate();
+
+        Assert.DoesNotContain("RaskUiWriteFonts", unsaid, StringComparison.Ordinal);
+        Assert.Contains("<RaskUiWriteFonts>false</RaskUiWriteFonts>", optedOut, StringComparison.Ordinal);
+    }
+
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
     private static partial Regex CompileGlob();
 
@@ -387,6 +438,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     private const string EditorNotices = "wwwroot/js/rask-ui-editor.LICENSES.txt";
     private const string Flags = "wwwroot/flags";
     private const string PhoneEngine = "wwwroot/js/rask-ui-phone.js";
+    private const string InterLatin = "wwwroot/fonts/inter-latin.woff2";
 
     private void Write(string relative, string content)
     {
@@ -397,7 +449,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
 
     // The kit's targets are imported as its package would import them, and the kit is "referenced" by name
     // only: nothing here compiles, so the reference is never resolved.
-    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool? flags = null, bool? phoneEngine = null) =>
+    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool? flags = null, bool? phoneEngine = null, bool? fonts = null) =>
         Write("App.csproj", $"""
             <Project Sdk="{sdk}">
               <PropertyGroup>
@@ -408,6 +460,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
                 {(editorEngine is { } engine ? $"<RaskUiEditorEngine>{engine.ToString().ToLowerInvariant()}</RaskUiEditorEngine>" : "")}
                 {(flags is { } drawn ? $"<RaskUiWriteFlags>{drawn.ToString().ToLowerInvariant()}</RaskUiWriteFlags>" : "")}
                 {(phoneEngine is { } phone ? $"<RaskUiPhoneEngine>{phone.ToString().ToLowerInvariant()}</RaskUiPhoneEngine>" : "")}
+                {(fonts is { } face ? $"<RaskUiWriteFonts>{face.ToString().ToLowerInvariant()}</RaskUiWriteFonts>" : "")}
               </PropertyGroup>
               <ItemGroup>
                 <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>

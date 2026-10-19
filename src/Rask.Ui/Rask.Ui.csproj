@@ -296,4 +296,18 @@
     <None Include="Flags\LICENSE.txt" Pack="true" PackagePath="rask-ui-flags.LICENSE.txt" Visible="false"/>
   </ItemGroup>
 
+  <!--
+    THE KIT'S TYPEFACE: Fonts/*.woff2, Inter's variable face subset to latin and latin-ext (OFL 1.1) — the two
+    files the docs site already vendors. The kit is drawn in Inter: UiChartInter lays a chart's labels out
+    with Inter's own metrics, so an app that took the kit and drew in the system face got labels measured for
+    one font and painted in another. Packed and NOT embedded, for the flags' reason: 130 KB in an assembly a
+    browser-WASM app downloads whole, where a page served the files fetches only the subset its text needs.
+    ONCE, at the package's root as fonts/, for the flags' reason as well: they are data both copies of the
+    targets read. The OFL asks that its text travel with every copy — in the folder, and at the root.
+  -->
+  <ItemGroup>
+    <None Include="Fonts\*.woff2;Fonts\LICENSE.txt" Pack="true" PackagePath="fonts" Visible="false"/>
+    <None Include="Fonts\LICENSE.txt" Pack="true" PackagePath="rask-ui-fonts.LICENSE.txt" Visible="false"/>
+  </ItemGroup>
+
 </Project>

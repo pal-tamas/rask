@@ -225,6 +225,30 @@ the text on the fill — with a second set under `.dark`:
 (Flux's names are `--color-accent*`; the kit's carry `fx-` until daisyUI, which defines `--color-accent`
 with another meaning, is gone.)
 
+### The typeface
+
+The kit is drawn in [Inter](https://github.com/rsms/inter), as Flux is, and `Ui.Chart` lays its labels out
+with Inter's metrics. Its theme names `"Inter"` first in `--font-sans` — the face Tailwind's preflight, the
+kit's own document reset and the `font-sans` utility all read — with the system stack after it, and its
+`@font-face` rules serve the variable face (every weight) from `/fonts/inter-latin.woff2` and, for text
+outside latin such as Hungarian's ő and ű, `/fonts/inter-latin-ext.woff2`. **Every app's build copies the
+two files into `wwwroot/fonts`**, with the OFL notice as `wwwroot/fonts/inter.LICENSE.txt`; in a
+one-project WebAssembly app the browser half writes them, as it does the editor's engine. An app that
+draws in another face re-points the token in its own `@theme`, and one that serves Inter itself turns the
+copy off:
+
+```xml
+<PropertyGroup>
+  <RaskUiWriteFonts>false</RaskUiWriteFonts>   <!-- true: a host that is not a Web SDK project -->
+</PropertyGroup>
+```
+
+```css
+@theme {
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+```
+
 ### While daisyUI still draws part of the kit
 
 The components not yet rebuilt on Flux's model are daisyUI's, and daisyUI reads `data-theme`. Until the
