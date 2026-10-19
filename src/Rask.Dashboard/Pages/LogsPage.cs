@@ -207,9 +207,11 @@ public sealed partial class LogsPage(
                 LevelPill(LogLevel.Warning, "Warning+"),
                 LevelPill(LogLevel.Error, "Error+")
             ],
-            CategoryFilter(),
+            Div.Class("sm:w-64")[CategoryFilter()],
             IsHistory
-                ? DashboardSearch.Placeholder("Search message or exception").Value(Query).OnChange(SearchAsync)
+                ? Div.Class("min-w-0 flex-1 sm:min-w-64")[
+                    DashboardSearch.Placeholder("Search message or exception").Value(Query).OnChange(SearchAsync)
+                ]
                 : null
         ];
 
@@ -336,7 +338,7 @@ public sealed partial class LogsPage(
                         ],
                         Ui.TableCell.Class("align-top")[LevelBadge(r.Level)],
                         Ui.TableCell.Class("truncate align-top font-mono").Title(r.Category)[r.Category],
-                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("align-top whitespace-normal break-words")[MessageCell(r)]
+                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("align-top whitespace-normal")[MessageCell(r)]
                     ])
                 ]
             ];
@@ -346,7 +348,7 @@ public sealed partial class LogsPage(
     // so it renders muted beneath the message rather than in a separate view.
     private static Component MessageCell(LogRow row) =>
         Div.Class("grid gap-2")[
-            Div[row.Message],
+            Div.Class("wrap-anywhere")[row.Message],
             row.Exception is { } ex ? DashboardCode.Content(ex).Danger(true) : null,
             ScopeChips(row.Scopes)
         ];

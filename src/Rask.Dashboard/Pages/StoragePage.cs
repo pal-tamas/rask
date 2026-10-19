@@ -157,7 +157,7 @@ public sealed partial class StoragePage(
                 Ui.TableColumn.Class("w-40")["Type"],
                 Ui.TableColumn.Class("w-24")["Size"],
                 Ui.TableColumn.Class("w-24")["Provider"],
-                Ui.TableColumn.Class("w-72")["Id"],
+                Ui.TableColumn.Class("w-48")["Id"],
                 Ui.TableColumn.Class("w-28")["Saved"]
             ],
             Ui.TableRows[

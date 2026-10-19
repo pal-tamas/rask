@@ -49,6 +49,20 @@ public sealed partial class DashboardStylesheetTests : global::Rask.Core.RaskMar
     }
 
     [Fact]
+    public void The_consoles_sheet_grounds_a_dark_document_on_the_document_element_itself()
+    {
+        // `dark` and the document attribute sit on the one <html>. A rule that wanted `.dark` ABOVE the document
+        // matched nothing, and the console went dark with its page left white under white text.
+        var css = DashboardStylesheet.Css;
+
+        var ground = Regex.Match(css, @":where\(\[" + UiStylesheet.DocumentAttribute + @"\]\.dark\) body\{([^}]*)\}");
+
+        Assert.True(ground.Success, "no dark ground keyed on the document element.");
+        Assert.Contains("--color-zinc-800", ground.Groups[1].Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(") :where([" + UiStylesheet.DocumentAttribute + "]) body", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_consoles_sheet_ranks_utilities_above_the_kits_rules_and_its_corrections_above_both()
     {
         // The order statement in Styles/dashboard.css, read back out of the shipped bytes: the same one the

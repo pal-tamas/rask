@@ -107,21 +107,19 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
 
         // Flux's link card: the link is around the card, not a prop of it.
         return NavLink.Key(panel.Slug).Href(Routes.QueuePage(panel.Slug)).Class("block")[Ui.Card[
-            Ui.CardHeader[
+            Ui.CardHeader.Class("flex items-center justify-between gap-2")[
                 Ui.CardHeading.Level(2)[panel.Title],
-                Ui.CardSubheading[Ui.Badge.Sm.Color(failing ? Ui.Color.Red : Ui.Color.Green)[
-                    failing ? $"{counts.Failed} failed" : "healthy"
-                ]]
+                Ui.Badge.Sm.Color(failing ? Ui.Color.Red : Ui.Color.Green)[failing ? $"{counts.Failed} failed" : "healthy"]
             ],
             Ui.CardBody[Div.Class("grid grid-cols-2 gap-4")[
                 DashboardMetric
-                    .Key("outstanding")
+                    .Key($"{panel.Slug}-outstanding")
                     .Label("Outstanding")
                     .Value(counts.Outstanding.ToString(CultureInfo.CurrentCulture))
                     .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
                     .Bare(true),
                 DashboardMetric
-                    .Key("failed")
+                    .Key($"{panel.Slug}-failed")
                     .Label("Failed")
                     .Value(counts.Failed.ToString(CultureInfo.CurrentCulture))
                     .Danger(failing)

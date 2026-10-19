@@ -158,7 +158,7 @@ public sealed partial class QueuePage(
         }
 
         return Ui.Table
-            .Class("w-full min-w-200")
+            .Class("w-full min-w-240")
             .AriaLabel($"{_panel!.Title}, {slice}")
             .Paginate(Ui.Pagination
                 .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })

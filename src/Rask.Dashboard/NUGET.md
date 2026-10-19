@@ -18,8 +18,8 @@ application's own database** — the tables are already there, so there is nothi
   `ILogger` pipeline (the failures that leave no row anywhere — Litestream exiting, an unregistered job
   type, handler faults); SQLite pragmas read live, database size, and the recurring-job schedule joined to
   when each job last actually fired.
-- **Nothing to serve.** Drawn entirely with `Rask.Ui` components, with the kit's stylesheet inlined — no
-  static asset, no script and no endpoint for your host to map.
+- **Nothing to serve.** Drawn entirely with Flux UI's components from `Rask.Ui`, light or dark as the operator's
+  system is, with its stylesheet inlined — no static asset and no endpoint for your host to map.
 - **Fail-closed by default.** See below — this matters more than any of the above.
 
 ## Use

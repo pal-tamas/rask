@@ -11,11 +11,11 @@
 // it and this signs in with an existing account. Either way the first account becomes the administrator,
 // which is what the console's policy wants.
 //
-// Shoots every page twice — 1280px and 390px — because the console is built mobile-first and the two
-// layouts are genuinely different markup paths (columns drop, the leader rules disappear, the sheet
-// becomes a bottom sheet). One width proves nothing about the other.
+// Shoots every page four times — 1440px and 390px, light and dark — because the two widths are different
+// layouts (the sidebar becomes a drawer, a table scrolls inside its own box) and dark is Flux's `.dark`,
+// taken from the browser's colour scheme. One of them proves nothing about the others.
 //
-// Usage (run from THIS directory so screenshots land in ./screenshots/):
+// Usage (run from THIS directory so screenshots land in ./screenshots/, or set RASK_SHOTS to put them elsewhere):
 //   dotnet run dashboard-driver.cs [baseUrl] [firstRunToken]
 //
 // SKILL.md has the whole recipe, including how to build the throwaway app against THIS working tree and
@@ -27,7 +27,9 @@ string baseUrl = args.Length > 0 ? args[0] : "http://localhost:5123";
 string? firstRunToken = args.Length > 1 ? args[1] : null;
 const string Email = "ops@example.com";
 const string Password = "Passw0rd!ops";
-string shotDir = Path.Combine(Directory.GetCurrentDirectory(), "screenshots");
+string shotDir = Environment.GetEnvironmentVariable("RASK_SHOTS") is { Length: > 0 } wanted
+    ? Path.GetFullPath(wanted)
+    : Path.Combine(Directory.GetCurrentDirectory(), "screenshots");
 Directory.CreateDirectory(shotDir);
 
 // The console's OWN markup, not the host app's auth chrome. The document attribute is the console's hook and
@@ -55,30 +57,38 @@ const int MinShotBytes = 1024;
     ("/_rask/queues/jobs", "ops-queue"),
     ("/_rask/cache", "ops-cache"),
     ("/_rask/storage", "ops-storage"),
+    ("/_rask/logs", "ops-logs-live"),
     ("/_rask/logs?view=history", "ops-logs"),
     ("/_rask/system", "ops-system"),
+    ("/_rask/no-such-panel", "ops-not-found"),
 ];
 
-(int w, int h, string tag)[] sizes = [(1280, 900, "desktop"), (390, 844, "mobile")];
+(int w, int h, string tag)[] sizes = [(1440, 900, "desktop"), (390, 844, "mobile")];
+
+// Flux's dark mode follows the reader's colour scheme until they choose one, so the browser's is the switch.
+(ColorScheme scheme, string tag)[] schemes = [(ColorScheme.Light, "light"), (ColorScheme.Dark, "dark")];
 
 var shots = new List<string>();
 
 using var pw = await Playwright.CreateAsync();
 await using var browser = await pw.Chromium.LaunchAsync(new() { Headless = true });
 
-foreach (var (w, h, tag) in sizes)
+var claimed = firstRunToken is null;
+foreach (var ((w, h, size), (scheme, look)) in sizes.SelectMany(size => schemes.Select(scheme => (size, scheme))))
 {
+    var tag = $"{size}-{look}";
     await using var ctx = await browser.NewContextAsync(new()
     {
         BaseURL = baseUrl,
         ViewportSize = new() { Width = w, Height = h },
+        ColorScheme = scheme,
     });
     var page = await ctx.NewPageAsync();
 
     // Claim the app on the first pass only: the account persists in the app's database, so registering
-    // twice would fail on the mobile pass with "that email is already taken".
-    var claim = firstRunToken is not null && tag == "desktop";
-    await SignInAsync(page, claim ? firstRunToken : null);
+    // twice would fail on every later pass with "that email is already taken".
+    await SignInAsync(page, claimed ? null : firstRunToken);
+    claimed = true;
 
     Console.WriteLine($"── {tag} ({w}x{h}) ────────────────────────────");
 
@@ -90,7 +100,8 @@ foreach (var (w, h, tag) in sizes)
         // rather than yielding a screenshot of the sign-in page.
         try
         {
-            await page.Locator(ConsoleNav).First.WaitForAsync(new() { Timeout = 15000 });
+            // Attached, not visible: on a phone the sections sit in the sidebar's closed drawer.
+            await page.Locator(ConsoleNav).First.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 15000 });
         }
         catch (TimeoutException)
         {
@@ -112,25 +123,25 @@ foreach (var (w, h, tag) in sizes)
         var overflow = await page.EvaluateAsync<bool>(
             "() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1");
 
-        // And the tables separately: they carry their own overflow-x as a backstop, so a column that
-        // failed to collapse hides its content behind an internal scrollbar while the document check
-        // above stays green.
-        var wideTables = await page.EvaluateAsync<int>(
+        // And the tables separately. A Flux table is held at a minimum width and scrolls inside its own box
+        // on a phone, which is by design — so this reports it rather than failing on it.
+        var scrolling = await page.EvaluateAsync<int>(
             "() => [...document.querySelectorAll('table')]"
             + ".filter(t => t.scrollWidth > t.parentElement.clientWidth + 1).length");
 
-        var flag = overflow ? "PAGE-OVERFLOW" : wideTables > 0 ? $"TABLE-WIDE({wideTables})" : "ok";
+        var flag = overflow ? "PAGE-OVERFLOW" : scrolling > 0 ? $"TABLE-SCROLLS({scrolling})" : "ok";
         Console.WriteLine($"  {flag,-15} {path,-28} {res!.Status} -> {name}-{tag}.png");
     }
 }
 
 // The run is only worth anything if it produced images. Anything short of the full set is a defect in the
 // driver or the console, and saying so beats a green exit over an empty directory.
-var expected = pages.Length * sizes.Length;
+var expected = pages.Length * sizes.Length * schemes.Length;
 if (shots.Count != expected)
 {
     throw new InvalidOperationException(
-        $"Expected {expected} screenshots ({pages.Length} pages x {sizes.Length} widths) but wrote {shots.Count}.");
+        $"Expected {expected} screenshots ({pages.Length} pages x {sizes.Length} widths x {schemes.Length} schemes) "
+        + $"but wrote {shots.Count}.");
 }
 
 Console.WriteLine($"\n{shots.Count} screenshots in {shotDir}");

@@ -56,8 +56,8 @@ own for `MapRaskServer<TApp>` to name.
 
 | Panel | Answers |
 | --- | --- |
-| **Overview** | Is anything wrong? One tile per queue, plus a banner the moment any dead letter exists. |
-| **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed, as a row of counts that is also the filter. Open a row for its last error and stored payload. |
+| **Overview** | Is anything wrong? One card per queue, plus a banner the moment any dead letter exists. |
+| **Queues** — outbox / jobs / mail | Due, delayed, **failed**, processed, as a navbar of counts that is also the filter. Open a row for its last error and stored payload. |
 | **Cache** | Keys, sizes, expiry, and how many are expired but not yet swept. |
 | **Storage** | At `/_rask/storage`, read-only: how many files and bytes [`Rask.Storage`](file-storage.md) holds, how many are public, usage per provider, and a searchable list of recent files — plus a notice when files are on disk, which no backup covers. |
 | **Logs** | A live tail of the `ILogger` pipeline — the failures that leave no row anywhere — plus a searchable **History** over the stored log when [`Rask.Logging`](logging.md) is installed. |
@@ -67,16 +67,15 @@ A panel appears **only when its battery is registered and its table is mapped**.
 nothing else gets a jobs panel and no empty placeholders — the nav is an inventory of what this deployment
 actually runs.
 
-The chrome is two rows: a bar with the console's **brand** and, on a queue, a **breadcrumb** saying which
-one, over a **navbar** saying which part of the console you are in — `Ui.Brand`, `Ui.Breadcrumbs` and
-`Ui.Navbar`, Flux UI's pieces from the kit. Every queue shares the one `Queues` item, and the breadcrumb's
-last step is a dropdown of the queues beside the one you are reading — so a deployment running all three
-does not spend half its navigation on them.
+The frame is Flux's sidebar layout: the sections down the side, and a header that, on a queue, carries a
+**breadcrumb** saying which one — `Ui.Sidebar`, `Ui.Header` and `Ui.Breadcrumbs`, Flux UI's pieces from the
+kit. Every queue shares the one `Queues` item, and the breadcrumb's last step is a dropdown of the queues
+beside the one you are reading — so a deployment running all three does not spend half its navigation on them.
 
-It is built mobile-first. Below `sm` every table stacks each row into labelled lines rather than scrolling
-sideways — a table you have to swipe has hidden the column you came for — and from `sm` up a secondary
-column waits until the table has room for it. A long list pages through a window of page numbers, so nothing
-on a phone is wider than the screen.
+Every list is a Flux table (`Ui.Table` with `Ui.Pagination` under it), with a width on every column but one, so a
+page or a filter that brings other rows moves no column, and a long value ends in an ellipsis with the whole of it
+in its tooltip. On a phone the sidebar slides over the page and a table scrolls inside its own box, so nothing is
+wider than the screen.
 
 ### Failed is the number that matters
 
@@ -266,35 +265,22 @@ a dashboard left open on a wall display is a real cost, not a free convenience.
 
 ## How it looks, and why you cannot change it
 
-The console is drawn with [the UI kit](ui-kit.md) and nothing else. Every page is `Rask.Ui` components,
-and the only stylesheet in its document is the console's own — the kit, compiled by the console's own
-Tailwind build the way [an app's is](tailwind.md#what-a-new-project-starts-with) (`Styles/dashboard.css`),
-embedded and inlined by the layout. It still writes no class strings: `DashboardIsKitOnlyTests` fails on
-any `.Class(…)`, `.Style(…)` or `UiStyles.` in the package. Where a page needs something the kit cannot
-draw, the kit grows a typed step instead: that is where `Ui.DataGrid`'s `ShowFrom`, `RowTone` and
-`PageHref` and `Ui.Empty` came from. (That is a rule of the house now rather than a limit of the build —
-a utility written in a console page would be compiled into that sheet. Before the console had a build of
-its own it inlined the kit's precompiled sheet, where such a class named a rule that existed nowhere.)
+The console is drawn with Flux UI's pieces from [the UI kit](ui-kit.md) and nothing else of the kit's: tables,
+cards, headings, badges, callouts, the navbar, the sidebar layout. `DashboardIsKitOnlyTests` reads the package's
+source and fails on any kit component that is not in Flux's catalogue. Its own layout — a grid of cards, the gap
+between two buttons, the box a payload scrolls in — is written in Tailwind beside them, and the only stylesheet in
+its document is the console's own: the kit, compiled by the console's own Tailwind build the way
+[an app's is](tailwind.md#what-a-new-project-starts-with) (`Styles/dashboard.css`), embedded and inlined by the
+layout.
 
 The console owns its whole document, so it needs a page reset the way any application does. That travels
 in the kit's sheet as well, keyed to the attribute a kit-only document writes on its `<html>`
 (`UiStylesheet.DocumentAttribute`), so an application that links the kit is untouched by it. The
 console's sheet imports Tailwind's theme and utilities and not its preflight.
 
-**The frame is Flux's sidebar layout** (`Ui.Sidebar`, `Ui.Header`, `Ui.Main`): the sections down the side —
-narrowing to a rail of icons on a desktop, sliding over the page on a phone — a header for the queue
-switcher and the docs link, and the page in what is left.
-
-**It is pinned to daisyUI's `light` theme, and that is not configurable.** The theme scope goes on
-`<html>` with an explicit `data-theme`, so the console ignores both the
-host application's theme and the reader's `prefers-color-scheme`. An operator surface is a set of contrast
-ratios checked against one ground; letting it follow the OS would move every one of them silently.
-
-It is not a hypothetical, either — it is what the console did before this was enforced. Its own
-palette was a fixed light one while its frame painted with daisyUI's, so on a machine set to dark mode
-the chrome and the cards went dark and every label on them stayed near-black: the queue titles on the
-overview measured **1.09:1**, with every class name in the markup correct and the whole unit suite
-green.
+**Dark mode is Flux's.** The layout's head carries `Ui.AppearanceScript`, which puts `dark` on `<html>` before
+the first paint from the operator's stored choice (`Rask.appearance`, kept per browser) or, until they make one,
+their system's. Every piece the console draws has its dark inks, so it reads the same in either.
 
 Your own pages are unaffected: the console is a mounted application with its own document, so its
 stylesheet, its reset and its theme reach nothing of yours. The same goes for its pages. A live page of
@@ -310,6 +296,6 @@ registered. A package that ships a mounted surface of its own marks its assembly
 ## Related
 
 - [Observability](observability.md) — logging categories, the `Rask.Server` meter, tracing, health checks.
-- [The UI kit](ui-kit.md) — the daisyUI components the console is drawn with, and the theme scope.
+- [The UI kit](ui-kit.md) — the Flux UI components the console is drawn with, and dark mode.
 - [Jobs](jobs.md) · [Outbox](outbox.md) · [Mail](mail.md) · [Cache](cache.md) · [File storage](file-storage.md) — the pillars it reads.
 - [SQLite](sqlite.md) — pragmas, continuous backup, and snapshots.
