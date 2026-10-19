@@ -26,6 +26,13 @@ public sealed class Silo : Aggregate<string, Model, Deletable, PerTenant>
         silo._gauges.AddRange(gauges.Select(Gauge.Labelled));
         return silo;
     }
+
+    public static Silo Fitted(string id, string gauge, string reading)
+    {
+        var silo = new Silo { Id = id, Name = id, Region = "north" };
+        silo._gauges.Add(Gauge.Reading(gauge, reading));
+        return silo;
+    }
 }
 
 public sealed class Gauge : Entity<string>
@@ -34,7 +41,11 @@ public sealed class Gauge : Entity<string>
 
     public string Label { get; private set; } = "";
 
+    public string? ReadingId { get; private set; }
+
     internal static Gauge Labelled(string id) => new() { Id = id, Label = id };
+
+    internal static Gauge Reading(string id, string reading) => new() { Id = id, Label = id, ReadingId = reading };
 }
 
 /// <summary>Grain moved between two silos, read off one gauge: ids only.</summary>
@@ -92,6 +103,7 @@ public sealed class ReverseDbContext(DbContextOptions<ReverseDbContext> options)
         {
             b.ToTable("Gauge", Schema);
             b.Property(g => g.Id).HasMaxLength(64);
+            b.Property(g => g.ReadingId).HasMaxLength(64);
         });
         modelBuilder.Entity<Transfer>(b =>
         {
@@ -240,12 +252,14 @@ internal static class ReverseNavigationScenario
                     .ToListAsync(ct), TestContext.Current.CancellationToken)));
 
                 Assert.Equal(["g1"], await Once(log, () => Gauge.Where(g => g.Transfers.Any()).Select(g => g.Label)));
+                Assert.Equal(["g1", "g2"], (await Gauge.Select(g => g.Label)).Order(StringComparer.Ordinal));
                 Assert.Equal(2, (await Grade.Select(g => g.Readings.Sum(r => r.Value))).Single());
             }
 
             using (Tenant.Use(Globex))
             {
                 Assert.Equal(100, (await Grade.Select(g => g.Readings.Sum(r => r.Value))).Single());
+                Assert.Equal(["gx"], await Gauge.Select(g => g.Label));
                 Assert.Equal(1, await Silo.Query((q, ct) => q.SelectMany(s => s.TransfersFrom).CountAsync(ct), TestContext.Current.CancellationToken));
             }
         }
@@ -255,8 +269,8 @@ internal static class ReverseNavigationScenario
         }
     }
 
-    // Acme: s1 -> s2 (30 l, through g1), s1 -> s3 (5 l), and s3 -> s2 soft-deleted. Globex: x1 -> x1. Grade 95 is read
-    // as 2 by Acme and as 100 by Globex.
+    // Acme: s1 -> s2 (30 l, through g1), s1 -> s3 (5 l), and s3 -> s2 soft-deleted. Globex: x1 -> x1, and silo x2 whose
+    // gauge gx names Acme's reading a1, which never makes it Acme's. Grade 95 is read as 2 by Acme and as 100 by Globex.
     private static async Task SeedAsync()
     {
         var token = TestContext.Current.CancellationToken;
@@ -272,6 +286,7 @@ internal static class ReverseNavigationScenario
         using (Tenant.Use(Globex))
         {
             await Silo.Built("x1", "north", 1).Save(cancellationToken: token);
+            await Silo.Fitted("x2", "gx", "a1").Save(cancellationToken: token);
             await Reading.Of("g1", "95", 100).Save(cancellationToken: token);
         }
 

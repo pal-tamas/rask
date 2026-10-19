@@ -273,6 +273,23 @@ public sealed class TenancyThroughHeldParentTests : IDisposable
             ParentsAsked(face).Order(StringComparer.Ordinal)));
     }
 
+    [Fact]
+    public async Task The_write_side_checks_and_severs_a_child_only_through_the_roots_that_hold_it()
+    {
+        await using var database = await StartDatabaseAsync();
+
+        var model = database.Context.Model;
+        string[] Parents(Type child) =>
+            [.. TenantParents.KeysOf(model.FindEntityType(child)!).Select(static k => k.PrincipalEntityType.ClrType.Name).Order(StringComparer.Ordinal)];
+
+        Assert.Equal(["Cistern"], Parents(typeof(Cell)));
+        Assert.Equal(["Bowser"], Parents(typeof(Spout)));
+        Assert.Equal(["Dropoff"], Parents(typeof(DropoffLine)));
+        Assert.Equal(["Chauffeur", "Lorry"], Parents(typeof(Fob)));
+        Assert.Equal(1, ModelBuilderExtensions.ParentKeysOf(model.FindEntityType(typeof(Cell))!));
+        Assert.Equal(2, ModelBuilderExtensions.ParentKeysOf(model.FindEntityType(typeof(Fob))!));
+    }
+
     // Acme holds every child, each pointing at Globex's: cell c1 -> outfit ob, spout s1 -> cistern cb, line l1 ->
     // cell c2, fobs f1 and f2 -> outfit ob. Globex holds cell c2, pointing back at Acme's outfit oa.
     private static async Task SeedAsync()
