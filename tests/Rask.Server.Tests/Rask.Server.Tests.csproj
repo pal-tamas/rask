@@ -67,6 +67,9 @@
     <RaskTestReads Include="..\..\src\Rask.Ui\Resources\ui-editor.LICENSES.txt" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Flags\LICENSE.txt" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Flags\US.svg" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\LICENSE.txt" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\inter-latin.woff2" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\inter-latin-ext.woff2" />
   </ItemGroup>
 
 </Project>

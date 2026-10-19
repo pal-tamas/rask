@@ -182,6 +182,11 @@ src/Rask.Wasm/Browser/rask-sw.js
 **/wwwroot/js/rask-ui-phone.LICENSES.txt
 # …and Ui.Flag's drawings, for a project that sets RaskUiWriteFlags=true: copied from src/Rask.Ui/Flags.
 **/wwwroot/flags/
+# …and the kit's typeface, for every app (RaskUiWriteFonts): copied from src/Rask.Ui/Fonts. File by file, since
+# wwwroot/fonts holds an app's own fonts too. Rask.Site commits the same two woff2 files; tracked, they stay so.
+**/wwwroot/fonts/inter-latin.woff2
+**/wwwroot/fonts/inter-latin-ext.woff2
+**/wwwroot/fonts/inter.LICENSE.txt
 # And the kit's Tailwind sources beside an app's own stylesheet, for an app that compiles the kit into
 # its one sheet (`@import "./vendor/rask-ui.css";`): written at build, never source.
 **/Styles/vendor/

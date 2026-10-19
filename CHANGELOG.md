@@ -9,6 +9,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Ui ships Inter and draws in it.** Before: the kit was laid out for Inter (a chart measures its labels with
+  Inter's metrics) but shipped no font, so every app drew it in the system face. After: the kit's theme names
+  `"Inter"` first in `--font-sans`, and every app's build copies the variable face, latin and latin-ext, into
+  `wwwroot/fonts` with its OFL notice (`inter-latin.woff2`, `inter-latin-ext.woff2`, `inter.LICENSE.txt`), where
+  the kit's `@font-face` rules ask for it. `<RaskUiWriteFonts>false</RaskUiWriteFonts>` opts an app out.
+
 - **A child keyed by several columns, declared as a tuple of the types it joins (read-only for now).**
   Before: a row whose key is a pair, like Eszaf's `DeliveryNoteTransactions (DeliveryNoteId, TransactionId)`, could
   not be an `Entity<TId>` at all, and an adopted table like it had to stay outside Rask.Data. After:

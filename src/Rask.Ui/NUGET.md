@@ -58,6 +58,13 @@ protected override Component Shell(Component head, Component body) =>
 `UiStylesheet.Css`. Never both — two sheets each carry an `@layer utilities` ranked by link order
 alone, so an app's `bg-white` beats the kit's `dark:bg-zinc-800`, and the build stops on the pairing.
 
+**The typeface comes with it too.** The kit is drawn in [Inter](https://github.com/rsms/inter) (OFL 1.1):
+its theme names `"Inter"` first in `--font-sans`, and every app's build copies the variable face, cut at
+latin and latin-ext, into `wwwroot/fonts` (`inter-latin.woff2`, `inter-latin-ext.woff2`, with
+`inter.LICENSE.txt`), where the kit's `@font-face` rules ask for it. An app that serves its own face says
+`<RaskUiWriteFonts>false</RaskUiWriteFonts>`, and the system stack after Inter draws until it re-points
+`--font-sans` in its own `@theme`.
+
 ```csharp
 protected override Component? Render() =>
 [
