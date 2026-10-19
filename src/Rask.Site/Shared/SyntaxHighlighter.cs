@@ -67,6 +67,6 @@ internal static class SyntaxHighlighter
         }
 
         start += open.Length;
-        return html.Substring(start, end - start);
+        return html[start..end].Trim('\r', '\n');
     }
 }

@@ -24,9 +24,9 @@ public sealed partial class CancellationDemo : Component
             Ui.Heading.Level(3).Class("mt-4 mb-2")["Log"],
             _log.Count == 0
                 ? Ui.Text["Mount and unmount the probe to populate this log."]
-                // A divided card is Flux's list: one body per line, a hairline between them.
-                : Div.Id("cancel-log").Class("cancel-log")[
-                    Ui.Card.Divided.Sm[_log.Select(line => Ui.CardBody.Key(line)[Ui.Text[line]])]
+                // A log is rows of one cell each: Flux's table draws the line between them.
+                : Ui.Table.Id("cancel-log").Class("cancel-log")[
+                    Ui.TableRows[_log.Select(line => Ui.TableRow.Key(line)[Ui.TableCell[line]])]
                 ]
         ];
 

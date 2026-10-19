@@ -30,8 +30,8 @@ internal sealed partial class DisposalDemoLog : Component
             Ui.Heading.Level(3).Class("mt-4 mb-2")["Log"],
             Entries.Count == 0
                 ? Ui.Text["Empty — mount and unmount the probe."]
-                : Div.Id(ListId)[
-                    Ui.Card.Divided.Sm[Entries.Select((line, i) => Ui.CardBody.Key(i)[Ui.Text[line]]).ToArray()]
+                : Ui.Table.Id(ListId)[
+                    Ui.TableRows[Entries.Select((line, i) => Ui.TableRow.Key(i)[Ui.TableCell[line]]).ToArray()]
                 ]
         ];
 }

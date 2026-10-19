@@ -27,8 +27,8 @@ public sealed partial class LifecycleCycleDemo : Component
             Ui.Heading.Level(3).Class("mt-4 mb-2")["Log"],
             _cycleLog.Count == 0
                 ? Ui.Text["Empty — mount and unmount the probe."]
-                : Div.Id("lifecycle-cycle-log")[
-                    Ui.Card.Divided.Sm[_cycleLog.Select((l, i) => Ui.CardBody.Key(i)[Ui.Text[l]]).ToArray()]
+                : Ui.Table.Id("lifecycle-cycle-log")[
+                    Ui.TableRows[_cycleLog.Select((l, i) => Ui.TableRow.Key(i)[Ui.TableCell[l]]).ToArray()]
                 ]
         ];
 

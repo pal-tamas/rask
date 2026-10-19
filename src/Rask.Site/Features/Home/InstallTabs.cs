@@ -67,7 +67,7 @@ public sealed partial class InstallTabs : Component
     ///     </para>
     /// </remarks>
     private Component Terminal() =>
-        Ui.Card.Filled.Class("term overflow-x-auto bg-zinc-900 text-left font-mono text-sm leading-7 text-zinc-100 dark:bg-zinc-800")[
+        Ui.Card.Sm.Filled.Class("term overflow-x-auto bg-zinc-900! text-left font-mono text-sm leading-7 text-zinc-100 dark:bg-zinc-800!")[
             (string.Equals(_template, "wasm", StringComparison.Ordinal) ? WasmLines : ServerLines).Select((line, index) =>
                 Pre
                     .Key(index)

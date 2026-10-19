@@ -20,7 +20,7 @@ public sealed partial class LiveCounter : Component
         Ui.Card.Divided[
             Ui.CardHeader[
                 // Flux has no status dot: a green badge says this component is the running one.
-                Ui.Badge.Sm.Color(Ui.Color.Green).Icon(Ui.IconName.Bolt)["running · /counter"]
+                Ui.Badge.Sm.Color(Ui.Color.Green).Icon(Ui.IconName.Bolt).Class("w-fit")["running · /counter"]
             ],
             Ui.CardBody.Class("flex flex-col items-center gap-3 py-8")[
                 // Text, not a heading. It is a field label inside a demo card, and the page's only other

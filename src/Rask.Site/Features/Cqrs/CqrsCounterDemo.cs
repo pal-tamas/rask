@@ -26,8 +26,8 @@ public sealed partial class CqrsCounterDemo(IDispatcher dispatcher) : Component
                 ? Ui.Text["Loading the counter…"]
                 // The behavior logs every dispatch (the on-mount query included), and the
                 // event handler adds the "count is now N" line after each command.
-                : Div.Id("cqrs-log")[
-                    Ui.Card.Divided.Sm[_view.Log.Select((entry, i) => Ui.CardBody.Key(i)[Ui.Text[entry]])]
+                : Ui.Table.Id("cqrs-log")[
+                    Ui.TableRows[_view.Log.Select((entry, i) => Ui.TableRow.Key(i)[Ui.TableCell[entry]])]
                 ]
         ];
 }
