@@ -82,7 +82,7 @@ public sealed partial class QueuePage(
         if (_panel is null)
         {
             return Ui.Card[
-                Ui.Empty
+                DashboardEmpty
                     .Title($"No queue called \"{Queue}\"")
                     .Detail("Either that battery isn't registered, or its table isn't mapped into the DbContext.")
             ];
@@ -96,8 +96,8 @@ public sealed partial class QueuePage(
             // A question stays in the flow: it has to be answered before anything else means anything, and
             // a toast is the wrong shape for something you must respond to.
             ConfirmPrompt(),
-            CountTiles(),
-            RowsGrid(),
+            CountFilters(),
+            RowsTable(),
             DashboardParked.Parked(IsParked).Resume(Resume),
             DetailSheet(),
         ];
@@ -107,71 +107,87 @@ public sealed partial class QueuePage(
     /// The counts, as the control that selects which of them you are looking at.
     /// </summary>
     /// <remarks>
-    /// These were a tile row and a tab strip carrying the same five numbers. One row that both reports and
-    /// filters is fewer things on the screen and one fewer place for the two to disagree — and because each
-    /// tile is a real link carrying <c>?show=</c>, the selection is still shareable and keyboard-reachable.
+    /// Flux's navbar, each count a badge on its item. One row that both reports and filters is fewer things on the
+    /// screen and one fewer place for the two to disagree — and because each item is a real link carrying
+    /// <c>?show=</c>, the selection is shareable and keyboard-reachable. It scrolls sideways on a phone rather than
+    /// wrapping a count away from its name.
     /// </remarks>
-    private Component CountTiles() =>
-        Ui.MetricRow.Columns(5)[
-            Tile(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, tone: null),
-            Tile(QueueFilter.Due, "Due", _counts.Due, tone: null),
-            Tile(QueueFilter.Delayed, "Delayed", _counts.Delayed, tone: null),
-            Tile(QueueFilter.Failed, "Failed", _counts.Failed, tone: _counts.Failed > 0 ? Ui.Tone.Error : null),
-            Tile(QueueFilter.Processed, "Processed", _counts.Processed, tone: null)
+    private Component CountFilters() =>
+        Div.Class("-mx-2 overflow-x-auto px-2")[
+            Ui.Navbar.Class("py-0")[
+                CountItem(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, alarming: false),
+                CountItem(QueueFilter.Due, "Due", _counts.Due, alarming: false),
+                CountItem(QueueFilter.Delayed, "Delayed", _counts.Delayed, alarming: false),
+                CountItem(QueueFilter.Failed, "Failed", _counts.Failed, alarming: _counts.Failed > 0),
+                CountItem(QueueFilter.Processed, "Processed", _counts.Processed, alarming: false)
+            ]
         ];
 
-    private UiMetric Tile(QueueFilter filter, string label, int count, Ui.Tone? tone) =>
-        Ui.Metric
+    private Component CountItem(QueueFilter filter, string label, int count, bool alarming) =>
+        Ui.NavbarItem
             .Key(label)
-            .Label(label)
-            .Value(count.ToString(CultureInfo.CurrentCulture))
-            .Tone(tone)
             .Href(Routes.QueuePage(_panel!.Slug, Show: filter.ToString().ToLowerInvariant()))
-            .Active(Filter == filter);
+            .Current(Filter == filter)
+            .Badge(count.ToString(CultureInfo.CurrentCulture))
+            .BadgeColor(alarming ? Ui.Color.Red : null)[label];
 
     private bool IsDead(QueueRow row) => row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
 
     /// <summary>
-    /// The rows behind the selected tile.
+    /// The rows behind the selected count.
     /// </summary>
     /// <remarks>
-    /// The type is the column that survives every width. The attempt count waits until the table has room
-    /// for it, and below <c>sm</c> every column is its own labelled line rather than a column an operator has
-    /// to swipe sideways to find. A dead letter carries the error tone as well as its badge: it is the row
-    /// this page exists for.
+    /// The type is the one column without a width, so a page or a filter that brings other rows moves no column; a
+    /// long type ends in an ellipsis with the whole of it in its tooltip. A dead letter's badge is red: it is the
+    /// row this page exists for. On a phone the table scrolls inside its own box.
     /// </remarks>
-    private Component RowsGrid()
+    private Component RowsTable()
     {
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var slice = Filter.ToString().ToLowerInvariant();
 
-        return Ui.DataGrid.Data(_rows)
-            .RowKey(r => r.Id)
-            .Label($"{_panel!.Title}, {slice}")
-            .PageSize(options.PageSize)
-            .Page(_page)
-            .TotalCount(_total)
-            .OnPage(GoAsync)
-            .RowTone(r => IsDead(r) ? Ui.Tone.Error : null)
-            .Empty(Ui.Empty
-                .Title($"Nothing {slice}")
-                .Detail(Filter == QueueFilter.Failed
-                    ? "No dead letters. This is the number you want at zero."
-                    : "Nothing in this slice right now."))[c => [
-                c.Field(r => r.Id).Title("#").Mono().Class("sm:w-28"),
-                c.Field(r => r.Type).Title(TypeColumnLabel()),
-                c.Field(r => r.CreatedAt).Title("When").Class("sm:w-36").Cell(r =>
-                    Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
-                c.Field(r => r.Attempts).Title("Attempts").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Md),
-                c.Column().Title("Status").Class("sm:w-40").Cell(r => StatusBadge(r, IsDead(r), now)),
-                c.Column().Class("sm:w-64").Cell(r => [.. RowButtons(r, IsDead(r))]),
-            ]];
+        if (_rows.Count == 0)
+        {
+            return Ui.Card[
+                DashboardEmpty
+                    .Title($"Nothing {slice}")
+                    .Detail(Filter == QueueFilter.Failed
+                        ? "No dead letters. This is the number you want at zero."
+                        : "Nothing in this slice right now.")
+            ];
+        }
+
+        return Ui.Table
+            .Class("w-full min-w-200")
+            .AriaLabel($"{_panel!.Title}, {slice}")
+            .Paginate(Ui.Pagination
+                .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
+                .OnPage(page => GoAsync(page - 1)))[
+            Ui.TableColumns[
+                Ui.TableColumn.Class("w-24")["#"],
+                Ui.TableColumn[TypeColumnLabel()],
+                Ui.TableColumn.Class("w-28")["When"],
+                Ui.TableColumn.Class("w-24")["Attempts"],
+                Ui.TableColumn.Class("w-36")["Status"],
+                Ui.TableColumn.Class("w-60")
+            ],
+            Ui.TableRows[
+                _rows.Select(r => Ui.TableRow.Key(r.Id)[
+                    Ui.TableCell.Class("font-mono")[$"{r.Id}"],
+                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate").Title(r.Type)[r.Type],
+                    Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
+                    Ui.TableCell[$"{r.Attempts}"],
+                    Ui.TableCell[StatusBadge(r, IsDead(r), now)],
+                    Ui.TableCell.Class("py-0")[Div.Class("flex justify-end gap-2")[RowButtons(r, IsDead(r))]]
+                ])
+            ]
+        ];
     }
 
     // Mail's "type" column is really its subject; calling it Type on that page would be a small lie.
     private string TypeColumnLabel() => string.Equals(_panel!.Slug, "mail", StringComparison.Ordinal) ? "Subject" : "Type";
 
-    // Keyed buttons and nothing between them. The grid cell spaces adjacent buttons itself; a " " text node here
+    // Keyed buttons and nothing between them. The cell's flex row spaces them; a " " text node here
     // mixed unkeyed text into keyed siblings, which makes the live diff match by position — so after a Retry the
     // focused Retry button could be patched into Delete in place, one Enter away from the delete prompt.
     private IEnumerable<Component> RowButtons(QueueRow row, bool isDead)
@@ -196,7 +212,7 @@ public sealed partial class QueuePage(
     };
 
     private static Component StatusBadge(QueueRow row, bool isDead, DateTime now) =>
-        Ui.Badge.Color(row switch
+        Ui.Badge.Sm.Color(row switch
         {
             { ProcessedAt: not null } => Ui.Color.Green,
             _ when isDead => Ui.Color.Red,
@@ -231,23 +247,23 @@ public sealed partial class QueuePage(
         return Ui.Modal.OnClose(Close)[
             Div.Class("space-y-6")[
                 Ui.Heading.Level(2).Lg[row.Type],
-                Ui.DetailList[
-                    Ui.DetailRow.Key("id").Label("ID").Value($"#{row.Id}").Mono(),
-                    Ui.DetailRow.Key("queue").Label("Queue").Value(_panel!.Title),
-                    Ui.DetailRow.Key("status").Label("Status").Value(StatusText(row, isDead, now))
-                        .Tone(isDead ? Ui.Tone.Error : null),
-                    Ui.DetailRow.Key("attempts").Label("Total attempts")
-                        .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(),
-                    Ui.DetailRow.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(),
-                    Ui.DetailRow.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
-                        .Value(row.RunAt.ToString("u")).Mono(),
+                DashboardFacts[
+                    DashboardFact.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
+                    DashboardFact.Key("queue").Label("Queue").Value(_panel!.Title),
+                    DashboardFact.Key("status").Label("Status").Value(StatusText(row, isDead, now))
+                        .Danger(isDead),
+                    DashboardFact.Key("attempts").Label("Total attempts")
+                        .Value($"{row.Attempts} of {_panel.MaxAttempts}").Mono(true),
+                    DashboardFact.Key("created").Label("Queued time").Value(row.CreatedAt.ToString("u")).Mono(true),
+                    DashboardFact.Key("runat").Label(row.ProcessedAt is null ? "Runs at" : "Started")
+                        .Value(row.RunAt.ToString("u")).Mono(true),
                     row.ProcessedAt is { } done
-                        ? Ui.DetailRow.Key("done").Label("Processed").Value(done.ToString("u")).Mono()
+                        ? DashboardFact.Key("done").Label("Processed").Value(done.ToString("u")).Mono(true)
                         : null,
-                    Ui.DetailRow.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
+                    DashboardFact.Key("age").Label("Age").Value(DashboardParts.Ago(row.CreatedAt, now))
                 ],
-                row.Error is { } error ? Ui.Code.Key("error").Content(error).Label("Last error").Tone(Ui.Tone.Error) : null,
-                Ui.Code.Key("payload").Content(row.Payload).Label("Payload"),
+                row.Error is { } error ? DashboardCode.Key("error").Content(error).Label("Last error").Danger(true) : null,
+                DashboardCode.Key("payload").Content(row.Payload).Label("Payload"),
                 Div.Class("flex flex-wrap gap-2 sm:justify-end")[actions]
             ]
         ];

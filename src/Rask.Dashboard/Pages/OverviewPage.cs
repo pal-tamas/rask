@@ -43,7 +43,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
         if (_queues.Count == 0)
         {
             return Ui.Card[
-                Ui.Empty
+                DashboardEmpty
                     .Title("No batteries registered")
                     .Detail("Add Rask.Jobs, Rask.Outbox, Rask.Mail or Rask.Cache and map their tables to see them here.")
             ];
@@ -53,7 +53,7 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
             DashboardHeading.Title("Overview").Caption(StateLine()),
             DashboardError.Message(LoadError),
             FailureBanner(),
-            Ui.Grid[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
+            Div.Class("grid gap-4 sm:grid-cols-2 xl:grid-cols-3")[_queues.Select(q => QueueCard(q.Panel, q.Counts))],
             DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
@@ -106,25 +106,27 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
         var failing = counts.Failed > 0;
 
         // Flux's link card: the link is around the card, not a prop of it.
-        return NavLink.Key(panel.Slug).Href(Routes.QueuePage(panel.Slug))[Ui.Card[
+        return NavLink.Key(panel.Slug).Href(Routes.QueuePage(panel.Slug)).Class("block")[Ui.Card[
             Ui.CardHeader[
                 Ui.CardHeading.Level(2)[panel.Title],
-                Ui.CardSubheading[Ui.StatusDot
-                    .Label(failing ? $"{counts.Failed} failed" : "healthy")
-                    .Tone(failing ? Ui.Tone.Error : Ui.Tone.Success)]
+                Ui.CardSubheading[Ui.Badge.Sm.Color(failing ? Ui.Color.Red : Ui.Color.Green)[
+                    failing ? $"{counts.Failed} failed" : "healthy"
+                ]]
             ],
-            Ui.CardBody[Ui.MetricRow.Columns(2)[
-                Ui.Metric
+            Ui.CardBody[Div.Class("grid grid-cols-2 gap-4")[
+                DashboardMetric
                     .Key("outstanding")
                     .Label("Outstanding")
                     .Value(counts.Outstanding.ToString(CultureInfo.CurrentCulture))
-                    .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting"),
-                Ui.Metric
+                    .Caption(counts.Delayed > 0 ? $"{counts.Delayed} waiting on a retry" : "nothing waiting")
+                    .Bare(true),
+                DashboardMetric
                     .Key("failed")
                     .Label("Failed")
                     .Value(counts.Failed.ToString(CultureInfo.CurrentCulture))
-                    .Tone(failing ? Ui.Tone.Error : null)
+                    .Danger(failing)
                     .Caption($"dead after {panel.MaxAttempts} attempts")
+                    .Bare(true)
             ]]
         ]];
     }

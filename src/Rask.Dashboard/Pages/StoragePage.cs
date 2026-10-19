@@ -66,7 +66,7 @@ public sealed partial class StoragePage(
         if (!storage.IsAvailable)
         {
             return Ui.Card[
-                Ui.Empty
+                DashboardEmpty
                     .Title("Storage isn't registered")
                     .Detail("Call AddRaskStorage<TContext>() and modelBuilder.AddRaskStorage() to see stored files here.")
             ];
@@ -78,17 +78,18 @@ public sealed partial class StoragePage(
                 $"new files go to {_stats.ActiveProvider} · orphans swept every {DashboardParts.Duration(_stats.SweepInterval)}"),
             DashboardError.Message(LoadError),
             DiskNotice(),
-            Ui.MetricRow.Columns(3)[
-                Ui.Metric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
-                Ui.Metric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                Ui.Metric
+            Div.Class("grid gap-4 sm:grid-cols-3")[
+                DashboardMetric.Key("files").Label("Files").Value(_stats.Files.ToString(CultureInfo.InvariantCulture)),
+                DashboardMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                DashboardMetric
                     .Key("public")
                     .Label("Public")
                     .Value(_stats.Public.ToString(CultureInfo.InvariantCulture))
                     .Caption("served to anyone with the link")
             ],
-            ProviderGrid(),
-            FileGrid(now),
+            ProviderTable(),
+            DashboardSearch.Placeholder("Search file names").Value(Search).OnChange(SearchAsync),
+            FileTable(now),
             DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
@@ -103,15 +104,24 @@ public sealed partial class StoragePage(
                     + "Use S3 or Azure for uploads you can't afford to lose.")
             : null;
 
-    // Only once files are split across providers: a single row would restate the tiles above it.
-    private Component? ProviderGrid() =>
+    // Only once files are split across providers: a single row would restate the figures above it.
+    private Component? ProviderTable() =>
         _stats.ByProvider.Count <= 1
             ? null
-            : Ui.DataGrid.Data(_stats.ByProvider).RowKey(p => p.Provider).Label("Stored files by provider")[c => [
-                c.Field(p => p.Provider).Title("Provider"),
-                c.Field(p => p.Files).Title("Files").Value(p => p.Files.ToString(CultureInfo.InvariantCulture)),
-                c.Field(p => p.Bytes).Title("Stored").Value(p => DashboardParts.Bytes(p.Bytes)),
-            ]];
+            : Ui.Table.Class("w-full").AriaLabel("Stored files by provider")[
+                Ui.TableColumns[
+                    Ui.TableColumn["Provider"],
+                    Ui.TableColumn.Class("w-32")["Files"],
+                    Ui.TableColumn.Class("w-32")["Stored"]
+                ],
+                Ui.TableRows[
+                    _stats.ByProvider.Select(p => Ui.TableRow.Key(p.Provider)[
+                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[p.Provider.ToString()],
+                        Ui.TableCell[p.Files.ToString(CultureInfo.InvariantCulture)],
+                        Ui.TableCell[DashboardParts.Bytes(p.Bytes)]
+                    ])
+                ]
+            ];
 
     private Task SearchAsync(string value)
     {
@@ -122,36 +132,49 @@ public sealed partial class StoragePage(
         return Task.CompletedTask;
     }
 
-    // The name is the column an operator came for, so it is the one every width keeps. The type and the provider
-    // wait until the table has room; the id shows at every width, as it always did under the name, and a phone
-    // lists every column as its own line.
-    private Component FileGrid(DateTime now) =>
-        Ui.DataGrid.Data(_rows)
-            .RowKey(r => r.Id)
-            .Label("Stored files, newest first")
-            .PageSize(options.PageSize)
-            .Page(_page)
-            .TotalCount(_total)
-            .OnPage(GoAsync)
-            .Toolbar(Ui.Input
-                .Value(Search ?? string.Empty)
-                .Type(InputType.Search)
-                .Icon(Ui.IconName.MagnifyingGlass)
-                .Placeholder("Search file names")
-                .Attributes(("aria-label", "Search file names"))
-                .OnChange(SearchAsync))
-            .Empty(Ui.Empty
-                .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
-                .Detail("Files appear here as soon as the app saves one."))[c => [
-                c.Field(r => r.Name).Title("Name"),
-                c.Field(r => r.Public).Title("Access").Class("sm:w-24").Value(r => r.Public ? "public" : "private"),
-                c.Field(r => r.ContentType).Title("Type").Mono().Class("sm:w-40").ShowFrom(Ui.Breakpoint.Md),
-                c.Field(r => r.Size).Title("Size").Class("sm:w-28").Value(r => DashboardParts.Bytes(r.Size)),
-                c.Field(r => r.Provider).Title("Provider").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Lg),
-                c.Field(r => r.Id).Title("Id").Mono().Class("sm:w-64").Value(r => r.Id.ToString("N")),
-                c.Field(r => r.CreatedAt).Title("Saved").Class("sm:w-36").Cell(r =>
-                    Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]),
-            ]];
+    // The name is the column an operator came for, so it is the one without a width: it takes what is left, and a
+    // long name ends in an ellipsis with the whole of it in its tooltip. On a phone the table scrolls in its box.
+    private Component FileTable(DateTime now)
+    {
+        if (_rows.Count == 0)
+        {
+            return Ui.Card[
+                DashboardEmpty
+                    .Title(Search is { Length: > 0 } ? $"No files matching \"{Search}\"" : "No files stored yet")
+                    .Detail("Files appear here as soon as the app saves one.")
+            ];
+        }
+
+        return Ui.Table
+            .Class("w-full min-w-240")
+            .AriaLabel("Stored files, newest first")
+            .Paginate(Ui.Pagination
+                .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
+                .OnPage(page => GoAsync(page - 1)))[
+            Ui.TableColumns[
+                Ui.TableColumn["Name"],
+                Ui.TableColumn.Class("w-24")["Access"],
+                Ui.TableColumn.Class("w-40")["Type"],
+                Ui.TableColumn.Class("w-24")["Size"],
+                Ui.TableColumn.Class("w-24")["Provider"],
+                Ui.TableColumn.Class("w-72")["Id"],
+                Ui.TableColumn.Class("w-28")["Saved"]
+            ],
+            Ui.TableRows[
+                _rows.Select(r => Ui.TableRow.Key(r.Id)[
+                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate").Title(r.Name)[r.Name],
+                    Ui.TableCell[r.Public ? "public" : "private"],
+                    Ui.TableCell.Class("truncate font-mono").Title(r.ContentType)[r.ContentType],
+                    Ui.TableCell[DashboardParts.Bytes(r.Size)],
+                    Ui.TableCell[r.Provider.ToString()],
+                    Ui.TableCell.Class("truncate font-mono").Title(r.Id.ToString("N"))[r.Id.ToString("N")],
+                    Ui.TableCell[
+                        Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]
+                    ]
+                ])
+            ]
+        ];
+    }
 
     private async Task GoAsync(int page)
     {

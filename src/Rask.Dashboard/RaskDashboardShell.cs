@@ -38,32 +38,16 @@ public sealed partial class RaskDashboardShell : Component
     ];
 
     /// <summary>
-    /// Puts the kit's theme scope, pinned to daisyUI's light theme, on <c>&lt;html&gt;</c>.
+    /// Marks <c>&lt;html&gt;</c> as a document drawn with the kit alone.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// Not chrome, and so not the layout's: this is the document element, and the layout renders inside
-    /// the body. Two separate things ride on it.
-    /// </para>
-    /// <para>
-    /// <b>The scope has to reach the document.</b> daisyUI defines <c>--color-base-*</c> only inside
-    /// <c>[data-rask-ui]</c>, and a custom property is inherited downward, never up — so the scope goes on
-    /// the document element, where everything the console draws is beneath it. Beside it goes
-    /// <see cref="UiStylesheet.DocumentAttribute" />: the console's only sheet is the kit's, and that is what
-    /// gives a kit-only document its reset and its ground.
-    /// </para>
-    /// <para>
-    /// <b>And the theme has to be named.</b> daisyUI follows <c>prefers-color-scheme</c> through
-    /// <c>[data-rask-ui]:not([data-theme])</c>, so a scope with no theme repaints the console dark on an
-    /// operator's dark-mode laptop. An operator surface is not the host's, nor the OS's, to re-theme.
-    /// </para>
+    /// Not chrome, and so not the layout's: this is the document element, and the layout renders inside the body.
+    /// <see cref="UiStylesheet.DocumentAttribute" /> is what gives a kit-only document its reset and its ground, light
+    /// and dark. Dark is Flux's: a <c>dark</c> class on this element, which <c>Ui.AppearanceScript</c> in the layout's
+    /// head puts there from the operator's own preference before the first paint.
     /// </remarks>
     protected override Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir)
-            .Attributes(
-                (UiStylesheet.ThemeScopeAttribute, ""),
-                (UiStylesheet.DocumentAttribute, ""),
-                ("data-theme", UiTheme.Value(DashboardTheme.Name)))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.DocumentAttribute, ""))[
             head,
             Body[body]
         ];

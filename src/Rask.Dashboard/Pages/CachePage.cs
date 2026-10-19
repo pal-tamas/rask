@@ -66,7 +66,7 @@ public sealed partial class CachePage(
         if (!cache.IsAvailable)
         {
             return Ui.Card[
-                Ui.Empty
+                DashboardEmpty
                     .Title("Cache isn't registered")
                     .Detail("Call AddRaskCache<TContext>() and modelBuilder.AddRaskCache() to see cache entries here.")
             ];
@@ -77,16 +77,17 @@ public sealed partial class CachePage(
             DashboardHeading.Title("Cache").Actions(FlushButton()),
             DashboardError.Message(LoadError),
             ConfirmPrompt(),
-            Ui.MetricRow.Columns(3)[
-                Ui.Metric.Key("entries").Label("Entries").Value(_stats.Entries.ToString(CultureInfo.CurrentCulture)),
-                Ui.Metric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
-                Ui.Metric
+            Div.Class("grid gap-4 sm:grid-cols-3")[
+                DashboardMetric.Key("entries").Label("Entries").Value(_stats.Entries.ToString(CultureInfo.CurrentCulture)),
+                DashboardMetric.Key("stored").Label("Stored").Value(DashboardParts.Bytes(_stats.Bytes)),
+                DashboardMetric
                     .Key("expired")
                     .Label("Expired, not swept")
                     .Value(_stats.Expired.ToString(CultureInfo.CurrentCulture))
                     .Caption("removed by the purge sweep")
             ],
-            KeyGrid(now),
+            DashboardSearch.Placeholder("Search keys").Value(Search).OnChange(SearchAsync),
+            KeyTable(now),
             DashboardParked.Parked(IsParked).Resume(Resume),
         ];
     }
@@ -106,45 +107,55 @@ public sealed partial class CachePage(
         return Task.CompletedTask;
     }
 
-    // The search lives in the grid's toolbar so it survives an empty result — a search that matched nothing
-    // must leave the box that typed it on the screen. The key is the column every width keeps.
-    private Component KeyGrid(DateTime now) =>
-        Ui.DataGrid.Data(_rows)
-            .RowKey(r => r.Key)
-            .Label("Cache keys")
-            .PageSize(options.PageSize)
-            .Page(_page)
-            .TotalCount(_total)
-            .OnPage(GoAsync)
-            // An expired key still reads until the sweep takes it; a neutral tint says it is on its way out.
-            .RowTone(r => r.ExpiresAt <= now ? Ui.Tone.Neutral : null)
-            .Toolbar(Ui.Input
-                .Value(Search ?? string.Empty)
-                .Type(InputType.Search)
-                .Icon(Ui.IconName.MagnifyingGlass)
-                .Placeholder("Search keys")
-                .Attributes(("aria-label", "Search keys"))
-                .OnChange(SearchAsync))
-            .Empty(Ui.Empty
-                .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
-                .Detail("Entries appear here as soon as something is cached."))[c => [
-                c.Field(r => r.Key).Title("Key").Mono(),
-                c.Field(r => r.Bytes).Title("Size").Class("sm:w-28").Value(r => DashboardParts.Bytes(r.Bytes)),
-                c.Field(r => r.CreatedAt).Title("Written").Class("sm:w-36").ShowFrom(Ui.Breakpoint.Md).Cell(r =>
-                    Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]),
-                c.Field(r => r.ExpiresAt).Title("Expires").Class("sm:w-36").Cell(r =>
-                    r.ExpiresAt <= now
-                        ? Ui.Badge["expired"]
-                        : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]),
-                c.Field(r => r.SlidingSeconds).Title("Sliding").Class("sm:w-28").ShowFrom(Ui.Breakpoint.Lg).Value(r =>
-                    r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"),
-                // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no
-                // confirmation. Flushing everything is correctness-safe too, but a cold cache on a busy app
-                // means a stampede — hence the Destructive tier and a confirmation.
-                options.Actions.HasFlag(RaskDashboardActions.Safe)
-                    ? c.Column().Class("sm:w-24").Cell(r => Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"])
-                    : null,
-            ]];
+    // The search sits above the table, so it survives an empty result — a search that matched nothing must leave
+    // the box that typed it on the screen. The key is the one column without a width: it takes what is left.
+    private Component KeyTable(DateTime now)
+    {
+        if (_rows.Count == 0)
+        {
+            return Ui.Card[
+                DashboardEmpty
+                    .Title(Search is { Length: > 0 } ? $"No keys matching \"{Search}\"" : "Cache is empty")
+                    .Detail("Entries appear here as soon as something is cached.")
+            ];
+        }
+
+        // Evicting one key is a recompute, not a lost fact, so it sits in the Safe tier and needs no confirmation.
+        // Flushing everything is correctness-safe too, but a cold cache on a busy app means a stampede — hence the
+        // Destructive tier and a confirmation.
+        var evicts = options.Actions.HasFlag(RaskDashboardActions.Safe);
+
+        return Ui.Table
+            .Class("w-full min-w-160")
+            .AriaLabel("Cache keys")
+            .Paginate(Ui.Pagination
+                .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
+                .OnPage(page => GoAsync(page - 1)))[
+            Ui.TableColumns[
+                Ui.TableColumn["Key"],
+                Ui.TableColumn.Class("w-24")["Size"],
+                Ui.TableColumn.Class("w-32")["Written"],
+                Ui.TableColumn.Class("w-32")["Expires"],
+                Ui.TableColumn.Class("w-24")["Sliding"],
+                evicts ? Ui.TableColumn.Class("w-24") : null
+            ],
+            Ui.TableRows[
+                _rows.Select(r => Ui.TableRow.Key(r.Key)[
+                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate font-mono").Title(r.Key)[r.Key],
+                    Ui.TableCell[DashboardParts.Bytes(r.Bytes)],
+                    Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
+                    // An expired key still reads until the sweep takes it.
+                    Ui.TableCell[
+                        r.ExpiresAt <= now
+                            ? Ui.Badge.Sm["expired"]
+                            : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]
+                    ],
+                    Ui.TableCell[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
+                    evicts ? Ui.TableCell.Class("py-0")[Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"]] : null
+                ])
+            ]
+        ];
+    }
 
     private Component? FlushButton() =>
         options.Actions.HasFlag(RaskDashboardActions.Destructive) && _stats.Entries > 0
