@@ -38,8 +38,8 @@ public sealed partial class ComponentFactoryGenerator
     ///     </para>
     ///     <para>
     ///         States are identified by WHICH required properties are already set, so the remaining ones
-    ///         may be given in any order — <c>Ui.Stat.Label("…").Value("…")</c> and
-    ///         <c>Ui.Stat.Value("…").Label("…")</c> are both chains and both end at the component. That costs
+    ///         may be given in any order — <c>Card.Title("…").Note("…")</c> and
+    ///         <c>Card.Note("…").Title("…")</c> are both chains and both end at the component. That costs
     ///         one struct per reachable subset, which is why only REQUIRED properties take part: the
     ///         optional surface would make it 2^n over everything.
     ///     </para>

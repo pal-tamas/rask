@@ -210,7 +210,7 @@ public sealed partial class UpdateProduct : Component
 
         if (product.IsLoading)
         {
-            return Ui.Loading.Text("Loading…");
+            return Ui.Text.Role("status")["Loading…"];
         }
 
         if (product.Data is not { } loaded)
@@ -274,7 +274,7 @@ Four things in that page are doing more than they look:
 - **The load is a query, and it follows the route.** `QueryClient.Query(key, Id, load)` is asked for in
   `Render`, where the route's `Id` is already bound, and the same call is the same query every render — so
   going from `/products/1/edit` to `/products/2/edit` re-points it at product 2 with nothing to call.
-  `IsLoading` is the only state that needs a spinner, and the load is handed the `Id` its key was built from,
+  `IsLoading` is the only state that needs a word of its own, and the load is handed the `Id` its key was built from,
   so a slow load for product 1 can never land in product 2's form.
 
 `Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
@@ -282,8 +282,7 @@ Four things in that page are doing more than they look:
 ```csharp
 namespace Shop.Features.Products;
 
-// A reusable delete button: removes the product, then invokes OnDeleted so the caller (the list page)
-// can refresh.
+// A reusable delete button: removes the product, then invokes OnDeleted so a caller can react.
 public sealed partial class DeleteProduct : Component
 {
     public Guid Id { get; set; }
@@ -324,7 +323,7 @@ stamp.
 
 ## 5. The list page
 
-`Features/Products/ProductsPage.cs` — the routed page, over a data grid:
+`Features/Products/ProductsPage.cs` — the routed page, a table with a pager under it:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -334,9 +333,13 @@ namespace Shop.Features.Products;
 [Route("/products")]
 public sealed partial class ProductsPage : Component
 {
-    // An IQueryable, not a list. It holds no database connection: the grid runs it — sorted and paged in
-    // SQL — each time it renders, and each run opens and disposes its own context.
-    private readonly IQueryable<ProductRead> _products = Product.OrderBy(p => p.Name).AsQueryable();
+    private const int PageSize = 20;
+
+    // The rows on screen stay while the next page loads, so paging and sorting never flash an empty table.
+    private static readonly QueryOptions KeepRows = new() { KeepPreviousData = true };
+
+    // Which page is on screen and what it is sorted by. The table draws these; it sorts and pages nothing itself.
+    private Listing _listing = new(Page: 1, SortBy: "name", Descending: false);
 
     protected override string? PageTitle => "Products";
 
@@ -346,43 +349,85 @@ public sealed partial class ProductsPage : Component
         // delete — because its key is about Product.
         var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
 
+        // One page of rows, sorted and paged in SQL. The listing is part of its key, so a click on a heading or
+        // the pager asks for another page; and a Product write refetches it like the count.
+        var rows = QueryClient.Query(QueryKey.For<Product>("page"), _listing, Read, KeepRows);
+
         return
         [
         Div.Class("flex flex-wrap items-center gap-3")[
-            Ui.Heading.Level(1).Xl[count.Data is { } n ? $"Products ({n})" : "Products"],
+            Ui.Heading.Level(1).Xl[$"Products ({count.Data})"],
             Ui.Spacer,
             Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
         ],
-        Ui.DataGrid.Data(_products).RowKey(p => p.Id).PageSize(20).Label("Products")[c => [
-            c.Field(p => p.Name).Title("Name").Sortable(),
-            c.Field(p => p.Price).Title("Price").Sortable().Class("sm:w-32"),
-            c.Field(p => p.InStock).Title("In stock").Class("sm:w-28"),
-            c.Field(p => p.UpdatedAt).Title("Updated").Sortable().Class("sm:w-52"),
-            c.Column().Title("Actions").Class("sm:w-44").Cell(p => Div[
-                Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
-                // The grid re-runs its query on every render, so asking for one is the whole refresh.
-                DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
-            ]),
-        ]]
+        Ui.Table.Class("w-full")
+            .Paginate(Ui.Pagination
+                .Paginator(new UiPaginator { Page = _listing.Page, PerPage = PageSize, Total = count.Data })
+                .OnPage(page => { _listing = _listing with { Page = page }; }))[
+            Ui.TableColumns[
+                Sortable("name", "Name"),
+                Sortable("price", "Price", "w-32"),
+                Ui.TableColumn.Class("w-28")["In stock"],
+                Ui.TableColumn.Class("w-52")["Updated"],
+                Ui.TableColumn.Class("w-44")[""]
+            ],
+            Ui.TableRows[
+                (rows.Data ?? []).Select(p => Ui.TableRow.Key(p.Id)[
+                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate")[p.Name],
+                    Ui.TableCell[$"{p.Price:C}"],
+                    Ui.TableCell[p.InStock ? "Yes" : "No"],
+                    Ui.TableCell[$"{p.UpdatedAt:g}"],
+                    Ui.TableCell.Class("py-0")[
+                        Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
+                        DeleteProduct.Id(p.Id).Version(p.Version)
+                    ]
+                ])
+            ]
+        ]
         ];
     }
+
+    // A heading the reader can sort by. A second click on the sorted one turns it round.
+    private Component Sortable(string column, string label, string? width = null) =>
+        Ui.TableColumn
+            .Class(width)
+            .Sortable()
+            .Sorted(_listing.SortBy == column)
+            .Direction(_listing.Descending ? Ui.TableColumnDirection.Desc : Ui.TableColumnDirection.Asc)
+            .OnSort(() => { _listing = new(1, column, _listing.SortBy == column && !_listing.Descending); })[label];
+
+    private static Task<List<ProductRead>> Read(Listing at, CancellationToken ct)
+    {
+        var sorted = (at.SortBy, at.Descending) switch
+        {
+            ("price", false) => Product.OrderBy(p => p.Price),
+            ("price", true) => Product.OrderByDescending(p => p.Price),
+            (_, false) => Product.OrderBy(p => p.Name),
+            (_, true) => Product.OrderByDescending(p => p.Name),
+        };
+
+        return sorted.Skip((at.Page - 1) * PageSize).Take(PageSize).AsQueryable().ToListAsync(ct);
+    }
+
+    private sealed record Listing(int Page, string SortBy, bool Descending);
 }
 ```
 
-`Product.AsQueryable()` is a standard `IQueryable<ProductRead>` that holds no context, which is the
-shape [`Ui.DataGrid`](../data-grid.md) wants: clicking a sortable header becomes `ORDER BY`, and the pager
-becomes `Skip`/`Take`, so the database does the work however large the catalog grows. `RowKey` is required —
-it is what the grid identifies a row by when it redraws. Every column but `Name` has a width, so the columns
-[stay where they are](../data-grid.md#columns-that-stay-put) from one page or sort order to the next. The grid shows read faces, read-only by
-construction; `UpdatedAt` is one of the columns `Timestamps` brought, sortable like any other.
+[`Ui.Table`](../ui-kit.md#tables) is Flux's table, and it **sorts nothing and pages nothing**: the page keeps
+which page is showing and what it is sorted by, and the table draws them — a chevron on the sorted heading, the
+current page in the pager under the rows. Clicking a heading or a page number changes `_listing`, and the query
+whose key holds it reads that page: `OrderBy` becomes `ORDER BY` and `Skip`/`Take` become `LIMIT`/`OFFSET`, so
+the database does the work however large the catalog grows. `Key(p.Id)` on each row is what identifies it when
+the page redraws. The table has a width and every column but `Name` has one, so the columns
+[stay where they are](../ui-kit.md#columns-that-stay-put) from one page or sort order to the next. The rows are
+read faces, read-only by construction; `UpdatedAt` is one of the columns `Timestamps` brought.
 
-Note what the page doesn't have: an `OnMount`. The grid runs its `IQueryable` when it renders, and the
-count in the heading is a **query** — asked for in `Render`, cached for the session, loading on its own. Its
-key, `QueryKey.For<Product>("count")`, says what it is about, and that is the whole of keeping it right: once
-any `Product` write commits — `Create`, `Update`, `Delete` — every query about `Product` on this
-session's screen refetches, so creating a product and coming back shows the new count with nothing written to
-make it happen. The grid is left an `IQueryable` on purpose: it pages and sorts in SQL, which a cached list
-could not. See [queries and commands](../query.md).
+Note what the page doesn't have: an `OnMount`, or anything that refreshes after a delete. Both lists are
+**queries** — asked for in `Render`, cached for the session, loading on their own. Their keys,
+`QueryKey.For<Product>(…)`, say what they are about, and that is the whole of keeping them right: once any
+`Product` write commits — `Create`, `Update`, `Delete` — every query about `Product` on this session's screen
+refetches, so deleting a row or creating a product and coming back shows the change with nothing written to
+make it happen. See [queries and commands](../query.md).
 
 ## 6. Already registered
 
@@ -454,7 +499,7 @@ it's on disk in `app.db`.
 > `Routes.ProductsPage()`, `ProductModel` or `Product.Where` → those are generated; build once and the IDE
 > catches up. For a route, the generator also needs the `[Route]` attribute on the page.
 
-**Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [data grid](../data-grid.md) ·
+**Learn more:** [Rask.Data](../data.md) · [forms](../forms.md) · [tables](../ui-kit.md#tables) ·
 [the `rask` CLI](../cli.md)
 
 Next → **[Chapter 3: A second feature + locking it down](03-orders-and-auth.md)**

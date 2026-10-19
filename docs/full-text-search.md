@@ -1,6 +1,6 @@
 # Full-text search — ranked search over your own tables
 
-> **In practice:** [Rask.Data](data.md) · [data grid](data-grid.md) · [Rask.SQLite](sqlite.md) · [cheat sheet](cheatsheet.md).
+> **In practice:** [Rask.Data](data.md) · [tables](ui-kit.md#tables) · [Rask.SQLite](sqlite.md) · [cheat sheet](cheatsheet.md).
 
 A search box over your own rows usually starts as `Where(p => p.Title.Contains(q))`, which is a
 `LIKE '%q%'` scan of every row, matches `sql` inside `nosql`, cannot rank, and misses `kérés` when
@@ -14,14 +14,14 @@ builder.HasFullTextSearch(p => new { p.Title, p.Body });   // in the entity's co
 
 var hits = await db.Set<Post>().Search(query).Where(p => p.Published).Take(20).ToListAsync();
 var page = await Post.Search(query).Take(20);      // Rask.Data's read face
-Ui.DataGrid.Data(Post.Search(query).AsQueryable())                // a grid that sorts and pages in SQL
+var next = await Post.Search(query).Skip(20).Take(20);   // a table's next page, still best match first
 ```
 
 ## What `Search(text)` does
 
 `Search(text)` returns the rows containing every word of `text`, **best match first**, as an ordinary query:
 `Where`, `Skip`/`Take`, `CountAsync` and projections keep composing, and a later `OrderBy` replaces the rank
-order — so a data grid's column sort does the obvious thing. `ThenBy` after `Search` breaks ties within the
+order — so a table's column sort does the obvious thing. `ThenBy` after `Search` breaks ties within the
 rank. It works on a read face, on a `ModelQuery` and on any EF Core `IQueryable` of an indexed entity.
 
 **What the user types is words, not a query language.** Each word must appear (any order, any case,
@@ -38,14 +38,20 @@ Project the matched terms:
 var hits = await Post.Search(query)
     .Select(p => new { p.Id, Title = FullText.Highlight(p.Title), Excerpt = FullText.Snippet(p.Body, 12) });
 
-// in markup
-Ui.Highlight.Text(hit.Excerpt)
+// in markup: every piece encoded, each match in a <mark>
+Span[Marked(hit.Excerpt)]
+
+static IEnumerable<Component> Marked(string text) =>
+    text.Split(FullText.MatchEnd).SelectMany(part => part.Split(FullText.MatchStart) is [var before, var match]
+        ? new Component[] { before, Mark[match] }
+        : new Component[] { part });
 ```
 
 `Highlight` returns the whole value and `Snippet` the best passage of up to `words` words, with each match
 between `FullText.MatchStart` and `FullText.MatchEnd` (two private-use characters) rather than HTML — the text
 is whatever a row holds, and rendering it as markup would let anyone who can write a row inject script.
-`Ui.Highlight` encodes the text and wraps each match in `<mark>`. Calling either outside a `Search`, or on a
+Splitting on the markers keeps it that way: each piece is a text node, which encodes it, and the only elements
+are the `<mark>`s the page adds. Calling either outside a `Search`, or on a
 property the index does not cover, throws naming the fix.
 
 ## Choosing a tokenizer
@@ -132,7 +138,7 @@ The same `HasFullTextSearch`, `Search(text)`, `FullText.Highlight` and `Snippet`
 - **The index is a stored generated `tsvector` column with a GIN index** — no triggers; PostgreSQL keeps it
   current itself, and Npgsql's own migrations create it.
 - **A search is `@@ to_tsquery(…)` ranked by `ts_rank_cd`**, and the highlights come from `ts_headline` in the
-  same markers `Ui.Highlight` reads.
+  same markers as on SQLite, so the page renders them the same way.
 - **`English` maps to PostgreSQL's `english` configuration; `Unicode` to `rask_unicode`** — `simple` with
   `unaccent` in front of it, so `keres` finds `kérés` as it does on SQLite. The first migration that needs it
   creates it, running `CREATE EXTENSION IF NOT EXISTS unaccent`, so the migrating role needs that right once.

@@ -89,7 +89,7 @@ The `server` template is deliberately small — a handful of files, no example p
 - **`Features/Home/HomePage.cs`** — the `/` welcome page, its own feature slice. Edit or replace it.
 - **The [Rask.Ui](../ui-kit.md) kit** — it comes with `Rask.Server`, is imported everywhere by the
   `global using Rask;` line in `GlobalUsings.cs`, and RaskApp links its stylesheet first on every page. Every page in this
-  tutorial is built from its components — `Ui.Input`, `Ui.Button`, `Ui.Card`, `Ui.DataGrid` — rather than from
+  tutorial is built from its components — `Ui.Input`, `Ui.Button`, `Ui.Card`, `Ui.Table` — rather than from
   raw tags and class strings.
 - **`Features/Auth/`** — the sign-in, registration, sign-out, confirmation, password-reset and devices pages,
   as your own code: the flows come from `Rask.Auth`, the pages are yours to restyle.

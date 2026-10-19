@@ -86,7 +86,7 @@ public static void Configure(EntityTypeBuilder<Product> builder) =>
     builder.HasFullTextSearch(p => new { p.Name, p.Description });   // then: rask db add ProductSearch && rask db update
 
 var hits = await Product.Search(query).Take(20);
-Ui.DataGrid.Data(Product.Search(query).AsQueryable())           // best match first, paged in SQL
+await Product.Search(query).Skip(20).Take(20);                   // best match first, paged in SQL
 ```
 
 → Reference: [full-text search](full-text-search.md)

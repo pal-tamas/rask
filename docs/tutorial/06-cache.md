@@ -57,8 +57,8 @@ private static async Task<IReadOnlyList<ProductListItem>> Load() =>
 `Version` rides along because the list's delete button sends it back (Chapter 2). `Current.Cancellation` is
 the same ambient idea as `Cache` itself: the cancellation of the work in progress, with nothing passed in.
 
-Then have `ProductsPage` read through the accessor instead of handing the grid a query. The page loads the
-list when it mounts, and reloads it after a delete:
+Then have `ProductsPage` read through the accessor instead of asking the database for each page. The page
+loads the list when it mounts, and reloads it after a delete:
 
 ```csharp
 [Route("/products")]
@@ -70,14 +70,14 @@ public sealed partial class ProductsPage : Component
 
     private async Task Load() => _items = await CatalogCache.Get();
 
-    // … and in Render(), the grid takes the list, and a delete reloads it:
-    //     Ui.DataGrid.Data(_items).RowKey(p => p.Id) …
+    // … and in Render(), the table's rows are one page of the list, and a delete reloads it:
+    //     _items.Skip((_listing.Page - 1) * PageSize).Take(PageSize).Select(p => Ui.TableRow.Key(p.Id)[ … ])
     //     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(Load)
 }
 ```
 
-The columns read `p.Name`, `p.Price` and `p.InStock` either way, so nothing else in `Render()` changes. What
-does change is where the grid does its work: handed a list rather than a query, it sorts and pages **in
+The cells read `p.Name`, `p.Price` and `p.InStock` either way, so the table itself does not change. What
+does change is where the work happens: with a list rather than a query, the page sorts and pages it **in
 memory**. That's the right trade for a set small enough to cache — and being small enough to cache is the
 reason you're here.
 
@@ -113,6 +113,6 @@ Now the list is served from cache until it expires *or* someone edits the catalo
 - Create or delete a product and reload — the list reflects the change immediately (the `Forget` dropped
   the key), then is served from cache again.
 
-**Learn more:** [cache](../cache.md) · [data grid](../data-grid.md)
+**Learn more:** [cache](../cache.md) · [tables](../ui-kit.md#tables)
 
 Next → **[Chapter 7: Domain events + the outbox](07-outbox-events.md)**

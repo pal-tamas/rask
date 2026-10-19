@@ -267,10 +267,6 @@ public abstract partial class KitDrawsWithoutAskingTests
                 await page.Keyboard.TypeAsync("abc");
             })),
 
-        ["tree"] = On<KitOwnFramePage>("tree",
-            Cursor(Focusing("[data-c='tree'] [role=tree]")),
-            Press("press a node", "[data-c='tree'] [role=treeitem]")),
-        ["data-grid"] = On<KitOwnFramePage>("data-grid", Press("sort a column", "[data-c='data-grid'] th button")),
         ["toggle-heard"] = On<KitOwnFramePage>("toggle-heard", Press("press", "[data-c='toggle-heard'] button")),
         ["carousel"] = On<KitOwnFramePage>("carousel"),
     };

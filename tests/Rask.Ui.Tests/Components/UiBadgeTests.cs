@@ -240,4 +240,21 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
         // one badge, not three.
         Assert.Equal(1, kit.Split("data-ui-badge ").Length + kit.Split("data-ui-badge>").Length - 2);
     }
+
+    [Fact]
+    public void The_kit_sheet_carries_what_wraps_a_long_token_in_a_badge()
+    {
+        // Flux's badge has no such prop, so the Dashboard and DevTools hand the utilities to Class — from packages
+        // whose sources the kit's Tailwind build never reads. ui.precompiled.css names them with `@source inline`.
+        var css = UiStylesheet.Css;
+
+        Assert.Contains(".font-mono{", css, StringComparison.Ordinal);
+        Assert.Contains(".max-w-full{", css, StringComparison.Ordinal);
+        Assert.Contains(".break-all{", css, StringComparison.Ordinal);
+        Assert.Contains(".whitespace-normal\\!{", css, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_plain_badge_keeps_its_words_on_one_line() =>
+        Assert.DoesNotContain("break-all", Ui.Badge["Live"].ToHtml(), StringComparison.Ordinal);
 }

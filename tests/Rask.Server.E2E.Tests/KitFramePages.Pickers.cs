@@ -113,35 +113,16 @@ public sealed partial class KitEditorFramePage : KitFramePage
         Div.Id("stage")[Part("editor", Ui.Editor.Value(_notes).OnChange(v => _notes = v))];
 }
 
-/// <summary>What the kit has beyond Flux's catalogue.</summary>
+/// <summary>The toggle that tells the page, and the carousel.</summary>
 public sealed partial class KitOwnFramePage : KitFramePage
 {
-    private static readonly Node[] Files =
-    [
-        new("src", "src", [new("src/a", "a.cs", []), new("src/b", "b.cs", [])]),
-        new("docs", "docs", [new("docs/a", "a.md", [])]),
-        new("readme", "README.md", []),
-    ];
-
-    private static readonly Package[] Catalog = [new(1, "Rask", 1200), new(2, "Rask.Ui", 800), new(3, "Rask.Data", 300)];
-
     private bool _muted;
 
     protected override Component? Render() =>
         Div.Id("stage")[
-            Part("tree", Ui.Tree.Roots(Files).NodeKey(f => f.Id).Item(f => Span[f.Name]).Label("Files").ExpandDepth(1)
-                .NodeText(f => f.Name).Selection(Ui.TreeSelection.One)[f => f.Children]),
-            Part("data-grid", Ui.DataGrid.Data(Catalog).RowKey(r => r.Id).Label("Packages")[c => [
-                c.Field(r => r.Name).Title("Package").Sortable(),
-                c.Field(r => r.Downloads).Title("Downloads").Sortable(),
-            ]]),
             Part("toggle-heard", Ui.Toggle.Icon(Ui.IconName.SpeakerWave).Label("Mute").Checked(_muted).OnChange(v => _muted = v)),
             Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]])
         ];
-
-    private sealed record Node(string Id, string Name, Node[] Children);
-
-    private sealed record Package(int Id, string Name, int Downloads);
 }
 
 /// <summary>A form that asks before its unsaved edits are left, and the dialog it asks in.</summary>

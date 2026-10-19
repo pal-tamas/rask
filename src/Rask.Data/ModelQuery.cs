@@ -171,7 +171,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
     /// <summary>
     ///     This query as a standard <see cref="IQueryable{T}" /> that holds no context, for a component that
-    ///     composes its own LINQ — <c>Ui.DataGrid.Data(Product.Where(p =&gt; p.Active).AsQueryable())</c>.
+    ///     composes its own LINQ — <c>Product.Where(p =&gt; p.Active).AsQueryable().Skip(20).Take(20)</c>.
     /// </summary>
     /// <remarks>
     ///     <para>

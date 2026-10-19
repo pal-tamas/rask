@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-console-pieces", "ui-chart", "ui-table",
+                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-chart", "ui-table",
                      "ui-display-rest",
                      "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
                      "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
@@ -196,60 +196,6 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(profile).ToHaveCSSAsync("padding", "4px");
         await Expect(body).ToHaveCSSAsync("border-radius", "12px");
         await Expect(profile.Locator("> [data-ui-card-header] [data-ui-card-heading]")).ToHaveTextAsync("Profile");
-    });
-
-    [Fact]
-    public Task A_linked_card_is_one_link_holding_its_figures() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-console-pieces']");
-        var card = scope.Locator("a").Filter(new LocatorFilterOptions { HasText = "Jobs" });
-
-        // One link, and the figures are inside it rather than beside it.
-        await Expect(card).ToHaveCountAsync(1);
-        await Expect(card).ToContainTextAsync("Outstanding");
-        Assert.EndsWith("/ui/data-grid/", await card.GetAttributeAsync("href") ?? "", StringComparison.Ordinal);
-    });
-
-    [Fact]
-    public Task On_a_phone_a_mono_badge_wraps_inside_its_card_instead_of_widening_it() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        try
-        {
-            await Page.SetViewportSizeAsync(390, 844);
-
-            var badge = Page.Locator("[data-testid='ui-console-pieces'] [data-ui-badge].font-mono");
-            await Expect(badge).ToBeVisibleAsync();
-
-            // A badge is a fixed-height pill that never breaks; a 40-character request id in one used to
-            // push its row wider than the screen. The mono form gives up the height and breaks anywhere.
-            var inside = await badge.EvaluateAsync<bool>(
-                "el => el.getBoundingClientRect().right <= el.parentElement.getBoundingClientRect().right + 0.5");
-            Assert.True(inside, "the mono badge overflowed its card at 390px");
-        }
-        finally
-        {
-            await Page.SetViewportSizeAsync(1280, 720);
-        }
-    });
-
-    [Fact]
-    public Task A_highlight_marks_each_match_and_shows_no_marker_characters() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var highlight = Page.Locator("[data-testid='ui-highlight']");
-        await Expect(highlight).ToBeVisibleAsync();
-        await Expect(highlight.Locator("mark")).ToHaveTextAsync(["SQLite", "fast"]);
-
-        // The private-use markers are consumed, never shown as tofu boxes.
-        var text = await highlight.InnerTextAsync();
-        Assert.DoesNotContain('', text);
-        Assert.DoesNotContain('', text);
-        Assert.Contains("SQLite is small, and fast", text, StringComparison.Ordinal);
     });
 
     [Fact]
@@ -677,6 +623,18 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         {
             await Page.SetViewportSizeAsync(1280, 720);
         }
+    });
+
+    [Theory]
+    [InlineData("data-grid")]
+    [InlineData("tree")]
+    public Task The_old_grid_and_tree_pages_open_the_data_display_page(string old) => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{Docs}/ui/{old}/");
+
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data display",
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("[data-testid='ui-table']")).ToBeVisibleAsync();
     });
 
     private async Task OpenAsync()

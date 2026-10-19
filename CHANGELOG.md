@@ -9,13 +9,29 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now
+  holds only Flux UI's components, plus `Ui.ConfirmLeave`.
+  - `Ui.DataGrid` (`UiDataGrid<T, TKey>`, `UiColumn<T>`, `UiGridPage<T>`, `UiGridRequest`, `UiGridSort`) → draw the
+    rows with `Ui.Table` (`Ui.TableColumns`/`Ui.TableColumn.Sortable()`/`Ui.TableRows`/`Ui.TableRow`/`Ui.TableCell`)
+    and page them with `Ui.Pagination` through `Ui.Table.Paginate(…)`; the page keeps the sort and the page number
+    and reads one page with `OrderBy(…).Skip(…).Take(…)`, as the tutorial's product list now does.
+  - `Ui.Tree` (`UiTree<T, TKey>`, `UiTreeNav`, `UiTreeRow`, `Ui.TreeSelection`) → no replacement; Flux has no tree.
+  - `Ui.Stat`, `Ui.StatusDot`, `Ui.Loading` (`Ui.LoadingShape`), `Ui.Metric`, `Ui.MetricRow`, `Ui.DetailList`,
+    `Ui.DetailRow`, `Ui.Code`, `Ui.Empty`, `Ui.Grid` and `UiStyles` → `Ui.Card`, `Ui.Badge`, `Ui.Text` and
+    `Ui.Heading` with Tailwind classes; a busy state is `Ui.Button.Loading()` or a `Ui.Text.Role("status")`.
+  - `Ui.Highlight` → split `FullText.Highlight`/`FullText.Snippet` output on `FullText.MatchStart`/`MatchEnd` and wrap
+    each match in `Mark[…]` ([full-text search](docs/full-text-search.md#showing-why-each-row-matched)).
+  - `Ui.Tone` and `Ui.Size`, daisyUI's colour and size words, which no component takes any more.
+  - `RASK076` (a grid column with no field token) is retired with the grid, and is never recycled.
+  - The data grid's seventeen `RaskString.DataGrid*` texts are gone, so the `RaskString` values after them renumber.
+  - `/docs/guides/data-grid` and `/docs/guides/tree` now open the UI kit guide, and `/docs/ui/data-grid` and
+    `/docs/ui/tree` the data display showcase.
+
 - **BREAKING: `Ui.List`, `Ui.ListRow` and `Ui.MockupCode` are gone (`UiList`, `UiListRow`, `UiMockupCode`).** None of
   them is Flux UI's, and the site was their last user. Their stylesheet rules went with them (the `ui-list` row
   padding and the `mockup-code` prompt correction); no `RaskString` was theirs, so nothing renumbers. Draw a list as
   a plain `Ul`/`Ol` with Tailwind (`divide-y rounded-xl border …`, the rows padded), and a terminal as a `Pre` per
   line inside a dark rounded box, the prompt a `before:content-[attr(data-prefix)]` so it is never copied.
-  `Ui.StatusDot`, `Ui.Loading` and `UiStyles` stay for now; since the console moved to Flux's pieces nothing in the
-  repository draws with them, and they go with the kit's other leftovers.
 
 ### Added
 
