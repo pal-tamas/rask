@@ -126,7 +126,7 @@ public sealed partial class CachePage(
         var evicts = options.Actions.HasFlag(RaskDashboardActions.Safe);
 
         return Ui.Table
-            .Class("w-full min-w-160")
+            .Class("w-full min-w-130 md:min-w-160")
             .AriaLabel("Cache keys")
             .Paginate(Ui.Pagination
                 .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
@@ -134,23 +134,23 @@ public sealed partial class CachePage(
             Ui.TableColumns[
                 Ui.TableColumn["Key"],
                 Ui.TableColumn.Class("w-24")["Size"],
-                Ui.TableColumn.Class("w-32")["Written"],
+                Ui.TableColumn.Class("w-32 hidden md:table-cell")["Written"],
                 Ui.TableColumn.Class("w-32")["Expires"],
-                Ui.TableColumn.Class("w-24")["Sliding"],
+                Ui.TableColumn.Class("w-24 hidden md:table-cell")["Sliding"],
                 evicts ? Ui.TableColumn.Class("w-24") : null
             ],
             Ui.TableRows[
                 _rows.Select(r => Ui.TableRow.Key(r.Key)[
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate font-mono").Title(r.Key)[r.Key],
                     Ui.TableCell[DashboardParts.Bytes(r.Bytes)],
-                    Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
+                    Ui.TableCell.Class("hidden md:table-cell")[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
                     // An expired key still reads until the sweep takes it.
                     Ui.TableCell[
                         r.ExpiresAt <= now
                             ? Ui.Badge.Sm["expired"]
                             : Span.Title(r.ExpiresAt.ToString("u"))[DashboardParts.Ago(r.ExpiresAt, now)]
                     ],
-                    Ui.TableCell[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
+                    Ui.TableCell.Class("hidden md:table-cell")[r.SlidingSeconds is { } s ? DashboardParts.Duration(TimeSpan.FromSeconds(s)) : "—"],
                     evicts ? Ui.TableCell.Class("py-0")[Ui.Button.Sm.OnClick(() => EvictAsync(r.Key))["Evict"]] : null
                 ])
             ]

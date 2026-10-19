@@ -146,28 +146,28 @@ public sealed partial class StoragePage(
         }
 
         return Ui.Table
-            .Class("w-full min-w-240")
+            .Class("w-full min-w-120 md:min-w-240")
             .AriaLabel("Stored files, newest first")
             .Paginate(Ui.Pagination
                 .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
                 .OnPage(page => GoAsync(page - 1)))[
             Ui.TableColumns[
                 Ui.TableColumn["Name"],
-                Ui.TableColumn.Class("w-24")["Access"],
-                Ui.TableColumn.Class("w-40")["Type"],
+                Ui.TableColumn.Class("w-24 hidden md:table-cell")["Access"],
+                Ui.TableColumn.Class("w-40 hidden md:table-cell")["Type"],
                 Ui.TableColumn.Class("w-24")["Size"],
-                Ui.TableColumn.Class("w-24")["Provider"],
-                Ui.TableColumn.Class("w-48")["Id"],
+                Ui.TableColumn.Class("w-24 hidden md:table-cell")["Provider"],
+                Ui.TableColumn.Class("w-48 hidden md:table-cell")["Id"],
                 Ui.TableColumn.Class("w-28")["Saved"]
             ],
             Ui.TableRows[
                 _rows.Select(r => Ui.TableRow.Key(r.Id)[
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate").Title(r.Name)[r.Name],
-                    Ui.TableCell[r.Public ? "public" : "private"],
-                    Ui.TableCell.Class("truncate font-mono").Title(r.ContentType)[r.ContentType],
+                    Ui.TableCell.Class("hidden md:table-cell")[r.Public ? "public" : "private"],
+                    Ui.TableCell.Class("hidden truncate font-mono md:table-cell").Title(r.ContentType)[r.ContentType],
                     Ui.TableCell[DashboardParts.Bytes(r.Size)],
-                    Ui.TableCell[r.Provider.ToString()],
-                    Ui.TableCell.Class("truncate font-mono").Title(r.Id.ToString("N"))[r.Id.ToString("N")],
+                    Ui.TableCell.Class("hidden md:table-cell")[r.Provider.ToString()],
+                    Ui.TableCell.Class("hidden truncate font-mono md:table-cell").Title(r.Id.ToString("N"))[r.Id.ToString("N")],
                     Ui.TableCell[
                         Span.Title(r.CreatedAt.ToString("u", CultureInfo.InvariantCulture))[DashboardParts.Ago(r.CreatedAt, now)]
                     ]

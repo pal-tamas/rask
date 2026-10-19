@@ -158,25 +158,25 @@ public sealed partial class QueuePage(
         }
 
         return Ui.Table
-            .Class("w-full min-w-240")
+            .Class("w-full min-w-176 md:min-w-240")
             .AriaLabel($"{_panel!.Title}, {slice}")
             .Paginate(Ui.Pagination
                 .Paginator(new UiPaginator { Page = _page + 1, PerPage = options.PageSize, Total = _total })
                 .OnPage(page => GoAsync(page - 1)))[
             Ui.TableColumns[
-                Ui.TableColumn.Class("w-24")["#"],
+                Ui.TableColumn.Class("w-24 hidden md:table-cell")["#"],
                 Ui.TableColumn[TypeColumnLabel()],
                 Ui.TableColumn.Class("w-28")["When"],
-                Ui.TableColumn.Class("w-24")["Attempts"],
+                Ui.TableColumn.Class("w-24 hidden md:table-cell")["Attempts"],
                 Ui.TableColumn.Class("w-36")["Status"],
                 Ui.TableColumn.Class("w-60")
             ],
             Ui.TableRows[
                 _rows.Select(r => Ui.TableRow.Key(r.Id)[
-                    Ui.TableCell.Class("font-mono")[$"{r.Id}"],
+                    Ui.TableCell.Class("hidden font-mono md:table-cell")[$"{r.Id}"],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate").Title(r.Type)[r.Type],
                     Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
-                    Ui.TableCell[$"{r.Attempts}"],
+                    Ui.TableCell.Class("hidden md:table-cell")[$"{r.Attempts}"],
                     Ui.TableCell[StatusBadge(r, IsDead(r), now)],
                     Ui.TableCell.Class("py-0")[Div.Class("flex justify-end gap-2")[RowButtons(r, IsDead(r))]]
                 ])
