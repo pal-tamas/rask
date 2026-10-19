@@ -164,7 +164,7 @@ public sealed partial class UiKitDataDisplayDemo : Component
                         Ui.Card.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[
                             Ui.CardHeader[
                                 Ui.CardHeading.Level(2).Class("flex items-center gap-2")[Ui.Icon.Name(Ui.IconName.Cog6Tooth).Class("opacity-60"), "Jobs"],
-                                Ui.CardSubheading[Ui.Badge.Sm.Color(Ui.Color.Red)["2 failed"]]
+                                Ui.CardSubheading[Ui.Badge.Sm.Color(Ui.Color.Red).Class("w-fit")["2 failed"]]
                             ],
                             Ui.CardBody[
                                 Ui.MetricRow.Columns(2)[

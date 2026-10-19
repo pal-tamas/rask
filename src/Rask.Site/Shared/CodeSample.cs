@@ -124,7 +124,7 @@ public sealed partial class CodeSample : Component
                 Header(),
                 // The ground stays the site's ink in both schemes, because the syntax colours in global.css are one
                 // palette tuned for it.
-                Pre.Class("sample-code m-0 overflow-x-auto bg-(--rask-ink) px-5 py-4 text-[0.82rem] leading-relaxed text-[#e7e3ff]")[
+                Pre.Class("sample-code m-0 overflow-x-auto rounded-none bg-(--rask-ink) px-5 py-4 text-[0.82rem] leading-relaxed text-[#e7e3ff]")[
                     Code.Class(codeClass)[
                         // A known language is tokenized server-side and injected verbatim, while
                         // an unknown extension falls back to plain, HTML-encoded text.
