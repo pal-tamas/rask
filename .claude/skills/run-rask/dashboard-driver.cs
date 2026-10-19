@@ -74,6 +74,7 @@ using var pw = await Playwright.CreateAsync();
 await using var browser = await pw.Chromium.LaunchAsync(new() { Headless = true });
 
 var claimed = firstRunToken is null;
+var extra = 0;
 foreach (var ((w, h, size), (scheme, look)) in sizes.SelectMany(size => schemes.Select(scheme => (size, scheme))))
 {
     var tag = $"{size}-{look}";
@@ -131,12 +132,26 @@ foreach (var ((w, h, size), (scheme, look)) in sizes.SelectMany(size => schemes.
 
         var flag = overflow ? "PAGE-OVERFLOW" : scrolling > 0 ? $"TABLE-SCROLLS({scrolling})" : "ok";
         Console.WriteLine($"  {flag,-15} {path,-28} {res!.Status} -> {name}-{tag}.png");
+
+        // A row's detail sheet is a page of its own to look at: open the first one there is.
+        var details = page.Locator("main button:has-text('Details')");
+        if (name == "ops-queue" && await details.CountAsync() > 0)
+        {
+            await details.First.ClickAsync();
+            await page.Locator("dialog[open]").WaitForAsync(new() { Timeout = 10000 });
+            await page.WaitForTimeoutAsync(400);
+            var sheet = Path.Combine(shotDir, $"ops-queue-detail-{tag}.png");
+            await page.ScreenshotAsync(new() { Path = sheet });
+            RecordShot(sheet, path + " (detail)");
+            extra++;
+            Console.WriteLine($"  {"ok",-15} {path + " (detail)",-28}     -> ops-queue-detail-{tag}.png");
+        }
     }
 }
 
 // The run is only worth anything if it produced images. Anything short of the full set is a defect in the
 // driver or the console, and saying so beats a green exit over an empty directory.
-var expected = pages.Length * sizes.Length * schemes.Length;
+var expected = (pages.Length * sizes.Length * schemes.Length) + extra;
 if (shots.Count != expected)
 {
     throw new InvalidOperationException(

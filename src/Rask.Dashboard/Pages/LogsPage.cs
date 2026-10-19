@@ -322,12 +322,12 @@ public sealed partial class LogsPage(
 
         var label = pager is null ? "Recent log entries" : "Stored log entries";
         return Ui.Table
-                .Class("w-full min-w-120 md:min-w-200")
+                .Class("w-full md:min-w-200")
                 .AriaLabel(label)
                 .Paginate(pager)[
                 Ui.TableColumns[
                     Ui.TableColumn.Class("w-20")["When"],
-                    Ui.TableColumn.Class("w-28")["Level"],
+                    Ui.TableColumn.Class("w-28 hidden md:table-cell")["Level"],
                     Ui.TableColumn.Class("w-56 hidden md:table-cell")["Category"],
                     Ui.TableColumn["Message"]
                 ],
@@ -336,7 +336,7 @@ public sealed partial class LogsPage(
                         Ui.TableCell.Class("align-top")[
                             Span.Title(r.Timestamp.UtcDateTime.ToString("u"))[DashboardParts.Ago(r.Timestamp.UtcDateTime, now)]
                         ],
-                        Ui.TableCell.Class("align-top")[LevelBadge(r.Level)],
+                        Ui.TableCell.Class("hidden align-top md:table-cell")[LevelBadge(r.Level)],
                         Ui.TableCell.Class("hidden truncate align-top font-mono md:table-cell").Title(r.Category)[r.Category],
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("align-top whitespace-normal")[MessageCell(r)]
                     ])
@@ -349,8 +349,12 @@ public sealed partial class LogsPage(
     private static Component MessageCell(LogRow row) =>
         Div.Class("grid gap-2")[
             Div.Class("wrap-anywhere")[row.Message],
-            // Below md the category has no column of its own, so it goes under the message it labels.
-            Ui.Text.Size(Ui.TextSize.Sm).Class("truncate font-mono md:hidden").Title(row.Category)[row.Category],
+            // Below md the level and the category have no column of their own: they go under the message they label,
+            // which keeps the whole width of a phone for the message.
+            Div.Class("flex min-w-0 items-center gap-2 md:hidden")[
+                LevelBadge(row.Level),
+                Ui.Text.Size(Ui.TextSize.Sm).Class("truncate font-mono").Title(row.Category)[row.Category]
+            ],
             row.Exception is { } ex ? DashboardCode.Content(ex).Danger(true) : null,
             ScopeChips(row.Scopes)
         ];

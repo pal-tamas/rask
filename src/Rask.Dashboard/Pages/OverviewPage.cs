@@ -107,9 +107,10 @@ public sealed partial class OverviewPage(IEnumerable<IQueuePanel> queues, OpsOpt
 
         // Flux's link card: the link is around the card, not a prop of it.
         return NavLink.Key(panel.Slug).Href(Routes.QueuePage(panel.Slug)).Class("block")[Ui.Card[
-            Ui.CardHeader.Class("flex items-center justify-between gap-2")[
+            // The state in the header's actions slot, at its end: a status, never a button, since the card is one link.
+            Ui.CardHeader[
                 Ui.CardHeading.Level(2)[panel.Title],
-                Ui.Badge.Sm.Color(failing ? Ui.Color.Red : Ui.Color.Green)[failing ? $"{counts.Failed} failed" : "healthy"]
+                Ui.CardActions[Ui.Badge.Sm.Color(failing ? Ui.Color.Red : Ui.Color.Green)[failing ? $"{counts.Failed} failed" : "healthy"]]
             ],
             Ui.CardBody[Div.Class("grid grid-cols-2 gap-4")[
                 DashboardMetric

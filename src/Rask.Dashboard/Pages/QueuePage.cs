@@ -165,7 +165,8 @@ public sealed partial class QueuePage(
                 .OnPage(page => GoAsync(page - 1)))[
             Ui.TableColumns[
                 Ui.TableColumn.Class("w-24 hidden md:table-cell")["#"],
-                Ui.TableColumn[TypeColumnLabel()],
+                // Flush with the page below md, where the id before it has no column: Flux unpads only a first cell.
+                Ui.TableColumn.Class("max-md:ps-0")[TypeColumnLabel()],
                 Ui.TableColumn.Class("w-28")["When"],
                 Ui.TableColumn.Class("w-24 hidden md:table-cell")["Attempts"],
                 Ui.TableColumn.Class("w-36")["Status"],
@@ -174,7 +175,7 @@ public sealed partial class QueuePage(
             Ui.TableRows[
                 _rows.Select(r => Ui.TableRow.Key(r.Id)[
                     Ui.TableCell.Class("hidden font-mono md:table-cell")[$"{r.Id}"],
-                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate").Title(r.Type)[r.Type],
+                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate max-md:ps-0").Title(r.Type)[r.Type],
                     Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
                     Ui.TableCell.Class("hidden md:table-cell")[$"{r.Attempts}"],
                     Ui.TableCell[StatusBadge(r, IsDead(r), now)],
