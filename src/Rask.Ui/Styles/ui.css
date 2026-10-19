@@ -46,7 +46,7 @@
   background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
 
   exclude rootscrollgutter, which paints the document for its own reasons — and the components the kit has
-  replaced with Flux's while still saying their names in prose (the hover bubble, the radio, the toggle, the old vertical track).
+  replaced with Flux's while still saying their names in prose (the hover bubble, the checkbox, the radio, the toggle, the old vertical track).
 
   NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
   scanned source. So every class a component writes must appear as a COMPLETE literal in C#, never
@@ -74,7 +74,7 @@
 @plugin "./daisyui.mjs" {
   themes: all;
   root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, radio, toggle, range, timeline, swap, carousel, aura, chat, countdown, diff, dock, fab, filter, hover3d, hovergallery, indicator, join, mask, rating, stack, steps, textrotate, validator;
+  exclude: rootscrollgutter, tooltip, dropdown, checkbox, radio, toggle, range, timeline, swap, carousel, aura, chat, countdown, diff, dock, fab, filter, hover3d, hovergallery, indicator, join, mask, rating, stack, steps, textrotate, validator;
 }
 
 @theme {

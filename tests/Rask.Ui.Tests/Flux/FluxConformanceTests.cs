@@ -220,29 +220,13 @@ public sealed class FluxConformanceTests
     };
 
     /// <summary>
-    ///     Not Flux, and going: each is deleted by the step its tag names, and this list only shrinks. The kit holds
-    ///     only Flux UI's components (the owner, 2026-10-13); nothing new is ever added here.
+    ///     Not Flux, and going. Empty since the data grid, the tree and the console pieces went: the kit holds only
+    ///     Flux UI's components (the owner, 2026-10-13), and nothing is ever added here.
     /// </summary>
-    private static readonly Dictionary<Type, string> NotFluxYet = new()
-    {
-        [typeof(UiStatusDot)] = "site",
-        [typeof(UiLoading)] = "site",
-        [typeof(UiEmpty)] = "console",
-        [typeof(UiMetric)] = "console",
-        [typeof(UiMetricRow)] = "console",
-        [typeof(UiDetailList)] = "console",
-        [typeof(UiDetailRow)] = "console",
-        [typeof(UiCode)] = "console",
-        [typeof(UiStat)] = "console",
-        [typeof(UiGrid)] = "console",
-        [typeof(UiDataGrid<,>)] = "grid",
-        [typeof(UiColumn<>)] = "grid",
-        [typeof(UiTree<,>)] = "tree",
-        [typeof(UiHighlight)] = "highlight",
-    };
+    private static readonly Dictionary<Type, string> NotFluxYet = new();
 
     /// <summary>The ceiling <see cref="NotFluxYet" /> is held under. Lower it with every deletion; never raise it.</summary>
-    private const int NotFluxYetCeiling = 14;
+    private const int NotFluxYetCeiling = 0;
 
     /// <summary>Not Flux, and kept because the owner said so, with the day they did.</summary>
     private static readonly Dictionary<Type, string> Approved = new()

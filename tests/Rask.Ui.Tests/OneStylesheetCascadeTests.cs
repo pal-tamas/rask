@@ -28,14 +28,14 @@ public sealed class OneStylesheetCascadeTests
 {
     // What a page of the app writes. None of it is exotic: each is a base utility or a shorthand whose
     // variant or longhand some kit component writes on an element of its own.
-    private const string AppMarkup = "bg-white m-0 flex-col text-zinc-500 dark:bg-red-500";
+    private const string AppMarkup = "bg-white m-0 block text-zinc-500 dark:bg-red-500";
 
     // (the app's class, the kit's class that must win where both apply)
     public static TheoryData<string, string> Pairs() => new()
     {
         { "bg-white", "dark:bg-white/10" },
         { "text-zinc-500", "dark:text-zinc-300" },
-        { "flex-col", "sm:flex-row" },
+        { "block", "sm:hidden" },
         { "m-0", "mt-auto" },
     };
 

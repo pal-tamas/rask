@@ -46,7 +46,7 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     // #1070: every kit component that takes a RouteUrl follows Ui.Button and Ui.Link. A generated route navigates in
     // place; a string is an ordinary link, and gets neither the path base nor the runtime's interception.
     public static TheoryData<string> LinkingComponents => [
-        "Ui.Stat", "Ui.NavbarItem", "Ui.NavlistItem", "Ui.Brand", "Ui.Avatar", "Ui.BreadcrumbsItem",
+        "Ui.NavbarItem", "Ui.NavlistItem", "Ui.Brand", "Ui.Avatar", "Ui.BreadcrumbsItem",
         "Ui.SidebarItem", "Ui.SidebarBrand", "Ui.MenuItem", "Ui.Pagination"
     ];
 
@@ -88,7 +88,6 @@ public partial class UiRoutePathBaseTests : global::Rask.Core.RaskMarkup
     private string Render(string component, RouteUrl href) => component switch
     {
         "Ui.NavmenuItem" => Ui.NavmenuItem.Href(href)["Orders"].ToHtml(),
-        "Ui.Stat" => Ui.Stat.Value("OK").Label("Status").Href(href).ToHtml(),
         "Ui.NavbarItem" => Ui.NavbarItem.Href(href)["Status"].ToHtml(),
         "Ui.NavlistItem" => Ui.NavlistItem.Href(href)["Status"].ToHtml(),
         "Ui.Brand" => Ui.Brand.Name("Status").Href(href).ToHtml(),
