@@ -72,7 +72,7 @@ internal static class ReadModelShape
     /// </summary>
     /// <remarks>
     ///     The ids it holds are recorded as CANDIDATE references and resolved later, by
-    ///     <see cref="Resolve" />: whether <c>CustomerId</c> points anywhere depends on what else the
+    ///     <see cref="TryResolve" />: whether <c>CustomerId</c> points anywhere depends on what else the
     ///     compilation declares, which is not knowable while walking one entity.
     /// </remarks>
     /// <param name="entity">The write model to read.</param>
@@ -247,29 +247,44 @@ internal static class ReadModelShape
     }
 
     /// <summary>
-    ///     The navigation a <c>{X}Id</c> implies, or null with the reason.
+    ///     Whether a <c>{X}Id</c> names one of <paramref name="targets" /> by the one rule asked for, and if it
+    ///     does, the navigation it implies — or null, with the reason when there is one.
     /// </summary>
     /// <remarks>
     ///     Two rules, both predictable. An exact match — <c>CustomerId</c> against an aggregate named
     ///     <c>Customer</c>. Or a suffix match — <c>ShippedByUserId</c> against <c>User</c> — which is what lets
     ///     one entity hold two references to the same aggregate without them colliding. The navigation is named
-    ///     after the PROPERTY, never the target, for exactly that reason.
+    ///     after the PROPERTY, never the target, for exactly that reason. The caller tries them in order, every
+    ///     exact match before any suffix match, so a longer name that is someone's exact name is never taken
+    ///     by a shorter one it happens to end in.
     /// </remarks>
     /// <param name="reference">The candidate recorded by <see cref="Describe" />.</param>
     /// <param name="owner">The fully-qualified write type the reference is declared on.</param>
-    /// <param name="aggregates">Every aggregate in the compilation, by simple name.</param>
+    /// <param name="targets">The entities this attempt may point at, by simple name.</param>
+    /// <param name="exactName">The exact rule when true, the suffix rule when false.</param>
+    /// <param name="navigation">The navigation, when the match produced one.</param>
     /// <param name="problem">Why it did not resolve, when the shape says it should have.</param>
-    public static ReadNavigation? Resolve(
+    /// <returns>Whether the name matched, which settles the reference either way.</returns>
+    public static bool TryResolve(
         ReadReference reference,
         string owner,
-        IReadOnlyDictionary<string, ReadTarget> aggregates,
+        IReadOnlyDictionary<string, ReadTarget> targets,
+        bool exactName,
+        out ReadNavigation? navigation,
         out ReadReferenceProblem problem)
     {
+        navigation = null;
         problem = ReadReferenceProblem.None;
 
-        if (aggregates.TryGetValue(reference.Target, out var exact))
+        if (exactName)
         {
-            return Accept(reference, owner, exact, exactName: true, ref problem);
+            if (!targets.TryGetValue(reference.Target, out var exact))
+            {
+                return false;
+            }
+
+            navigation = Accept(reference, owner, exact, exactName: true, ref problem);
+            return true;
         }
 
         // Suffix: ShippedByUserId -> User. Longest wins, and a tie is ambiguous rather than a guess.
@@ -277,7 +292,7 @@ internal static class ReadModelShape
         var matched = 0;
         var tied = false;
 
-        foreach (var pair in aggregates)
+        foreach (var pair in targets)
         {
             if (pair.Key.Length >= reference.Target.Length ||
                 !reference.Target.EndsWith(pair.Key, StringComparison.Ordinal))
@@ -303,16 +318,17 @@ internal static class ReadModelShape
 
         if (matched == 0)
         {
-            return null;   // not a reference at all — an ordinary column
+            return false;
         }
 
         if (tied)
         {
             problem = ReadReferenceProblem.Ambiguous;
-            return null;
+            return true;
         }
 
-        return Accept(reference, owner, found, exactName: false, ref problem);
+        navigation = Accept(reference, owner, found, exactName: false, ref problem);
+        return true;
     }
 
     private static ReadNavigation? Accept(

@@ -774,6 +774,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A read-face id that names a child exactly is no longer taken by an aggregate its name only ends in.** Before:
+  `SupplyPart.VirtualTankId`, with `VirtualTank` a child of the aggregate `Tank`, generated `SupplyPartRead.VirtualTank`
+  as a `TankRead`, joining the id to `Tank.Id` and reading the wrong rows. After: it is a `VirtualTankRead`. The
+  rules now go exact aggregate name, exact child name, then the longest aggregate suffix, then the longest child
+  suffix.
 - **An index Rask prefixes with `TenantId` keeps the database name it was given (#1250).** Before:
   `HasIndex(u => u.Username).HasDatabaseName("User_username_key").IsUnique("…")` on a `PerTenant` table became
   `IX_User_TenantId_Username`, a name that exists in no adopted database, so its violation was never recognised

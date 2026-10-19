@@ -121,6 +121,46 @@ public class ReadModelGeneratorTests
     }
 
     [Fact]
+    public void An_id_naming_a_child_exactly_beats_an_aggregate_its_name_only_ends_in()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class Tank : Aggregate<string>
+            {
+                private readonly List<VirtualTank> _virtualTanks = [];
+                private Tank() { }
+                public IReadOnlyList<VirtualTank> VirtualTanks => _virtualTanks;
+            }
+            public sealed class VirtualTank : Entity<string>
+            {
+                private VirtualTank() { }
+                public string Name { get; private set; } = "";
+            }
+            public sealed class Supply : Aggregate<string>
+            {
+                private readonly List<SupplyPart> _parts = [];
+                private Supply() { }
+                public IReadOnlyList<SupplyPart> Parts => _parts;
+            }
+            public sealed class SupplyPart : Entity<string>
+            {
+                private SupplyPart() { }
+                public string VirtualTankId { get; private set; } = "";
+            }
+            """);
+
+        var face = run.GeneratedSource("Fuel_SupplyPartRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("public global::Fuel.VirtualTankRead VirtualTank { get; init; }", face, StringComparison.Ordinal);
+        Assert.DoesNotContain("TankRead VirtualTank", face.Replace("VirtualTankRead", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
     public void An_id_whose_name_and_key_match_an_aggregate_becomes_a_navigation()
     {
         var source = Run(Shop).GeneratedSource("Shop_OrderRead");

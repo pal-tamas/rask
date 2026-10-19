@@ -225,10 +225,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
 
         foreach (var reference in shape.References)
         {
-            var navigation = ReadModelShape.Resolve(reference, shape.SourceTypeName, aggregates, out var problem) ??
-                             (problem is ReadModelShape.ReadReferenceProblem.None
-                                 ? ReadModelShape.Resolve(reference, shape.SourceTypeName, children, out problem)
-                                 : null);
+            var (navigation, problem) = Infer(reference, shape.SourceTypeName, aggregates, children);
 
             if (problem is not ReadModelShape.ReadReferenceProblem.None)
             {
@@ -254,6 +251,28 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         }
 
         return navigations;
+    }
+
+    // Exact before suffix, and an aggregate before a child within each: a VirtualTankId reaches the VirtualTank child
+    // even though it also ends in an aggregate's name, Tank. The first rule whose name matches settles it.
+    private static (ReadNavigation? Navigation, ReadModelShape.ReadReferenceProblem Problem) Infer(
+        ReadReference reference,
+        string owner,
+        IReadOnlyDictionary<string, ReadModelShape.ReadTarget> aggregates,
+        IReadOnlyDictionary<string, ReadModelShape.ReadTarget> children)
+    {
+        foreach (var exact in new[] { true, false })
+        {
+            foreach (var targets in new[] { aggregates, children })
+            {
+                if (ReadModelShape.TryResolve(reference, owner, targets, exact, out var navigation, out var problem))
+                {
+                    return (navigation, problem);
+                }
+            }
+        }
+
+        return (null, ReadModelShape.ReadReferenceProblem.None);
     }
 
     private static string EmitFace(

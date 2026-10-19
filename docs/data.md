@@ -428,9 +428,13 @@ DDD-correct id on the aggregate and the join appears on the read face, having de
 | `Guid? ShippedByUserId` + a `User : Aggregate<Guid>` | name *ends with* an aggregate's name | `ShippedByUser` (nullable) |
 | `int? SumSupplyId` on `Supply` itself | name *ends with* its own aggregate's name | `SumSupply` (nullable) — a join to another row of the same table |
 | `Guid PistolId` + a `Pistol : Entity<Guid>` held by another aggregate | a child, for a name no aggregate takes | `Pistol` — read side only; the write side still holds just the id |
+| `string VirtualTankId` + a `VirtualTank` child of `Tank` | exact child name, though it also *ends with* the aggregate `Tank` | `VirtualTank` — an exact name beats a suffix |
 | `Guid CustomerId`, no `Customer` aggregate or child | none | none — an ordinary `Guid` column |
 | `int CustomerId` + a `Customer : Aggregate<Guid>` | name matches, key type does not | none, **and [RASK089](diagnostics.md#rask089)** |
 | `Guid CustomerId` where two aggregates end in `Customer` | ambiguous | none, **and [RASK089](diagnostics.md#rask089)** |
+
+The first rule that matches wins, in this order: an aggregate's **exact** name, a child's **exact** name, the
+longest aggregate name it **ends with**, the longest child name it **ends with**.
 
 The navigation is named after the **property**, not the target, so two references to the same aggregate never
 collide. (`CategoryId` on `Category` — the exact name of its own type — stays a plain column: it reads as the row's own id.) And it is the one thing the write model cannot do, so this is the join you came for:
