@@ -144,7 +144,9 @@ public static class RaskValidation
     /// <param name="rule">
     ///     Given a property's name, hands back its rule or <see langword="null" /> when it has none: a
     ///     <see cref="Validate{T}" /> or a <c>Func&lt;T, ValueTask&lt;IEnumerable&lt;string&gt;&gt;&gt;</c>
-    ///     over the property's declared type <c>T</c>, the same two shapes a <c>Validate</c> step takes.
+    ///     over the property's declared type <c>T</c>, the same two shapes a <c>Validate</c> step takes. A
+    ///     control over a value type bound to a <c>bool?</c> or an <c>int?</c> — a checkbox, a switch — is
+    ///     handed the rule over the nullable type, and asks it about what the property holds, null included.
     ///     Asked on every render of a bound field, so it hands back a delegate it keeps, and builds none.
     /// </param>
     public static void RegisterFieldRules(Type modelType, Func<string, Delegate?> rule)
@@ -172,20 +174,26 @@ public static class RaskValidation
             return written;
         }
 
-        if (own is not (Validate<T> or Func<T, ValueTask<IEnumerable<string>>>))
+        if (own is Validate<T> or Func<T, ValueTask<IEnumerable<string>>>)
         {
-            throw new InvalidOperationException(
-                $"The rule registered for {field} is a {own.GetType().Name}, and the field is bound as "
-                + $"{typeof(T).Name}: RaskValidation.RegisterFieldRules must hand back a Validate<{typeof(T).Name}> "
-                + $"or a Func<{typeof(T).Name}, ValueTask<IEnumerable<string>>> for it.");
+            if (underOptional)
+            {
+                own = WhenFilled.Of<T>(own);
+            }
+
+            return written is null ? own : RuleSequence<T>.Of(own, written);
         }
 
-        if (underOptional)
+        // A control over a value type bound to the property's nullable twin: the rule is over what the property holds.
+        if (LiftedRule.IsOverNullable<T>(own))
         {
-            own = WhenFilled.Of<T>(own);
+            return LiftedRule.Then(own, written, underOptional);
         }
 
-        return written is null ? own : RuleSequence<T>.Of(own, written);
+        throw new InvalidOperationException(
+            $"The rule registered for {field} is a {own.GetType().Name}, and the field is bound as "
+            + $"{typeof(T).Name}: RaskValidation.RegisterFieldRules must hand back a Validate<{typeof(T).Name}> "
+            + $"or a Func<{typeof(T).Name}, ValueTask<IEnumerable<string>>> for it.");
     }
 
     /// <summary>

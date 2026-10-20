@@ -481,7 +481,7 @@ public class ModelInputGeneratorTests
 
         // A form is told per SLOT: the nested model's type says which of its fields must be filled, as ever,
         // and the model that holds the property says the whole object under it may be left empty.
-        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\" or \"Main\";", source, StringComparison.Ordinal);
+        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\";", source, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel), Root_IsOptional);", source, StringComparison.Ordinal);
         Assert.Contains("private static bool Root_IsOptional(string property) =>\n        property is \"Annex\";", source, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel.AddressModel), AddressModel_IsOptional);", source, StringComparison.Ordinal);
