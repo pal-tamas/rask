@@ -10,12 +10,16 @@ namespace Rask.Generators.Shared;
 ///     read the one way every generator needs it.
 /// </summary>
 /// <remarks>
-///     An aggregate part becomes a generated <c>{Aggregate}Id</c> of that aggregate's key type; a named scalar part
+///     An aggregate part becomes a generated <c>{Aggregate}Id</c> of that aggregate's key type, and an entity part —
+///     the child holding a grandchild — a generated <c>{Entity}{Column}</c> per column of its key; a named scalar part
 ///     — <c>(Order, int LineNo)</c> — is a property the entity declares itself. Generators cannot see each other's
 ///     output, so the read face and the model registry rebuild the parts from here rather than from the properties.
 /// </remarks>
 internal static class CompositeKeyShape
 {
+    // How deep one entity part may name another: the depth an aggregate is walked to, and no cycle can loop.
+    private const int DeepestPart = 4;
+
     /// <summary>Whether <paramref name="idType" /> is a key of several columns.</summary>
     public static bool IsComposite(ITypeSymbol? idType) => idType is INamedTypeSymbol { IsTupleType: true };
 
@@ -38,10 +42,7 @@ internal static class CompositeKeyShape
 
         foreach (var element in tuple.TupleElements)
         {
-            if (PartOf(element, problems) is { } part)
-            {
-                parts.Add(part);
-            }
+            parts.AddRange(PartOf(element, problems, depth: 0));
         }
 
         foreach (var twice in parts.GroupBy(static p => p.Name, StringComparer.Ordinal).Where(static g => g.Count() > 1))
@@ -60,35 +61,21 @@ internal static class CompositeKeyShape
         return problems.Count == 0 ? parts : [];
     }
 
-    private static KeyPart? PartOf(IFieldSymbol element, List<string> problems)
+    private static List<KeyPart> PartOf(IFieldSymbol element, List<string> problems, int depth)
     {
         var type = element.Type;
 
-        if (type is INamedTypeSymbol aggregate && AggregateShape.IsAggregate(aggregate))
+        if (type is INamedTypeSymbol owner && AggregateShape.IsEntity(owner))
         {
             if (element.IsExplicitlyNamedTupleElement)
             {
                 problems.Add(
-                    $"its key part '{aggregate.Name} {element.Name}' names an aggregate, whose column is always "
-                    + $"'{aggregate.Name}Id'; drop the name '{element.Name}'");
-                return null;
+                    $"its key part '{owner.Name} {element.Name}' names an entity, whose columns are always named "
+                    + $"after it ('{owner.Name}Id'); drop the name '{element.Name}'");
+                return [];
             }
 
-            if (!AggregateShape.TryGetIdType(aggregate, out var keyType) || keyType is null || IsComposite(keyType))
-            {
-                problems.Add($"the aggregate '{aggregate.Name}' its key names has no key of one column to point at");
-                return null;
-            }
-
-            return new KeyPart(aggregate.Name + "Id", keyType, aggregate);
-        }
-
-        if (AggregateShape.IsEntity(type))
-        {
-            problems.Add(
-                $"its key part '{type.Name}' is an entity that is not an aggregate; a key part is an aggregate, or a "
-                + "named value such as 'int LineNo'");
-            return null;
+            return AggregateShape.IsAggregate(owner) ? AggregatePart(owner, problems) : HolderParts(owner, problems, depth);
         }
 
         if (!element.IsExplicitlyNamedTupleElement)
@@ -96,10 +83,50 @@ internal static class CompositeKeyShape
             problems.Add(
                 $"its key part '{type.ToDisplayString()}' has no name; name it — '{type.ToDisplayString()} LineNo' — "
                 + "and declare that property");
-            return null;
+            return [];
         }
 
-        return new KeyPart(element.Name, type, null);
+        return [new KeyPart(element.Name, type, null)];
+    }
+
+    // (DeliveryNote, …): one column, {Aggregate}Id, of the aggregate's own key type.
+    private static List<KeyPart> AggregatePart(INamedTypeSymbol aggregate, List<string> problems)
+    {
+        if (!AggregateShape.TryGetIdType(aggregate, out var keyType) || keyType is null || IsComposite(keyType))
+        {
+            problems.Add($"the aggregate '{aggregate.Name}' its key names has no key of one column to point at");
+            return [];
+        }
+
+        return [new KeyPart(aggregate.Name + "Id", keyType, aggregate)];
+    }
+
+    // (ReportColumn, int TotalColumnId): a grandchild keyed under the child that holds it — one column per column of
+    // that child's key, named as EF Core names the foreign key to it: ReportColumnReportId, ReportColumnColumnId.
+    private static List<KeyPart> HolderParts(INamedTypeSymbol holder, List<string> problems, int depth)
+    {
+        if (!AggregateShape.TryGetIdType(holder, out var keyType) || keyType is null)
+        {
+            return [];
+        }
+
+        if (keyType is not INamedTypeSymbol { IsTupleType: true } tuple)
+        {
+            return [new KeyPart(holder.Name + "Id", keyType, holder)];
+        }
+
+        var inner = new List<string>();
+        var parts = depth < DeepestPart
+            ? tuple.TupleElements.SelectMany(e => PartOf(e, inner, depth + 1)).ToList()
+            : [];
+
+        if (inner.Count > 0 || parts.Count == 0)
+        {
+            problems.Add($"the entity '{holder.Name}' its key names has a key that cannot be built");
+            return [];
+        }
+
+        return [.. parts.Select(p => new KeyPart(holder.Name + p.Name, p.Type, holder))];
     }
 
     /// <summary>

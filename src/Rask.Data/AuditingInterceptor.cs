@@ -24,7 +24,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         // The same work as the async path. A synchronous save has no other way to ask about a parent it does not hold.
         if (eventData.Context is { } context)
         {
-            ChildWrites.RefuseCompositeKeys(context);
+            ReplacedChildren.Match(context);
             SeveredChildren.Delete(context);
             ChildWrites.RefuseOutsideTheirAggregate(context);
             ParentTenantCheck.RefuseAsync(context, CancellationToken.None).GetAwaiter().GetResult();
@@ -40,7 +40,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     {
         if (eventData.Context is { } context)
         {
-            ChildWrites.RefuseCompositeKeys(context);
+            ReplacedChildren.Match(context);
             SeveredChildren.Delete(context);
             ChildWrites.RefuseOutsideTheirAggregate(context);
             await ParentTenantCheck.RefuseAsync(context, cancellationToken).ConfigureAwait(false);
