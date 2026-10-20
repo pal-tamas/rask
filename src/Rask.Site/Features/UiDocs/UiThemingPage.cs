@@ -71,7 +71,7 @@ public sealed partial class UiThemingPage : Component
             Ui.Text["The accent is three variables: the fill of a primary action, the same hue as readable text — a "
                     + "link, an accented heading — and the text on the fill. Each box below sets them for what is inside "
                     + "it; an app sets them once, for the page:"],
-            UiDocsExample.Heading("Accents").File("ThemingAccentExample.cs").Demo(ThemingAccentExample)
+            UiDocsExample.Heading("Accents").File("ThemingAccentExample.cs").Demo(ThemingAccentExample).Nested()
                 .Testid("ui-theming")
                 .Blurb("An arbitrary-property class sets the tokens for one subtree. The default is the kit's own: "
                        + "zinc-800, and white in dark mode."),

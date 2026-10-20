@@ -22,10 +22,13 @@ internal sealed partial class UiDocsExample : Component
     /// <summary>A name the browser tests find the result by, on a box around the result alone.</summary>
     public string? Testid { get; set; }
 
+    /// <summary>Whether it sits inside a section of the page, so its title is one level below the section's.</summary>
+    public bool? Nested { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
         Section.Class("mt-10 space-y-3")[
-            Ui.Heading.Level(2).Lg[Heading],
+            Ui.Heading.Level(Nested == true ? 3 : 2).Lg[Heading],
             Blurb is null ? null : Ui.Text[Blurb],
             CodeSample.Files([File]).Result(Testid is null ? Demo : Div.Data("testid", Testid)[Demo])
         ];

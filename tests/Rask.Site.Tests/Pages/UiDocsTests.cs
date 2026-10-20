@@ -64,6 +64,31 @@ public sealed partial class UiDocsTests
         Assert.DoesNotContain("aria-current", tab, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [MemberData(nameof(Pages))]
+    public async Task No_heading_on_a_ui_page_skips_a_level_below_the_one_before_it(string path)
+    {
+        var html = await SiteDocument.At(path);
+
+        var main = Regex.Match(html, "<main[^>]*>.*</main>", RegexOptions.Singleline).Value;
+        var levels = Regex.Matches(main, "<h([1-6])[\\s>]").Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+
+        Assert.Equal(1, levels[0]);
+        Assert.All(levels.Zip(levels.Skip(1)), pair => Assert.True(pair.Second <= pair.First + 1, $"{path}: h{pair.First} is followed by h{pair.Second}"));
+    }
+
+    [Fact]
+    public async Task An_example_inside_a_section_is_titled_one_level_below_the_section()
+    {
+        var html = await SiteDocument.At(global::Rask.Site.Routes.UiThemingPage());
+
+        var section = Regex.Match(html, "<h([1-6])[^>]*>Accent color</h\\1>").Groups[1].Value;
+        var example = Regex.Match(html, "<h([1-6])[^>]*>Accents</h\\1>").Groups[1].Value;
+
+        Assert.Equal("2", section);
+        Assert.Equal("3", example);
+    }
+
     [Fact]
     public async Task Each_example_on_a_component_page_shows_its_own_code_right_above_its_result()
     {
