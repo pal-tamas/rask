@@ -29,12 +29,17 @@ internal sealed class LiveBrowser
     /// <summary>The rows of the page's first table body, in the order the browser shows them.</summary>
     internal List<FrameDom.Node> Rows() => Find(Page.At(), static node => node.Tag == "tbody")!.Children;
 
-    internal async Task Click(FrameDom.Node button)
-    {
-        var id = button.Attributes["data-rask-on-click"]!;
-        var payload = JsonDocument.Parse($$"""{"id":"{{id}}","type":"click","v":{{_version}}}""").RootElement;
+    internal Task Click(FrameDom.Node button) => Fire(button, "click", string.Empty);
 
-        Assert.True(await _root.TryInvokeHandlerAsync(id, payload), "the click ran nothing");
+    /// <summary>A field's <c>change</c>, carrying the value the browser reports: a checkbox's is "true" or "false".</summary>
+    internal Task Change(FrameDom.Node field, string value) => Fire(field, "change", ",\"value\":\"" + value + "\"");
+
+    private async Task Fire(FrameDom.Node target, string type, string fields)
+    {
+        var id = target.Attributes["data-rask-on-" + type]!;
+        var payload = JsonDocument.Parse($$"""{"id":"{{id}}","type":"{{type}}","v":{{_version}}{{fields}}}""").RootElement;
+
+        Assert.True(await _root.TryInvokeHandlerAsync(id, payload), "the " + type + " ran nothing");
         Rerender();
     }
 
