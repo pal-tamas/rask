@@ -293,6 +293,70 @@ internal static class UiApi
         new("Ui.Popover", typeof(UiPopover), "flux:popover", "The panel a Ui.Dropdown opens beside its trigger, for what is not a menu. Where it opens is the dropdown's.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> Progress { get; } =
+    [
+        new("Ui.Progress", typeof(UiProgress), "flux:progress", "A <div role=\"progressbar\">: a 6px track the width of its container and the bar filling it.",
+        [
+            new("Value", typeof(double?), "How far along it is, from 0 to Max. 0 when unset."),
+            new("Max", typeof(double?), "What Value is out of. 100 when unset."),
+            new("Color", typeof(Ui.Color?), "The bar's colour. The accent when unset.", Hue),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Skeleton { get; } =
+    [
+        new("Ui.Skeleton", typeof(UiSkeleton), "flux:skeleton", "A block in the shape of what is coming: 16px tall and as wide as its container until Class sizes and rounds it.",
+        [
+            new("Animate", typeof(Ui.SkeletonAnimate?), "How it shows something is on its way. Its group's when unset, and still without one."),
+            new("Style", typeof(string), "Inline CSS for the block: a width known only at run time."),
+        ]),
+        new("Ui.SkeletonLine", typeof(UiSkeletonLine), "flux:skeleton.line", "A line of text that has not arrived: the line's full height, a bar the height of its letters.",
+        [
+            new("Size", typeof(Ui.SkeletonLineSize?), "The size of text it stands in for. Base when unset."),
+            new("Animate", typeof(Ui.SkeletonAnimate?), "How it shows something is on its way. Its group's when unset, and still without one."),
+            new("Style", typeof(string), "Inline CSS for the line: a width known only at run time."),
+        ]),
+        new("Ui.SkeletonGroup", typeof(UiSkeletonGroup), "flux:skeleton.group", "A <div> that draws nothing and animates every skeleton inside it, however deep.",
+        [
+            new("Animate", typeof(Ui.SkeletonAnimate?), "How every skeleton inside animates, unless it states its own."),
+            new("Style", typeof(string), "Inline CSS for the group."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Toast { get; } =
+    [
+        new("Ui.Toast", typeof(UiToast), "flux:toast", "Where the app's toasts appear. Placed once, in the layout; a toast is raised with Toast.Success(\"Saved\").",
+        [
+            new("Position", typeof(Ui.ToastPosition?), "The corner they appear in. The bottom end when unset; a group around it decides instead."),
+            new("Invert", typeof(bool?), "Dark in light mode and light in dark, for every toast."),
+        ]),
+        new("Ui.ToastGroup", typeof(UiToastGroup), "flux:toast.group", "Wrapped around a Ui.Toast, toasts stack instead of taking one another's place.",
+        [
+            new("Position", typeof(Ui.ToastPosition?), "The corner the stack sits in. The bottom end when unset."),
+            new("Expanded", typeof(bool?), "Lays every toast out at all times, not only under the pointer."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Tooltip { get; } =
+    [
+        new("Ui.Tooltip", typeof(UiTooltip), "flux:tooltip", "A line of help beside its first child, the trigger, while that is hovered or has keyboard focus.",
+        [
+            new("Content", typeof(string), "The text it shows. For more, write a Ui.TooltipContent after the trigger."),
+            new("Position", typeof(Ui.TooltipPosition?), "Which side of the trigger it opens on. Top when unset."),
+            new("Align", typeof(Ui.TooltipAlign?), "Where along that side it sits. Centred when unset."),
+            new("Gap", typeof(int?), "The distance from the trigger, in pixels. 5 when unset."),
+            new("Offset", typeof(int?), "How far it slides along its side, in pixels, away from the edge it is aligned to."),
+            new("Kbd", typeof(string), "A shortcut shown after Content: \"⌘S\"."),
+            new("Disabled", typeof(bool?), "Never shows. The trigger keeps its description."),
+            new("Toggleable", typeof(bool?), "Opens on a click rather than a hover: the one tooltip a touch screen shows."),
+            new("Interactive", typeof(bool?), "Its content is more than a description, so the trigger controls it rather than being described by it."),
+        ]),
+        new("Ui.TooltipContent", typeof(UiTooltipContent), "flux:tooltip.content", "What a tooltip shows when it is more than a line of text. Class takes a max-w-* or a space-y-*.",
+        [
+            new("Kbd", typeof(string), "A shortcut shown after the content: \"⌘S\"."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Separator { get; } =
     [
         new("Ui.Separator", typeof(UiSeparator), "flux:separator", "A line between sections, or between items in a row. It carries no margin.",
@@ -325,5 +389,5 @@ internal static class UiApi
 
     /// <summary>Every page's parts, for the tests that hold them to the components.</summary>
     public static IEnumerable<UiApiPart> All =>
-        new[] { Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Separator, Text }.SelectMany(parts => parts);
+        new[] { Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Progress, Separator, Skeleton, Text, Toast, Tooltip }.SelectMany(parts => parts);
 }

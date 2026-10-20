@@ -118,6 +118,10 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/data-display", "/ui/badge/")]
     [InlineData("/docs/ui/data-display", "/ui/card/")]
     [InlineData("/docs/ui/feedback", "/ui/callout/")]
+    [InlineData("/docs/ui/feedback", "/ui/progress/")]
+    [InlineData("/docs/ui/feedback", "/ui/tooltip/")]
+    [InlineData("/docs/ui/feedback", "/ui/skeleton/")]
+    [InlineData("/docs/ui/feedback", "/ui/toast/")]
     [InlineData("/docs/ui/layout", "/ui/separator/")]
     [InlineData("/docs/ui/layout", "/ui/heading/")]
     [InlineData("/docs/ui/layout", "/ui/text/")]
@@ -145,12 +149,31 @@ public sealed partial class UiDocsTests
         Assert.Contains($"href=\"{PageMeta.LinkTo(global::Rask.Site.Routes.UiIntroductionPage())}\"", docs, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_emptied_feedback_page_names_the_progress_page_canonical_and_leaves_the_docs_sidebar()
+    {
+        var html = await SiteDocument.At("/docs/ui/feedback");
+        var docs = await SiteDocument.At(global::Rask.Site.Routes.GuidesIndexPage());
+
+        var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
+        var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.UiProgressPage()), canonical);
+        Assert.DoesNotContain("href=\"/docs/ui/feedback/\"", docs, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("/ui/dropdown", "safe area")]
     [InlineData("/ui/context", "data-rask-contextmenu")]
     [InlineData("/ui/command", "No results found")]
     [InlineData("/ui/popover", "data-rask-open-mark")]
     [InlineData("/ui/modal", "min-w-[22rem]")]
+    [InlineData("/ui/progress", "--ui-progress-percentage")]
+    [InlineData("/ui/skeleton", "--ui-shimmer-color")]
+    [InlineData("/ui/toast", "data-rask-dismiss-hold")]
+    [InlineData("/ui/toast", "HandlerFailed")]
+    [InlineData("/ui/tooltip", "data-rask-tooltip")]
+    [InlineData("/ui/tooltip", "TooltipKbd")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);
