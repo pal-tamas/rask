@@ -115,8 +115,18 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/actions", "/ui/command/")]
     [InlineData("/docs/ui/actions", "/ui/popover/")]
     [InlineData("/docs/ui/actions", "/ui/modal/")]
+    [InlineData("/docs/ui/data-display", "/ui/accordion/")]
+    [InlineData("/docs/ui/data-display", "/ui/avatar/")]
     [InlineData("/docs/ui/data-display", "/ui/badge/")]
     [InlineData("/docs/ui/data-display", "/ui/card/")]
+    [InlineData("/docs/ui/data-display", "/ui/carousel/")]
+    [InlineData("/docs/ui/data-display", "/ui/chart/")]
+    [InlineData("/docs/ui/data-display", "/ui/flag/")]
+    [InlineData("/docs/ui/data-display", "/ui/kanban/")]
+    [InlineData("/docs/ui/data-display", "/ui/table/")]
+    [InlineData("/docs/ui/data-display", "/ui/timeline/")]
+    [InlineData("/docs/ui/data-grid", "/ui/table/")]
+    [InlineData("/docs/ui/navigation", "/ui/avatar/")]
     [InlineData("/docs/ui/feedback", "/ui/callout/")]
     [InlineData("/docs/ui/feedback", "/ui/progress/")]
     [InlineData("/docs/ui/feedback", "/ui/tooltip/")]
@@ -174,6 +184,16 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/toast", "HandlerFailed")]
     [InlineData("/ui/tooltip", "data-rask-tooltip")]
     [InlineData("/ui/tooltip", "TooltipKbd")]
+    [InlineData("/ui/accordion", "::details-content")]
+    [InlineData("/ui/avatar", "CRC-32")]
+    [InlineData("/ui/table", "has-data-loading:opacity-50")]
+    [InlineData("/ui/table", "min-w-0")]
+    [InlineData("/ui/table", "relative")]
+    [InlineData("/ui/chart", "data-rask-measure")]
+    [InlineData("/ui/kanban", "DragDrop")]
+    [InlineData("/ui/timeline", "--ui-timeline-content-gap")]
+    [InlineData("/ui/carousel", "data-rask-carousel")]
+    [InlineData("/ui/flag", "RaskUiWriteFlags")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);
@@ -186,6 +206,34 @@ public sealed partial class UiDocsTests
         Assert.True(reference > behaviour, $"{path}'s Behaviour section is not above its reference");
         Assert.Matches("<h2[^>]*>Behaviour</h2>", html[behaviour..reference]);
         Assert.Contains(fact, html[behaviour..reference], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/docs/ui/data-display", "/ui/accordion/")]
+    [InlineData("/docs/ui/tree", "/ui/accordion/")]
+    [InlineData("/docs/ui/data-grid", "/ui/table/")]
+    public async Task An_emptied_data_page_names_its_successor_canonical_and_leaves_the_docs_sidebar(string old, string successor)
+    {
+        var html = await SiteDocument.At(old);
+        var docs = await SiteDocument.At(global::Rask.Site.Routes.GuidesIndexPage());
+
+        var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
+        var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Equal(PageMeta.Origin + successor, canonical);
+        Assert.DoesNotContain($"href=\"{old}/\"", docs, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_table_example_inside_a_section_is_titled_one_level_below_it()
+    {
+        var html = await SiteDocument.At(global::Rask.Site.Routes.UiTablePage());
+
+        var section = Regex.Match(html, "<h([1-6])[^>]*>Tables that hold still</h\\1>").Groups[1].Value;
+        var example = Regex.Match(html, "<h([1-6])[^>]*>Columns that stay put</h\\1>").Groups[1].Value;
+
+        Assert.Equal("2", section);
+        Assert.Equal("3", example);
     }
 
     [Fact]

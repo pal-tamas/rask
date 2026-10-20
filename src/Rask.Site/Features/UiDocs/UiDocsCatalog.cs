@@ -32,6 +32,20 @@ internal static class UiDocsCatalog
         "Rask.Ui's dark mode is a dark class on html, set before the first paint from the reader's choice or their "
         + "system, and switched with no C# handler.");
 
+    public static UiDocsEntry Accordion { get; } = new(
+        Routes.UiAccordionPage(), "Accordion", Components,
+        "Accordion component in C#: Ui.Accordion",
+        "Flux UI's accordion in C#: items on native details that open with no handler, one at a time when "
+        + "exclusive, animated, and opened by find-in-page.",
+        "accordion");
+
+    public static UiDocsEntry Avatar { get; } = new(
+        Routes.UiAvatarPage(), "Avatar", Components,
+        "Avatar component in C#: Ui.Avatar",
+        "Flux UI's avatar in C#: a picture, or initials or an icon when there is none, in five sizes and "
+        + "seventeen hues, with a badge, and stacked in groups.",
+        "avatar");
+
     public static UiDocsEntry Badge { get; } = new(
         Routes.UiBadgePage(), "Badge", Components,
         "Badge component in C#: Ui.Badge",
@@ -60,6 +74,20 @@ internal static class UiDocsCatalog
         + "five surfaces, four sizes and six body treatments.",
         "card");
 
+    public static UiDocsEntry Carousel { get; } = new(
+        Routes.UiCarouselPage(), "Carousel", Components,
+        "Carousel component in C#: Ui.Carousel",
+        "Flux UI's carousel in C#: slides that scroll and snap in the browser, with arrows, indicators, "
+        + "autoplay and controls elsewhere, and nothing sent to the server.",
+        "carousel");
+
+    public static UiDocsEntry Chart { get; } = new(
+        Routes.UiChartPage(), "Chart", Components,
+        "Charts in C#: Ui.Chart",
+        "Flux UI's chart in C#: line, area, bar and pie charts drawn as SVG in the render, with axes, a "
+        + "tooltip, a cursor, a live summary and a legend.",
+        "chart");
+
     public static UiDocsEntry Command { get; } = new(
         Routes.UiCommandPage(), "Command palette", Components,
         "Command palette in C#: Ui.Command",
@@ -81,6 +109,13 @@ internal static class UiDocsCatalog
         + "rows, groups, shortcuts and Flux's keyboard.",
         "dropdown");
 
+    public static UiDocsEntry Flag { get; } = new(
+        Routes.UiFlagPage(), "Flag", Components,
+        "Country flags in C#: Ui.Flag",
+        "Flux UI's flag in C#: a country's flag from its two-letter region code, 3:2 or round, in five "
+        + "widths, each a small file the page fetches when it shows it.",
+        "flag");
+
     public static UiDocsEntry Heading { get; } = new(
         Routes.UiHeadingPage(), "Heading", Components,
         "Heading component in C#: Ui.Heading",
@@ -94,6 +129,13 @@ internal static class UiDocsCatalog
         "Every Heroicon as a C# component: Ui.Icon in outline, solid, mini and micro, sized and coloured with a "
         + "Tailwind class, and taken by every Rask.Ui component.",
         "icon");
+
+    public static UiDocsEntry Kanban { get; } = new(
+        Routes.UiKanbanPage(), "Kanban", Components,
+        "Kanban board in C#: Ui.Kanban",
+        "Flux UI's kanban in C#: cards in columns, one per stage, with counts, actions and a footer, and "
+        + "cards that open as buttons. The page owns the lists.",
+        "kanban");
 
     public static UiDocsEntry Modal { get; } = new(
         Routes.UiModalPage(), "Modal", Components,
@@ -123,6 +165,13 @@ internal static class UiDocsCatalog
         + "still or animated together with a shimmer or a pulse.",
         "skeleton");
 
+    public static UiDocsEntry Timeline { get; } = new(
+        Routes.UiTimelinePage(), "Timeline", Components,
+        "Timeline component in C#: Ui.Timeline",
+        "Flux UI's timeline in C#: events or steps in order, down the page or across it, with status, "
+        + "coloured or bare indicators, blocks and spacing.",
+        "timeline");
+
     public static UiDocsEntry Toast { get; } = new(
         Routes.UiToastPage(), "Toast", Components,
         "Toast notifications in C#: Ui.Toast",
@@ -144,6 +193,13 @@ internal static class UiDocsCatalog
         + "or with a word such as \"or\" in the middle.",
         "separator");
 
+    public static UiDocsEntry Table { get; } = new(
+        Routes.UiTablePage(), "Table", Components,
+        "Data table in C#: Ui.Table",
+        "Flux UI's table in C#: sortable headings, a pager, sticky headings and columns, rows that dim "
+        + "while a slow page loads, and widths that hold from page to page.",
+        "table");
+
     public static UiDocsEntry Text { get; } = new(
         Routes.UiTextPage(), "Text & link", Components,
         "Text and link components in C#: Ui.Text, Ui.Link",
@@ -155,7 +211,7 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Progress, Separator,
-        Skeleton, Text, Toast, Tooltip,
+        Accordion, Avatar, Badge, Button, Callout, Card, Carousel, Chart, Command, Context, Dropdown, Flag, Heading, Icon,
+        Kanban, Modal, Popover, Progress, Separator, Skeleton, Table, Text, Timeline, Toast, Tooltip,
     ];
 }

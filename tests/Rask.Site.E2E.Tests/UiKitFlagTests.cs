@@ -95,15 +95,9 @@ public sealed class UiKitFlagTests(WasmExampleAppFixture app, PlaywrightFixture 
 
     private async Task<ILocator> OpenAsync()
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await OpenUiPageAsync("flag", "Flag");
 
-        await ClickSidebar("Data display");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data display",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        var scope = Page.Locator("[data-testid='ui-flag']");
+        var scope = Page.Locator("main");
         await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await scope.ScrollIntoViewIfNeededAsync();
         return scope;

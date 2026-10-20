@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Site.Features.UiDocs;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -34,9 +35,10 @@ public sealed partial class UiKitNavigationPage : Component
             .Result(UiKitNavigationDemo),
         H2.Class("text-2xl font-bold mt-10 mb-1")["Flux navigation"],
         P.Class("text-ui-muted")[
-            "The navbar, navlist, brand, profile, breadcrumbs and avatar are Flux UI's, example for example: ",
+            "The navbar, navlist, brand, profile and breadcrumbs are Flux UI's, example for example: ",
             "the same names and props, measured against fluxui.dev in light and in dark."
         ],
+        UiKitMovedPages.Pages([UiDocsCatalog.Avatar]),
         CodeSample
             .Files(["UiKitFluxNavigationDemo.cs"])
             .Notes("The current item is worked out from the route for a generated link and stated for a "

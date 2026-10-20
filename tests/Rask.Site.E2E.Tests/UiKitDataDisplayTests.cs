@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -5,8 +6,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     The kit's Data display components, in a browser — the size check no markup assertion can make,
-///     and the state changes no static render can show.
+///     The kit's data display components on their pages in the UI tab, in a browser — the size check no markup
+///     assertion can make, and the state changes no static render can show.
 /// </summary>
 [Collection(WasmExampleCollection.Name)]
 public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightFixture pw)
@@ -16,19 +17,20 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    [Fact]
-    public Task Every_data_display_component_renders_with_a_real_size() => RunAsync(async () =>
+    [Theory]
+    [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
+    [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-waits")]
+    [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
+    [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
+    [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
+    [InlineData("carousel", "Carousel", "ui-carousel-basic|ui-carousel-indicators|ui-carousel-autoplay|ui-carousel-external|ui-carousel-position|ui-carousel-fade|ui-carousel-page|ui-carousel-outside|ui-carousel-rewind|ui-carousel-disabled")]
+    [InlineData("flag", "Flag", "ui-flag-basic|ui-flag-sizes|ui-flag-circle|ui-flag-country|ui-flag-currency|ui-flag-analytics|ui-flag-custom|ui-flag-accessibility")]
+    public Task Every_data_display_component_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync(slug, heading);
 
-        foreach (var id in new[]
-                 {
-                     "ui-kanban", "ui-accordion", "ui-chart", "ui-table",
-                     "ui-display-rest",
-                     "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
-                     "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
-                     "ui-timeline-align", "ui-timeline-baseline", "ui-timeline-spacing", "ui-carousel", "ui-flag",
-                 })
+        foreach (var id in testids.Split('|'))
         {
             var node = Page.Locator($"[data-testid='{id}']");
             await Expect(node).ToBeVisibleAsync(
@@ -96,7 +98,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task An_accordion_item_opens_with_a_click_and_with_the_keyboard_and_no_handler() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("accordion", "Accordion");
         var scope = Page.Locator("[data-testid='ui-accordion-basic']");
         var heading = Heading(scope, "What's your refund policy?");
         var content = scope.GetByText("30-day money-back guarantee");
@@ -117,7 +119,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task An_exclusive_accordion_keeps_one_item_open() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("accordion", "Accordion");
         var scope = Page.Locator("[data-testid='ui-accordion-exclusive']");
         var refund = scope.GetByText("30-day money-back guarantee");
         var bulk = scope.GetByText("special discounts for bulk orders");
@@ -134,7 +136,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_disabled_item_cannot_be_opened_and_Tab_passes_over_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("accordion", "Accordion");
         var scope = Page.Locator("[data-testid='ui-accordion-disabled']");
         var disabled = Heading(scope, "Do you offer PPP discounts?");
 
@@ -151,7 +153,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task The_expanded_item_is_open_as_the_page_loads_and_a_reversed_chevron_leads_its_heading() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("accordion", "Accordion");
         var expanded = Page.Locator("[data-testid='ui-accordion-expanded']");
         var reversed = Heading(Page.Locator("[data-testid='ui-accordion-reverse']"), "What's your refund policy?");
 
@@ -166,7 +168,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_transitioning_accordion_opens_over_a_quarter_of_a_second() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("accordion", "Accordion");
         var item = Page.Locator("[data-testid='ui-accordion-transition'] details").First;
         var closed = (await item.BoundingBoxAsync())!.Height;
 
@@ -201,9 +203,9 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_chart_draws_its_line_and_shows_a_rows_values_on_hover() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("chart", "Chart");
 
-        var chart = Page.Locator("[data-testid=ui-chart] [data-ui-chart]").First;
+        var chart = Page.Locator("[data-testid^=ui-chart-] [data-ui-chart]").First;
         await chart.ScrollIntoViewIfNeededAsync();
         await Expect(chart).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
@@ -218,12 +220,12 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         // Drawn for the box it has: the browser measured it and the chart was drawn again in its units.
         const string drawnForItsBox = "c => { const s = c.querySelector('svg'), v = s.getAttribute('viewBox').split(' ').map(Number), b = s.getBoundingClientRect(); return Math.abs(v[2] - b.width) < 0.5 && Math.abs(v[3] - b.height) < 0.5; }";
-        await Page.WaitForFunctionAsync("() => (" + drawnForItsBox + ")(document.querySelector('[data-testid=ui-chart] [data-ui-chart]'))");
+        await Page.WaitForFunctionAsync("() => (" + drawnForItsBox + ")(document.querySelector('[data-testid^=ui-chart-] [data-ui-chart]'))");
 
         // And so is every other drawing on the page: none is given a size, each is measured, and all of them are
         // drawn — the line charts, the bars, the pies in their viewports and the sparklines alike.
         await Page.WaitForFunctionAsync(
-            "() => { const layers = [...document.querySelectorAll('[data-testid=ui-chart] [data-rask-measure]')]; "
+            "() => { const layers = [...document.querySelectorAll('[data-testid^=ui-chart-] [data-rask-measure]')]; "
             + "return layers.length > 8 && layers.every(l => { const s = l.parentElement.querySelector('svg'); "
             + "if (!s) return false; const v = s.getAttribute('viewBox').split(' ').map(Number), b = s.getBoundingClientRect(); "
             + "return Math.abs(v[2] - b.width) < 0.5 && Math.abs(v[3] - b.height) < 0.5; }); }");
@@ -255,10 +257,10 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_chart_is_drawn_again_for_its_box_when_the_window_is_narrowed_to_a_phone() => RunAsync(async () =>
     {
-        await OpenAsync();
-        var chart = Page.Locator("[data-testid=ui-chart] [data-ui-chart]").First;
+        await OpenUiPageAsync("chart", "Chart");
+        var chart = Page.Locator("[data-testid^=ui-chart-] [data-ui-chart]").First;
         await chart.ScrollIntoViewIfNeededAsync();
-        const string widths = "() => { const s = document.querySelector('[data-testid=ui-chart] [data-ui-chart] svg'); return [Number(s.getAttribute('viewBox').split(' ')[2]), s.getBoundingClientRect().width]; }";
+        const string widths = "() => { const s = document.querySelector('[data-testid^=ui-chart-] [data-ui-chart] svg'); return [Number(s.getAttribute('viewBox').split(' ')[2]), s.getBoundingClientRect().width]; }";
         await Page.WaitForFunctionAsync("() => { const [drawn, box] = (" + widths + ")(); return Math.abs(drawn - box) < 0.5; }");
         var wide = await Page.EvaluateAsync<double[]>(widths);
 
@@ -273,8 +275,8 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_pies_hovered_slice_is_marked_and_a_summary_reads_the_row_under_the_pointer() => RunAsync(async () =>
     {
-        await OpenAsync();
-        var charts = Page.Locator("[data-testid=ui-chart] [data-ui-chart]");
+        await OpenUiPageAsync("chart", "Chart");
+        var charts = Page.Locator("[data-testid^=ui-chart-] [data-ui-chart]");
         var pie = charts.Filter(new LocatorFilterOptions { Has = Page.Locator("svg path[data-rask-plot-row]") }).First;
         var summary = charts.Filter(new LocatorFilterOptions { Has = Page.Locator("slot") }).First;
         await pie.ScrollIntoViewIfNeededAsync();
@@ -298,7 +300,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_sortable_table_heading_sorts_the_rows_and_turns_round_on_a_second_click() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("table", "Table");
 
         var table = Page.Locator("#ui-orders");
         var amount = table.Locator("th").Filter(new LocatorFilterOptions { HasText = "Amount" });
@@ -324,7 +326,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [InlineData(390, 844)]
     public Task Table_columns_keep_their_widths_through_paging_sorting_and_an_empty_list(int width, int height) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("table", "Table");
 
         try
         {
@@ -392,9 +394,9 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_sticky_table_column_stays_put_and_casts_its_shadow_only_once_scrolled() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("table", "Table");
 
-        var area = Page.Locator("[data-testid='ui-table'] div:has(> table[data-ui-table])").Last;
+        var area = Page.Locator("[data-testid='ui-table-sticky'] div:has(> table[data-ui-table])");
         var id = area.Locator("tbody td").First;
         await area.ScrollIntoViewIfNeededAsync();
         const string shadow = "el => getComputedStyle(el, '::after').boxShadow";
@@ -416,9 +418,9 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_kanban_board_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("kanban", "Kanban");
 
-        var board = Page.Locator("[data-testid='ui-kanban-board']");
+        var board = Page.Locator("[data-testid='ui-kanban'] [data-ui-kanban]");
         var columns = board.Locator("[data-ui-kanban-column]");
         var card = board.Locator("[ui-kanban-card]").First;
 
@@ -433,13 +435,13 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         var header = await board.Locator("[data-ui-kanban-column-header]").First.EvaluateAsync<double>("el => el.getBoundingClientRect().height");
         Assert.Equal(48, header);
         // A board draws; it moves nothing. Flux's has no draggable card either.
-        await Expect(Page.Locator("[data-testid='ui-kanban'] [draggable='true']")).ToHaveCountAsync(0);
+        await Expect(Page.Locator("[data-testid^='ui-kanban'] [draggable='true']")).ToHaveCountAsync(0);
     });
 
     [Fact]
     public Task A_kanban_card_as_a_button_opens_with_the_pointer_and_with_the_keyboard() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("kanban", "Kanban");
 
         var cards = Page.Locator("[data-testid='ui-kanban-buttons'] button[data-ui-kanban-card]");
         var opened = Page.Locator("[data-testid='ui-kanban-opened']");
@@ -466,7 +468,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_kanban_column_footer_adds_a_card_and_its_count_follows() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("kanban", "Kanban");
 
         var column = Page.Locator("[data-testid='ui-kanban-footer']");
         var cards = column.Locator("[data-ui-kanban-column-cards] [ui-kanban-card]");
@@ -479,14 +481,12 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(cards).ToHaveCountAsync(3);
         await Expect(cards.Nth(2)).ToHaveTextAsync("Write the release notes");
         await Expect(count).ToHaveTextAsync("3");
-        // The other column over the same list has the card too: the board is the page's own state, drawn.
-        await Expect(Page.Locator("[data-testid='ui-kanban-actions'] [ui-kanban-card]")).ToHaveCountAsync(3);
     });
 
     [Fact]
     public Task A_timeline_puts_its_indicators_in_one_column_and_a_line_between_them() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("timeline", "Timeline");
         var timeline = Page.Locator("[data-testid='ui-timeline'] [data-ui-timeline]");
         await Expect(timeline.Locator("[data-ui-timeline-indicator]")).ToHaveCountAsync(3);
 
@@ -506,7 +506,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_horizontal_timeline_runs_across_and_shows_how_far_it_has_got() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("timeline", "Timeline");
         var timeline = Page.Locator("[data-testid='ui-timeline-status'] [data-ui-timeline]");
         var indicators = timeline.Locator("[data-ui-timeline-indicator]");
         await Expect(indicators).ToHaveCountAsync(3);
@@ -528,7 +528,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_block_spans_the_timeline_and_its_subgrid_lines_up_with_the_items() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("timeline", "Timeline");
         var timeline = Page.Locator("[data-testid='ui-timeline-subgrid'] [data-ui-timeline]");
         await Expect(timeline.Locator("[data-ui-timeline-subgrid]")).ToHaveCountAsync(2);
 
@@ -545,7 +545,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_large_timeline_draws_48px_indicators_on_a_2px_line() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("timeline", "Timeline");
         var timeline = Page.Locator("[data-testid='ui-timeline-large'] [data-ui-timeline]");
         await Expect(timeline.Locator("[data-ui-timeline-indicator]")).ToHaveCountAsync(3);
 
@@ -571,7 +571,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [InlineData(390, 844)]
     public Task A_slow_next_page_keeps_its_rows_dims_them_and_swaps_them_when_the_read_is_back(int width, int height) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("table", "Table");
 
         try
         {
@@ -626,25 +626,16 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     });
 
     [Theory]
-    [InlineData("data-grid")]
-    [InlineData("tree")]
-    public Task The_old_grid_and_tree_pages_open_the_data_display_page(string old) => RunAsync(async () =>
+    [InlineData("data-display", "accordion", "Accordion")]
+    [InlineData("tree", "accordion", "Accordion")]
+    [InlineData("data-grid", "table", "Table")]
+    public Task The_old_data_display_pages_send_the_reader_on_to_the_ui_tab(string old, string slug, string heading) => RunAsync(async () =>
     {
         await Page.GotoAsync($"{Docs}/ui/{old}/");
 
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data display",
-            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("[data-testid='ui-table']")).ToBeVisibleAsync();
-    });
-
-    private async Task OpenAsync()
-    {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Data display");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data display",
+        await Expect(Page).ToHaveURLAsync(new Regex($"/ui/{slug}/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("main h1")).ToContainTextAsync(heading,
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-    }
+    });
 }

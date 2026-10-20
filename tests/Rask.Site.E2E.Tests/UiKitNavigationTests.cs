@@ -240,7 +240,6 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         foreach (var id in new[]
                  {
                      "ui-flux-navbar", "ui-flux-navlist", "ui-flux-brand", "ui-flux-profile", "ui-flux-breadcrumbs",
-                     "ui-flux-avatar", "ui-flux-avatar-groups",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -296,18 +295,18 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task An_avatar_picks_its_own_colour_and_a_group_overlaps_its_faces() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("avatar", "Avatar");
 
         // "Caleb Porzio" is CP, and CP is emerald: emerald-200 under emerald-800, as on fluxui.dev.
-        var caleb = Page.Locator("[data-testid='ui-flux-avatar-auto'] [data-ui-avatar]").First;
+        var caleb = Page.Locator("[data-testid='ui-avatar-auto'] [data-ui-avatar]").First;
         await Expect(caleb).ToHaveTextAsync("CP", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         Assert.Equal(
-            await Page.Locator("[data-testid='ui-flux-avatar-colors'] [data-ui-avatar]").Nth(6)
+            await Page.Locator("[data-testid='ui-avatar-colors'] [data-ui-avatar]").Nth(6)
                 .EvaluateAsync<string>("a => getComputedStyle(a).backgroundColor"),
             await caleb.EvaluateAsync<string>("a => getComputedStyle(a).backgroundColor"));
 
         // Each avatar after the first sits 8px over the one before.
-        var faces = Page.Locator("[data-testid='ui-flux-avatar-groups'] [data-ui-avatar]:has-text('3+')").First
+        var faces = Page.Locator("[data-testid='ui-avatar-groups'] [data-ui-avatar]:has-text('3+')").First
             .Locator("xpath=..").Locator("[data-ui-avatar]");
         var first = await faces.Nth(0).BoundingBoxAsync();
         var second = await faces.Nth(1).BoundingBoxAsync();

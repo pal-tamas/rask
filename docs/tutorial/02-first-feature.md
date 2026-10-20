@@ -419,7 +419,7 @@ current page in the pager under the rows. Clicking a heading or a page number ch
 whose key holds it reads that page: `OrderBy` becomes `ORDER BY` and `Skip`/`Take` become `LIMIT`/`OFFSET`, so
 the database does the work however large the catalog grows. `Key(p.Id)` on each row is what identifies it when
 the page redraws. The table has a width and every column but `Name` has one, so the columns
-[stay where they are](../ui-kit.md#columns-that-stay-put) from one page or sort order to the next. The rows are
+[stay where they are](../ui-kit.md#tables) from one page or sort order to the next. The rows are
 read faces, read-only by construction; `UpdatedAt` is one of the columns `Timestamps` brought.
 
 Note what the page doesn't have: an `OnMount`, or anything that refreshes after a delete. Both lists are
