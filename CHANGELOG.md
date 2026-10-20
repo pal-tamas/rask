@@ -926,6 +926,13 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A keyed row written straight under a `Table` moves when a click reorders it, and each row's buttons act on
+  that row.** `Table[rows.Select(r => Tr.Key(r.Id)[…])]` with no `Tbody`: the browser's parser puts those rows in a
+  `<tbody>` the frames did not have, so every diff path through the table was one level off — a row moved past its
+  neighbour stayed where it was, or showed its old text under the new handlers, and the next click acted on the
+  wrong row (Eszaf, nightly .425). The frames now count the body the browser adds (the markup is unchanged), and a
+  row arriving in an empty bare table is parsed in the table's own context, so it lands in a body too. A table that
+  writes its `Tbody`, and the kit's `Ui.Table`, already reordered correctly and are now held to it by tests.
 - **`rask deploy`: two apps deploying to one box at once can no longer leave one routed to a removed colour while
   both report success.** On 2026-10-20 one app's deploy rewrote the shared Caddyfile from a container listing taken
   before the other app swapped colours, so the other's domain pointed at a container that no longer existed — a 502

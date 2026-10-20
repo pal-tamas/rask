@@ -80,11 +80,12 @@ const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 // HTML, so a <circle> or <path> inserted on its own under an <svg> came out an HTMLUnknownElement that
 // never drew (#1242). Under an SVG or MathML parent the markup is parsed in a shallow clone of that
 // parent instead — the same context-correct parse MorphSubtree does — and a <foreignObject> parent,
-// being an HTML integration point, still yields HTML children. An HTML parent keeps the <template>,
-// whose parser takes any child as written (a <tr> straight under a <table>, with no implied <tbody>).
+// being an HTML integration point, still yields HTML children. A <table> parent is parsed in a clone too:
+// a <tr> written straight under it gets the <tbody> the page's own parser gave its siblings, which the
+// server's frames count as well (FrameWriter.ImplyTableBodies). Any other HTML parent keeps the <template>.
 function parseInsert(parent: Node, html: string): ParentNode {
     const ns = isElement(parent) ? parent.namespaceURI : null;
-    if (ns === SVG_NS || ns === MATHML_NS) {
+    if (ns === SVG_NS || ns === MATHML_NS || parent.nodeName === "TABLE") {
         const model = (parent as Element).cloneNode(false) as Element;
         model.innerHTML = html;
         return model;

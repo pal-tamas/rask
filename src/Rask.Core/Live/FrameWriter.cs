@@ -84,6 +84,58 @@ public sealed class FrameWriter : IDisposable
         _buffer[openIndex].HtmlEnd = htmlEnd;
     }
 
+    /// <summary>
+    ///     Gives each run of <c>&lt;tr&gt;</c> written straight under the still-open <c>&lt;table&gt;</c> at
+    ///     <paramref name="tableIndex" /> the <c>&lt;tbody&gt;</c> the browser's parser puts around it.
+    /// </summary>
+    /// <remarks>
+    ///     The markup stays as it was written: the parser adds the body to the page, and these frames now say it is
+    ///     there, so a path through the table names the node the browser holds. Without it every op below such a
+    ///     table was one level off — a keyed row moved by a click did not move at all.
+    /// </remarks>
+    internal void ImplyTableBodies(int tableIndex)
+    {
+        EndTextRun();
+        var i = tableIndex + 1;
+        while (i < Count)
+        {
+            if (!IsRow(i))
+            {
+                i += _buffer[i].SubtreeLength;
+                continue;
+            }
+
+            var lastRow = i;
+            var end = i;
+            while (end < Count && IsRow(end))
+            {
+                lastRow = end;
+                end += _buffer[end].SubtreeLength;
+            }
+
+            InsertBody(i, end, _buffer[i].HtmlStart, _buffer[lastRow].HtmlEnd);
+            i = end + 1;
+        }
+    }
+
+    private bool IsRow(int index) =>
+        _buffer[index].Kind == RenderFrameKind.Element && string.Equals(_buffer[index].Name, "tr", StringComparison.Ordinal);
+
+    // The rows at [start, end), and every frame after them, move one along: the rows under a body spanning their markup.
+    private void InsertBody(int start, int end, int htmlStart, int htmlEnd)
+    {
+        Reserve();
+        Array.Copy(_buffer, start, _buffer, start + 1, Count - 1 - start);
+        _buffer[start] = new RenderFrame
+        {
+            Kind = RenderFrameKind.Element,
+            Name = "tbody",
+            SubtreeLength = end - start + 1,
+            HtmlStart = htmlStart,
+            HtmlEnd = htmlEnd
+        };
+    }
+
     public int OpenComponent(Component instance, int htmlStart)
     {
         var idx = Reserve();
