@@ -191,7 +191,9 @@ them until tagged releases begin.
   in a reference table of the chain steps, each enum's values and the Flux part it mirrors. The first family is
   there: Button (and button group), Badge, Callout, Card, Heading, Text & link, Separator and Icon — and the actions
   family: Dropdown (with its menus, submenus, checkbox and radio rows and navigation menus), Context menu, Command
-  palette, Popover and Modal. Their examples moved rather than being copied, so the category pages they left link
+  palette, Popover and Modal, each with a Behaviour section (the keyboard, the pointer and the submenu safe area,
+  focus, placement in the viewport, what locks the page, a modal's width and close button) moved there from
+  `docs/ui-kit.md`. Their examples moved rather than being copied, so the category pages they left link
   forward to them; every old URL still answers, and the rest move family by family. `/docs/ui/actions`, emptied, is a
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
   every page that took one of its components; the docs sidebar no longer lists it. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under

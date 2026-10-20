@@ -22,6 +22,7 @@ public sealed partial class UiCommandPage : Component
                        + "palette stays where it is."),
             UiDocsExample.Key("ui-command-modal").Heading("As a modal").File("CommandModalExample.cs").Demo(CommandModalExample).Testid("ui-command-modal")
                 .Blurb("A bare Ui.Modal around it, opened by its trigger or from anywhere on the page with ⌘K "
-                       + "(Ctrl K off a Mac). Closable puts the close button on the box.")
+                       + "(Ctrl K off a Mac). Closable puts the close button on the box."),
+            UiCommandBehaviour
         ];
 }

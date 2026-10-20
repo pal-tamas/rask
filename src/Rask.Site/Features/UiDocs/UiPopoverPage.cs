@@ -36,6 +36,7 @@ public sealed partial class UiPopoverPage : Component
                            + "is how the page hears Escape and a press outside."),
                 UiDocsExample.Key("ui-popover-event").Heading("Event details").File("PopoverEventExample.cs").Demo(PopoverEventExample).Testid("ui-popover-event").Nested()
                     .Blurb("Detailed information about an event, in a panel with no padding of its own.")
-            ]
+            ],
+            UiPopoverBehaviour
         ];
 }

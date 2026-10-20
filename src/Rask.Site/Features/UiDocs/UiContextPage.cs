@@ -20,6 +20,7 @@ public sealed partial class UiContextPage : Component
             UiDocsExample.Key("ui-context-menu").Heading("Context menu").File("ContextExample.cs").Demo(ContextExample).Testid("ui-context-menu")
                 .Blurb("Right-click the area. The runtime opens the menu at the pointer at once, on either host, and "
                        + "the ContextMenu key or Shift+F10 opens it at the focused element. iOS never fires the "
-                       + "event, so nothing in it should be the only way to do something.")
+                       + "event, so nothing in it should be the only way to do something."),
+            UiContextBehaviour
         ];
 }

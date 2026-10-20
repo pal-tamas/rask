@@ -145,6 +145,26 @@ public sealed partial class UiDocsTests
         Assert.Contains($"href=\"{PageMeta.LinkTo(global::Rask.Site.Routes.UiIntroductionPage())}\"", docs, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("/ui/dropdown", "safe area")]
+    [InlineData("/ui/context", "data-rask-contextmenu")]
+    [InlineData("/ui/command", "No results found")]
+    [InlineData("/ui/popover", "data-rask-open-mark")]
+    [InlineData("/ui/modal", "min-w-[22rem]")]
+    public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
+    {
+        var html = await SiteDocument.At(path);
+
+        var lastExample = html.LastIndexOf("class=\"sample-card ", StringComparison.Ordinal);
+        var behaviour = html.IndexOf("data-testid=\"ui-behaviour\"", StringComparison.Ordinal);
+        var reference = html.IndexOf("data-testid=\"ui-api\"", StringComparison.Ordinal);
+
+        Assert.True(lastExample > 0 && behaviour > lastExample, $"{path} has no Behaviour section after its examples");
+        Assert.True(reference > behaviour, $"{path}'s Behaviour section is not above its reference");
+        Assert.Matches("<h2[^>]*>Behaviour</h2>", html[behaviour..reference]);
+        Assert.Contains(fact, html[behaviour..reference], StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task A_popover_example_inside_the_examples_section_is_titled_one_level_below_it()
     {

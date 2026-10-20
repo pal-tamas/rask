@@ -48,6 +48,7 @@ public sealed partial class UiDropdownPage : Component
                        + "rows alone, the other rows still close it."),
             UiDocsExample.Key("ui-dropdown-open").Heading("Open state").File("DropdownOpenExample.cs").Demo(DropdownOpenExample).Testid("ui-dropdown-open")
                 .Blurb("Open hands the state to the page, and OnToggle tells it when the reader opens or closes "
-                       + "it. Unset, the browser keeps it and nothing is sent.")
+                       + "it. Unset, the browser keeps it and nothing is sent."),
+            UiDropdownBehaviour
         ];
 }

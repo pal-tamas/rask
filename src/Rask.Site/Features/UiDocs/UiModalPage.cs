@@ -40,6 +40,7 @@ public sealed partial class UiModalPage : Component
                 .Blurb("The right edge by default; Left or Bottom when asked."),
             UiDocsExample.Key("ui-modal-floating").Heading("Floating flyout").File("ModalFloatingExample.cs").Demo(ModalFloatingExample).Testid("ui-modal-floating")
                 .Blurb("The Floating variant stands the flyout off the edges of the viewport, rounded and shadowed "
-                       + "like a panel.")
+                       + "like a panel."),
+            UiModalBehaviour
         ];
 }
