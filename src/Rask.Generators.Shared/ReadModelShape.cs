@@ -170,7 +170,7 @@ internal static class ReadModelShape
         members.InsertRange(0, keyParts.Select(static p =>
             new ReadMember(p.Name, p.Name, p.Name, TypeOf(p.Type), false, IsReferenceType(p.Type))));
         references.InsertRange(0, keyParts
-            .Where(static p => p.Aggregate is not null)
+            .Where(static p => p.Aggregate is not null && AggregateShape.IsAggregate(p.Aggregate))
             .Select(static p => new ReadReference(p.Name, p.Aggregate!.Name, TypeOf(p.Type), false)));
     }
 

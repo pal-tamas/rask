@@ -127,6 +127,9 @@ public static class GeneratedModelWrites
             ExpectVersion(context, entity, version);
             apply(entity);
 
+            // At once, not at the save: a caller's context may load or change more before it saves.
+            ReplacedChildren.Match(context);
+
             return entity;
         }, cancellationToken);
     }

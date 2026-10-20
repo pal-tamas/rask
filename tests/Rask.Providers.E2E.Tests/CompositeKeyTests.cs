@@ -6,14 +6,22 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Providers.E2E.Tests.Fuel;
 
-/// <summary>A delivery note of an existing app: numbered tenants, read only, no framework columns.</summary>
+/// <summary>A delivery note of an existing app: numbered tenants, no framework columns.</summary>
 public sealed class DeliveryNote : Aggregate<int, PerTenant>
 {
+    private readonly List<DeliveryNoteTransaction> _fuellings = [];
+
     public int? TenantId { get; private set; }
 
     public string Number { get; private set; } = "";
 
-    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+    public IReadOnlyList<DeliveryNoteTransaction> Fuellings => _fuellings;
+
+    public void Fill(IEnumerable<(int TransactionId, decimal Quantity)> rows)
+    {
+        _fuellings.Clear();
+        _fuellings.AddRange(rows.Select(static r => DeliveryNoteTransaction.For(r.TransactionId, r.Quantity)));
+    }
 }
 
 /// <summary>A fuel transaction of the same app.</summary>
@@ -28,6 +36,9 @@ public sealed class Transaction : Aggregate<int, PerTenant>
 public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
 {
     public decimal Quantity { get; private set; }
+
+    internal static DeliveryNoteTransaction For(int transactionId, decimal quantity) =>
+        new() { TransactionId = transactionId, Quantity = quantity };
 }
 
 /// <summary>A context of the app's own, wired by hand, over the tables an existing app keeps.</summary>
@@ -114,6 +125,22 @@ public sealed class SqlServerCompositeKeyTests : IAsyncLifetime
         Assert.Equal([(3, 12)], await FuelApp.KeysAsync(db, FuelApp.Globex));
     }
 
+    [Fact]
+    public async Task A_refilled_note_is_saved_matched_by_key()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        await using var app = App();
+
+        await using (var db = await OpenAsync(app))
+        {
+            await FuelApp.RefillAsync(db);
+        }
+
+        await using var read = await OpenAsync(app);
+        Assert.Equal(FuelApp.Refilled, await FuelApp.RowsAsync(read, FuelApp.Acme));
+        Assert.Equal([(3, 12)], await FuelApp.KeysAsync(read, FuelApp.Globex));
+    }
+
     private static Task<FuelDbContext> OpenAsync(ServiceProvider app) =>
         app.GetRequiredService<IDbContextFactory<FuelDbContext>>().CreateDbContextAsync(TestContext.Current.CancellationToken);
 
@@ -149,6 +176,29 @@ public sealed class PostgresCompositeKeyTests
         Assert.Equal([(1, 10), (1, 11), (2, 11)], await FuelApp.KeysAsync(db, FuelApp.Acme));
         Assert.Equal([(3, 12)], await FuelApp.KeysAsync(db, FuelApp.Globex));
     }
+
+    [Fact]
+    public async Task A_refilled_note_is_saved_matched_by_key()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using var app = FuelApp.Build(o => o.UseRaskPostgresAt(Postgres.Required));
+        var contexts = app.GetRequiredService<IDbContextFactory<FuelDbContext>>();
+
+        await using (var db = await contexts.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await Postgres.ResetSchemaAsync(db, FuelDbContext.Schema);
+            await FuelApp.SeedAsync(db);
+        }
+
+        await using (var db = await contexts.CreateDbContextAsync(TestContext.Current.CancellationToken))
+        {
+            await FuelApp.RefillAsync(db);
+        }
+
+        await using var read = await contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        Assert.Equal(FuelApp.Refilled, await FuelApp.RowsAsync(read, FuelApp.Acme));
+        Assert.Equal([(3, 12)], await FuelApp.KeysAsync(read, FuelApp.Globex));
+    }
 }
 
 /// <summary>Wired the way an application wires it, and the steps both providers take.</summary>
@@ -169,7 +219,10 @@ internal static class FuelApp
         return services.BuildServiceProvider();
     }
 
-    // Written as the existing app writes the table: rows keyed by several columns are read-only through Rask for now.
+    // Note 1 held (10, 12.5) and (11, 3.25): one kept as it was, one changed, one new.
+    internal static readonly List<(int, int, decimal)> Refilled = [(1, 10, 12.5m), (1, 11, 4m), (1, 12, 1m), (2, 11, 1m)];
+
+    // Written as the existing app writes the table, so the reads are tested against rows Rask did not write.
     internal static async Task SeedAsync(FuelDbContext db)
     {
         var sql = db.GetService<ISqlGenerationHelper>();
@@ -190,6 +243,29 @@ internal static class FuelApp
             + "VALUES (1, 10, 12.5), (1, 11, 3.25), (2, 11, 1), (3, 12, 40);",
             TestContext.Current.CancellationToken);
 #pragma warning restore EF1002, EF1003
+    }
+
+    // What the old app did on every save of a note: clear its fuellings and refill them from the form's list.
+    internal static async Task RefillAsync(FuelDbContext db)
+    {
+        using (Tenant.Use(Acme))
+        {
+            await DeliveryNote.Update(1, n => n.Fill([(10, 12.5m), (11, 4m), (12, 1m)]), db: db,
+                cancellationToken: TestContext.Current.CancellationToken);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+    }
+
+    internal static async Task<List<(int, int, decimal)>> RowsAsync(FuelDbContext db, int tenant)
+    {
+        using (Tenant.Use(tenant))
+        {
+            var rows = await db.Set<DeliveryNoteTransaction>().AsNoTracking()
+                .OrderBy(t => t.DeliveryNoteId).ThenBy(t => t.TransactionId)
+                .Select(t => new { t.DeliveryNoteId, t.TransactionId, t.Quantity })
+                .ToListAsync(TestContext.Current.CancellationToken);
+            return [.. rows.Select(static r => (r.DeliveryNoteId, r.TransactionId, r.Quantity))];
+        }
     }
 
     internal static async Task<List<(int, int)>> KeysAsync(FuelDbContext db, int tenant)

@@ -37,6 +37,9 @@ public sealed class SoftDeleteInterceptor(TimeProvider timeProvider) : SaveChang
             return;
         }
 
+        // First in line, before the loop below detects changes: a refilled collection would fail there.
+        ReplacedChildren.Match(context);
+
         var now = _timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())

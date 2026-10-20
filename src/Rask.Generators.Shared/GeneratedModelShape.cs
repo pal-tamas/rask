@@ -77,7 +77,7 @@ internal static class GeneratedModelShape
             : null;
 
     /// <summary>Whether a model is actually generated for <paramref name="symbol" />.</summary>
-    /// <remarks>A row keyed by several columns is read-only for now, so it has no model to be written from.</remarks>
+    /// <remarks>A row keyed by several columns is written through its aggregate's methods, not from a model.</remarks>
     public static bool GetsModel(INamedTypeSymbol symbol) =>
         IsCandidate(symbol) && symbol.ContainingType is null && ClashingType(symbol) is null &&
         !CompositeKeyShape.HasCompositeKey(symbol);
@@ -277,7 +277,7 @@ internal static class GeneratedModelShape
 
             if (DescribeChild(entity, property) is { } child)
             {
-                // Not carried: a row keyed by several columns is not written through its aggregate yet (RASK106).
+                // Not carried: a form does not carry a row keyed by several columns yet (RASK106).
                 if (!CompositeKeyShape.HasCompositeKey(child.ChildType))
                 {
                     children.Add(child);

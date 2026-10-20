@@ -129,7 +129,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
 | [RASK105](#rask105) | Error | A value object compares by reference |
-| [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would write a row keyed by one |
+| [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would carry a row keyed by one |
 | [RASK107](#rask107) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
@@ -2320,7 +2320,9 @@ A strongly-typed id another aggregate is keyed by is a column, not a value objec
 
 `Entity<(DeliveryNote, Transaction)>` keys a child row by the aggregates it joins. Rask generates a `DeliveryNoteId`
 and a `TransactionId` of those aggregates' own key types, and an `Id` that is the two values together — so the class
-must be `partial`, each part must have a name, and nothing else may hold those names. See
+must be `partial`, each part must have a name, and nothing else may hold those names. A grandchild names the child
+that holds it — `Entity<(ReportColumn, int TotalColumnId)>` — and gets one generated property per part of that
+child's key (`ReportColumnReportId`, `ReportColumnColumnId`). See
 [A key of several columns](data.md#a-key-of-several-columns).
 
 ```csharp
@@ -2337,27 +2339,39 @@ Reported when:
 - the class is not `partial`, or is nested in another type;
 - a value part has no name (`int` rather than `int LineNo`), or the entity declares no property of that name and
   type — a value part is the entity's own `public int LineNo { get; private set; }`;
-- an aggregate part is given a name — its column is always `{Aggregate}Id`;
-- the entity already declares `Id`, or a name an aggregate part generates;
-- a part is an entity that is not an aggregate;
+- an aggregate or entity part is given a name — its columns are always named after it (`{Aggregate}Id`);
+- the entity already declares `Id`, or a name an aggregate or entity part generates;
+- an entity part's own key cannot be built;
 - the entity is an **aggregate root** — a key of several columns is for a child its aggregate holds;
 - an aggregate whose **form** would carry such a child (its base names `Model`, `CreateModel` or `UpdateModel`):
-  writing a row keyed by several columns through its aggregate is not supported yet, so the form is refused rather
-  than given one that leaves the child out.
+  a form does not carry a row keyed by several columns yet, so it is refused rather than given one that leaves the
+  child out. The aggregate writes the rows through its own methods instead.
 
-**Fix:** declare the class `partial`, name each value part and declare its property, and keep the aggregate that holds
-it read-only for now:
+**Fix:** declare the class `partial`, name each value part and declare its property, and fill the collection through
+a method of the aggregate rather than a form:
 
 ```csharp
 public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model on the base
 {
-    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+    private readonly List<DeliveryNoteLine> _lines = [];
+
+    public IReadOnlyList<DeliveryNoteLine> Lines => _lines;
+
+    public void Fill(IEnumerable<int> lineNos)
+    {
+        _lines.Clear();
+        _lines.AddRange(lineNos.Select(DeliveryNoteLine.Numbered));
+    }
 }
 
 public sealed partial class DeliveryNoteLine : Entity<(DeliveryNote, int LineNo)>
 {
     public int LineNo { get; private set; }
+
+    internal static DeliveryNoteLine Numbered(int lineNo) => new() { LineNo = lineNo };
 }
+
+await DeliveryNote.Update(id, n => n.Fill([1, 2, 3]));   // matched by key: insert, update, delete
 ```
 
 ---

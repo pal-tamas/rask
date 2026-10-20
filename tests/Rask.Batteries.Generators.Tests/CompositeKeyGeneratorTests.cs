@@ -34,6 +34,30 @@ public class CompositeKeyGeneratorTests
         }
         """;
 
+    // A report holding columns keyed by the report and a column number, each holding totals keyed under it.
+    private const string Report = """
+        using System;
+        using System.Collections.Generic;
+        using Rask.Data;
+        namespace Reports;
+
+        public sealed class Report : Aggregate<int, PerTenant<int>>
+        {
+            public IReadOnlyList<ReportColumn> Layout { get; private set; } = [];
+        }
+
+        public sealed partial class ReportColumn : Entity<(Report, int ColumnId)>
+        {
+            public int ColumnId { get; private set; }
+            public IReadOnlyList<ReportGroupTotal> Totals { get; private set; } = [];
+        }
+
+        public sealed partial class ReportGroupTotal : Entity<(ReportColumn, int TotalColumnId)>
+        {
+            public int TotalColumnId { get; private set; }
+        }
+        """;
+
     // The same aggregates, holding lines keyed by the note and a number instead.
     private static readonly string Lines = Aggregates.Replace("DeliveryNoteTransaction", "DeliveryNoteLine", StringComparison.Ordinal);
 
@@ -105,6 +129,62 @@ public class CompositeKeyGeneratorTests
         Assert.Contains("public new (int DeliveryNoteId, int LineNo) Id => (DeliveryNoteId, LineNo);", key, StringComparison.Ordinal);
         Assert.DoesNotContain("public int LineNo", key, StringComparison.Ordinal);
         Assert.Equal(2, face.Split("public int LineNo { get; init; }").Length);
+    }
+
+    [Fact]
+    public void A_grandchild_keyed_under_its_column_gets_a_column_for_each_part_of_the_columns_key()
+    {
+        var run = Run(Report);
+
+        var key = run.GeneratedSource("Reports.ReportGroupTotal.Key");
+        var face = run.GeneratedSource("Reports_ReportGroupTotalRead");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Empty(Rask106(run));
+        Assert.Contains("public int ReportColumnReportId { get; private set; }", key, StringComparison.Ordinal);
+        Assert.Contains("public int ReportColumnColumnId { get; private set; }", key, StringComparison.Ordinal);
+        Assert.Contains(
+            "public new (int ReportColumnReportId, int ReportColumnColumnId, int TotalColumnId) Id => "
+            + "(ReportColumnReportId, ReportColumnColumnId, TotalColumnId);",
+            key,
+            StringComparison.Ordinal);
+        Assert.Contains("public int ReportColumnReportId { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("public int ReportColumnColumnId { get; init; }", face, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_grandchild_under_a_child_keyed_by_one_column_gets_that_childs_id()
+    {
+        var run = Run(Fuelling + """
+            public sealed class Load : Aggregate<int>
+            {
+                public IReadOnlyList<Leg> Legs { get; private set; } = [];
+            }
+
+            public sealed class Leg : Entity<Guid>
+            {
+                public IReadOnlyList<LegStop> Stops { get; private set; } = [];
+            }
+
+            public sealed partial class LegStop : Entity<(Leg, int StopNo)>
+            {
+                public int StopNo { get; private set; }
+            }
+            """);
+
+        var key = run.GeneratedSource("Fuel.LegStop.Key");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::System.Guid LegId { get; private set; }", key, StringComparison.Ordinal);
+        Assert.Contains("public new (global::System.Guid LegId, int StopNo) Id", key, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_entity_part_given_a_name_is_refused()
+    {
+        var run = Run(Report.Replace("Entity<(ReportColumn, int TotalColumnId)>", "Entity<(ReportColumn Column, int TotalColumnId)>", StringComparison.Ordinal));
+
+        Assert.Contains(Rask106(run), static m => m.Contains("names an entity", StringComparison.Ordinal));
     }
 
     [Fact]
