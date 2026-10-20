@@ -26,10 +26,11 @@ Ui.Button.Primary["Save"]
 [Card](https://rask.sh/ui/card/), [Heading](https://rask.sh/ui/heading/), [Text & link](https://rask.sh/ui/text/),
 [Separator](https://rask.sh/ui/separator/), [Icon](https://rask.sh/ui/icon/), [Dropdown](https://rask.sh/ui/dropdown/),
 [Context menu](https://rask.sh/ui/context/), [Command palette](https://rask.sh/ui/command/),
-[Popover](https://rask.sh/ui/popover/) and [Modal](https://rask.sh/ui/modal/), with
-[theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
+[Popover](https://rask.sh/ui/popover/), [Modal](https://rask.sh/ui/modal/), [Progress](https://rask.sh/ui/progress/),
+[Skeleton](https://rask.sh/ui/skeleton/), [Toast](https://rask.sh/ui/toast/) and [Tooltip](https://rask.sh/ui/tooltip/),
+with [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
 category pages: [Data display](https://rask.sh/docs/ui/data-display) ·
-[Navigation](https://rask.sh/docs/ui/navigation) · [Feedback](https://rask.sh/docs/ui/feedback) ·
+[Navigation](https://rask.sh/docs/ui/navigation) ·
 [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
 ## Principles
@@ -784,63 +785,11 @@ their elements and take every element step.
 
 ## Tooltips
 
-`Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside whatever it
-wraps, shown while that is hovered or has keyboard focus. Its first child is the trigger.
-
-```csharp
-Ui.Tooltip.Content("Settings")[Ui.Button.Icon(Ui.IconName.Cog6Tooth)]   // above, centred, 5px away
-
-Ui.Tooltip.Content("Settings").Right[ … ]            // .Top (default) .Right .Bottom .Left — Ui.TooltipPosition
-Ui.Tooltip.Content("Settings").Bottom.Start[ … ]     // .Center (default) .Start .End        — Ui.TooltipAlign
-Ui.Tooltip.Content("Save").Kbd("⌘S")[ … ]            // a shortcut after the text
-Ui.Tooltip.Content("Settings").Gap(12).Offset(20)[ … ]   // pixels: away from the trigger, and along its side
-Ui.Tooltip.Content("Settings").Disabled(!ready)[ … ]     // never shows
-
-// More than a line of text, and reachable on a phone: Toggleable opens it on a click.
-Ui.Tooltip.Toggleable()[
-    Ui.Button.Sm.Ghost.Icon(Ui.IconName.InformationCircle),
-    Ui.TooltipContent.Class("max-w-[20rem] space-y-2")[
-        P["For US businesses, enter your 9-digit Employer Identification Number (EIN) without hyphens."],
-        P["For European companies, enter your VAT number including the country prefix (e.g., DE123456789)."]
-    ]
-]
-```
-
-It looks and behaves as Flux's does — measured on fluxui.dev, in light and dark, by
-`scripts/flux/parity-tooltip.mjs`: zinc-800 with white 12px text (zinc-700 inside a hairline in dark), 5px
-from its trigger, no arrow, no shadow, no transition and **no delay**; it flips to the other side at the
-viewport's edge and slides along it to stay 5px inside; the pointer cannot rest on it; pressing the trigger
-hides it. One look — the daisyUI tones are gone.
-
-**It is announced.** The kit wires the trigger to the tooltip the way Flux's script does, at render: a trigger
-with text of its own gets `aria-describedby`, and one without — an icon button — gets `aria-labelledby`, so
-the tooltip is its name and it needs no `AccessibleLabel`. `Interactive()` says the content is more than a
-description: the trigger gets `aria-controls` instead and the content stays in the reading order. A
-`Toggleable()` tooltip is Flux's dropdown to a screen reader: its button gets `aria-controls` and
-`aria-haspopup`, and the content is no `role="tooltip"`. This needs the trigger to be ONE element — an HTML
-element (`Button[…]`, `A[…]`, `Span[…]`) or a kit component that is one, like `Ui.Button`. Around anything
-else nothing is wired, as Flux wires nothing but the trigger: use an element.
-
-**The kit ships no script; the runtime shows it.** The content is a `popover` placed by CSS anchor
-positioning, and the wrapper carries
-[`data-rask-tooltip="<content id>"`](js-interop-runtime.md#pointer-opened-popovers), one of the runtime's
-generic hooks. So every tooltip, whatever its trigger — a button, a link, a `Span`, a disabled button — is
-in the top layer, where no card can clip it, and behaves as Flux's does, step for step (`parity-tooltip.mjs`
-walks both): shown the moment the pointer arrives or keyboard focus does, gone the moment the pointer leaves
-unless that focus is still there, dismissed by Escape, and hidden by a press on the trigger until the pointer
-has left and come back. An `Interactive()` trigger's `aria-expanded` is `false` at rest and `true` while it
-shows.
-
-| Tooltip | Opened by | Escape |
-| --- | --- | --- |
-| any trigger | the runtime — pointer and keyboard focus | dismisses it |
-| `Toggleable()` around a `<button>` | the browser — `popovertarget`, a click; a hover does nothing | closes it; so does a click outside |
-| `Toggleable()` around anything else | focus on the wrapper, which a tap gives it — in place, not in the top layer | does nothing |
-
-What is left: a `Toggleable()` tooltip around something that is not a `<button>` has no click to open it by
-(no runtime hook toggles a popover from an arbitrary element), and a toggleable button's expanded state is
-the browser's own rather than a written `aria-expanded`. On a page whose scripts never run
-(`@media (scripting: none)`) the stylesheet shows a tooltip in place on `:hover` and keyboard focus.
+`Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside its first child,
+shown on hover and keyboard focus by the runtime (`data-rask-tooltip`), in the top layer, with no delay. It names an
+icon button (`aria-labelledby`) and describes anything else (`aria-describedby`); `Toggleable()` opens it on a click,
+the one tooltip a phone shows. `Ui.Button.Tooltip("…")` is the shorthand. Every example, what opens it, what a screen
+reader hears and the reference of its steps: **[rask.sh/ui/tooltip](https://rask.sh/ui/tooltip/)**.
 
 ## Rich text editor
 
@@ -2209,42 +2158,10 @@ Form.Model(_order)[
 
 **Toasts are raised, not placed** — this is [Flux's toast](https://fluxui.dev/components/toast), with its
 group. `Toast.Success("Saved")` from any handler raises one ([Toast messages](composition-lists.md#toast-messages));
-`Ui.Toast` in the layout is where they appear, and an app that places none gets the host's.
-
-| Flux | Rask |
-|---|---|
-| `<flux:toast />` in the layout | `Ui.Toast` in the layout — or nothing: the host places one |
-| `<flux:toast position="top end" invert />` | `Ui.Toast.TopEnd.Invert()` (`Ui.ToastPosition`: `BottomEnd` `BottomCenter` `BottomStart` `TopEnd` `TopCenter` `TopStart`) |
-| `<flux:toast class="pt-24" />` | `Ui.Toast.Class("pt-24")` |
-| `<flux:toast.group>` … `</flux:toast.group>` | `Ui.ToastGroup[Ui.Toast]` |
-| `<flux:toast.group expanded position="top end">` | `Ui.ToastGroup.Expanded().TopEnd[Ui.Toast]` |
-| `Flux::toast('Saved.')` / `$flux.toast('Saved.')` | `Toast.Info("Saved.")` |
-| `Flux::toast(heading: 'Changes saved', text: '…')` | `Toast.Info("…").Heading("Changes saved")` |
-| `variant: 'success'` / `'warning'` / `'danger'` | `Toast.Success(…)` / `Toast.Warning(…)` / `Toast.Error(…)` |
-| `duration: 1000` / `duration: 0` | `.For(1.Second)` / `.UntilDismissed()` |
-| `action: ['label' => 'Undo', 'event' => 'undo-changes']` | `.Action("Undo", UndoChanges)` |
-| `action: ['label' => 'View', 'href' => …]` | `.Action("View", Routes.InvoicePage(id))` |
-| `link: ['label' => 'View invoice', 'href' => …]` | `.Link("View invoice", Routes.InvoicePage(id))` |
-
-On its own, `Ui.Toast` shows one toast at a time: a new one takes the place of the one showing. Inside a
-`Ui.ToastGroup` they stack — three show, the newest in front and each older one a step back and a little
-narrower — and the pointer over the stack lays them all out, as `Expanded()` does for good.
-
-A toast goes after five seconds unless it says otherwise, by its close button, or — on its own — by Escape.
-The kit ships no script, so all of that is the **runtime's** generic hooks, written as attributes: the toast is a
-native `popover` the runtime shows (`data-rask-popover-open`), so it is in the top layer, over an open dialog;
-`data-rask-dismiss-after="<ms>"` has the runtime press the toast's own `[data-rask-dismiss]` button when the
-time is up, waiting while the pointer is over the toast — and only the pointer
-(`data-rask-dismiss-hold="pointer"`): as on Flux, a toast with focus on its close button still goes on time. A
-`Ui.ToastGroup` is one `data-rask-dismiss-scope`, so the pointer anywhere over the stack holds every toast in
-it, and when it leaves each runs on from where it stopped rather than starting again; and
-`data-rask-shortcut="escape"` is Escape. Pressing
-the button rather than hiding the element is the point: the outlet takes the toast off its list, so the next
-render agrees with the screen. An action's button shows a spinner while its handler runs — the runtime's
-`data-loading` — and then takes the toast down.
-
-Like Flux's, the host is `role="status"` and each toast `aria-atomic="true"`, so a toast is announced politely
-and whole; the variant is carried by its icon's shape as well as its colour.
+`Ui.Toast` in the layout is where they appear (`Ui.ToastGroup[Ui.Toast]` stacks them), and an app that places none
+gets the host's. Each goes after five seconds, held only by the pointer, through the runtime's generic hooks
+(`data-rask-dismiss-after`, `data-rask-dismiss-hold`, `data-rask-dismiss-scope`). Every example, Flux's calls in C#,
+the timing and the strings Rask raises one with: **[rask.sh/ui/toast](https://rask.sh/ui/toast/)**.
 
 **`Ui.Context` is the same menu, opened by a right-click** — Flux's `flux:context`. The first child is the area
 and the second the `Ui.Menu` a `Ui.Dropdown` would open, so the rows and the keyboard are identical. The runtime
@@ -2345,43 +2262,13 @@ Ui.Chart.Value(visits).Class("aspect-3/1")[
 without it can reach back through `window.opener`). A generated route is one of your own pages and is never
 external, so it is ignored there.
 
-**`Ui.Skeleton` is Flux UI's skeleton, part for part.** `Ui.Skeleton` is a block — 16px tall and the width of
-its container until the call site sizes and rounds it — `Ui.SkeletonLine` is a line of text (`Base`, or `Lg`
-for large text: it keeps the line's full height and draws a bar the height of the letters), and
-`Ui.SkeletonGroup` is a `<div>` that draws nothing and animates every skeleton inside it, however deep:
+**`Ui.Skeleton` is Flux UI's skeleton, part for part.** A block the call site sizes and rounds, `Ui.SkeletonLine`
+for a line of text, and `Ui.SkeletonGroup` animating everything inside it with a shimmer or a pulse. Every example,
+the sizes and the shimmer's colour: **[rask.sh/ui/skeleton](https://rask.sh/ui/skeleton/)**.
 
-```csharp
-Ui.SkeletonGroup.Shimmer.Class("flex items-center gap-4")[
-    Ui.Skeleton.Class("size-10 rounded-full"),
-    Div.Class("flex-1")[
-        Ui.SkeletonLine,
-        Ui.SkeletonLine.Class("w-1/2")
-    ]
-]
-```
-
-`Shimmer` carries a band of light across every two seconds and `Pulse` fades to half and back; a skeleton that
-states its own (`Ui.Skeleton.Pulse`, `.Animate(Ui.SkeletonAnimate.None)`) does not take its group's. The
-shimmer's light is `--ui-shimmer-color` — white, `zinc-900` in dark — so on a surface that is neither, set it
-to that surface's colour. The roots are marked `data-ui-skeleton`, `data-ui-skeleton-line` and
-`data-ui-skeleton-group`. As in Flux, neither animation stops under `prefers-reduced-motion`, and a skeleton
-carries no ARIA of its own: say that the region is loading on the region (`aria-busy`).
-
-**`Ui.Progress` is Flux UI's progress bar.** A `<div role="progressbar">` — a 6px track the width of
-its container and the bar filling it — with `Value` (0 when unset), `Max` (100) and `Color` (a `Ui.Color`, any
-Tailwind hue; the accent when unset):
-
-```csharp
-Ui.Progress.Value(75)
-Ui.Progress.Value(3).Max(7)
-Ui.Progress.Value(42).Color(Ui.Color.Blue).Class("h-3").Aria("label", "Upload progress")
-```
-
-`aria-valuenow` and `aria-valuemax` are the value and maximum exactly as given; the bar is their ratio held
-between empty and full, and moves to a new value over 300ms. The same share is on the element as
-`--ui-progress` (a number, 0–100) and `--ui-progress-percentage`, for a label drawn from the same figure. It is
-a `UiElement`, so name it with `.Aria("label", …)` or `.Aria("labelledby", id)`. There is no radial progress:
-Flux has none, and `Ui.RadialProgress` is gone.
+**`Ui.Progress` is Flux UI's progress bar.** A `<div role="progressbar">` with `Value`, `Max` and `Color`,
+announcing the value and maximum as given and moving to a new one over 300ms. Every example and its reference:
+**[rask.sh/ui/progress](https://rask.sh/ui/progress/)**.
 
 **`Ui.Avatar` is Flux's `flux:avatar`, and draws initials when there is no picture.** `Src` is optional; give
 it a `Name` and it shows the first letter of the first and last words ("Caleb Porzio" → CP), the first two
