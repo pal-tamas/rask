@@ -318,3 +318,12 @@ bundle,bytes
 rask.js,107613
 rask.wasm.js,93719
 rask-hooks.js,102012
+#
+# 2026-10-20, a render no longer removes an attribute the page added itself (rask-written.ts: one attribute watch,
+# asked by the morph, with applyDiff and morph marked as the server's writes) and a row inserted into a table parsed
+# in the table's context (rask-dom.ts parseInsert): rask.js +880, rask.wasm.js +859, rask-hooks.js unchanged.
+# Measured from a Release build of the branch on main d8ddfb60b: rask.js 108,493, rask.wasm.js 94,578, rask-hooks.js 102,012.
+bundle,bytes
+rask.js,108493
+rask.wasm.js,94578
+rask-hooks.js,102012

@@ -161,6 +161,11 @@ An export that has no C# shape — a generic, a tuple inside other data, an elem
 reaches it. A name the component only inherits is hidden, not refused: `export function stop()` gives
 `Stop()`, and `Markup.Stop` still writes the SVG tag.
 
+**What your script writes on a rendered element stays.** A canvas your script sizes — `canvas.width = 640` on the
+element a `Canvas.Ref(_ground)` names — keeps that size through every re-render: a render removes only attributes it
+wrote itself. Once your component renders the attribute (`.Width(…)`), it is the render's, and leaving it out of a
+later render removes it.
+
 **A `.js` sibling is a build error — [RASK055](diagnostics.md#rask055).** TypeScript is a superset of
 JavaScript, so migrating an existing scoped script is the rename and nothing else; add annotations at
 whatever pace suits you. The reason it is an error rather than a quiet fallback is that the failure
