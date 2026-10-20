@@ -329,7 +329,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         // A row is the group's own link: picking it goes there.
         await Page.Keyboard.PressAsync("Enter");
         await menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Navigation" }).ClickAsync();
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navbar",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 

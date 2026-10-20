@@ -4,45 +4,33 @@ using Rask.Site.Features.UiDocs;
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's Navigation components, live.
+///     Where the kit's Navigation page was: its components each have a page in the UI tab now, so this sends the
+///     reader on to the first of them.
 /// </summary>
+/// <remarks>
+///     The static host cannot answer with a 301, so the old URL keeps a page of its own: it names the brand's page
+///     canonical, which also keeps it out of the sitemap, goes there as it mounts, and links to every page that took a
+///     component, for a reader whose browser runs no script.
+/// </remarks>
 [Route("ui/navigation")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitNavigationPage : Component
 {
     /// <inheritdoc />
-    protected override Component? HeadAssets =>
-        PageMeta.For(
-            "Tabs, nav lists and breadcrumbs in C# — Rask",
-            "Navigation components in C#: Flux-style tabs with panels, segmented and pill variants, a nav list, "
-            + "breadcrumbs and Flux UI's pagination.",
-            Routes.UiKitNavigationPage());
+    protected override Component? HeadAssets => UiDocsCatalog.Brand.Meta();
+
+    /// <inheritdoc />
+    protected override async Task OnFirstRender() => Go.To(PageMeta.LinkTo(UiDocsCatalog.Brand.Path)).Replacing();
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        H1.Class("text-3xl font-bold mb-1")["Navigation"],
-        P.Class("text-ui-muted")[
-            "The tabs are Flux's — a row, a segmented control or pills, over panels or on their own — and ",
-            "their selected tab is a value the page can bind. The rest of the category is links: every crumb ",
-            "and page number is bookmarkable and answers the back button. A menu of links that opens from a ",
-            "button is Ui.Navmenu in a Ui.Dropdown, on the Actions page."
-        ],
-        CodeSample
-            .Files(["UiKitTabsDemo.cs", "UiKitNavigationDemo.cs", "UiKitPaginationDemo.cs"])
-            .Notes("Only two of the tab rows hold their selected tab in the page; the rest keep track themselves. "
-                + "Every crumb is an <a href>; each pager keeps the page it is on in a field.")
-            .Result(UiKitNavigationDemo),
-        H2.Class("text-2xl font-bold mt-10 mb-1")["Flux navigation"],
-        P.Class("text-ui-muted")[
-            "The navbar, navlist, brand, profile and breadcrumbs are Flux UI's, example for example: ",
-            "the same names and props, measured against fluxui.dev in light and in dark."
-        ],
-        UiKitMovedPages.Pages([UiDocsCatalog.Avatar]),
-        CodeSample
-            .Files(["UiKitFluxNavigationDemo.cs"])
-            .Notes("The current item is worked out from the route for a generated link and stated for a "
-                + "string one; an expandable group is a <details>, so it folds with no runtime.")
-            .Result(UiKitFluxNavigationDemo)
+        Ui.Heading.Level(1).Xl["Navigation"],
+        Ui.Text.Class("mt-2")["The brand, breadcrumbs, navbar, navlist, pagination, profile and tabs each have a page "
+                              + "of their own in the UI tab now."],
+        UiKitMovedPages.Pages([
+            UiDocsCatalog.Tabs, UiDocsCatalog.Navlist, UiDocsCatalog.Breadcrumbs, UiDocsCatalog.Pagination,
+            UiDocsCatalog.Navbar, UiDocsCatalog.Brand, UiDocsCatalog.Profile, UiDocsCatalog.Avatar,
+        ])
     ];
 }

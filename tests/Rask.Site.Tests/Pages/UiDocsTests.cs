@@ -127,6 +127,13 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/data-display", "/ui/timeline/")]
     [InlineData("/docs/ui/data-grid", "/ui/table/")]
     [InlineData("/docs/ui/navigation", "/ui/avatar/")]
+    [InlineData("/docs/ui/navigation", "/ui/brand/")]
+    [InlineData("/docs/ui/navigation", "/ui/breadcrumbs/")]
+    [InlineData("/docs/ui/navigation", "/ui/navbar/")]
+    [InlineData("/docs/ui/navigation", "/ui/navlist/")]
+    [InlineData("/docs/ui/navigation", "/ui/pagination/")]
+    [InlineData("/docs/ui/navigation", "/ui/profile/")]
+    [InlineData("/docs/ui/navigation", "/ui/tabs/")]
     [InlineData("/docs/ui/feedback", "/ui/callout/")]
     [InlineData("/docs/ui/feedback", "/ui/progress/")]
     [InlineData("/docs/ui/feedback", "/ui/tooltip/")]
@@ -194,6 +201,19 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/timeline", "--ui-timeline-content-gap")]
     [InlineData("/ui/carousel", "data-rask-carousel")]
     [InlineData("/ui/flag", "RaskUiWriteFlags")]
+    [InlineData("/ui/card", "--ui-bleed-top-radius")]
+    [InlineData("/ui/brand", "me-4")]
+    [InlineData("/ui/breadcrumbs", "Ui.IconName.Slash")]
+    [InlineData("/ui/navbar", "aria-current")]
+    [InlineData("/ui/navlist", "56px")]
+    [InlineData("/ui/navlist", "OnExpandedChange")]
+    [InlineData("/ui/pagination", "data-rask-scroll-to")]
+    [InlineData("/ui/pagination", "fifteen when unset")]
+    [InlineData("/ui/pagination", "data-rask-loading")]
+    [InlineData("/ui/profile", "Ui.SidebarProfile")]
+    [InlineData("/ui/tabs", "data-rask-unguarded")]
+    [InlineData("/ui/tabs", "until-found")]
+    [InlineData("/ui/tabs", "Home and End are not handled")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);
@@ -206,6 +226,19 @@ public sealed partial class UiDocsTests
         Assert.True(reference > behaviour, $"{path}'s Behaviour section is not above its reference");
         Assert.Matches("<h2[^>]*>Behaviour</h2>", html[behaviour..reference]);
         Assert.Contains(fact, html[behaviour..reference], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_emptied_navigation_page_names_the_brand_page_canonical_and_leaves_the_docs_sidebar()
+    {
+        var html = await SiteDocument.At("/docs/ui/navigation");
+        var docs = await SiteDocument.At(global::Rask.Site.Routes.GuidesIndexPage());
+
+        var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
+        var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.UiBrandPage()), canonical);
+        Assert.DoesNotContain("href=\"/docs/ui/navigation/\"", docs, StringComparison.Ordinal);
     }
 
     [Theory]

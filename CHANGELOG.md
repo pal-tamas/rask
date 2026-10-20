@@ -202,13 +202,21 @@ them until tagged releases begin.
   paging, its dimming marks, the steady-columns recipe (a width on the table and on every column but one, `truncate`
   with `Title`, `ContainerClass("min-w-0")` in a grid, an app's class winning) and its scroll frame holding absolutely
   placed cells (a recorded departure from Flux), the chart's axes, sizing, formats and pointer, the kanban's cards,
-  the timeline's indicators and spacing, the carousel's runtime hook and the flag's files. Their examples moved
+  the timeline's indicators and spacing, the carousel's runtime hook and the flag's files — and the navigation
+  family: Brand, Breadcrumbs, Navbar, Navlist, Pagination, Profile and Tabs, whose Behaviour sections carry the
+  current item worked out from the route, a navlist group folding as a `<details>` and an item and a group in a
+  sidebar's rail, the pager's numbering, buttons against links and the page in the query string, paging on the server
+  and under a table, the 15-a-page default, the page size composed by the page and what a screen reader hears, and the
+  tabs' value, panels, browser switching, keyboard, Flux's attributes as steps, and that a tab switch never counts as
+  an unsaved change in a `ConfirmLeave` form. The Card page gained a Behaviour section of its own, from what
+  `docs/ui-kit.md` still held. The examples' avatars are four small SVG portraits the site ships under
+  `/img/avatars/`, so no third-party host is asked for a picture. Their examples moved
   rather than being copied, so the category pages they left link
   forward to them; every old URL still answers, and the rest move family by family. `/docs/ui/actions`, emptied, is a
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
   every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
   same, to `/ui/progress/`, and `/docs/ui/data-display` to `/ui/accordion/` — with the tree's old URL; the data grid's
-  goes to `/ui/table/`. The avatar's examples left the navigation page for `/ui/avatar/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/brand/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

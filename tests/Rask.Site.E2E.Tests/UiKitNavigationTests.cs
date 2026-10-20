@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -5,7 +6,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     The kit's Navigation components, in a browser — where a link is actually a link.
+///     The kit's navigation components (brand, breadcrumbs, navbar, navlist, pagination, profile and tabs) on their pages in
+///     the UI tab, in a browser: where a link is actually a link.
 /// </summary>
 [Collection(WasmExampleCollection.Name)]
 public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFixture pw)
@@ -15,12 +17,19 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    [Fact]
-    public Task Every_navigation_component_renders_with_a_real_size() => RunAsync(async () =>
+    [Theory]
+    [InlineData("brand", "Brand", "ui-brand|ui-brand-slot|ui-brand-only|ui-brand-header")]
+    [InlineData("breadcrumbs", "Breadcrumbs", "ui-breadcrumbs|ui-breadcrumbs-slashes|ui-breadcrumbs-icon|ui-breadcrumbs-ellipsis|ui-breadcrumbs-dropdown")]
+    [InlineData("navbar", "Navbar", "ui-navbar|ui-navbar-icons|ui-navbar-badges|ui-navbar-dropdown")]
+    [InlineData("navlist", "Navlist", "ui-navlist|ui-navlist-groups|ui-navlist-collapsible|ui-navlist-badges")]
+    [InlineData("pagination", "Pagination", "ui-pagination|ui-pagination-simple|ui-pagination-large|ui-pagination-scroll|ui-pagination-links|ui-pagination-size")]
+    [InlineData("profile", "Profile", "ui-profile|ui-profile-name|ui-profile-circle|ui-profile-initials|ui-profile-icon|ui-profile-menu")]
+    [InlineData("tabs", "Tabs", "ui-tabs|ui-tabs-findable|ui-tabs-icons|ui-tabs-padded|ui-tabs-scrollable|ui-tabs-fade|ui-tabs-segmented|ui-tabs-segmented-icons|ui-tabs-segmented-sm|ui-tabs-pills|ui-tabs-dynamic|ui-tabs-disabled")]
+    public Task Every_navigation_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync(slug, heading);
 
-        foreach (var id in new[] { "ui-tabs", "ui-nav-rest" })
+        foreach (var id in testids.Split('|'))
         {
             var node = Page.Locator($"[data-testid='{id}']");
             await Expect(node).ToBeVisibleAsync(
@@ -33,9 +42,36 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
+    public Task The_old_navigation_page_sends_the_reader_on_to_the_brand_page() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{Docs}/ui/navigation/");
+
+        await Expect(Page).ToHaveURLAsync(new Regex("/ui/brand/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Brand",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task Every_avatar_picture_is_one_the_site_ships() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("avatar", "Avatar");
+        var pictures = Page.Locator("main img");
+        await Expect(pictures.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        var sources = await pictures.EvaluateAllAsync<string[]>("imgs => imgs.map(i => i.src)");
+        var origin = new Uri(Page.Url).GetLeftPart(UriPartial.Authority);
+
+        Assert.NotEmpty(sources);
+        Assert.All(sources, src => Assert.StartsWith(origin + "/", src, StringComparison.Ordinal));
+        Assert.Contains(sources, src => src.Contains("/img/avatars/", StringComparison.Ordinal));
+    });
+
+    [Fact]
     public Task Every_Flux_tabs_example_is_on_the_page() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
 
         string[] examples =
         [
@@ -54,7 +90,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Clicking_a_tab_shows_its_panel_and_tells_the_page_its_name() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs']");
 
         await scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Account" }).ClickAsync();
@@ -70,7 +106,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task The_arrow_keys_move_focus_and_select_as_they_go_around_the_ends() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs']");
         var state = scope.Locator("[data-testid='ui-tabs-state']");
         await scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Profile" }).FocusAsync();
@@ -96,7 +132,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Tab_leaves_the_row_for_the_panel_it_opened() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs']");
         await scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Profile" }).FocusAsync();
 
@@ -109,7 +145,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task The_arrow_keys_pass_over_a_disabled_tab() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs-disabled']");
         var (open, archived, failed) = (scope.Locator("[role='tab']").Nth(0), scope.Locator("[role='tab']").Nth(1), scope.Locator("[role='tab']").Nth(2));
         await Expect(archived).ToBeDisabledAsync();
@@ -126,27 +162,30 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task A_bound_segmented_row_selects_what_was_clicked_and_stays_on_it() => RunAsync(async () =>
+    public Task A_bound_segmented_row_selects_what_was_clicked_and_the_page_has_the_last_word() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs-segmented']");
         var board = scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Board" });
+        var list = scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "List" });
 
         await board.ClickAsync();
         await Expect(board).ToHaveAttributeAsync("aria-selected", "true");
 
-        // Bound to a property of the page: the row reads the selection back from it on every render, so a
-        // re-render caused elsewhere on the page must leave it where it was put.
-        await Page.Locator("[data-testid='ui-tabs']").GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "Billing" }).ClickAsync();
+        // Bound to a property of the example: a handler that sets it re-renders the row, which reads the selection
+        // back from the property and shows what the page chose.
+        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Back to the list" }).ClickAsync();
+        await Expect(list).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(board).ToHaveAttributeAsync("aria-selected", "false");
+
+        await board.ClickAsync();
         await Expect(board).ToHaveAttributeAsync("aria-selected", "true");
-        await Expect(scope.GetByRole(AriaRole.Tab, new LocatorGetByRoleOptions { Name = "List" }))
-            .ToHaveAttributeAsync("aria-selected", "false");
     });
 
     [Fact]
     public Task The_add_action_adds_a_tab_and_selects_nothing() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("tabs", "Tabs");
         var scope = Page.Locator("[data-testid='ui-tabs-dynamic']");
         await Expect(scope.GetByRole(AriaRole.Tab)).ToHaveCountAsync(2);
 
@@ -165,7 +204,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Pages_with_an_address_are_links_and_the_current_page_is_not() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
 
         var pager = Page.Locator("[data-testid='ui-pagination-links'] [data-ui-pagination]");
 
@@ -175,13 +214,13 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         await Expect(pager.Locator("button")).ToHaveCountAsync(0);
 
         var href = await pager.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "2", Exact = true }).GetAttributeAsync("href") ?? "";
-        Assert.EndsWith("/ui/navigation/?page=2", href, StringComparison.Ordinal);
+        Assert.EndsWith("/ui/pagination/?page=2", href, StringComparison.Ordinal);
     });
 
     [Fact]
     public Task Choosing_a_page_moves_the_summary_and_the_current_page() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
         await Expect(pager).ToContainTextAsync("Showing 1 to 5 of 24 results");
 
@@ -194,7 +233,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Previous_and_next_stop_being_controls_at_either_end() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
         await Expect(pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Previous" })).ToHaveCountAsync(0);
 
@@ -210,7 +249,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task The_pager_draws_at_Flux_sizes_and_numbers_its_pages_from_640px() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination'] [data-ui-pagination]");
         await Expect(pager.Locator("[aria-current='page']")).ToBeVisibleAsync();
 
@@ -233,29 +272,11 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task Every_Flux_navigation_piece_renders_with_a_real_size() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        foreach (var id in new[]
-                 {
-                     "ui-flux-navbar", "ui-flux-navlist", "ui-flux-brand", "ui-flux-profile", "ui-flux-breadcrumbs",
-                 })
-        {
-            var node = Page.Locator($"[data-testid='{id}']");
-            await Expect(node).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-
-            var box = await node.BoundingBoxAsync();
-            Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
-        }
-    });
-
-    [Fact]
     public Task The_current_navbar_item_is_underlined_and_the_others_are_not() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("navbar", "Navbar");
 
-        var nav = Page.Locator("[data-testid='ui-flux-navbar'] nav").First;
+        var nav = Page.Locator("[data-testid='ui-navbar'] nav");
         var home = nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Home" });
         var pricing = nav.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Pricing" });
 
@@ -271,9 +292,9 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task An_expandable_navlist_group_folds_with_a_click_and_with_the_keyboard() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("navlist", "Navlist");
 
-        var nav = Page.Locator("[data-testid='ui-flux-navlist'] nav").Nth(2);
+        var nav = Page.Locator("[data-testid='ui-navlist-collapsible'] nav");
         var group = nav.Locator("details").First;
         var heading = group.Locator("summary");
         var profile = group.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Profile" });
@@ -316,9 +337,9 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Breadcrumbs_hide_the_separator_after_the_last_step() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("breadcrumbs", "Breadcrumbs");
 
-        var trail = Page.Locator("[data-testid='ui-flux-breadcrumbs'] [data-ui-breadcrumbs]").First;
+        var trail = Page.Locator("[data-testid='ui-breadcrumbs'] [data-ui-breadcrumbs]").First;
         var items = trail.Locator("[data-ui-breadcrumbs-item]");
 
         await Expect(items).ToHaveCountAsync(3, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
@@ -330,7 +351,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task A_simple_pager_has_no_numbers_and_ends_where_there_is_no_more() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination-simple'] [data-ui-pagination]");
         await Expect(pager.GetByRole(AriaRole.Button)).ToHaveCountAsync(1);
 
@@ -350,7 +371,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task A_long_pager_leaves_pages_out_either_side_of_the_current_one() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination-large'] [data-ui-pagination]");
         await Expect(pager.GetByText("...", new LocatorGetByTextOptions { Exact = true })).ToHaveCountAsync(1);
 
@@ -365,7 +386,7 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     [Fact]
     public Task Choosing_a_page_scrolls_what_ScrollTo_names_into_view() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("pagination", "Pagination");
         var pager = Page.Locator("[data-testid='ui-pagination-scroll'] [data-ui-pagination]");
 
         // A short window: the pager sits near the foot of the document, and in a tall one the list above it
@@ -391,16 +412,20 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         }
     });
 
-    private const string RowsTop = "() => document.querySelector('#ui-pagination-rows').getBoundingClientRect().top";
-
-    private async Task OpenAsync()
+    [Fact]
+    public Task A_new_page_size_redraws_the_pager_from_the_first_page() => RunAsync(async () =>
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await OpenUiPageAsync("pagination", "Pagination");
+        var scope = Page.Locator("[data-testid='ui-pagination-size']");
+        var pager = scope.Locator("[data-ui-pagination]");
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "3", Exact = true }).ClickAsync();
+        await Expect(pager).ToContainTextAsync("Showing 21 to 30 of 240 results");
 
-        await ClickSidebar("Navigation");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-    }
+        await scope.Locator("select").SelectOptionAsync("25");
+
+        await Expect(pager).ToContainTextAsync("Showing 1 to 25 of 240 results");
+        await Expect(pager.Locator("[aria-current='page']")).ToHaveTextAsync("1");
+    });
+
+    private const string RowsTop = "() => document.querySelector('#ui-pagination-rows').getBoundingClientRect().top";
 }

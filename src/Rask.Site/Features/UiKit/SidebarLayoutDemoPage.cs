@@ -41,7 +41,7 @@ public sealed partial class SidebarLayoutDemoPage : Component
                     ],
                     Ui.SidebarGroup.Expandable().Icon(Ui.IconName.Star).Heading("Favorites")[
                         Ui.SidebarItem.Href(Routes.UiDropdownPage())["Actions"],
-                        Ui.SidebarItem.Href(Routes.UiKitNavigationPage())["Navigation"]
+                        Ui.SidebarItem.Href(Routes.UiNavbarPage())["Navigation"]
                     ]
                 ],
                 Ui.SidebarSpacer,

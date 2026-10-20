@@ -686,11 +686,139 @@ internal static class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> Brand { get; } =
+    [
+        new("Ui.Brand", typeof(UiBrand), "flux:brand", "The product's mark and name, one link home.",
+        [
+            new("Name", typeof(string), "The product's name, beside the mark. Leave it out for the mark alone."),
+            new("Logo", typeof(Component), "The mark: a string is an image's address, anything else is drawn as it is.", "an image's address, or a component"),
+            new("Alt", typeof(string), "The image's alternative text. Empty when unset: the name beside it says it."),
+            new("Href", typeof(RouteUrl?), "Where it goes. Home (/) when unset.", "a route, or a URL string"),
+            new("LogoClass", typeof(string), "Classes for the box around a drawn mark: its fill, its ink, its shape."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Breadcrumbs { get; } =
+    [
+        new("Ui.Breadcrumbs", typeof(UiBreadcrumbs), "flux:breadcrumbs", "The trail from the top of the app to the page being shown.", []),
+        new("Ui.BreadcrumbsItem", typeof(UiBreadcrumbsItem), "flux:breadcrumbs.item", "One step, and the separator after it. Its children are its words.",
+        [
+            new("Href", typeof(RouteUrl?), "Where it goes. Without one the step is greyed text: the page being shown.", "a route, or a URL string"),
+            new("Icon", typeof(Ui.IconName?), "An icon before the words, or in place of them."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icon. Mini when unset."),
+            new("Separator", typeof(Ui.IconName?), "The icon drawn after the step. A chevron when unset; Slash is Flux's other one."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Navbar { get; } =
+    [
+        new("Ui.Navbar", typeof(UiNavbar), "flux:navbar", "A <nav> of links in a row, across a header.", []),
+        new("Ui.NavbarItem", typeof(UiNavbarItem), "flux:navbar.item", "One link. Its children are its words.",
+        [
+            new("Href", typeof(RouteUrl?), "Where it goes. Without one it is the <button> that opens a menu.", "a route, or a URL string"),
+            new("Current", typeof(bool?), "Whether it is the page being shown. Worked out from a generated route when unset."),
+            new("Icon", typeof(Ui.IconName?), "An icon before the words."),
+            new("IconTrailing", typeof(Ui.IconName?), "An icon after the words: the chevron of an item that opens a menu."),
+            new("Badge", typeof(Component), "A count or a word after the words: \"12\", \"Pro\".", "a string, or a component"),
+            new("BadgeColor", typeof(Ui.Color?), "The badge's colour. Zinc when unset.", Hue),
+            new("BadgeVariant", typeof(Ui.NavBadgeVariant?), "How the badge is drawn."),
+            new("Accent", typeof(bool?), "Whether the current item is inked and underlined in the accent. On unless false."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Navlist { get; } =
+    [
+        new("Ui.Navlist", typeof(UiNavlist), "flux:navlist", "A <nav> of links in a column: a sidebar's, a settings page's sections.", []),
+        new("Ui.NavlistItem", typeof(UiNavlistItem), "flux:navlist.item", "One row. Its children are its words.",
+        [
+            new("Href", typeof(RouteUrl?), "Where it goes.", "a route, or a URL string"),
+            new("Current", typeof(bool?), "Whether it is the page being shown. Worked out from a generated route when unset."),
+            new("Icon", typeof(Ui.IconName?), "An icon before the words."),
+            new("Badge", typeof(Component), "A count or a word at the end of the row: \"12\", \"Pro\".", "a string, or a component"),
+            new("BadgeColor", typeof(Ui.Color?), "The badge's colour. Zinc when unset.", Hue),
+            new("BadgeVariant", typeof(Ui.NavBadgeVariant?), "How the badge is drawn."),
+            new("Accent", typeof(bool?), "Whether the current row is inked in the accent. On unless false."),
+        ]),
+        new("Ui.NavlistGroup", typeof(UiNavlistGroup), "flux:navlist.group", "A titled run of rows, or one that folds away under its heading.",
+        [
+            new("Heading", typeof(string), "The group's title."),
+            new("Expandable", typeof(bool?), "Makes it a <details> that folds its rows away under the heading."),
+            new("Expanded", typeof(bool?), "Whether an expandable group is open. Open unless false."),
+            new("OnExpandedChange", typeof(Callback<bool>), "Runs when the reader opens or closes it.", Toggled),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Pagination { get; } =
+    [
+        new("Ui.Pagination", typeof(UiPagination), "flux:pagination", "Where a list is, and the buttons or links that move through it.",
+        [
+            new("Paginator", typeof(UiPaginator), "Where the list is and how far it runs: Page, PerPage (15 when unset), and Total or HasMore.", "a UiPaginator: new() { Page = 2, Total = 240 }"),
+            new("ScrollTo", typeof(string), "A CSS selector brought back into view when a page is chosen: \"body\", \"#orders\"."),
+            new("OnPage", typeof(Callback<int>), "Runs with the page chosen, counted from one. Each page is a button.", "a handler given the page: page => …"),
+            new("Href", typeof(Fn<int, RouteUrl>?), "Each page's address, which makes every page a link. Wins over OnPage.", "page => a route, or a URL string"),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Profile { get; } =
+    [
+        new("Ui.Profile", typeof(UiProfile), "flux:profile", "The signed-in person as a <button>: the trigger of an account menu.",
+        [
+            new("Name", typeof(string), "The person's name, beside the avatar."),
+            new("Avatar", typeof(Component), "The avatar: a string is an image's address, anything else is drawn as it is.", "an image's address, or a component"),
+            new("AvatarName", typeof(string), "The name the initials are worked out from, for a profile that shows none."),
+            new("AvatarColor", typeof(Ui.Color?), "The fill behind the initials.", Hue),
+            new("Circle", typeof(bool?), "A round avatar, and a button rounded to match."),
+            new("Initials", typeof(string), "The initials to show, in place of those worked out from the name."),
+            new("Chevron", typeof(bool?), "The chevron after the name. Shown unless false."),
+            new("IconTrailing", typeof(Ui.IconName?), "An icon in place of the chevron."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the trailing icon. Micro when unset."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Tabs { get; } =
+    [
+        new("Ui.TabGroup", typeof(UiTabGroup), "flux:tab.group", "A row of tabs and the panels it switches between.",
+        [
+            new("Findable", typeof(bool?), "Lets find-in-page reach the panels not shown; a match selects its tab."),
+        ]),
+        new("Ui.Tabs", typeof(UiTabs), "flux:tabs", "The row of tabs, and the owner of which one is selected.",
+        [
+            new("Variant", typeof(Ui.TabsVariant?), "How the tabs are drawn. A row on a hairline when unset."),
+            new("Size", typeof(Ui.TabsSize?), "How large they are. Only a segmented row has a second size."),
+            new("Scrollable", typeof(bool?), "Scrolls the row sideways instead of pushing the page wider than a phone."),
+            new("ScrollableScrollbar", typeof(Ui.TabsScrollbar?), "Whether a scrollable row shows its scrollbar."),
+            new("ScrollableFade", typeof(bool?), "Fades a scrollable row's trailing edge while there are tabs past it."),
+            new("Value", typeof(string), "The selected tab's name, when the page holds it. Unset, the row keeps track itself."),
+            new("Bind", typeof(Expression<Func<string>>), "The property the selected tab's name is read from and written to: () => Tab.", "() => a string"),
+            new("Live", typeof(bool?), "Writes the bound property as soon as a tab is chosen, rather than with the next action."),
+            new("OnChange", typeof(Callback<string>), "Runs with the tab's name when one is selected.", Picked),
+        ]),
+        new("Ui.Tab", typeof(UiTab), "flux:tab", "One tab: a <button role=\"tab\">. Its children are its label.",
+        [
+            new("Name", typeof(string), "The row's value when it is selected, and the panel it shows. Its place in the row, \"0\", when unset."),
+            new("Icon", typeof(Ui.IconName?), "An icon before the label."),
+            new("IconTrailing", typeof(Ui.IconName?), "An icon after the label."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icons. Outline, or mini in a segmented row, when unset."),
+            new("Selected", typeof(bool?), "Selects it until one is chosen. The row's own value decides instead, when it has one."),
+            new("Action", typeof(bool?), "A plain button in the row that selects nothing and the arrows pass over: \"Add tab\"."),
+            new("Accent", typeof(bool?), "Whether it is painted in the accent when selected. On unless false."),
+            new("Size", typeof(Ui.TabsSize?), "Its size in a segmented row. The row's when unset."),
+            new("Disabled", typeof(bool?), "Dims it and takes it out of reach of the pointer and the arrow keys."),
+            new("OnClick", typeof(Callback), "Runs when it is pressed: after it is selected, or instead, for an Action.", Handler),
+        ]),
+        new("Ui.TabPanel", typeof(UiTabPanel), "flux:tab.panel", "What the tab of the same name shows.",
+        [
+            new("Name", typeof(string), "The name of the tab it belongs to."),
+            new("Selected", typeof(bool?), "Shows it when no row says which tab is selected."),
+        ]),
+    ];
+
     /// <summary>Every page's parts, for the tests that hold them to the components.</summary>
     public static IEnumerable<UiApiPart> All =>
         new[]
         {
-            Accordion, Avatar, Badge, Button, Callout, Card, Carousel, Chart, Command, Context, Dropdown, Flag, Heading, Icon,
-            Kanban, Modal, Popover, Progress, Separator, Skeleton, Table, Text, Timeline, Toast, Tooltip,
+            Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
+            Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
+            Table, Tabs, Text, Timeline, Toast, Tooltip,
         }.SelectMany(parts => parts);
 }
