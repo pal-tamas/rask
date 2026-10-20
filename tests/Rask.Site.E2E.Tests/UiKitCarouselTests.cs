@@ -143,13 +143,7 @@ public sealed class UiKitCarouselTests(WasmExampleAppFixture app, PlaywrightFixt
 
     private async Task<ILocator> OpenAsync(string example)
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Data display");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data display",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await OpenUiPageAsync("carousel", "Carousel");
 
         var carousel = Page.Locator($"[data-testid='ui-carousel-{example}'] [data-ui-carousel]");
         await Expect(carousel).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
