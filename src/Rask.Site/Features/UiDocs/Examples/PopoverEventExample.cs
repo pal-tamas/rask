@@ -29,9 +29,9 @@ public sealed partial class PopoverEventExample : Component
                     Detail(Ui.IconName.Users, Ui.Heading["Guests"], "Invite",
                         Div.Class("mt-2 flex items-center gap-3")[
                             Ui.AvatarGroup.Class("dark:*:ring-zinc-700")[
-                                Ui.Avatar.Xs.Circle().Name("Caleb Porzio"),
-                                Ui.Avatar.Xs.Circle().Name("Hugo Sainte-Marie"),
-                                Ui.Avatar.Xs.Circle().Name("Josh Hanley")
+                                Ui.Avatar.Xs.Circle().Name("Mara Lind"),
+                                Ui.Avatar.Xs.Circle().Name("Theo Brandt"),
+                                Ui.Avatar.Xs.Circle().Name("Nia Okafor")
                             ],
                             Ui.Text["1 maybe, 1 awaiting"]
                         ]),

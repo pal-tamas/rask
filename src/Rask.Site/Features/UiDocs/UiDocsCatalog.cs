@@ -53,6 +53,55 @@ internal static class UiDocsCatalog
         + "pressable, removable and set into a line of text.",
         "badge");
 
+    public static UiDocsEntry Brand { get; } = new(
+        Routes.UiBrandPage(), "Brand", Components,
+        "Brand component in C#: Ui.Brand",
+        "Flux UI's brand in C#: the product's mark and name linking home, at the head of a header or a sidebar, from "
+        + "an image or a mark you draw.",
+        "brand");
+
+    public static UiDocsEntry Breadcrumbs { get; } = new(
+        Routes.UiBreadcrumbsPage(), "Breadcrumbs", Components,
+        "Breadcrumbs in C#: Ui.Breadcrumbs",
+        "Flux UI's breadcrumbs in C#: the trail to the page being shown, with chevrons or slashes, icons for "
+        + "words, and the folded steps in a dropdown.",
+        "breadcrumbs");
+
+    public static UiDocsEntry Navbar { get; } = new(
+        Routes.UiNavbarPage(), "Navbar", Components,
+        "Navbar component in C#: Ui.Navbar",
+        "Flux UI's navbar in C#: a header's links in a row, the current one underlined in the accent, with icons, "
+        + "badges and an item that opens a menu.",
+        "navbar");
+
+    public static UiDocsEntry Navlist { get; } = new(
+        Routes.UiNavlistPage(), "Navlist", Components,
+        "Navlist component in C#: Ui.Navlist",
+        "Flux UI's navlist in C#: a sidebar's links in a column, with icons, badges, and groups that fold away "
+        + "with no script, the current page found from the route.",
+        "navbar");
+
+    public static UiDocsEntry Pagination { get; } = new(
+        Routes.UiPaginationPage(), "Pagination", Components,
+        "Pagination component in C#: Ui.Pagination",
+        "Flux UI's pagination in C#: a summary, Previous and Next and the pages numbered where there is room, as "
+        + "buttons or links that keep the page in the URL.",
+        "pagination");
+
+    public static UiDocsEntry Profile { get; } = new(
+        Routes.UiProfilePage(), "Profile", Components,
+        "Profile button in C#: Ui.Profile",
+        "Flux UI's profile in C#: the signed-in person as a button, an avatar or initials, a name and a chevron, "
+        + "that opens the account menu.",
+        "profile");
+
+    public static UiDocsEntry Tabs { get; } = new(
+        Routes.UiTabsPage(), "Tabs", Components,
+        "Tabs component in C#: Ui.Tabs",
+        "Flux UI's tabs in C#: a row, segmented control or pills over panels, switched in the browser, with the "
+        + "selected tab a value the page can bind.",
+        "tabs");
+
     public static UiDocsEntry Button { get; } = new(
         Routes.UiButtonPage(), "Button", Components,
         "Button and button group in C#: Ui.Button",
@@ -211,7 +260,8 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Accordion, Avatar, Badge, Button, Callout, Card, Carousel, Chart, Command, Context, Dropdown, Flag, Heading, Icon,
-        Kanban, Modal, Popover, Progress, Separator, Skeleton, Table, Text, Timeline, Toast, Tooltip,
+        Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
+        Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
+        Table, Tabs, Text, Timeline, Toast, Tooltip,
     ];
 }

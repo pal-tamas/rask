@@ -63,9 +63,9 @@ public sealed partial class UiKitDataInputDemo
                     Th.Class("py-3 text-start font-medium")["Name"]
                 ]],
                 Tbody[
-                    Person("caleb", "Caleb Porzio"),
-                    Person("hugo", "Hugo Sainte-Marie"),
-                    Person("keith", "Keith Damiani")
+                    Person("mara", "Mara Lind"),
+                    Person("theo", "Theo Brandt"),
+                    Person("ivo", "Ivo Kask")
                 ]
             ]
         ],
@@ -283,7 +283,7 @@ public sealed partial class UiKitDataInputDemo
 
         public bool German { get; set; }
 
-        public ICollection<string> People { get; set; } = ["caleb"];
+        public ICollection<string> People { get; set; } = ["mara"];
 
         public ICollection<string> Categories { get; set; } = ["fantasy", "science-fiction", "thriller"];
 

@@ -138,7 +138,7 @@ public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixtu
     public Task A_hovered_popover_opens_under_the_pointer_locks_nothing_and_closes_when_the_pointer_leaves() => RunAsync(async () =>
     {
         var scope = await OpenAsync();
-        var trigger = Trigger(scope, "Caleb Porzio");
+        var trigger = Trigger(scope, "Mara Lind");
         var panel = Panel(trigger);
 
         await trigger.HoverAsync();

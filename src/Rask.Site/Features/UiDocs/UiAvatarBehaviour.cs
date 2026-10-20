@@ -13,8 +13,8 @@ internal sealed partial class UiAvatarBehaviour : Component
 
     private static UiDocsTopic Initials() =>
         UiDocsTopic.Key("initials").Heading("Without a picture").Paragraphs([
-            "`Src` is optional. Given a `Name`, it shows the first letter of the first and last words (\"Caleb Porzio\" "
-            + "is CP), the first two letters of a single word (\"calebporzio\" is Ca), or one letter with "
+            "`Src` is optional. Given a `Name`, it shows the first letter of the first and last words (\"Mara Lind\" "
+            + "is ML), the first two letters of a single word (\"maralind\" is Ma), or one letter with "
             + "`InitialsSingle()`. `Initials` states them, `Icon` draws an icon instead, and children replace all of "
             + "it: `Ui.Avatar[\"3+\"]`.",
             "`Href` makes it a link and `As(Ui.AvatarAs.Button)` a button; `Tooltip` names it on hover and keyboard "

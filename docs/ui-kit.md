@@ -30,10 +30,12 @@ Ui.Button.Primary["Save"]
 [Skeleton](https://rask.sh/ui/skeleton/), [Toast](https://rask.sh/ui/toast/), [Tooltip](https://rask.sh/ui/tooltip/),
 [Accordion](https://rask.sh/ui/accordion/), [Avatar](https://rask.sh/ui/avatar/), [Table](https://rask.sh/ui/table/),
 [Chart](https://rask.sh/ui/chart/), [Kanban](https://rask.sh/ui/kanban/), [Timeline](https://rask.sh/ui/timeline/),
-[Carousel](https://rask.sh/ui/carousel/) and [Flag](https://rask.sh/ui/flag/), with
+[Carousel](https://rask.sh/ui/carousel/), [Flag](https://rask.sh/ui/flag/), [Brand](https://rask.sh/ui/brand/),
+[Breadcrumbs](https://rask.sh/ui/breadcrumbs/), [Navbar](https://rask.sh/ui/navbar/),
+[Navlist](https://rask.sh/ui/navlist/), [Pagination](https://rask.sh/ui/pagination/),
+[Profile](https://rask.sh/ui/profile/) and [Tabs](https://rask.sh/ui/tabs/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
-category pages: [Navigation](https://rask.sh/docs/ui/navigation) ·
-[Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
+category pages: [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
 ## Principles
 
@@ -521,68 +523,13 @@ it adds inside or around it. The id, classes, data, ARIA and handlers you set st
 
 ## Tabs
 
-`Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and `Ui.TabPanel` are [Flux's tabs](https://fluxui.dev/components/tabs):
-the same four parts, the same props, drawn and behaving the same.
-
-```csharp
-Ui.TabGroup[
-    Ui.Tabs.Bind(() => Tab)[                       // or .Value(_tab).OnChange(t => _tab = t), or neither
-        Ui.Tab.Name("profile")["Profile"],
-        Ui.Tab.Name("account").Icon(Ui.IconName.Cog6Tooth)["Account"],
-        Ui.Tab.Name("billing")["Billing"]
-    ],
-    Ui.TabPanel.Name("profile")[ /* … */ ],
-    Ui.TabPanel.Name("account")[ /* … */ ],
-    Ui.TabPanel.Name("billing")[ /* … */ ]
-]
-```
-
-**The selected tab is the row's value** — the tab's `Name` — where Flux has `wire:model`. `Bind` two-way binds
-it to a property, `Value` with `OnChange` leaves it with the page, and with neither the row keeps track
-itself, starting on the tab that says `Selected()` or else the first one that is not disabled. A tab with no
-`Name` is known by its place in the row: `"0"`, `"1"`…
-
-`Bind` writes the property and redraws the row and its panels; like every bound control it does not redraw
-the page around them. A page that shows the selected name somewhere else takes it from `OnChange`, which
-runs in every mode.
-
-| Flux | Rask |
-|---|---|
-| `<flux:tabs variant="segmented" size="sm">` | `Ui.Tabs.Segmented.Size(Ui.TabsSize.Sm)` |
-| `<flux:tabs variant="pills">` | `Ui.Tabs.Pills` |
-| `<flux:tabs scrollable scrollable:fade scrollable:scrollbar="hide">` | `Ui.Tabs.Scrollable().ScrollableFade().ScrollableScrollbar(Ui.TabsScrollbar.Hide)` |
-| `<flux:tabs class="px-4">` | `Ui.Tabs.Class("px-4")` |
-| `<flux:tab icon="user" icon:trailing="chevron-down" icon:variant="solid">` | `Ui.Tab.Icon(Ui.IconName.User).IconTrailing(Ui.IconName.ChevronDown).IconVariant(Ui.IconVariant.Solid)` |
-| `<flux:tab selected>` · `disabled` · `:accent="false"` | `.Selected()` · `.Disabled()` · `.Accent(false)` |
-| `<flux:tab icon="plus" wire:click="addTab" action>` | `Ui.Tab.Icon(Ui.IconName.Plus).Action().OnClick(AddTab)` |
-| `<flux:tab.group findable>` | `Ui.TabGroup.Findable()` |
-
-A row needs no group: a segmented `List / Board / Timeline` on its own is a choice the page reads from
-`OnChange`. Inside a group, write the row before its panels — a panel learns which tab is selected from the
-row above it. Every panel is rendered and the ones not shown are `hidden`; in a `Findable()` group they are
-`hidden="until-found"` instead, so the browser's find-in-page reaches them and a match selects its tab. A
-panel has Flux's top padding (`pt-8`); another is said as Flux's own examples say it, `Class("pt-6!")`.
-
-A count beside a label is a child, like any other content: `Ui.Tab.Name("open")["Open", Ui.Badge["12"]]`.
-
-**Selecting a tab is the browser's**, as it is Flux's script's: a press moves `aria-selected`, the tab stop
-and `data-selected`, shows the tab's panel, and by itself sends the server nothing. What the page reads is the
-row's value, by its binding's timing — `.Bind(() => Tab)` writes it with the reader's next action,
-`.Bind(() => Tab).Live()` and `.OnChange(…)` hear it at once — and a `Ui.Tab`'s own `OnClick`. The page keeps
-the last word: set the bound property (or pass another `Value`) from a handler and that tab is shown, whatever
-the reader last pressed. That is what makes a long form in tabs work: the fields on the panels that are not
-shown stay in the form with what was typed into them and are submitted with it, and a save that is refused
-sets the tab to the one with the first mistake.
-
-**The keyboard** is the runtime's, for every `role="tablist"` ([accessibility.md](accessibility.md#tabs)):
-ArrowRight/ArrowDown and ArrowLeft/ArrowUp move to the next and the previous tab, past a disabled one and
-around the ends, and **select as they go**. Only the selected tab is a tab stop, so Tab leaves the row for the
-panel. An `Action()` tab is an ordinary button in the row: a tab stop of its own, which the arrows pass over.
-Home and End are not handled, as Flux does not handle them.
-
-**A tab is not a link.** Flux's tab takes no `href`, and neither does this one: for full-page navigation
-Flux says to use the navbar. A row whose choice is part of the address reads it from `OnChange` and goes there —
-`Ui.Tabs.Value(view).OnChange(v => Go.To(Routes.LogsPage(View: v)))`.
+`Ui.TabGroup`, `Ui.Tabs`, `Ui.Tab` and `Ui.TabPanel` are [Flux's tabs](https://fluxui.dev/components/tabs): a row, a
+segmented control or pills, over panels or on their own. The selected tab is the row's value: `Bind(() => Tab)`,
+`Value(_tab).OnChange(…)`, or neither and the row keeps track itself. Switching is drawn in the browser and sends
+nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"` when `Findable()`), so a form in tabs
+keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
+arrows select as they go, and a tab is never a link. Every example, the keyboard, Flux's attributes as steps and the
+reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 
 ## Tables
 
@@ -808,102 +755,13 @@ Ui.Composer.Bind(() => chat.Prompt).Input(Ui.Editor.Toolbar("bold italic bullet 
 
 ## Pagination
 
-`Ui.Pagination` is Flux UI's `flux:pagination`. Flux hands it a Laravel paginator; Rask hands it a
-`UiPaginator`, which is what a paginator knows: the page being shown (counted from one), how many
-results a page holds, and how many there are in all.
-
-```csharp
-Ui.Pagination
-    .Paginator(new UiPaginator { Page = _page, PerPage = 15, Total = orders.Total })
-    .OnPage(page => _page = page)
-```
-
-It draws a summary — "Showing 16 to 30 of 240 results" — and the pager: Previous, Next and the pages
-between them. Below fourteen pages every page is numbered. From fourteen it numbers the first two, the
-last two and the current page with three either side, and writes `...` where pages are left out; within
-seven pages of either end the window holds ten pages from that end instead, so the pager does not shrink
-as you approach it. The numbers need room: the pager measures its **own** width (a container query, not
-the viewport), and under 640px draws Previous and Next alone, as 32px targets on a phone.
-
-**The simple paginator.** Leave `Total` out for a list too large to count. There is no summary and no
-numbers, only Previous and Next, and `HasMore` says whether Next leads anywhere:
-
-```csharp
-Ui.Pagination
-    .Paginator(new UiPaginator { Page = _page, PerPage = 15, HasMore = rows.Count > 15 })
-    .OnPage(page => _page = page)
-```
-
-**Buttons or links.** With `OnPage` each page is a `<button>` that reports the page chosen. With `Href`
-each is a link to where that page lives — shareable, bookmarkable, working before the runtime boots —
-and `OnPage` is not called:
-
-```csharp
-[QueryParam] public int Page { get; set; } = 1;   // /logs → 1, and Routes.LogsPage() links to /logs
-
-Ui.Pagination
-    .Paginator(new UiPaginator { Page = Page, PerPage = 25, Total = total })
-    .Href(page => Routes.LogsPage(Page: page))
-```
-
-That is how the page goes in the **query string**. A generated route (`Routes.LogsPage(…)`, or one `with
-{ QueryString = $"?page={page}" }`) is an in-app link and takes the app's path base, so it is right
-wherever the app is mounted. A string — `.Href(page => $"/logs?page={page}")` — is an ordinary `<a>`
-written exactly as given, with no path base added: the rule every linking component of the kit follows.
-
-**Paging on the server.** The pager pages nothing itself: ask the store for one page and for the count,
-and hand it the three numbers.
-
-```csharp
-var total = await Orders.Count();
-var rows = await Orders.OrderBy(o => o.Date).Skip((page - 1) * PerPage).Take(PerPage).ToList();
-
-Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = PerPage, Total = total }).OnPage(Load)
-```
-
-**Under a table.** `Ui.Table.Paginate(…)` takes the pager and draws it where Flux does — under the rows,
-outside the scroll area, full width with its rule above — and it keeps its height when the box scrolls:
-
-```csharp
-Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Load)).Id("orders")[ … ]
-```
-
-**While the next page loads.** The pager's root carries `data-rask-loading="within"`, so the runtime marks it
-with `data-loading` once a press inside it has waited 200 ms, and takes the mark off when the page that
-answers it is whole. The page number that was pressed is replaced by that page's render, which is why the
-mark lives on the root. A table dims its rows by it
-([Tables](#tables)); a list of your own can too —
-`Div.Class("has-[+[data-ui-pagination][data-loading]]:opacity-50")[rows]`, with the pager right after it.
-
-**Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
-paginator's `PerPage`, and the choice is a `Ui.Select` of your own beside the pager. Go back to the first
-page when it changes — the page you were on may not exist any more.
-
-```csharp
-Div.Class("flex items-center justify-between gap-4")[
-    Ui.Select.Value(_perPage).OnChange(size => { _perPage = size; _page = 1; }).Sm.Class("w-24")[
-        Ui.SelectOption.Value(10)["10"],
-        Ui.SelectOption.Value(25)["25"],
-        Ui.SelectOption.Value(50)["50"]
-    ],
-    Ui.Pagination
-        .Paginator(new UiPaginator { Page = _page, PerPage = _perPage, Total = total })
-        .OnPage(page => _page = page)
-        .Class("flex-1")
-]
-```
-
-Either way the current page is not a control: it says `aria-current="page"`. On the first page Previous
-is not one either, and on the last page Next — each keeps its place and says `aria-disabled="true"`.
-
-A counted pager labels its arrows `« Previous` and `Next »` — Laravel's translation, with the character
-a reader hears rather than the name of its entity. The simple paginator's arrows carry no label,
-and its spent arrow says nothing at all; a test finds them by position.
-
-**`ScrollTo`** brings something back into view when a page is chosen, for a pager at the foot of a long
-table: `.ScrollTo("body")` for the top of the document, `.ScrollTo("#orders")` for the table. It is a
-CSS selector, written as `data-rask-scroll-to` for the runtime, which scrolls on a press of any button
-or link inside the pager.
+`Ui.Pagination` is [Flux's pagination](https://fluxui.dev/components/pagination), handed a `UiPaginator` where Flux
+takes a Laravel paginator: `Page`, `PerPage` (fifteen when unset) and `Total`, or `HasMore` for the simple paginator.
+It pages nothing itself. With `OnPage` each page is a button; with `Href` each is a link, which is how the page goes in
+the query string. `ScrollTo` brings the list back into view, `Ui.Table.Paginate(…)` puts it under a table's rows, the
+runtime marks it `data-loading` while the next page is slow, and the page size is a `Ui.Select` of the page's own.
+Every example, the numbering rules, paging on the server and the reference:
+**[rask.sh/ui/pagination](https://rask.sh/ui/pagination/)**.
 
 ## Timeline
 
@@ -1115,24 +973,13 @@ protected override Component? Render() =>
 
 Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
 
-- **`Ui.Navlist`** is Flux's `flux:navlist`: a `<nav>` holding **`Ui.NavlistItem`**s and
-  **`Ui.NavlistGroup`**s. An item is a `NavLink` underneath, so **`Current` is worked out from the route** and said
-  with `aria-current="page"` — unless you state it, as Flux's `current` does — which is how an item stays current across
-  a whole section. The current row is inked in the accent (`Accent(false)` inks it as the page is). A group
-  is a heading over its items, or — `Expandable()` — a `<details>` disclosure that folds with a click, Enter or
-  Space and no runtime, open unless `Expanded(false)`, and controlled with `Expanded`/`OnExpandedChange`.
-- **`Ui.Navbar`** is the same thing in a row — `flux:navbar` and **`Ui.NavbarItem`** — for a header: the current
-  item is underlined in the accent, `Icon`/`IconTrailing` sit either side of the words, `Badge` + `BadgeColor`
-  (a `Ui.Color`) trail them, and an item with no `Href` is the `<button>` that opens a menu.
-- **`Ui.Brand`** is the product's mark and name linking home (`Href` defaults to `/`): `Logo` takes an image's
-  address or anything you draw, and `LogoClass` dresses the box around a drawn one.
-- **`Ui.Breadcrumbs`** holds **`Ui.BreadcrumbsItem`**s: a link with an `Href`, greyed text without, an `Icon` in place of words, and a chevron separator that turns in RTL and is not
-  drawn after the last item — `Separator(Ui.IconName.Slash)` for slashes. Anything can be an item's child, which
-  is how a dropdown holding the folded-away steps goes in.
-- **`Ui.Profile`** is Flux's `flux:profile`: the signed-in person as a `<button>` — a small avatar, optionally
-  their `Name`, and a chevron (`Chevron(false)` drops it, `IconTrailing` swaps it). It is the TRIGGER of an account
-  menu, and the menu is the dropdown's: `Ui.Dropdown[Ui.Profile.Name(…), Ui.Menu[…]]`. Without an `Avatar` it draws the **initials** of `Name` (or of `AvatarName`,
-  for a profile that shows no name), since most accounts have no picture.
+- **`Ui.Navlist`** ([rask.sh/ui/navlist](https://rask.sh/ui/navlist/)) and **`Ui.Navbar`**
+  ([rask.sh/ui/navbar](https://rask.sh/ui/navbar/)) are Flux's navigation lists, in a column and in a row: the current
+  item is worked out from the route, and a navlist group folds as a `<details>`. **`Ui.Brand`**
+  ([rask.sh/ui/brand](https://rask.sh/ui/brand/)), **`Ui.Breadcrumbs`**
+  ([rask.sh/ui/breadcrumbs](https://rask.sh/ui/breadcrumbs/)) and **`Ui.Profile`**
+  ([rask.sh/ui/profile](https://rask.sh/ui/profile/)) each have a page with every example and the reference of
+  their steps.
 
 - **Nothing is painted that Flux does not paint.** The sidebar's and the header's ground and border are your
   classes, exactly as in Flux's examples. (A kit-only document gets them from `UiStylesheet.DocumentAttribute`.)
@@ -1181,44 +1028,11 @@ Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
 
 ### Card
 
-`Ui.Card` is [Flux UI's card](https://fluxui.dev/components/card), part for part: `Ui.CardHeader`
-(`Ui.CardHeading`, `Ui.CardSubheading`, `Ui.CardActions`), `Ui.CardBody`, `Ui.CardFooter` and `Ui.CardBleed`.
-The card handles the spacing, dividers and corners between them.
-
-```csharp
-Ui.Card.Inset.Soft.Lg[
-    Ui.CardHeader[
-        Ui.CardHeading.Level(2)["Profile"],
-        Ui.CardSubheading["This is how others will see you"],
-        Ui.CardActions[Ui.Button["Edit"]]            // centres on the heading, tucks into the corner
-    ],
-    Ui.CardBody[form],
-    Ui.CardFooter[Ui.Text["Last saved 2 minutes ago"], Ui.CardActions[Ui.Button["Save"]]]
-]
-
-Ui.Card[Ui.CardHeading.Lg["Are you sure?"], P["This cannot be undone."]]   // parts are optional
-```
-
-| Step | Values | What it decides |
-|---|---|---|
-| `Body` | `Seamless` (default) · `Inset` · `Flush` · `Divided` · `Separated` | how header, body and footer are set apart: by space, a panel in from the edges, a panel out to them, lines, or tinted bands |
-| `Variant` | `Default` · `Muted` · `Soft` · `Outline` · `Filled` | the surface — raised, two tints, an edge only, a tint with no edge |
-| `Size` | `Xs` · `Sm` · `Md` (default) · `Lg` | padding, corners and the space between parts |
-| `Divider` | `Ui.CardDivider.Inset` | with `Divided`, stops the lines at the content's edges |
-| `Highlight` | `false` | turns off the faint highlight inside the top edge (light mode) |
-
-Each value is a chain step (`Ui.Card.Divided.Sm`); `Inset` is the body treatment, so the divider is
-`.Divider(Ui.CardDivider.Inset)`. `Ui.CardHeading` takes `Size` (`Base`, `Lg`, `Xl`) and `Level`; without a
-level it is a `<div>`, outside the document outline.
-
-- **A header or footer outside a card** is a section heading above one — give it the `Size` of the card it sits
-  beside. **Inside a `Ui.CardBody`** it titles a sub-section and takes none of the card's treatment.
-- **`Ui.CardBleed`** runs media out to the card's edges: always to the sides, to the top or bottom when it is
-  the first or last thing, rounding only the corners it reaches. The distances are the `--ui-bleed-x`,
-  `--ui-bleed-top`, `--ui-bleed-bottom`, `--ui-bleed-top-radius` and `--ui-bleed-bottom-radius` variables the
-  card and its body set, so your own content can bleed the same way.
-- **A link card** is a link around a small card, as in Flux — there is no `Href` on the card:
-  `A.Href(url)[Ui.Card.Xs.Class("hover:bg-zinc-50 dark:hover:bg-zinc-700")[…]]`. Nothing inside it may be a button.
+`Ui.Card` is [Flux UI's card](https://fluxui.dev/components/card), part for part: `Ui.CardHeader` (`Ui.CardHeading`,
+`Ui.CardSubheading`, `Ui.CardActions`), `Ui.CardBody`, `Ui.CardFooter` and `Ui.CardBleed`, and it handles the spacing,
+dividers and corners between them. `Body`, `Variant` and `Size` set how the parts are apart, the surface and the room.
+Every example, what each step decides, headers outside a card, the bleed variables and the reference of its steps:
+**[rask.sh/ui/card](https://rask.sh/ui/card/)**.
 
 ### Kanban
 

@@ -33,6 +33,7 @@ public sealed partial class UiCardPage : Component
                 .Blurb("Media that runs to the card's edges."),
             UiDocsExample.Key("ui-card-outside").Heading("Header outside").File("CardOutsideHeaderExample.cs").Demo(CardOutsideHeaderExample).Testid("ui-card-outside")
                 .Blurb("A header beside the card rather than in it."),
-            UiDocsExample.Key("ui-card-nested").Heading("Header inside the body").File("CardNestedHeaderExample.cs").Demo(CardNestedHeaderExample).Testid("ui-card-nested")
+            UiDocsExample.Key("ui-card-nested").Heading("Header inside the body").File("CardNestedHeaderExample.cs").Demo(CardNestedHeaderExample).Testid("ui-card-nested"),
+            UiCardBehaviour
         ];
 }
