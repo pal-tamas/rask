@@ -110,6 +110,11 @@ public sealed partial class UiDocsTests
 
     [Theory]
     [InlineData("/docs/ui/actions", "/ui/button/")]
+    [InlineData("/docs/ui/actions", "/ui/dropdown/")]
+    [InlineData("/docs/ui/actions", "/ui/context/")]
+    [InlineData("/docs/ui/actions", "/ui/command/")]
+    [InlineData("/docs/ui/actions", "/ui/popover/")]
+    [InlineData("/docs/ui/actions", "/ui/modal/")]
     [InlineData("/docs/ui/data-display", "/ui/badge/")]
     [InlineData("/docs/ui/data-display", "/ui/card/")]
     [InlineData("/docs/ui/feedback", "/ui/callout/")]
@@ -124,6 +129,32 @@ public sealed partial class UiDocsTests
 
         Assert.Contains($"href=\"{moved}\"", html, StringComparison.Ordinal);
         Assert.NotEmpty(callout);
+    }
+
+    [Fact]
+    public async Task The_emptied_actions_page_names_the_dropdown_page_canonical_and_leaves_the_docs_sidebar()
+    {
+        var html = await SiteDocument.At("/docs/ui/actions");
+        var docs = await SiteDocument.At(global::Rask.Site.Routes.GuidesIndexPage());
+
+        var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
+        var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.UiDropdownPage()), canonical);
+        Assert.DoesNotContain("href=\"/docs/ui/actions/\"", docs, StringComparison.Ordinal);
+        Assert.Contains($"href=\"{PageMeta.LinkTo(global::Rask.Site.Routes.UiIntroductionPage())}\"", docs, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_popover_example_inside_the_examples_section_is_titled_one_level_below_it()
+    {
+        var html = await SiteDocument.At(global::Rask.Site.Routes.UiPopoverPage());
+
+        var section = Regex.Match(html, "<h([1-6])[^>]*>Examples</h\\1>").Groups[1].Value;
+        var example = Regex.Match(html, "<h([1-6])[^>]*>Category picker</h\\1>").Groups[1].Value;
+
+        Assert.Equal("2", section);
+        Assert.Equal("3", example);
     }
 
     [Fact]

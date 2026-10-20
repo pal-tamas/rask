@@ -40,7 +40,7 @@ public sealed partial class SidebarLayoutDemoPage : Component
                         "Back to the docs"
                     ],
                     Ui.SidebarGroup.Expandable().Icon(Ui.IconName.Star).Heading("Favorites")[
-                        Ui.SidebarItem.Href(Routes.UiKitActionsPage())["Actions"],
+                        Ui.SidebarItem.Href(Routes.UiDropdownPage())["Actions"],
                         Ui.SidebarItem.Href(Routes.UiKitNavigationPage())["Navigation"]
                     ]
                 ],
