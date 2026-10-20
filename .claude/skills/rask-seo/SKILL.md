@@ -25,7 +25,9 @@ own ("blazor", "react"). Map every new page to one:
 | file uploads ASP.NET Core to disk / S3 / Azure Blob, presigned URLs without the AWS SDK | `file-storage` |
 | Tailwind CSS .NET without npm | `tailwind` |
 | accessible C# UI components, keyboard menus / modal / sidebar layout for ASP.NET Core or WebAssembly | `ui-kit` |
-| table columns jump when paging or sorting, fixed column widths with Tailwind `table-fixed`, truncate a table cell with an ellipsis | `ui-kit` (#columns-that-stay-put) |
+| table columns jump when paging or sorting, fixed column widths with Tailwind `table-fixed`, truncate a table cell with an ellipsis, sortable paged data table in C# | `/ui/table/` (Behaviour: Columns that stay put) |
+| chart component in C# without a JavaScript library, SVG line / bar / pie chart for ASP.NET Core or WebAssembly | `/ui/chart/` |
+| kanban board, timeline, carousel, accordion, avatar or country flag component in C# | `/ui/kanban/`, `/ui/timeline/`, `/ui/carousel/`, `/ui/accordion/`, `/ui/avatar/`, `/ui/flag/` |
 | color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `ui-kit` (#color-picker) |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |

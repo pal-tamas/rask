@@ -27,10 +27,12 @@ Ui.Button.Primary["Save"]
 [Separator](https://rask.sh/ui/separator/), [Icon](https://rask.sh/ui/icon/), [Dropdown](https://rask.sh/ui/dropdown/),
 [Context menu](https://rask.sh/ui/context/), [Command palette](https://rask.sh/ui/command/),
 [Popover](https://rask.sh/ui/popover/), [Modal](https://rask.sh/ui/modal/), [Progress](https://rask.sh/ui/progress/),
-[Skeleton](https://rask.sh/ui/skeleton/), [Toast](https://rask.sh/ui/toast/) and [Tooltip](https://rask.sh/ui/tooltip/),
-with [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
-category pages: [Data display](https://rask.sh/docs/ui/data-display) ·
-[Navigation](https://rask.sh/docs/ui/navigation) ·
+[Skeleton](https://rask.sh/ui/skeleton/), [Toast](https://rask.sh/ui/toast/), [Tooltip](https://rask.sh/ui/tooltip/),
+[Accordion](https://rask.sh/ui/accordion/), [Avatar](https://rask.sh/ui/avatar/), [Table](https://rask.sh/ui/table/),
+[Chart](https://rask.sh/ui/chart/), [Kanban](https://rask.sh/ui/kanban/), [Timeline](https://rask.sh/ui/timeline/),
+[Carousel](https://rask.sh/ui/carousel/) and [Flag](https://rask.sh/ui/flag/), with
+[theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
+category pages: [Navigation](https://rask.sh/docs/ui/navigation) ·
 [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
 ## Principles
@@ -465,40 +467,11 @@ There is no tone: a status names its colour. `Green` for success, `Red` for an e
 
 ## Accordion
 
-`Ui.Accordion` is [Flux's accordion](https://fluxui.dev/components/accordion): a stack of items, each a heading
-that opens the content under it.
-
-```csharp
-Ui.Accordion[
-    Ui.AccordionItem[
-        Ui.AccordionHeading["What's your refund policy?"],
-        Ui.AccordionContent["Thirty days, no reason needed."]
-    ],
-    Ui.AccordionItem.Heading("How do I track my order?")["We email a tracking number."]   // the shorthand
-]
-
-Ui.Accordion.Exclusive()[ … ]        // opening one item closes the others
-Ui.Accordion.Transition()[ … ]       // open and close over 250 ms
-Ui.Accordion.Reverse[ … ]            // the chevron before the heading
-Ui.AccordionItem.Heading("…").Expanded()[ … ]    // open to begin with
-Ui.AccordionItem.Heading("…").Disabled()[ … ]    // cannot be opened or closed
-```
-
-**No handler, and no script.** An item is a native `<details>` and its heading the `<summary>`, so a click,
-Enter or Space opens it in the browser, Tab moves from heading to heading, and `Exclusive()` is the platform's
-own `<details name>` group. Closed content is still in the document, so find-in-page reaches it and the browser
-opens the item holding the match. A disabled heading leaves the tab order, takes no pointer and says
-`aria-disabled`.
-
-`Expanded()` is the state an item starts in. As in Flux, the accordion reports nothing back: the browser
-owns which items are open.
-
-`Transition()` animates the height of the `<details>`' own content box (`::details-content`, with
-`interpolate-size`). A browser without those opens and closes at once, which is what an accordion without the
-step does everywhere.
-
-A single collapsible section is an accordion of one item; `Ui.Collapse`, `Ui.AccordionSection` and `Ui.Marker`
-are gone.
+`Ui.Accordion` is [Flux's accordion](https://fluxui.dev/components/accordion): a stack of `Ui.AccordionItem`s, each a
+native `<details>` whose heading opens it with a click, Enter or Space and no handler. `Exclusive()` is the platform's
+`<details name>` group, `Transition()` animates `::details-content`, and find-in-page opens the item holding a match.
+Every example, what the browser owns and the reference of its steps:
+**[rask.sh/ui/accordion](https://rask.sh/ui/accordion/)**.
 
 ## Icons
 
@@ -613,129 +586,14 @@ Flux says to use the navbar. A row whose choice is part of the address reads it 
 
 ## Tables
 
-`Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` holds a
-`Ui.TableColumn` per heading, and `Ui.TableRows` holds a `Ui.TableRow` of `Ui.TableCell`s per record.
-
-```csharp
-Ui.Table.Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = page, PerPage = 10, Total = total }).OnPage(Go))[
-    Ui.TableColumns[
-        Ui.TableColumn["Customer"],
-        Ui.TableColumn.Sortable().Sorted(sortBy == "date").Direction(direction).OnSort(() => Sort("date"))["Date"],
-        Ui.TableColumn["Status"],
-        Ui.TableColumn.End["Amount"]
-    ],
-    Ui.TableRows[
-        orders.Select(order => Ui.TableRow.Key(order.Id)[
-            Ui.TableCell[order.Customer],
-            Ui.TableCell[order.Date],
-            Ui.TableCell.Class("py-0")[Ui.Badge.Sm.Green["Paid"]],
-            Ui.TableCell.Variant(Ui.TableCellVariant.Strong).End[order.Amount]
-        ])
-    ]
-]
-```
-
-| Part | Props |
-| --- | --- |
-| `Ui.Table` | `Bleed()` runs the dividers through the padding of the box it sits in; `Paginate(…)` is the pager under the rows; `ContainerClass("max-h-80")` styles the box around the table. |
-| `Ui.TableColumns` | `Sticky()` keeps the headings in view while the rows scroll. |
-| `Ui.TableColumn` | `Align` (`.Start` `.Center` `.End`), `Sortable()`, `Sorted(…)`, `Direction(Ui.TableColumnDirection.Asc \| Desc)`, `Sticky()`, and `OnSort`. |
-| `Ui.TableRows` | The rows. |
-| `Ui.TableRow` | `Key(…)`, `Sticky()`. |
-| `Ui.TableCell` | `Align`, `Variant(Ui.TableCellVariant.Strong)`, `Sticky()`. |
-
-**The table sorts nothing and pages nothing.** The page keeps the sorted column, its direction and the
-page number. A `Sortable()` heading draws its label as a button with a chevron, and `OnSort` fires when
-the heading is clicked or its button is activated from the keyboard. `Sorted` and `Direction` are what
-you set in answer.
-
-### A slow page change dims the rows
-
-Nothing on the table changes until the next page has its rows: a page change, a sort or a filter that is
-back within 150 ms is one paint, pager and rows together
-([routing](routing.md#a-handlers-work-reaches-the-screen-once)). When the read is slower the rows the reader
-has **stay and dim to half strength** until the new ones take their place — for at most two seconds, after
-which they are at full strength again and the new ones simply arrive when they do — with nothing to write:
-
-```csharp
-Ui.Table.Paginate(Ui.Pagination.Paginator(orders).OnPage(async page => { _page = page; _orders = await Orders.Page(page); }))[ … ]
-```
-
-The pager and the headings stay at full strength (they are what says something is happening), the rows stay
-readable and clickable, and a button inside a row — a Delete with a slow handler — marks itself and leaves the
-table alone. No `Loading` prop, no `IsPlaceholderData` branch: the runtime marks what was pressed once it has
-waited 200 ms, and the kit's sheet dims the rows by that mark.
-
-| What waits | The mark | Written by |
-| --- | --- | --- |
-| the pager — a page number, Previous, Next, or anything else inside it | `data-loading` on the pager's root | `Ui.Pagination` (`data-rask-loading="within"`), under the table (`Paginate(…)`) or right after it |
-| a sortable heading | `data-loading` + `aria-busy` on its `<th>` | `Ui.TableColumn.Sortable()` (`data-rask-loading`) |
-| anything else you decide — a filter above the table | `data-loading` on the table | you: `.Data("loading", "")` on the `Ui.Table` while its rows are stale |
-
-Flux documents no loading treatment for a table. The model is Livewire's own — `data-loading` on what was
-pressed and `has-data-loading:opacity-50` on what it replaces
-([Livewire: loading states](https://livewire.laravel.com/docs/4.x/loading-states)) — so a table of your own
-markup can do the same: `has-[[data-loading]]:opacity-50`, around anything carrying `data-rask-loading="within"`.
-
-**Keep the rows.** The dim is for rows that are still there. A handler that awaits the read keeps them by
-itself (`_orders = await …` replaces them only when it is back); a page that empties them first
-(`_orders = null`) has nothing to dim, and shows its placeholder when the read is slow. A `Rask.Query` page
-keeps them with `KeepPreviousData` ([queries](query.md#a-key-that-a-handler-moves)).
-
-**Sticky parts need a background.** `Ui.TableColumns.Sticky()` holds the headings at the top of the box,
-and a sticky `Ui.TableColumn` with sticky `Ui.TableCell`s under it holds a column at the left. Give each
-`.Class("bg-white dark:bg-zinc-900")`, or the rows show through. A sticky column casts a shadow once the
-others have scrolled under it; that is a CSS scroll timeline, so a browser without one shows no shadow.
-
-**`Bleed()` needs to know the gutter.** It reads `--ui-bleed`, 1.5rem unless the box says otherwise:
-`Div.Class("p-4 [--ui-bleed:1rem]")[Ui.Table.Bleed()[…]]`.
-
-**A class of yours wins.** What the table writes by default — a cell's padding, text size, colour and
-alignment, the table's `min-w-full`, `table-fixed` and `whitespace-nowrap` — weighs nothing in the cascade, so
-`py-0`, `ps-10` on a first cell, `text-xs`, `whitespace-normal` or `min-w-160` does what it says wherever
-Tailwind sorts it. `colspan` and `scope` go through `.Attributes(("colspan", "3"))`.
-
-### Columns that stay put
-
-A table sizes its columns to what is in them — Flux's does too — so they shift when a page, a sort or a
-filter brings other values. Give the table a width and each column but one a width, and nothing moves:
-
-```csharp
-Ui.Table.Class("w-full min-w-160").Paginate(pager)[
-    Ui.TableColumns[
-        Ui.TableColumn.Class("w-40").Sortable().Sorted(by == "plate").Direction(direction).OnSort(() => Sort("plate"))["Plate"],
-        Ui.TableColumn["Job"],                          // no width: takes the rest
-        Ui.TableColumn.Class("w-36")["Date"],
-        Ui.TableColumn.Class("w-24")[""]                // actions
-    ],
-    Ui.TableRows[
-        jobs.Select(job => Ui.TableRow.Key(job.Id)[
-            Ui.TableCell.Class("truncate")[job.Plate],
-            Ui.TableCell.Class("truncate").Title(job.Name)[job.Name],
-            Ui.TableCell[job.Date],
-            Ui.TableCell.Class("py-0")[Ui.Button.Sm.Ghost["Open"]]
-        ])
-    ]
-]
-```
-
-- **`w-full` is what turns the widths on.** The table is `table-fixed` already, but a browser lays a table out
-  by its content until the table itself has a width, and `min-w-full` is not one. With `w-full` the columns
-  come from the heading row alone: the same to the pixel on every page, in every sort order, and with no rows.
-- **One column has no width** and takes what is left. Leave out more than one and they share it equally.
-- **`truncate` on the cell** cuts a long value with an ellipsis where its column ends; `.Title(text)` puts the
-  whole of it in the browser's tooltip. A heading's chevron changes nothing: a sorted column is as wide as an
-  unsorted one.
-- **`min-w-160` is for the phone.** When the widths add up to more than the screen, the column without one
-  would get nothing. With a minimum (40rem here: the three widths plus 15rem for the rest) the table keeps
-  its columns and scrolls sideways inside its own box — the scroll area `Ui.Table` always renders — and the
-  page does not. `ContainerClass` (Flux's `container:class`) is for a height, `max-h-80`; sideways needs
-  nothing — **unless the table is an item of a grid or a flex row**, which grows to its content: there the box
-  itself becomes 40rem wide and the page scrolls instead. Say `.ContainerClass("min-w-0")` and it stays in.
-- `Sticky()` and `Bleed()` work as before. A sticky column takes its width like any other.
-
-`Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two
-values are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.
+`Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` of
+`Ui.TableColumn`s and `Ui.TableRows` of `Ui.TableRow`s of `Ui.TableCell`s. **It sorts nothing and pages nothing**: the
+page keeps the sorted column, its direction and the page number (`Sortable()`, `Sorted`, `Direction`, `OnSort`, and
+`Paginate(Ui.Pagination…)` under the rows). A slow page change keeps the rows and dims them with nothing to write;
+`w-full` on the table and a width on every column but one keep the columns still from page to page
+(`ContainerClass("min-w-0")` inside a grid or a flex row). Every example, the dimming marks, the steady-columns recipe,
+sticky parts, bleed, whose class wins, and the reference of its steps:
+**[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 ## Callouts
 
@@ -1014,7 +872,7 @@ Ui.Table.Paginate(Ui.Pagination.Paginator(orders).ScrollTo("#orders").OnPage(Loa
 with `data-loading` once a press inside it has waited 200 ms, and takes the mark off when the page that
 answers it is whole. The page number that was pressed is replaced by that page's render, which is why the
 mark lives on the root. A table dims its rows by it
-([above](#a-slow-page-change-dims-the-rows)); a list of your own can too —
+([Tables](#tables)); a list of your own can too —
 `Div.Class("has-[+[data-ui-pagination][data-loading]]:opacity-50")[rows]`, with the pager right after it.
 
 **Rows per page.** Flux's pagination has no page-size prop, so the kit has none: the size is the
@@ -1049,106 +907,17 @@ or link inside the pager.
 
 ## Timeline
 
-`Ui.Timeline` is Flux UI's `flux:timeline`: events or steps in order, with a line drawn between their
-indicators. Each `Ui.TimelineItem` holds a `Ui.TimelineIndicator` — an icon, a number, a word — and a
-`Ui.TimelineContent` beside it.
-
-```csharp
-Ui.Timeline[
-    Ui.TimelineItem[
-        Ui.TimelineIndicator[Ui.Icon.Name(Ui.IconName.Eye).Micro],
-        Ui.TimelineContent["curtisss requested a review · 4 days ago"]
-    ],
-    Ui.TimelineItem[
-        Ui.TimelineIndicator.Color(Ui.Color.Green)[Ui.Icon.Name(Ui.IconName.Check).Micro],
-        Ui.TimelineContent["james_rob approved these changes"]
-    ]
-]
-```
-
-| | |
-| --- | --- |
-| `Ui.Timeline.Horizontal()` | Across the page: indicators in a row, the content under each. |
-| `Ui.Timeline.Lg` | 48px indicators on a 2px line with wider gaps, for numbered steps. `Ui.TimelineItem.Lg` enlarges one indicator. |
-| `.Start` `.Baseline` `.Center` `.End` | Where the content sits beside its indicator (`Ui.TimelineAlign`; centre by default). On the timeline for every item, on an item for itself. |
-| `Ui.TimelineItem.Complete` `.Current` `.Incomplete` | Progress (`Ui.TimelineStatus`): a filled indicator and a dark line on to the next item; a dark ring; a faint ring with the content dimmed. `Ui.TimelineIndicator.Status(…)` overrides the item's for the indicator alone. |
-| `Ui.TimelineIndicator.Color(Ui.Color.Red)` | A coloured circle, in any of the seventeen hues. A status is drawn instead of a colour. |
-| `Ui.TimelineIndicator.Bare` | No circle and no size: a larger icon standing on its own. |
-
-**A block instead of an indicator.** `Ui.TimelineBlock` makes an item of a card or a callout, spanning
-the timeline's width with the line running into it and out again. Inside one, `Ui.TimelineSubgrid` puts
-its first child back in the indicators' column and its second in the content's — a comment thread whose
-avatars line up with the events around it:
-
-```csharp
-Ui.TimelineItem[
-    Ui.TimelineBlock.Class("rounded-xl border overflow-hidden")[
-        Ui.TimelineSubgrid.Class("p-3")[avatar, comment],
-        Ui.TimelineSubgrid.Class("p-3")[avatar, replyBox]
-    ]
-]
-```
-
-**Baseline alignment** lines the content's first line up with the indicator's text. An indicator
-holding an icon has no text, so every indicator carries a hidden, empty first line
-(`data-ui-timeline-baseline`) to stand in for it. Give that line the content's font size when it is not
-the default: `Ui.TimelineItem.Baseline.Class("[&_[data-ui-timeline-baseline]]:text-2xl")`.
-
-**Spacing** is two CSS variables on the timeline: `--ui-timeline-item-gap` between items and
-`--ui-timeline-content-gap` between an indicator and its content — Flux's `--flux-timeline-item-gap` and
-`--flux-timeline-content-gap`:
-
-```csharp
-Ui.Timeline.Class("[--ui-timeline-item-gap:3rem] [--ui-timeline-content-gap:1rem]")[ … ]
-```
+`Ui.Timeline` is Flux UI's `flux:timeline`: events or steps in order, down the page or across it
+(`Horizontal()`), each `Ui.TimelineItem` a `Ui.TimelineIndicator` and the `Ui.TimelineContent` beside it, with status,
+coloured or bare indicators, `Ui.TimelineBlock` and `Ui.TimelineSubgrid` for a card in the line, and two CSS variables
+for spacing. Every example and the reference of its steps: **[rask.sh/ui/timeline](https://rask.sh/ui/timeline/)**.
 
 ## Carousel
 
-`Ui.Carousel` is Flux UI's `flux:carousel`: slides that scroll sideways and come to rest on one.
-
-```csharp
-Ui.Carousel.TrackClass("rounded-lg overflow-hidden")[
-    Ui.CarouselSlide.Class("w-full")[photo],
-    Ui.CarouselSlide.Class("w-full")[another]
-]
-
-Ui.Carousel.Indicators().Arrows(false)[…]                 // an indicator per slide, no arrows
-Ui.Carousel.Autoplay().AutoplayInterval(3500)[…]          // advances by itself; 5000 ms when unset
-
-Ui.CarouselControls.Name("stays")                         // anywhere on the page
-Ui.Carousel.Name("stays").Bleed().Arrows(false)[
-    stays.Select(stay => Ui.CarouselSlide.Key(stay.Id).Class("w-4/5 sm:w-1/2 md:w-1/3")[Stay(stay)])
-]
-```
-
-A slide's width is its class, and decides how many are in view.
-
-| | |
-| --- | --- |
-| `Arrows(false)` | No previous and next buttons over the slides. |
-| `ArrowsPosition` | `Inside` (default), `Overlap` (half over each edge), `Outside`. `ArrowsClass` adds classes to both. |
-| `Indicators()` | One button per slide under the carousel. |
-| `Autoplay()`, `AutoplayInterval(ms)` | Advances on the interval and goes back to the first slide after the last. It holds under the pointer and while focus is inside, and never starts for a reader who asked for less motion. |
-| `Fade()` | Fades the edge of the track that has more slides behind it. |
-| `Bleed()` | Runs the track through the padding around it (`--ui-bleed`, which a card sets, or 1.5rem), the slides still starting at the gutter. |
-| `Snap` | `Proximity` (default) or `Mandatory`. |
-| `Scroll` | How an arrow or an indicator moves it: `Smooth` (default) or `Instant`. |
-| `Advance` | `Slide` (default) or `Page`: an arrow moves by the slides in view. |
-| `Wrap` | `None` (default) or `Rewind`: at the end the next arrow stays and returns to the first slide. |
-| `Disabled()` | Takes the arrows and the indicators out of use. The slides still scroll. |
-| `Name` | Joins it to a `Ui.CarouselControls` of the same name elsewhere on the page. |
-| `TrackClass` | Classes for the scrolling track. |
-
-**Nothing is sent to the page.** The scrolling is the browser's — scroll-snap, so a wheel, a swipe and the
-keyboard move it as they move any scroller. What a stylesheet cannot do, Rask's runtime does from the markup
-(`data-rask-carousel`): it marks the root and each arrow `data-at-start` / `data-at-end`, disables the arrow
-with nowhere to go, marks the slide in view `data-selected` and its indicator `aria-current`, moves the track
-when an arrow or an indicator is pressed, and runs autoplay. There is no `OnChange`, as Flux has none.
-
-A screen reader hears a group called "carousel" holding "slide, 2 of 5"; those words, and the buttons'
-names, are in the [translation catalog](localization.md).
-
-daisyUI's `carousel` wrapper, which `Ui.Carousel` used to draw around `carousel-item` children, is gone.
+`Ui.Carousel` is Flux UI's `flux:carousel`: `Ui.CarouselSlide`s that scroll sideways and snap, in the browser. The
+runtime's carousel hook (`data-rask-carousel`) moves the arrows, the indicators, autoplay and a `Ui.CarouselControls`
+of the same `Name` elsewhere on the page, with nothing sent to the page. Every example and the reference of its steps:
+**[rask.sh/ui/carousel](https://rask.sh/ui/carousel/)**.
 
 ## Toggle
 
@@ -1192,43 +961,11 @@ not one frame goes to the server. `Checked` is then where it starts.
 
 ## Flag
 
-`Ui.Flag` is Flux UI's `flux:flag`: a country's flag from its two-letter Unicode region code.
-
-```csharp
-Ui.Flag.Country("US")                                  // 24px wide, 3:2
-Ui.Flag.Country("de").Xl                               // Xs 20px, Sm 24px (default), Md 32px, Lg 40px, Xl 48px
-Ui.Flag.Country("JP").Circle()                         // cropped to a circle
-Ui.Flag.Country("CA").Alt("Canada")                    // says so, when nothing beside it does
-Ui.Flag.Src("/img/flags/california.svg").Alt("California").Xl
-```
-
-| | |
-| --- | --- |
-| `Country` | The region code, in either case. A code with no drawing shows the empty frame. |
-| `Src` | An image of your own — a subdivision, an organization, a historical flag. It wins over `Country`. |
-| `Alt` | Alternative text. Empty when unset: a flag is decoration beside the country's name. |
-| `Size` | The width: `Xs`, `Sm`, `Md`, `Lg`, `Xl`. A `w-*` in `Class` wins over it. |
-| `Circle()` | A circular crop. |
-
-The registry is Unicode's two-letter flag sequences, as Flux's is, and saying a code is in it takes no
-position on any country, territory or border. The drawings are
-[country-flag-icons](https://gitlab.com/catamphetamine/country-flag-icons) 1.6.20 (MIT), the set Flux serves;
-`UN` and `CQ` are not in that set and draw the empty frame.
-
-**The 254 drawings are files, not part of the assembly** — 172 KB an app that shows three flags should not
-download. An app's build copies them into `wwwroot/flags` with their notice (`wwwroot/flags/LICENSE.txt`)
-together with the [phone](#phone) field's engine, whose list draws a flag a country; an app that turned that
-engine off, or a host that is not a Web SDK project, says it wants them:
-
-```xml
-<PropertyGroup>
-  <RaskUiWriteFlags>true</RaskUiWriteFlags>   <!-- false: none, phone engine or not -->
-</PropertyGroup>
-```
-
-Each `Ui.Flag` is then one `<img loading="lazy">` of `/flags/<CC>.svg`: a page fetches the flags it shows.
-In a one-project WebAssembly app the browser half writes them, as it does the editor's engine. Without them
-every flag is a broken image.
+`Ui.Flag` is Flux UI's `flux:flag`: a country's flag from its two-letter region code (`Ui.Flag.Country("US")`), 3:2
+or `Circle()`, in five widths, or an image of your own with `Src`. Each is one `<img loading="lazy">` of
+`/flags/<CC>.svg`, a file the app's build writes into `wwwroot/flags` (`<RaskUiWriteFlags>true</RaskUiWriteFlags>`
+where the build would not). Every example, where the drawings come from, and the reference of its steps:
+**[rask.sh/ui/flag](https://rask.sh/ui/flag/)**.
 
 ## Phone
 
@@ -1485,49 +1222,10 @@ level it is a `<div>`, outside the document outline.
 
 ### Kanban
 
-`Ui.Kanban` is [Flux UI's kanban](https://fluxui.dev/components/kanban), part for part: cards arranged in
-columns, one column per stage of a workflow.
-
-```csharp
-Ui.Kanban[
-    columns.Select(column => Ui.KanbanColumn.Key(column.Id)[
-        Ui.KanbanColumnHeader.Heading(column.Title).Count(column.Cards.Count),
-        Ui.KanbanColumnCards[
-            column.Cards.Select(card => Ui.KanbanCard.Key(card.Id).Heading(card.Title))
-        ]
-    ])
-]
-```
-
-| Part | Takes | What it is |
-|---|---|---|
-| `Ui.Kanban` | columns | the row the columns stand in, 16px apart |
-| `Ui.KanbanColumn` | a header, the cards, optionally a footer | one stage: a 320px tinted panel as tall as what is in it |
-| `Ui.KanbanColumnHeader` | `Heading` · `Subheading` · `Count` · `Actions` | the stage's name, a second line, how many cards, and buttons at the end of the row; children replace the heading and count |
-| `Ui.KanbanColumnCards` | cards | the cards, one under the other |
-| `Ui.KanbanColumnFooter` | anything | what sits under the cards: a "New card" button, a form |
-| `Ui.KanbanCard` | `Heading` · `As` · `Header` · `Footer` | a card; `Header` goes above the heading (badges), `Footer` under it (an icon, avatars); children replace the heading |
-
-```csharp
-Ui.KanbanColumnHeader.Heading("Planned").Count(4).Actions([
-    Ui.Button.Subtle.Sm.Icon(Ui.IconName.EllipsisHorizontal).AriaLabel("Column options"),
-    Ui.Button.Subtle.Sm.Icon(Ui.IconName.Plus).AriaLabel("New card").OnClick(Add)
-])
-
-Ui.KanbanCard.As(Ui.KanbanCardAs.Button).OnClick(() => Edit(card)).Heading(card.Title)
-    .Header(Div.Class("flex gap-2")[Ui.Badge.Sm.Color(Ui.Color.Blue)["UI"], Ui.Badge.Sm.Color(Ui.Color.Red)["Bug"]])
-    .Footer(Ui.Icon.Name(Ui.IconName.Bars3BottomLeft).Variant(Ui.IconVariant.Micro).Class("text-zinc-400"))
-```
-
-- **A card is something to read** until `.As(Ui.KanbanCardAs.Button)` makes the whole card a `<button>`:
-  focused with Tab, pressed with Enter or Space, lighter under the pointer. `OnClick` is what it does.
-- **It draws a board and moves nothing**, exactly as Flux's does: no card is draggable, no key reorders one,
-  and there is no drop event. Adding or moving a card is your page changing its own lists and rendering again;
-  for dragging, [`DragDrop`](composition-lists.md) is the framework's primitive.
-- **A column does not shrink**, so a board wider than its place needs a box that scrolls:
-  `Div.Class("overflow-x-auto")[Ui.Kanban[…]]`.
-- Flux's `badge` prop on the column header is not carried: no example on Flux's page draws it, so there is
-  nothing to measure it against. A `Ui.Badge` of your own goes in as a child, beside the heading you write there.
+`Ui.Kanban` is [Flux UI's kanban](https://fluxui.dev/components/kanban): `Ui.KanbanColumn`s of `Ui.KanbanCard`s, one
+column per stage, with a header (heading, count, actions) and a footer. It draws the board and moves nothing; a card
+is something to read until `.As(Ui.KanbanCardAs.Button)` makes it one to press. Every example and the reference of
+its steps: **[rask.sh/ui/kanban](https://rask.sh/ui/kanban/)**.
 
 ## Buttons that wait
 
@@ -2181,82 +1879,11 @@ it opens and what opens it (`Hover()`, `Open` with `OnToggle`) are the dropdown'
 it on Escape and a press elsewhere; focus stays on the trigger and Tab walks into the panel. Live, with its
 reference: **[rask.sh/ui/popover](https://rask.sh/ui/popover/)**.
 
-**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every
-path are computed during the render, to the numbers Flux's own layout arrives at, for the box the chart has in
-the browser (`scripts/flux/parity-chart.mjs` compares the two drawings' geometry, and with `--pointer` what each
-does under a pointer). What Flux's own script does after that — measuring, following the pointer — is the
-runtime's plot hook, by attribute.
-
-```csharp
-Ui.Chart.Value(visits).Class("aspect-3/1")[
-    Ui.ChartSvg[
-        Ui.ChartLine.Field((Visit v) => v.Visitors).Class("text-pink-500 dark:text-pink-400"),
-        Ui.ChartAxis.X.Field((Visit v) => v.Date)[Ui.ChartAxisLine, Ui.ChartAxisTick],
-        Ui.ChartAxis.Y[Ui.ChartAxisGrid, Ui.ChartAxisTick],
-        Ui.ChartCursor],
-    Ui.ChartTooltip[
-        Ui.ChartTooltipHeading.Field((Visit v) => v.Date),
-        Ui.ChartTooltipValue.Field((Visit v) => v.Visitors).Label("Visitors")]]
-```
-
-- **Data.** Flux's chart takes an array of rows and its parts name a column with a string. `Ui.Chart.Value(rows)`
-  takes the typed list, and each part takes a selector whose lambda states the row type once —
-  `.Field((Visit v) => v.Visitors)` — because a part is built before the chart it goes into. A number of any
-  numeric type plots without a cast; a `DateTime`, `DateOnly` or `DateTimeOffset` on the index axis makes it a
-  time axis; anything else is a name. A chart of bare numbers needs no field at all:
-  `Ui.Chart.Value([15, 18, 16])[Ui.ChartSvg.Gutter("0")[Ui.ChartLine]]`.
-- **Parts.** In the drawing: `Ui.ChartLine` and `Ui.ChartArea` (`Curve`: smooth or `None`), `Ui.ChartPoint`,
-  `Ui.ChartBar` (alone, or inside `Ui.ChartGroup` / `Ui.ChartStack`), `Ui.ChartPie` (`InnerRadius("60%")` makes a
-  donut, `Radius` rounds the slices, `ColorField` lets a row choose its hue), `Ui.ChartAxis` holding
-  `Ui.ChartAxisTick`, `Ui.ChartAxisGrid`, `Ui.ChartAxisLine` and `Ui.ChartAxisMark`, `Ui.ChartZeroLine` and
-  `Ui.ChartCursor`. Beside it: `Ui.ChartViewport` (the drawing's box, when a legend or a summary shares the
-  chart), `Ui.ChartTooltip` with `Ui.ChartTooltipHeading` / `Ui.ChartTooltipValue` / `Ui.ChartTooltipIndicator`,
-  `Ui.ChartSummary` with `Ui.ChartSummaryValue`, and `Ui.ChartLegend` with `Ui.ChartLegendIndicator`.
-  `Ui.Chart.Horizontal()` lays the rows down the Y axis.
-- **Axes.** The value axis starts at zero (or the lowest value below it) and steps by a round quarter of its
-  span; `TickCount`, `TickStart`, `TickEnd`, `TickValues`, `TickPrefix`, `TickSuffix` and
-  `Position(Ui.Position.Right)` are Flux's. A time axis ticks at the pace of its rows and writes itself for its
-  reach (`9:17 AM`, `9 AM`, `Tue 9 AM`, `Mar 10`, `Mar`, `2026`). Labels that would touch give way as Flux's do:
-  dates drop every other one, names turn 45°.
-- **Size.** As Flux's, the chart fills the box its class gives it (`aspect-3/1`, `h-64`) and is drawn FOR that
-  box: the browser measures the drawing (the runtime's `data-rask-measure` hook) and the chart is drawn again in
-  its units — when it first appears, 100 ms after its box stops changing (a window resized, a phone turned), and
-  when a hidden chart is shown at a new size; a hidden chart keeps its drawing. Its 12px labels are 12px at
-  every width, and the ticks that fit are worked out again. There is no size to state: the box is the
-  container's, exactly as Flux's.
-  The FIRST render happens before anything is measured, so it draws nothing — an empty box of the size its
-  class gives it, as Flux's own first paint is (measured on its live page: the element is laid out and empty
-  until its script draws, some 350 ms later) — and the drawing arrives with the measurement. Every chart on a
-  page is measured in the same browser task, and the events of one task are answered with ONE render
-  (`docs/architecture/live-rendering-runtime.md`): a Server page of sixty charts is one frame out and one patch
-  back; in WebAssembly it never leaves the browser. A page that is prerendered for a WebAssembly app shows the
-  empty boxes until the runtime has started.
-- **Format.** Flux's `:format` is the options of `Intl.NumberFormat` / `Intl.DateTimeFormat`; `UiChartFormat`
-  carries them under Intl's names, written with .NET formatting in the reader's culture:
-  `new() { Style = Ui.ChartFormatStyle.Currency, Currency = "USD" }`,
-  `new() { Notation = Ui.ChartFormatNotation.Compact, MaximumFractionDigits = 1 }`,
-  `new() { Month = Ui.ChartFormatPart.Short, Day = Ui.ChartFormatPart.Numeric }`. Carried: `style`
-  (decimal, currency, percent, unit), `currency`, `unit`, `notation` (standard, compact, scientific),
-  `minimumFractionDigits`, `maximumFractionDigits`, `useGrouping`, `dateStyle`, `timeStyle`, `weekday`, `year`,
-  `month`, `day`, `hour`, `minute`, `second`, `hour12`. Not carried: `compactDisplay: long`, `currencyDisplay`,
-  `currencySign`, `signDisplay`, `unitDisplay`, significant-digit and integer-digit limits, `roundingMode`,
-  `timeZone`, `timeZoneName`, `era`, `fractionalSecondDigits`, `dayPeriod`, `hourCycle`, `calendar`,
-  `numberingSystem`. A date's parts are written in the order English writes them.
-- **Under the pointer.** Everything Flux's chart does under the pointer, done in the browser by the runtime's
-  plot hook — no handler, no round trip per move. The row nearest the pointer along the index axis is the active
-  one while the pointer is inside the plot: ONE cursor moves to it (a dashed line; `Ui.ChartCursorType.Area`
-  covers the row's band), ONE tooltip moves beside it — 15px from the row and from the pointer, flipped to the
-  other side where it would pass the drawing's right or bottom edge — and its heading and values, and every
-  `Ui.ChartSummaryValue`, read that row; a summary goes back to the latest row when the pointer leaves. The
-  row's `Ui.ChartPoint`s carry `data-active`. On a pie the slice under the pointer carries `data-active` and
-  the others `data-inactive` (`.Class("transition-opacity data-inactive:opacity-40")`), the tooltip follows the
-  pointer and a `Ui.ChartTooltipIndicator` takes the slice's colour. Each part is rendered ONCE with what it
-  reads for every row (`data-rask-plot-text`), so fifty rows cost fifty short lines, not fifty tooltips.
-  `node scripts/flux/parity-chart.mjs --pointer` walks a pointer over Flux's page and the kit's and compares.
-- **Labels are measured in Inter.** Flux sizes a chart's gutters by measuring its tick labels in the browser.
-  The kit carries Inter's advance widths and kerning (`UiChartInter`, generated by
-  `scripts/flux/inter-metrics.mjs`) and adds them up as Chromium does. In another face the labels still fit;
-  the gutters are those Inter would have needed.
+**`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: `Ui.Chart.Value(rows)` and a selector
+per part (`.Field((Visit v) => v.Visitors)`), the scales, ticks and paths computed in the render for the box the
+browser measured, and the cursor, tooltip, summary and a pie's slice following the pointer in the browser. Every
+example, the axes, formats, sizing and pointer rules, and the reference of its steps:
+**[rask.sh/ui/chart](https://rask.sh/ui/chart/)**.
 
 **`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened
 without it can reach back through `window.opener`). A generated route is one of your own pages and is never
@@ -2270,16 +1897,9 @@ the sizes and the shimmer's colour: **[rask.sh/ui/skeleton](https://rask.sh/ui/s
 announcing the value and maximum as given and moving to a new one over 300ms. Every example and its reference:
 **[rask.sh/ui/progress](https://rask.sh/ui/progress/)**.
 
-**`Ui.Avatar` is Flux's `flux:avatar`, and draws initials when there is no picture.** `Src` is optional; give
-it a `Name` and it shows the first letter of the first and last words ("Caleb Porzio" → CP), the first two
-letters of a single word ("calebporzio" → Ca), or one letter with `InitialsSingle()`. `Initials` states them,
-`Icon` draws an icon instead, and children replace all of it (`Ui.Avatar["3+"]`). Sizes are
-`Xs` `Sm` (40px default) `Lg` `Xl`; `Circle()` rounds it; `Color` fills it with one of `Ui.Color`'s hues and
-`ColorAuto()` picks one from the initials — the CRC-32 of them over Flux's seventeen hues, so the same person is
-the same colour here as there — or from `ColorSeed`. `Badge` marks a corner (`""` is the plain dot) with
-`BadgeColor`, `BadgeCircle`, `BadgePosition` and `BadgeVariant`; `Tooltip` names it on hover; `Href` makes it a
-link and `As(Ui.AvatarAs.Button)` a button. **`Ui.AvatarGroup`** stacks them, each ringed in the page's colour
-(`Class("*:ring-zinc-100")` for another ground).
+**`Ui.Avatar` is Flux's `flux:avatar`, and draws initials when there is no picture.** Give it a `Name` and it works
+out the initials, the picture's alternative text and, with `ColorAuto()`, a colour of its own; `Ui.AvatarGroup` stacks
+them. Every example and the reference of its steps: **[rask.sh/ui/avatar](https://rask.sh/ui/avatar/)**.
 
 **`Ui.Input` and `Ui.Textarea` are Flux UI's.** Same props, same look, same markers
 ([fluxui.dev/components/input](https://fluxui.dev/components/input), [textarea](https://fluxui.dev/components/textarea)),

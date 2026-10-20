@@ -516,7 +516,7 @@ Query<Page<Order>> Orders => field ??= QueryClient.Query(() => new GetOrders(_pa
 
 In a WebAssembly app it is `host.Configure(o => o.HandlerQuiescenceTimeout = 150.Milliseconds)`. Zero turns it
 off: every intermediate state is sent the moment the handler awaits, and nothing is waited for. The kit's table dims
-its rows while a page change is slow — see [tables](ui-kit.md#a-slow-page-change-dims-the-rows).
+its rows while a page change is slow — see [tables](ui-kit.md#tables).
 
 ## Programmatic navigation — `Go`
 

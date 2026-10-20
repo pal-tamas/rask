@@ -401,7 +401,7 @@ QueryClient.Query(() => new GetOrders(_page), new QueryOptions { KeepPreviousDat
 
 `KeepPreviousData` is off by default, as in TanStack Query. With it the page before stays in `Data` until the
 next arrives (`IsPlaceholderData` says so). A `Ui.Table` dims its rows by itself while the pager or a sortable
-heading is waiting ([tables](ui-kit.md#a-slow-page-change-dims-the-rows)), so the page needs no
+heading is waiting ([tables](ui-kit.md#tables)), so the page needs no
 `IsPlaceholderData` branch to grey them.
 
 ## See also
