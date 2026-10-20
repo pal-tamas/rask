@@ -128,6 +128,12 @@ internal static class ReplacedChildren
     {
         var type = stored.Metadata;
 
+        // Seen as dropped by a detection that ran before the refill: it is held again, so it is a row to keep.
+        if (stored.State == EntityState.Deleted)
+        {
+            stored.State = EntityState.Unchanged;
+        }
+
         foreach (var property in type.GetProperties().Where(static p =>
                      !p.IsPrimaryKey() && !p.IsShadowProperty() && !p.IsForeignKey() && !FrameworkColumns.Contains(p.Name)))
         {

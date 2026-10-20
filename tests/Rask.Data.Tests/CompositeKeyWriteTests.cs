@@ -121,6 +121,25 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_row_dropped_and_detected_then_held_again_is_kept()
+    {
+        var issued = await IssueAsync(Acme, "A-1", (10, 12.5m), (11, 3.25m));
+        await using var db = await OpenAsync();
+
+        using (Tenant.Use(Acme))
+        {
+            var note = await db.Set<DeliveryNote>().Include(n => n.Fuellings)
+                .SingleAsync(n => n.Id == issued.Id, TestContext.Current.CancellationToken);
+            note.Fill([]);
+            db.ChangeTracker.DetectChanges();
+            note.Fill([(10, 12.5m), (11, 5m)]);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal([(10, 12.5m), (11, 5m)], await FuellingsAsync(Acme, issued.Id));
+    }
+
+    [Fact]
     public async Task A_note_found_refilled_and_saved_syncs_its_fuellings_by_key()
     {
         var issued = await IssueAsync(Acme, "A-1", (10, 12.5m), (11, 3.25m), (13, 2m));
