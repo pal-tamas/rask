@@ -183,6 +183,16 @@ them until tagged releases begin.
   it and waits (up to 45 minutes, then prints the `rm -f` that frees it); other apps never wait on it. The holder
   renews the lock every minute, and it removes itself five minutes after the last renewal.
 
+- **docs: Rask.Ui has a tab of its own on rask.sh.** Before: the kit's components were six category pages under
+  `/docs/ui/…`, one long demo each, beside the guides. After: the site's bar has a **UI** tab, next to **Docs**, at
+  [`/ui`](https://rask.sh/ui/) — its own sidebar with Introduction, Theming and Dark mode first, then one page per Flux
+  component in Flux's order. As on fluxui.dev, each example has its own short code block with its live result right
+  below it — one small class per example, so the code shown is that example's and nothing else — and each page ends
+  in a reference table of the chain steps, each enum's values and the Flux part it mirrors. The first family is
+  there: Button (and button group), Badge, Callout, Card, Heading, Text & link, Separator and Icon. Their examples moved
+  rather than being copied, so the category pages they left link forward to them; every old URL still answers, and
+  the rest move family by family. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped
   table in the model numbers its tenants (`PerTenant<int>`, or a declared `int? TenantId`), the column is an `int`

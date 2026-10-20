@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's actions — Flux's button first, in <see cref="UiKitButtonDemo" /> — driven by this component's own state.
+///     The kit's actions — menus, the command palette, popovers and modals — driven by this component's own state.
 /// </summary>
 /// <remarks>
 ///     Every interactive part here holds its state in a plain field and re-renders through Rask's diff.
@@ -26,7 +26,6 @@ public sealed partial class UiKitActionsDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        UiKitButtonDemo,
         DropdownSection(),
         ContextMenuSection(),
         CommandPaletteSection(),

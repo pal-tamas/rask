@@ -48,9 +48,9 @@ public sealed class SiteHeaderTests
     ///     Everything the two pages are ALLOWED to differ on sits to the left of this cut: the container's
     ///     width class (the docs run full-bleed past a 280px rail; the landing page centres in its own
     ///     1100px column) and the leading slot (the docs' sidebar hamburger, which has to be in the bar
-    ///     because that is where a thumb reaches for it). Past the cut there is no licence to differ, and
-    ///     a byte comparison is the only form of that assertion that cannot be satisfied by a bar which
-    ///     merely resembles the other one.
+    ///     because that is where a thumb reaches for it). Past the cut the one licence is which tab says it is
+    ///     current — the docs mark "Docs" — so that attribute is taken out, and the rest is compared byte for
+    ///     byte: the only form of the assertion that cannot be satisfied by a bar which merely resembles the other.
     /// </remarks>
     private static string FromTheWordmark(string html)
     {
@@ -59,7 +59,24 @@ public sealed class SiteHeaderTests
         Assert.True(brand >= 0, $"no .app-brand in the top bar:\n{header}");
 
         // The moon's tooltip takes the next id of the process, so two renders differ in it and in nothing else.
-        return System.Text.RegularExpressions.Regex.Replace(header[brand..], "ui-tooltip-\\d+", "ui-tooltip-n");
+        var bar = System.Text.RegularExpressions.Regex.Replace(header[brand..], "ui-tooltip-\\d+", "ui-tooltip-n");
+        return bar.Replace(" aria-current=\"page\"", "", StringComparison.Ordinal);
+    }
+
+    /// <summary>The opening tag of the bar's item carrying <paramref name="hook" />: <c>docs-tab</c> or <c>ui-tab</c>.</summary>
+    private static string Tab(string html, string hook) =>
+        System.Text.RegularExpressions.Regex.Match(Header(html), "<a[^>]*\\b" + hook + "\\b[^>]*>").Value;
+
+    [Fact]
+    public void The_docs_mark_the_docs_tab_current_and_the_front_door_marks_no_tab()
+    {
+        var front = Render("/");
+        var docs = Render(global::Rask.Site.Routes.GuidesIndexPage());
+
+        Assert.DoesNotContain("aria-current", Tab(front, "docs-tab"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-current", Tab(front, "ui-tab"), StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\"", Tab(docs, "docs-tab"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-current", Tab(docs, "ui-tab"), StringComparison.Ordinal);
     }
 
     [Fact]

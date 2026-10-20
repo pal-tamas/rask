@@ -80,6 +80,12 @@ public static partial class LlmsText
 
         foreach (var group in GuideChrome.ReadingOrder().GroupBy(guide => guide.Group, StringComparer.Ordinal))
         {
+            // The UI tab before the Optional section, which has to come last to be one a tool can drop.
+            if (group.Key is OptionalGroup)
+            {
+                AppendUiPages(sb);
+            }
+
             sb.Append("\n## ").Append(group.Key is OptionalGroup ? "Optional" : group.Key).Append("\n\n");
             foreach (var guide in group)
             {
@@ -89,6 +95,18 @@ public static partial class LlmsText
         }
 
         return sb.ToString();
+    }
+
+    // Rask.Ui's own pages: web pages rather than Markdown twins, each with the line it gives a search engine.
+    private static void AppendUiPages(StringBuilder sb)
+    {
+        sb.Append("\n## UI components (Rask.Ui)\n\n")
+            .Append("Flux UI's components in C#, one web page each, with live examples and a reference of every step:\n\n");
+        foreach (var page in UiDocs.UiDocsCatalog.All)
+        {
+            sb.Append("- [").Append(page.Title).Append("](").Append(Root).Append(PageMeta.CanonicalPath(page.Path))
+                .Append("): ").Append(page.Description).Append('\n');
+        }
     }
 
     /// <summary>The text of <c>/llms-full.txt</c>: every guide but the optional ones, in reading order.</summary>

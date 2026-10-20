@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Site.Features.UiDocs;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -12,9 +13,9 @@ public sealed partial class UiKitFeedbackPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "Callouts, toasts and progress in C# — Rask",
-            "Feedback components in C#: callout, loading, progress, radial progress, skeleton, toast "
-            + "and tooltip, with status conveyed in words, not only color.",
+            "Toasts, tooltips and progress in C# — Rask",
+            "Feedback components in C#: progress, skeleton, toast and tooltip, with status said in words as well as "
+            + "colour, and a toast raised from anywhere.",
             Routes.UiKitFeedbackPage());
 
     /// <inheritdoc />
@@ -29,8 +30,9 @@ public sealed partial class UiKitFeedbackPage : Component
             " announced politely rather than interrupting, and a failed toast changes its ",
             Em["icon"], " and not only its colour."
         ],
+        UiKitMovedPages.Pages([UiDocsCatalog.Callout]),
         CodeSample
-            .Files(["UiKitFeedbackDemo.cs", "UiKitCalloutDemo.cs"])
+            .Files(["UiKitFeedbackDemo.cs"])
             .Notes("The progress value and the toast are fields on the demo component. Loading shapes "
                 + "and tooltip placements are closed enums, because a misspelled class name is not a "
                 + "compile error and a class daisyUI never defined styles nothing.")

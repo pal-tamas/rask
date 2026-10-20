@@ -36,7 +36,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         foreach (var id in new[]
                  {
-                     "ui-button", "ui-button-variants", "ui-button-groups", "ui-dropdown", "ui-context-menu", "ui-command",
+                     "ui-dropdown", "ui-context-menu", "ui-command",
                      "ui-modal", "ui-modal-confirm", "ui-modal-flyout", "ui-modal-floating", "ui-modal-options", "ui-modal-state",
                  })
         {
@@ -831,7 +831,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_button_page_shows_every_Flux_example_drawn_as_Flux_draws_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var variants = Page.Locator("[data-testid='ui-button-variants'] [data-ui-button]");
         var outline = variants.Nth(0);
@@ -852,7 +852,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task An_icon_pads_its_own_side_less_and_a_button_with_only_an_icon_is_a_square() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var icons = Page.Locator("[data-testid='ui-button-icons']");
         var export = icons.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Export" });
@@ -868,7 +868,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task Grouped_buttons_share_one_border_and_keep_their_corners_only_at_the_ends() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var group = Page.Locator("[data-testid='ui-button-groups'] [data-ui-button-group]").First;
         var first = group.Locator("[data-ui-button]").Nth(0);
@@ -885,7 +885,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_button_with_a_tooltip_is_inside_the_tooltip_which_shows_while_it_is_hovered_and_goes_on_Escape() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var add = Page.Locator("[data-testid='ui-button-icons']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Add" });
@@ -908,7 +908,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task Buttons_inside_tooltips_inside_a_group_still_fuse_into_one_control() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var group = Page.Locator("[data-testid='ui-button-groups'] [data-ui-button-group]").Nth(1);
         var first = group.Locator("[data-ui-button]").Nth(0);
@@ -932,9 +932,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task An_icon_only_button_still_has_a_name() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
-        var scope = Page.Locator("[data-testid='ui-button']");
+        var scope = Page.Locator("[data-testid='ui-button-icons']");
 
         // A square holds one glyph, so its label cannot be visible text. Reaching it by accessible name
         // is the proof it is still announced rather than read out as "button" — "Add" by its tooltip.
@@ -947,10 +947,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_disabled_button_is_disabled_by_the_browser_rather_than_by_a_class() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         // By attribute, so the browser refuses the press: a class alone still takes the click.
-        var disabled = Page.Locator("[data-testid='ui-button']")
+        var disabled = Page.Locator("[data-testid='ui-button-square']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Disabled" });
 
         await Expect(disabled).ToBeDisabledAsync();
@@ -959,11 +959,11 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_button_waiting_on_its_handler_shows_a_spinner_keeps_its_width_and_takes_one_press() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var scope = Page.Locator("[data-testid='ui-button-loading']");
         var save = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" });
-        var count = Page.Locator("[data-testid='ui-button-loading-count']");
+        var count = scope.GetByText(new System.Text.RegularExpressions.Regex("^Saved "));
         await Expect(count).ToContainTextAsync("Saved 0 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         var before = await save.BoundingBoxAsync();
@@ -992,10 +992,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_button_given_a_route_navigates_without_reloading_the_app() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("button", "Button");
 
         var scope = Page.Locator("[data-testid='ui-button-route']");
-        var button = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Navigation components" });
+        var button = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "See the badge" });
         var github = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "GitHub" });
 
         // The markup half: the route is intercepted, the external new-tab link is not.
@@ -1009,7 +1009,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.EvaluateAsync("() => { window.__raskStayedInApp = true; }");
         await button.ClickAsync();
 
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Badge",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskStayedInApp === true"),
             "the button reloaded the app instead of navigating inside it.");

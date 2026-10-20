@@ -21,7 +21,12 @@ using Rask;
 Ui.Button.Primary["Save"]
 ```
 
-Live, on rask.sh: [Actions](https://rask.sh/docs/ui/actions) · [Data display](https://rask.sh/docs/ui/data-display) ·
+**Every component, live, with a reference of its steps: [the UI tab on rask.sh](https://rask.sh/ui/)** — so far
+[Button](https://rask.sh/ui/button/), [Badge](https://rask.sh/ui/badge/), [Callout](https://rask.sh/ui/callout/),
+[Card](https://rask.sh/ui/card/), [Heading](https://rask.sh/ui/heading/), [Text & link](https://rask.sh/ui/text/),
+[Separator](https://rask.sh/ui/separator/) and [Icon](https://rask.sh/ui/icon/), with
+[theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
+category pages: [Actions](https://rask.sh/docs/ui/actions) · [Data display](https://rask.sh/docs/ui/data-display) ·
 [Navigation](https://rask.sh/docs/ui/navigation) · [Feedback](https://rask.sh/docs/ui/feedback) ·
 [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 

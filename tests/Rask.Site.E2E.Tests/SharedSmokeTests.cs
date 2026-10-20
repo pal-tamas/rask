@@ -40,6 +40,10 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     ///     existed — which a browser test reports as "element not found", never as "wrong page".
     /// </remarks>
     public const string Docs = "/docs";
+
+    /// <summary>Where the UI tab's pages live: Rask.Ui's own docs, one page per component.</summary>
+    public const string UiTab = "/ui";
+
     protected abstract string FixtureName { get; }
     protected abstract string ServerLog { get; }
 
@@ -205,6 +209,15 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
             $".side-nav a.side-nav-link:has-text(\"{escaped}\"):not([href^=\"{Docs}/guides/\"])");
         var link = await example.CountAsync() > 0 ? example.First : any.First;
         await link.ClickAsync();
+    }
+
+    /// <summary>Opens one of the UI tab's pages by its slug — <c>button</c> — and waits until it is interactive.</summary>
+    protected async Task OpenUiPageAsync(string slug, string heading)
+    {
+        await Page.GotoAsync($"{UiTab}/{slug}/");
+        await Assertions.Expect(Page.Locator("main h1")).ToContainTextAsync(heading,
+            new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
+        await WaitForInteractiveAsync();
     }
 
     protected async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")

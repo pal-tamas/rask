@@ -199,16 +199,17 @@ public sealed partial class DarkModeTests
         var context = await NewContextAsync(ColorScheme.Dark);
         var page = await context.NewPageAsync();
 
-        // Reached the way a reader reaches it: the guides index, then the sidebar.
+        // Reached the way a reader reaches it: the guides index, the bar's UI tab, then the card in its sidebar.
         await page.GotoAsync("/docs/");
         await Expect(page.Locator("body[data-rask-root='wasm']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
-        await page.Locator(".side-nav .side-nav-search input").First.FillAsync("Data display");
-        await page.Locator(".side-nav a.side-nav-link[href*='/docs/ui/data-display']").First.ClickAsync();
+        await page.Locator("header.app-navbar a.ui-tab").ClickAsync();
+        await Expect(page.Locator("main h1")).ToContainTextAsync("Introduction");
+        await page.Locator("nav[data-ui-navlist] a[href*='/ui/card']").ClickAsync();
 
         try
         {
-            await Expect(page.Locator("main h1")).ToContainTextAsync("Data display");
+            await Expect(page.Locator("main h1")).ToContainTextAsync("Card");
             Assert.True(await IsDarkAsync(page));
 
             // ONE sheet carries Tailwind, the kit and the site's classes.

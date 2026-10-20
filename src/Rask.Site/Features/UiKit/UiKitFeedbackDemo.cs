@@ -18,19 +18,11 @@ public sealed partial class UiKitFeedbackDemo : Component
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        CalloutSection(),
         ProgressSection(),
         TooltipSection(),
         SkeletonSection(),
         ToastSection()
     ];
-
-    private static Component CalloutSection() =>
-        Section(
-            "Callout",
-            "Flux UI's callout, example for example: an icon, a heading, text, and what to do about it. It "
-            + "announces nothing by itself — one that appears because something happened says so with Role.",
-            UiKitCalloutDemo.Key("callouts"));
 
     private Component ProgressSection() =>
         Section(
