@@ -307,7 +307,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Keyboard.PressAsync("Escape");
 
         // End edges together.
-        var account = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Olivia Martin" });
+        var account = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Rosa Vidal" });
         await account.ClickAsync();
         at = (await account.BoundingBoxAsync())!;
         menu = (await scope.Locator("[data-ui-navmenu]:popover-open").BoundingBoxAsync())!;

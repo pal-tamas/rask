@@ -77,7 +77,7 @@ public sealed partial class UiKitLayoutDemo : Component
                                 .Icon(Ui.IconName.Sparkles).Badge("5")["Actions"],
                             Ui.SidebarGroup.Key("more").Heading("More").Expandable()[
                                 Ui.SidebarItem.Key("feedback").Href(PageMeta.LinkTo(Routes.UiProgressPage()))["Feedback"],
-                                Ui.SidebarItem.Key("navigation").Href(PageMeta.LinkTo(Routes.UiKitNavigationPage()))["Navigation"]
+                                Ui.SidebarItem.Key("navigation").Href(PageMeta.LinkTo(Routes.UiNavbarPage()))["Navigation"]
                             ]
                         ],
                         Ui.SidebarSpacer.Key("gap"),

@@ -393,12 +393,12 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
         var all = scope.Locator("#cb-people-all");
 
         // One of three is ticked: the check-all is neither on nor off, and says so.
-        await Expect(state).ToContainTextAsync("people caleb");
+        await Expect(state).ToContainTextAsync("people mara");
         await Expect(scope.Locator("label:has(> #cb-people-all)")).ToHaveAttributeAsync("data-indeterminate", "");
 
         // Pressing it while some are ticked ticks them all; pressing it again clears them.
         await scope.Locator("label:has(> #cb-people-all)").ClickAsync();
-        await Expect(state).ToContainTextAsync("people caleb, hugo, keith");
+        await Expect(state).ToContainTextAsync("people mara, theo, ivo");
         await Expect(all).ToBeCheckedAsync();
         await scope.Locator("label:has(> #cb-people-all)").ClickAsync();
         await Expect(state).ToContainTextAsync("people nothing");

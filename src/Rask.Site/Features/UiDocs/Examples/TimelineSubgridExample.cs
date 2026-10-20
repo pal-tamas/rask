@@ -19,7 +19,7 @@ public sealed partial class TimelineSubgridExample : Component
                         ]
                     ],
                     Div.Class("border-t border-zinc-500/20"),
-                    Ui.TimelineSubgrid.Class("p-3")[Ui.Avatar.Xs.Circle().Initials("CP"), Ui.Text["Leave a reply..."]]
+                    Ui.TimelineSubgrid.Class("p-3")[Ui.Avatar.Xs.Circle().Initials("ML"), Ui.Text["Leave a reply..."]]
                 ]
             ],
             Ui.TimelineItem.Key("approved")[

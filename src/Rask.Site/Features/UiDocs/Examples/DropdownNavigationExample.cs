@@ -4,7 +4,7 @@ public sealed partial class DropdownNavigationExample : Component
 {
     protected override Component? Render() =>
         Ui.Dropdown.Bottom.End[
-            Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Olivia Martin"],
+            Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Rosa Vidal"],
             Ui.Navmenu[
                 Ui.NavmenuItem.Href("#account").Icon(Ui.IconName.User)["Account"],
                 Ui.NavmenuItem.Href("#profile").Icon(Ui.IconName.BuildingStorefront)["Profile"],

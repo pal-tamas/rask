@@ -6,6 +6,6 @@ public sealed partial class AvatarColorsExample : Component
     protected override Component? Render() =>
         Div.Class("flex flex-wrap gap-2")[
             Enum.GetValues<Ui.Color>().Take(17).Select(Component (color) =>
-                Ui.Avatar.Key(color.ToString()).Name("Caleb Porzio").Color(color))
+                Ui.Avatar.Key(color.ToString()).Name("Mara Lind").Color(color))
         ];
 }

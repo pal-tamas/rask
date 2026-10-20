@@ -27,7 +27,7 @@ public sealed partial class UiKitDataInputDemo
     private string _comparison = "last-month";
     private string? _method = "card";
     private string? _tier = "basic";
-    private string? _person = "calebporzio";
+    private string? _person = "maralind";
     private string? _colour = "red";
     private string? _visibility = "public";
     private string? _searched;
@@ -98,9 +98,9 @@ public sealed partial class UiKitDataInputDemo
                     Ui.SelectOption.Value("enterprise").Label("Enterprise").Description("Advanced controls and support")
                 ],
                 Ui.Select.Key("avatars").Value(_person).OnChange(picked => _person = picked).Listbox.Placeholder("Search people...")[
-                    Ui.SelectOption.Value("calebporzio").Label("Caleb Porzio").Avatar("https://unavatar.io/github/calebporzio"),
-                    Ui.SelectOption.Value("taylorotwell").Label("Taylor Otwell").Avatar("https://unavatar.io/github/taylorotwell"),
-                    Ui.SelectOption.Value("adamwathan").Label("Adam Wathan").Avatar("https://unavatar.io/github/adamwathan")
+                    Ui.SelectOption.Value("maralind").Label("Mara Lind").Avatar("/img/avatars/amber.svg"),
+                    Ui.SelectOption.Value("theobrandt").Label("Theo Brandt").Avatar("/img/avatars/sky.svg"),
+                    Ui.SelectOption.Value("rosavidal").Label("Rosa Vidal").Avatar("/img/avatars/rose.svg")
                 ],
                 Ui.Select.Key("content").Value(_colour).OnChange(picked => _colour = picked).Listbox.Placeholder("Select color...")[
                     Swatches.Select(Swatch)
