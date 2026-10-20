@@ -103,6 +103,7 @@ public abstract partial class SharedSmokeTests
         await WalkAuthGuideAsync();
         await WalkFormsPagesAsync();
         await WalkStylingDataAndAppPagesAsync(opts);
+        await WalkUiTabAsync();
         await TestGuidesAsync();
 
         await TestInSessionNotFoundAsync();

@@ -23,7 +23,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
 
         foreach (var id in new[]
                  {
-                     "ui-callout", "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
+                     "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -39,7 +39,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task Every_Flux_callout_example_is_drawn_and_a_dismissed_one_leaves() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("callout", "Callout");
 
         var scope = Page.Locator("[data-testid='ui-callout']");
         var callouts = scope.Locator("[data-ui-callout]");

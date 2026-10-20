@@ -113,4 +113,4 @@ Requires .NET 10. Runs on both the ASP.NET host and browser-WebAssembly.
 
 - [Repository](https://github.com/pal-tamas/rask)
 - [Documentation](https://rask.sh/docs/guides/ui-kit)
-- [Live components](https://rask.sh/docs/ui/actions)
+- [Live components and their reference](https://rask.sh/ui/)

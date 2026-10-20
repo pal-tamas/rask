@@ -23,7 +23,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         foreach (var id in new[]
                  {
-                     "ui-badge", "ui-card", "ui-kanban", "ui-accordion", "ui-chart", "ui-table",
+                     "ui-kanban", "ui-accordion", "ui-chart", "ui-table",
                      "ui-display-rest",
                      "ui-timeline", "ui-timeline-large", "ui-timeline-horizontal", "ui-timeline-status",
                      "ui-timeline-color", "ui-timeline-bare", "ui-timeline-block", "ui-timeline-subgrid",
@@ -43,7 +43,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_badge_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("badge", "Badge");
 
         var scope = Page.Locator("[data-testid='ui-badge']");
         var lime = scope.Locator("[data-ui-badge]").First;
@@ -62,7 +62,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_badge_as_a_button_is_pressed_and_a_removable_one_is_removed() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("badge", "Badge");
 
         var scope = Page.Locator("[data-testid='ui-badge']");
         var amount = scope.Locator("button[data-testid='ui-badge-amount']");
@@ -80,7 +80,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_badge_set_into_a_heading_does_not_make_its_line_taller() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("badge", "Badge");
 
         var heading = Page.Locator("[data-testid='ui-badge-inset'] > div");
         var badge = heading.Locator("[data-ui-badge]");
@@ -186,7 +186,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Fact]
     public Task A_card_draws_its_parts_as_Flux_does() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("card", "Card");
 
         var profile = Page.Locator("[data-testid='ui-card'] [data-ui-card][data-ui-card-body-variant='inset'][data-ui-card-size='lg']");
         var body = profile.Locator("> [data-ui-card-body]");

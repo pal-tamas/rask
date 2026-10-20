@@ -22,7 +22,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         foreach (var id in new[]
                  {
-                     "ui-drawer", "ui-separator", "ui-layout-rest", "ui-typography",
+                     "ui-drawer", "ui-layout-rest",
                  })
         {
             var node = Page.Locator($"[data-testid='{id}']");
@@ -166,15 +166,25 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     }
 
     [Fact]
-    public Task Headings_text_and_links_are_drawn_as_Flux_draws_them() => RunAsync(async () =>
+    public Task Headings_are_drawn_as_Flux_draws_them_with_the_level_apart_from_the_size() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("heading", "Heading");
 
-        var scope = Page.Locator("[data-testid='ui-typography']");
+        var scope = Page.Locator("[data-testid='ui-heading']");
         await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
-        await Expect(scope.Locator("h3[data-ui-heading]")).ToHaveTextAsync("User profile");
+        await Expect(scope.Locator("h3[data-ui-heading]", new LocatorLocatorOptions { HasText = "User profile" })).ToHaveCountAsync(1);
         await Expect(scope.GetByText("Extra extra large")).ToHaveCSSAsync("font-size", "36px");
+    });
+
+    [Fact]
+    public Task Text_and_links_are_drawn_as_Flux_draws_them() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("text", "Text");
+
+        var scope = Page.Locator("[data-testid='ui-text']");
+        await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
         await Expect(scope.GetByText("Smaller text")).ToHaveCSSAsync("font-size", "12px");
         await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Default link" }))
             .ToHaveCSSAsync("text-underline-offset", "6px");
