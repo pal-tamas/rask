@@ -262,14 +262,25 @@ A child that is the meeting of two aggregates (which transactions fuelled which 
 not by an `Id` of its own. Declare the key as a tuple of the **types** it joins, and make the class `partial`:
 
 ```csharp
-public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model: read-only for now, see below
+public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model: a form does not carry it yet, see below
 {
-    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+    private readonly List<DeliveryNoteTransaction> _fuellings = [];
+
+    public IReadOnlyList<DeliveryNoteTransaction> Fuellings => _fuellings;
+
+    public void Fill(IEnumerable<(int TransactionId, decimal Quantity)> rows)
+    {
+        _fuellings.Clear();
+        _fuellings.AddRange(rows.Select(r => DeliveryNoteTransaction.For(r.TransactionId, r.Quantity)));
+    }
 }
 
 public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
 {
     public decimal Quantity { get; private set; }
+
+    internal static DeliveryNoteTransaction For(int transactionId, decimal quantity) =>
+        new() { TransactionId = transactionId, Quantity = quantity };
 }
 ```
 
@@ -299,11 +310,56 @@ var fuellings = await DeliveryNoteTransaction.Where(t => noteIds.Contains(t.Deli
 var note = await DeliveryNote.Include(n => n.Fuellings).First(n => n.Id == id);
 ```
 
-**Writes come later.** For now a row keyed by several columns is read-only through Rask. A save that adds, changes
-or deletes one is refused with a `NotSupportedException`, and an aggregate whose form would carry one is
-[RASK106](diagnostics.md#rask106). Leave `Model` (and `CreateModel` / `UpdateModel`) off that aggregate's base,
-and write the table the way your app writes it today. A class that is not `partial`, a value part with no name, a name that is already
-taken, and a key of several columns on an aggregate **root** are RASK106 too.
+**It is written through its aggregate**, like any child. The entity makes itself in a factory of its own, setting
+the parts it knows — the generated ones have private setters, so its own type can set them — and Rask fills the
+part that names the holding aggregate when the save attaches it. Replacing the whole collection, as `Fill` does,
+is the usual shape, and the save matches the new rows to the stored ones **by key**:
+
+```csharp
+await DeliveryNote.Update(id, n => n.Fill(rows));
+// stored (10, 12.5) (11, 3.25) (13, 2) ← rows (10, 12.5) (11, 4) (12, 1)
+// UPDATE DeliveryNoteTransactions SET Quantity = @p0 WHERE DeliveryNoteId = @p1 AND TransactionId = @p2   (11)
+// INSERT INTO DeliveryNoteTransactions (DeliveryNoteId, TransactionId, Quantity) VALUES (…)               (12)
+// DELETE FROM DeliveryNoteTransactions WHERE DeliveryNoteId = @p0 AND TransactionId = @p1                 (13)
+//                                                                                     nothing for (10)
+
+var note = DeliveryNote.Issue("A-1", rows);   // a factory of the note's own, which calls Fill
+await note.Save();                           // the note, then its rows under the note's new key
+```
+
+The same holds for `Find` + `Save()` and for a shared context (`db:`): every row the aggregate holds afterwards is in
+the table, and nothing else is. A row changed or added without its aggregate is refused, as for any child.
+
+**A grandchild names the child that holds it.** A column of a report, keyed by the report and its own number, holds
+totals keyed by the column and theirs. The column's whole key becomes the grandchild's, one generated property per
+part, named as EF Core names a foreign key to it:
+
+```csharp
+public sealed partial class ReportColumn : Entity<(Report, int ColumnId)>
+{
+    private readonly List<ReportGroupTotal> _totals = [];
+
+    public int ColumnId { get; private set; }
+
+    public IReadOnlyList<ReportGroupTotal> Totals => _totals;
+}
+
+public sealed partial class ReportGroupTotal : Entity<(ReportColumn, int TotalColumnId)>
+{
+    public int TotalColumnId { get; private set; }
+}
+
+// generated: ReportColumnReportId, ReportColumnColumnId, and
+// public new (int ReportColumnReportId, int ReportColumnColumnId, int TotalColumnId) Id
+```
+
+A column that is replaced takes the new instance's totals with it, and they are matched by key the same way.
+
+**A form does not carry such a row yet.** An aggregate whose form would carry one is
+[RASK106](diagnostics.md#rask106): leave `Model` (and `CreateModel` / `UpdateModel`) off its base, and fill the
+collection through a method of the aggregate. A class that is not `partial`, a part with no name or a named
+aggregate or entity part, a name that is already taken, and a key of several columns on an aggregate **root** are
+RASK106 too.
 
 ### Collections of values
 
