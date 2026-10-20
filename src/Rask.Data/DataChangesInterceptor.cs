@@ -128,6 +128,14 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         }
 
         _collected.Remove(context);
+
+        // Joined to a Db.Transaction: this context never sees the commit, its owner does.
+        if (AmbientTransaction.Of(context) is { } ambient)
+        {
+            ambient.AfterCommit(() => Notify(types));
+            return;
+        }
+
         if (context.Database.CurrentTransaction is null)
         {
             Notify(types);
