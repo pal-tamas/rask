@@ -20,7 +20,7 @@ public sealed partial class UiKitActionsPage : Component
     protected override Component? HeadAssets => UiDocsCatalog.Dropdown.Meta();
 
     /// <inheritdoc />
-    protected override async Task OnFirstRender() => Go.To(UiDocsCatalog.Dropdown.Path).Replacing();
+    protected override async Task OnFirstRender() => Go.To(PageMeta.LinkTo(UiDocsCatalog.Dropdown.Path)).Replacing();
 
     /// <inheritdoc />
     protected override Component? Render() =>

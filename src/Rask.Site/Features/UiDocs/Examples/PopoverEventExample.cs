@@ -26,57 +26,48 @@ public sealed partial class PopoverEventExample : Component
                         ]
                     ],
                     Ui.Separator.Key("s1"),
-                    Div.Class("flex gap-2 p-4")[
-                        Ui.Icon.Name(Ui.IconName.Users).Micro.Class("text-zinc-400"),
-                        Div.Class("flex-1")[
-                            Div.Class("flex items-center justify-between")[
-                                Ui.Heading["Guests"],
-                                Ui.Text[Ui.Link.As(Ui.LinkAs.Button).Variant(Ui.LinkVariant.Subtle)["Invite"]]
+                    Detail(Ui.IconName.Users, Ui.Heading["Guests"], "Invite",
+                        Div.Class("mt-2 flex items-center gap-3")[
+                            Ui.AvatarGroup.Class("dark:*:ring-zinc-700")[
+                                Ui.Avatar.Xs.Circle().Name("Caleb Porzio"),
+                                Ui.Avatar.Xs.Circle().Name("Hugo Sainte-Marie"),
+                                Ui.Avatar.Xs.Circle().Name("Josh Hanley")
                             ],
-                            Div.Class("mt-2 flex items-center gap-3")[
-                                Ui.AvatarGroup.Class("dark:*:ring-zinc-700")[
-                                    Ui.Avatar.Xs.Circle().Name("Caleb Porzio"),
-                                    Ui.Avatar.Xs.Circle().Name("Hugo Sainte-Marie"),
-                                    Ui.Avatar.Xs.Circle().Name("Josh Hanley")
-                                ],
-                                Ui.Text["1 maybe, 1 awaiting"]
-                            ]
-                        ]
-                    ],
+                            Ui.Text["1 maybe, 1 awaiting"]
+                        ]),
                     Ui.Separator.Key("s2"),
-                    Div.Class("flex gap-2 p-4")[
-                        Ui.Icon.Name(Ui.IconName.Clock).Micro.Class("text-zinc-400"),
-                        Div.Class("flex-1")[
-                            Div.Class("flex items-center justify-between")[
-                                Div.Class("flex gap-2")[
-                                    Ui.Heading["10:00 AM"],
-                                    Ui.Icon.Name(Ui.IconName.ArrowRight).Micro.Class("text-zinc-400"),
-                                    Ui.Heading["11:00 AM"]
-                                ],
-                                Ui.Text[Ui.Link.As(Ui.LinkAs.Button).Variant(Ui.LinkVariant.Subtle)["Edit"]]
-                            ],
-                            Div.Class("mt-2 flex gap-3")[
-                                Ui.Text["May 29 2025"],
-                                Ui.Text["·"],
-                                Div.Class("flex items-center gap-1.5")[
-                                    Ui.Icon.Name(Ui.IconName.ArrowPathRoundedSquare).Micro.Class("text-zinc-400"),
-                                    Ui.Text["Every weekday"]
-                                ]
+                    Detail(Ui.IconName.Clock,
+                        Div.Class("flex gap-2")[
+                            Ui.Heading["10:00 AM"],
+                            Ui.Icon.Name(Ui.IconName.ArrowRight).Micro.Class("text-zinc-400"),
+                            Ui.Heading["11:00 AM"]
+                        ],
+                        "Edit",
+                        Div.Class("mt-2 flex gap-3")[
+                            Ui.Text["May 29 2025"],
+                            Ui.Text["·"],
+                            Div.Class("flex items-center gap-1.5")[
+                                Ui.Icon.Name(Ui.IconName.ArrowPathRoundedSquare).Micro.Class("text-zinc-400"),
+                                Ui.Text["Every weekday"]
                             ]
-                        ]
-                    ],
+                        ]),
                     Ui.Separator.Key("s3"),
-                    Div.Class("flex gap-2 p-4")[
-                        Ui.Icon.Name(Ui.IconName.MapPin).Micro.Class("text-zinc-400"),
-                        Div.Class("flex-1")[
-                            Div.Class("flex items-center justify-between")[
-                                Ui.Heading["Location"],
-                                Ui.Text[Ui.Link.As(Ui.LinkAs.Button).Variant(Ui.LinkVariant.Subtle)["Edit"]]
-                            ],
-                            Ui.Text.Class("mt-2")["Paris HQ, 13 rue de la Prairie 75018"]
-                        ]
-                    ]
+                    Detail(Ui.IconName.MapPin, Ui.Heading["Location"], "Edit",
+                        Ui.Text.Class("mt-2")["Paris HQ, 13 rue de la Prairie 75018"])
                 ]
+            ]
+        ];
+
+    // One block of the event: an icon, and beside it a heading with a quiet link at its far edge, over a detail.
+    private static Component Detail(Ui.IconName icon, Component heading, string link, Component detail) =>
+        Div.Class("flex gap-2 p-4")[
+            Ui.Icon.Name(icon).Micro.Class("text-zinc-400"),
+            Div.Class("flex-1")[
+                Div.Class("flex items-center justify-between")[
+                    heading,
+                    Ui.Text[Ui.Link.As(Ui.LinkAs.Button).Variant(Ui.LinkVariant.Subtle)[link]]
+                ],
+                detail
             ]
         ];
 }
