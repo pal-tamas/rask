@@ -210,13 +210,14 @@ them until tagged releases begin.
   tabs' value, panels, browser switching, keyboard, Flux's attributes as steps, and that a tab switch never counts as
   an unsaved change in a `ConfirmLeave` form. The Card page gained a Behaviour section of its own, from what
   `docs/ui-kit.md` still held. The examples' avatars are four small SVG portraits the site ships under
-  `/img/avatars/`, so no third-party host is asked for a picture. Their examples moved
+  `/img/avatars/`, so no third-party host is asked for a picture, and the people in every example have made-up
+  names (Mara Lind, Theo Brandt, Nia Okafor, Rosa Vidal) rather than real ones. Their examples moved
   rather than being copied, so the category pages they left link
   forward to them; every old URL still answers, and the rest move family by family. `/docs/ui/actions`, emptied, is a
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
   every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
   same, to `/ui/progress/`, and `/docs/ui/data-display` to `/ui/accordion/` — with the tree's old URL; the data grid's
-  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/brand/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

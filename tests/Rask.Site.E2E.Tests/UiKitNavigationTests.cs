@@ -42,14 +42,14 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     });
 
     [Fact]
-    public Task The_old_navigation_page_sends_the_reader_on_to_the_brand_page() => RunAsync(async () =>
+    public Task The_old_navigation_page_sends_the_reader_on_to_the_tabs_page() => RunAsync(async () =>
     {
         await Page.GotoAsync($"{Docs}/ui/navigation/");
 
-        await Expect(Page).ToHaveURLAsync(new Regex("/ui/brand/$"),
+        await Expect(Page).ToHaveURLAsync(new Regex("/ui/tabs/$"),
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
 
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Brand",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Tabs",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 
@@ -318,13 +318,13 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
     {
         await OpenUiPageAsync("avatar", "Avatar");
 
-        // "Caleb Porzio" is CP, and CP is emerald: emerald-200 under emerald-800, as on fluxui.dev.
-        var caleb = Page.Locator("[data-testid='ui-avatar-auto'] [data-ui-avatar]").First;
-        await Expect(caleb).ToHaveTextAsync("CP", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+        // "Mara Lind" is ML, and ML is sky: sky-200 under sky-800, the hue Flux's CRC-32 picks for it.
+        var mara = Page.Locator("[data-testid='ui-avatar-auto'] [data-ui-avatar]").First;
+        await Expect(mara).ToHaveTextAsync("ML", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         Assert.Equal(
-            await Page.Locator("[data-testid='ui-avatar-colors'] [data-ui-avatar]").Nth(6)
+            await Page.Locator("[data-testid='ui-avatar-colors'] [data-ui-avatar]").Nth(9)
                 .EvaluateAsync<string>("a => getComputedStyle(a).backgroundColor"),
-            await caleb.EvaluateAsync<string>("a => getComputedStyle(a).backgroundColor"));
+            await mara.EvaluateAsync<string>("a => getComputedStyle(a).backgroundColor"));
 
         // Each avatar after the first sits 8px over the one before.
         var faces = Page.Locator("[data-testid='ui-avatar-groups'] [data-ui-avatar]:has-text('3+')").First

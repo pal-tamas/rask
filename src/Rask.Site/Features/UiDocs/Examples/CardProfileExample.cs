@@ -10,7 +10,7 @@ public sealed partial class CardProfileExample : Component
                 Ui.CardActions[Ui.Button["Edit"]]
             ],
             Ui.CardBody[
-                Ui.Text.Variant(Ui.TextVariant.Strong)["Olivia Martin"],
+                Ui.Text.Variant(Ui.TextVariant.Strong)["Rosa Vidal"],
                 Ui.Text.Class("mt-4")["A few words about yourself"]
             ],
             Ui.CardFooter[

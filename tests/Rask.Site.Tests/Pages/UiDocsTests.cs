@@ -229,7 +229,7 @@ public sealed partial class UiDocsTests
     }
 
     [Fact]
-    public async Task The_emptied_navigation_page_names_the_brand_page_canonical_and_leaves_the_docs_sidebar()
+    public async Task The_emptied_navigation_page_names_the_tabs_page_canonical_and_leaves_the_docs_sidebar()
     {
         var html = await SiteDocument.At("/docs/ui/navigation");
         var docs = await SiteDocument.At(global::Rask.Site.Routes.GuidesIndexPage());
@@ -237,7 +237,7 @@ public sealed partial class UiDocsTests
         var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
         var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
 
-        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.UiBrandPage()), canonical);
+        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.UiTabsPage()), canonical);
         Assert.DoesNotContain("href=\"/docs/ui/navigation/\"", docs, StringComparison.Ordinal);
     }
 
