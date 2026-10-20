@@ -11,8 +11,7 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
     private const int MaxErrorBodyBytes = 64 * 1024;
     private const int MaxListingBytes = 16 * 1024 * 1024;
 
-    private readonly Lock _spoolGate = new();
-    private string? _spoolDirectory;
+    private readonly TempSpool _spool = new();
 
     private static readonly XmlReaderSettings SafeXml = new()
     {
@@ -28,23 +27,8 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
 
     public abstract long MaxSinglePutBytes { get; }
 
-    /// <summary>
-    /// A spool file in a directory private to this backend. Not a fixed <c>/tmp</c> path: a predictable shared folder
-    /// can be created first by another local user, who then owns it and could swap a vetted upload's bytes between
-    /// the sniff and the upload. <see cref="Directory.CreateTempSubdirectory"/> makes a fresh one, owner-only on Unix.
-    /// </summary>
-    public string CreateSpoolPath()
-    {
-        lock (_spoolGate)
-        {
-            if (_spoolDirectory is null || !Directory.Exists(_spoolDirectory))
-            {
-                _spoolDirectory = Directory.CreateTempSubdirectory("rask-storage-").FullName;
-            }
-
-            return Path.Combine(_spoolDirectory, Guid.NewGuid().ToString("N") + ".tmp");
-        }
-    }
+    /// <summary>A spool file in a directory private to this backend (<see cref="TempSpool"/>).</summary>
+    public string CreateSpoolPath() => _spool.CreatePath();
 
     public abstract Task PutFileAsync(string key, string sourcePath, long length, BlobHeaders headers,
         CancellationToken cancellationToken);
@@ -64,17 +48,11 @@ internal abstract class RemoteBlobBackend(HttpClient http, TimeProvider time) : 
 
     public Task DeleteStaleSpoolAsync(DateTimeOffset olderThan, CancellationToken cancellationToken)
     {
-        if (_spoolDirectory is { } directory)
-        {
-            SpoolCleanup.DeleteOlderThan(directory, olderThan, cancellationToken);
-        }
-
+        _spool.DeleteOlderThan(olderThan, cancellationToken);
         return Task.CompletedTask;
     }
 
-    protected static FileStream OpenSpool(string path) =>
-        new(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, bufferSize: 0,
-            FileOptions.Asynchronous | FileOptions.SequentialScan);
+    protected static FileStream OpenSpool(string path) => TempSpool.OpenRead(path);
 
     protected static void RequireKey(string key)
     {

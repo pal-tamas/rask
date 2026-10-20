@@ -14,4 +14,10 @@ public enum StorageProvider
 
     /// <summary>An Azure Blob Storage container.</summary>
     Azure,
+
+    /// <summary>
+    /// The application's own database: the bytes in a <c>StoredFileBytes</c> table beside <see cref="StoredFile"/>, so a
+    /// database backup is a backup of the files too. For documents and images of a few megabytes.
+    /// </summary>
+    Database,
 }

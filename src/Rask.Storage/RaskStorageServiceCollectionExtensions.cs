@@ -67,7 +67,7 @@ public static class RaskStorageServiceCollectionExtensions
             services.AddSingleton<IValidateOptions<StorageOptions>, ValidateStorageOptions>();
         }
 
-        services.TryAddSingleton(sp => CreateBackend(sp, sp.GetRequiredService<StorageOptions>()));
+        services.TryAddSingleton(sp => CreateBackend<TContext>(sp, sp.GetRequiredService<StorageOptions>()));
         services.TryAddSingleton(sp => new TemporaryUrlProtector(sp.GetRequiredService<IDataProtectionProvider>()));
         services.TryAddSingleton<StorageRuntime>();
         services.TryAddSingleton<IFiles, FileStore<TContext>>();
@@ -75,6 +75,7 @@ public static class RaskStorageServiceCollectionExtensions
         // In order: the model check names the missing mapping, the startup check validates configuration, and
         // only then does the sweep start. AddHostedService uses TryAddEnumerable, so a repeat call adds none.
         services.AddHostedService<StorageModelCheck<TContext>>();
+        services.AddHostedService<StorageBytesModelCheck<TContext>>();
         services.AddHostedService<StorageStartupCheck>();
         // The poll is Rask's bookkeeping, not the application's query log, so it runs on a context
         // whose SQL logs at Debug — see HousekeepingContextFactory. Deduplicates on repeat, as
@@ -119,14 +120,16 @@ public static class RaskStorageServiceCollectionExtensions
         }
     }
 
-    private static IBlobBackend CreateBackend(IServiceProvider services, StorageOptions options) => options.Provider switch
-    {
-        StorageProvider.Disk => new DiskBlobBackend(options.Disk.Root!),
-        StorageProvider.S3 => new S3BlobBackend(Client(services), options.S3, services.GetRequiredService<TimeProvider>()),
-        StorageProvider.Azure => new AzureBlobBackend(Client(services), AzureAccount.Parse(options.Azure.ConnectionString),
-            options.Azure.Container, services.GetRequiredService<TimeProvider>()),
-        _ => throw new InvalidOperationException($"Storage provider {options.Provider} is not supported."),
-    };
+    private static IBlobBackend CreateBackend<TContext>(IServiceProvider services, StorageOptions options)
+        where TContext : DbContext => options.Provider switch
+        {
+            StorageProvider.Disk => new DiskBlobBackend(options.Disk.Root!),
+            StorageProvider.S3 => new S3BlobBackend(Client(services), options.S3, services.GetRequiredService<TimeProvider>()),
+            StorageProvider.Azure => new AzureBlobBackend(Client(services), AzureAccount.Parse(options.Azure.ConnectionString),
+                options.Azure.Container, services.GetRequiredService<TimeProvider>()),
+            StorageProvider.Database => new DatabaseBlobBackend<TContext>(services.GetRequiredService<IDbContextFactory<TContext>>()),
+            _ => throw new InvalidOperationException($"Storage provider {options.Provider} is not supported."),
+        };
 
     private static HttpClient Client(IServiceProvider services) =>
         services.GetRequiredService<IHttpClientFactory>().CreateClient(HttpClientName);

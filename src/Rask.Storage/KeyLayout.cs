@@ -73,6 +73,23 @@ internal static class KeyLayout
         return hex[..2].SequenceEqual(rest[..2]) && Guid.TryParseExact(hex, "N", out id);
     }
 
+    /// <summary>The id a key was built from, whatever prefix it was built under.</summary>
+    internal static bool TryParseId(string key, out Guid id)
+    {
+        const int Tail = 2 + 1 + IdLength;
+        foreach (var folder in (ReadOnlySpan<string>)[PublicFolder, PrivateFolder])
+        {
+            var start = key.Length - Tail - folder.Length;
+            if (start >= 0 && key.AsSpan(start, folder.Length).SequenceEqual(folder))
+            {
+                return TryParse(key, key[..start], out id);
+            }
+        }
+
+        id = Guid.Empty;
+        return false;
+    }
+
     /// <summary>
     /// Lowercase letters, digits, <c>. _ - /</c>; no empty, <c>.</c> or <c>..</c> segment; no leading slash.
     /// Checked by every backend before a key becomes a path or a URL, because both collapse <c>..</c>.

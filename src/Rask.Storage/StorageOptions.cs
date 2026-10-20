@@ -69,11 +69,15 @@ public sealed class StorageOptions
 
     internal const string MinimumGracePeriodText = "5 minutes";
 
+    /// <summary>The largest value SQLite and PostgreSQL keep in one column (about 1 GB); SQL Server's is 2 GB.</summary>
+    internal const long MaxDatabaseBytes = 1_000_000_000;
+
     /// <summary>The largest object one write to <paramref name="provider"/> can create.</summary>
     internal static long MaxSinglePutBytes(StorageProvider provider) => provider switch
     {
         StorageProvider.S3 => S3StorageOptions.MaxSinglePutBytes,
         StorageProvider.Azure => AzureStorageOptions.MaxSinglePutBytes,
+        StorageProvider.Database => MaxDatabaseBytes,
         _ => long.MaxValue,
     };
 
@@ -119,6 +123,9 @@ public sealed class StorageOptions
             case StorageProvider.Azure:
                 Azure.Validate();
                 break;
+            case StorageProvider.Database:
+                ValidateDatabase();
+                break;
             default:
                 throw new InvalidOperationException(
                     $"StorageOptions.Provider is {Provider}, which is not a storage provider. Use one of: "
@@ -131,6 +138,18 @@ public sealed class StorageOptions
             throw new InvalidOperationException(string.Create(CultureInfo.InvariantCulture,
                 $"StorageOptions.MaxFileSize is {MaxFileSize} bytes, but one upload to {Provider} is limited to {singlePut} "
                 + $"and multipart upload is not supported. Lower it with o.MaxFileSize, or Rask__Storage__MaxFileSize."));
+        }
+    }
+
+    // Nothing to connect to beyond the app's own context; only a public base URL cannot work, since no CDN or bucket
+    // domain can read a row.
+    private void ValidateDatabase()
+    {
+        if (PublicBaseUrl is not null)
+        {
+            throw new InvalidOperationException(
+                "StorageOptions.PublicBaseUrl is set, but files kept in the database are served by the app itself, at "
+                + "/_rask/files/public/{id}. Remove Rask__Storage__PublicBaseUrl, or keep the files in S3 or Azure.");
         }
     }
 

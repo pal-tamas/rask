@@ -1,10 +1,11 @@
-# Rask.Storage — uploaded files on disk, S3 or Azure
+# Rask.Storage — uploaded files on disk, S3, Azure or in the database
 
 > **In practice:** the file picker in [HTTP & files](http-and-files.md#uploading-files) · the
 > [dashboard](dashboard.md#what-it-shows)'s Storage tab · [deployment](deployment.md#uploaded-files).
 
 `Rask.Storage` keeps the files your users upload. A saved file is two things: its bytes in a store — a
-directory, an S3-compatible bucket or an Azure Blob container — and a **`StoredFile`** row on the app's own
+directory, an S3-compatible bucket, an Azure Blob container or a table in the app's own database — and a
+**`StoredFile`** row on the app's own
 database that says what the bytes are. You call **`Files.Save`**, handing it the `IRaskFile` a file picker gives you,
 keep the returned id on your own entity, and later hand the file back as a public URL, a temporary URL, or a
 download behind your own authorization check. No cloud SDK is referenced: S3 requests are signed in-process
@@ -56,7 +57,7 @@ Map the table:
 protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
     modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-    modelBuilder.AddRaskStorage();   // maps the StoredFile table
+    modelBuilder.AddRaskStorage();   // maps StoredFile, and StoredFileBytes for the Database provider
 }
 ```
 
@@ -330,7 +331,7 @@ configure delegate wins over configuration. A top-level `Storage` section is no 
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `Rask__Storage__Provider` | `Disk` | `Disk`, `S3` or `Azure`. |
+| `Rask__Storage__Provider` | `Disk` | `Disk`, `S3`, `Azure` or `Database`. |
 | `Rask__Storage__MaxFileSize` | `52428800` (50 MB) | The largest file accepted, in bytes. |
 | `Rask__Storage__PublicBaseUrl` | — | An absolute `https` URL (a CDN or a public bucket domain) that `Url(id)` joins with the file's key. `http` is accepted only for localhost. Unset, the app serves public files itself. |
 | `Rask__Storage__Prefix` | — | A key prefix, so one bucket can hold several apps (`myapp/`). The sweep never looks outside it. |
@@ -404,6 +405,93 @@ how temporary URLs work:
 
 Requests are signed with Shared Key, or carry the configured SAS.
 
+### Database
+
+`Rask__Storage__Provider=Database` keeps each file's bytes in a **`StoredFileBytes`** table beside `StoredFile`,
+one row per file under the same id. It is for documents and images of a few megabytes — invoices, scans, photos
+— in an app that would rather have one thing to back up: the database backup is the file backup, on every
+host, with nothing node-local. SQL Server, PostgreSQL and SQLite all work.
+
+- **One transaction.** A save writes the bytes and the `StoredFile` row together, so there is never a row without
+  bytes, or bytes a save is still about to claim.
+- **Streamed.** The upload is spooled to a temp file (sniffed, hashed and size-checked as for every store), then
+  streamed into the row on SQL Server and PostgreSQL; SQLite reads the spooled file into memory once to bind it.
+  Reads stream out of the data reader. Listing files, the [dashboard](#the-operator-console) and the sweep only
+  ever touch `StoredFile`, never a byte of the other table.
+- **Served by the app**, through the same `/_rask/files/…` routes as the disk store — `Url(id)`, `Share(id).For(…)`
+  and `Download(id)`, ranges, `ETag` (the SHA-256) and `304`s included. `PublicBaseUrl` cannot apply (no CDN reads
+  a row), so setting it with this provider stops the boot.
+- `MaxFileSize` still applies (50 MB by default), and is capped at 1 GB — the most SQLite and PostgreSQL keep in
+  one value.
+
+`modelBuilder.AddRaskStorage()` maps both tables, so an app on Rask's migrations gets the new table from
+`rask db add AddStoredFileBytes && rask db update` and nothing else. With the provider on and `StoredFileBytes`
+missing from the model, the boot stops and names the line to add.
+
+#### An adopted database: the tables by hand
+
+An app that keeps its own schema and runs no Rask migrations creates the two tables itself. On SQL Server, in
+`dbo` with plain names — for an app whose tenants are numbered (`PerTenant<int>`):
+
+<!-- ddl:sqlserver-int -->
+```sql
+CREATE TABLE dbo.StoredFile (
+    Id uniqueidentifier NOT NULL CONSTRAINT PK_StoredFile PRIMARY KEY,
+    Name nvarchar(255) NOT NULL,
+    ContentType nvarchar(127) NOT NULL,
+    Size bigint NOT NULL,
+    Sha256 nvarchar(64) NOT NULL,
+    Provider nvarchar(16) NOT NULL,
+    [Key] nvarchar(512) NOT NULL,
+    [Public] bit NOT NULL,
+    TenantId int NULL,
+    CreatedAt datetime2 NOT NULL,
+    UpdatedAt datetime2 NOT NULL
+);
+CREATE INDEX IX_StoredFile_CreatedAt ON dbo.StoredFile (CreatedAt);
+
+CREATE TABLE dbo.StoredFileBytes (
+    Id uniqueidentifier NOT NULL CONSTRAINT PK_StoredFileBytes PRIMARY KEY,
+    Bytes varbinary(max) NOT NULL
+);
+```
+
+A foreign key from `StoredFile.TenantId` to your own tenants table is yours to add — Rask does not model it and
+never writes a tenant that is not the one in flight:
+
+```sql
+ALTER TABLE dbo.StoredFile ADD CONSTRAINT FK_StoredFile_Tenants FOREIGN KEY (TenantId) REFERENCES dbo.Tenants (Id);
+```
+
+For an app whose tenants are `Guid`s (or that has none), the same tables with a `uniqueidentifier` tenant —
+exactly the `StoredFile` table Rask has always mapped:
+
+<!-- ddl:sqlserver-guid -->
+```sql
+CREATE TABLE dbo.StoredFile (
+    Id uniqueidentifier NOT NULL CONSTRAINT PK_StoredFile PRIMARY KEY,
+    Name nvarchar(255) NOT NULL,
+    ContentType nvarchar(127) NOT NULL,
+    Size bigint NOT NULL,
+    Sha256 nvarchar(64) NOT NULL,
+    Provider nvarchar(16) NOT NULL,
+    [Key] nvarchar(512) NOT NULL,
+    [Public] bit NOT NULL,
+    TenantId uniqueidentifier NULL,
+    CreatedAt datetime2 NOT NULL,
+    UpdatedAt datetime2 NOT NULL
+);
+CREATE INDEX IX_StoredFile_CreatedAt ON dbo.StoredFile (CreatedAt);
+
+CREATE TABLE dbo.StoredFileBytes (
+    Id uniqueidentifier NOT NULL CONSTRAINT PK_StoredFileBytes PRIMARY KEY,
+    Bytes varbinary(max) NOT NULL
+);
+```
+
+There is deliberately no foreign key between the two tables: deleting a file removes its row, then its bytes, and
+bytes left behind by a failure are what [the sweep](#the-orphan-sweep) removes.
+
 ### Changing provider
 
 Changing `Rask__Storage__Provider` does **not** move existing files. Each row records the provider its bytes were
@@ -434,6 +522,14 @@ The table is deliberately not partitioned with a query filter, the way an app's 
 the orphan sweep has to see every tenant's rows to decide which bytes are unreferenced, and a filter would hide
 them — leaving other tenants' files on disk for ever while the sweep reported nothing to do.
 
+**The tenant column follows your tenants.** `StoredFile.TenantId` is a `Guid?` in C#, like `Current.Tenant`. Its
+column is a `uniqueidentifier` (a `uuid`, SQLite text) — unless every tenant-scoped table in the model numbers its
+tenants (`PerTenant<int>`, or a declared `int? TenantId`): then it is an `int` column holding the number itself,
+`42` for `Tenant.Use(42)` — or a `bigint` for `PerTenant<long>`. A model with no tenant-scoped table, or with tables
+of more than one kind, keeps the `Guid` column. `modelBuilder.AddRaskStorage()` reads this off the model, before or
+after `ApplyRaskConventions`. In a numbered app, a tenant in flight that is not a number is refused rather than
+compared.
+
 ## The orphan sweep
 
 A hosted service runs about a minute after the app starts and then every `SweepInterval` (24 hours by
@@ -450,6 +546,8 @@ be in flight between writing the bytes and the row). It is built to do nothing r
   `Prefix`.
 - **It deletes nothing against an empty table**, whatever the numbers — an app pointed at a fresh database sees
   every object as an orphan.
+- **On the Database provider** it removes `StoredFileBytes` rows whose `StoredFile` row is gone, with no grace
+  period to wait out: a save writes both in one transaction, so there are no bytes in flight.
 - **On S3 or Azure it needs a `Prefix` to delete anything.** Without one it only logs what it found, and the app
   warns at startup: a bucket is easily shared by two environments, and a key's shape alone cannot tell this
   app's orphans from another app's files. Set `Rask__Storage__Prefix` for each environment.
@@ -467,7 +565,7 @@ are orphans the sweep removes.
 
 Litestream and SQLite snapshots copy `app.db` alone. An app that relies on them for disaster recovery, or
 that uploads files it can't afford to lose between backups, should use S3 or Azure, where the bytes' durability
-is the provider's.
+is the provider's — or the Database provider, where the bytes are in `app.db` too.
 
 **A database restored without its files says so.** The storage sweep also looks for disk rows older than the
 grace period whose bytes are gone, and logs a warning with their count and the first few ids; `rask db restore`
@@ -478,7 +576,7 @@ A remote backup archives `/data/files`, where the disk provider writes on a `ras
 
 **The disk store is node-local.** A file saved on one host does not exist on another, and routing a visitor
 back to the same host doesn't help, because a file is read by people other than the one who uploaded it. Run
-more than one instance only with S3 or Azure — and, for app-signed temporary links, a shared Data Protection
+more than one instance only with S3, Azure or the Database provider — and, for app-signed temporary links, a shared Data Protection
 key ring. See [scaling](scaling.md#if-you-run-more-than-one-host-anyway).
 
 ## The operator console
@@ -510,8 +608,8 @@ files are on disk it says so, because that is the one state in which no backup c
 - **Server-only.** `Rask.Storage` runs in the ASP.NET host, not in the browser: a WebAssembly page uploads to
   the server, which saves the file. That host can be the `server` template's or the
   `wasm-hosted` one's.
-- **One object per file, no multipart upload.** A single object is at most 5 GiB on S3 and 5000 MiB on Azure,
-  so a `MaxFileSize` above the chosen provider's ceiling stops the boot.
+- **One object per file, no multipart upload.** A single object is at most 5 GiB on S3, 5000 MiB on Azure and
+  1 GB in the database, so a `MaxFileSize` above the chosen provider's ceiling stops the boot.
 - **No image processing.** No resizing, no thumbnails, no format conversion.
 - **Disk files are not backed up and don't span instances** — see [above](#backups-and-more-than-one-instance).
 - **One store per app,** and changing it doesn't move what is already stored.
