@@ -338,10 +338,23 @@ internal static class GeneratedModelShape
             .ToList();
 
         // Exactly one, or Rask would be guessing which field the property hands out.
-        return fields.Count == 1
-            ? new ModelChild(property, childType, ModelChildAccess.Field, fields[0])
+        if (fields.Count == 1)
+        {
+            return new ModelChild(property, childType, ModelChildAccess.Field, fields[0]);
+        }
+
+        // No field, but a property a list can be written back to: `Lines { get; private set; } = []`.
+        return WriteKindOf(property) is not null && TakesAList(property.Type)
+            ? new ModelChild(property, childType, ModelChildAccess.Replace, null)
             : new ModelChild(property, childType, ModelChildAccess.None, null);
     }
+
+    // IEnumerable<T>, IReadOnlyCollection<T> or IReadOnlyList<T>: a List<T> of the same element can be assigned.
+    private static bool TakesAList(ITypeSymbol type) =>
+        type is INamedTypeSymbol { IsGenericType: true } named &&
+        named.ConstructedFrom.SpecialType is SpecialType.System_Collections_Generic_IEnumerable_T
+            or SpecialType.System_Collections_Generic_IReadOnlyCollection_T
+            or SpecialType.System_Collections_Generic_IReadOnlyList_T;
 
     /// <summary>
     ///     The collection of values <paramref name="property" /> is, or null when it is not one.

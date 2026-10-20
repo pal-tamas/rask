@@ -9,6 +9,12 @@ internal enum ModelChildAccess
     /// <summary>The property hands out a read-only view, so its backing field is written instead.</summary>
     Field,
 
-    /// <summary>Neither — Rask cannot sync this collection, and says so with RASK088.</summary>
+    /// <summary>
+    ///     The property hands out a read-only collection it can be given anew — <c>Lines { get; private set; } = []</c> —
+    ///     so a copy is synced and written back.
+    /// </summary>
+    Replace,
+
+    /// <summary>None of these — Rask cannot sync this collection, and says so with RASK088.</summary>
     None,
 }
