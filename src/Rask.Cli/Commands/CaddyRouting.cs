@@ -47,27 +47,78 @@ internal static class CaddyRouting
     }
 
     /// <summary>
-    /// The <c>domain → container</c> routing for the shared proxy: every other app keeps its live
-    /// container; the app being deployed is forced to its new container. Sorted for a deterministic file.
+    /// The <c>domain → container</c> routing for the shared proxy: every other app keeps the container that serves
+    /// it (see <see cref="ChooseServing"/>); the app being deployed is forced to its new container. Sorted for a
+    /// deterministic file.
     /// </summary>
     internal static IReadOnlyDictionary<string, RouteTarget> BuildRoutingMap(
-        IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingDomain, RouteTarget newTarget)
+        IReadOnlyList<DeployedApp> apps, string deployingApp, string deployingDomain, RouteTarget newTarget, IReadOnlySet<string>? routed = null)
     {
         var map = new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal);
-        foreach (var app in apps)
+        foreach (var containers in ProxiedApps(apps, deployingApp))
         {
-            if (app.Domain.Length == 0 || string.Equals(app.App, deployingApp, StringComparison.Ordinal))
-            {
-                continue; // port-mode apps aren't proxied; the deploying app is set explicitly below
-            }
-
             // Each app keeps ITS OWN container port: one box can host apps that don't agree on one. And its redirects.
-            map[app.Domain] = new RouteTarget(app.Container, app.Port, app.Redirects);
+            var serving = ChooseServing(containers, routed ?? new HashSet<string>(StringComparer.Ordinal)).Container;
+            map[serving.Domain] = new RouteTarget(serving.Container, serving.Port, serving.Redirects);
         }
 
         map[deployingDomain] = newTarget;
         return map;
     }
+
+    /// <summary>
+    /// Every app on the box the proxy fronts, apart from <paramref name="exceptApp"/>, each as its live containers in
+    /// listing order (<c>docker ps</c> lists the newest first). Port-mode apps aren't proxied.
+    /// </summary>
+    internal static IEnumerable<IReadOnlyList<DeployedApp>> ProxiedApps(IReadOnlyList<DeployedApp> apps, string exceptApp) =>
+        apps.Where(app => app.Domain.Length > 0 && !string.Equals(app.App, exceptApp, StringComparison.Ordinal))
+            .GroupBy(app => app.App, StringComparer.Ordinal)
+            .Select(group => (IReadOnlyList<DeployedApp>)[.. group]);
+
+    /// <summary>
+    /// Which of one app's live containers serves it. One is the answer. Two (a deploy in flight, or a colour a
+    /// failed deploy left behind) are decided by what the proxy routes already, asked in the order the
+    /// <paramref name="preferences"/> are given; with no evidence it is the newest, and the choice says it guessed —
+    /// never whichever row came last, which is the older colour.
+    /// </summary>
+    internal static ServingChoice ChooseServing(IReadOnlyList<DeployedApp> containers, params IReadOnlySet<string>[] preferences)
+    {
+        if (containers.Count == 1)
+        {
+            return new ServingChoice(containers[0], Guessed: false);
+        }
+
+        var named = preferences
+            .SelectMany(routed => containers.Where(container => routed.Contains(container.Container)))
+            .Take(1)
+            .ToArray();
+        return named.Length > 0 ? new ServingChoice(named[0], Guessed: false) : new ServingChoice(containers[0], Guessed: true);
+    }
+
+    /// <summary>The containers a Caddyfile's <c>reverse_proxy</c> lines send traffic to.</summary>
+    internal static IReadOnlySet<string> RoutedContainers(string caddyfile)
+    {
+        const string directive = "reverse_proxy ";
+        var routed = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in caddyfile.Split('\n'))
+        {
+            var line = raw.Trim();
+            if (!line.StartsWith(directive, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var upstream = line[directive.Length..].Trim();
+            var colon = upstream.LastIndexOf(':');
+            routed.Add(colon > 0 ? upstream[..colon] : upstream);
+        }
+
+        return routed;
+    }
+
+    /// <summary>One app's own file for the proxy: its site block, then its redirects.</summary>
+    internal static string BuildFragment(string domain, RouteTarget target, DnsProvider? dns) =>
+        BuildCaddyfile(new SortedDictionary<string, RouteTarget>(StringComparer.Ordinal) { [domain] = target }, dns);
 
     /// <summary>
     /// A host of <paramref name="deployingSite"/> that another app on the box already serves, with that app —

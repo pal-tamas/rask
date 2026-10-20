@@ -2,6 +2,7 @@ using System.Globalization;
 using Rask.Cli.Scaffolding;
 using static Rask.Cli.Commands.DeployEnvironment;
 using static Rask.Cli.Commands.DockerCommands;
+using static Rask.Cli.Commands.ProxyCommands;
 
 namespace Rask.Cli.Commands;
 
@@ -19,11 +20,12 @@ namespace Rask.Cli.Commands;
 /// ever opening an SSH session themselves.</para>
 ///
 /// <para>Multiple apps coexist on one box: each app container carries <c>rask.*</c> labels, so the box is
-/// self-describing and the shared proxy's Caddyfile is regenerated from the live containers on every
-/// deploy. The domain path is blue-green: the new container starts alongside the old and is waited on until
-/// its container is <c>Running</c> and answers an HTTP health check, Caddy is reloaded to point at it, then
-/// the old container is removed — so a container that fails to start, or that starts but fails its probe,
-/// never takes traffic (the previous version keeps serving). The swap gates on <c>--health-path</c>
+/// self-describing, and the shared proxy keeps one config file per app, so a deploy writes only its own. The
+/// domain path is blue-green: the new container starts alongside the old and is waited on until its container
+/// is <c>Running</c> and answers an HTTP health check; then, under the box's deploy lock, Caddy is reloaded to
+/// point at it, the route is checked through the proxy, and only then is the old container removed — so a
+/// container that fails to start, fails its probe, or isn't reached through the proxy never keeps traffic
+/// (the previous version keeps serving). The swap gates on <c>--health-path</c>
 /// (default <c>/health</c>, the endpoint <c>rask new</c> scaffolds); <c>--no-health-check</c> falls back to
 /// the container-running gate only.</para>
 /// </summary>
@@ -42,6 +44,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     /// <summary>The shared reverse-proxy container name (one per host, routes every app's domain).</summary>
     internal const string CaddyContainer = "rask-caddy";
+
+    /// <summary>The stock proxy image (a box with a DNS provider runs one built from it).</summary>
+    internal const string CaddyImage = "caddy:2";
 
     /// <summary>A tiny, pinned curl image run as an ephemeral readiness probe joined to the target's netns.</summary>
     internal const string CurlImage = "curlimages/curl:8.23.0";
@@ -345,6 +350,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             const string color = "blue"; // representative: the first color on a fresh host
             var container = $"{slug}-{color}";
             Line(BuildListArguments(host));
+            writer.WriteLine("  # when the box has no network yet, under the deploy lock:");
             Line(BuildNetworkCreateArguments(host, Network));
             Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects));
             Line(BuildInspectRunningArguments(host, container));
@@ -353,8 +359,11 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
                 Line(BuildHealthCheckArguments(host, container, healthPath, containerPort));
             }
 
+            writer.WriteLine("  # take the box's deploy lock (released at the end, and by itself after its lease):");
+            Line(BuildLockArguments(host, slug));
             if (dns is null)
             {
+                writer.WriteLine("  # when the box has no proxy yet:");
                 Line(BuildCaddyRunArguments(host, Network));
             }
             else
@@ -364,10 +373,17 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
                 Line(BuildCaddyRunArguments(host, Network, dns, "<dns-env-file>"));
             }
 
-            writer.WriteLine($"  # write a Caddyfile (regenerated from the host's live rask.* labels) and:");
-            Line(BuildCaddyCopyArguments(host, $"<tmp>/rask-{slug}.Caddyfile"));
+            var fragment = CaddySites.FragmentPath(slug);
+            writer.WriteLine("  # read the live containers again, then write only this app's routes (copied beside, moved over):");
+            Line(BuildListArguments(host));
+            Line(BuildProxyCopyArguments(host, $"<tmp>/rask-{slug}.caddy", $"{fragment}.tmp-<id>"));
+            Line(BuildProxyMoveArguments(host, $"{fragment}.tmp-<id>", fragment));
+            writer.WriteLine($"  # (a box still on one shared Caddyfile moves to {CaddySites.ImportLine} first)");
             Line(BuildCaddyReloadArguments(host));
-            writer.WriteLine($"  # then remove the previous color's container");
+            writer.WriteLine($"  # check through the proxy that {SiteDomains.Primary(domain)} reaches {container}, else put the routes back:");
+            Line(BuildAdminConfigArguments(host));
+            Line(BuildThroughProxyArguments(host, CaddyRouteCheck.ProbeHost(SiteDomains.Primary(domain)), healthEnabled ? healthPath : "/"));
+            writer.WriteLine("  # then retire the previous color's container, and release the lock");
         }
     }
 
