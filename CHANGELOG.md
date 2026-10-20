@@ -917,6 +917,19 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Rask.Data: children declared `{ get; private set; } = []` load, refill and save.** Before: an aggregate whose
+  child collection was a read-only auto-property set to `[]`, `Array.Empty<T>()` or an array threw
+  `NotSupportedException: Collection was of a fixed size` from `Find`, `Update` or a query with `Include` as soon as
+  one child row existed, because EF Core adds each loaded row into the collection the entity already holds; a refill
+  written `Lines = [.. rows]` threw the same on save. Now Rask swaps such a collection for one EF Core can write to
+  when a row is materialized and before a save, so the declaration works as written, composite-key children and
+  grandchildren included. Such a property is no longer RASK088 either: the form model's sync works on a copy and
+  writes it back through the setter, and a collection of values with a setter (`IReadOnlyList<string> Tags
+  { get; private set; } = []`) is written back whole instead of cleared in place, which threw on `[]` too.
+- **Rask.Data: `Find` then `Save` keeps the tenant and foreign keys the aggregate does not declare.** Before: saving
+  a `PerTenant<int>` root found with `Find` (its `TenantId` a shadow column) refused any changed child with "belongs
+  to tenant , in tenant 7", and dropping a child whose parent key is a shadow column was refused as a parent "the
+  tenant in flight cannot read". Now the values read are remembered with the shadow columns and put back on save.
 - **`rask deploy`: two apps deploying to one box at once can no longer leave one routed to a removed colour while
   both report success.** On 2026-10-20 one app's deploy rewrote the shared Caddyfile from a container listing taken
   before the other app swapped colours, so the other's domain pointed at a container that no longer existed — a 502

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Rask.Data;
 
@@ -94,6 +95,13 @@ public class RaskDbContext : DbContext, ITenantScoped
         base.OnConfiguring(optionsBuilder);
         optionsBuilder.ConfigureWarnings(warnings =>
             warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
+
+        // A child collection declared `= []` is filled through it, so a context configured without it gets it here.
+        if (optionsBuilder.Options.FindExtension<CoreOptionsExtension>()?.Interceptors?
+                .Contains(WritableChildrenInterceptor.Instance) != true)
+        {
+            optionsBuilder.AddInterceptors(WritableChildrenInterceptor.Instance);
+        }
     }
 
     /// <inheritdoc />
