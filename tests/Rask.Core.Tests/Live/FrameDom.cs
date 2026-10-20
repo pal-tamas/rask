@@ -64,9 +64,23 @@ internal sealed class FrameDom
                 case EditOpKind.MorphSubtree:
                     Morph(At(op.Path), Children(op.Path, newFrames));
                     break;
+                case EditOpKind.PermutationBatch:
+                    Permute(At(op.Path), op.Moves!);
+                    break;
                 default:
                     throw new NotSupportedException(op.Kind + " is not an op this document replays.");
             }
+        }
+    }
+
+    // What applyDiff's PermutationBatch does: each (dst, src) pair in order, dst counted with the moving node taken out.
+    private static void Permute(Node parent, int[] moves)
+    {
+        for (var m = 0; m + 1 < moves.Length; m += 2)
+        {
+            var node = parent.Children[moves[m + 1]];
+            parent.Children.RemoveAt(moves[m + 1]);
+            parent.Children.Insert(moves[m], node);
         }
     }
 

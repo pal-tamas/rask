@@ -57,6 +57,9 @@
 
   <ItemGroup>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <!-- The page a browser holds, patched by the ops a live render diffs to: the kit's rows are held to it too. -->
+    <Compile Include="..\Rask.Core.Tests\Live\FrameDom.cs" Link="Live\FrameDom.cs"/>
+    <Compile Include="..\Rask.Core.Tests\Live\LiveBrowser.cs" Link="Live\LiveBrowser.cs"/>
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 

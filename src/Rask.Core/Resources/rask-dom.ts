@@ -23,6 +23,7 @@ import {
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
 import {drive, keepsOpen, stands, unasked} from "./rask-owned.js";
 import {noteAttributeSet} from "./rask-submitting.js";
+import {beginPatch, endPatch, serverWrote} from "./rask-written.js";
 
 export {resolvePath};
 
@@ -80,11 +81,12 @@ const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 // HTML, so a <circle> or <path> inserted on its own under an <svg> came out an HTMLUnknownElement that
 // never drew (#1242). Under an SVG or MathML parent the markup is parsed in a shallow clone of that
 // parent instead — the same context-correct parse MorphSubtree does — and a <foreignObject> parent,
-// being an HTML integration point, still yields HTML children. An HTML parent keeps the <template>,
-// whose parser takes any child as written (a <tr> straight under a <table>, with no implied <tbody>).
+// being an HTML integration point, still yields HTML children. A <table> parent is parsed in a clone too:
+// a <tr> written straight under it gets the <tbody> the page's own parser gave its siblings, which the
+// server's frames count as well (FrameWriter.ImplyTableBodies). Any other HTML parent keeps the <template>.
 function parseInsert(parent: Node, html: string): ParentNode {
     const ns = isElement(parent) ? parent.namespaceURI : null;
-    if (ns === SVG_NS || ns === MATHML_NS) {
+    if (ns === SVG_NS || ns === MATHML_NS || parent.nodeName === "TABLE") {
         const model = (parent as Element).cloneNode(false) as Element;
         model.innerHTML = html;
         return model;
@@ -184,6 +186,16 @@ export type DiffOp = [kind: number, path: number[], ...rest: any[]];
 type NameRef = string | number;
 
 export function applyDiff(ops: DiffOp[], names?: string[]): void {
+    // What the ops write is the server's; what the page wrote before them stays the page's (rask-written.ts).
+    beginPatch();
+    try {
+        applyOps(ops, names);
+    } finally {
+        endPatch();
+    }
+}
+
+function applyOps(ops: DiffOp[], names?: string[]): void {
     function resolveName(raw: NameRef): string {
         // Server interns names that repeat 2+ times in the same payload — those
         // arrive as integer indices into the "names" array. Strings pass through.
@@ -208,6 +220,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     const newVal = rawVal == null ? "" : rawVal;
                     if (keepsOpen(el, name1, true)) break;
                     el.setAttribute(name1, newVal);
+                    serverWrote(el, name1);
                     // A field a submit holds is handed back when the render asks for its correction (rask-submitting.ts).
                     noteAttributeSet(el, name1);
                     // After a form-control has been interacted with, the value

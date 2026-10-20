@@ -455,7 +455,7 @@ internal static class HtmlSerializer
         }
 
         html.Append("</").Append(tagName).Append('>');
-        frames?.CloseElement(elementFrameIdx, html.Length);
+        CloseElementFrame(frames, elementFrameIdx, tagName, opaque, html.Length);
 
         // A component that renders as an element of its own (an External island) is still a component: the
         // devtools' tree lists it like one. The type test comes first, so every HTML element — all of them
@@ -465,6 +465,22 @@ internal static class HtmlSerializer
             elementDevTools.ComponentWalked(
                 el, live?.WalkParent, 0, elementFrameIdx, frames?.Count ?? -1);
         }
+    }
+
+    // A table's rows written straight under it sit in the body the browser's parser adds, so its frames say so too.
+    private static void CloseElementFrame(FrameWriter? frames, int frameIdx, string tagName, bool opaque, int htmlEnd)
+    {
+        if (frames is null)
+        {
+            return;
+        }
+
+        if (!opaque && string.Equals(tagName, "table", StringComparison.Ordinal))
+        {
+            frames.ImplyTableBodies(frameIdx);
+        }
+
+        frames.CloseElement(frameIdx, htmlEnd);
     }
 
     // Framework-emitted, so it sits with data-{scopeId} after the component's own
