@@ -914,18 +914,19 @@ login works — with a rollback timer on the box as the backstop. See
 fetches an automatic Let's Encrypt certificate, so you get a live HTTPS site with nothing else to
 configure. Deploys are **zero-downtime**: the new container starts alongside the old one (blue-green),
 is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
-default — the endpoint `rask new` scaffolds), then Caddy is reloaded to point at it before the old one
-is removed. If the new container fails to start, or fails its health probe, the previous version keeps
-serving. Probe a different path with `--health-path`, or skip the probe with `--no-health-check`.
+default — the endpoint `rask new` scaffolds), then Caddy is reloaded to point at it and the route is
+checked through the proxy before the old one is removed. If the new container fails to start, fails its
+health probe, or isn't what the proxy serves after the reload, the previous version keeps serving. Probe a different path with `--health-path`, or skip the probe with `--no-health-check`.
 HTTP requests are zero-downtime; **live sessions re-establish**, because a session lives in the container
 being replaced and cannot hand over. The retiring container announces its shutdown first, so open pages
 show "Updating…" and reload onto the new one at their previous scroll position, with whatever the user
 had typed put back — see
 [the shutdown ladder](deployment.md#the-shutdown-ladder).
 
-**Multiple apps share one box.** Each app container is labelled, so the proxy's routing is regenerated
-from the host's live containers on every deploy — deploying a second app (a different `--domain`)
-leaves the first untouched. **One app can answer on several domains**: repeat `--domain` (or give
+**Multiple apps share one box.** Each app has its own file in the proxy (`/data/rask/sites/<app>.caddy`),
+and a deploy writes only its own, under a box-wide deploy lock — deploying a second app (a different
+`--domain`), even in the same minute, leaves the first untouched. See
+[the shared proxy](deployment.md#the-shared-proxy-one-file-per-app). **One app can answer on several domains**: repeat `--domain` (or give
 `--domain example.com,www.example.com`) and each gets its own certificate, all routed to the same
 container. The first is the primary — the address emailed links use — and every one of them is
 remembered (as `"domains": [...]` in `.rask/deploy.json`; a single one stays `"domain"`). A domain another
@@ -981,7 +982,7 @@ colour, and how long it has been up — and tells you whether a rollback is curr
 that *fails* — one that won't start, or won't answer its health check. It can do nothing about a release
 that starts, answers, and is simply **wrong**. Each deploy therefore moves the image it replaces to
 `<app>:previous` before building, and `rask deploy rollback` starts that image back up through the same
-gates a deploy uses (running → healthy → reload the proxy → retire the old container). It then swaps the
+gates a deploy uses (running → healthy → under the deploy lock: reload the proxy → check through it → retire the old container). It then swaps the
 two tags, so running it again undoes the rollback rather than repeating it.
 
 | Option | Applies to | Purpose |

@@ -182,12 +182,14 @@ public sealed partial class DeployCommandTests
     private static DeployCommand Create(FakeFileSystem fs, FakeProcessRunner runner, StringConsole console)
     {
         fs.Seed("/proj/Dockerfile", "FROM scratch");
+        FakeProxy.Wire(runner, fs);
         return new DeployCommand(console, fs, runner, WorkingDir)
         {
             ReadinessDelay = TimeSpan.Zero,
             ReadinessAttempts = 1,
             // Zeroed so the suite doesn't actually sleep; the real default is asserted separately.
             PreStopDrainDelay = TimeSpan.Zero,
+            LockPollDelay = TimeSpan.Zero,
         };
     }
 
@@ -504,26 +506,36 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public async Task Domain_deploy_writes_a_caddyfile_covering_every_live_app()
+    public async Task Domain_deploy_writes_only_its_own_proxy_file_and_moves_it_into_place()
     {
         var fs = new FakeFileSystem();
-        var runner = new FakeProcessRunner { CaptureHandler = Captures("shop-blue\tshop\tshop.example.com\tblue\n") };
+        var runner = new FakeProcessRunner { CaptureHandler = OnFragmentLayout(Captures("shop-blue\tshop\tshop.example.com\tblue\n")) };
         var command = Create(fs, runner, new StringConsole());
 
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var caddyfile = TheCaddyfile(fs);
-        Assert.Contains("demo.example.com {", caddyfile);       // the new app
-        Assert.Contains("reverse_proxy demo-blue:8080", caddyfile);
-        Assert.Contains("shop.example.com {", caddyfile);       // the existing app is preserved
-        Assert.Contains("reverse_proxy shop-blue:8080", caddyfile);
+        Assert.Equal("demo.example.com {\n\tencode zstd gzip\n\treverse_proxy demo-blue:8080\n}\n", caddyfile);
+        var runs = runner.Invocations.Where(i => !i.Captured).Select(i => i.Arguments).ToList();
+        Assert.DoesNotContain(runs, args => args.Any(arg => arg.Contains("shop.caddy", StringComparison.Ordinal)));
+
+        // Copied in beside the live file, then moved over it — Caddy never reads half of one.
+        var copy = runs.Single(args => args.Contains("cp"));
+        Assert.StartsWith("rask-caddy:/data/rask/sites/demo.caddy.tmp-", copy[^1], StringComparison.Ordinal);
+        Assert.Contains(runs, args => args.SequenceEqual(ProxyCommands.BuildProxyMoveArguments("deploy@box", copy[^1]["rask-caddy:".Length..], "/data/rask/sites/demo.caddy")));
 
         // Unguessable and owner-only, so no other user of the machine can plant one first.
-        var path = fs.Written.Keys.Single(k => k.EndsWith(".Caddyfile", StringComparison.Ordinal));
-        Assert.DoesNotContain("rask-demo.Caddyfile", path, StringComparison.Ordinal);
+        var path = fs.Written.Keys.Single(k => k.EndsWith(".caddy", StringComparison.Ordinal));
+        Assert.DoesNotContain("rask-demo.caddy", path, StringComparison.Ordinal);
         Assert.Contains(path, fs.SecretFiles);
     }
+
+    /// <summary>A box already on one proxy file per app: its base Caddyfile imports them.</summary>
+    internal static Func<IReadOnlyList<string>, ProcessResult> OnFragmentLayout(Func<IReadOnlyList<string>, ProcessResult> captures) => args =>
+        args.SequenceEqual(ProxyCommands.BuildProxyReadArguments("deploy@box", CaddySites.BasePath))
+            ? new ProcessResult(0, CaddySites.BaseCaddyfile, string.Empty)
+            : captures(args);
 
     [Fact]
     public async Task Blue_green_starts_new_reloads_then_removes_old_in_order()
@@ -677,7 +689,7 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo", "--no-health-check"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("curlimages/curl:8.23.0"));
+        Assert.DoesNotContain(runner.Invocations, i => !i.Captured && i.Arguments.Contains("curlimages/curl:8.23.0"));
         Assert.True(DeployConfig.Load(fs, WorkingDir).HealthCheckDisabled);
     }
 
@@ -715,14 +727,14 @@ public sealed partial class DeployCommandTests
 
         await command.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--dry-run"], CancellationToken.None);
 
-        Assert.Contains("curlimages/curl:8.23.0", console.OutText);
+        Assert.Contains("container:shop-blue curlimages/curl:8.23.0", console.OutText);
 
         var offConsole = new StringConsole();
         var offCommand = Create(new FakeFileSystem(), new FakeProcessRunner(), offConsole);
 
         await offCommand.ExecuteAsync(["--host", "deploy@box", "--domain", "shop.example.com", "--app", "shop", "--no-health-check", "--dry-run"], CancellationToken.None);
 
-        Assert.DoesNotContain("curlimages/curl", offConsole.OutText);
+        Assert.DoesNotContain("container:shop-blue curlimages/curl", offConsole.OutText);
     }
 
     [Fact]
@@ -896,7 +908,7 @@ public sealed partial class DeployCommandTests
         var run = runner.Invocations.Single(i => i.Arguments.Contains("rask.app=shop"));
         Assert.Contains("rask.port=3000", run.Arguments);
 
-        var probe = runner.Invocations.Single(i => i.Arguments.Contains(DeployCommand.CurlImage));
+        var probe = runner.Invocations.Single(i => !i.Captured && i.Arguments.Contains(DeployCommand.CurlImage));
         Assert.Contains("http://localhost:3000/health", probe.Arguments);
 
         // ...and the proxy is pointed at the same port, not the default.
@@ -1124,10 +1136,9 @@ public sealed partial class DeployCommandTests
     public void Env_keys_are_extracted_as_stable_sorted_names(string[] env, string[] expected) =>
         Assert.Equal(expected, DeployEnvironment.EnvKeysOf(env));
 
-    /// <summary>The Caddyfile the deploy generated — read from the write history, since it is deleted
+    /// <summary>Every proxy file the deploy wrote, run together — read from the write history, since each is deleted
     /// once it has been copied to the host.</summary>
-    private static string TheCaddyfile(FakeFileSystem fs) =>
-        fs.Written.First(f => f.Key.EndsWith(".Caddyfile", StringComparison.Ordinal)).Value;
+    private static string TheCaddyfile(FakeFileSystem fs) => string.Join("\n", FakeProxy.WrittenFiles(fs));
 
     [Fact]
     public async Task The_live_url_names_the_machine_not_the_ssh_port()

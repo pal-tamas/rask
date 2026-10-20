@@ -143,7 +143,7 @@ internal static class DockerCommands
 
         if (dns is null)
         {
-            args.Add("caddy:2");
+            args.Add(CaddyImage);
             return args;
         }
 
@@ -200,11 +200,8 @@ internal static class DockerCommands
     internal static IReadOnlyList<string> BuildRemoveArguments(string host, string container) =>
         [.. Prefix(host), "rm", "-f", container];
 
-    internal static IReadOnlyList<string> BuildCaddyCopyArguments(string host, string localCaddyfile) =>
-        [.. Prefix(host), "cp", localCaddyfile, $"{CaddyContainer}:/etc/caddy/Caddyfile"];
-
     internal static IReadOnlyList<string> BuildCaddyReloadArguments(string host) =>
-        [.. Prefix(host), "exec", CaddyContainer, "caddy", "reload", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"];
+        [.. Prefix(host), "exec", CaddyContainer, "caddy", "reload", "--config", CaddySites.BasePath, "--adapter", "caddyfile"];
 
     internal static string[] Prefix(string host) => ["-H", $"ssh://{host}"];
 }

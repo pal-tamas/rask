@@ -175,7 +175,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(1, exit);
         Assert.Contains("www.ppta.hu is already served by the app 'shop'", console.ErrorText, StringComparison.Ordinal);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("rask.app=ta"));
-        Assert.DoesNotContain(fs.Written.Keys, path => path.EndsWith(".Caddyfile", StringComparison.Ordinal));
+        Assert.DoesNotContain(fs.Written.Keys, path => path.EndsWith(".caddy", StringComparison.Ordinal));
     }
 
     [Fact]

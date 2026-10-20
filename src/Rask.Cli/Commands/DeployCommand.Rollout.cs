@@ -36,10 +36,15 @@ internal sealed partial class DeployCommand
 
         return plan.Action switch
         {
-            null => await BuildAndDeployAsync(plan, cancellationToken).ConfigureAwait(false),
+            // A deploy and a rollback hold the app's lock throughout: two at once of one app would pick the same colour.
+            null => await WithAppLockAsync(plan.Host, plan.Slug, () => BuildAndDeployAsync(plan, cancellationToken), cancellationToken).ConfigureAwait(false),
             "status" => await StatusAsync(plan.Host, plan.Slug, plan.Parsed.HasFlag("json"), cancellationToken).ConfigureAwait(false),
             "logs" => await LogsAsync(plan.Host, plan.Slug, plan.Parsed, cancellationToken).ConfigureAwait(false),
-            _ => await RollbackAsync(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Env, plan.HealthEnabled, plan.HealthPath, cancellationToken, plan.Redirects).ConfigureAwait(false),
+            _ => await WithAppLockAsync(
+                plan.Host,
+                plan.Slug,
+                () => RollbackAsync(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Env, plan.HealthEnabled, plan.HealthPath, cancellationToken, plan.Redirects),
+                cancellationToken).ConfigureAwait(false),
         };
     }
 
@@ -248,16 +253,15 @@ internal sealed partial class DeployCommand
         string host, string slug, string domain, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true,
         string redirects = "", DnsProvider? dns = null, string? dnsEnvFile = null)
     {
-        // The live containers are the source of truth. Read them once: the current color of this app (to
-        // pick the next), plus every other app's route (to regenerate the full Caddyfile).
-        var apps = ParseDeployedApps((await Capture(BuildListArguments(host), cancellationToken).ConfigureAwait(false)).StandardOutput);
-
-        // A name another app already answers on would make the proxy's config ambiguous, and Caddy would only
-        // refuse it at the reload — after the new container had started. Stop before anything moves.
-        if (FindTakenHost(apps, slug, domain, redirects) is { } taken)
+        // The live containers are the source of truth. Read here for the current color of this app (to pick the
+        // next) and the pre-checks; the switch reads them again under the lock, since this listing is stale by then.
+        if (await ListAppsAsync(host, cancellationToken).ConfigureAwait(false) is not { } apps)
         {
-            Console.WriteErrorLine($"{taken.Host} is already {(taken.Redirected ? "redirected" : "served")} by the app '{taken.App}' on this box — one name can belong to only one app.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync($"Deploy '{taken.App}' without it first, or leave it out of this app's --domain/--redirect.").ConfigureAwait(false);
+            return 1;
+        }
+
+        if (await NameIsTakenAsync(host, slug, domain, redirects, apps, cancellationToken).ConfigureAwait(false))
+        {
             return 1;
         }
 
@@ -273,14 +277,18 @@ internal sealed partial class DeployCommand
         var newColor = NextColor(string.IsNullOrEmpty(current) ? null : current);
         var newContainer = $"{slug}-{newColor}";
 
-        if (!await StartColorAsync(host, slug, domain, newColor, containerPort, env, tag, cancellationToken, redirects).ConfigureAwait(false)
-            || !await GateColorAsync(host, newContainer, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false)
-            || !await RouteToColorAsync(host, slug, domain, apps, new RouteTarget(newContainer, containerPort, redirects), proxy.Value, cancellationToken).ConfigureAwait(false))
+        if (!await EnsureNetworkAsync(host, slug, cancellationToken).ConfigureAwait(false)
+            || !await StartColorAsync(host, slug, domain, newColor, containerPort, env, tag, cancellationToken, redirects).ConfigureAwait(false)
+            || !await GateColorAsync(host, newContainer, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false))
         {
             return 1;
         }
 
-        await RetireOldColorsAsync(host, slug, apps, newContainer, cancellationToken).ConfigureAwait(false);
+        var change = new ProxySwitch(host, slug, domain, new RouteTarget(newContainer, containerPort, redirects), proxy.Value, healthEnabled, healthPath);
+        if (!await RouteNewColorAsync(change, cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
 
         if (persist)
         {
@@ -299,6 +307,33 @@ internal sealed partial class DeployCommand
     }
 
     /// <summary>
+    /// Whether a name this app asks for belongs to another app (said which, and what to do). A name another app's
+    /// container answers on, or one another app's file in the proxy still names — a stopped app's file stays, so its
+    /// names stay taken until it is removed. Caddy refuses one host in two site blocks, and would only say so at the
+    /// reload, after the new container had started; asked first, the deploy stops before anything moves.
+    /// </summary>
+    private async Task<bool> NameIsTakenAsync(
+        string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, CancellationToken cancellationToken)
+    {
+        if (FindTakenHost(apps, slug, domain, redirects) is { } taken)
+        {
+            Console.WriteErrorLine($"{taken.Host} is already {(taken.Redirected ? "redirected" : "served")} by the app '{taken.App}' on this box — one name can belong to only one app.", ConsoleStyle.Error);
+            await Console.Error.WriteLineAsync($"Deploy '{taken.App}' without it first, or leave it out of this app's --domain/--redirect.").ConfigureAwait(false);
+            return true;
+        }
+
+        if (CaddySites.FindHostInFiles(await ReadAppFilesAsync(host, cancellationToken).ConfigureAwait(false), slug, domain, redirects) is not { } named)
+        {
+            return false;
+        }
+
+        var file = CaddySites.FragmentPath(named.App);
+        Console.WriteErrorLine($"{named.Host} is named by the proxy's file for the app '{named.App}' ({file}) — one name can belong to only one app.", ConsoleStyle.Error);
+        await Console.Error.WriteLineAsync($"If '{named.App}' is gone for good, remove its file: docker -H ssh://{host} exec {CaddyContainer} rm {file}").ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>
     /// The shared proxy a deploy needs: whether it must be (re)created with a DNS provider's image, and which provider
     /// proves the wildcard certificates — or <c>null</c> when the deploy can't go ahead (said why).
     ///
@@ -310,8 +345,7 @@ internal sealed partial class DeployCommand
         string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, DnsProvider? requested, string? dnsEnvFile, CancellationToken cancellationToken)
     {
         var inspected = await Capture(BuildCaddyDnsLabelArguments(host), cancellationToken).ConfigureAwait(false);
-        var exists = inspected.ExitCode == 0;
-        var running = exists ? DnsProvider.Named(inspected.StandardOutput.Trim()) : null;
+        var running = inspected.ExitCode == 0 ? DnsProvider.Named(inspected.StandardOutput.Trim()) : null;
 
         if (running is not null && requested is not null && !ReferenceEquals(running, requested))
         {
@@ -335,22 +369,21 @@ internal sealed partial class DeployCommand
             return null;
         }
 
-        return new ProxyPlan(provider, recreate ? dnsEnvFile : null, exists);
+        return new ProxyPlan(provider, recreate ? dnsEnvFile : null);
     }
 
     /// <summary>
     /// What a deploy does to the shared proxy: <see cref="Provider"/> proves the wildcard certificates (or none does);
     /// <see cref="CreateWithCredentials"/> set means the proxy is (re)created with that provider's image and these
-    /// credentials; <see cref="Exists"/> whether there was a proxy before (and so whether recreating interrupts anything).
+    /// credentials.
     /// </summary>
-    private readonly record struct ProxyPlan(DnsProvider? Provider, string? CreateWithCredentials, bool Exists);
+    private readonly record struct ProxyPlan(DnsProvider? Provider, string? CreateWithCredentials);
 
     /// <summary>Starts the next color's container beside the live one.</summary>
     private async Task<bool> StartColorAsync(
         string host, string slug, string domain, string newColor, int containerPort, IReadOnlyList<string> env, string tag, CancellationToken cancellationToken, string redirects = "")
     {
         var newContainer = $"{slug}-{newColor}";
-        await Run(BuildNetworkCreateArguments(host, Network), cancellationToken).ConfigureAwait(false); // ignore-exists
 
         // Free the target-color name first: a prior deploy that failed after starting the new color (e.g. a
         // failed reload) can leave it behind, and `docker run --name` would otherwise collide.
@@ -407,99 +440,6 @@ internal sealed partial class DeployCommand
         }
 
         return true;
-    }
-
-    /// <summary>Points the shared proxy at the new color.</summary>
-    private async Task<bool> RouteToColorAsync(
-        string host, string slug, string domain, IReadOnlyList<DeployedApp> apps, RouteTarget target, ProxyPlan proxy, CancellationToken cancellationToken)
-    {
-        if (proxy.CreateWithCredentials is not null)
-        {
-            if (!await PutDnsProviderOnProxyAsync(host, proxy, cancellationToken).ConfigureAwait(false))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            // Ensure the shared proxy is up (idempotent — an "already in use" name error is fine; we never
-            // recreate it here, so the rask-caddy-data volume keeps every app's ACME cert across deploys).
-            await Run(BuildCaddyRunArguments(host, Network), cancellationToken).ConfigureAwait(false);
-        }
-
-        // Regenerate the whole Caddyfile from the live routes, forcing this app to its NEW container, then
-        // hot-reload — Caddy drains in-flight requests to the old color.
-        var routes = BuildRoutingMap(apps, slug, domain, target);
-        // Unguessable and owner-only: on a shared machine a predictable name in the temp dir is one another user can
-        // create first, and whatever it held would be copied into the proxy that fronts every app on the box.
-        var caddyfilePath = Path.Combine(Path.GetTempPath(), $"rask-{slug}-{Guid.NewGuid():N}.Caddyfile");
-        _fileSystem.WriteSecretText(caddyfilePath, BuildCaddyfile(routes, proxy.Provider));
-        await Console.Out.WriteLineAsync($"Routing {SiteDomains.CaddyAddress(domain)} → {target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
-        await Run(BuildCaddyCopyArguments(host, caddyfilePath), cancellationToken).ConfigureAwait(false);
-
-        // The file has been copied to the box; leaving a predictably-named copy in the shared temp dir
-        // serves no purpose and is a symlink-clobber target on a multi-user machine.
-        _fileSystem.TryDelete(caddyfilePath);
-
-        // Retry the reload: on a fresh host the proxy was just started detached, so its admin endpoint may
-        // need a moment before `caddy reload` succeeds.
-        if (await RunWithRetryAsync(BuildCaddyReloadArguments(host), cancellationToken).ConfigureAwait(false) != 0)
-        {
-            Console.WriteErrorLine("Caddy reload failed — the new container is running but not yet routed. Check `docker -H ssh://" + host + " logs rask-caddy`.", ConsoleStyle.Error);
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// (Re)create the shared proxy with <paramref name="proxy"/>'s DNS provider: the image with the provider's module is
-    /// built on the box if it isn't there yet (the live proxy keeps serving meanwhile), then the proxy is replaced — same
-    /// name, network, ports and data volume, so every certificate already issued carries over — and given the
-    /// credentials. Replacing it interrupts every site on the box for the seconds Caddy takes to start, so it is said
-    /// out loud first, and it happens once: the label it carries afterwards is what every later deploy keeps.
-    /// </summary>
-    private async Task<bool> PutDnsProviderOnProxyAsync(string host, ProxyPlan proxy, CancellationToken cancellationToken)
-    {
-        var dns = proxy.Provider!;
-        var colon = dns.Image.IndexOf(':', StringComparison.Ordinal);
-        var built = await Capture(BuildImageExistsArguments(host, dns.Image[..colon], dns.Image[(colon + 1)..]), cancellationToken).ConfigureAwait(false);
-        if (built.ExitCode != 0)
-        {
-            WriteHeading($"Building {dns.Image} on {host} (Caddy with {dns.Module})…");
-            var context = Path.Combine(Path.GetTempPath(), $"rask-caddy-{Guid.NewGuid():N}");
-            _fileSystem.CreateDirectory(context);
-            try
-            {
-                _fileSystem.WriteAllText(Path.Combine(context, "Dockerfile"), dns.Dockerfile);
-                if (await Run(BuildCaddyImageArguments(host, dns, context), cancellationToken).ConfigureAwait(false) != 0)
-                {
-                    Console.WriteErrorLine($"Building {dns.Image} failed — its output is above. The proxy was left as it is.", ConsoleStyle.Error);
-                    return false;
-                }
-            }
-            finally
-            {
-                _fileSystem.TryDeleteDirectory(context);
-            }
-        }
-
-        if (proxy.Exists)
-        {
-            Console.WriteLine($"Replacing the shared proxy with one that proves certificates over {dns.Name} DNS — every site on this box is down for the few seconds it takes to start…", ConsoleStyle.Warning);
-            await Run(BuildRemoveArguments(host, CaddyContainer), cancellationToken).ConfigureAwait(false);
-        }
-
-        if (await Run(BuildCaddyRunArguments(host, Network, dns, proxy.CreateWithCredentials), cancellationToken).ConfigureAwait(false) == 0)
-        {
-            return true;
-        }
-
-        // Never leave the box without a proxy: put the stock one back, which the Caddyfile written next then routes.
-        Console.WriteErrorLine($"Starting the proxy with {dns.Image} failed — putting the stock caddy:2 proxy back.", ConsoleStyle.Error);
-        await Run(BuildRemoveArguments(host, CaddyContainer), cancellationToken).ConfigureAwait(false);
-        await Run(BuildCaddyRunArguments(host, Network), cancellationToken).ConfigureAwait(false);
-        return false;
     }
 
     /// <summary>Stops and removes this app's other colors once traffic is on the new one.</summary>

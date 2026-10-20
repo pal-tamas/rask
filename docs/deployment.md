@@ -30,9 +30,10 @@ Dockerfile below (override with `--dockerfile`).
   compressed, and a response the app already encoded passes through as it is.
 - **Zero-downtime, health-gated.** Deploys are blue-green: the new container starts alongside the old,
   is waited on until its container is running **and answers an HTTP health check** (`GET /health` by
-  default), then Caddy is reloaded to point at it before the old one is removed. A container that fails
-  to start — or that starts but fails its probe (bad config, a failed migration) — is removed and the
-  previous version keeps serving.
+  default), then Caddy is reloaded to point at it and the route is **checked through the proxy** before
+  the old one is removed. A container that fails to start — or that starts but fails its probe (bad
+  config, a failed migration), or that the proxy does not actually reach — is removed and the previous
+  version keeps serving. See [The shared proxy](#the-shared-proxy-one-file-per-app).
 - **Migrations apply themselves.** The new container applies the app's pending migrations as it starts,
   before it listens — so the health check cannot pass over an un-migrated database, and there is no
   separate migrate step to run. One that fails stops the container, and the old one keeps serving. When a
@@ -75,8 +76,9 @@ Dockerfile below (override with `--dockerfile`).
   them as `{env.…}` placeholders — never into `.rask/deploy.json`, a label or the output. The proxy is
   labelled `rask.dns=azure`, so every later deploy (CI's, with no credentials) keeps it as it is; a wildcard
   on a box with no provider fails before anything starts.
-- **Many apps, one box.** Each app is a separate `--domain`; the proxy's routing is regenerated from the
-  host's live containers on every deploy, so a second app never disturbs the first.
+- **Many apps, one box.** Each app is a separate `--domain` with its own file in the proxy, and a deploy
+  writes only its own, under a box-wide lock — so a second app never disturbs the first, even when both
+  deploy in the same minute.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
   reverse proxy / TLS in front — see the container sections below.
 - **One box, and how far it goes.** [Scaling](scaling.md) has the measured numbers — sessions held and
@@ -156,6 +158,76 @@ read, the firewall is not enabled, because a firewall Rask can't prove is safe i
 >
 > Only what's forwarded into a Docker bridge is denied, so a box that also routes for something else (a
 > VPN, say) is unaffected — and containers can still reach out and reach each other.
+
+### The shared proxy: one file per app
+
+Every `--domain` app on a box sits behind one Caddy container, `rask-caddy`. Its config is split so that
+no deploy can rewrite another app's routes:
+
+```
+/etc/caddy/Caddyfile            # global options (yours, if you add any), then: import /data/rask/sites/*.caddy
+/data/rask/sites/eszaf.caddy    # eszaf's site block and redirects — written only by eszaf's deploys
+/data/rask/sites/ta.caddy       # ta's — written only by ta's deploys
+```
+
+`/data` is the `rask-caddy-data` volume, which also holds the certificates, so the app files survive the
+proxy being replaced. A deploy copies its file in beside the live one and moves it over it, so Caddy never
+reads half a file; a copy or move that fails fails the deploy, and the old file stays.
+
+**The deploy lock.** Everything apps share — creating the `rask` network, creating or replacing the proxy,
+writing a file, reloading Caddy, checking the route and retiring the old colour — happens while the deploy
+holds the box's lock: a container named `rask-deploy-lock` (docker refuses a second container of one name,
+so taking it is atomic; its label names who holds it). The build, the start and the health gate run outside
+it, so two apps deploying at once build in parallel and only take turns for the switch, which takes seconds.
+A deploy that finds the lock held says who holds it and waits. The lock removes itself after ten minutes, so
+a deploy killed while holding it (a cancelled CI job, a dropped connection) cannot wedge the box; to free it
+sooner, `docker -H ssh://<host> rm -f rask-deploy-lock`. The container listing used to route and to retire
+is read again under the lock — never the one taken before the build.
+
+**One app, one deploy at a time.** Two deploys of the *same* app (two CI runs, say) would pick the same new
+colour, so each deploy and each `rask deploy rollback` also holds that app's own lock,
+`rask-deploy-lock-<app>`, from before it moves the image tags until the old colour is retired. A second deploy
+of the app says who holds it and waits — up to 45 minutes, then it stops and prints the `rm -f` that frees it.
+Deploys of different apps never wait on each other's app lock. A build has no upper bound, so this lock has no
+fixed lifetime: the deploy holding it renews it every minute, and it removes itself five minutes after the
+last renewal — a deploy that was killed frees it within five minutes.
+
+**The check through the proxy.** `caddy reload` only proves the config parses. After it, the deploy asks
+Caddy's admin API (`GET /config/`, from inside the proxy's network namespace) which upstream it runs for the
+primary domain, and requires exactly the new colour (`<app>-<colour>:<port>`); then it fetches
+`https://<domain><health path>` through the proxy by name, as a visitor's request arrives, and requires the
+app to answer. Before the certificate is issued (DNS not pointed yet, or the ACME order still pending) the
+TLS handshake cannot succeed, so the request goes one step in instead — the upstream, asked from the proxy's
+network, must answer. Both are retried for the readiness window. Only then is the old colour retired and
+`Deployed.` printed.
+
+**What you see when it fails.** The deploy puts this app's file back as it was, reloads, removes the new
+colour, and exits non-zero:
+
+```
+The proxy is not serving eszaf.hu from eszaf-blue: its running config sends eszaf.hu to eszaf-green:8080.
+Put eszaf's routes back as they were — the previous version is still serving.
+Removed eszaf-blue. The deploy failed; nothing that served before was changed.
+```
+
+If even putting the routes back fails, the new colour is **left running** (the proxy may still send
+traffic to it) and the message names the file to check — deploy again once the cause is fixed.
+
+**Moving an older box.** A box an older Rask deployed has one Caddyfile naming every app. The first deploy
+of any app with this version moves it — under the lock, once: every other app gets its own file, routed
+to the container that serves it *now* (the one the old Caddyfile names; with two colours of one app running
+and neither named, the newest, with a warning), then the base Caddyfile is swapped for the import and
+Caddy reloads. Nothing restarts and no app changes colour. If the reload or the check fails, the old
+Caddyfile is put back. Global options you add above the `import` line are kept by later deploys. Every
+machine that deploys to one box must use this version: an older `rask deploy` still rewrites the whole
+Caddyfile, and the next new deploy moves the box again. The move writes a file only for an app that has none
+yet; it never edits one that exists.
+
+**Another app's file is never touched.** A deploy writes its own app's file and nothing else's — not even
+when an app has no running container left (stopped by hand, or moved to a bare `--port`): its file stays,
+and so do its names. A deploy that asks for a name another app's file still holds is refused before anything
+starts, naming the file; if that app is gone for good, remove it:
+`docker -H ssh://<host> exec rask-caddy rm /data/rask/sites/<app>.caddy`.
 
 ### Deploying from GitHub Actions
 
