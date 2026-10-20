@@ -48,6 +48,32 @@ public class EntityCreationAnalyzerTests
     }
 
     [Fact]
+    public async Task A_child_keyed_by_several_columns_made_by_its_own_factory_is_fine()
+    {
+        var diagnostics = await ModelStateAnalyzerHarness.RunAsync(new EntityCreationAnalyzer(), """
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Fuel;
+            public sealed class DeliveryNote : Aggregate<int>
+            {
+                private readonly List<DeliveryNoteTransaction> _fuellings = [];
+                public IReadOnlyList<DeliveryNoteTransaction> Fuellings => _fuellings;
+                public void Fill(int transactionId) => _fuellings.Add(DeliveryNoteTransaction.For(transactionId, 1m));
+            }
+            public sealed class Transaction : Aggregate<int> { }
+            public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Transaction)>
+            {
+                public int TransactionId { get; private set; }
+                public decimal Quantity { get; private set; }
+                internal static DeliveryNoteTransaction For(int transactionId, decimal quantity) =>
+                    new() { TransactionId = transactionId, Quantity = quantity };
+            }
+            """);
+
+        Assert.Empty(diagnostics);
+    }
+
+    [Fact]
     public async Task A_factory_the_holder_and_the_types_own_members_are_fine()
     {
         var diagnostics = await Run("public static Order Make() => Order.Place();");

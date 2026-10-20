@@ -43,7 +43,7 @@ public sealed partial class ModelInputGenerator
             return Entity.Refused(name, symbol.Name, location, Refusal.Clash, existing.ToDisplayString());
         }
 
-        // Read-only for now: no model, and its aggregate's form may not carry it (RASK106).
+        // No model: its aggregate writes it through its own methods, and a form does not carry it yet (RASK106).
         if (CompositeKeyShape.HasCompositeKey(symbol))
         {
             return Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
