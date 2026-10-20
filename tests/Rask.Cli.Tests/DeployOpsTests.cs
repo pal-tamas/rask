@@ -226,7 +226,7 @@ public sealed class DeployOpsTests
 
         Assert.Equal(1, exit);
         Assert.Contains("nothing to roll back to", console.ErrorText, StringComparison.Ordinal);
-        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("run"));
+        Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("run") && !i.Arguments.Contains(ProxyCommands.AppLockContainer("shop"))); // only its lock
     }
 
     // ── argument discipline ─────────────────────────────────────────────────────────────────────────

@@ -283,20 +283,6 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public async Task The_routes_of_an_app_with_no_container_left_are_dropped()
-    {
-        var box = new FakeDockerHost().WithProxy(CaddySites.BaseCaddyfile)
-            .WithProxyFile("/data/rask/sites/gone.caddy", "gone.example.com {\n\tencode zstd gzip\n\treverse_proxy gone-blue:8080\n}\n");
-        var (demo, _) = CommandOn(box, "demo", "demo.example.com");
-
-        var exit = await demo.ExecuteAsync([], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Null(box.ProxyFile("/data/rask/sites/gone.caddy"));
-        Assert.False(box.Routes.ContainsKey("gone.example.com"));
-    }
-
-    [Fact]
     public void Two_containers_of_one_app_route_to_the_one_the_proxy_already_serves()
     {
         // docker ps lists the newest first: green is newer, but blue is what the proxy routes.

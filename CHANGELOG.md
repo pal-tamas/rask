@@ -172,9 +172,16 @@ them until tagged releases begin.
   the `rask-caddy-data` volume, so they survive the proxy being replaced. The first deploy of any app with this
   version moves a box over by itself, under the deploy lock: every other app gets its own file, routed to the
   container that serves it now, then the base is swapped and Caddy reloads — nothing restarts and no app changes
-  colour. Every machine deploying to one box should use this version: an older `rask deploy` still rewrites the
-  whole Caddyfile (the next new deploy moves the box again). The lock is a `rask-deploy-lock` container that frees
-  itself after ten minutes.
+  colour; the move only creates files apps don't have yet, and no deploy ever edits or deletes another app's file — a
+  stopped app's file stays, and a deploy asking for a name it holds is refused, naming the file to remove. Every
+  machine deploying to one box should use this version: an older `rask deploy` still rewrites the whole Caddyfile
+  (the next new deploy moves the box again). The box lock is a `rask-deploy-lock` container that frees itself after
+  ten minutes.
+- **`rask deploy`: two deploys of one app take turns.** Each deploy and each `rask deploy rollback` holds the app's
+  own lock (`rask-deploy-lock-<app>`) from before it moves the image tags until the old colour is retired, so two CI
+  runs of one app can no longer pick the same colour and remove each other's container. A second one says who holds
+  it and waits (up to 45 minutes, then prints the `rm -f` that frees it); other apps never wait on it. The holder
+  renews the lock every minute, and it removes itself five minutes after the last renewal.
 
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

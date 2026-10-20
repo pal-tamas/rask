@@ -254,7 +254,7 @@ internal sealed class FakeDockerHost
         {
             case "cat":
                 return _proxyFiles.TryGetValue(command[1], out var content) ? Ok(content) : Fail($"cat: can't open '{command[1]}': No such file or directory");
-            case "mkdir":
+            case "mkdir" or "touch":
                 return Ok();
             case "ls":
                 var directory = command[^1] + "/";
@@ -310,7 +310,7 @@ internal sealed class FakeDockerHost
         return true;
     }
 
-    private bool IsRunning(string name) => _containers.Any(c => c.Name == name);
+    private bool IsRunning(string name) => _containers.Any(c => c.Name == name || c.Id == name);
 
     private string NextId() => $"id{++_ids:D4}";
 

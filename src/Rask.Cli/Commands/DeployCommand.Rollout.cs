@@ -36,10 +36,15 @@ internal sealed partial class DeployCommand
 
         return plan.Action switch
         {
-            null => await BuildAndDeployAsync(plan, cancellationToken).ConfigureAwait(false),
+            // A deploy and a rollback hold the app's lock throughout: two at once of one app would pick the same colour.
+            null => await WithAppLockAsync(plan.Host, plan.Slug, () => BuildAndDeployAsync(plan, cancellationToken), cancellationToken).ConfigureAwait(false),
             "status" => await StatusAsync(plan.Host, plan.Slug, plan.Parsed.HasFlag("json"), cancellationToken).ConfigureAwait(false),
             "logs" => await LogsAsync(plan.Host, plan.Slug, plan.Parsed, cancellationToken).ConfigureAwait(false),
-            _ => await RollbackAsync(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Env, plan.HealthEnabled, plan.HealthPath, cancellationToken, plan.Redirects).ConfigureAwait(false),
+            _ => await WithAppLockAsync(
+                plan.Host,
+                plan.Slug,
+                () => RollbackAsync(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Env, plan.HealthEnabled, plan.HealthPath, cancellationToken, plan.Redirects),
+                cancellationToken).ConfigureAwait(false),
         };
     }
 
@@ -255,12 +260,8 @@ internal sealed partial class DeployCommand
             return 1;
         }
 
-        // A name another app already answers on would make the proxy's config ambiguous, and Caddy would only
-        // refuse it at the reload — after the new container had started. Stop before anything moves.
-        if (FindTakenHost(apps, slug, domain, redirects) is { } taken)
+        if (await NameIsTakenAsync(host, slug, domain, redirects, apps, cancellationToken).ConfigureAwait(false))
         {
-            Console.WriteErrorLine($"{taken.Host} is already {(taken.Redirected ? "redirected" : "served")} by the app '{taken.App}' on this box — one name can belong to only one app.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync($"Deploy '{taken.App}' without it first, or leave it out of this app's --domain/--redirect.").ConfigureAwait(false);
             return 1;
         }
 
@@ -303,6 +304,33 @@ internal sealed partial class DeployCommand
         var named = hosts.Concat(SiteDomains.Hosts(redirects)).ToList();
         Console.WriteLine($"  (make sure the DNS A/AAAA record{(named.Count > 1 ? "s" : "")} of {string.Join(", ", named)} point{(named.Count > 1 ? "" : "s")} at {HostName(host)})", ConsoleStyle.Dim);
         return 0;
+    }
+
+    /// <summary>
+    /// Whether a name this app asks for belongs to another app (said which, and what to do). A name another app's
+    /// container answers on, or one another app's file in the proxy still names — a stopped app's file stays, so its
+    /// names stay taken until it is removed. Caddy refuses one host in two site blocks, and would only say so at the
+    /// reload, after the new container had started; asked first, the deploy stops before anything moves.
+    /// </summary>
+    private async Task<bool> NameIsTakenAsync(
+        string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, CancellationToken cancellationToken)
+    {
+        if (FindTakenHost(apps, slug, domain, redirects) is { } taken)
+        {
+            Console.WriteErrorLine($"{taken.Host} is already {(taken.Redirected ? "redirected" : "served")} by the app '{taken.App}' on this box — one name can belong to only one app.", ConsoleStyle.Error);
+            await Console.Error.WriteLineAsync($"Deploy '{taken.App}' without it first, or leave it out of this app's --domain/--redirect.").ConfigureAwait(false);
+            return true;
+        }
+
+        if (CaddySites.FindHostInFiles(await ReadAppFilesAsync(host, cancellationToken).ConfigureAwait(false), slug, domain, redirects) is not { } named)
+        {
+            return false;
+        }
+
+        var file = CaddySites.FragmentPath(named.App);
+        Console.WriteErrorLine($"{named.Host} is named by the proxy's file for the app '{named.App}' ({file}) — one name can belong to only one app.", ConsoleStyle.Error);
+        await Console.Error.WriteLineAsync($"If '{named.App}' is gone for good, remove its file: docker -H ssh://{host} exec {CaddyContainer} rm {file}").ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>

@@ -143,7 +143,10 @@ internal sealed partial class DeployCommand
             await ReadProxyFileAsync(host, CaddySites.FragmentPath(slug), cancellationToken).ConfigureAwait(false),
             writeBase ? evidence : null);
 
+        // Only an old single Caddyfile that routes apps is carried over; a stock one (a proxy recreated by hand) is not,
+        // and the app files already on the volume serve as they are.
         if (!CaddySites.IsFragmentLayout(evidence)
+            && RoutedContainers(evidence ?? string.Empty).Count > 0
             && !await CarryOverOtherAppsAsync(host, slug, apps, evidence ?? string.Empty, change.Proxy.Provider, cancellationToken).ConfigureAwait(false))
         {
             return SwitchOutcome.NotRouted;
@@ -159,8 +162,6 @@ internal sealed partial class DeployCommand
         {
             return await UndoAsync(change, undo, cancellationToken).ConfigureAwait(false);
         }
-
-        await DropDeadAppsAsync(host, slug, apps, cancellationToken).ConfigureAwait(false);
 
         // Retry the reload: on a fresh host the proxy was just started detached, so its admin endpoint may
         // need a moment before `caddy reload` succeeds.
@@ -283,22 +284,21 @@ internal sealed partial class DeployCommand
     }
 
     /// <summary>
-    /// Give every other app with a domain its own file, routed to the container that serves it now: the one the old
-    /// config names, else the one its own file names, else its only one — and the newest, said out loud, when nothing
-    /// tells two apart.
+    /// Move a box off the one Caddyfile an older Rask wrote: every other app with a domain and no file of its own yet
+    /// gets one, routed to the container the old Caddyfile sends it to — and, with two colours running and neither
+    /// named, to the newest, said out loud. An app that already has a file keeps it untouched: a deploy never edits
+    /// another app's file, and this runs only while the old Caddyfile is still the live one.
     /// </summary>
     private async Task<bool> CarryOverOtherAppsAsync(
         string host, string slug, IReadOnlyList<DeployedApp> apps, string oldBase, DnsProvider? dns, CancellationToken cancellationToken)
     {
         var routed = RoutedContainers(oldBase);
+        var existing = await ReadAppFilesAsync(host, cancellationToken).ConfigureAwait(false);
         var carried = 0;
-        foreach (var containers in ProxiedApps(apps, slug))
+        foreach (var containers in ProxiedApps(apps, slug).Where(containers => !existing.ContainsKey(containers[0].App)))
         {
             var app = containers[0].App;
-            var ownFile = containers.Count > 1
-                ? await ReadProxyFileAsync(host, CaddySites.FragmentPath(app), cancellationToken).ConfigureAwait(false)
-                : null;
-            var choice = ChooseServing(containers, routed, RoutedContainers(ownFile ?? string.Empty));
+            var choice = ChooseServing(containers, routed);
             var serving = choice.Container;
             if (choice.Guessed)
             {
@@ -324,31 +324,25 @@ internal sealed partial class DeployCommand
         return true;
     }
 
-    /// <summary>
-    /// Drop the file of an app none of whose containers is running any more (removed by hand, or moved to a bare port):
-    /// its routes could only fail, and a name it held would block the app that takes it next.
-    /// </summary>
-    private async Task DropDeadAppsAsync(string host, string slug, IReadOnlyList<DeployedApp> apps, CancellationToken cancellationToken)
+    /// <summary>Every app's file in the proxy, by app — empty on a box that has none yet (or no proxy).</summary>
+    private async Task<IReadOnlyDictionary<string, string>> ReadAppFilesAsync(string host, CancellationToken cancellationToken)
     {
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
         var listing = await Capture(BuildSitesListArguments(host), cancellationToken).ConfigureAwait(false);
         if (listing.ExitCode != 0)
         {
-            return;
+            return files;
         }
 
         foreach (var app in CaddySites.AppsWithFragments(listing.StandardOutput))
         {
-            if (string.Equals(app, slug, StringComparison.Ordinal)
-                || apps.Any(a => a.Domain.Length > 0 && string.Equals(a.App, app, StringComparison.Ordinal)))
+            if (await ReadProxyFileAsync(host, CaddySites.FragmentPath(app), cancellationToken).ConfigureAwait(false) is { } content)
             {
-                continue;
-            }
-
-            if (await Run(BuildProxyRemoveFileArguments(host, CaddySites.FragmentPath(app)), cancellationToken).ConfigureAwait(false) == 0)
-            {
-                Console.WriteLine($"  Dropped the proxy's routes for '{app}' — none of its containers is running.", ConsoleStyle.Dim);
+                files[app] = content;
             }
         }
+
+        return files;
     }
 
     /// <summary>Put this app's routes back as they were and reload. <see cref="SwitchOutcome.Stuck"/> when even that failed.</summary>
@@ -433,5 +427,5 @@ internal sealed partial class DeployCommand
         (await Capture(BuildNetworkExistsArguments(host, Network), cancellationToken).ConfigureAwait(false)).ExitCode == 0;
 
     private DeployLock CreateLock() =>
-        new(Console, _process, _workingDirectory) { PollDelay = LockPollDelay, Attempts = LockAttempts };
+        DeployLock.ForBox(Console, _process, _workingDirectory, new LockTiming(LockPollDelay, LockAttempts, TimeSpan.Zero));
 }

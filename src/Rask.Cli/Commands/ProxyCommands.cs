@@ -39,8 +39,39 @@ internal static class ProxyCommands
         LockLeaseSeconds.ToString(CultureInfo.InvariantCulture),
     ];
 
-    internal static IReadOnlyList<string> BuildLockOwnerArguments(string host) =>
-        [.. Prefix(host), "inspect", "--format", $"{{{{index .Config.Labels \"{LockOwnerLabel}\"}}}}", LockContainer];
+    internal static IReadOnlyList<string> BuildLockOwnerArguments(string host, string lockContainer = LockContainer) =>
+        [.. Prefix(host), "inspect", "--format", $"{{{{index .Config.Labels \"{LockOwnerLabel}\"}}}}", lockContainer];
+
+    /// <summary>
+    /// How long an app lock outlives its last heartbeat. The holder touches it every
+    /// <see cref="AppLockHeartbeatSeconds"/> for as long as the deploy runs, however long the build takes; a deploy
+    /// that died stops touching it, and the lock exits by itself this long after.
+    /// </summary>
+    internal const int AppLockLeaseSeconds = 300;
+
+    internal const int AppLockHeartbeatSeconds = 60;
+
+    /// <summary>The lock one app's deploys take turns on, held for the whole deploy. Other apps never wait on it.</summary>
+    internal static string AppLockContainer(string slug) => $"{LockContainer}-{slug}";
+
+    /// <summary>
+    /// Take an app's lock: a self-removing container that lives while its heartbeat file is fresher than
+    /// <paramref name="leaseSeconds"/>, so it frees itself once the deploy holding it stops renewing it.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildAppLockArguments(string host, string slug, string owner, int leaseSeconds = AppLockLeaseSeconds)
+    {
+        var lease = leaseSeconds.ToString(CultureInfo.InvariantCulture);
+        return
+        [
+            .. Prefix(host), "run", "-d", "--rm", "--name", AppLockContainer(slug), "--network", "none",
+            "--label", $"{LockOwnerLabel}={owner}", "--entrypoint", "sh", CaddyImage, "-c",
+            $"touch /rask-lock-beat; while [ $(( $(date +%s) - $(stat -c %Y /rask-lock-beat) )) -lt {lease} ]; do sleep 2; done",
+        ];
+    }
+
+    /// <summary>Renew an app lock's lease.</summary>
+    internal static IReadOnlyList<string> BuildLockHeartbeatArguments(string host, string lockId) =>
+        [.. Prefix(host), "exec", lockId, "touch", "/rask-lock-beat"];
 
     /// <summary>Release the lock by the id it was taken with, so a lease that ran out and was taken by another deploy is never removed from under it.</summary>
     internal static IReadOnlyList<string> BuildUnlockArguments(string host, string lockId) =>

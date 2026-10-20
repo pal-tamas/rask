@@ -334,6 +334,8 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         // Never echo secret values (e.g. from --env-file) to stdout — show the keys, hide the values.
         var redacted = RedactEnv(env);
 
+        writer.WriteLine($"  # take {slug}'s own deploy lock for the whole deploy (renewed while held, so another deploy of {slug} waits):");
+        Line(BuildAppLockArguments(host, slug, slug));
         Line(BuildBuildArguments(host, slug, dockerfile, contextDir));
         if (domain is null)
         {
@@ -359,32 +361,40 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
                 Line(BuildHealthCheckArguments(host, container, healthPath, containerPort));
             }
 
-            writer.WriteLine("  # take the box's deploy lock (released at the end, and by itself after its lease):");
-            Line(BuildLockArguments(host, slug));
-            if (dns is null)
-            {
-                writer.WriteLine("  # when the box has no proxy yet:");
-                Line(BuildCaddyRunArguments(host, Network));
-            }
-            else
-            {
-                // Only when the proxy hasn't got the provider yet; the credentials stay in their file, named by placeholder.
-                writer.WriteLine($"  # when the proxy has no {dns.Name} DNS provider yet: build {dns.Image} if absent, replace rask-caddy with:");
-                Line(BuildCaddyRunArguments(host, Network, dns, "<dns-env-file>"));
-            }
-
-            var fragment = CaddySites.FragmentPath(slug);
-            writer.WriteLine("  # read the live containers again, then write only this app's routes (copied beside, moved over):");
-            Line(BuildListArguments(host));
-            Line(BuildProxyCopyArguments(host, $"<tmp>/rask-{slug}.caddy", $"{fragment}.tmp-<id>"));
-            Line(BuildProxyMoveArguments(host, $"{fragment}.tmp-<id>", fragment));
-            writer.WriteLine($"  # (a box still on one shared Caddyfile moves to {CaddySites.ImportLine} first)");
-            Line(BuildCaddyReloadArguments(host));
-            writer.WriteLine($"  # check through the proxy that {SiteDomains.Primary(domain)} reaches {container}, else put the routes back:");
-            Line(BuildAdminConfigArguments(host));
-            Line(BuildThroughProxyArguments(host, CaddyRouteCheck.ProbeHost(SiteDomains.Primary(domain)), healthEnabled ? healthPath : "/"));
-            writer.WriteLine("  # then retire the previous color's container, and release the lock");
+            PrintSwitchPlan(writer, host, slug, domain, container, healthEnabled ? healthPath : "/", dns);
         }
+    }
+
+    /// <summary>The dry run's part under the box's deploy lock: the proxy, this app's file, the reload and the check.</summary>
+    private static void PrintSwitchPlan(TextWriter writer, string host, string slug, string domain, string container, string checkPath, DnsProvider? dns)
+    {
+        void Line(IReadOnlyList<string> args) => writer.WriteLine($"  docker {string.Join(' ', args)}");
+
+        writer.WriteLine("  # take the box's deploy lock (released at the end, and by itself after its lease):");
+        Line(BuildLockArguments(host, slug));
+        if (dns is null)
+        {
+            writer.WriteLine("  # when the box has no proxy yet:");
+            Line(BuildCaddyRunArguments(host, Network));
+        }
+        else
+        {
+            // Only when the proxy hasn't got the provider yet; the credentials stay in their file, named by placeholder.
+            writer.WriteLine($"  # when the proxy has no {dns.Name} DNS provider yet: build {dns.Image} if absent, replace rask-caddy with:");
+            Line(BuildCaddyRunArguments(host, Network, dns, "<dns-env-file>"));
+        }
+
+        var fragment = CaddySites.FragmentPath(slug);
+        writer.WriteLine("  # read the live containers again, then write only this app's routes (copied beside, moved over):");
+        Line(BuildListArguments(host));
+        Line(BuildProxyCopyArguments(host, $"<tmp>/rask-{slug}.caddy", $"{fragment}.tmp-<id>"));
+        Line(BuildProxyMoveArguments(host, $"{fragment}.tmp-<id>", fragment));
+        writer.WriteLine($"  # (a box still on one shared Caddyfile moves to {CaddySites.ImportLine} first)");
+        Line(BuildCaddyReloadArguments(host));
+        writer.WriteLine($"  # check through the proxy that {SiteDomains.Primary(domain)} reaches {container}, else put the routes back:");
+        Line(BuildAdminConfigArguments(host));
+        Line(BuildThroughProxyArguments(host, CaddyRouteCheck.ProbeHost(SiteDomains.Primary(domain)), checkPath));
+        writer.WriteLine("  # then retire the previous color's container, and release both locks");
     }
 
     /// <summary>

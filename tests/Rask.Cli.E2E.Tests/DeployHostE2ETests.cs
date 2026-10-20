@@ -195,6 +195,32 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Equal(["concurrent-two-green:8080"], CaddyRouteCheck.Upstreams(config, "two.rask-e2e.localhost"));
     }
 
+    /// <summary>
+    /// An app's deploy lock lives while its holder renews it and frees itself once the holder stops — the lease script
+    /// runs in the proxy image's own busybox, which only a real container can prove.
+    /// </summary>
+    [Fact]
+    public async Task An_app_lock_lives_while_renewed_and_frees_itself_once_it_is_not()
+    {
+        Start(out _, out _);
+        var take = ProxyCommands.BuildAppLockArguments(host.Host, "leasecheck", "e2e", leaseSeconds: 4);
+
+        var (taken, id) = await host.DockerAsync([.. take.Skip(2)]);
+        Assert.True(taken == 0, $"the lock was not taken: {id}");
+        for (var beat = 0; beat < 4; beat++)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
+            await host.DockerAsync([.. ProxyCommands.BuildLockHeartbeatArguments(host.Host, id.Trim()).Skip(2)]);
+        }
+
+        var (_, renewed) = await host.DockerAsync("ps", "--format", "{{.Names}}");
+        await Task.Delay(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        var (_, lapsed) = await host.DockerAsync("ps", "-a", "--format", "{{.Names}}");
+
+        Assert.Contains("rask-deploy-lock-leasecheck", renewed, StringComparison.Ordinal); // 8 s on a 4 s lease
+        Assert.DoesNotContain("rask-deploy-lock-leasecheck", lapsed, StringComparison.Ordinal);
+    }
+
     /// <summary>A request to <paramref name="site"/> through the proxy, by its name over TLS, as a visitor's arrives.</summary>
     private async Task<string> ThroughProxyAsync(string site)
     {

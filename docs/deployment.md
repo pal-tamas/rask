@@ -184,6 +184,14 @@ a deploy killed while holding it (a cancelled CI job, a dropped connection) cann
 sooner, `docker -H ssh://<host> rm -f rask-deploy-lock`. The container listing used to route and to retire
 is read again under the lock — never the one taken before the build.
 
+**One app, one deploy at a time.** Two deploys of the *same* app (two CI runs, say) would pick the same new
+colour, so each deploy and each `rask deploy rollback` also holds that app's own lock,
+`rask-deploy-lock-<app>`, from before it moves the image tags until the old colour is retired. A second deploy
+of the app says who holds it and waits — up to 45 minutes, then it stops and prints the `rm -f` that frees it.
+Deploys of different apps never wait on each other's app lock. A build has no upper bound, so this lock has no
+fixed lifetime: the deploy holding it renews it every minute, and it removes itself five minutes after the
+last renewal — a deploy that was killed frees it within five minutes.
+
 **The check through the proxy.** `caddy reload` only proves the config parses. After it, the deploy asks
 Caddy's admin API (`GET /config/`, from inside the proxy's network namespace) which upstream it runs for the
 primary domain, and requires exactly the new colour (`<app>-<colour>:<port>`); then it fetches
@@ -212,8 +220,14 @@ and neither named, the newest, with a warning), then the base Caddyfile is swapp
 Caddy reloads. Nothing restarts and no app changes colour. If the reload or the check fails, the old
 Caddyfile is put back. Global options you add above the `import` line are kept by later deploys. Every
 machine that deploys to one box must use this version: an older `rask deploy` still rewrites the whole
-Caddyfile, and the next new deploy moves the box again. The file of an app with no running container left
-(removed by hand, or moved to a bare `--port`) is dropped at the next deploy, so its names are free again.
+Caddyfile, and the next new deploy moves the box again. The move writes a file only for an app that has none
+yet; it never edits one that exists.
+
+**Another app's file is never touched.** A deploy writes its own app's file and nothing else's — not even
+when an app has no running container left (stopped by hand, or moved to a bare `--port`): its file stays,
+and so do its names. A deploy that asks for a name another app's file still holds is refused before anything
+starts, naming the file; if that app is gone for good, remove it:
+`docker -H ssh://<host> exec rask-caddy rm /data/rask/sites/<app>.caddy`.
 
 ### Deploying from GitHub Actions
 

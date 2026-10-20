@@ -4,64 +4,123 @@ using static Rask.Cli.Commands.ProxyCommands;
 namespace Rask.Cli.Commands;
 
 /// <summary>
-/// The box-wide lock around everything deploys share: creating the network and the proxy, switching the proxy, and
-/// retiring the colour it switched from. It is a container named <c>rask-deploy-lock</c>: docker refuses a second
-/// container of one name, so taking it is atomic, and it removes itself when its lease ends, so a deploy that died
-/// holding it cannot wedge the box. Never held across a build, a start or a health gate.
+/// A lock on the box, held as a container: docker refuses a second container of one name, so taking it is atomic,
+/// and the container removes itself when its lease ends, so a deploy that died holding it cannot wedge the box.
+/// <list type="bullet">
+/// <item>The box lock (<see cref="ForBox"/>) guards what every app shares — the network, the proxy, its config and the
+/// retire after a switch — for seconds, never across a build, a start or a health gate. Its lease is fixed.</item>
+/// <item>An app lock (<see cref="ForApp"/>) makes two deploys of one app take turns, for the whole deploy. A build has
+/// no upper bound, so its lease is renewed by a heartbeat while it is held and runs out only after the holder stops.</item>
+/// </list>
 /// </summary>
-internal sealed class DeployLock(IConsole console, IProcessRunner process, string workingDirectory)
+internal sealed class DeployLock
 {
-    /// <summary>How long to wait between attempts at a lock another deploy holds — zero in tests.</summary>
-    internal TimeSpan PollDelay { get; init; } = TimeSpan.FromSeconds(3);
+    private readonly IConsole _console;
+    private readonly IProcessRunner _process;
+    private readonly string _workingDirectory;
+    private readonly string _container;
+    private readonly string _waitingFor;
+    private readonly Func<string, string, IReadOnlyList<string>> _take;
+    private readonly bool _heartbeat;
+    private readonly LockTiming _timing;
 
-    /// <summary>How many attempts before giving up: past a full lease, so a holder that died is outlived.</summary>
-    internal int Attempts { get; init; } = (LockLeaseSeconds / 3) + 20;
+    private DeployLock(
+        IConsole console, IProcessRunner process, string workingDirectory, string container, string waitingFor, Func<string, string, IReadOnlyList<string>> take, bool heartbeat, LockTiming timing)
+    {
+        _timing = timing;
+        _console = console;
+        _process = process;
+        _workingDirectory = workingDirectory;
+        _container = container;
+        _waitingFor = waitingFor;
+        _take = take;
+        _heartbeat = heartbeat;
+    }
+
+    internal static DeployLock ForBox(IConsole console, IProcessRunner process, string workingDirectory, LockTiming timing) =>
+        new(console, process, workingDirectory, LockContainer, "switching the proxy on this box", BuildLockArguments, heartbeat: false, timing);
+
+    internal static DeployLock ForApp(IConsole console, IProcessRunner process, string workingDirectory, string slug, LockTiming timing) =>
+        new(console, process, workingDirectory, AppLockContainer(slug), $"deploying '{slug}' to this box", (host, owner) => BuildAppLockArguments(host, slug, owner), heartbeat: true, timing);
 
     /// <summary>Take the lock for <paramref name="slug"/>'s deploy, waiting while another deploy holds it; <c>null</c> (said why) when it can't be had.</summary>
-    internal async Task<string?> AcquireAsync(string host, string slug, CancellationToken cancellationToken)
+    internal async Task<HeldLock?> AcquireAsync(string host, string slug, CancellationToken cancellationToken)
     {
         var owner = $"{slug} from {Environment.MachineName} at {DateTimeOffset.UtcNow.ToString("u", CultureInfo.InvariantCulture)}";
         var holder = string.Empty;
-        for (var attempt = 0; attempt < Attempts; attempt++)
+        for (var attempt = 0; attempt < _timing.Attempts; attempt++)
         {
-            if (attempt > 0 && PollDelay > TimeSpan.Zero)
+            if (attempt > 0 && _timing.PollDelay > TimeSpan.Zero)
             {
-                await Task.Delay(PollDelay, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(_timing.PollDelay, cancellationToken).ConfigureAwait(false);
             }
 
-            var taken = await Capture(BuildLockArguments(host, owner), cancellationToken).ConfigureAwait(false);
+            var taken = await Capture(_take(host, owner), cancellationToken).ConfigureAwait(false);
             if (taken.ExitCode == 0)
             {
                 // The id, not the name, is what releases it: see BuildUnlockArguments.
                 var id = taken.StandardOutput.Trim();
-                return id.Length > 0 ? id : LockContainer;
+                return Held(host, id.Length > 0 ? id : _container);
             }
 
             if (!IsHeld(taken.StandardError))
             {
-                console.WriteErrorLine($"Could not take the deploy lock on {host}: {FirstLine(taken.StandardError)}", ConsoleStyle.Error);
+                _console.WriteErrorLine($"Could not take the deploy lock {_container} on {host}: {FirstLine(taken.StandardError)}", ConsoleStyle.Error);
                 return null;
             }
 
             if (holder.Length == 0)
             {
-                holder = (await Capture(BuildLockOwnerArguments(host), cancellationToken).ConfigureAwait(false)).StandardOutput.Trim();
-                console.WriteLine($"  Another deploy is switching the proxy on this box ({Describe(holder)}) — waiting for it…", ConsoleStyle.Dim);
+                holder = (await Capture(BuildLockOwnerArguments(host, _container), cancellationToken).ConfigureAwait(false)).StandardOutput.Trim();
+                _console.WriteLine($"  Another deploy is {_waitingFor} ({Describe(holder)}) — waiting for it…", ConsoleStyle.Dim);
             }
         }
 
-        console.WriteErrorLine($"Gave up waiting for the deploy lock on {host}, held by {Describe(holder)}.", ConsoleStyle.Error);
-        console.WriteErrorLine($"If no deploy is running, free it: docker -H ssh://{host} rm -f {LockContainer}", ConsoleStyle.Error);
+        _console.WriteErrorLine($"Gave up waiting for the deploy lock {_container} on {host}, held by {Describe(holder)}.", ConsoleStyle.Error);
+        _console.WriteErrorLine($"If no deploy is running, free it: docker -H ssh://{host} rm -f {_container}", ConsoleStyle.Error);
         return null;
     }
 
     /// <summary>Release a lock this deploy took. Not cancellable: a cancelled deploy must still let go of the box.</summary>
-    internal async Task ReleaseAsync(string host, string lockId)
+    internal async Task ReleaseAsync(string host, HeldLock held)
     {
-        var released = await Capture(BuildUnlockArguments(host, lockId), CancellationToken.None).ConfigureAwait(false);
+        await held.StopHeartbeatAsync().ConfigureAwait(false);
+        var released = await Capture(BuildUnlockArguments(host, held.Id), CancellationToken.None).ConfigureAwait(false);
         if (released.ExitCode != 0)
         {
-            console.WriteErrorLine($"Releasing the deploy lock failed ({FirstLine(released.StandardError)}) — it frees itself within {LockLeaseSeconds / 60} minutes.", ConsoleStyle.Warning);
+            _console.WriteErrorLine($"Releasing the deploy lock {_container} failed ({FirstLine(released.StandardError)}) — it frees itself when its lease runs out.", ConsoleStyle.Warning);
+        }
+    }
+
+    private HeldLock Held(string host, string id)
+    {
+        if (!_heartbeat || _timing.Heartbeat <= TimeSpan.Zero)
+        {
+            return new HeldLock(id, null, Task.CompletedTask);
+        }
+
+        var stop = new CancellationTokenSource();
+        return new HeldLock(id, stop, BeatAsync(host, id, stop.Token));
+    }
+
+    // Renew the lease until released. A missed beat is only a warning: the lease outlasts several of them.
+    private async Task BeatAsync(string host, string id, CancellationToken stop)
+    {
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(_timing.Heartbeat, stop).ConfigureAwait(false);
+                var beat = await Capture(BuildLockHeartbeatArguments(host, id), stop).ConfigureAwait(false);
+                if (beat.ExitCode != 0)
+                {
+                    _console.WriteErrorLine($"  ! Renewing the deploy lock {_container} failed ({FirstLine(beat.StandardError)}).", ConsoleStyle.Warning);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // Released.
         }
     }
 
@@ -74,5 +133,5 @@ internal sealed class DeployLock(IConsole console, IProcessRunner process, strin
     private static string FirstLine(string text) => text.Trim().Split('\n')[0].Trim();
 
     private Task<ProcessResult> Capture(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
-        process.CaptureAsync("docker", args, workingDirectory, cancellationToken);
+        _process.CaptureAsync("docker", args, _workingDirectory, cancellationToken);
 }

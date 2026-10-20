@@ -43,6 +43,33 @@ internal static class CaddySites
             .Select(name => name[..^FragmentExtension.Length]),
     ];
 
+    /// <summary>Every host an app's file answers on — its site block's and its redirects' — read from the address lines.</summary>
+    internal static IReadOnlyList<string> SiteHosts(string fragment) =>
+    [
+        .. fragment.Split('\n')
+            .Where(line => line.EndsWith(" {", StringComparison.Ordinal) && !char.IsWhiteSpace(line[0]))
+            .SelectMany(line => line[..^2].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)),
+    ];
+
+    /// <summary>
+    /// A host of <paramref name="site"/> or <paramref name="redirects"/> that another app's file names, with that app —
+    /// or <c>null</c>. Caught before the deploy starts anything: Caddy refuses one host in two site blocks, and a stopped
+    /// app's file stays until someone removes it.
+    /// </summary>
+    internal static (string Host, string App)? FindHostInFiles(IReadOnlyDictionary<string, string> files, string slug, string site, string redirects)
+    {
+        var wanted = SiteDomains.Hosts(site).Concat(SiteDomains.Hosts(redirects)).ToList();
+        foreach (var (app, fragment) in files.Where(file => !string.Equals(file.Key, slug, StringComparison.Ordinal)))
+        {
+            if (SiteHosts(fragment).FirstOrDefault(host => wanted.Contains(host, StringComparer.OrdinalIgnoreCase)) is { } named)
+            {
+                return (named, app);
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>A name beside <paramref name="path"/> to copy into first, so the move onto it is atomic and a half-written file is never imported.</summary>
     internal static string StagingPath(string path) => $"{path}.tmp-{Guid.NewGuid():N}";
 }
