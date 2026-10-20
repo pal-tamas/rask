@@ -5,14 +5,30 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data.Tests.Fuel;
 
-/// <summary>A delivery note of an existing app: numbered tenants, read only, no framework columns.</summary>
+/// <summary>A delivery note of an existing app: numbered tenants, no framework columns.</summary>
 public sealed class DeliveryNote : Aggregate<int, PerTenant>
 {
+    private readonly List<DeliveryNoteTransaction> _fuellings = [];
+
     public int? TenantId { get; private set; }
 
     public string Number { get; private set; } = "";
 
-    public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
+    public IReadOnlyList<DeliveryNoteTransaction> Fuellings => _fuellings;
+
+    public static DeliveryNote Issue(string number, IEnumerable<(int TransactionId, decimal Quantity)> rows)
+    {
+        var note = new DeliveryNote { Number = number };
+        note.Fill(rows);
+        return note;
+    }
+
+    /// <summary>What the old app did on every save of a note: its fuellings cleared and refilled from the form's list.</summary>
+    public void Fill(IEnumerable<(int TransactionId, decimal Quantity)> rows)
+    {
+        _fuellings.Clear();
+        _fuellings.AddRange(rows.Select(static r => DeliveryNoteTransaction.For(r.TransactionId, r.Quantity)));
+    }
 
     public static void Configure(EntityTypeBuilder<DeliveryNote> builder) => builder.ToTable("DeliveryNotes");
 }
@@ -32,7 +48,10 @@ public sealed partial class DeliveryNoteTransaction : Entity<(DeliveryNote, Tran
 {
     public decimal Quantity { get; private set; }
 
-    internal static DeliveryNoteTransaction Blank() => new();
+    internal static DeliveryNoteTransaction For(int transactionId, decimal quantity) =>
+        new() { TransactionId = transactionId, Quantity = quantity };
+
+    internal void Measure(decimal quantity) => Quantity = quantity;
 
     public static void Configure(EntityTypeBuilder<DeliveryNoteTransaction> builder)
     {
@@ -200,19 +219,6 @@ public sealed class CompositeKeyReadTests : IAsyncLifetime
         Assert.NotNull(note);
         Assert.Equal([10, 11], note.Fuellings.Select(static f => f.TransactionId).Order());
         Assert.All(note.Fuellings, static f => Assert.Equal(1, f.DeliveryNoteId));
-    }
-
-    [Fact]
-    public async Task Writing_a_row_keyed_by_several_columns_is_refused_while_writes_are_not_supported()
-    {
-        await using var context = await OpenAsync();
-        context.Add(DeliveryNoteTransaction.Blank());
-
-        var refused = await Assert.ThrowsAsync<NotSupportedException>(
-            () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
-
-        Assert.Contains("'DeliveryNoteTransaction' was added", refused.Message, StringComparison.Ordinal);
-        Assert.Contains("read-only", refused.Message, StringComparison.Ordinal);
     }
 
     private Task<FuelContext> OpenAsync() =>

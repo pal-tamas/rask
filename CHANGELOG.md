@@ -35,6 +35,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A child keyed by several columns is written through its aggregate, at any depth.** Before: such a row was
+  read-only, and a save that added, changed or deleted one threw `NotSupportedException`. After: the entity makes
+  itself in a factory of its own (`new() { TransactionId = id, Quantity = q }`), Rask fills the holding aggregate's
+  part, and an aggregate that clears and refills the collection — `DeliveryNote.Update(id, n => n.Fill(rows))`,
+  `Find` + `Save()`, or several writes on one `db:` context — is saved matched by key: an UPDATE of the changed
+  columns, an INSERT for a new key, a DELETE for a dropped one and nothing for an unchanged row. A grandchild names
+  the child that holds it, `Entity<(ReportColumn, int TotalColumnId)>`, and gets `ReportColumnReportId` and
+  `ReportColumnColumnId`. A child written without its aggregate is still refused, and a form still does not carry
+  such a row ([RASK106](docs/diagnostics.md#rask106)).
 - **Rask.Storage keeps files in the app's own database: `Rask__Storage__Provider=Database`.** Before: a file's bytes
   went to a directory, an S3 bucket or an Azure container. After: they can go to a `StoredFileBytes` table beside
   `StoredFile`, one row per file under the same id, written in one transaction with the row and streamed in and out

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -343,7 +344,7 @@ public static class ReadModelRegistry
                 .HasOne(mapping.ReadType, child.Inverse)
                 .WithMany(child.Collection)
                 .HasForeignKey(foreignKey is null
-                    ? [mapping.WriteType.Name + nameof(Entity<int>.Id)]
+                    ? GuessedForeignKey(mapping.WriteType)
                     : [.. foreignKey.Properties.Select(static p => p.Name)])
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasAnnotation(TenantParents.HeldAnnotation, true);
@@ -362,6 +363,13 @@ public static class ReadModelRegistry
         writeModel?.FindEntityType(child.ChildWriteType)?
             .GetForeignKeys()
             .FirstOrDefault(fk => fk.PrincipalEntityType.ClrType == rootWriteType);
+
+    // EF Core's own name for a foreign key to the parent: OrderId, or one column per part of a parent keyed by several
+    // — ReportColumnReportId, ReportColumnColumnId.
+    private static string[] GuessedForeignKey([DynamicallyAccessedMembers(DataTrimming.Entity)] Type parent) =>
+        ModelBuilderExtensions.HasCompositeKey(parent) && ModelBuilderExtensions.KeyPartsOf(parent) is { } parts
+            ? [.. parts.Select(part => parent.Name + part)]
+            : [parent.Name + nameof(Entity<int>.Id)];
 
     // "Total.Amount" walks the complex properties a value object was mapped to; "Reference" is one step.
     private static IProperty? FindProperty(IEntityType entity, string path)

@@ -132,6 +132,13 @@ internal static class AggregateSave
             }
             else if (before.TryGetValue((type.ClrType, key), out var original))
             {
+                // A row keyed by its parent's key and its own parts was built anew with a key of a stored row: Attach
+                // took the parent part it had not been given yet for a new row, but the key names the stored one.
+                if (tracked.State == EntityState.Added)
+                {
+                    tracked.State = EntityState.Unchanged;
+                }
+
                 // Original = as read, so only what this code changed is written.
                 tracked.OriginalValues.SetValues(original);
             }

@@ -133,8 +133,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         }
     }
 
-    // A form saves what it carries, and a row keyed by several columns is not written through its aggregate yet: an
-    // aggregate whose form would hold one is refused rather than given a form that silently leaves it out.
+    // A form saves what it carries, and a form does not carry a row keyed by several columns yet: an aggregate whose
+    // form would hold one is refused rather than given a form that silently leaves it out.
     private static void ReportFormsOverCompositeChildren(SourceProductionContext context, Entity entity)
     {
         if (entity.Writes == NoWrites)
@@ -149,9 +149,9 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 CompositeKeyGenerator.Rask106,
                 entity.Location?.ToLocation(),
                 parts[1],
-                $"'{entity.Name}.{parts[0]}' holds it on a form, and a row keyed by several columns is not written "
-                + $"through its aggregate yet; take 'Model' (or 'CreateModel' / 'UpdateModel') off "
-                + $"'{entity.Name}''s base and read it through {parts[1]}.Where(…)"));
+                $"'{entity.Name}.{parts[0]}' holds it on a form, and a form does not carry a row keyed by several "
+                + $"columns yet; take 'Model' (or 'CreateModel' / 'UpdateModel') off '{entity.Name}''s base and fill "
+                + $"'{parts[0]}' through a method of '{entity.Name}' — {entity.Name}.Update(id, x => x.Fill(…))"));
         }
     }
 
