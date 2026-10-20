@@ -316,7 +316,11 @@ internal sealed partial class DeployCommand
             carried++;
         }
 
-        Console.WriteLine($"  The proxy now keeps one config file per app in {CaddySites.SitesDirectory}; {carried} other app(s) carried over as they run now.", ConsoleStyle.Dim);
+        if (carried > 0)
+        {
+            Console.WriteLine($"  The proxy now keeps one config file per app in {CaddySites.SitesDirectory}; {carried} other app(s) carried over as they run now.", ConsoleStyle.Dim);
+        }
+
         return true;
     }
 
