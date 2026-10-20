@@ -131,7 +131,8 @@ public sealed partial class ModelInputGenerator
         collection.Field is not null,
         collection.Field?.Name,
         collection.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-        ?? collection.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+        ?? collection.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        collection.Field is null ? ReplaceOf(collection.Property, "Values_") : null);
 
     private static ChildShape ToChild(ModelChild child) => new(
         child.Name,
@@ -143,7 +144,14 @@ public sealed partial class ModelInputGenerator
         child.Access == ModelChildAccess.Field,
         child.Field?.Name,
         child.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-        ?? child.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+        ?? child.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+        child.Access == ModelChildAccess.Replace ? ReplaceOf(child.Property, "Children_") : null);
+
+    // How a collection is written back whole — through its setter or its backing field — or null when it cannot be.
+    private static Write? ReplaceOf(IPropertySymbol property, string role) =>
+        GeneratedModelShape.WriteKindOf(property) is { } kind
+            ? WriteOf(property, kind, "__" + kind + role + property.Name, byRef: false)
+            : null;
 
     /// <summary>
     ///     The properties that reach another AGGREGATE — one of them, or a collection of them. This is what

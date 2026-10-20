@@ -169,6 +169,9 @@ public sealed class OrderLine : Entity<Guid>
 }
 ```
 
+An auto-property works the same: `public IReadOnlyList<OrderLine> Lines { get; private set; } = [];`, refilled
+with `Lines = [.. Lines, line]`. Rask hands EF Core a collection it can add to whenever it loads or saves the lines.
+
 **Loading one root loads it whole.** Every write that starts from an id brings the children with it, and so
 does `db.Orders.FindAsync(id)`. On the read face the children are an ordinary navigation, so you ask for them
 when you want them — listing a thousand orders should not drag in every line each of them holds:

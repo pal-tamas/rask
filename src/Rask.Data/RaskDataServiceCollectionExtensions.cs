@@ -32,6 +32,8 @@ public static partial class RaskDataServiceCollectionExtensions
         // auditing then stamps + versions the resulting update.
         if (!services.Any(static d => d.ImplementationType == typeof(SoftDeleteInterceptor)))
         {
+            // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
+            services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();
             services.AddSingleton<ISaveChangesInterceptor, AuditingInterceptor>();
 

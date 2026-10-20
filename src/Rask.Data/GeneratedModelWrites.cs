@@ -127,7 +127,9 @@ public static class GeneratedModelWrites
             ExpectVersion(context, entity, version);
             apply(entity);
 
-            // At once, not at the save: a caller's context may load or change more before it saves.
+            // At once, not at the save: a caller's context may load or change more before it saves. A refill
+            // written `Lines = [.. rows]` left a read-only collection, which the match writes into.
+            WritableChildren.Ensure(context);
             ReplacedChildren.Match(context);
 
             return entity;

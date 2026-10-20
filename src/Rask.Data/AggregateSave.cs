@@ -27,7 +27,8 @@ namespace Rask.Data;
 /// </remarks>
 internal static class AggregateSave
 {
-    // What each aggregate looked like when it was read or last saved: a detached copy of every entity in it.
+    // What each aggregate looked like when it was read or last saved: the values of every entity in it, shadow
+    // columns included.
     private static readonly ConditionalWeakTable<object, Dictionary<(Type, string), object>> AsRead = new();
 
     /// <summary>Remembers <paramref name="aggregate" /> as <paramref name="context" /> tracks it now.</summary>
@@ -37,7 +38,7 @@ internal static class AggregateSave
 
         foreach (var (type, key, entity) in Walk(context.Entry(aggregate).Metadata, aggregate))
         {
-            copies[(type.ClrType, key)] = context.Entry(entity).CurrentValues.ToObject();
+            copies[(type.ClrType, key)] = context.Entry(entity).CurrentValues.Clone();
         }
 
         AsRead.AddOrUpdate(aggregate, copies);
@@ -116,7 +117,7 @@ internal static class AggregateSave
             ? entry.Property(token.Name).CurrentValue
             : null;
 
-        context.Attach(aggregate);
+        Attach(context, rootType, aggregate);
 
         var held = new HashSet<(Type, string)>();
 
@@ -140,17 +141,19 @@ internal static class AggregateSave
                 }
 
                 // Original = as read, so only what this code changed is written.
-                tracked.OriginalValues.SetValues(original);
+                Restore(tracked, original);
             }
         }
 
         foreach (var (key, row) in now)
         {
             // Only what was read and let go: a child somebody added since was never this code's to delete.
-            if (!held.Contains(key) && before.ContainsKey(key))
+            if (!held.Contains(key) && before.TryGetValue(key, out var asRead))
             {
                 // Entry, not Remove: Remove would attach the loaded copy's whole graph beside the live one.
-                context.Entry(row).State = EntityState.Deleted;
+                var gone = context.Entry(row);
+                gone.State = EntityState.Deleted;
+                Restore(gone, asRead);
                 ChildWrites.LetGoByItsRoot(row);
             }
         }
@@ -159,6 +162,43 @@ internal static class AggregateSave
         {
             entry.Property(Columns.Version).OriginalValue = version;
         }
+    }
+
+    // A column the type does not declare — a PerTenant<int> root's TenantId, a child's foreign key — is not on the
+    // object attached, so it is put back as read: the tenant check reads it, and a save must not null it.
+    private static void Restore(EntityEntry tracked, object original)
+    {
+        if (original is not PropertyValues read)
+        {
+            tracked.OriginalValues.SetValues(original);
+            return;
+        }
+
+        tracked.OriginalValues.SetValues(read);
+
+        if (tracked.State == EntityState.Deleted)
+        {
+            return;
+        }
+
+        foreach (var shadow in tracked.Metadata.GetProperties()
+                     .Where(static p => p.IsShadowProperty() && !p.IsKey() && !p.IsForeignKey()))
+        {
+            var column = tracked.Property(shadow);
+            column.CurrentValue = read[shadow];
+            column.IsModified = false;
+        }
+    }
+
+    // Attaching fixes each child up into its holder's collection, so a read-only one is swapped first.
+    private static void Attach(DbContext context, IEntityType rootType, object aggregate)
+    {
+        foreach (var (type, _, entity) in Walk(rootType, aggregate))
+        {
+            WritableChildren.Ensure(type, entity);
+        }
+
+        context.Attach(aggregate);
     }
 
     private static Dictionary<(Type, string), object> Index(IEntityType rootType, object root)

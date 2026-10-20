@@ -1570,6 +1570,34 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void A_read_only_collection_set_to_an_empty_one_is_synced_on_a_copy_and_written_back()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid, Model>
+            {
+                public IReadOnlyList<OrderLine> Lines { get; private set; } = [];
+                public IReadOnlyList<string> Tags { get; private set; } = [];
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.OrderModel");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("entity.Lines is { } __held ? new global::System.Collections.Generic.List<global::Shop.OrderLine>(__held) : null", source, StringComparison.Ordinal);
+        Assert.Contains("__SetterChildren_Lines(entity, __children);", source, StringComparison.Ordinal);
+        Assert.Contains("__SetterValues_Tags(entity, [.. __values]);", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_hand_written_model_of_the_same_name_is_RASK082_and_nothing_is_generated()
     {
         var run = Run("""

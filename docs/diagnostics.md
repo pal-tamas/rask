@@ -2001,7 +2001,8 @@ It is an error rather than a warning because the alternative is worse than eithe
 
 A child collection on a form model is editable: what the posted list holds is what the aggregate holds after
 the save ([data guide](data.md#children)). Writing it needs something to add to and remove from — either the
-property's own type is an `ICollection<T>`, or there is exactly one field behind it holding the children.
+property's own type is an `ICollection<T>`, or there is exactly one field behind it holding the children, or the
+property has a setter a new list can be written back through (`IReadOnlyList<OrderLine> Lines { get; private set; } = []`).
 
 With neither, Rask would have to guess, so it generates the model without the sync: the children still render,
 and a save keeps whatever was stored — which looks exactly like a form that did not submit.

@@ -47,15 +47,16 @@ public sealed partial class ModelInputGenerator
         "Child collection cannot be synced",
         "'{0}.{1}' holds children, but Rask cannot find a collection to write: its type is not an "
         + "ICollection<T> and '{0}' has {2}, so the model can show these children but a save cannot add or "
-        + "remove one; expose the collection as ICollection<T>, or keep it in a single backing field",
+        + "remove one; expose the collection as ICollection<T>, keep it in a single backing field, or give the "
+        + "property a setter",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Warning,
         true,
         description: "A child collection on the model is editable: what the form posts is what the aggregate "
                      + "holds afterwards. Writing it needs something to add to and remove from — the property "
-                     + "itself when it is an ICollection<T>, or the one field behind it when it hands out a "
-                     + "read-only view. With neither, a save would silently keep whatever was stored, which "
-                     + "looks exactly like a form that did not submit.",
+                     + "itself when it is an ICollection<T>, the one field behind it when it hands out a "
+                     + "read-only view, or its setter to write a new list back through. With none, a save would "
+                     + "silently keep whatever was stored, which looks exactly like a form that did not submit.",
         helpLinkUri: DiagnosticHelp.Link("RASK088"));
 
     internal static readonly DiagnosticDescriptor Rask082 = new(

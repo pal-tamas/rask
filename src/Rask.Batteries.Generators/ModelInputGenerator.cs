@@ -263,7 +263,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         ValueObjectShape? ElementModel,
         bool ThroughField,
         string? FieldName,
-        string FieldTypeName);
+        string FieldTypeName,
+        Write? Replace);
 
     /// <summary>One child collection, as the generator needs it: what to emit, and what to write it through.</summary>
     private sealed record ChildShape(
@@ -273,7 +274,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         string ChildIdTypeName,
         bool ThroughField,
         string? FieldName,
-        string FieldTypeName);
+        string FieldTypeName,
+        Write? Replace);
 
     private sealed record Member(
         string Name,
