@@ -934,7 +934,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     {
         await OpenUiPageAsync("button", "Button");
 
-        var scope = Page.Locator("[data-testid='ui-button']");
+        var scope = Page.Locator("[data-testid='ui-button-icons']");
 
         // A square holds one glyph, so its label cannot be visible text. Reaching it by accessible name
         // is the proof it is still announced rather than read out as "button" — "Add" by its tooltip.
@@ -950,7 +950,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenUiPageAsync("button", "Button");
 
         // By attribute, so the browser refuses the press: a class alone still takes the click.
-        var disabled = Page.Locator("[data-testid='ui-button']")
+        var disabled = Page.Locator("[data-testid='ui-button-square']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Disabled" });
 
         await Expect(disabled).ToBeDisabledAsync();
@@ -963,7 +963,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         var scope = Page.Locator("[data-testid='ui-button-loading']");
         var save = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Save" });
-        var count = Page.Locator("[data-testid='ui-button-loading-count']");
+        var count = scope.GetByText(new System.Text.RegularExpressions.Regex("^Saved "));
         await Expect(count).ToContainTextAsync("Saved 0 times", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
 
         var before = await save.BoundingBoxAsync();
@@ -995,7 +995,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenUiPageAsync("button", "Button");
 
         var scope = Page.Locator("[data-testid='ui-button-route']");
-        var button = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Navigation components" });
+        var button = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "See the badge" });
         var github = scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "GitHub" });
 
         // The markup half: the route is intercepted, the external new-tab link is not.
@@ -1009,7 +1009,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.EvaluateAsync("() => { window.__raskStayedInApp = true; }");
         await button.ClickAsync();
 
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navigation",
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Badge",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskStayedInApp === true"),
             "the button reloaded the app instead of navigating inside it.");

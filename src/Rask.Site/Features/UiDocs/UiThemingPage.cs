@@ -71,11 +71,10 @@ public sealed partial class UiThemingPage : Component
             Ui.Text["The accent is three variables: the fill of a primary action, the same hue as readable text — a "
                     + "link, an accented heading — and the text on the fill. Each box below sets them for what is inside "
                     + "it; an app sets them once, for the page:"],
-            CodeSample
-                .Files(["UiThemingDemo.cs"])
-                .Notes("An arbitrary-property class sets a token for one subtree. The default is the kit's own: zinc-800, "
-                       + "and white in dark mode.")
-                .Result(UiThemingDemo),
+            UiDocsExample.Heading("Accents").File("ThemingAccentExample.cs").Demo(ThemingAccentExample)
+                .Testid("ui-theming")
+                .Blurb("An arbitrary-property class sets the tokens for one subtree. The default is the kit's own: "
+                       + "zinc-800, and white in dark mode."),
             CodeBlock.Source(AccentSnippet).Language("css"),
             Ui.Text.Sm.Subtle["Flux names them --color-accent, --color-accent-content and --color-accent-foreground. "
                               + "Rask.Ui's carry fx- while the last daisyUI-drawn parts of the kit still define "

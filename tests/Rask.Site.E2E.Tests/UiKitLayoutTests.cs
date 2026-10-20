@@ -170,8 +170,8 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     {
         await OpenUiPageAsync("heading", "Heading");
 
-        var scope = Page.Locator("[data-testid='ui-heading']");
-        await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var scope = Page.Locator("[data-testid^='ui-heading-']");
+        await Expect(scope.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         await Expect(scope.Locator("h3[data-ui-heading]", new LocatorLocatorOptions { HasText = "User profile" })).ToHaveCountAsync(1);
         await Expect(scope.GetByText("Extra extra large")).ToHaveCSSAsync("font-size", "36px");
@@ -182,8 +182,8 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     {
         await OpenUiPageAsync("text", "Text");
 
-        var scope = Page.Locator("[data-testid='ui-text']");
-        await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        var scope = Page.Locator("[data-testid^='ui-text-']");
+        await Expect(scope.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         await Expect(scope.GetByText("Smaller text")).ToHaveCSSAsync("font-size", "12px");
         await Expect(scope.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Default link" }))

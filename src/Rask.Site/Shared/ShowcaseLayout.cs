@@ -65,6 +65,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
         // so the sidebar opens on a prerendered page with no runtime — and it hides itself where the sidebar docks.
         SiteHeader
             .FullBleed(true)
+            .DocsTabCurrent(true)
             .Leading(Ui.SidebarToggle
                 .Icon(Ui.IconName.Bars3)
                 .Class("hamburger-btn size-11")),

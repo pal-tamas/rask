@@ -1,14 +1,12 @@
-namespace Rask.Site.Features.UiDocs;
+namespace Rask.Site.Features.UiDocs.Examples;
 
-/// <summary>A card, a heading, text, a field and two buttons: Rask.Ui as an app writes it, with a field of the page's own.</summary>
-public sealed partial class UiIntroductionDemo : Component
+public sealed partial class IntroductionExample : Component
 {
     private string? _name = "Ada";
     private int _saves;
 
-    /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Data("testid", "ui-intro-demo")[Ui.Card.Class("max-w-md space-y-6")[
+        Ui.Card.Class("max-w-md space-y-6")[
             Div[
                 Ui.Heading.Level(3).Lg["Update profile"],
                 Ui.Text.Class("mt-2")["Make changes to your personal details."]
@@ -20,5 +18,5 @@ public sealed partial class UiIntroductionDemo : Component
                 Ui.Button.Ghost.OnClick(() => { _name = ""; })["Clear"],
                 Ui.Button.Primary.OnClick(() => { _saves++; })["Save"]
             ]
-        ]];
+        ];
 }

@@ -30,11 +30,10 @@ public sealed partial class UiDarkModePage : Component
             .Entry(UiDocsCatalog.DarkMode)
             .Lead("Dark mode is Flux UI's: a dark class on <html>, and dark: utilities that follow it. Every Rask.Ui "
                   + "component is drawn for both, and the reader chooses light, dark or their system's."),
-        CodeSample
-            .Files(["UiDarkModeDemo.cs"])
-            .Notes("Each button sets the reader's appearance in the browser. There is no C# handler, so it works on a "
-                   + "prerendered page before the app has booted, and costs no handler id.")
-            .Result(UiDarkModeDemo),
+        UiDocsExample.Heading("Light, dark or system").File("DarkModeExample.cs").Demo(DarkModeExample)
+            .Testid("ui-dark-mode")
+            .Blurb("Each button sets the reader's appearance in the browser. There is no C# handler, so it works on a "
+                   + "prerendered page before the app has booted."),
         UiDocsSection.Key("script").Heading("Before the first paint")[
             Ui.Text["Put ", Code["Ui.AppearanceScript"], " in the root component's head assets, before the stylesheets, "
                     + "so a dark page starts dark:"],

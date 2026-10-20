@@ -65,16 +65,20 @@ public sealed partial class UiDocsTests
     }
 
     [Fact]
-    public async Task A_component_page_shows_its_example_code_above_the_result_and_its_reference_below()
+    public async Task Each_example_on_a_component_page_shows_its_own_code_right_above_its_result()
     {
         var html = await SiteDocument.At(global::Rask.Site.Routes.UiButtonPage());
 
-        var code = html.IndexOf("UiKitButtonDemo.cs", StringComparison.Ordinal);
-        var result = html.IndexOf("data-testid=\"ui-button\"", StringComparison.Ordinal);
+        var variantsCode = html.IndexOf("ButtonVariantsExample.cs", StringComparison.Ordinal);
+        var variants = html.IndexOf("data-testid=\"ui-button-variants\"", StringComparison.Ordinal);
+        var sizesCode = html.IndexOf("ButtonSizesExample.cs", StringComparison.Ordinal);
         var reference = html.IndexOf("data-testid=\"ui-api\"", StringComparison.Ordinal);
 
-        Assert.True(code >= 0 && result > code, "the button page does not show its code above its result");
-        Assert.True(reference > result, "the button page has no reference under its example");
+        Assert.True(variantsCode >= 0 && variants > variantsCode, "the variants' code is not above their result");
+        Assert.True(sizesCode > variants, "the next example's code does not follow the variants' result");
+        Assert.True(reference > sizesCode, "the button page has no reference under its examples");
+        Assert.Equal(12, Regex.Matches(html, "class=\"sample-card ").Count);
+        Assert.DoesNotContain("ButtonSizesExample", html[variantsCode..variants], StringComparison.Ordinal);
         Assert.Contains("flux:button.group", html, StringComparison.Ordinal);
         Assert.Contains("Outline", html[reference..], StringComparison.Ordinal);
     }

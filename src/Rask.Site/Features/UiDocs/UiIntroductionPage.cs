@@ -35,11 +35,10 @@ public sealed partial class UiIntroductionPage : Component
             .Lead("Rask.Ui is Flux UI's component catalogue as C# components: the same names, the same props, the same "
                   + "look and the same keyboard, written as a chain. It runs on the ASP.NET Core host and in the browser on "
                   + "WebAssembly, and it ships its styles inside the package — no npm, no Tailwind config."),
-        CodeSample
-            .Files(["UiIntroductionDemo.cs"])
-            .Notes("The field and the count are plain fields on the component. A press runs C#, and the live diff redraws "
-                   + "what changed.")
-            .Result(UiIntroductionDemo),
+        UiDocsExample.Heading("A first component").File("IntroductionExample.cs").Demo(IntroductionExample)
+            .Testid("ui-intro-demo")
+            .Blurb("The name and the count are plain fields on the component: a press runs C#, and the live diff "
+                   + "redraws what changed."),
         UiDocsSection.Key("Install").Heading("Install")[
             Ui.Text["An app made with ", Code["rask new"], " has it already: the template imports the kit into its one "
                     + "stylesheet and turns its theme on. Anywhere else, add the package:"],

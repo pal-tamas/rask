@@ -45,8 +45,8 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     {
         await OpenUiPageAsync("badge", "Badge");
 
-        var scope = Page.Locator("[data-testid='ui-badge']");
-        var lime = scope.Locator("[data-ui-badge]").First;
+        var scope = Page.Locator("[data-testid^='ui-badge-']");
+        var lime = Page.Locator("[data-testid='ui-badge-intro'] [data-ui-badge]");
 
         // Every example on Flux's page: 1 + 3 sizes + 3 icons + 1 rounded + 1 button + 3 removable
         // + 18 colours + 18 solid + 1 inset.
@@ -64,8 +64,8 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     {
         await OpenUiPageAsync("badge", "Badge");
 
-        var scope = Page.Locator("[data-testid='ui-badge']");
-        var amount = scope.Locator("button[data-testid='ui-badge-amount']");
+        var scope = Page.Locator("[data-testid='ui-badge-close']");
+        var amount = Page.Locator("[data-testid='ui-badge-button'] button[data-ui-badge]");
 
         await Expect(amount).ToHaveTextAsync("Amount 1");
         await amount.ClickAsync();
@@ -188,7 +188,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     {
         await OpenUiPageAsync("card", "Card");
 
-        var profile = Page.Locator("[data-testid='ui-card'] [data-ui-card][data-ui-card-body-variant='inset'][data-ui-card-size='lg']");
+        var profile = Page.Locator("[data-testid='ui-card-profile'] [data-ui-card][data-ui-card-body-variant='inset'][data-ui-card-size='lg']");
         var body = profile.Locator("> [data-ui-card-body]");
 
         // The inset body is its own panel: four pixels in from the card, with corners four pixels tighter.

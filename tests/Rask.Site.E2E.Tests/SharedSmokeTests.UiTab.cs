@@ -13,12 +13,15 @@ public abstract partial class SharedSmokeTests
     {
         var docsPage = Page.Url;
         var tab = Page.Locator("header.app-navbar a.ui-tab");
+        var docsTab = Page.Locator("header.app-navbar a.docs-tab");
         await Expect(tab).Not.ToHaveAttributeAsync("aria-current", "page");
+        await Expect(docsTab).ToHaveAttributeAsync("aria-current", "page");
 
         await tab.ClickAsync();
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Introduction",
             new LocatorAssertionsToContainTextOptions { Timeout = 30_000 });
         await Expect(tab).ToHaveAttributeAsync("aria-current", "page");
+        await Expect(docsTab).Not.ToHaveAttributeAsync("aria-current", "page");
         await Expect(Page.Locator(".side-nav")).ToHaveCountAsync(0);
 
         // The sidebar is Flux's navlist, and the router lights the row of the page being read.
@@ -40,6 +43,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator(".side-nav")).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
         Assert.Equal(docsPage, Page.Url);
         await Expect(tab).Not.ToHaveAttributeAsync("aria-current", "page");
+        await Expect(docsTab).ToHaveAttributeAsync("aria-current", "page");
         await AssertNoGlobalCrashAsync();
     }
 }

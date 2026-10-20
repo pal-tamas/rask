@@ -41,7 +41,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenUiPageAsync("callout", "Callout");
 
-        var scope = Page.Locator("[data-testid='ui-callout']");
+        var scope = Page.Locator("[data-testid^='ui-callout-']");
         var callouts = scope.Locator("[data-ui-callout]");
 
         // Flux's page, example for example: 3 basics, 3 with actions, 2 dismissible, 4 variants, 18 colours
@@ -50,18 +50,18 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(scope.Locator("[data-ui-callout][role]")).ToHaveCountAsync(0);
 
         // The kit's sheet reached the page: a danger callout is red-50 with a 12px corner, not an unstyled div.
-        var danger = scope.Locator("[data-example='Variants'] [data-ui-callout]").Last;
+        var danger = Page.Locator("[data-testid='ui-callout-variants'] [data-ui-callout]").Last;
         Assert.Equal("12px", await danger.EvaluateAsync<string>("e => getComputedStyle(e).borderTopLeftRadius"));
         Assert.NotEqual("rgba(0, 0, 0, 0)", await danger.EvaluateAsync<string>("e => getComputedStyle(e).backgroundColor"));
 
         // Inline puts the actions beside the content: the button's top is above the heading's bottom.
-        var inline = scope.Locator("[data-example='Inline actions'] [data-ui-callout]").First;
+        var inline = Page.Locator("[data-testid='ui-callout-inline-actions'] [data-ui-callout]").First;
         var heading = await inline.Locator("[data-slot='heading']").BoundingBoxAsync();
         var action = await inline.Locator("[data-slot='actions'] button").First.BoundingBoxAsync();
         Assert.True(action!.Y < heading!.Y + heading.Height, "the inline actions were stacked under the heading.");
 
         // Dismissing is the page's: the control is the callout's, the field it clears is the demo's.
-        var dismissible = scope.Locator("[data-example='Dismissible']");
+        var dismissible = Page.Locator("[data-testid='ui-callout-dismissible']");
         await dismissible.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Dismiss" }).First.ClickAsync();
         await Expect(dismissible.Locator("[data-ui-callout]")).ToHaveCountAsync(1);
         await dismissible.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Show them again" }).ClickAsync();
