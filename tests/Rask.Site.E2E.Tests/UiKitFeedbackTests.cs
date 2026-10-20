@@ -6,7 +6,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     The kit's Feedback components, in a browser.
+///     The kit's feedback components (callout, progress, skeleton, toast and tooltip) on their pages in the UI tab, in a
+///     browser.
 /// </summary>
 [Collection(WasmExampleCollection.Name)]
 public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixture pw)
@@ -16,15 +17,16 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    [Fact]
-    public Task Every_feedback_component_renders_with_a_real_size() => RunAsync(async () =>
+    [Theory]
+    [InlineData("progress", "Progress", "ui-progress|ui-progress-max|ui-progress-color|ui-progress-height|ui-progress-label|ui-progress-controlled")]
+    [InlineData("skeleton", "Skeleton", "ui-skeleton|ui-skeleton-lines|ui-skeleton-animation|ui-skeleton-table|ui-skeleton-chart")]
+    [InlineData("toast", "Toast", "ui-toast|ui-toast-heading|ui-toast-variants|ui-toast-actions|ui-toast-links|ui-toast-duration|ui-toast-permanent|ui-toast-placement")]
+    [InlineData("tooltip", "Tooltip", "ui-tooltip|ui-tooltip-info|ui-tooltip-positions|ui-tooltip-align|ui-tooltip-kbd|ui-tooltip-disabled")]
+    public Task Every_feedback_component_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync(slug, heading);
 
-        foreach (var id in new[]
-                 {
-                     "ui-progress", "ui-tooltip", "ui-skeleton", "ui-toast",
-                 })
+        foreach (var id in testids.Split('|'))
         {
             var node = Page.Locator($"[data-testid='{id}']");
             await Expect(node).ToBeVisibleAsync(
@@ -34,6 +36,18 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
             Assert.NotNull(box);
             Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
         }
+    });
+
+    [Fact]
+    public Task The_old_feedback_page_sends_the_reader_on_to_the_progress_page() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{Docs}/ui/feedback/");
+
+        await Expect(Page).ToHaveURLAsync(new Regex("/ui/progress/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Progress",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
     });
 
     [Fact]
@@ -71,9 +85,9 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task A_progress_bar_announces_its_value_and_draws_that_share_of_its_track() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("progress", "Progress");
 
-        var scope = Page.Locator("[data-testid='ui-progress']");
+        var scope = Page.Locator("[data-testid='ui-progress-controlled']");
         var progress = scope.Locator("[data-testid='ui-progress-storage']");
 
         await Expect(progress).ToHaveRoleAsync(AriaRole.Progressbar);
@@ -93,10 +107,10 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task A_shimmering_skeleton_is_drawn_and_its_light_is_moving() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("skeleton", "Skeleton");
 
         var scope = Page.Locator("[data-testid='ui-skeleton']");
-        await Expect(scope.Locator("[data-ui-skeleton-group]")).ToHaveCountAsync(3);
+        await Expect(Page.Locator("[data-testid^='ui-skeleton'] [data-ui-skeleton-group]")).ToHaveCountAsync(3);
 
         // The avatar is the call site's size, and the group's shimmer reached it: a ::before running the
         // kit's keyframe is the check that both the utilities and the keyframe are in the compiled sheet.
@@ -113,7 +127,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task A_raised_toast_shows_in_the_top_layer_and_its_close_button_takes_it_down() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenToastsAsync();
         var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
 
         // No assertion that it starts absent, deliberately. The harness re-runs this body on a boot
@@ -136,7 +150,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task A_timed_toast_goes_by_itself_and_a_permanent_one_stays() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenToastsAsync();
         var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
 
         await Page.Locator("#toast-brief").ClickAsync();
@@ -157,7 +171,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task Inside_a_group_toasts_stack_behind_the_newest_and_open_under_the_pointer() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenToastsAsync();
         await Page.Locator("#toast-layout-stack").ClickAsync();
         var toasts = Page.Locator("[data-ui-toast-group] > [data-ui-toast-dialog]");
 
@@ -191,7 +205,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenTooltipsAsync();
 
-        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] [data-ui-tooltip]").First;
         var trigger = tooltip.Locator("button");
         var content = tooltip.Locator("[data-ui-tooltip-content]");
         await Expect(content).ToBeHiddenAsync();
@@ -223,7 +237,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenTooltipsAsync();
 
-        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] [data-ui-tooltip]").First;
         await tooltip.Locator("button").HoverAsync();
         await Expect(tooltip.Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
         var requested = await Page.EvaluateAsync<string[]>(
@@ -241,7 +255,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenTooltipsAsync();
 
-        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] [data-ui-tooltip]").First;
         var content = tooltip.Locator("[data-ui-tooltip-content]");
         // A key first, so the focus that follows is the keyboard's (:focus-visible).
         await Page.Keyboard.PressAsync("Shift");
@@ -259,7 +273,8 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await OpenTooltipsAsync();
 
         // The one around a button with text: not an icon button, and under the pointer rather than focused.
-        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]", new PageLocatorOptions { HasTextString = "Shortcut" });
+        await CentreAsync("ui-tooltip-kbd");
+        var tooltip = Page.Locator("[data-testid='ui-tooltip-kbd'] [data-ui-tooltip]");
         var trigger = tooltip.Locator("button");
         var content = tooltip.Locator("[data-ui-tooltip-content]");
         await trigger.HoverAsync();
@@ -287,7 +302,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenTooltipsAsync();
 
-        var tooltip = Page.Locator("[data-testid='ui-tooltip'] > [data-ui-tooltip]").First;
+        var tooltip = Page.Locator("[data-testid='ui-tooltip'] [data-ui-tooltip]").First;
         var content = tooltip.Locator("[data-ui-tooltip-content]");
         await Page.Keyboard.PressAsync("Shift");
         await tooltip.Locator("button").FocusAsync();
@@ -305,7 +320,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task The_pointer_over_a_stack_holds_every_toast_in_it_and_each_goes_once_it_has_left() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenToastsAsync();
         await Page.Locator("#toast-layout-stack").ClickAsync();
         var toasts = Page.Locator("[data-ui-toast-group] > [data-ui-toast-dialog]");
 
@@ -328,7 +343,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     [Fact]
     public Task A_toast_with_focus_inside_it_still_goes_on_time() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenToastsAsync();
         var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
         await Page.Locator("#toast-brief").ClickAsync();
         await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -344,6 +359,7 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     public Task A_tooltip_opens_on_each_side_it_is_asked_for() => RunAsync(async () =>
     {
         await OpenTooltipsAsync();
+        await CentreAsync("ui-tooltip-positions");
 
         var tooltips = Page.Locator("[data-testid='ui-tooltip-positions'] [data-ui-tooltip]");
         const string Offset =
@@ -363,11 +379,10 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     public Task A_toggleable_tooltip_opens_on_a_click_a_disabled_button_still_explains_itself_and_a_shortcut_is_shown() => RunAsync(async () =>
     {
         await OpenTooltipsAsync();
-
-        var scope = Page.Locator("[data-testid='ui-tooltip']");
+        await CentreAsync("ui-tooltip-info");
 
         // Toggleable: a tap is a click, and a hover is nothing — the only tooltip a phone ever shows.
-        var info = scope.Locator("[data-testid='ui-tooltip-info'] [data-ui-tooltip]");
+        var info = Page.Locator("[data-testid='ui-tooltip-info'] [data-ui-tooltip]");
         var panel = info.Locator("[data-ui-tooltip-content]");
         await info.Locator("button").HoverAsync();
         await Expect(panel).ToBeHiddenAsync();
@@ -378,29 +393,24 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(panel).ToBeHiddenAsync();
 
         // A disabled button takes no pointer events, so the hover lands on the wrapper and the tip still shows.
-        var disabled = scope.Locator("[data-ui-tooltip]", new LocatorLocatorOptions { Has = Page.Locator("button[disabled]") });
+        await CentreAsync("ui-tooltip-disabled");
+        var disabled = Page.Locator("[data-testid='ui-tooltip-disabled'] [data-ui-tooltip]");
         await disabled.HoverAsync();
         await Expect(disabled.Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
 
         // The shortcut follows the text, in the tooltip.
-        await Expect(scope.Locator("[data-ui-tooltip-content] span")).ToHaveTextAsync("⌘S");
+        await Expect(Page.Locator("[data-testid='ui-tooltip-kbd'] [data-ui-tooltip-content] span")).ToHaveTextAsync("⌘S");
     });
 
     // Mid-viewport, so a tooltip has room on the side it was asked for and does not flip.
     private async Task OpenTooltipsAsync()
     {
-        await OpenAsync();
-        await Page.Locator("[data-testid='ui-tooltip']").EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
+        await OpenUiPageAsync("tooltip", "Tooltip");
+        await CentreAsync("ui-tooltip");
     }
 
-    private async Task OpenAsync()
-    {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+    private Task CentreAsync(string testid) =>
+        Page.Locator($"[data-testid='{testid}']").EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
 
-        await ClickSidebar("Feedback");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Feedback",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-    }
+    private Task OpenToastsAsync() => OpenUiPageAsync("toast", "Toast");
 }

@@ -69,7 +69,6 @@ host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.IslandsPage(), 
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiIntroductionPage(), "All UI components", Ui.IconName.Swatch, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataDisplayPage(), "Data display", Ui.IconName.Squares2x2, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitNavigationPage(), "Navigation", Ui.IconName.Bars3, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitFeedbackPage(), "Feedback", Ui.IconName.ExclamationTriangle, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitDataInputPage(), "Data input", Ui.IconName.Pencil, "UI kit"));
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitLayoutPage(), "Layout & flyouts", Ui.IconName.ComputerDesktop, "UI kit"));
 // The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.

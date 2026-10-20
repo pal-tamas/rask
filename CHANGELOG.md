@@ -193,10 +193,14 @@ them until tagged releases begin.
   family: Dropdown (with its menus, submenus, checkbox and radio rows and navigation menus), Context menu, Command
   palette, Popover and Modal, each with a Behaviour section (the keyboard, the pointer and the submenu safe area,
   focus, placement in the viewport, what locks the page, a modal's width and close button) moved there from
-  `docs/ui-kit.md`. Their examples moved rather than being copied, so the category pages they left link
+  `docs/ui-kit.md` — and the feedback family: Progress, Skeleton, Toast and Tooltip, whose Behaviour sections carry
+  what the bar announces and its CSS variables, the skeleton's sizes and shimmer colour, the toast outlet, Flux's
+  calls in C#, its timing, the runtime hooks that hold it and the English and Hungarian sentences Rask raises one
+  with, and the tooltip's placement, what opens it, what a screen reader hears and the button's `Tooltip` shorthand. Their examples moved rather than being copied, so the category pages they left link
   forward to them; every old URL still answers, and the rest move family by family. `/docs/ui/actions`, emptied, is a
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
-  every page that took one of its components; the docs sidebar no longer lists it. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
+  same, to `/ui/progress/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

@@ -4,38 +4,33 @@ using Rask.Site.Features.UiDocs;
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's Feedback components, live.
+///     Where the kit's Feedback page was: its components each have a page in the UI tab now, so this sends the reader
+///     on to the first of them.
 /// </summary>
+/// <remarks>
+///     The static host cannot answer with a 301, so the old URL keeps a page of its own: it names the progress bar's
+///     page canonical, which also keeps it out of the sitemap, goes there as it mounts, and links to every page that
+///     took a component, for a reader whose browser runs no script.
+/// </remarks>
 [Route("ui/feedback")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitFeedbackPage : Component
 {
     /// <inheritdoc />
-    protected override Component? HeadAssets =>
-        PageMeta.For(
-            "Toasts, tooltips and progress in C# — Rask",
-            "Feedback components in C#: progress, skeleton, toast and tooltip, with status said in words as well as "
-            + "colour, and a toast raised from anywhere.",
-            Routes.UiKitFeedbackPage());
+    protected override Component? HeadAssets => UiDocsCatalog.Progress.Meta();
+
+    /// <inheritdoc />
+    protected override async Task OnFirstRender() => Go.To(PageMeta.LinkTo(UiDocsCatalog.Progress.Path)).Replacing();
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        H1.Class("text-3xl font-bold mb-1")["Feedback"],
-        P.Class("text-ui-muted")[
-            "The recurring theme in this category is what gets ", Em["announced"], ". A spinner tells a ",
-            "screen reader nothing, a colour is invisible to a reader who cannot distinguish it, and a ",
-            "tooltip cannot be reached by touch at all — so the loading indicator is ",
-            Code["aria-hidden"], " with its words beside it, the toast is a ", Code["role=\"status\""],
-            " announced politely rather than interrupting, and a failed toast changes its ",
-            Em["icon"], " and not only its colour."
-        ],
-        UiKitMovedPages.Pages([UiDocsCatalog.Callout]),
-        CodeSample
-            .Files(["UiKitFeedbackDemo.cs"])
-            .Notes("The progress value and the toast are fields on the demo component. Loading shapes "
-                + "and tooltip placements are closed enums, because a misspelled class name is not a "
-                + "compile error and a class daisyUI never defined styles nothing.")
-            .Result(UiKitFeedbackDemo)
+        Ui.Heading.Level(1).Xl["Feedback"],
+        Ui.Text.Class("mt-2")["The callout, progress bar, skeleton, toast and tooltip each have a page of their own "
+                              + "in the UI tab now."],
+        UiKitMovedPages.Pages([
+            UiDocsCatalog.Callout, UiDocsCatalog.Progress, UiDocsCatalog.Tooltip, UiDocsCatalog.Skeleton,
+            UiDocsCatalog.Toast,
+        ])
     ];
 }

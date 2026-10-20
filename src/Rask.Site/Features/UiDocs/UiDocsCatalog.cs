@@ -109,6 +109,34 @@ internal static class UiDocsCatalog
         + "opened by a press or by the pointer.",
         "popover");
 
+    public static UiDocsEntry Progress { get; } = new(
+        Routes.UiProgressPage(), "Progress", Components,
+        "Progress bar in C#: Ui.Progress",
+        "Flux UI's progress bar in C#: a value out of any maximum, in the accent or any Tailwind colour, announced "
+        + "as a progressbar and moving to each new value.",
+        "progress");
+
+    public static UiDocsEntry Skeleton { get; } = new(
+        Routes.UiSkeletonPage(), "Skeleton", Components,
+        "Skeleton loader in C#: Ui.Skeleton",
+        "Flux UI's skeleton in C#: blocks and lines in the shape of what is loading, so the layout does not jump, "
+        + "still or animated together with a shimmer or a pulse.",
+        "skeleton");
+
+    public static UiDocsEntry Toast { get; } = new(
+        Routes.UiToastPage(), "Toast", Components,
+        "Toast notifications in C#: Ui.Toast",
+        "Flux UI's toast in C#: raised from any handler with Toast.Success(\"Saved\"), with a heading, an action or "
+        + "a link, in any corner, one at a time or stacked.",
+        "toast");
+
+    public static UiDocsEntry Tooltip { get; } = new(
+        Routes.UiTooltipPage(), "Tooltip", Components,
+        "Tooltip component in C#: Ui.Tooltip",
+        "Flux UI's tooltip in C#: a line of help on hover and keyboard focus that names an icon button, on any side, "
+        + "or opened by a tap where it must reach a phone.",
+        "tooltip");
+
     public static UiDocsEntry Separator { get; } = new(
         Routes.UiSeparatorPage(), "Separator", Components,
         "Separator component in C#: Ui.Separator",
@@ -127,6 +155,7 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Separator, Text,
+        Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Progress, Separator,
+        Skeleton, Text, Toast, Tooltip,
     ];
 }

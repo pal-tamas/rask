@@ -9,6 +9,8 @@ namespace Rask.Site.Features.UiDocs;
 internal static class UiDocsProse
 {
     /// <summary>The pieces of <paramref name="text" />: its words as text and its backticked spans as code.</summary>
+    /// <remarks>A span of code breaks where it must, so a long chain never pushes a phone's page sideways.</remarks>
     public static IEnumerable<Component> Of(string text) =>
-        text.Split('`').Select((part, index) => index % 2 == 1 ? Code[part] : (Component)Text.Value(part));
+        text.Split('`').Select((part, index) =>
+            index % 2 == 1 ? Code.Class("[overflow-wrap:anywhere]")[part] : (Component)Text.Value(part));
 }
