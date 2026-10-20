@@ -166,6 +166,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`rask deploy`'s Caddy proxy keeps one config file per app.** Before: one `/etc/caddy/Caddyfile` naming every
+  app, rewritten whole by every deploy. After: the base Caddyfile is `import /data/rask/sites/*.caddy` (global
+  options you put above it are kept), and each app's site block and redirects are `/data/rask/sites/<app>.caddy` on
+  the `rask-caddy-data` volume, so they survive the proxy being replaced. The first deploy of any app with this
+  version moves a box over by itself, under the deploy lock: every other app gets its own file, routed to the
+  container that serves it now, then the base is swapped and Caddy reloads — nothing restarts and no app changes
+  colour. Every machine deploying to one box should use this version: an older `rask deploy` still rewrites the
+  whole Caddyfile (the next new deploy moves the box again). The lock is a `rask-deploy-lock` container that frees
+  itself after ten minutes.
+
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped
   table in the model numbers its tenants (`PerTenant<int>`, or a declared `int? TenantId`), the column is an `int`
@@ -873,6 +883,17 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **`rask deploy`: two apps deploying to one box at once can no longer leave one routed to a removed colour while
+  both report success.** On 2026-10-20 one app's deploy rewrote the shared Caddyfile from a container listing taken
+  before the other app swapped colours, so the other's domain pointed at a container that no longer existed — a 502
+  for eight minutes, with `Deployed.` printed by both. Now each app writes only its own proxy file, the switch
+  (write, reload, check, retire) runs under a box-wide deploy lock with the containers listed again inside it, and
+  the route is checked through Caddy — its admin API must name the new colour, and a request through it must reach
+  the app — before the old colour is retired. A check that fails puts the app's routes back, removes the new colour
+  and exits non-zero, naming what the proxy serves instead. Every copy and write into the proxy is checked (a
+  failed `docker cp` used to be ignored and cause the same outage on its own), creating the network or the proxy is
+  checked and locked, two colours of one app no longer route to whichever row came last (the older), and
+  `rask deploy rollback` goes the same way. See [the shared proxy](docs/deployment.md#the-shared-proxy-one-file-per-app).
 - **A read-face id that names a child exactly is no longer taken by an aggregate its name only ends in.** Before:
   `SupplyPart.VirtualTankId`, with `VirtualTank` a child of the aggregate `Tank`, generated `SupplyPartRead.VirtualTank`
   as a `TankRead`, joining the id to `Tank.Id` and reading the wrong rows. After: it is a `VirtualTankRead`. The
