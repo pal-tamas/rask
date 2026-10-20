@@ -24,9 +24,11 @@ Ui.Button.Primary["Save"]
 **Every component, live, with a reference of its steps: [the UI tab on rask.sh](https://rask.sh/ui/)** — so far
 [Button](https://rask.sh/ui/button/), [Badge](https://rask.sh/ui/badge/), [Callout](https://rask.sh/ui/callout/),
 [Card](https://rask.sh/ui/card/), [Heading](https://rask.sh/ui/heading/), [Text & link](https://rask.sh/ui/text/),
-[Separator](https://rask.sh/ui/separator/) and [Icon](https://rask.sh/ui/icon/), with
+[Separator](https://rask.sh/ui/separator/), [Icon](https://rask.sh/ui/icon/), [Dropdown](https://rask.sh/ui/dropdown/),
+[Context menu](https://rask.sh/ui/context/), [Command palette](https://rask.sh/ui/command/),
+[Popover](https://rask.sh/ui/popover/) and [Modal](https://rask.sh/ui/modal/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
-category pages: [Actions](https://rask.sh/docs/ui/actions) · [Data display](https://rask.sh/docs/ui/data-display) ·
+category pages: [Data display](https://rask.sh/docs/ui/data-display) ·
 [Navigation](https://rask.sh/docs/ui/navigation) · [Feedback](https://rask.sh/docs/ui/feedback) ·
 [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
@@ -1639,85 +1641,13 @@ The kit ships no JavaScript (the [editor](#rich-text-editor)'s engine apart), an
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
-**The browser owns it, declaratively.** `Ui.Modal` is [Flux's modal](https://fluxui.dev/components/modal),
-measured against it: a real **modal** `<dialog>` with a `Name`, opened by the button inside a
-`Ui.ModalTrigger` of that name. No handler runs — the trigger makes its button an HTML invoker
-(`command="show-modal" commandfor`), so the browser supplies the top layer, an inert page behind it so Tab
-cannot wander out, Escape, and focus handed back to the trigger on close. What Flux adds in script the dialog
-asks Rask's runtime for by attribute ([behaviour hooks](js-interop-runtime.md#behaviour-hooks-data-rask-)):
-`data-rask-modal` for a click outside and for which of the two dismissals are allowed,
-`data-rask-lock="scroll"` for the page held still behind it, and the invoker commands themselves in a browser
-that has none (before Chrome 135, Firefox 144, Safari 26.2).
-
-```csharp
-Ui.ModalTrigger.Name("edit-profile")[Ui.Button["Edit profile"]],
-Ui.Modal.Name("edit-profile").Class("md:w-96")[
-    Div.Class("space-y-6")[
-        Ui.Heading.Lg["Update profile"],
-        Ui.Input.Bind(() => _profile.Name).Label("Name"),
-        Div.Class("flex gap-2")[
-            Ui.Spacer,
-            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],          // closes the modal it is in
-            Ui.Button.Primary["Save changes"]
-        ]
-    ]
-]
-
-Ui.Modal.Name("filters").Flyout()[ … ]                         // against the right edge, full height
-Ui.Modal.Name("nav").Flyout().Left[ … ]                        // Ui.ModalPosition: Right, Left, Bottom
-Ui.Modal.Name("edit").Flyout().Floating.Class("md:w-lg")[ … ]  // standing off the edges, rounded
-Ui.Modal.Name("search").Bare[ … ]                              // no panel, no close button
-Ui.Modal.Name("terms").Scroll(Ui.ModalScroll.Body)[ … ]        // the whole layer scrolls, not the dialog
-Ui.Modal.Name("draft").Dismissible(false).Escapable(false)[ … ]
-Ui.ModalTrigger.Name("search").Shortcut("mod+k")[Ui.Button["Search"]]   // Flux's cmd.k
-```
-
-A modal draws the panel and the close button in its corner; what it holds — a heading, fields, a row of
-buttons — is yours, as in Flux. Flux UI's switches are all here: `Dismissible(false)` ignores a click outside,
-`Escapable(false)` ignores Escape, `Closable(false)` drops the corner's close button, and `OnClose` hears every
-way it closed. `OnCancel` hears only a DISMISSAL — Escape or a click outside — and runs before `OnClose`, so a
-dialog holding a draft can throw it away when the user backs out and keep it when they press a button that
-closes it; the close button and a `Ui.ModalClose` are not dismissals. Both are the dialog's own events: a
-dismissal raises `cancel` before `close`, in every browser, and all four combinations of the two switches
-work — `Escapable(false)` alone still closes on a click outside. While a modal is open the page behind it
-does not scroll, and keeps its scrollbar's gutter — where a scrollbar is showing — so it neither shifts
-sideways nor moves from where it was scrolled to.
-
-**How wide it is.** A modal with no width of its own is as wide as what it holds, between Flux's two
-defaults — at least 20rem, at most 36rem (a side flyout: at least 25rem from `md`). A width handed to `Class`
-replaces them: `md:w-96` for a form, and for a confirmation `min-w-[22rem]`, which is what Flux's own example
-writes — a short question over two buttons is a narrow box without it.
-
-```csharp
-Ui.Modal.Name("delete-project").Class("min-w-[22rem]")[
-    Div.Class("space-y-6")[
-        Div[
-            Ui.Heading.Lg["Delete project?"],                                   // short: it shares its line with the close button
-            Ui.Text.Class("mt-2")["This action cannot be reversed."]            // the sentence goes under it
-        ],
-        Div.Class("flex gap-2")[
-            Ui.Spacer,
-            Ui.ModalClose[Ui.Button.Ghost["Cancel"]],
-            Ui.Button.Danger.OnClick(Delete)["Delete project"]
-        ]
-    ]
-]
-```
-
-The close button is 32px, 16px in from the top and from the end edge, at every width. The heading keeps no
-room for it, in Flux as here: the panel's padding is 24px, so a first line that fills the panel — and a
-one-line question the modal hugs always does — ends 24px under the button. Flux's examples avoid that the
-way the one above does: a short heading, the sentence in a `Ui.Text` under it. Where the heading IS the
-sentence, `Ui.Heading.Class("pe-8")` keeps it clear of the button.
-
-Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state instead:
-`Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[ … ]`, which is Rask's `wire:model`. It is
-the same modal: the dialog says `data-rask-modal-open` and the runtime shows and closes it to match, so it is
-in the top layer behind the same backdrop, Escape and a click outside run `OnCancel` then `OnClose`, and focus
-returns when it closes. `OnClose` is where the page hears that the reader closed it — set the field there, or
-the page goes on saying it is open. A modal with neither a `Name` nor `Open` is open for as long as the page
-renders it. A modal without a `Key` beside keyed ones is fine: it keeps its instance by its order among the
-unkeyed modals of the page. `Ui.Drawer` is gone: a panel that slides in from an edge is a flyout.
+**The browser owns it, declaratively.** `Ui.Modal` is [Flux's modal](https://fluxui.dev/components/modal): a real
+modal `<dialog>` with a `Name`, opened by the button inside a `Ui.ModalTrigger` of that name with no handler — the
+trigger makes its button an HTML invoker, so the browser supplies the top layer, an inert page behind it, Escape and
+focus handed back, and the runtime adds a click outside and the page held still (`data-rask-modal`,
+`data-rask-lock`). `Flyout()`, `Dismissible(false)`, `Escapable(false)`, `Scroll(Ui.ModalScroll.Body)`,
+`Ui.ModalClose`, `OnClose` and `OnCancel` are Flux's switches; `Open(_field)` hands the state to the page in place of
+`wire:model`. Every example, live, with the reference of its steps: **[rask.sh/ui/modal](https://rask.sh/ui/modal/)**.
 
 `Ui.ConfirmLeave` is the one modal here that is not Flux's: the dialog a form's
 [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks in, in place of the browser's `confirm`.
@@ -1737,101 +1667,15 @@ it the shape Flux's confirmation has: a short title, the question under it.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
-**`Ui.Dropdown` and `Ui.Menu` are Flux UI's dropdown, exactly.** The first child is the trigger — a `Button`, a
-`Ui.Button`, any element that is a button — and the second is what it opens: a `Ui.Menu` of actions, or a
-`Ui.Navmenu` of links.
-
-```csharp
-Ui.Dropdown[
-    Ui.Button["Options", Ui.Icon.Name(Ui.IconName.ChevronDown).Micro],
-    Ui.Menu[
-        Ui.MenuItem.Icon(Ui.IconName.Plus).Kbd("⌘N").OnClick(NewPost)["New post"],
-        Ui.MenuSeparator,
-        Ui.MenuSubmenu.Heading("Sort by")[
-            Ui.MenuRadioGroup.Bind(() => view.Sort)[
-                Ui.MenuRadio.Value(Sort.Name)["Name"],
-                Ui.MenuRadio.Value(Sort.Date)["Date"]
-            ]
-        ],
-        Ui.MenuSubmenu.Heading("Filter")[
-            Ui.MenuCheckbox.Bind(() => view.Draft)["Draft"],
-            Ui.MenuCheckbox.Bind(() => view.Published)["Published"]
-        ],
-        Ui.MenuGroup.Heading("Account")[
-            Ui.MenuItem.Href(Routes.ProfilePage())["Profile"]
-        ],
-        Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(Delete)["Delete"]
-    ]
-]
-```
-
-| Flux | Rask.Ui | |
-| --- | --- | --- |
-| `flux:dropdown` | `Ui.Dropdown` | `Position` (`.Bottom` `.Top` `.Right` `.Left`), `Align` (`.Start` `.Center` `.End`), `Gap`, `Offset`; `Hover()` opens it under the pointer (`data-rask-hover`); `Open` + `OnToggle` to own the state |
-| `flux:menu` | `Ui.Menu` | `KeepOpen` |
-| `flux:menu.item` | `Ui.MenuItem` | `Icon`, `IconTrailing`, `IconVariant`, `Kbd`, `Suffix`, `Variant` (`.Danger`), `Disabled`, `KeepOpen`; `OnClick`, `Href` |
-| `flux:menu.submenu` | `Ui.MenuSubmenu` | `Heading`, `Icon`, `IconTrailing`, `IconVariant`, `KeepOpen` |
-| `flux:menu.separator` | `Ui.MenuSeparator` | |
-| `flux:menu.group` | `Ui.MenuGroup` | `Heading` |
-| `flux:menu.checkbox` | `Ui.MenuCheckbox` | `Bind` or `Value` + `OnChange` (for `wire:model` and `checked`), `Disabled`, `KeepOpen` |
-| `flux:menu.checkbox.group` | `Ui.MenuCheckboxGroup` | each checkbox binds its own flag |
-| `flux:menu.radio.group` | `Ui.MenuRadioGroup` | `Bind` or `Value` + `OnChange`, `KeepOpen` |
-| `flux:menu.radio` | `Ui.MenuRadio` | `Value` (the value it stands for in its group), `Checked` (outside one), `Disabled`, `KeepOpen` |
-| `flux:navmenu`, `flux:navmenu.item` | `Ui.Navmenu`, `Ui.NavmenuItem` | `Href`, `Icon`, `Variant` — links, with no menu roles and no cursor; without an `Href` a `<button>` with `OnClick`; a string `Href` is a plain `<a>`, a generated route navigates in the app |
-| `flux:context` | `Ui.Context` | `Position`, `Gap`, `Offset`, `Target`, `Detail`, `Disabled`; `Open` + `OnToggle` |
-
-**The browser owns the open state and the cursor; the page hears a pick.** The menu is a `[popover]` the trigger opens with
-`popovertarget`, so the browser opens and closes it — top layer, Escape, a click outside — with no runtime at
-all, and it is placed with CSS anchor positioning. **Every panel the kit opens against a trigger stays inside
-the viewport as Flux's does** — a menu, a popover, a tooltip, a list of options, a calendar, a list of times: when
-there is no room where it asked to be it takes the other alignment, then the other side, is slid back to stay
-5px inside the edge, and one taller than what is left is held to that height and scrolls inside (the runtime's
-`data-rask-place` hook, `docs/js-interop-runtime.md`; nothing to write in an app). While it is open the page behind does not scroll and does
-not take the pointer, so a click outside only closes it (`data-rask-lock` on the menu — a dropdown's and a
-context menu's alike, as on Flux; a menu the pointer opened, `Hover()`, locks nothing and takes no focus). Where
-the reader is in an open menu is not the page's state either: the runtime keeps the cursor in the browser
-(`data-rask-menu-cursor` on the menu), so a pointer gliding down the rows and an arrow key held down send the
-server **nothing** — no event, no render, no patch — on either host. The keyboard is Flux's key for
-key: the menu opens with focus on it and no row chosen; ArrowDown or ArrowUp puts the cursor on the first row,
-and from there the arrows move it a row at a time, **stopping at the ends** and stepping over disabled rows;
-Home, End and the page keys are not menu keys; a letter jumps to the row that starts with it; ArrowRight or
-Enter opens a submenu onto its first row and ArrowLeft closes it; Enter or Space picks; Tab leaves; ArrowDown
-on the closed trigger opens the menu onto its first row. The row under the cursor has **focus** (roving
-focus, not `aria-activedescendant`), `tabindex="0"` and `data-active` — all three written by the runtime and
-held against the next render, never rendered. The runtime also presses the focused row on Enter and Space,
-closes the popover after a pick or when Tab leaves, and hands focus back to the trigger after a click outside.
-What the page hears is a row being pressed — its `OnClick`, a checkbox's or a radio's value — and, only when
-it gave `OnToggle`, the menu opening and closing. Without `OnToggle` opening and closing a dropdown, a popover or
-a context menu sends nothing, and neither does a `Ui.MenuItem` with no `OnClick`: `data-open` and
-`aria-expanded` are written in the browser.
-
-A pick closes the menu — a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a radio
-group or a single row keeps it up, for the menu someone ticks several of.
-
-**The pointer is Flux's too, and there is one highlight.** A row is lit by `data-active` and by nothing else —
-no `:hover` — whether the pointer or the keyboard lit it. The runtime writes it the moment the pointer enters a
-row (`data-rask-menu-pointer`), in the browser; focus does
-not move, as on Flux, so the row the keyboard was on keeps the tab stop. The arrows then count from the lit
-row: with focus still on the menu the first arrow takes the row the pointer is on, and after that each goes on
-from whichever row is lit. When the pointer leaves the menu the row it lit goes dark and the keyboard's row
-stays lit. A submenu flies out beside its row the moment a pointer rests on it, stays while the pointer moves
-diagonally toward it — across the rows below — because the triangle between the pointer and the flyout still
-counts as the row (`data-rask-safe-area`, Flux's **safe area**), stays after the pointer has left the menu
-altogether, and closes when another row is entered. While the arrows are inside a flyout its submenu's row
-stays lit with the row they are on. A tap opens a submenu on a touch screen, and the next one closes it. An
-open flyout is `data-open` on the submenu, written by the runtime like the rest. Style the rows from
-`data-active`, `data-checked`, and `data-open` on the dropdown, its trigger and an open submenu.
-
-`Key` can go anywhere in a row's chain — `Ui.MenuCheckbox.Value(x).Key("k")` — and a generic one such as
-`Ui.MenuRadioGroup` takes one too (see [composition.md](composition.md)).
-
-`Open` is nullable and the three settings mean three things: unset leaves it to the reader; `true` and `false`
-hand it to the page, and the runtime shows or hides the popover to match whenever the page changes its mind,
-which is what lets a dropdown close itself when the action inside it completes.
-
-```csharp
-Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[ trigger, Ui.Menu[ … ] ]
-```
+**`Ui.Dropdown` and `Ui.Menu` are [Flux UI's dropdown](https://fluxui.dev/components/dropdown), exactly.** The
+first child is the trigger, any button, and the second is what it opens: a `Ui.Menu` of actions (`Ui.MenuItem`,
+`Ui.MenuSubmenu`, `Ui.MenuSeparator`, `Ui.MenuGroup`, `Ui.MenuCheckbox`, `Ui.MenuRadioGroup` of `Ui.MenuRadio`s), a
+`Ui.Navmenu` of links, or a `Ui.Popover`. The menu is a `[popover]`, so the browser owns the open state, and the
+runtime keeps the cursor and Flux's keyboard in the browser — a pointer sweeping the rows and the arrow keys send the
+page nothing; it hears a pick, and with `OnToggle` the menu opening and closing. `Open(_open)` hands the state to
+the page. Every panel the kit opens against a trigger — a menu, a popover, a tooltip, a list of options, a calendar —
+stays inside the viewport as Flux's does (the runtime's `data-rask-place`). Every example, live, with the reference of
+each part: **[rask.sh/ui/dropdown](https://rask.sh/ui/dropdown/)**.
 
 **The page owns it, in C#.** A `Ui.Toggle` given `Checked` and `Ui.Modal`'s `Open` path hold their state in a field and
 redraw through the live diff.
@@ -2403,110 +2247,22 @@ Like Flux's, the host is `role="status"` and each toast `aria-atomic="true"`, so
 and whole; the variant is carried by its icon's shape as well as its colour.
 
 **`Ui.Context` is the same menu, opened by a right-click** — Flux's `flux:context`. The first child is the area
-that is right-clicked and the second is the `Ui.Menu`, the same one a `Ui.Dropdown` opens, so the rows and the
-keyboard are identical; only the opening differs:
+and the second the `Ui.Menu` a `Ui.Dropdown` would open, so the rows and the keyboard are identical. The runtime
+opens it at the pointer at once, on either host, and the ContextMenu key or Shift+F10 at the focused element; iOS
+never fires the event, so put the same actions somewhere visible too. Live, with its reference:
+**[rask.sh/ui/context](https://rask.sh/ui/context/)**.
 
-```csharp
-Ui.Context[
-    Div.TabIndex(0).Class("card")["Invoice 42"],
-    Ui.Menu[
-        Ui.MenuItem.OnClick(Open)["Open"],
-        Ui.MenuSeparator,
-        Ui.MenuItem.Danger.OnClick(Delete)["Delete"]
-    ]
-]
-```
+**`Ui.Command` is Flux's command palette: a searchable list of commands** — `Ui.Command` around a
+`Ui.CommandInput` and the `Ui.CommandItems` list of `Ui.CommandItem`s, each with an `OnClick`. Narrowing, the lit
+command and Enter are the browser's (`data-rask-command`), so nothing is sent until a command runs; as a palette it
+is a bare `Ui.Modal` opened by `Ui.ModalTrigger.Name("search").Shortcut("mod+k")`. Live, with its reference:
+**[rask.sh/ui/command](https://rask.sh/ui/command/)**.
 
-The runtime opens it: an element carrying `data-rask-contextmenu="<popover id>"` shows that popover at the pointer
-in place of the browser's menu, straight away and on either host — a round trip first would be a lag felt on every
-right-click. It lands where Flux's does: below the pointer, the menu's END edge on it — and near an edge of
-the viewport over the pointer, or its start edge on it, slid back to stay 5px inside. `Position` (`.BottomEnd` `.BottomCenter` `.BottomStart` `.TopEnd` `.TopCenter`
-`.TopStart`), `Gap` and `Offset((x, y))` move it; `Target("id")` opens a `Ui.Menu.Id("id")` written somewhere
-else; `Detail` lands on the menu as `data-detail`; `Disabled` leaves the browser's own menu alone. The ContextMenu
-key and Shift+F10 open it at the focused element, which is why the area above is focusable — and unlike Flux's,
-the menu takes focus as it opens, so the arrow keys work at once. Nothing in a context menu should be the ONLY way
-to do something: iOS Safari never fires the event, so put the same actions somewhere visible too.
-
-**`Ui.Command` is Flux's command palette: a searchable list of commands.** Flux's parts, Flux's names —
-`Ui.Command` around a `Ui.CommandInput` and the `Ui.CommandItems` list of `Ui.CommandItem`s:
-
-```csharp
-Ui.Command[
-    Ui.CommandInput.Placeholder("Search..."),
-    Ui.CommandItems[
-        Ui.CommandItem.Icon(Ui.IconName.UserPlus).Kbd("⌘A").OnClick(Assign)["Assign to…"],
-        Ui.CommandItem.Icon(Ui.IconName.DocumentPlus).OnClick(CreateFile)["Create new file"],
-        Ui.CommandItem.Icon(Ui.IconName.Cog6Tooth).Kbd("⌘,").OnClick(OpenSettings)["Settings"]
-    ]
-]
-```
-
-`OnClick` is Flux's `wire:click`: what pressing the command does. Everything else is the browser's, as Flux's custom
-element keeps it (`data-rask-command`): focus in the box lights the first command; typing hides the commands that do
-not contain it (any case, any accents), lights the first one left and shows "No results found" when none is;
-ArrowUp and ArrowDown move the lit command and stop at the ends; the pointer lights the command under it; Enter
-presses the lit one. A pressed command empties the box and nothing else — the palette stays where it is. None of
-that sends the server anything. `Ui.CommandInput` takes Flux's `Icon` (the magnifying glass unless set),
-`Placeholder`, `Clearable` and `Closable`; Flux draws the clear button whether or not it is asked to (measured), so
-it is there unless `Clearable(false)`, or the box is `Closable` and not also clearable. `Ui.CommandItem` takes
-`Icon`, `IconVariant` (outline unless set) and `Kbd`, a hint: the page binds the key.
-
-As a palette it is Flux's "As a modal" example — a bare `Ui.Modal` opened by a trigger, from anywhere on the page
-with its `Shortcut`, and `Closable` puts the box's close button on it:
-
-```csharp
-Ui.ModalTrigger.Name("search").Shortcut("mod+k")[
-    Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K")
-],
-Ui.Modal.Name("search").Variant(Ui.ModalVariant.Bare).Class("my-[12vh] max-h-screen w-full max-w-[30rem] overflow-y-hidden")[
-    Ui.Command.Class("inline-flex max-h-[76vh] flex-col border-none shadow-lg")[
-        Ui.CommandInput.Placeholder("Search...").Closable(),
-        Ui.CommandItems[/* … */]
-    ]
-]
-```
-
-`data-rask-shortcut="mod+k"` CLICKS its element when the combination is pressed (`mod` is ⌘ on a Mac and Ctrl
-elsewhere; `ctrl`, `alt`, `shift`, `meta`; a shortcut with no modifier does not fire while the reader is typing).
-As on Flux's page, the modal opens with focus on nothing inside it (Tab takes it into the box), Escape closes it,
-and what was typed is still there when it opens again. Flux caps the palette at 480px only while it is handed no
-class; the modal example's classes take the cap away.
-
-**`Ui.Popover` is Flux's popover: extra content in a panel beside a button.** For what is not a menu — a form,
-a set of filters, a card about a person. It is the second child of the `Ui.Dropdown` that holds its trigger,
-exactly as `flux:popover` sits in `flux:dropdown`, and everything about where it opens and what opens it is the
-dropdown's:
-
-```csharp
-Ui.Dropdown[
-    Ui.Button.Icon(Ui.IconName.AdjustmentsHorizontal).IconTrailing(Ui.IconName.ChevronDown)["Options"],
-    Ui.Popover.Class("flex flex-col gap-4")[
-        Ui.RadioGroup.Bind(() => _sort).Label("Sort by")[
-            Ui.Radio.Value("active").Label("Recently active"),
-            Ui.Radio.Value("posted").Label("Date posted")
-        ],
-        Ui.Separator.Subtle,
-        Ui.Button.Subtle.Sm.Class("justify-start -m-2 px-2!").OnClick(Reset)["Reset to default"]
-    ]
-]
-```
-
-| Flux | Rask |
-|---|---|
-| `flux:dropdown position="top" align="end"` | `Ui.Dropdown.Top.End` |
-| `flux:dropdown gap="16" offset="32"` | `Ui.Dropdown.Gap(16).Offset(32)` |
-| `flux:dropdown hover` | `Ui.Dropdown.Hover()` — the pointer opens it; a press and Enter still do |
-| `flux:dropdown wire:model="open"` | `Ui.Dropdown.Open(_open).OnToggle(open => _open = open)` |
-| `flux:popover class="w-80 p-0"` | `Ui.Popover.Class("w-80 p-0")` — its width, padding, radius and shadow weigh nothing, so yours win |
-
-The panel is a `[popover]` the trigger names with `popovertarget`, so the browser opens it, lifts it into the top
-layer and closes it on Escape and on a press anywhere else. It is no menu and says no role. Focus stays on the
-trigger as it opens — the panel takes none — and Tab walks from there into the panel; Shift+Tab off the trigger,
-or Tab past the panel's last control, closes it. While one a press opened is up, the page behind neither scrolls
-nor takes the pointer (`data-rask-lock`), so a press on anything else only closes it; one the pointer opened
-locks nothing. An open panel carries `data-open` from the moment it opens — the runtime writes it in the browser
-(`data-rask-open-mark`), so no round trip stands between the press and the layout — which is what Flux's own
-`data-open:flex` styles by, and a closed one is never displayed whatever layout its `Class` gives it.
+**`Ui.Popover` is Flux's popover: extra content in a panel beside a button**, for what is not a menu — a form, a
+set of filters, a card about a person. It is the second child of the `Ui.Dropdown` that holds its trigger, so where
+it opens and what opens it (`Hover()`, `Open` with `OnToggle`) are the dropdown's. The browser opens it and closes
+it on Escape and a press elsewhere; focus stays on the trigger and Tab walks into the panel. Live, with its
+reference: **[rask.sh/ui/popover](https://rask.sh/ui/popover/)**.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: the scales, the ticks and every
 path are computed during the render, to the numbers Flux's own layout arrives at, for the box the chart has in

@@ -189,9 +189,12 @@ them until tagged releases begin.
   component in Flux's order. As on fluxui.dev, each example has its own short code block with its live result right
   below it — one small class per example, so the code shown is that example's and nothing else — and each page ends
   in a reference table of the chain steps, each enum's values and the Flux part it mirrors. The first family is
-  there: Button (and button group), Badge, Callout, Card, Heading, Text & link, Separator and Icon. Their examples moved
-  rather than being copied, so the category pages they left link forward to them; every old URL still answers, and
-  the rest move family by family. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  there: Button (and button group), Badge, Callout, Card, Heading, Text & link, Separator and Icon — and the actions
+  family: Dropdown (with its menus, submenus, checkbox and radio rows and navigation menus), Context menu, Command
+  palette, Popover and Modal. Their examples moved rather than being copied, so the category pages they left link
+  forward to them; every old URL still answers, and the rest move family by family. `/docs/ui/actions`, emptied, is a
+  forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
+  every page that took one of its components; the docs sidebar no longer lists it. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped
