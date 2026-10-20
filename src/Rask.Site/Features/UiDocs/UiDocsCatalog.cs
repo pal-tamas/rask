@@ -60,6 +60,27 @@ internal static class UiDocsCatalog
         + "five surfaces, four sizes and six body treatments.",
         "card");
 
+    public static UiDocsEntry Command { get; } = new(
+        Routes.UiCommandPage(), "Command palette", Components,
+        "Command palette in C#: Ui.Command",
+        "Flux UI's command palette in C#: a searchable list of commands that narrows as you type, walks with the "
+        + "arrows, and opens as a modal from a shortcut.",
+        "command");
+
+    public static UiDocsEntry Context { get; } = new(
+        Routes.UiContextPage(), "Context menu", Components,
+        "Context menu in C#: Ui.Context",
+        "Flux UI's context menu in C#: the menu a dropdown opens, at the pointer on a right-click, with the same "
+        + "rows, submenus and keyboard.",
+        "context");
+
+    public static UiDocsEntry Dropdown { get; } = new(
+        Routes.UiDropdownPage(), "Dropdown", Components,
+        "Dropdown menu in C#: Ui.Dropdown and Ui.Menu",
+        "Flux UI's dropdown in C#: a menu of actions or links under a button, with submenus, checkbox and radio "
+        + "rows, groups, shortcuts and Flux's keyboard.",
+        "dropdown");
+
     public static UiDocsEntry Heading { get; } = new(
         Routes.UiHeadingPage(), "Heading", Components,
         "Heading component in C#: Ui.Heading",
@@ -73,6 +94,20 @@ internal static class UiDocsCatalog
         "Every Heroicon as a C# component: Ui.Icon in outline, solid, mini and micro, sized and coloured with a "
         + "Tailwind class, and taken by every Rask.Ui component.",
         "icon");
+
+    public static UiDocsEntry Modal { get; } = new(
+        Routes.UiModalPage(), "Modal", Components,
+        "Modal dialog in C#: Ui.Modal",
+        "Flux UI's modal in C#: a real dialog its trigger opens with no handler, as a confirmation, a flyout from "
+        + "any edge, or opened by a C# field.",
+        "modal");
+
+    public static UiDocsEntry Popover { get; } = new(
+        Routes.UiPopoverPage(), "Popover", Components,
+        "Popover component in C#: Ui.Popover",
+        "Flux UI's popover in C#: a panel of extra content beside a button (filters, a form, a profile card) "
+        + "opened by a press or by the pointer.",
+        "popover");
 
     public static UiDocsEntry Separator { get; } = new(
         Routes.UiSeparatorPage(), "Separator", Components,
@@ -92,6 +127,6 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Badge, Button, Callout, Card, Heading, Icon, Separator, Text,
+        Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Separator, Text,
     ];
 }

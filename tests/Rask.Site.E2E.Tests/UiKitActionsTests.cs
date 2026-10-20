@@ -5,7 +5,7 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     The kit's Actions components, in a browser.
+///     The kit's actions — dropdown, context menu, command palette and modal — on their pages in the UI tab, in a browser.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,16 +29,17 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    [Fact]
-    public Task Every_action_component_renders_with_a_real_size() => RunAsync(async () =>
+    [Theory]
+    [InlineData("dropdown", "Dropdown", "ui-dropdown-intro|ui-dropdown-navigation|ui-dropdown-position|ui-dropdown-offset|ui-dropdown-shortcuts|ui-dropdown-checkbox|ui-dropdown-radio|ui-dropdown-groups|ui-dropdown-headings|ui-dropdown-keep-open|ui-dropdown-open")]
+    [InlineData("context", "Context menu", "ui-context-menu")]
+    [InlineData("command", "Command palette", "ui-command|ui-command-modal")]
+    [InlineData("popover", "Popover", "ui-popover-intro|ui-popover-hover|ui-popover-position|ui-popover-gap|ui-popover-categories|ui-popover-feedback|ui-popover-event")]
+    [InlineData("modal", "Modal", "ui-modal|ui-modal-state|ui-modal-dismissible|ui-modal-escapable|ui-modal-scroll|ui-modal-confirm|ui-modal-flyout|ui-modal-flyout-position|ui-modal-floating")]
+    public Task Every_action_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync(slug, heading);
 
-        foreach (var id in new[]
-                 {
-                     "ui-dropdown", "ui-context-menu", "ui-command",
-                     "ui-modal", "ui-modal-confirm", "ui-modal-flyout", "ui-modal-floating", "ui-modal-options", "ui-modal-state",
-                 })
+        foreach (var id in testids.Split('|'))
         {
             var node = Page.Locator($"[data-testid='{id}']");
             await Expect(node).ToBeVisibleAsync(
@@ -54,11 +55,23 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task The_old_actions_page_sends_the_reader_on_to_the_dropdown_page() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{Docs}/ui/actions/");
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/ui/dropdown/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Dropdown",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
     public Task The_dropdown_opens_and_closes_from_CSharp_state() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var scope = Page.Locator("[data-testid='ui-dropdown-open']");
         var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Open menu" });
         await Expect(trigger).ToHaveAttributeAsync("aria-expanded", "false", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
 
@@ -83,24 +96,24 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task Choosing_a_menu_action_closes_the_dropdown_and_reports_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var scope = Page.Locator("[data-testid='ui-dropdown-shortcuts']");
 
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Shortcuts" }).ClickAsync();
         await scope.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Duplicate" }).ClickAsync();
 
         // Both halves matter: the action ran, and the menu closed itself afterwards.
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("duplicate");
+        await Expect(scope).ToContainTextAsync("Last action: duplicate");
         await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
     });
 
     [Fact]
     public Task The_keyboard_walks_the_menu_as_Flux_does_with_focus_on_the_row_under_the_cursor() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var scope = Page.Locator("[data-testid='ui-dropdown-intro']");
         var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
 
         await trigger.FocusAsync();
@@ -136,7 +149,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         // Enter presses the row that has focus, exactly as a click would, and the whole menu closes.
         await Page.Keyboard.PressAsync("Enter");
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by date");
+        await Expect(scope).ToContainTextAsync("Last action: sorted by date");
         await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToHaveCountAsync(0);
         await Expect(trigger).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
     });
@@ -144,9 +157,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task ArrowDown_on_the_trigger_opens_the_menu_onto_its_first_row_and_a_letter_jumps() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var scope = Page.Locator("[data-testid='ui-dropdown-groups']");
         var trigger = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Groups" });
 
         await trigger.FocusAsync();
@@ -165,9 +178,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_pointer_crossing_diagonally_into_a_submenu_keeps_it_open() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        var scope = Page.Locator("[data-testid='ui-dropdown-intro']");
 
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" }).ClickAsync();
 
@@ -195,14 +208,14 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         // <ui-menu-radio-group> is, and at a row's centre Chromium's elementsFromPoint — what Playwright checks a
         // click against — lists that box above the row, though elementFromPoint and a real press reach the row.
         await target.ClickAsync(new LocatorClickOptions { Position = new Position { X = 12, Y = to.Height / 2 } });
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("sorted by popularity");
+        await Expect(scope).ToContainTextAsync("Last action: sorted by popularity");
     });
 
     [Fact]
     public Task The_pointer_lights_a_menu_row_without_taking_focus_and_the_arrows_go_on_from_it() => RunAsync(async () =>
     {
-        await OpenAsync();
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        await OpenUiPageAsync("dropdown", "Dropdown");
+        var scope = Page.Locator("[data-testid='ui-dropdown-intro']");
         await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" }).ClickAsync();
         var menu = scope.Locator("[data-ui-menu]:popover-open");
         await Expect(menu).ToBeFocusedAsync(new LocatorAssertionsToBeFocusedOptions { Timeout = 10_000 });
@@ -229,18 +242,19 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_checkbox_row_closes_the_menu_unless_the_menu_or_the_row_keeps_it_open() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
-        var open = scope.Locator("[data-ui-menu]:popover-open");
+        var permissions = Page.Locator("[data-testid='ui-dropdown-checkbox']");
+        var keeps = Page.Locator("[data-testid='ui-dropdown-keep-open']");
+        var open = Page.Locator("[data-ui-menu]:popover-open");
 
         // A pick closes the menu, checkbox or not — Flux's default.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Permissions" }).ClickAsync();
+        await permissions.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Permissions" }).ClickAsync();
         await open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Delete" }).ClickAsync();
         await Expect(open).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
 
         // KeepOpen on the menu: ticking three should not mean opening it three times.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Keep open" }).ClickAsync();
+        await keeps.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Keep open" }).ClickAsync();
         var archived = open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Archived" });
         await archived.ClickAsync();
         await Expect(archived).ToHaveAttributeAsync("aria-checked", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
@@ -249,21 +263,22 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Keyboard.PressAsync("Escape");
 
         // KeepOpen on the rows only: the checkboxes stay, and "Clear" closes it.
-        await scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
+        await keeps.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
         await open.GetByRole(AriaRole.Menuitemcheckbox, new LocatorGetByRoleOptions { Name = "Draft" }).ClickAsync();
         await Page.WaitForTimeoutAsync(300);
         await Expect(open).ToBeVisibleAsync();
         await open.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Clear" }).ClickAsync();
         await Expect(open).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("cleared the filters");
+        await Expect(keeps).ToContainTextAsync("Last action: cleared the filters");
     });
 
     [Fact]
     public Task The_menu_opens_on_the_side_and_at_the_distance_it_was_asked_for() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
+        // Four examples, one placement each: the whole page is their scope.
+        var scope = Page.Locator("main");
 
         // Below, start edges together, five pixels off: the default.
         var options = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
@@ -305,11 +320,11 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_click_outside_closes_the_menu_and_presses_nothing_under_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("dropdown", "Dropdown");
 
-        var scope = Page.Locator("[data-testid='ui-dropdown']");
-        var options = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Options" });
-        var other = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Groups" });
+        var scope = Page.Locator("[data-testid='ui-dropdown-keep-open']");
+        var options = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Keep open" });
+        var other = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" });
 
         await options.ClickAsync();
         await Expect(scope.Locator("[data-ui-menu]:popover-open")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -353,7 +368,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_right_click_opens_the_menu_at_the_pointer_with_the_menu_keyboard() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("context", "Context menu");
 
         var scope = Page.Locator("[data-testid='ui-context-menu']");
         var card = scope.GetByText("Right click");
@@ -390,14 +405,14 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await WaitForCursorAsync(FocusedRowAsync, "New post");
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("new post in the card");
+        await Expect(scope).ToContainTextAsync("Last action: new post");
         await Expect(panel).ToBeHiddenAsync();
     });
 
     [Fact]
     public Task A_context_menu_opened_at_the_edge_of_the_viewport_stays_on_screen() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("context", "Context menu");
 
         var scope = Page.Locator("[data-testid='ui-context-menu']");
         var card = scope.GetByText("Right click");
@@ -431,10 +446,10 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_shortcut_opens_the_palette_as_a_modal_and_Enter_runs_the_narrowed_command() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("command", "Command palette");
 
         var dialog = Page.Locator("#search");
-        await Expect(Page.Locator("[data-testid='ui-command'] [data-rask-shortcut]")).ToBeVisibleAsync(
+        await Expect(Page.Locator("[data-testid='ui-command-modal'] [data-rask-shortcut]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         // The hook is installed when the runtime loads, so press until it is there to answer.
@@ -458,7 +473,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Keyboard.PressAsync("Enter");
 
         // The command runs and the box starts over; the palette stays open, as Flux's does, and Escape closes it.
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("opened the changelog",
+        await Expect(Page.Locator("[data-testid='ui-command-modal']")).ToContainTextAsync("opened the changelog",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(box).ToHaveValueAsync("");
         await Page.Keyboard.PressAsync("Escape");
@@ -468,9 +483,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_palette_on_the_page_narrows_lights_and_runs_a_command_in_the_browser() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("command", "Command palette");
 
-        var palette = Page.Locator("[data-testid='ui-command'] > [data-ui-command]");
+        var palette = Page.Locator("[data-testid='ui-command'] [data-ui-command]");
         var box = palette.Locator("input");
         await box.ScrollIntoViewIfNeededAsync();
         await box.ClickAsync();
@@ -493,7 +508,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await box.FillAsync("");
         await box.PressSequentiallyAsync("set");
         await palette.Locator("[data-ui-command-item]:not([data-hidden])").ClickAsync();
-        await Expect(Page.Locator("[data-testid='ui-actions-log']")).ToContainTextAsync("opened the settings",
+        await Expect(Page.Locator("[data-testid='ui-command']")).ToContainTextAsync("opened the settings",
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(box).ToHaveValueAsync("");
     });
@@ -512,12 +527,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_modal_opens_from_its_trigger_as_a_real_modal_and_escape_closes_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var trigger = Page.Locator("[data-testid='ui-modal']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" });
         var dialog = Page.Locator("#edit-profile");
-        var log = Page.Locator("[data-testid='ui-actions-log']");
+        var log = Page.Locator("[data-testid='ui-modal']");
         await Expect(dialog).ToBeHiddenAsync();
 
         await trigger.FocusAsync();
@@ -541,11 +556,11 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Locator("[data-testid='ui-modal-more'] summary").ClickAsync();
         await Expect(Page.Locator("[data-testid='ui-modal-more']")).ToHaveAttributeAsync("open", "");
         await Expect(dialog).ToBeVisibleAsync();
-        await Expect(log).Not.ToContainTextAsync("closed the profile");
+        await Expect(log).ToContainTextAsync("Closed 0 times");
 
         await Page.Keyboard.PressAsync("Escape");
         await Expect(dialog).ToBeHiddenAsync();
-        await Expect(log).ToContainTextAsync("closed the profile", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(log).ToContainTextAsync("Closed 1 time.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         Assert.Equal("visible|auto|auto", await Page.EvaluateAsync<string>(PageLock));
         await Expect(dialog).Not.ToHaveAttributeAsync("data-open", "");
         await Expect(trigger).ToBeFocusedAsync();
@@ -554,7 +569,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_click_outside_closes_the_modal_and_a_click_on_its_own_padding_does_not() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var dialog = Page.Locator("#edit-profile");
         await Page.Locator("[data-testid='ui-modal']")
@@ -572,7 +587,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_modal_is_drawn_as_Flux_draws_it() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var dialog = Page.Locator("#edit-profile");
         await Page.Locator("[data-testid='ui-modal']")
@@ -599,7 +614,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_confirmation_closes_from_its_cancel_and_its_delete_still_runs_its_handler() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var scope = Page.Locator("[data-testid='ui-modal-confirm']");
         var dialog = Page.Locator("#delete-profile");
@@ -615,19 +630,19 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeVisibleAsync();
         await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete project" }).ClickAsync();
         await Expect(dialog).ToBeHiddenAsync();
-        await Expect(Page.Locator("[data-testid='ui-actions-log']"))
-            .ToContainTextAsync("deleted the project", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await Expect(scope)
+            .ToContainTextAsync("You deleted the project", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
     [Theory]
-    [InlineData("Edit profile", "edit-profile-flyout", "right")]
-    [InlineData("From the left", "flyout-left", "left")]
-    [InlineData("From the bottom", "flyout-bottom", "bottom")]
-    public Task A_flyout_sits_against_the_edge_it_opens_from(string button, string name, string edge) => RunAsync(async () =>
+    [InlineData("ui-modal-flyout", "Edit profile", "edit-profile-flyout", "right")]
+    [InlineData("ui-modal-flyout-position", "From the left", "flyout-left", "left")]
+    [InlineData("ui-modal-flyout-position", "From the bottom", "flyout-bottom", "bottom")]
+    public Task A_flyout_sits_against_the_edge_it_opens_from(string example, string button, string name, string edge) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
-        await Page.Locator("[data-testid='ui-modal-flyout']")
+        await Page.Locator($"[data-testid='{example}']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = button }).ClickAsync();
         var dialog = Page.Locator("#" + name);
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -655,7 +670,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task Opening_a_flyout_leaves_the_page_where_it_was_scrolled_and_as_wide_as_it_was() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
         var demo = Page.Locator("[data-testid='ui-modal-flyout']");
         await demo.EvaluateAsync("el => el.scrollIntoView({ block: 'center' })");
         // Where the page is scrolled to, and where the demo's own box is on screen.
@@ -680,7 +695,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_floating_flyout_stands_off_the_edges_of_the_viewport() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         await Page.Locator("[data-testid='ui-modal-floating']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Edit profile" }).ClickAsync();
@@ -702,9 +717,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_modal_that_is_not_dismissible_ignores_a_click_outside() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
-        await Page.Locator("[data-testid='ui-modal-options']")
+        await Page.Locator("[data-testid='ui-modal-dismissible']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Filters" }).ClickAsync();
         var dialog = Page.Locator("#demo-filters");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -720,9 +735,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_modal_that_is_not_escapable_stays_through_Escape_and_still_closes_on_a_click_outside() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
-        await Page.Locator("[data-testid='ui-modal-options']")
+        await Page.Locator("[data-testid='ui-modal-escapable']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Session" }).ClickAsync();
         var dialog = Page.Locator("#demo-session");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -740,9 +755,9 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task A_long_modal_set_to_scroll_the_body_runs_past_the_bottom_of_the_screen() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
-        await Page.Locator("[data-testid='ui-modal-options']")
+        await Page.Locator("[data-testid='ui-modal-scroll']")
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Terms" }).ClickAsync();
         var dialog = Page.Locator("#demo-terms");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -760,12 +775,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_state_driven_modal_is_a_real_modal_and_tells_a_dismissal_from_a_close() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var scope = Page.Locator("[data-testid='ui-modal-state']");
         var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
         var dialog = scope.Locator("dialog");
-        var log = Page.Locator("[data-testid='ui-actions-log']");
+        var log = scope;
         await Expect(dialog).ToBeHiddenAsync();
 
         await opener.FocusAsync();
@@ -806,12 +821,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Fact]
     public Task The_state_driven_modal_closes_on_a_click_outside_and_from_a_modal_close() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("modal", "Modal");
 
         var scope = Page.Locator("[data-testid='ui-modal-state']");
         var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
         var dialog = scope.Locator("dialog");
-        var log = Page.Locator("[data-testid='ui-actions-log']");
+        var log = scope;
 
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -1014,15 +1029,4 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         Assert.True(await Page.EvaluateAsync<bool>("() => window.__raskStayedInApp === true"),
             "the button reloaded the app instead of navigating inside it.");
     });
-
-    private async Task OpenAsync()
-    {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Actions");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Actions",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-    }
 }

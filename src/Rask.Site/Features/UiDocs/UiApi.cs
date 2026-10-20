@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using Rask.Core;
 using Rask.Core.Routing;
 
 namespace Rask.Site.Features.UiDocs;
@@ -10,6 +12,12 @@ namespace Rask.Site.Features.UiDocs;
 internal static class UiApi
 {
     private const string Hue = "Ui.Color: one of Tailwind's hues, each a step too (.Blue)";
+
+    private const string Handler = "a handler, with no argument";
+
+    private const string Toggled = "a handler given the state it is now in: open => …";
+
+    private const string Picked = "a handler given the new value";
 
     public static IReadOnlyList<UiApiPart> Badge { get; } =
     [
@@ -119,6 +127,124 @@ internal static class UiApi
         new("Ui.CardBleed", typeof(UiCardBleed), "flux:card.bleed", "Content that runs to the card's edges: an image.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> Command { get; } =
+    [
+        new("Ui.Command", typeof(UiCommand), "flux:command", "The palette: a box to type in over a list of commands, narrowed in the browser.", []),
+        new("Ui.CommandInput", typeof(UiCommandInput), "flux:command.input", "The box that narrows the list.",
+        [
+            new("Placeholder", typeof(string), "What the box says while it is empty."),
+            new("Icon", typeof(Ui.IconName?), "The icon at the start of the box. A magnifying glass when unset."),
+            new("Clearable", typeof(bool?), "A button that empties the box while it holds something. On unless false."),
+            new("Closable", typeof(bool?), "A button that closes the modal the palette is in."),
+        ]),
+        new("Ui.CommandItems", typeof(UiCommandItems), "flux:command.items", "The list of commands. It says \"No results found\" when typing hides them all.", []),
+        new("Ui.CommandItem", typeof(UiCommandItem), "flux:command.item", "One command. Its children are its words, which the box matches.",
+        [
+            new("Icon", typeof(Ui.IconName?), "The icon at the start of the row."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icon. Outline when unset."),
+            new("Kbd", typeof(string), "A shortcut shown at the end of the row: \"⌘K\". A hint: the page binds the key."),
+            new("OnClick", typeof(Callback), "What pressing the command, or Enter on it, does.", Handler),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Context { get; } =
+    [
+        new("Ui.Context", typeof(UiContext), "flux:context", "Opens its second child, a Ui.Menu, at the pointer when its first child is right-clicked.",
+        [
+            new("Position", typeof(Ui.ContextPosition?), "Where the menu opens against the pointer. Below it, its end edge on it, when unset."),
+            new("Gap", typeof(int?), "The distance between the pointer and the menu, in pixels."),
+            new("Offset", typeof((int X, int Y)?), "Shifts the menu from where it would open, in pixels.", "(int X, int Y)"),
+            new("Target", typeof(string), "The id of a Ui.Menu written somewhere else, for one that cannot sit inside."),
+            new("Detail", typeof(string), "A value for the menu's data-detail, to tell which area opened it."),
+            new("Disabled", typeof(bool?), "Leaves a right-click to the browser's own menu."),
+            new("Open", typeof(bool?), "Hands the open state to the page. Unset, the reader opens and closes it."),
+            new("OnToggle", typeof(Callback<bool>), "Runs when the reader opens or closes it.", Toggled),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Dropdown { get; } =
+    [
+        new("Ui.Dropdown", typeof(UiDropdown), "flux:dropdown", "A trigger, its first child, and what it opens, its second: a menu, a navigation menu or a popover.",
+        [
+            new("Position", typeof(Ui.DropdownPosition?), "Which side of the trigger it opens on. Below when unset."),
+            new("Align", typeof(Ui.DropdownAlign?), "Where along that side it sits. Its start edge on the trigger's when unset."),
+            new("Gap", typeof(int?), "The distance from the trigger, in pixels. 5 when unset."),
+            new("Offset", typeof(int?), "Shifts it along its alignment, in pixels; negative moves it back past the trigger's edge."),
+            new("Hover", typeof(bool?), "Opens it while the pointer is over the trigger or the panel. A press and the keyboard still do."),
+            new("Open", typeof(bool?), "Hands the open state to the page. Unset, the reader opens and closes it."),
+            new("OnToggle", typeof(Callback<bool>), "Runs when the reader opens or closes it.", Toggled),
+        ]),
+        new("Ui.Menu", typeof(UiMenu), "flux:menu", "The rows a dropdown or a context menu opens, with Flux's keyboard.",
+        [
+            new("KeepOpen", typeof(bool?), "Keeps it open after any row in it is picked."),
+        ]),
+        new("Ui.MenuItem", typeof(UiMenuItem), "flux:menu.item", "An action. Its children are its words.",
+        [
+            new("Icon", typeof(Ui.IconName?), "An icon at the start of the row."),
+            new("IconTrailing", typeof(Ui.IconName?), "An icon at the end of the row."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icons. Mini, 20px, when unset."),
+            new("Kbd", typeof(string), "A shortcut shown at the end of the row: \"⌘S\". A hint: the page binds the key."),
+            new("Suffix", typeof(string), "Words at the end of the row: a count, a state."),
+            new("Variant", typeof(Ui.MenuItemVariant?), "Danger for a destructive action."),
+            new("Disabled", typeof(bool?), "Shown but not pickable. The keyboard steps over it."),
+            new("KeepOpen", typeof(bool?), "Keeps the menu open after this row is picked."),
+            new("Href", typeof(RouteUrl?), "Where it leads. A generated route stays in the app; a string is a link the browser follows.", "a route, or a URL string"),
+            new("OnClick", typeof(Callback), "What picking it does.", Handler),
+        ]),
+        new("Ui.MenuSubmenu", typeof(UiMenuSubmenu), "flux:menu.submenu", "A row that flies out a menu of its own beside it.",
+        [
+            new("Heading", typeof(string), "The row's words. Required, and taken first."),
+            new("Icon", typeof(Ui.IconName?), "An icon at the start of the row."),
+            new("IconTrailing", typeof(Ui.IconName?), "The icon at the end of the row. A chevron when unset."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icons. Mini when unset."),
+            new("KeepOpen", typeof(bool?), "Keeps the menu open after any row in it is picked."),
+        ]),
+        new("Ui.MenuSeparator", typeof(UiMenuSeparator), "flux:menu.separator", "A line between rows.", []),
+        new("Ui.MenuGroup", typeof(UiMenuGroup), "flux:menu.group", "Rows set apart from the rest, under a heading or between lines.",
+        [
+            new("Heading", typeof(string), "The words above the rows. Without it the group is set apart by lines alone."),
+        ]),
+        new("Ui.MenuCheckbox", typeof(UiMenuCheckbox), "flux:menu.checkbox", "A row that is on or off.",
+        [
+            new("Bind", typeof(Expression<Func<bool>>), "The model's flag it reads and writes: () => m.Draft. Or Value with OnChange.", "() => a bool"),
+            new("Value", typeof(bool), "Whether it is ticked, for a page that holds the flag itself."),
+            new("OnChange", typeof(Callback<bool>), "Runs with the new state when it is picked.", Picked),
+            new("AfterBind", typeof(Callback<bool>), "Runs after Bind has written the model.", Picked),
+            new("Validate", typeof(Validator<bool>?), "A rule the value is checked by when it is written.", "a validator"),
+            new("Live", typeof(bool?), "Writes the model as soon as it is picked, Flux's wire:model.live, not with the next action."),
+            new("Disabled", typeof(bool?), "Shown but not pickable."),
+            new("KeepOpen", typeof(bool?), "Keeps the menu open after it is picked."),
+        ]),
+        new("Ui.MenuCheckboxGroup", typeof(UiMenuCheckboxGroup), "flux:menu.checkbox.group", "Checkbox rows kept together. Each binds its own flag.", []),
+        new("Ui.MenuRadioGroup", typeof(UiMenuRadioGroup<string>), "flux:menu.radio.group", "Radio rows of which one is picked. Its type is the type of their values.",
+        [
+            new("Bind", typeof(Expression<Func<string>>), "The model's value it reads and writes: () => m.Sort. Or Value with OnChange.", "() => a T"),
+            new("Value", typeof(string), "The picked value, for a page that holds it itself.", "T, the type of the radios' values"),
+            new("OnChange", typeof(Callback<string>), "Runs with the new value when a row is picked.", Picked),
+            new("AfterBind", typeof(Callback<string>), "Runs after Bind has written the model.", Picked),
+            new("Validate", typeof(Validator<string>?), "A rule the value is checked by when it is written.", "a validator"),
+            new("Live", typeof(bool?), "Writes the model as soon as a row is picked, not with the next action."),
+            new("KeepOpen", typeof(bool?), "Keeps the menu open after a row in it is picked."),
+        ]),
+        new("Ui.MenuRadio", typeof(UiMenuRadio), "flux:menu.radio", "One choice in a radio group.",
+        [
+            new("Value", typeof(object), "The value it stands for, compared with the group's.", "a value of the group's type"),
+            new("Checked", typeof(bool?), "Whether it is the chosen one, for a radio outside a group."),
+            new("Disabled", typeof(bool?), "Shown but not pickable."),
+            new("KeepOpen", typeof(bool?), "Keeps the menu open after it is picked."),
+            new("OnClick", typeof(Callback), "Runs when it is picked, after its group has taken the value.", Handler),
+        ]),
+        new("Ui.Navmenu", typeof(UiNavmenu), "flux:navmenu", "A dropdown's list of links: no menu roles, no cursor, and Tab walks it.", []),
+        new("Ui.NavmenuItem", typeof(UiNavmenuItem), "flux:navmenu.item", "One link. Its children are its words.",
+        [
+            new("Href", typeof(RouteUrl?), "Where it leads. Without one the row is a button.", "a route, or a URL string"),
+            new("OnClick", typeof(Callback), "What pressing a row with no Href does.", Handler),
+            new("Icon", typeof(Ui.IconName?), "An icon at the start of the row."),
+            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icon. Mini when unset."),
+            new("Variant", typeof(Ui.MenuItemVariant?), "Danger for a destructive destination."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Heading { get; } =
     [
         new("Ui.Heading", typeof(UiHeading), "flux:heading", "A title. Its size and its place in the outline are separate.",
@@ -136,6 +262,35 @@ internal static class UiApi
             new("Name", typeof(Ui.IconName), "Which icon to draw. Required, and taken first."),
             new("Variant", typeof(Ui.IconVariant?), "Which drawing of it, and so how large. Outline when unset."),
         ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Modal { get; } =
+    [
+        new("Ui.Modal", typeof(UiModal), "flux:modal", "A real modal <dialog>: the top layer, an inert page behind it, Escape, and focus handed back.",
+        [
+            new("Name", typeof(string), "What a Ui.ModalTrigger opens it by. Unique on the page: it is the dialog's id."),
+            new("Flyout", typeof(bool?), "Anchors it to an edge of the viewport at full height, for longer forms."),
+            new("Position", typeof(Ui.ModalPosition?), "The edge a flyout opens from. Right when unset."),
+            new("Variant", typeof(Ui.ModalVariant?), "How it is drawn: the panel, a floating flyout, or nothing around the content."),
+            new("Scroll", typeof(Ui.ModalScroll?), "What scrolls when it is taller than the viewport: the dialog, or the whole layer."),
+            new("Dismissible", typeof(bool?), "Whether a click outside closes it. On unless false."),
+            new("Escapable", typeof(bool?), "Whether Escape closes it. On unless false."),
+            new("Closable", typeof(bool?), "Whether it shows the close button in its corner. On unless false."),
+            new("Open", typeof(bool?), "Hands the open state to the page, Flux's wire:model. Unset, its triggers open it."),
+            new("OnClose", typeof(Callback), "Runs when it closes, by any means: where a page that set Open hears it.", Handler),
+            new("OnCancel", typeof(Callback), "Runs when it is dismissed, by Escape or a click outside, before OnClose.", Handler),
+        ]),
+        new("Ui.ModalTrigger", typeof(UiModalTrigger), "flux:modal.trigger", "Makes the button inside it open the modal of that name, with no handler.",
+        [
+            new("Name", typeof(string), "The Name of the modal it opens. Required, and taken first."),
+            new("Shortcut", typeof(string), "Keys that open it from anywhere on the page: \"mod+k\" is ⌘K on a Mac and Ctrl K elsewhere."),
+        ]),
+        new("Ui.ModalClose", typeof(UiModalClose), "flux:modal.close", "Makes the button inside it close the modal it is in: a close, not a dismissal.", []),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Popover { get; } =
+    [
+        new("Ui.Popover", typeof(UiPopover), "flux:popover", "The panel a Ui.Dropdown opens beside its trigger, for what is not a menu. Where it opens is the dropdown's.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Separator { get; } =
@@ -170,5 +325,5 @@ internal static class UiApi
 
     /// <summary>Every page's parts, for the tests that hold them to the components.</summary>
     public static IEnumerable<UiApiPart> All =>
-        new[] { Badge, Button, Callout, Card, Heading, Icon, Separator, Text }.SelectMany(parts => parts);
+        new[] { Badge, Button, Callout, Card, Command, Context, Dropdown, Heading, Icon, Modal, Popover, Separator, Text }.SelectMany(parts => parts);
 }

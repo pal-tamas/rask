@@ -53,9 +53,10 @@ internal sealed partial class UiApiReference : Component
             ]
         ];
 
-    // A flag reads as a bare call — `.Square()` sets it, `.Square(false)` clears it — and everything else takes a value.
+    // A flag reads as a bare call — `.Square()` sets it, `.Square(false)` clears it — and everything else takes a value,
+    // a plain bool too: a checkbox's Value is the state it shows, not a switch.
     private static string StepCall(UiApiStep step) =>
-        Bare(step.Takes) == typeof(bool) ? $".{step.Name}()" : $".{step.Name}(…)";
+        step.Takes == typeof(bool?) ? $".{step.Name}()" : $".{step.Name}(…)";
 
     private static Component Takes(UiApiStep step)
     {
