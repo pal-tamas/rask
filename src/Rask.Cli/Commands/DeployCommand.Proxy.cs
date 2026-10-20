@@ -120,12 +120,6 @@ internal sealed partial class DeployCommand
             return SwitchOutcome.NotRouted;
         }
 
-        if (!apps.Any(app => string.Equals(app.Container, change.Target.Container, StringComparison.Ordinal)))
-        {
-            Console.WriteErrorLine($"{change.Target.Container} is no longer running — left the previous version serving.", ConsoleStyle.Error);
-            return SwitchOutcome.NotRouted;
-        }
-
         if (await Run(BuildSitesDirectoryArguments(host), cancellationToken).ConfigureAwait(false) != 0)
         {
             Console.WriteErrorLine($"Creating {CaddySites.SitesDirectory} in the proxy failed — its output is above.", ConsoleStyle.Error);
