@@ -488,9 +488,27 @@ public sealed partial class ModelInputGenerator
             }
         }
 
+        foreach (var child in entity.Children)
+        {
+            EmitReplaceAccessor(s, child.Replace, child.Name);
+        }
+
+        foreach (var collection in entity.ValueCollections)
+        {
+            EmitReplaceAccessor(s, collection.Replace, collection.Name);
+        }
+
         foreach (var valueObject in entity.ValueObjects)
         {
             EmitValueObjectBuild(s, valueObject);
+        }
+    }
+
+    private static void EmitReplaceAccessor(StringBuilder s, Write? replace, string name)
+    {
+        if (replace is { Kind: not ModelWriteKind.Public })
+        {
+            EmitAccessor(s, replace, name);
         }
     }
 

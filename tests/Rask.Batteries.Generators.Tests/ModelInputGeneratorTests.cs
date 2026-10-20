@@ -481,7 +481,7 @@ public class ModelInputGeneratorTests
 
         // A form is told per SLOT: the nested model's type says which of its fields must be filled, as ever,
         // and the model that holds the property says the whole object under it may be left empty.
-        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\" or \"Main\";", source, StringComparison.Ordinal);
+        Assert.Contains("AddressModel_IsRequired(string property) =>\n        property is \"Street\" or \"Code\";", source, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel), Root_IsOptional);", source, StringComparison.Ordinal);
         Assert.Contains("private static bool Root_IsOptional(string property) =>\n        property is \"Annex\";", source, StringComparison.Ordinal);
         Assert.Contains("RaskValidation.RegisterOptionalFields(typeof(global::Shop.DepotModel.AddressModel), AddressModel_IsOptional);", source, StringComparison.Ordinal);
@@ -1567,6 +1567,34 @@ public class ModelInputGeneratorTests
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.EndsWith("/docs/diagnostics.md#rask088", diagnostic.Descriptor.HelpLinkUri, StringComparison.Ordinal);
         Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Fact]
+    public void A_read_only_collection_set_to_an_empty_one_is_synced_on_a_copy_and_written_back()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Order : Aggregate<Guid, Model>
+            {
+                public IReadOnlyList<OrderLine> Lines { get; private set; } = [];
+                public IReadOnlyList<string> Tags { get; private set; } = [];
+            }
+            public sealed class OrderLine : Entity<Guid>
+            {
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.OrderModel");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("entity.Lines is { } __held ? new global::System.Collections.Generic.List<global::Shop.OrderLine>(__held) : null", source, StringComparison.Ordinal);
+        Assert.Contains("__SetterChildren_Lines(entity, __children);", source, StringComparison.Ordinal);
+        Assert.Contains("__SetterValues_Tags(entity, [.. __values]);", source, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -940,6 +940,19 @@ them until tagged releases begin.
   wrong row (Eszaf, nightly .425). The frames now count the body the browser adds (the markup is unchanged), and a
   row arriving in an empty bare table is parsed in the table's own context, so it lands in a body too. A table that
   writes its `Tbody`, and the kit's `Ui.Table`, already reordered correctly and are now held to it by tests.
+- **Rask.Data: children declared `{ get; private set; } = []` load, refill and save.** Before: an aggregate whose
+  child collection was a read-only auto-property set to `[]`, `Array.Empty<T>()` or an array threw
+  `NotSupportedException: Collection was of a fixed size` from `Find`, `Update` or a query with `Include` as soon as
+  one child row existed, because EF Core adds each loaded row into the collection the entity already holds; a refill
+  written `Lines = [.. rows]` threw the same on save. Now Rask swaps such a collection for one EF Core can write to
+  when a row is materialized and before a save, so the declaration works as written, composite-key children and
+  grandchildren included. Such a property is no longer RASK088 either: the form model's sync works on a copy and
+  writes it back through the setter, and a collection of values with a setter (`IReadOnlyList<string> Tags
+  { get; private set; } = []`) is written back whole instead of cleared in place, which threw on `[]` too.
+- **Rask.Data: `Find` then `Save` keeps the tenant and foreign keys the aggregate does not declare.** Before: saving
+  a `PerTenant<int>` root found with `Find` (its `TenantId` a shadow column) refused any changed child with "belongs
+  to tenant , in tenant 7", and dropping a child whose parent key is a shadow column was refused as a parent "the
+  tenant in flight cannot read". Now the values read are remembered with the shadow columns and put back on save.
 - **`rask deploy`: two apps deploying to one box at once can no longer leave one routed to a removed colour while
   both report success.** On 2026-10-20 one app's deploy rewrote the shared Caddyfile from a container listing taken
   before the other app swapped colours, so the other's domain pointed at a container that no longer existed — a 502
@@ -1031,6 +1044,13 @@ them until tagged releases begin.
 
 - A form that is submitting takes no second submit, as Livewire's `wire:submit` does: its submit buttons are disabled and its fields made readonly at the press, until the server (or .NET in WebAssembly) is done with it, so a fast double click or a second Enter no longer runs a non-repeatable `OnSubmit` twice
 - A field a submit shows wrong while it still awaits a rule (a lookup) takes the reader's correction at once: the render that draws its message hands the field back from the submit's readonly hold, so the first key of the correction is no longer dropped. The submit button stays disabled until the submit is done
+- **A checkbox or switch bound to a generated model's `bool?` renders and asks its rule.** An aggregate's
+  `bool Paid` becomes `bool? Paid` on its form model with a required rule over `bool?`, and
+  `Ui.Checkbox.Bind(() => m.Paid)` (or `Ui.Switch`, or a plain `Input` lifted to `bool`) threw "The rule
+  registered for InvoiceModel.Paid is a Validate`1, and the field is bound as Boolean" at render. A control over
+  a value type now asks a rule over the nullable type about what the property holds; a `Validate` step written
+  over `bool` runs after it, and is not asked about a null. An unticked box is `false`, which the rule accepts,
+  and a generated `bool` is no longer announced `aria-required` — on a checkbox that says it must be ticked.
 - `Ui.Table`'s scroll frame now holds what its cells place absolutely, so a `Ui.Checkbox` or a hidden heading in a cell no longer makes the whole page scroll sideways on a phone. This departs from Flux, whose frame lets them escape (owner's decision).
 
 - **A slider dragged faster than the page answers no longer drops its last moves.** Each move the page hears

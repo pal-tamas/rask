@@ -66,6 +66,28 @@ public sealed partial class ModelInputGenerator
         }
     }
 
+    // Written back whole, so whatever the property held — `[]`, an array, a read-only list — is never written into.
+    private static void EmitValueCollectionReplace(StringBuilder s, ValueCollectionShape collection, Write replace)
+    {
+        s.AppendLine();
+        s.AppendLine("        {");
+        s.Append("            var __values = new global::System.Collections.Generic.List<")
+            .Append(collection.ElementTypeName).AppendLine(">();");
+        s.AppendLine();
+        s.Append("            if (model.").Append(collection.Name).AppendLine(" is { } __posted)");
+        s.AppendLine("            {");
+        s.AppendLine("                foreach (var __value in __posted)");
+        s.AppendLine("                {");
+        s.Append("                    __values.Add(")
+            .Append(collection.ElementModel is { } shape ? FromElementExpression("__value", shape) : "__value")
+            .AppendLine(");");
+        s.AppendLine("                }");
+        s.AppendLine("            }");
+        s.AppendLine();
+        s.Append("            ").AppendLine(Assignment(replace, "entity", collection.Name, "[.. __values]"));
+        s.AppendLine("        }");
+    }
+
     /// <summary>
     ///     The child reconcile: after this, the aggregate holds exactly what the posted list holds.
     /// </summary>
@@ -81,6 +103,12 @@ public sealed partial class ModelInputGenerator
     // collection, which reconciles row by row so an untouched child keeps its key and its unposted columns.
     private static void EmitValueCollectionSync(StringBuilder s, ValueCollectionShape collection)
     {
+        if (collection.Replace is { } replace)
+        {
+            EmitValueCollectionReplace(s, collection, replace);
+            return;
+        }
+
         var source = collection.ThroughField
             ? "__Values_" + collection.Name + "(entity)"
             : "entity." + collection.Name;
@@ -111,12 +139,11 @@ public sealed partial class ModelInputGenerator
     private static void EmitChildSync(StringBuilder s, ChildShape child)
     {
         var comparer = "global::System.Collections.Generic.EqualityComparer<" + child.ChildIdTypeName + ">.Default";
-        var collection = child.ThroughField ? "__Field_" + child.Name + "(entity)" : "entity." + child.Name;
         var extensions = child.ChildModelName + "Extensions";
 
         s.AppendLine();
         s.AppendLine("        {");
-        s.Append("            var __children = ").Append(collection).AppendLine(";");
+        s.Append("            var __children = ").Append(ChildrenOf(child)).AppendLine(";");
         s.AppendLine();
         s.AppendLine("            if (__children is not null)");
         s.AppendLine("            {");
@@ -150,8 +177,33 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
         s.Append("                    ").Append(extensions).AppendLine(".__Apply(__target, __row);");
         s.AppendLine("                }");
+        EmitChildWriteBack(s, child);
         s.AppendLine("            }");
         s.AppendLine("        }");
+    }
+
+    // The collection the sync adds to and removes from: the field behind the property, a copy of a read-only one that
+    // goes back afterwards, or the property itself.
+    private static string ChildrenOf(ChildShape child)
+    {
+        if (child.ThroughField)
+        {
+            return "__Field_" + child.Name + "(entity)";
+        }
+
+        return child.Replace is null
+            ? "entity." + child.Name
+            : "entity." + child.Name + " is { } __held ? new global::System.Collections.Generic.List<" + child.ChildTypeName +
+              ">(__held) : null";
+    }
+
+    private static void EmitChildWriteBack(StringBuilder s, ChildShape child)
+    {
+        if (child.Replace is { } replace)
+        {
+            s.AppendLine();
+            s.Append("                ").AppendLine(Assignment(replace, "entity", child.Name, "__children"));
+        }
     }
 
     // A stored child whose id no posted row carries is removed: the posted list is what the aggregate holds.

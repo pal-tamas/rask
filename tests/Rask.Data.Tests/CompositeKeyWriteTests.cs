@@ -185,6 +185,21 @@ public sealed class CompositeKeyWriteTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_report_whose_tenant_it_does_not_declare_found_recovered_and_saved_syncs_its_sites()
+    {
+        var report = await TitleAsync(Acme, "Fuel", [1, 2], [(1, 0, true, [100])]);
+
+        using (Tenant.Use(Acme))
+        {
+            var found = await Report.Find(report.Id, cancellationToken: TestContext.Current.CancellationToken);
+            found!.Cover([2, 3]);
+            await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal([2, 3], await SitesAsync(Acme, report.Id));
+    }
+
+    [Fact]
     public async Task A_grandchild_is_keyed_by_its_columns_key_and_its_own_part()
     {
         await using var context = await OpenAsync();
