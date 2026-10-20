@@ -44,7 +44,12 @@ internal static class Samples
 }
 
 /// <summary>A real-SQLite, real-directory service provider wired for storage, with a controllable clock.</summary>
-public sealed class StorageHarness : IAsyncDisposable
+public sealed class StorageHarness(Action<StorageOptions>? configure = null, bool createSchema = true)
+    : StorageHarness<StorageDbContext>(configure, createSchema);
+
+/// <summary>The same over any context, for a model that differs — one whose tenants are numbered.</summary>
+public class StorageHarness<TContext> : IAsyncDisposable
+    where TContext : DbContext
 {
     private readonly ServiceProvider _provider;
     private readonly TestFileBackend _uploads = new();
@@ -59,13 +64,13 @@ public sealed class StorageHarness : IAsyncDisposable
         services.AddLogging();
         services.AddSingleton<TimeProvider>(Clock); // before AddRaskStorage, so its TryAddSingleton keeps this one
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
-        services.AddRaskStorage<StorageDbContext>(o =>
+        services.AddRaskStorage<TContext>(o =>
         {
             o.Disk.Root = Root;
             o.DataVolume = Path.Combine(Root, "no-such-volume");
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<StorageDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        services.AddDbContextFactory<TContext>(o => o.UseSqlite($"Data Source={DbPath}"));
 
         _provider = services.BuildServiceProvider();
         if (createSchema)
@@ -87,8 +92,8 @@ public sealed class StorageHarness : IAsyncDisposable
 
     internal StorageRuntime Runtime => _provider.GetRequiredService<StorageRuntime>();
 
-    internal OrphanSweeper<StorageDbContext> Sweeper =>
-        _provider.GetServices<IHostedService>().OfType<OrphanSweeper<StorageDbContext>>().Single();
+    internal OrphanSweeper<TContext> Sweeper =>
+        _provider.GetServices<IHostedService>().OfType<OrphanSweeper<TContext>>().Single();
 
     public TestFile Upload(string name, byte[] bytes, string? browserType = null) => _uploads.Add(name, bytes, browserType);
 
@@ -99,8 +104,8 @@ public sealed class StorageHarness : IAsyncDisposable
         return (isPublic ? saving.Public() : saving).AsTask();
     }
 
-    public StorageDbContext NewContext() =>
-        _provider.GetRequiredService<IDbContextFactory<StorageDbContext>>().CreateDbContext();
+    public TContext NewContext() =>
+        _provider.GetRequiredService<IDbContextFactory<TContext>>().CreateDbContext();
 
     public async Task<int> CountRowsAsync()
     {
@@ -124,6 +129,7 @@ public sealed class StorageHarness : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        GC.SuppressFinalize(this);
         await _provider.DisposeAsync();
         SqliteConnection.ClearAllPools();
         TryDelete(() => File.Delete(DbPath));

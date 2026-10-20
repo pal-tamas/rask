@@ -24,7 +24,8 @@ internal sealed class StoredFileConfiguration : IEntityTypeConfiguration<StoredF
         // Mapped EXPLICITLY, and the table is deliberately not PerTenant. A partitioned table takes
         // a query filter, and a filter would hide other tenants' rows from the orphan sweep — which has to
         // see every file to decide what is unreferenced. The tenant is data on the row, scoped at the two
-        // places a file is reached by id, and ApplyRaskConventions leaves a tenant mapped by hand alone.
+        // places a file is reached by id, and ApplyRaskConventions leaves a tenant mapped by hand alone. Its column
+        // type follows the app's tenant-scoped tables (TenantColumnFollowers), set by AddRaskStorage.
         entity.Property(f => f.TenantId);
     }
 }

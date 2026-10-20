@@ -10,6 +10,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- DatabaseStorageTests creates the adopted tables from the DDL the storage guide publishes. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\docs\file-storage.md" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- The two mappings of a one-value value object, compared by EF's migration differ on every provider. -->
     <Compile Include="..\Rask.Data.Tests\ValueObjectMappingShapes.cs" Link="ValueObjectMappingShapes.cs"/>
@@ -47,6 +52,7 @@
     <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Logging\Rask.Logging.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Storage\Rask.Storage.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

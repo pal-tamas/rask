@@ -451,18 +451,23 @@ public sealed class RaskBatteryTests
         var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
-        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage, Web Push. Asserted as a count rather
+        // One per enabled DB-backed battery: Outbox, Jobs, Auth, Mail, Cache, Storage, Web Push — and Storage's second, for
+        // the bytes table its Database provider keeps. Asserted as a count rather
         // than "at least one" because a check that silently stopped being registered is precisely the
         // failure this whole exercise is about — the original guard lived in the meta package and fired
         // for nothing a real app does.
-        Assert.Equal(7, checks.Count);
+        Assert.Equal(8, checks.Count);
 
         // The outbox is always on, so it needs its table only once a durable handler exists — this app has none.
         var outbox = Assert.Single(checks, c => c.GetType().Name.StartsWith("OutboxModelCheck", StringComparison.Ordinal));
         await outbox.StartAsync(CancellationToken.None);
 
+        // Storage keeps its bytes on disk by default, so the bytes table is not needed either.
+        var bytes = Assert.Single(checks, c => c.GetType().Name.StartsWith("StorageBytesModelCheck", StringComparison.Ordinal));
+        await bytes.StartAsync(CancellationToken.None);
+
         var messages = new List<string>();
-        foreach (var check in checks.Where(c => c != outbox))
+        foreach (var check in checks.Where(c => c != outbox && c != bytes))
         {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => check.StartAsync(CancellationToken.None));
@@ -498,7 +503,7 @@ public sealed class RaskBatteryTests
         var built = app.Build<MinimalApp>();
         var checks = ModelChecks(built.Services);
 
-        Assert.Equal(7, checks.Count);
+        Assert.Equal(8, checks.Count);
 
         foreach (var check in checks)
         {

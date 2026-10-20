@@ -59,6 +59,7 @@ Rask.Storage.StorageOptions.SweepInterval.get -> System.TimeSpan
 Rask.Storage.StorageOptions.SweepInterval.set -> void
 Rask.Storage.StorageProvider
 Rask.Storage.StorageProvider.Azure = 2 -> Rask.Storage.StorageProvider
+Rask.Storage.StorageProvider.Database = 3 -> Rask.Storage.StorageProvider
 Rask.Storage.StorageProvider.Disk = 0 -> Rask.Storage.StorageProvider
 Rask.Storage.StorageProvider.S3 = 1 -> Rask.Storage.StorageProvider
 Rask.Storage.StoredFile

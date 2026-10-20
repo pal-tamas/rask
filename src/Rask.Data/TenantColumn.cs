@@ -154,12 +154,12 @@ internal static class TenantColumn
         return column == typeof(long?) ? (StoredInt64, Int64Reader) : (StoredGuid, GuidReader);
     }
 
-    private static int Int32(Guid tenant, string table) =>
+    internal static int Int32(Guid tenant, string table) =>
         TenantNumber.TryRead(tenant, out var number) && number is >= int.MinValue and <= int.MaxValue
             ? (int)number
             : throw NotANumber(tenant, table, "an int");
 
-    private static long Int64(Guid tenant, string table) =>
+    internal static long Int64(Guid tenant, string table) =>
         TenantNumber.TryRead(tenant, out var number) ? number : throw NotANumber(tenant, table, "a long");
 
     private static InvalidOperationException NotANumber(Guid tenant, string table, string kind) =>
