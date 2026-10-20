@@ -22,8 +22,9 @@ public sealed class LoopbackPortTests
     [Fact]
     public void Reserve_does_not_hand_the_same_port_out_twice_in_a_row()
     {
-        // Not a guarantee the OS makes in general, but if consecutive calls collided the retry loop in
-        // ExampleAppFixture would burn all five attempts on the same number.
+        // The OS does not promise this (Linux can hand a just-released port straight back), so Reserve remembers
+        // what it gave out. If consecutive calls collided the retry loop in ExampleAppFixture would burn all
+        // five attempts on the same number.
         var ports = Enumerable.Range(0, 8).Select(_ => LoopbackPort.Reserve()).ToArray();
 
         Assert.Equal(ports.Length, ports.Distinct().Count());

@@ -33,8 +33,30 @@ namespace Rask.Site.E2E.Tests.Infrastructure;
 /// </remarks>
 internal static class LoopbackPort
 {
+    // Ports this process has handed out. The OS may give a just-released ephemeral port straight back (Linux
+    // does, now and then), so two hosts asked for in a row could be told the same number.
+    private static readonly HashSet<int> HandedOut = [];
+    private static readonly Lock Gate = new();
+
     /// <summary>Returns a port the OS has just confirmed free on the loopback family <c>localhost</c> uses.</summary>
     public static int Reserve()
+    {
+        lock (Gate)
+        {
+            for (var attempt = 0; attempt < 64; attempt++)
+            {
+                var port = Probe();
+                if (HandedOut.Add(port))
+                {
+                    return port;
+                }
+            }
+
+            throw new InvalidOperationException("The OS kept handing back ports this run already gave out.");
+        }
+    }
+
+    private static int Probe()
     {
         var loopback = Socket.OSSupportsIPv6 ? IPAddress.IPv6Loopback : IPAddress.Loopback;
         var probe = new TcpListener(loopback, 0);
