@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Site.Features.UiDocs;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -14,7 +15,7 @@ public sealed partial class UiKitLayoutPage : Component
         PageMeta.For(
             "Header and sidebar layouts and flyouts in C# — Rask",
             "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script, plus a "
-            + "flyout panel and a separator.",
+            + "flyout panel and an avatar.",
             Routes.UiKitLayoutPage());
 
     /// <inheritdoc />
@@ -31,6 +32,7 @@ public sealed partial class UiKitLayoutPage : Component
             ", Flux UI's modal anchored to a side of the viewport, whose ", Code["Open"], " the page owns and whose ",
             Code["OnClose"], " reports the reader closing it."
         ],
+        UiKitMovedPages.Pages([UiDocsCatalog.Separator, UiDocsCatalog.Heading, UiDocsCatalog.Text]),
         CodeSample
             .Files(["UiKitLayoutDemo.cs"])
             .Result(UiKitLayoutDemo)

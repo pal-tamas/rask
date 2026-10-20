@@ -210,8 +210,15 @@ public static partial class PageMeta
         return [.. head];
     }
 
+    // The site bar's tabs, each with the index its pages sit under.
+    private static readonly (string Tab, string Path)[] Tabs =
+    [
+        ("Docs", Routes.GuidesIndexPage()),
+        ("UI", Routes.UiIntroductionPage()),
+    ];
+
     /// <summary>
-    ///     The trail from the site root to a page: the site, the docs if the page is under them, the page.
+    ///     The trail from the site root to a page: the site, the tab the page is under (Docs or UI), the page.
     /// </summary>
     /// <remarks>
     ///     Built from the canonical path, so it can only name URLs that are themselves canonical. The
@@ -226,16 +233,25 @@ public static partial class PageMeta
         }
 
         var root = Origin + LiveOptions.PathBase;
-        var docs = CanonicalPath(Routes.GuidesIndexPage());
         var crumbs = new List<StructuredData.Crumb> { new(SiteIdentity.Name, root + "/") };
 
-        if (canonicalPath.StartsWith(docs, StringComparison.Ordinal))
+        // The tab a page is under, as the site's bar names it: its index is a step of every page beneath it, and
+        // its own last step rather than a step to itself.
+        foreach (var (tab, path) in Tabs)
         {
-            crumbs.Add(new StructuredData.Crumb("Docs", root + docs));
-            if (string.Equals(canonicalPath, docs, StringComparison.Ordinal))
+            var index = CanonicalPath(path);
+            if (!canonicalPath.StartsWith(index, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            crumbs.Add(new StructuredData.Crumb(tab, root + index));
+            if (string.Equals(canonicalPath, index, StringComparison.Ordinal))
             {
                 return crumbs;
             }
+
+            break;
         }
 
         crumbs.Add(new StructuredData.Crumb(name, root + canonicalPath));

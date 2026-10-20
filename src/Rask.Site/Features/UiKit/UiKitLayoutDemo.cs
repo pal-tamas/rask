@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's layout pieces: a flyout, separators, avatars, the application layout and typography.
+///     The kit's layout pieces: a flyout, avatars and the application layout.
 /// </summary>
 public sealed partial class UiKitLayoutDemo : Component
 {
@@ -11,10 +11,8 @@ public sealed partial class UiKitLayoutDemo : Component
     protected override Component? Render() =>
     [
         DrawerSection(),
-        SeparatorSection(),
         AvatarSection(),
-        ApplicationLayoutSection(),
-        TypographySection()
+        ApplicationLayoutSection()
     ];
 
     private Component DrawerSection() =>
@@ -40,27 +38,6 @@ public sealed partial class UiKitLayoutDemo : Component
                     ]
                 ]
             ]);
-
-    // Flux UI's separator page, example for example: plain, with text, vertical, limited height, subtle.
-    private static Component SeparatorSection() =>
-        Section(
-            "Separator",
-            "A line between sections of content or groups of items. It carries no margin — the page spaces "
-            + "it — and a vertical one is as tall as its row until vertical margin shortens it.",
-            Div.Data(Testid("ui-separator")).Class("mx-auto flex max-w-sm flex-col gap-8")[
-                Ui.Separator.Key("plain"),
-                Ui.Separator.Key("text").Text("or"),
-                SeparatorRow("vertical", Ui.Separator.Vertical()),
-                SeparatorRow("limited", Ui.Separator.Vertical().Class("my-2")),
-                SeparatorRow("subtle", Ui.Separator.Vertical().Subtle)
-            ]);
-
-    private static Component SeparatorRow(string key, UiSeparator separator) =>
-        Div.Key(key).Class("flex items-center justify-center gap-6")[
-            Ui.Button.Ghost.Key("theme").Icon(Ui.IconName.Moon).AriaLabel("Switch to dark theme"),
-            separator.Key(key + "-separator"),
-            Ui.Button.Key("login")["Log in"]
-        ];
 
     private static Component AvatarSection() =>
         Section(
@@ -131,49 +108,6 @@ public sealed partial class UiKitLayoutDemo : Component
                     Ui.Separator.Key("then").Text("then"),
                     Ui.Text.Key("t")["Body copy in the kit's scale. ", Ui.Text.Key("strong").Inline().Variant(Ui.TextVariant.Strong)["Strong"],
                         " for what matters, ", Ui.Text.Key("subtle").Inline().Subtle["subtle"], " for what can be skipped."]
-                ]
-            ]);
-
-    // Flux UI's own examples for heading, text and link, in its order.
-    private static Component TypographySection() =>
-        Section(
-            "Heading, text and link",
-            "Flux UI's type: a heading whose size and outline level are separate, body copy in three inks or any "
-            + "Tailwind hue, and a link that takes the accent.",
-            Div.Data(Testid("ui-typography")).Class("grid gap-8 sm:grid-cols-2")[
-                Div.Key("sizes").Class("flex flex-col gap-4")[
-                    Ui.Heading.Key("base")["Default"],
-                    Ui.Heading.Key("lg").Lg["Large"],
-                    Ui.Heading.Key("xl").Xl["Extra large"],
-                    Ui.Heading.Key("xxl").Xxl["Extra extra large"]
-                ],
-                Div.Key("level")[
-                    Ui.Heading.Key("h").Level(3)["User profile"],
-                    Ui.Text.Key("t").Class("mt-2")["This information will be displayed publicly."]
-                ],
-                Div.Key("leading")[
-                    Ui.Text.Key("t")["Year to date"],
-                    Ui.Heading.Key("h").Xl.Class("mb-1")["$7,532.16"],
-                    Ui.Text.Key("up").Color(Ui.Color.Green)["15.2%"]
-                ],
-                Div.Key("inks").Class("flex flex-col gap-2")[
-                    Ui.Text.Key("strong").Variant(Ui.TextVariant.Strong)["Strong text color"],
-                    Ui.Text.Key("default")["Default text color"],
-                    Ui.Text.Key("subtle").Subtle["Subtle text color"],
-                    Ui.Text.Key("blue").Color(Ui.Color.Blue)["Colored text"]
-                ],
-                Div.Key("text-sizes").Class("flex flex-col gap-2")[
-                    Ui.Text.Key("lg").Lg["Larger text size"],
-                    Ui.Text.Key("default")["Default text size"],
-                    Ui.Text.Key("sm").Sm["Smaller text"]
-                ],
-                Div.Key("links").Class("flex flex-col gap-2")[
-                    Ui.Text.Key("in-text")["Visit our ",
-                        Ui.Link.Key("docs").Href("https://rask.sh/docs").External()["documentation"], " for more information."],
-                    Ui.Text.Key("default")[Ui.Link.Key("l").Href("#")["Default link"]],
-                    Ui.Text.Key("ghost")[Ui.Link.Key("l").Href("#").Ghost["Ghost link"]],
-                    Ui.Text.Key("subtle")[Ui.Link.Key("l").Href("#").Subtle["Subtle link"]],
-                    Ui.Text.Key("button")[Ui.Link.Key("l").As(Ui.LinkAs.Button)["Create new account →"]]
                 ]
             ]);
 

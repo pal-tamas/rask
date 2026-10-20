@@ -1,39 +1,51 @@
 namespace Rask.Site.Features.UiKit;
 
-// Flux UI's card page, example by example: https://fluxui.dev/components/card
-public sealed partial class UiKitDataDisplayDemo
+/// <summary>
+///     Flux UI's card page, example by example: a header, a body and a footer, the surfaces, the sizes and the ways the
+///     parts are set apart.
+/// </summary>
+public sealed partial class UiKitCardDemo : Component
 {
-    private static Component CardSection() =>
-        Section(
-            "Card",
-            "A container for related content. Give it a header, a body and a footer and it handles the spacing, "
-            + "dividers and corners between them; Body decides how they are set apart, Variant the surface and Size "
-            + "the room. The parts are optional: anything put straight inside is padded evenly.",
-            Div.Data(Testid("ui-card")).Class("grid gap-6")[
-                Div.Key("first").Class("grid gap-6 md:grid-cols-2")[Profile(), Div.Class("grid content-start gap-6")[Simple(), Linked()]],
-                Div.Key("variants").Class("grid gap-4 sm:grid-cols-3")[
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Data("testid", "ui-card")[
+            UiKitExample.Key("card").Heading("Card")
+                .Blurb("Give it a header, a body and a footer and it handles the spacing, dividers and corners between "
+                       + "them. The parts are optional: anything put straight inside is padded evenly.")[
+                Div.Class("grid gap-6 md:grid-cols-2")[Profile(), Div.Class("grid content-start gap-6")[Simple(), Linked()]]
+            ],
+            UiKitExample.Key("variants").Heading("Variants").Blurb("The surface, from raised to a bare edge.")[
+                Div.Class("grid gap-4 sm:grid-cols-3")[
                     Surface(Ui.Card.Sm, "default", "Raised, for primary content."),
                     Surface(Ui.Card.Sm.Muted, "muted", "A quieter tint for secondary panels."),
                     Surface(Ui.Card.Sm.Soft, "soft", "The faintest tint, for light grouping."),
                     Surface(Ui.Card.Sm.Outline, "outline", "Just an edge, over whatever's behind it."),
                     Surface(Ui.Card.Sm.Filled, "filled", "A tint with no edge, for inline surfaces.")
-                ],
-                Div.Key("sizes").Class("grid items-start gap-6 sm:grid-cols-2")[
+                ]
+            ],
+            UiKitExample.Key("sizes").Heading("Sizes").Blurb("The room: padding, corners and the space between the parts.")[
+                Div.Class("grid items-start gap-6 sm:grid-cols-2")[
                     Sized(Ui.Card.Xs, "xs", "Compact, for dense lists and sidebars."),
                     Sized(Ui.Card.Sm, "sm", "Tight, for small widgets and stats."),
                     Sized(Ui.Card.Md, "md", "The default, for most content."),
                     Sized(Ui.Card.Lg, "lg", "Roomy, for forms and settings.")
-                ],
-                Div.Key("treatments").Class("grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3")[
+                ]
+            ],
+            UiKitExample.Key("body").Heading("Body").Blurb("How the header, the body and the footer are set apart.")[
+                Div.Class("grid items-start gap-6 sm:grid-cols-2 lg:grid-cols-3")[
                     Treatment(Ui.Card.Seamless, "Seamless"),
                     Treatment(Ui.Card.Inset.Soft, "Inset"),
                     Treatment(Ui.Card.Flush.Soft, "Flush"),
                     Treatment(Ui.Card.Divided, "Divided"),
                     Treatment(Ui.Card.Divided.Divider(Ui.CardDivider.Inset), "Divided, inset"),
                     Treatment(Ui.Card.Separated, "Separated")
-                ],
-                Div.Key("more").Class("grid items-start gap-6 md:grid-cols-3")[Bleeding(), Outside(), Billing()]
-            ]);
+                ]
+            ],
+            UiKitExample.Key("more").Heading("More")
+                .Blurb("Media that bleeds to the edges, a header outside its card, and a header inside a card's body.")[
+                Div.Class("grid items-start gap-6 md:grid-cols-3")[Bleeding(), Outside(), Billing()]
+            ]
+        ];
 
     private static Component Profile() =>
         Ui.Card.Inset.Soft.Lg[

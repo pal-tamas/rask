@@ -35,6 +35,15 @@ internal sealed partial class SiteHeader : Component
     /// </summary>
     public required bool FullBleed { get; set; }
 
+    /// <summary>
+    ///     Whether the page is one of the UI tab's, under <c>/ui</c>: the "UI" item is drawn as the current one.
+    /// </summary>
+    /// <remarks>
+    ///     Stated by the layout rather than worked out from the route, because the router lights an item on its
+    ///     own URL only, and the tab is current on every page beneath it.
+    /// </remarks>
+    public bool? UiTabCurrent { get; set; }
+
     // Same three utilities the landing page's bar always carried, plus the notch. env(safe-area-inset-top)
     // is 0 everywhere that has no notch, so this is identical to what shipped on every other device —
     // and on a phone in portrait it is what keeps the wordmark out from under the status bar. The h-16
@@ -76,6 +85,11 @@ internal sealed partial class SiteHeader : Component
                 Div.Class("flex shrink-0 items-center gap-1 sm:gap-2")[
                     Ui.Navbar[
                         Ui.NavbarItem.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).Current(false).Class("max-sm:hidden")["Docs"],
+                        // Rask.Ui's own docs, beside the guides: hidden below sm for the same 390px reason as "Docs".
+                        Ui.NavbarItem
+                            .Href(PageMeta.LinkTo(Routes.UiIntroductionPage()))
+                            .Current(UiTabCurrent == true)
+                            .Class("ui-tab max-sm:hidden")["UI"],
                         Ui.NavbarItem.Href(SiteIdentity.Repository).IconTrailing(Ui.IconName.ArrowTopRightOnSquare)["GitHub"]
                     ],
                     AppearanceToggle

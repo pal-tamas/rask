@@ -177,6 +177,7 @@
     <RaskTestReads Include="..\..\NUGET.md" />
     <RaskTestReads Include="..\..\src\*\NUGET.md" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Styles\**" />
+    <RaskTestReads Include="..\..\tests\Rask.Ui.Tests\Flux\flux.snapshot.json" />
   </ItemGroup>
 
 </Project>

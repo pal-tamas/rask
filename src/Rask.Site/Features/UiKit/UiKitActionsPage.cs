@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Site.Features.UiDocs;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -26,12 +27,12 @@ public sealed partial class UiKitActionsPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Actions"],
         P.Class("text-ui-muted")[
-            "The button and its group are Flux UI's, example for example: ", Code["Ui.Button.Primary.Sm.Blue"],
-            " is a variant, a size and a colour, each a step. The rest of this page is still drawn with daisyUI ",
-            "and moves over component by component."
+            "Menus, the command palette, popovers and modals, each Flux UI's and each opened by the browser: their state ",
+            "is a field on the page when the page wants it. They move to the UI tab one page per component."
         ],
+        UiKitMovedPages.Pages([UiDocsCatalog.Button]),
         CodeSample
-            .Files(["UiKitButtonDemo.cs", "UiKitActionsDemo.cs"])
+            .Files(["UiKitActionsDemo.cs"])
             .Notes("The dropdown's open state and the dialog's are plain fields on the "
                 + "demo component, changed in a callback and redrawn by the live diff. Nothing here is a "
                 + "checkbox or a <details>.")
