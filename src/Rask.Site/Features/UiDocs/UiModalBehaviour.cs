@@ -16,7 +16,7 @@ internal sealed partial class UiModalBehaviour : Component
             Shapes()
         ];
 
-    private static Component Opening() =>
+    private static UiDocsTopic Opening() =>
         UiDocsTopic.Key("opening").Heading("Who opens it").Paragraphs([
             "No handler runs. The trigger makes its button an HTML invoker (`command=\"show-modal\" commandfor`), so the "
             + "browser supplies the top layer, an inert page behind it so Tab cannot wander out, Escape, and focus "
@@ -49,7 +49,7 @@ internal sealed partial class UiModalBehaviour : Component
                 "Both are the dialog's own events: a dismissal raises `cancel` before `close`, in every browser.")]
         ];
 
-    private static Component Size() =>
+    private static UiDocsTopic Size() =>
         UiDocsTopic.Key("size").Heading("Width, and the close button").Paragraphs([
             "A modal with no width of its own is as wide as what it holds, between Flux's two defaults: at least 20rem "
             + "and at most 36rem (a side flyout: at least 25rem from `md`). A width handed to `Class` replaces them: "
@@ -63,7 +63,7 @@ internal sealed partial class UiModalBehaviour : Component
             + "`Ui.Heading.Class(\"pe-8\")` keeps it clear of the button.",
         ]);
 
-    private static Component State() =>
+    private static UiDocsTopic State() =>
         UiDocsTopic.Key("state").Heading("When the page owns it").Paragraphs([
             "Where Flux controls a modal from PHP (`Flux::modal('confirm')->show()`), a Rask page owns the state "
             + "instead: `Ui.Modal.Open(_confirming).OnClose(() => _confirming = false)[…]`, which is Rask's "

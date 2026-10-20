@@ -7,7 +7,7 @@ internal sealed partial class UiDropdownBehaviour : Component
     protected override Component? Render() =>
         UiDocsBehaviour[Owns(), Placement(), Keyboard(), Pointer(), KeepOpen(), Open(), Rows()];
 
-    private static Component Owns() =>
+    private static UiDocsTopic Owns() =>
         UiDocsTopic.Key("owns").Heading("Who owns what").Paragraphs([
             "The browser owns the open state. The menu is a `[popover]` the trigger opens with `popovertarget`, so "
             + "the browser opens and closes it (the top layer, Escape, a click outside) with no runtime at all, and "
@@ -21,7 +21,7 @@ internal sealed partial class UiDropdownBehaviour : Component
             + "`OnClick`: `data-open` and `aria-expanded` are written in the browser.",
         ]);
 
-    private static Component Placement() =>
+    private static UiDocsTopic Placement() =>
         UiDocsTopic.Key("placement").Heading("Placement").Paragraphs([
             "Every panel the kit opens against a trigger stays inside the viewport as Flux's does: a menu, a "
             + "popover, a tooltip, a list of options, a calendar, a list of times. When there is no room where it "
@@ -34,13 +34,13 @@ internal sealed partial class UiDropdownBehaviour : Component
             + "(`data-rask-hover`), locks nothing and takes no focus.",
         ]);
 
-    private static Component KeepOpen() =>
+    private static UiDocsTopic KeepOpen() =>
         UiDocsTopic.Key("keep-open").Heading("Keep open").Paragraphs([
             "A pick closes the menu, a checkbox or a radio too, as in Flux. `KeepOpen` on the menu, a submenu, a "
             + "radio group or a single row keeps it up, for the menu someone ticks several of.",
         ]);
 
-    private static Component Open() =>
+    private static UiDocsTopic Open() =>
         UiDocsTopic.Key("open").Heading("Open state").Paragraphs([
             "`Open` is nullable, and its three settings mean three things. Unset leaves it to the reader; `true` and "
             + "`false` hand it to the page, and the runtime shows or hides the popover to match whenever the page "
@@ -48,7 +48,7 @@ internal sealed partial class UiDropdownBehaviour : Component
             + "`Ui.Dropdown.Open(_open).OnToggle(open => _open = open)[trigger, Ui.Menu[…]]`.",
         ]);
 
-    private static Component Rows() =>
+    private static UiDocsTopic Rows() =>
         UiDocsTopic.Key("rows").Heading("Rows, links and keys").Paragraphs([
             "The first child of a dropdown is the trigger: a `Button`, a `Ui.Button`, any element that is a button. "
             + "The second is what it opens: a `Ui.Menu` of actions, a `Ui.Navmenu` of links, or a `Ui.Popover`.",
@@ -81,7 +81,7 @@ internal sealed partial class UiDropdownBehaviour : Component
             ])
         ];
 
-    private static Component Pointer() =>
+    private static UiDocsTopic Pointer() =>
         UiDocsTopic.Key("pointer").Heading("Pointer, and submenus").Paragraphs([
             "There is one highlight. A row is lit by `data-active` and by nothing else, no `:hover`, whether the "
             + "pointer or the keyboard lit it. The runtime writes it, in the browser, the moment the pointer enters a "
