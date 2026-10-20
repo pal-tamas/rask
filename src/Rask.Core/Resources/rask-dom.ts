@@ -23,6 +23,7 @@ import {
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
 import {drive, keepsOpen, stands, unasked} from "./rask-owned.js";
 import {noteAttributeSet} from "./rask-submitting.js";
+import {beginPatch, endPatch, serverWrote} from "./rask-written.js";
 
 export {resolvePath};
 
@@ -185,6 +186,16 @@ export type DiffOp = [kind: number, path: number[], ...rest: any[]];
 type NameRef = string | number;
 
 export function applyDiff(ops: DiffOp[], names?: string[]): void {
+    // What the ops write is the server's; what the page wrote before them stays the page's (rask-written.ts).
+    beginPatch();
+    try {
+        applyOps(ops, names);
+    } finally {
+        endPatch();
+    }
+}
+
+function applyOps(ops: DiffOp[], names?: string[]): void {
     function resolveName(raw: NameRef): string {
         // Server interns names that repeat 2+ times in the same payload — those
         // arrive as integer indices into the "names" array. Strings pass through.
@@ -209,6 +220,7 @@ export function applyDiff(ops: DiffOp[], names?: string[]): void {
                     const newVal = rawVal == null ? "" : rawVal;
                     if (keepsOpen(el, name1, true)) break;
                     el.setAttribute(name1, newVal);
+                    serverWrote(el, name1);
                     // A field a submit holds is handed back when the render asks for its correction (rask-submitting.ts).
                     noteAttributeSet(el, name1);
                     // After a form-control has been interacted with, the value

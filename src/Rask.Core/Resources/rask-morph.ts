@@ -73,6 +73,7 @@ import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-pat
 import {runtimeOwnsAttr} from "./rask-loading.js";
 import {keepsOpen, ownsAttr, ownsChecked} from "./rask-owned.js";
 import {noteRendered} from "./rask-submitting.js";
+import {beginPatch, endPatch, pageAdded, serverWrote} from "./rask-written.js";
 
 // An attribute the BROWSER wrote, and a render never will, so a render that does not carry it says nothing
 // about it. `open` on a dialog shown with showModal() — an invoker command, Ui.Modal's popover path — is the
@@ -539,6 +540,15 @@ export function _raskDiscardFrameworkHeadMutations() {
 _raskEnsureHeadObserver();
 
 export function morph(fromNode: Node, toNode: Node): void {
+    beginPatch();
+    try {
+        morphNode(fromNode, toNode);
+    } finally {
+        endPatch();
+    }
+}
+
+function morphNode(fromNode: Node, toNode: Node): void {
     if (fromNode.nodeType !== toNode.nodeType || fromNode.nodeName !== toNode.nodeName) {
         // A node with no parent cannot be replaced, and reaching here with one would mean morph was
         // called on a detached root. Guarding beats the alternative: replaceChild on a null parent
@@ -573,14 +583,16 @@ export function morph(fromNode: Node, toNode: Node): void {
         const name = fa[i].name;
         // A loading mark the runtime stamped while a dispatch is in flight is not in any render, so the
         // render that dispatch itself caused would otherwise strip the spinner mid-wait (rask-loading.ts).
+        // Nor does a render take away what the page put there itself and no render ever wrote (rask-written.ts).
         if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !browserOwnsAttr(from, name)
-            && !ownsAttr(from, name) && !keepsOpen(from, name, false)) {
+            && !ownsAttr(from, name) && !pageAdded(from, name) && !keepsOpen(from, name, false)) {
             from.removeAttribute(name);
         }
     }
     // An attribute a behaviour hook holds (rask-owned.ts) is not rewritten either: a rendered
     // aria-expanded="false" must not land on the trigger of a tooltip that is still showing.
     for (const a of ta) {
+        serverWrote(from, a.name);
         if (from.getAttribute(a.name) !== a.value && !ownsAttr(from, a.name) && !keepsOpen(from, a.name, true)) {
             from.setAttribute(a.name, a.value);
         }
@@ -775,7 +787,7 @@ export function morph(fromNode: Node, toNode: Node): void {
             } else {
                 if (src !== anchor) _raskMoveBefore(from, src, anchor);
                 else anchor = firstClaimed(src.nextSibling);
-                morph(src, dst);
+                morphNode(src, dst);
             }
         }
         // Drop any from-side keyed nodes that were not claimed by the new tree.
@@ -798,7 +810,7 @@ export function morph(fromNode: Node, toNode: Node): void {
         if (!src) _raskAppendChild(from, reviveScript(dst));
         else if (!dst) _raskRemoveChild(from, src);
         else if (src.nodeType !== dst.nodeType || src.nodeName !== dst.nodeName) _raskReplaceChild(from, reviveScript(dst), src);
-        else morph(src, dst);
+        else morphNode(src, dst);
     }
     if (isDocHead) _raskDiscardFrameworkHeadMutations();
     // After the options are reconciled, never before: the selection is read off the incoming

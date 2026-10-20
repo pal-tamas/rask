@@ -926,6 +926,13 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A render no longer removes an attribute the server never wrote.** `Canvas.Ref(_ground).Class(…).AriaHidden(true)`
+  sized by its scoped script (`canvas.width = …`) lost its width and height on the next render that morphed around
+  it — a form error appearing beside it was enough, and a whole-page reply did the same (TA). The morph, on both
+  hosts, now leaves alone what the page put on a rendered element itself and no render has written since; the diff
+  already did. What the server did write and then leaves out — a `Title`, a `data-rask-on-*` handler, a `Data` entry
+  — is still removed, an attribute a behaviour hook owns is still the hook's, and a secret field is unaffected.
+  Nothing to opt into: no new step.
 - **A keyed row written straight under a `Table` moves when a click reorders it, and each row's buttons act on
   that row.** `Table[rows.Select(r => Tr.Key(r.Id)[…])]` with no `Tbody`: the browser's parser puts those rows in a
   `<tbody>` the frames did not have, so every diff path through the table was one level off — a row moved past its
