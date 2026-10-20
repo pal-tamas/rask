@@ -2,7 +2,7 @@ namespace Rask.Site.Features.UiDocs.Examples;
 
 public sealed partial class AvatarSizesExample : Component
 {
-    private const string Caleb = "https://unavatar.io/x/calebporzio";
+    private const string Caleb = "/img/avatars/amber.svg";
 
     protected override Component? Render() =>
         Div.Class("flex flex-wrap items-end gap-6")[

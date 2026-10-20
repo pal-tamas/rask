@@ -98,9 +98,9 @@ public sealed partial class UiKitDataInputDemo
                     Ui.SelectOption.Value("enterprise").Label("Enterprise").Description("Advanced controls and support")
                 ],
                 Ui.Select.Key("avatars").Value(_person).OnChange(picked => _person = picked).Listbox.Placeholder("Search people...")[
-                    Ui.SelectOption.Value("calebporzio").Label("Caleb Porzio").Avatar("https://unavatar.io/github/calebporzio"),
-                    Ui.SelectOption.Value("taylorotwell").Label("Taylor Otwell").Avatar("https://unavatar.io/github/taylorotwell"),
-                    Ui.SelectOption.Value("adamwathan").Label("Adam Wathan").Avatar("https://unavatar.io/github/adamwathan")
+                    Ui.SelectOption.Value("calebporzio").Label("Caleb Porzio").Avatar("/img/avatars/amber.svg"),
+                    Ui.SelectOption.Value("taylorotwell").Label("Taylor Otwell").Avatar("/img/avatars/sky.svg"),
+                    Ui.SelectOption.Value("adamwathan").Label("Adam Wathan").Avatar("/img/avatars/rose.svg")
                 ],
                 Ui.Select.Key("content").Value(_colour).OnChange(picked => _colour = picked).Listbox.Placeholder("Select color...")[
                     Swatches.Select(Swatch)

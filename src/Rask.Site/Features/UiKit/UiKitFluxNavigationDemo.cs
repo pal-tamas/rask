@@ -11,7 +11,7 @@ namespace Rask.Site.Features.UiKit;
 /// </remarks>
 public sealed partial class UiKitFluxNavigationDemo : Component
 {
-    private const string Caleb = "https://unavatar.io/x/calebporzio";
+    private const string Caleb = "/img/avatars/amber.svg";
 
     private const string Tray = "flex flex-wrap items-center gap-6";
 

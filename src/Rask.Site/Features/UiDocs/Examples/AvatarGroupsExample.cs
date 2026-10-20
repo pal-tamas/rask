@@ -2,11 +2,11 @@ namespace Rask.Site.Features.UiDocs.Examples;
 
 public sealed partial class AvatarGroupsExample : Component
 {
-    private const string Caleb = "https://unavatar.io/x/calebporzio";
+    private const string Caleb = "/img/avatars/amber.svg";
 
-    private const string Hugo = "https://unavatar.io/github/hugosaintemarie";
+    private const string Hugo = "/img/avatars/sky.svg";
 
-    private const string Josh = "https://unavatar.io/github/joshhanley";
+    private const string Josh = "/img/avatars/emerald.svg";
 
     protected override Component? Render() =>
         Div.Class("flex flex-wrap items-center gap-6")[
