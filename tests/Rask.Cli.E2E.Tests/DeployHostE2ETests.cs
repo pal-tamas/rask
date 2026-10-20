@@ -148,7 +148,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         // A real Caddy accepted the generated Caddyfile — `caddy reload` validates before applying, so the
         // deploy returning 0 already means it parsed. Assert the route landed in the running config too.
-        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", "/etc/caddy/Caddyfile");
+        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", CaddySites.FragmentPath("webapp"));
         Assert.Contains("rask-e2e.test", caddyfile, StringComparison.Ordinal);
         Assert.Contains("webapp-blue:8080", caddyfile, StringComparison.Ordinal);
 
@@ -159,8 +159,55 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Contains("webapp-green", afterSecond, StringComparison.Ordinal);
         Assert.DoesNotContain("webapp-blue", afterSecond, StringComparison.Ordinal);
 
-        var (_, reloaded) = await host.DockerAsync("exec", "rask-caddy", "cat", "/etc/caddy/Caddyfile");
+        var (_, reloaded) = await host.DockerAsync("exec", "rask-caddy", "cat", CaddySites.FragmentPath("webapp"));
         Assert.Contains("webapp-green:8080", reloaded, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Two apps deployed at once, twice — the 2026-10-20 incident, where one deploy rewrote the shared Caddyfile from
+    /// a listing taken before the other swapped colours and left it routed to a removed container. Each app now writes
+    /// only its own file under the box's deploy lock, so both must end up served, through the real proxy, by their
+    /// own new colour. The <c>.localhost</c> names get a certificate from Caddy's internal CA, so the request goes
+    /// through TLS exactly as a visitor's does.
+    /// </summary>
+    [Fact]
+    public async Task Two_apps_deployed_at_once_are_each_served_by_their_own_new_colour()
+    {
+        var oneProject = Start(out var oneConsole, out var one);
+        var twoProject = Start(out var twoConsole, out var two);
+        File.WriteAllText(Path.Combine(oneProject, "Dockerfile"), AppWithMarker("APP-ONE $hostname"));
+        File.WriteAllText(Path.Combine(twoProject, "Dockerfile"), AppWithMarker("APP-TWO $hostname"));
+        string[] oneArgs = ["--host", host.Host, "--domain", "one.rask-e2e.localhost", "--app", "concurrent-one"];
+        string[] twoArgs = ["--host", host.Host, "--domain", "two.rask-e2e.localhost", "--app", "concurrent-two"];
+
+        var first = await Task.WhenAll(one.ExecuteAsync(oneArgs, CancellationToken.None), two.ExecuteAsync(twoArgs, CancellationToken.None));
+        var second = await Task.WhenAll(one.ExecuteAsync(oneArgs, CancellationToken.None), two.ExecuteAsync(twoArgs, CancellationToken.None));
+
+        var log = $"\n--- one ---\n{oneConsole.OutText}\n{oneConsole.ErrorText}\n--- two ---\n{twoConsole.OutText}\n{twoConsole.ErrorText}";
+        Assert.True(first.All(exit => exit == 0) && second.All(exit => exit == 0), $"a concurrent deploy failed.{log}");
+        var (_, containers) = await host.DockerAsync("ps", "--format", "{{.Names}}");
+        Assert.DoesNotContain("concurrent-one-blue", containers, StringComparison.Ordinal);
+        Assert.DoesNotContain("concurrent-two-blue", containers, StringComparison.Ordinal);
+        Assert.Equal($"APP-ONE {await HostnameOfAsync("concurrent-one-green")}", await ThroughProxyAsync("one.rask-e2e.localhost"));
+        Assert.Equal($"APP-TWO {await HostnameOfAsync("concurrent-two-green")}", await ThroughProxyAsync("two.rask-e2e.localhost"));
+        var (_, config) = await host.DockerAsync("exec", "rask-caddy", "curl", "-fsS", "http://localhost:2019/config/");
+        Assert.Equal(["concurrent-one-green:8080"], CaddyRouteCheck.Upstreams(config, "one.rask-e2e.localhost"));
+        Assert.Equal(["concurrent-two-green:8080"], CaddyRouteCheck.Upstreams(config, "two.rask-e2e.localhost"));
+    }
+
+    /// <summary>A request to <paramref name="site"/> through the proxy, by its name over TLS, as a visitor's arrives.</summary>
+    private async Task<string> ThroughProxyAsync(string site)
+    {
+        var (exit, body) = await host.DockerAsync("exec", "rask-caddy", "curl", "-fsSk", "--resolve", $"{site}:443:127.0.0.1", $"https://{site}/health");
+        Assert.True(exit == 0, $"{site} did not answer through the proxy: {body}");
+        return body.Trim();
+    }
+
+    /// <summary>The host name nginx reports for a container — its id, which tells one colour from another.</summary>
+    private async Task<string> HostnameOfAsync(string container)
+    {
+        var (_, hostname) = await host.DockerAsync("inspect", "--format", "{{.Config.Hostname}}", container);
+        return hostname.Trim();
     }
 
     /// <summary>
@@ -190,7 +237,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Contains("healthapp-blue", containers, StringComparison.Ordinal);   // the good one still serves
         Assert.DoesNotContain("healthapp-green", containers, StringComparison.Ordinal); // the bad one was removed
 
-        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", "/etc/caddy/Caddyfile");
+        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", CaddySites.FragmentPath("healthapp"));
         Assert.Contains("healthapp-blue:8080", caddyfile, StringComparison.Ordinal);
     }
 
@@ -219,8 +266,8 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.True(exit == 0, $"deploy on a non-default container port failed.\n{console.OutText}\n{console.ErrorText}");
 
         // The proxy points at 3000, and the port was remembered as a label on the container itself so a
-        // later deploy of a *different* app can regenerate the shared Caddyfile without losing it.
-        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", "/etc/caddy/Caddyfile");
+        // later deploy of a *different* app can carry its routes over without losing it.
+        var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", CaddySites.FragmentPath("portapp3000"));
         Assert.Contains("portapp3000-blue:3000", caddyfile, StringComparison.Ordinal);
 
         var (_, label) = await host.DockerAsync("inspect", "--format", "{{index .Config.Labels \"rask.port\"}}", "portapp3000-blue");

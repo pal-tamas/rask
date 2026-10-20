@@ -14,7 +14,8 @@ public sealed class DeployOpsTests
     private static DeployCommand Create(FakeFileSystem fs, FakeProcessRunner runner, StringConsole console)
     {
         fs.Seed("/proj/Dockerfile", "FROM scratch");
-        return new DeployCommand(console, fs, runner, WorkingDir) { ReadinessDelay = TimeSpan.Zero, ReadinessAttempts = 1 };
+        FakeProxy.Wire(runner, fs);
+        return new DeployCommand(console, fs, runner, WorkingDir) { ReadinessDelay = TimeSpan.Zero, ReadinessAttempts = 1, LockPollDelay = TimeSpan.Zero };
     }
 
     /// <summary>A ready host, a scripted `docker ps` listing, containers up, and an image for a tag query.</summary>
@@ -193,6 +194,25 @@ public sealed class DeployOpsTests
         Assert.Contains(tags, t => t.EndsWith("tag shop:current shop:rollback-swap", StringComparison.Ordinal));
         Assert.Contains(tags, t => t.EndsWith("tag shop:previous shop:current", StringComparison.Ordinal));
         Assert.Contains(tags, t => t.EndsWith("tag shop:rollback-swap shop:previous", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Rollback_switches_the_proxy_the_same_safe_way_a_deploy_does()
+    {
+        var runner = new FakeProcessRunner { CaptureHandler = Captures("shop-blue\tshop\tshop.example.com\tblue\t8080\n") };
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","domain":"shop.example.com"}""");
+        var command = Create(fs, runner, new StringConsole());
+
+        var exit = await command.ExecuteAsync(["rollback"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var all = runner.Invocations.ToList();
+        int Lock = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.LockContainer));
+        int Write = all.FindIndex(i => i.Arguments.Any(arg => arg.StartsWith("rask-caddy:/data/rask/sites/shop.caddy.tmp-", StringComparison.Ordinal)));
+        int Check = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.AdminConfigUrl));
+        int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop-blue")));
+        Assert.True(Lock >= 0 && Lock < Write && Write < Check && Check < Retire, "locked, own file written, checked through the proxy, then retired");
     }
 
     [Fact]
