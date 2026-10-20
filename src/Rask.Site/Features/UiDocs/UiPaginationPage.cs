@@ -31,7 +31,7 @@ public sealed partial class UiPaginationPage : Component
             UiDocsExample.Key("ui-pagination-links").Heading("Pages with an address").File("PaginationLinksExample.cs").Demo(PaginationLinksExample).Testid("ui-pagination-links")
                 .Blurb("Given Href, every page is a link to where it lives: the page goes in the query string."),
             UiDocsExample.Key("ui-pagination-size").Heading("Rows per page").File("PaginationPageSizeExample.cs").Demo(PaginationPageSizeExample).Testid("ui-pagination-size")
-                .Blurb("The page size is the paginator's PerPage, and the choice is a select of the page's own beside "
+                .Blurb("The page size is the paginator's PerPage, and the choice is a select of the page's own above "
                        + "the pager. A new size goes back to the first page."),
             UiPaginationBehaviour
         ];

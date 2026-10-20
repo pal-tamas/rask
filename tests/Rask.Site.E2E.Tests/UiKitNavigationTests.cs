@@ -418,7 +418,8 @@ public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFi
         await OpenUiPageAsync("pagination", "Pagination");
         var scope = Page.Locator("[data-testid='ui-pagination-size']");
         var pager = scope.Locator("[data-ui-pagination]");
-        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "3", Exact = true }).ClickAsync();
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
+        await pager.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Next" }).ClickAsync();
         await Expect(pager).ToContainTextAsync("Showing 21 to 30 of 240 results");
 
         await scope.Locator("select").SelectOptionAsync("25");
