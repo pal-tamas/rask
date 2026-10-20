@@ -13,7 +13,7 @@
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages   # writes the Rask page
 //         node scripts/flux/parity-carousel.mjs
-//         node scripts/flux/parity-carousel.mjs --live http://localhost:5000/docs/ui/data-display/
+//         node scripts/flux/parity-carousel.mjs --live http://localhost:5000/ui/carousel/
 //         node scripts/flux/parity-carousel.mjs --record                # Flux alone, every line printed
 
 import { existsSync } from 'node:fs';

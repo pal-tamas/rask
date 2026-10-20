@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     Flux UI's navigation pieces — navbar and navlist, brand, profile, breadcrumbs and avatar — example for
+///     Flux UI's navigation pieces — navbar and navlist, brand, profile and breadcrumbs — example for
 ///     example, in the order fluxui.dev shows them.
 /// </summary>
 /// <remarks>
@@ -13,10 +13,6 @@ public sealed partial class UiKitFluxNavigationDemo : Component
 {
     private const string Caleb = "https://unavatar.io/x/calebporzio";
 
-    private const string Hugo = "https://unavatar.io/github/hugosaintemarie";
-
-    private const string Josh = "https://unavatar.io/github/joshhanley";
-
     private const string Tray = "flex flex-wrap items-center gap-6";
 
     /// <inheritdoc />
@@ -26,9 +22,7 @@ public sealed partial class UiKitFluxNavigationDemo : Component
         NavlistSection(),
         BrandSection(),
         ProfileSection(),
-        BreadcrumbsSection(),
-        AvatarSection(),
-        AvatarBadgeAndGroupSection()
+        BreadcrumbsSection()
     ];
 
     private static Component NavbarSection() =>
@@ -169,73 +163,6 @@ public sealed partial class UiKitFluxNavigationDemo : Component
                     Ui.BreadcrumbsItem.Key("crumbs-ellipsis-1").Href("#").Icon(Ui.IconName.Home),
                     Ui.BreadcrumbsItem.Key("crumbs-ellipsis-2").Icon(Ui.IconName.EllipsisHorizontal),
                     Ui.BreadcrumbsItem.Key("crumbs-ellipsis-3")["Post"]
-                ]
-            ]);
-
-    private static Component AvatarSection() =>
-        Section(
-            "Avatar",
-            "A person as a picture, or as initials or an icon when there is none. Five sizes, seventeen hues, "
-            + "and a colour picked from the initials so one person is one colour everywhere.",
-            Div.Data(Testid("ui-flux-avatar")).Class("flex flex-col gap-4")[
-                Div.Key("faces").Class(Tray)[
-                    Ui.Avatar.Key("image").Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("tooltip").Tooltip("Caleb Porzio").Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("two").Name("Caleb Porzio"),
-                    Ui.Avatar.Key("word").Name("calebporzio"),
-                    Ui.Avatar.Key("single").Name("calebporzio").InitialsSingle(),
-                    Ui.Avatar.Key("stated").Initials("CP"),
-                    Ui.Avatar.Key("circle").Circle().Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("button").As(Ui.AvatarAs.Button).Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("link").Href("https://x.com/calebporzio").Src(Caleb).Name("Caleb Porzio")
-                ],
-                Div.Key("sizes").Class("flex flex-wrap items-end gap-6")[
-                    Ui.Avatar.Key("xl").Xl.Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("lg").Lg.Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("md").Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("sm").Sm.Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("xs").Xs.Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("user").Icon(Ui.IconName.User),
-                    Ui.Avatar.Key("phone").Icon(Ui.IconName.Phone),
-                    Ui.Avatar.Key("desktop").Icon(Ui.IconName.ComputerDesktop)
-                ],
-                Div.Key("colours").Data(Testid("ui-flux-avatar-colors")).Class("flex flex-wrap gap-2")[
-                    Enum.GetValues<Ui.Color>().Take(17).Select(Component (color) =>
-                        Ui.Avatar.Key(color.ToString()).Name("Caleb Porzio").Color(color))
-                ],
-                Div.Key("auto").Data(Testid("ui-flux-avatar-auto")).Class("flex flex-wrap gap-2")[
-                    Ui.Avatar.Key("cp").Name("Caleb Porzio").ColorAuto(),
-                    Ui.Avatar.Key("mj").Name("Mia Jones").ColorAuto(),
-                    Ui.Avatar.Key("kc").Name("Kai Chen").ColorAuto(),
-                    Ui.Avatar.Key("seed").Name("Caleb Porzio").ColorAuto().ColorSeed("user-42")
-                ]
-            ]);
-
-    private static Component AvatarBadgeAndGroupSection() =>
-        Section(
-            "Avatar badges and groups",
-            "A badge marks a corner — a plain dot, a count, an emoji or anything else — and a group stacks "
-            + "avatars, ringing each in the colour of the page behind it.",
-            Div.Data(Testid("ui-flux-avatar-groups")).Class(Tray)[
-                Ui.Avatar.Key("dot").Badge("").BadgeColor(Ui.Color.Green).Src(Caleb).Name("Caleb Porzio"),
-                Ui.Avatar.Key("outline").Badge("").BadgeColor(Ui.Color.Zinc).BadgePosition(Ui.AvatarBadgePosition.TopRight)
-                    .BadgeCircle().BadgeVariant(Ui.AvatarBadgeVariant.Outline).Src(Caleb).Name("Caleb Porzio"),
-                Ui.Avatar.Key("count").Badge("25").Src(Caleb).Name("Caleb Porzio"),
-                Ui.Avatar.Key("emoji").Circle().Badge("👍").BadgeCircle().Src(Caleb).Name("Caleb Porzio"),
-                Ui.Avatar.Key("slot").Circle().Badge(Img.Src(Hugo).Alt("").Class("size-3")).Src(Caleb).Name("Caleb Porzio"),
-                Ui.AvatarGroup.Key("group")[
-                    Ui.Avatar.Key("avatars-group-1").Src(Caleb).Name("Caleb Porzio"),
-                    Ui.Avatar.Key("avatars-group-2").Src(Hugo).Name("Hugo Sainte-Marie"),
-                    Ui.Avatar.Key("avatars-group-3").Src(Josh).Name("Josh Hanley"),
-                    Ui.Avatar.Key("avatars-group-4")["3+"]
-                ],
-                Div.Key("ground").Class("rounded-lg bg-zinc-100 p-3 dark:bg-zinc-800")[
-                    Ui.AvatarGroup.Class("*:ring-zinc-100 dark:*:ring-zinc-800")[
-                        Ui.Avatar.Key("ground-1").Circle().Lg.Src(Caleb).Name("Caleb Porzio"),
-                        Ui.Avatar.Key("ground-2").Circle().Lg.Src(Hugo).Name("Hugo Sainte-Marie"),
-                        Ui.Avatar.Key("ground-3").Circle().Lg.Src(Josh).Name("Josh Hanley"),
-                        Ui.Avatar.Key("ground-4").Circle().Lg["3+"]
-                    ]
                 ]
             ]);
 
