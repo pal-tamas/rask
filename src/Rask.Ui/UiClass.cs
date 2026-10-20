@@ -14,7 +14,7 @@ namespace Rask;
 /// </para>
 /// <para>
 /// This does no other work. In particular it never BUILDS a class name, only joins ones already spelled
-/// out in <see cref="UiClassNames" />: daisyUI emits a component's CSS only where Tailwind can see the
+/// out as whole literals: Tailwind emits a class only where it can see the
 /// literal, so a name assembled at runtime would be absent from the sheet and its component would render
 /// unstyled with nothing reporting it.
 /// </para>

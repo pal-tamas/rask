@@ -3,8 +3,8 @@
 namespace Rask;
 
 /// <summary>
-///     The Rask UI kit: every component, reached as <c>Ui.Button</c>, <c>Ui.Card</c>, <c>Ui.DataGrid</c>, and every
-///     option it takes, as <c>Ui.ButtonVariant</c>, <c>Ui.Color</c>, <c>Ui.Tone</c>.
+///     The Rask UI kit: every component, reached as <c>Ui.Button</c>, <c>Ui.Card</c>, <c>Ui.Table</c>, and every
+///     option it takes, as <c>Ui.ButtonVariant</c>, <c>Ui.Color</c>, <c>Ui.IconName</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

@@ -87,7 +87,7 @@ the page that uses the card is the one that built them. Each row shows what its 
 
 ![The Tree tab: the app's components nested as on the page, with each component's props on its row, and beside the tree the selected TaskRow's props with their types and the Release it reads from TaskBoard](../src/Rask.Site/wwwroot/img/devtools/tree.webp)
 
-- **The type**, as you write it: `TaskRow`, `UiTree<Node, string>`.
+- **The type**, as you write it: `TaskRow`, `UiSelect<string>`.
 - **The key**, as a badge, when the component has one.
 - **Its props**, as `Name=value`. Rask writes the code that reads them when it builds the app, so they are there in a
   trimmed WASM app too.

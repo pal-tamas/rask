@@ -868,7 +868,7 @@ public sealed partial class ComponentFactoryGenerator
     // form control's bound/controlled mode, a form's submit-state children indexer, a grid's row key.
     // What replaced each one is worth stating, because none of it is the same mechanism:
     //
-    //   - the two INDEXERS are declared on the components themselves (Form and UiDataGrid<T>), which
+    //   - the two INDEXERS are declared on the components themselves (Form, and a grid's columns), which
     //     scopes them exactly as well and costs no type parameter. An indexer cannot be constrained,
     //     which is the only reason they ever needed a shape of their own;
     //   - BIND-VERSUS-VALUE still does not compile, and needs no diagnostic to say so. The two openings
@@ -880,7 +880,7 @@ public sealed partial class ComponentFactoryGenerator
     // `GridBuild<T, TKey>` opened carrying NoKey and declared the selection steps only over a pinned one,
     // so a grid that never said what identifies a row was not a grid whose selection was rejected — it
     // was one where selection was not offered. `Selected` and `OnSelect` are now ordinary
-    // extensions on UiDataGrid<TRow>, reachable before any RowKey step, and SelectionOf fabricates a
+    // extensions on the grid, reachable before any RowKey step, and SelectionOf fabricates a
     // strategy with no selector installed when they are.
     //
     // With the component as the receiver a generic self-type does the rest: `T` infers to whatever it was

@@ -61,6 +61,19 @@ public sealed class PageMetaTests
     }
 
     [Theory]
+    [InlineData("data-grid")]
+    [InlineData("tree")]
+    public async Task A_guide_whose_component_left_the_kit_opens_the_kit_guide(string slug)
+    {
+        var head = await HeadAt((string)global::Rask.Site.Routes.GuidePage(slug));
+        var kit = GuideCatalog.Find("ui-kit")!;
+
+        Assert.Equal(kit.SearchTitle + PageMeta.TitleSuffix, WebUtility.HtmlDecode(TitleOf(head)));
+        Assert.Equal(PageMeta.Origin + PageMeta.LinkTo(global::Rask.Site.Routes.GuidePage("ui-kit")), CanonicalOf(head));
+        Assert.Contains((string)global::Rask.Site.Routes.GuidePage(slug), new GuidePrerenderPaths().Paths());
+    }
+
+    [Theory]
     [MemberData(nameof(PrerenderableRoutes))]
     public async Task Every_routed_page_names_itself_and_says_what_it_is(string path)
     {

@@ -329,18 +329,8 @@ public static class GuideCatalog
         },
         new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Frontend")
         {
-            SearchTitle = "daisyUI components as typed C# components",
-            Description = "Every daisyUI 5 component as a typed C# component, no npm or Tailwind config: accessible menus, modals, a sidebar layout, form fields, dark mode.",
-        },
-        new("data-grid", "Data grid", "Sorting, paging, typed selection, grouping and a card layout on a phone.", "Frontend")
-        {
-            SearchTitle = "Data grid in C#: sorting, paging and selection",
-            Description = "A typed C# data grid with sortable columns, paging, typed row selection, expandable detail rows, grouping, a column chooser and a card layout on phones.",
-        },
-        new("tree", "Tree", "Expandable hierarchies with a keyboard, typed selection and virtualization.", "Frontend")
-        {
-            SearchTitle = "Tree view in C#: keyboard and virtualization",
-            Description = "A typed C# tree view: expand and collapse, single or multiple selection, a keyboard with type-ahead, and virtualization.",
+            SearchTitle = "Flux UI components as typed C# components",
+            Description = "Flux UI's components as typed C# components, no npm or Tailwind config: accessible menus, modals, a sortable paged table, a sidebar layout, dark mode.",
         },
         new("accessibility", "Accessibility", "ARIA, focus management, the img-alt analyzer.", "Frontend")
         {
@@ -540,6 +530,9 @@ public static class GuideCatalog
     public static IReadOnlyDictionary<string, string> Moved { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["broadcast"] = "subscriptions",
+        // The data grid and the tree left the kit; a list of rows is the kit guide's table and pager now.
+        ["data-grid"] = "ui-kit",
+        ["tree"] = "ui-kit",
     };
 
     /// <summary>The slug a guide answers at now: <paramref name="slug" /> itself, or where it moved to.</summary>

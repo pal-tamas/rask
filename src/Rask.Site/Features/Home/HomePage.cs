@@ -338,7 +338,7 @@ public sealed partial class HomePage : Component
                     Feature(Ui.IconName.CubeTransparent, "Components as a chain", "building-components", "A chain surface per component — ", Code["Card.Title(…)"], " — that demands what the component can't do without, plus type-safe ", Code["Routes.*"], " URL builders. Rename a route, break the build — never a dead link."),
                     Feature(Ui.IconName.ClipboardDocumentCheck, "Forms & validation", "forms", Code["Form.Model(m)"], " with two-way binding and inline ", Code[".Validate(…)"], " rules, sync or async. DataAnnotations and FluentValidation work too, checked again on the server."),
                     Feature(Ui.IconName.PaintBrush, "Scoped CSS & TypeScript", "js-interop", "Drop a sibling ", Code["{Component}.css"], "/", Code[".ts"], ". Auto-scoped, no leaks — a mismatch is a build error. Tailwind v4 compiles from ", Code["dotnet build"], ", with no npm and no config file."),
-                    Feature(Ui.IconName.ComputerDesktop, "A typed UI kit", "ui-kit", "Every daisyUI component as a C# component — ", Code["Ui.Button"], ", ", Code["Ui.DataGrid"], ", ", Code["Ui.Tree"], " — accessible and themed, with no npm and no Tailwind config."),
+                    Feature(Ui.IconName.ComputerDesktop, "A typed UI kit", "ui-kit", "Flux UI's components as C# components — ", Code["Ui.Button"], ", ", Code["Ui.Table"], ", ", Code["Ui.Chart"], " — accessible and themed, with no npm and no Tailwind config."),
                     Feature(Ui.IconName.DevicePhoneMobile, $"{BrowserApiCount} typed browser APIs", "browser-apis", "IndexedDB, passkeys, WebRTC with its signaling, view transitions and background sync as awaitable C# — and every other web API straight from MDN through ", Code["Rask.Web"], ". Serial, USB, HID and Bluetooth pickers are WebAssembly's."),
                     Feature(Ui.IconName.ArrowDownTray, "Installable PWA", "pwa", "A typed manifest, a default service worker, offline and background sync — the ", Code["wasm"], " template is installable out of the box."),
                     Feature(Ui.IconName.ArrowPath, "C# Hot Reload", "getting-started", "Edit ", Code["Render()"], " or scoped css/js under ", Code["rask dev"], " and it re-renders live — the closest a compiled framework gets to a no-build loop."),
@@ -358,7 +358,7 @@ public sealed partial class HomePage : Component
 
     /// <summary>How many compile-time diagnostics the diagnostics guide documents.</summary>
     /// <remarks><c>HomePageTests</c> recounts the guide's sections and fails when this goes stale.</remarks>
-    internal const int DiagnosticCount = 94;
+    internal const int DiagnosticCount = 93;
 
     // ---- install ----
     private static Component InstallSection() =>

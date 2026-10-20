@@ -38,8 +38,8 @@ public sealed partial class ComponentFactoryGenerator
     ///     </para>
     ///     <para>
     ///         States are identified by WHICH required properties are already set, so the remaining ones
-    ///         may be given in any order — <c>Ui.Stat.Label("…").Value("…")</c> and
-    ///         <c>Ui.Stat.Value("…").Label("…")</c> are both chains and both end at the component. That costs
+    ///         may be given in any order — <c>Card.Title("…").Note("…")</c> and
+    ///         <c>Card.Note("…").Title("…")</c> are both chains and both end at the component. That costs
     ///         one struct per reachable subset, which is why only REQUIRED properties take part: the
     ///         optional surface would make it 2^n over everything.
     ///     </para>
@@ -371,7 +371,7 @@ public sealed partial class ComponentFactoryGenerator
         //
         // With required steps outstanding it hands back the STATE that still owes them rather than the
         // component, so stating the type argument never skips them. That is what lets a component whose
-        // type no step can pin be built at all: Ui.DataGrid's rows can arrive through `Source`, whose
+        // type no step can pin be built at all: a grid's rows can arrive through a `Source`, whose
         // carrier infers nothing (see IsFuncLikeDelegate), and withholding `Of` outright left that grid
         // with no way in once RowKey became required.
         var pending = required.Count != 0;

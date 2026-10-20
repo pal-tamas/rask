@@ -46,12 +46,13 @@
 /*
   What the kit tells a CALL SITE to write, for a surface that has no Tailwind build to compile it: the
   devtools panel widens a badge around a long token with `whitespace-normal!` (and a table cell with
-  `whitespace-normal`), and a vertical separator is shortened with `my-2`. They used to reach this sheet
+  `whitespace-normal`) and breaks a long token anywhere with `break-all` (once drawn by the kit's own code
+  block, now gone), and a vertical separator is shortened with `my-2`. They used to reach this sheet
   because a doc comment named them, which is the scan #1214 ended — so they are named here, on purpose.
   `aspect-3/1` is the chart's: Ui.Chart draws at the size its caller gives it and its remarks say to give it
   one, so a surface with no Tailwind build (the kit frames the browser suites draw) sizes it with that class —
   without it the plot has no height and nothing in it can be hovered. The `group-focus:` outline is the devtools
   tree's keyboard cursor, ringed only while the tree has focus.
 */
-@source inline("my-2 whitespace-normal whitespace-normal! aspect-3/1");
+@source inline("my-2 whitespace-normal whitespace-normal! break-all aspect-3/1");
 @source inline("group-focus:outline-2 group-focus:-outline-offset-2 group-focus:outline-zinc-800 dark:group-focus:outline-white");

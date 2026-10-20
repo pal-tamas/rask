@@ -40,7 +40,7 @@ await Order.Where(o => o.Product.Name == "Anvil");   // declared nothing
 
 Then the same four
 components as before: `CreateOrder`, `UpdateOrder`, `DeleteOrder` and `OrdersPage`. They're the chapter 2 files
-with `Product` swapped for `Order`, the routes moved under `/orders`, and the three inputs and grid columns
+with `Product` swapped for `Order`, the routes moved under `/orders`, and the three inputs and table columns
 changed to `Total`, `ProductId` and `Placed`. Copy them and change the names.
 
 `ProductId` is a `Guid`, not a `Product`. One aggregate refers to another **by id**: each is loaded and saved on
@@ -115,12 +115,12 @@ Div.Class("flex flex-wrap items-center gap-3")[
 ]
 ```
 
-For role-specific bits — say a "Delete" button only admins should see — pass `Roles`. In the grid's
-actions column that is:
+For role-specific bits — say a "Delete" button only admins should see — pass `Roles`. In the table's
+last cell that is:
 
 ```csharp
 Authorize.Role("admin")[
-    DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(StateHasChanged)
+    DeleteProduct.Id(p.Id).Version(p.Version)
 ]
 ```
 

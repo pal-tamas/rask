@@ -36,7 +36,7 @@ public sealed partial class StatusTextUsesInkTests
         Assert.True(
             offenders.Count == 0,
             "These write a daisyUI status colour as text, which fails AA on base-100. Use the text-ui-*-ink "
-            + "token (UiClassNames.ValueTone):\n  " + string.Join("\n  ", offenders));
+            + "token (text-ui-danger-ink, text-ui-warn-ink):\n  " + string.Join("\n  ", offenders));
     }
 
     [GeneratedRegex(@"(?<![\w:/-])text-(?:success|warning|error|info)(?![\w-])")]
