@@ -18,6 +18,13 @@ public sealed partial class PrintTestApp : Component
 
     /// <summary>rask.sh's refund report, styled as the site draws it.</summary>
     internal static Component SiteReport() => SiteReportSheet;
+
+    /// <summary>A kit page with its chrome and controls round a long table and an accordion, on the kit's sheet.</summary>
+    internal static Component KitPage() => KitPageSheet;
+
+    /// <summary>Three short pages, each starting on a new sheet.</summary>
+    internal static Component ThreePages() =>
+        Div[P["Első"], P.Style("break-before: page")["Második"], P.Style("break-before: page")["Harmadik"]];
 }
 
 [Route("/print/refund")]

@@ -581,4 +581,10 @@ public enum RaskString
 
     /// <summary>The button of the confirm dialog that calls the action off.</summary>
     ConfirmNo,
+
+    /// <summary>
+    ///     A printed PDF's page number, at the foot of every page: <c>{0}</c> is the page, <c>{1}</c> how many
+    ///     there are.
+    /// </summary>
+    PdfPageNumber,
 }

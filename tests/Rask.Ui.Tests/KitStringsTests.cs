@@ -322,6 +322,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ConnectionReconnecting), nameof(RaskString.ConnectionOffline), nameof(RaskString.ConnectionStillTrying),
         nameof(RaskString.ConnectionRetry), nameof(RaskString.ConnectionReload), nameof(RaskString.ConnectionUpdating),
         nameof(RaskString.ConnectionAuthenticating), nameof(RaskString.ConnectionSessionTimedOut),
+        // A printed PDF's page numbers: Rask.Pdf writes them into the foot it hands Chromium.
+        nameof(RaskString.PdfPageNumber),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

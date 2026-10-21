@@ -63,6 +63,6 @@ public static class Pdf
         var printer = services.GetService<ChromiumPrinter>() ?? throw new InvalidOperationException(
             "Pdf.From is not running in this app: a hand-wired host calls builder.Services.AddRaskPdf() (a RaskApp "
             + "has it whenever the app references Rask.Pdf).");
-        return new PagePrinting(pages, printer, caller ?? new ClaimsPrincipal(new ClaimsIdentity()));
+        return new PagePrinting(pages, printer, PrintCaller.Of(caller ?? new ClaimsPrincipal(new ClaimsIdentity())));
     }
 }

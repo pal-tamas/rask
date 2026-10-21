@@ -3927,6 +3927,7 @@ Rask.Core.Globalization.RaskString.PageForbidden = 179 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.ConfirmHeading = 180 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmYes = 181 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmNo = 182 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PdfPageNumber = 183 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionStillTrying = 170 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionUpdating = 173 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerCancel = 19 -> Rask.Core.Globalization.RaskString

@@ -203,5 +203,6 @@
 
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",
-  "ConfirmNo": "Nem"
+  "ConfirmNo": "Nem",
+  "PdfPageNumber": "{0} / {1} oldal"
 }

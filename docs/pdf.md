@@ -33,6 +33,25 @@ Ui.Button.OnClick(async () =>
    from the app's web root. Nothing else is reachable — another host, an API, a file the app does not serve — and
    no script on the page runs.
 
+### A page's data is read before its first render is printed
+
+The page prints from that first GET: there is **no socket**, so nothing arrives after it. Rask renders the page in
+waves — render, wait for the async work that render started (every `OnMount` and `OnUpdated`, a query's first read),
+render again — for up to `Rask:Server:QuiescenceTimeout` (5 s) in all, and prints the last wave. So a report that
+awaits its data in `OnMount` prints the data, not its "Loading…":
+
+```csharp
+protected override async Task OnMount() => _rows = await Refunds.For(Quarter);
+```
+
+What that wait cannot cover is printed as it stands: work the page detaches (`_ = Poll()`), work waiting on the
+browser (a JavaScript call never returns here), and anything still out when the budget is spent. A page that loads
+its data some other way — a timer, a click — prints its placeholder. The budget is the server's for every first
+GET; `Rask:Pdf:Timeout` is a separate limit on the print itself.
+
+The page is rendered in the caller's language when the app ships it (`AddRaskCulture`), and in the app's default
+otherwise.
+
 The same call in a minimal-API endpoint:
 
 ```csharp
@@ -51,9 +70,18 @@ so no `[Authorize]` to run: the caller already holds the data it was given.
 
 ## Write the report with Flux pieces
 
-A report is an ordinary component. Its table heading is a `<thead>`, which Chromium repeats on every printed page by
-itself; `break-inside-avoid` keeps a row from being cut in two, and Tailwind's `print:` variants hide what has no
-place on paper.
+A report is an ordinary component, and the kit already knows what paper is:
+
+- **Controls are left off.** Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` and its toggle,
+  `Ui.Header`, toasts, tooltips, open dropdowns and popovers, and a modal's backdrop print as nothing, and
+  `Ui.Main` drops its screen padding and panel.
+- **`Ui.Table` prints whole.** Cells wrap instead of being cut, the scroll frame lets the table run on, its
+  heading repeats at the top of every page, and a row is never split across two.
+- **`Ui.Accordion` prints open** — every item's content, closed ones included, with no chevron.
+
+Hide your own parts with Tailwind's `print:hidden`; show something the kit hides with an important utility,
+`print:inline-flex!`. None of this touches the screen: every rule is inside `@media print`, so the same
+defaults apply when a reader prints the page from their browser.
 
 <!-- demo:pdf-report -->
 
@@ -71,6 +99,9 @@ var pdf = await Pdf.From(Routes.RefundReport(id), new PdfOptions
 ```
 
 - **`Footer`** is printed as text — markup in it is shown, never run — at the foot of every page, left.
+- **`PageNumbers`** are written from the `PdfPageNumber` catalog text (`{0}` the page, `{1}` the count) in the
+  caller's language: `1 / 5` in English, `1 / 5 oldal` in Hungarian. Translate or reword it in your own
+  `Resources/RaskStrings.{culture}.json` like any [framework text](localization.md).
 - **`Tagged`** writes the document's structure (headings, tables, reading order) for screen readers. It is most of
   the file: a 209-page table comes out 12 MB tagged and 0.45 MB untagged, and prints in twice the time.
 
