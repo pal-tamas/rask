@@ -327,3 +327,12 @@ bundle,bytes
 rask.js,108493
 rask.wasm.js,94578
 rask-hooks.js,102012
+#
+# 2026-10-21, Ui.Confirm: `.Confirm("…")` asks in the kit's dialog when the layout placed one (rask-confirm.ts asks
+# through the seam and hands a yes back as the same press or submit; rask-confirm-dialog.ts answers it, opened by
+# rask-ask.ts, which Ui.ConfirmLeave's rask-leave.ts now shares): rask.js +184, rask.wasm.js +184, rask-hooks.js
+# +1,120. Measured from a Release build of the branch on main b382e5ea9 (108,493 / 94,578 / 102,012 there).
+bundle,bytes
+rask.js,108677
+rask.wasm.js,94762
+rask-hooks.js,103132

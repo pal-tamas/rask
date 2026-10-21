@@ -37,7 +37,7 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
         await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
         await page.WaitForTimeoutAsync(300);
 
-        await Expect(page.Locator(Dialog + " h2")).ToHaveTextAsync("Megerősítés");
+        await Expect(page.Locator(Dialog + " [data-ui-heading]")).ToHaveTextAsync("Megerősítés");
         await Expect(page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("Delete it?");
         await Expect(page.Locator(Dialog + " [data-rask-confirm-dialog=field]")).ToBeHiddenAsync();
         Assert.True(await page.Locator(Dialog).EvaluateAsync<bool>("d => d.matches(':modal') && d.contains(document.activeElement)"));

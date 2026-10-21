@@ -47,9 +47,10 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Confirm.Heading("Megerősítés").ToHtml().AsText();
 
-        var title = Tag(html, "<h2");
+        var title = Tag(html, "<div class=\"font-medium");
 
-        Assert.Contains(title + "Megerősítés</h2>", html, StringComparison.Ordinal);
+        Assert.Contains(title + "Megerősítés</div>", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-heading", title, StringComparison.Ordinal);
         Assert.Matches("<p[^>]*id=\"ui-confirm-message\"[^>]*data-rask-confirm-dialog=\"message\"[^>]*data-rask-opaque[^>]*></p>", html);
     }
 
@@ -60,7 +61,7 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
 
         var buttons = Buttons(html);
 
-        Assert.Contains(">Confirm</h2>", html, StringComparison.Ordinal);
+        Assert.Contains(">Confirm</div>", html, StringComparison.Ordinal);
         Assert.Equal(["No", "Yes"], buttons.Select(button => button.Label));
     }
 
@@ -71,7 +72,7 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
 
         var buttons = Buttons(html);
 
-        Assert.Contains(">Megerősítés</h2>", html, StringComparison.Ordinal);
+        Assert.Contains(">Megerősítés</div>", html, StringComparison.Ordinal);
         Assert.Equal(["Nem", "Igen"], buttons.Select(button => button.Label));
     }
 

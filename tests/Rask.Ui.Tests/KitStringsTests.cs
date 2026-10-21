@@ -100,10 +100,10 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         var first = KitCulture.In("en-US", () => Ui.Confirm.ToHtml());
         var switched = KitCulture.In("hu-HU", () => Ui.Confirm.ToHtml()).AsText();
 
-        Assert.Contains(">Confirm</h2>", first, StringComparison.Ordinal);
+        Assert.Contains(">Confirm</div>", first, StringComparison.Ordinal);
         Assert.Contains(">No<", first, StringComparison.Ordinal);
         Assert.Contains(">Yes<", first, StringComparison.Ordinal);
-        Assert.Contains(">Megerősítés</h2>", switched, StringComparison.Ordinal);
+        Assert.Contains(">Megerősítés</div>", switched, StringComparison.Ordinal);
         Assert.Contains(">Nem<", switched, StringComparison.Ordinal);
         Assert.Contains(">Igen<", switched, StringComparison.Ordinal);
     }

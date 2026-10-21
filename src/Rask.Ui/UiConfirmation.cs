@@ -23,22 +23,24 @@ internal static class UiConfirmation
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
                     Ui.ModalClose.Key("no")[Ui.Button.Ghost[no]],
-                    Ui.ModalClose.Key("yes")[Ui.Button.Danger.Data(part, "go")[yes]]
+                    // Flux's own: the button that says yes stands in the row by itself, and closes the dialog.
+                    Ui.Button.Danger.Key("yes").Data(part, "go").Attributes(UiModalInvoker.Closes(id))[yes]
                 ]
             ]
         ];
 
     // The question is empty in every render and filled in the browser, so it is kept out of the morph's hands: a
-    // render that lands while the dialog is open would otherwise blank it. Flux's heading keeps no room for the
-    // close button, because its examples keep a heading short: this one may be a whole question, so it keeps the
-    // room itself (measured by parity-modal.mjs).
+    // render that lands while the dialog is open would otherwise blank it.
 
     /// <summary>A short title, and the question as the sentence beneath it — Flux's "Delete project?" over its text.</summary>
     internal static Component Titled(string heading, string part, string? messageId = null) =>
         Div[
-            Ui.Heading.Level(2).Lg.Class("pe-8")[heading],
+            Ui.Heading.Lg[heading],
             Ui.Text.Id(messageId).Class("mt-2").Data(part, "message").Attributes(("data-rask-opaque", null))
         ];
+
+    // Flux's heading keeps no room for the close button, because its examples keep a heading short: a whole
+    // question may run under it, so this one keeps the room itself (measured by parity-modal.mjs).
 
     /// <summary>The question alone, as the title.</summary>
     internal static Component Untitled(string part) =>
