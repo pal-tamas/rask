@@ -368,7 +368,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                if (Refusal.Find(ex) is { } refusal && Shows(refusal, ctx))
+                if (Refused(ex, ctx))
                 {
                     return;
                 }
@@ -395,6 +395,19 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 StateHasChanged();
             }
         };
+
+    // The submit handler's [Authorize] turned the person away — nothing was saved, and a toast says why — or the
+    // app's own code refused it (Shows).
+    private bool Refused(Exception ex, EditContext ctx)
+    {
+        if (Authorization.HandlerForbiddenException.Find(ex) is not null)
+        {
+            ForbiddenAction.Say();
+            return true;
+        }
+
+        return Refusal.Find(ex) is { } refusal && Shows(refusal, ctx);
+    }
 
     // A refusal — the database refusing a duplicate, a rule saying no — is read where it can be answered:
     // under the fields it names, in the form's own messages, and what neither shows in a toast. No fault,

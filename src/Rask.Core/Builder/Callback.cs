@@ -1,3 +1,5 @@
+using Rask.Core.Authorization;
+
 namespace Rask.Core;
 
 /// <summary>
@@ -40,7 +42,7 @@ public readonly struct Callback
     private readonly Delegate? _handler;
 
     /// <summary>Wraps a synchronous handler.</summary>
-    public Callback(Action handler) => _handler = handler;
+    public Callback(Action handler) => _handler = HandlerGuard.Guard(handler);
 
     /// <summary>Wraps an asynchronous handler, awaited by the renderer before it repaints.</summary>
     /// <remarks>
@@ -48,13 +50,13 @@ public readonly struct Callback
     ///     (CS0121); a lambda that returns a <see cref="ValueTask" /> can only reach that one.
     /// </remarks>
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public Callback(Func<Task> handler) => _handler = handler;
+    public Callback(Func<Task> handler) => _handler = HandlerGuard.Guard(handler);
 
     /// <summary>
     ///     Wraps a handler that returns a <see cref="ValueTask" /> — most often another callback forwarded:
     ///     <c>.OnClick(() =&gt; OnRate.Invoke(i))</c>.
     /// </summary>
-    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(handler);
+    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(HandlerGuard.Guard(handler));
 
     internal Callback(Delegate? handler) => _handler = handler;
 
@@ -103,24 +105,24 @@ public readonly struct Callback<T>
     private readonly Delegate? _handler;
 
     /// <inheritdoc cref="Callback(Action)" />
-    public Callback(Action<T> handler) => _handler = handler;
+    public Callback(Action<T> handler) => _handler = HandlerGuard<T>.Guard(handler);
 
     /// <inheritdoc cref="Callback(Func{Task})" />
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public Callback(Func<T, Task> handler) => _handler = handler;
+    public Callback(Func<T, Task> handler) => _handler = HandlerGuard<T>.Guard(handler);
 
     /// <summary>A handler that does not need the argument: <c>.OnClick(() =&gt; n++)</c>, stored as it is.</summary>
-    public Callback(Action handler) => _handler = handler;
+    public Callback(Action handler) => _handler = HandlerGuard.Guard(handler);
 
     /// <summary>An asynchronous handler that does not need the argument.</summary>
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public Callback(Func<Task> handler) => _handler = handler;
+    public Callback(Func<Task> handler) => _handler = HandlerGuard.Guard(handler);
 
     /// <inheritdoc cref="Callback(Func{ValueTask})" />
-    public Callback(Func<T, ValueTask> handler) => _handler = ValueTaskHandler<T>.Adapt(handler);
+    public Callback(Func<T, ValueTask> handler) => _handler = ValueTaskHandler<T>.Adapt(HandlerGuard<T>.Guard(handler));
 
     /// <summary>A <see cref="ValueTask" />-returning handler that does not need the argument.</summary>
-    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(handler);
+    public Callback(Func<ValueTask> handler) => _handler = ValueTaskHandler.Adapt(HandlerGuard.Guard(handler));
 
     internal Callback(Delegate? handler) => _handler = handler;
 
@@ -176,14 +178,14 @@ public readonly struct Callback<T1, T2>
     private readonly Delegate? _handler;
 
     /// <inheritdoc cref="Callback(Action)" />
-    public Callback(Action<T1, T2> handler) => _handler = handler;
+    public Callback(Action<T1, T2> handler) => _handler = HandlerGuard<T1, T2>.Guard(handler);
 
     /// <inheritdoc cref="Callback(Func{Task})" />
     [System.Runtime.CompilerServices.OverloadResolutionPriority(1)]
-    public Callback(Func<T1, T2, Task> handler) => _handler = handler;
+    public Callback(Func<T1, T2, Task> handler) => _handler = HandlerGuard<T1, T2>.Guard(handler);
 
     /// <inheritdoc cref="Callback(Func{ValueTask})" />
-    public Callback(Func<T1, T2, ValueTask> handler) => _handler = ValueTaskHandler<T1, T2>.Adapt(handler);
+    public Callback(Func<T1, T2, ValueTask> handler) => _handler = ValueTaskHandler<T1, T2>.Adapt(HandlerGuard<T1, T2>.Guard(handler));
 
     internal Callback(Delegate? handler) => _handler = handler;
 
