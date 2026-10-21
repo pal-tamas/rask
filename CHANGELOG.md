@@ -250,6 +250,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BEHAVIOUR CHANGE: each live event gets the app's scoped services fresh, as a request would.** A click, a
+  submit, a navigation, a pushed render and the hooks they run now reach the services *you* registered as scoped
+  — a `DbContext`, a repository, a validator — and every transient (the CQRS dispatcher and its handlers) from a
+  scope of that event's own: signed in as the user the session revalidated for it, and disposed once it has
+  rendered. They used to live as long as the tab. An app that kept scoped state across events (a scoped unit of
+  work collecting several clicks) now gets a fresh one each time; keep that on the component instead. A
+  component's constructor and the framework's own services (route, toaster, `IUserProvider`, `IJSRuntime`) stay
+  the session's, and an event that asks for none of yours opens no scope. Both hosts; an app needs nothing — the
+  per-event helper Eszaf wrote can go. See [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
+
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

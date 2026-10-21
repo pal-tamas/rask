@@ -214,6 +214,40 @@ handler, and a component that was unmounted never hears an event again. What cou
 that means for a list of rows, is in
 [An event that outlived its render](js-interop-runtime.md#an-event-that-outlived-its-render).
 
+## Each event gets its own scoped services
+
+A live page answers many events over one connection, and each one runs the way a request would: the app's
+**scoped** services it reaches are fresh for that event, signed in as the user the session holds *for that
+event* (revalidated as it started), and disposed once the event has rendered. A click, a form submit, a
+navigation, a render the server pushes and the lifecycle hooks they run each count as one event; the events of
+one batched frame count as one.
+
+```csharp
+builder.Services.AddDbContext<ShopDb>();          // scoped: one per event, not one per open tab
+builder.Services.AddScoped<IPricing, Pricing>();  // likewise
+
+// A command handler that takes the context gets the event's own, and it is disposed after the click.
+public sealed class PlaceOrderHandler(ShopDb db) : ICommandHandler<PlaceOrder> { … }
+```
+
+What gets one per event is what a request would have had one of: the services *you* register as scoped, and
+every transient (so the CQRS dispatcher a handler is reached through, and the handler, are the event's too).
+The framework's own services — the route, the toaster, `IUserProvider`, `IJSRuntime` — stay the session's. The
+scope is opened only when something asks for one of your services, so an event that asks for none costs nothing.
+
+Two rules follow:
+
+- **A component's constructor is the session's.** A component outlives every event, so what it takes in its
+  constructor comes from the session, as before. Reach per-event work through the calls that take no service —
+  `await Product.Create(model)`, `await Dispatcher.Send(command)`, `Cache.Remember(…)` — or a handler they reach.
+- **Do not keep a scoped service past its event.** A field that holds a `DbContext` it was handed in one event
+  finds it disposed in the next. This is a behaviour change: an app that kept scoped state across events (a
+  scoped "unit of work" collecting changes over several clicks) now gets a fresh one per event — keep such state
+  on the component, or in a singleton keyed by the user.
+
+A scoped service of yours that injects the toaster or the navigator gets one of the event's scope, which no
+page shows; use the `Toast` and `Go` facades there, which always reach the page.
+
 ## Asking another component to render, from a hook
 
 A page often has something to tell the layout above it — its title for a breadcrumb, say — and tells it as it

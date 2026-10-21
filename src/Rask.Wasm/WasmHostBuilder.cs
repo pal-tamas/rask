@@ -33,6 +33,9 @@ public sealed class WasmHostBuilder
     {
         Services = new ServiceCollection();
         Services.AddLogging();
+
+        // Each event gets the app's scoped services fresh, as a server session's does.
+        EventScopeCatalog.Add(Services);
         Services.AddSingleton<RouteState>();
         // The declared state bag. Singleton here for the same reason RouteState is: the whole WASM app is a
         // single session. It works exactly as it does on the server — what differs is that nothing carries

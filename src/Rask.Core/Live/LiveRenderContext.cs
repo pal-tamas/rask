@@ -20,7 +20,14 @@ public sealed class LiveRenderContext : IDisposable
     // different thread and must still observe Current / IsActive) — those keep reading _current.
     [ThreadStatic] private static LiveRenderContext? _syncCurrent;
 
-    private static readonly Func<IServiceProvider?> RenderServices = static () => _current.Value?.Services;
+    private static readonly Func<IServiceProvider?> RenderServices = static () => _current.Value?.AmbientServices;
+
+    /// <summary>
+    ///     What a static call made while this render runs reaches: the services of the session's event in progress,
+    ///     whose app-scoped services are the event's own — not <see cref="Services" />, which builds components that
+    ///     outlive the event.
+    /// </summary>
+    internal IServiceProvider? AmbientServices => _handle is LiveSessionBase session ? session.EventServices : Services;
 
     private readonly LiveRenderContext? _previousSync;
     private readonly System.Globalization.CultureInfo? _pinnedCulture;

@@ -307,7 +307,55 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     ///     for a tenant filter means reading somebody else's rows. Nesting is fine — a dispatch renders, so
     ///     this is entered inside itself, and each disposal restores exactly what it replaced.
     /// </remarks>
-    internal IDisposable? EnterWorkScope() => _workScope?.Enter(Services);
+    internal IDisposable? EnterWorkScope() => _workScope?.Enter(EventServices);
+
+    // Null until something asks for the event's services, and for a host that registered no catalog (a bare test
+    // store), where the session's own services answer for every event, as they always did.
+    private EventServices? _eventServices;
+    private bool _eventServicesResolved;
+
+    /// <summary>
+    ///     The services of the event in progress: the app's scoped services fresh for each event, in a scope opened
+    ///     on first use and disposed as the event ends; the framework's from the session.
+    /// </summary>
+    /// <remarks>What is ambient while an event runs — a handler, a render, a navigation — and never what a component is built with: a component outlives every event.</remarks>
+    internal IServiceProvider EventServices
+    {
+        get
+        {
+            if (!_eventServicesResolved)
+            {
+                _eventServices = Services.GetService<EventScopeCatalog>() is { } catalog
+                                 && Services.GetService<IServiceScopeFactory>() is { } scopes
+                    ? new EventServices(this, catalog, scopes)
+                    : null;
+                _eventServicesResolved = true;
+            }
+
+            return (IServiceProvider?)_eventServices ?? Services;
+        }
+    }
+
+    /// <summary>The scope the event in progress has opened, or null — for tests.</summary>
+    internal IServiceProvider? OpenedEventScope => _eventServices?.Opened;
+
+    /// <summary>
+    ///     Makes a scope just opened for an event the session's: signed in as the user the session holds now — the
+    ///     one it revalidated for this event. A host adds what else of the session that scope must see.
+    /// </summary>
+    /// <param name="eventScope">The event's own services.</param>
+    protected internal virtual void SeedEventScope(IServiceProvider eventScope)
+    {
+        if (Services.GetService<IUserProvider>() is { } users
+            && eventScope.GetService<IUserProvider>() is ISettableUserProvider fresh
+            && !ReferenceEquals(users, fresh))
+        {
+            fresh.Set(users.Current);
+        }
+    }
+
+    /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
+    internal void EndEvent() => _eventServices?.Close(Volatile.Read(ref _unsettledReads));
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
     // applyDiff (post-commit ordering). Shared queue type so both hosts order interop identically.
@@ -319,7 +367,17 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     public bool InHandlerScope
     {
         get => _inHandlerScope;
-        set => _inHandlerScope = value;
+        set
+        {
+            _inHandlerScope = value;
+
+            // Every host clears it as the event that set it ends, after its last render: that is where the
+            // event's scope goes.
+            if (!value)
+            {
+                EndEvent();
+            }
+        }
     }
 
     // Volatile for the handoff described at _pendingRenderInScope.

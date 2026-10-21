@@ -584,7 +584,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             using (navigator.EnterHandler())
             {
-                if (!await View.TryInvokeHandlerAsync(handlerId, root, Services, CancellationToken.None).ConfigureAwait(false))
+                if (!await View.TryInvokeHandlerAsync(handlerId, root, EventServices, CancellationToken.None).ConfigureAwait(false))
                 {
                     return Array.Empty<byte>();
                 }

@@ -1,0 +1,209 @@
+using System.Security.Claims;
+using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
+using Rask.Core;
+using Rask.Core.Authentication;
+using Rask.Server.Tests.Infrastructure;
+
+#pragma warning disable RASK019 // test-infra app predates framework-managed <head>
+
+namespace Rask.Server.Tests.Live;
+
+/// <summary>
+///     Each live event gets the app's scoped services fresh, as a request would: its own instances, signed in as the
+///     user the session revalidated for that event, disposed when the event has rendered.
+/// </summary>
+public class EventScopeTests
+{
+    [Fact]
+    public async Task Two_clicks_get_two_different_instances_of_a_scoped_service()
+    {
+        await using var page = await OpenAsync();
+
+        await page.ClickAsync();
+        await page.ClickAsync();
+
+        Assert.Equal(2, page.Log.Seen.Count);
+        Assert.NotSame(page.Log.Seen[0].Probe, page.Log.Seen[1].Probe);
+    }
+
+    [Fact]
+    public async Task A_scoped_service_sees_the_user_the_session_revalidated_for_that_event()
+    {
+        await using var page = await OpenAsync();
+        page.Session.Users.Set(Person("alice"));
+
+        await page.ClickAsync();
+        page.Revalidator.Role = "editor";
+        await page.ClickAsync();
+
+        Assert.Equal(["alice", "alice editor"], page.Log.Seen.Select(s => s.User));
+    }
+
+    [Fact]
+    public async Task The_event_s_scope_is_disposed_once_the_event_has_rendered()
+    {
+        await using var page = await OpenAsync();
+
+        await page.ClickAsync();
+
+        Assert.True(page.Log.Seen[0].Probe.Disposed);
+        Assert.Null(page.Session.OpenedEventScope);
+    }
+
+    [Fact]
+    public async Task An_event_that_resolves_nothing_of_the_app_s_opens_no_scope()
+    {
+        await using var page = await OpenAsync();
+
+        await page.ClickAsync("nothing");
+
+        Assert.Empty(page.Log.Seen);
+        Assert.Equal(0, page.Log.Created);
+    }
+
+    [Fact]
+    public async Task The_framework_s_services_are_still_the_session_s_inside_an_event()
+    {
+        await using var page = await OpenAsync();
+
+        await page.ClickAsync();
+
+        Assert.Same(page.Session.Services.GetRequiredService<IUserProvider>(), page.Log.Seen[0].SessionUsers);
+    }
+
+    private static ClaimsPrincipal Person(string name) =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.Name, name), new Claim(ClaimTypes.NameIdentifier, name)], "Test"));
+
+    private static async Task<OpenPage> OpenAsync()
+    {
+        var revalidator = new RoleRevalidator();
+        var host = RaskTestHost.Create<EventScopeApp>(services =>
+        {
+            services.AddSingleton<EventScopeLog>();
+            services.AddScoped<EventScopeProbe>();
+            services.AddSingleton<ISessionRevalidator>(revalidator);
+        });
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(html);
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws.AttachedAsync(host, sessionId);
+        var session = host.Store.Get(sessionId)!;
+        await session.LastHandlerTask;
+        var log = host.Server.Services.GetRequiredService<EventScopeLog>();
+
+        // What the GET's render opened (nothing) is not a click's.
+        log.Reset();
+        return new OpenPage(host, ws, session, log, revalidator, html);
+    }
+
+    private sealed class OpenPage(
+        RaskTestHost host,
+        System.Net.WebSockets.WebSocket ws,
+        LiveSession session,
+        EventScopeLog log,
+        RoleRevalidator revalidator,
+        string html) : IAsyncDisposable
+    {
+        public LiveSession Session => session;
+
+        public EventScopeLog Log => log;
+
+        public RoleRevalidator Revalidator => revalidator;
+
+        public async Task ClickAsync(string button = "use")
+        {
+            var id = Regex.Match(html, "<button[^>]*data-rask-on-click=\"(h\\d+)\"[^>]*>" + button).Groups[1].Value;
+            await ws.SendJsonAsync(new { id }, ct: TestContext.Current.CancellationToken);
+            await ws.SettledAsync();
+            await session.LastHandlerTask;
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            ws.Dispose();
+            await host.StopAsync();
+            host.Dispose();
+        }
+    }
+
+    internal sealed class RoleRevalidator : ISessionRevalidator
+    {
+        // The same user with another right: a principal the session takes in place of the one it held.
+        public string? Role { get; set; }
+
+        public ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
+        {
+            if (Role is null)
+            {
+                return ValueTask.FromResult<ClaimsPrincipal?>(principal);
+            }
+
+            var identity = new ClaimsIdentity(principal.Claims, "Test");
+            identity.AddClaim(new Claim(ClaimTypes.Role, Role));
+            return ValueTask.FromResult<ClaimsPrincipal?>(new ClaimsPrincipal(identity));
+        }
+    }
+}
+
+public sealed class EventScopeLog
+{
+    private readonly Lock _gate = new();
+    private int _created;
+
+    public List<(EventScopeProbe Probe, string? User, IUserProvider SessionUsers)> Seen { get; } = [];
+
+    public int Created => Volatile.Read(ref _created);
+
+    public void Born() => Interlocked.Increment(ref _created);
+
+    public void Saw(EventScopeProbe probe, string? user, IUserProvider sessionUsers)
+    {
+        lock (_gate)
+        {
+            Seen.Add((probe, user, sessionUsers));
+        }
+    }
+
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            Seen.Clear();
+            _created = 0;
+        }
+    }
+}
+
+// The app's own scoped service: what a DbContext or a repository is.
+public sealed class EventScopeProbe : IDisposable
+{
+    private readonly IUserProvider _users;
+    private readonly EventScopeLog _log;
+
+    public EventScopeProbe(IUserProvider users, EventScopeLog log)
+    {
+        _users = users;
+        _log = log;
+        log.Born();
+    }
+
+    public bool Disposed { get; private set; }
+
+    public void Use() =>
+        _log.Saw(this, _users.Current.IsInRole("editor") ? $"{_users.Current.Identity?.Name} editor" : _users.Current.Identity?.Name, Ambient.Services!.GetRequiredService<IUserProvider>());
+
+    public void Dispose() => Disposed = true;
+}
+
+public sealed partial class EventScopeApp : Component
+{
+    protected override Component? HeadAssets => Title["scope"];
+
+    protected override Component? Render() =>
+        Div[
+            Button.OnClick(static () => Ambient.Services!.GetRequiredService<EventScopeProbe>().Use())["use"],
+            Button.OnClick(static () => { })["nothing"]
+        ];
+}

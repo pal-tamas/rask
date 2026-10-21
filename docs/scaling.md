@@ -25,7 +25,7 @@ dotnet run -c Release --project tests/Rask.Benchmarks -- session-footprint
 **Page size, not user count, is what moves this** — a ~180× swing across the sweep. Sessions are cheap
 until the page isn't. See [sizing `MaxSessions`](configuration.md#sizing-maxsessions-for-a-memory-budget)
 for turning that into a cap, and note the two exclusions: Kestrel's ~32 KB per connection, and your own
-scoped services — one `DbContext` per session can dwarf everything in the table.
+scoped services. Those are [one per event](lifecycle.md#each-event-gets-its-own-scoped-services) and gone once it has rendered, so only what a component takes in its constructor is held for the session's life — one `DbContext` held that way can dwarf everything in the table.
 
 **Every page load takes a session, connected or not.** [Every page is live](render-modes.md), so a `GET`
 creates a session before anything connects to it, and one that never connects is released after

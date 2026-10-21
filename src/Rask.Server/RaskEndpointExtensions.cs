@@ -300,6 +300,9 @@ public static partial class RaskEndpointExtensions
     {
         services.AddSingleton<RaskLiveMarker>();
 
+        // Each live event gets the app's scoped services fresh, as a request would (docs/composition-callbacks-context.md).
+        EventScopeCatalog.Add(services);
+
         // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
         // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
@@ -2764,7 +2767,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
             lockHeld: true,
@@ -2874,7 +2877,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
             lockHeld: false,
