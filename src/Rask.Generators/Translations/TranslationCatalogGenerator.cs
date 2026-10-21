@@ -224,6 +224,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("CommandClose", 0),
         ("HandlerForbidden", 0),
         ("PageForbidden", 0),
+        ("TableEmpty", 0),
         ("Filters", 0),
         ("FiltersClear", 0),
         ("FiltersClearAll", 0),

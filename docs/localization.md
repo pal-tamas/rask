@@ -412,6 +412,7 @@ they say when you set nothing.
 | `PaginationSummary` | Pagination | `Showing {0} to {1} of {2} results` |
 | `PaginationPrevious` | Pagination | `« Previous` |
 | `PaginationNext` | Pagination | `Next »` |
+| `TableEmpty` | Table drawn from a query | `No results.` |
 | `CalendarToday` | Calendar | `Today` |
 | `DatePickerPlaceholder` | Date picker | `Select a date` |
 | `DatePickerRangePlaceholder` | Date picker | `Select a date range` |

@@ -31,6 +31,10 @@ public sealed partial class UiTablePage : Component
                 UiDocsExample.Key("ui-table-stable").Heading("Columns that stay put").File("TableSteadyColumnsExample.cs").Demo(TableSteadyColumnsExample).Testid("ui-table-stable").Nested()
                     .Blurb("A width on the table and on every column but one: paging, sorting and an empty list move "
                            + "nothing, and a long value ends in an ellipsis with all of it in its tooltip."),
+                UiDocsExample.Key("ui-table-of-query").Heading("Loading from a query").File("TableOfQueryExample.cs").Demo(TableOfQueryExample).Testid("ui-table-of-query").Nested()
+                    .Blurb("Of(query) draws the table from a Rask.Query query. Page, sort or switch the tab: the "
+                           + "headings stay, the rows turn into skeleton rows of their own size at the press, and the "
+                           + "new ones take their place. The read here takes 1.2 s."),
                 UiDocsExample.Key("ui-table-waits").Heading("Paging that waits").File("TablePagingThatWaitsExample.cs").Demo(TablePagingThatWaitsExample).Testid("ui-table-waits").Nested()
                     .Blurb("Nothing changes until the next page has its rows. Make the read slow and the pager moves "
                            + "first, the rows you have dim, and the new ones take their place when they arrive.")

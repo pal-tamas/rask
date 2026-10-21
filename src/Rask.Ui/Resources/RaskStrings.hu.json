@@ -201,6 +201,8 @@
   "HandlerForbidden": "Ehhez nincs jogosultsága.",
   "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
 
+  "TableEmpty": "Nincs találat.",
+
   "Filters": "Szűrők",
   "FiltersClear": "Szűrők törlése",
   "FiltersClearAll": "Összes törlése",

@@ -573,6 +573,9 @@ public enum RaskString
     /// </summary>
     PageForbidden,
 
+    /// <summary>What a table drawn from a query (<c>Ui.Table.Of(query)</c>) says in its one row when the query found nothing.</summary>
+    TableEmpty,
+
     /// <summary>The button that opens a filter set's panel, and the panel's heading.</summary>
     Filters,
 
