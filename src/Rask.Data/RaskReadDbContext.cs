@@ -103,7 +103,7 @@ public class RaskReadDbContext : DbContext, ITenantScoped
             return null;
         }
 
-        using var write = Db.CreateContext();
+        using var write = Db.CreateOwnContext();
         return write.Model;
     }
 
