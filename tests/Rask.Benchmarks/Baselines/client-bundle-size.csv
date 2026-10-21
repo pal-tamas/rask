@@ -327,3 +327,11 @@ bundle,bytes
 rask.js,108493
 rask.wasm.js,94578
 rask-hooks.js,102012
+#
+# 2026-10-21, a lazy modal's opening and closing reported through a field of its shell (data-rask-modal-shown,
+# rask-overlay.ts report(), for Ui.Modal.Lazy and Ui.Filters' flyout): rask-hooks.js +278, the two runtimes unchanged.
+# Measured from a Release build of the branch merged with main 149e6620c: rask.js 108,493, rask.wasm.js 94,578, rask-hooks.js 102,290.
+bundle,bytes
+rask.js,108493
+rask.wasm.js,94578
+rask-hooks.js,102290
