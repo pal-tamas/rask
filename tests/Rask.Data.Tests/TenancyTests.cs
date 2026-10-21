@@ -59,6 +59,9 @@ public sealed class Haulier : Aggregate<Guid, Timestamps, Versioned, Model, Dele
     public static Haulier For(string name, Guid? tenant) => new() { Id = Guid.NewGuid(), Name = name, TenantId = tenant };
 }
 
+/// <summary>A ledger's reference and the tenant it belongs to, read across tenants.</summary>
+public sealed record LedgerOwner(string Reference, Guid? Tenant);
+
 /// <summary>An aggregate that does not name <c>PerTenant</c>, so it is one table for everybody.</summary>
 public sealed class RateCard : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
 {
@@ -175,6 +178,22 @@ public sealed class TenancyTests : IDisposable
                 ["ACME-1", "GLOBEX-1"],
                 (await Ledger.Select(l => l.Reference)).Order(StringComparer.Ordinal));
         }
+    }
+
+    [Fact]
+    public async Task A_read_across_tenants_tells_whose_row_each_one_is()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(database, _acme, "ACME-1");
+        await SaveAsync(database, _globex, "GLOBEX-1");
+
+        IReadOnlyList<LedgerOwner> owners;
+        using (Tenant.Across())
+        {
+            owners = await Ledger.OrderBy(l => l.Reference).Select(l => new LedgerOwner(l.Reference, l.TenantId));
+        }
+
+        Assert.Equal([new LedgerOwner("ACME-1", _acme), new LedgerOwner("GLOBEX-1", _globex)], owners);
     }
 
     [Fact]

@@ -731,17 +731,39 @@ await order.Save();
 await Order.Place("A-1001").Save();   // a new aggregate is inserted
 ```
 
-- **Inserted or written over.** An aggregate with no row yet is inserted; one that has a row is compared with
-  what `Find` read, and only the columns you changed are written — a column someone else changed meanwhile keeps
-  their value.
+It works the way Rails' and Laravel's models do: `Find` reads the row once and remembers what it read, and `Save()`
+writes what changed since — it never reads the row again.
+
+- **Read once.** `Find` loads the aggregate whole, through a context of its own, and hands it back detached with a
+  snapshot of what it read. `Save()` compares with that snapshot and writes only the columns you changed — a column
+  someone else changed meanwhile keeps their value — with no SELECT, however large the row. Every successful save
+  takes a new snapshot, so the next `Save()` reads nothing either.
+- **New is inserted with no read.** An aggregate your code made (`Order.Place(…)`, `new() { Id = Guid.CreateVersion7() }`)
+  and never saved is an INSERT. So an aggregate built — or deserialised — with the key of an EXISTING row is an
+  insert too, refused by the key: `Find` it and change it instead.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
   updated.
-- **A stale copy is refused** on a `Versioned` aggregate. The `Version` compared is the one `Find` read, so if someone saved in between,
-  `Save()` throws `DbUpdateConcurrencyException`. A row soft-deleted since it was read is `KeyNotFoundException`.
-- **The interceptors run** as for any write: times stamped, `Version` bumped, domain events published after the
-  commit.
-- **Nothing is held open.** `Find` returns the aggregate untracked and closes its context, so it is safe to keep in
-  a page field between `Find` and `Save`. Pass `db:` to `Save` to stage it in your own unit of work instead.
+- **Changed underneath is refused, never written over.** The `Version` compared is the one `Find` read, so on a
+  `Versioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is
+  `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
+  silently re-inserted. An aggregate with no `Version` that names `SoftDelete` is asked first whether its row is
+  still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
+- **The interceptors run** as for any write: times stamped, `Version` bumped, tenant checked, domain events
+  published after the commit.
+- **Nothing is held open.** `Find` takes no `db:` and returns the aggregate untracked, so it is safe to keep in a
+  page field between `Find` and `Save`. Pass `db:` to `Save` to stage it in your own unit of work; its snapshot is
+  taken when that context's `SaveChangesAsync` succeeds.
+- **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
+  file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
+  read first: an aggregate that names `SoftDelete` is stamped, any other has its row and its children removed. The
+  `Version` read is compared, so a row changed or deleted since is `DbUpdateConcurrencyException` (an unversioned
+  soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
+  `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
+  transaction — a rollback leaves the row and its children, and its events go out after the commit. The static
+  `QueuedFile.Delete(id)` stays, and loads the row first.
+- **Only to show it? Do not `Find` it.** A list, a detail page or a check reads the
+  [read face](#reading-the-read-face) (`Order.Where(…)`); an edit form reads `Order.Model(id)`. `Find` is for changing
+  the aggregate through its own methods.
 
 `Order.Update(id, o => o.Ship("1Z999"))` does the same in one call when there is nothing to show in between.
 
@@ -1237,7 +1259,10 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 
 - **Every mapped property** of the aggregate, nullable, and its `Version` when it names `Versioned`.
 - **Not** the `Id`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, the domain events, navigations, collections or computed
-  properties.
+  properties. Computed is read off the member: no setter, no backing field, and — for a collection — a getter that
+  makes something of a list the aggregate already stores rather than handing it out. `OpenLines => _lines.Where(…)`
+  beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside `Tags => _tags`, is on neither the model
+  nor the read face, and is not mapped; `Lines` and `Tags` stay, edited by the form as before.
 - **A value object as a model of its own:** `Money Price` on `Product` is a nested `MoneyModel? Price` on `ProductModel`, filled by `new ProductModel()` and `ToModel()`, so a
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.

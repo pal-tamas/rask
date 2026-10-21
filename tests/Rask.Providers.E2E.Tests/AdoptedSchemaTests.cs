@@ -173,8 +173,9 @@ internal static class AdoptedSchemaScenario
                 using var context = app.GetRequiredService<IDbContextFactory<AdoptedDomainContext>>().CreateDbContext();
                 return Task.FromResult(context.Set<Destination>().ToQueryString());
             });
-            Assert.Contains($" int = {first};", sql, StringComparison.Ordinal);
-            Assert.Contains("[d].[TenantId] = @", sql, StringComparison.Ordinal);
+            // SQL Server names the tenant as a literal, so each tenant gets a plan of its own.
+            Assert.Contains($"[d].[TenantId] = {first}", sql, StringComparison.Ordinal);
+            Assert.DoesNotContain("@", sql, StringComparison.Ordinal);
             log("filter sql: " + sql.ReplaceLineEndings(" "));
 
             await As(app, tenant, first, () => Destination.Delete(saved.Id));

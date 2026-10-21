@@ -13,13 +13,16 @@ internal static class HtmlPrint
 {
     private static readonly TimeSpan CleanupWait = TimeSpan.FromSeconds(5);
 
-    public static async Task<byte[]> Run(ChromiumProcess browser, PrintDocument document, int maxPages, CancellationToken cancellation)
+    public static async Task<byte[]> Run(
+        ChromiumProcess browser, PrintDocument document, int maxPages, PrintProgress progress, CancellationToken cancellation)
     {
         var devTools = browser.Connection;
+        progress.Now("creating its browser context");
         var context = (await devTools.Send("Target.createBrowserContext", cancellation: cancellation).ConfigureAwait(false))
             .GetProperty("browserContextId").GetString()!;
         try
         {
+            progress.Now("opening its tab");
             var target = (await devTools.Send(
                     "Target.createTarget",
                     json =>
@@ -29,6 +32,7 @@ internal static class HtmlPrint
                     },
                     cancellation: cancellation).ConfigureAwait(false))
                 .GetProperty("targetId").GetString()!;
+            progress.Now("attaching to its tab");
             var session = (await devTools.Send(
                     "Target.attachToTarget",
                     json =>
@@ -40,8 +44,12 @@ internal static class HtmlPrint
                 .GetProperty("sessionId").GetString()!;
             try
             {
-                await Load(devTools, session, new DocumentServer(devTools, session, document, cancellation), cancellation).ConfigureAwait(false);
+                progress.Now("loading the document (its load event)");
+                await Load(devTools, session, new DocumentServer(devTools, session, document, progress, cancellation), cancellation)
+                    .ConfigureAwait(false);
+                progress.Now("waiting for its web fonts");
                 await FontsReady(devTools, session, cancellation).ConfigureAwait(false);
+                progress.Now("printing it");
                 return await PrintToPdf(devTools, session, document, maxPages, cancellation).ConfigureAwait(false);
             }
             finally

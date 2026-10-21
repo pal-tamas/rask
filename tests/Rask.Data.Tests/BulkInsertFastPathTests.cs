@@ -70,6 +70,27 @@ public sealed class BulkInsertFastPathTests : IDisposable
     }
 
     [Fact]
+    public async Task A_row_it_wrote_is_updated_by_a_later_save_never_inserted_again()
+    {
+        var widget = Widgets(1)[0];
+        await using (var db = NewContext())
+        {
+            await db.BulkInsert([widget], o => o.SkipChangeTracking = true, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        widget.Rename("renamed");
+        widget.ClearDomainEvents();
+        await using (var db = NewContext())
+        {
+            await widget.Save(db, TestContext.Current.CancellationToken);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var verify = NewContext();
+        Assert.Equal(["renamed"], await verify.Widgets.Select(w => w.Name).ToListAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task Stamps_the_audit_columns_from_the_registered_clock()
     {
         var widgets = Widgets(3);
