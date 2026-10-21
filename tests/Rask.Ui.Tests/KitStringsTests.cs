@@ -95,6 +95,20 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_confirm_dialog_asks_each_visitor_in_their_own_language()
+    {
+        var first = KitCulture.In("en-US", () => Ui.Confirm.ToHtml());
+        var switched = KitCulture.In("hu-HU", () => Ui.Confirm.ToHtml()).AsText();
+
+        Assert.Contains(">Confirm</h2>", first, StringComparison.Ordinal);
+        Assert.Contains(">No<", first, StringComparison.Ordinal);
+        Assert.Contains(">Yes<", first, StringComparison.Ordinal);
+        Assert.Contains(">Megerősítés</h2>", switched, StringComparison.Ordinal);
+        Assert.Contains(">Nem<", switched, StringComparison.Ordinal);
+        Assert.Contains(">Igen<", switched, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void What_the_app_passes_in_is_said_as_given_in_every_language()
     {
         var dialog = Ui.ConfirmLeave.Stay("Nem").Leave("Igen");

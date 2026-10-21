@@ -196,5 +196,9 @@
   "ConnectionSessionTimedOut": "A munkamenet lejárt. A folytatáshoz töltse újra az oldalt.",
 
   "CommandClear": "Keresőmező törlése",
-  "CommandClose": "Parancspaletta bezárása"
+  "CommandClose": "Parancspaletta bezárása",
+
+  "ConfirmHeading": "Megerősítés",
+  "ConfirmYes": "Igen",
+  "ConfirmNo": "Nem"
 }

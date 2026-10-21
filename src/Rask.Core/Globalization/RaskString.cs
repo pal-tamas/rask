@@ -561,4 +561,13 @@ public enum RaskString
 
     /// <summary>The accessible name of a command palette's button that closes the modal it is in.</summary>
     CommandClose,
+
+    /// <summary>The title of the dialog an action's <c>Confirm("…")</c> asks in, above the question.</summary>
+    ConfirmHeading,
+
+    /// <summary>The button of the confirm dialog that lets the action go.</summary>
+    ConfirmYes,
+
+    /// <summary>The button of the confirm dialog that calls the action off.</summary>
+    ConfirmNo,
 }

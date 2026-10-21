@@ -532,6 +532,9 @@ they say when you set nothing.
 | `ConnectionSessionTimedOut` | Reconnect overlay | `Your session timed out. Reload to continue.` |
 | `CommandClear` | Command | `Clear command input` |
 | `CommandClose` | Command | `Close command modal` |
+| `ConfirmHeading` | Confirm | `Confirm` |
+| `ConfirmYes` | Confirm | `Yes` |
+| `ConfirmNo` | Confirm | `No` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |
