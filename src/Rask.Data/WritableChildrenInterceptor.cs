@@ -5,7 +5,8 @@ namespace Rask.Data;
 
 /// <summary>
 ///     Hands every entity a query materializes, and every entity a save is about to write, collections of children
-///     EF Core can fill — see <see cref="WritableChildren" />.
+///     EF Core can fill — see <see cref="WritableChildren" /> — and marks each aggregate among them as having a row
+///     (<see cref="StoredAggregates" />).
 /// </summary>
 /// <remarks>
 ///     Registered first by <see cref="RaskDataServiceCollectionExtensions.AddRaskData(Microsoft.Extensions.DependencyInjection.IServiceCollection)" />,
@@ -25,6 +26,7 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
     public object InitializedInstance(MaterializationInterceptionData materializationData, object entity)
     {
         WritableChildren.Ensure(materializationData.EntityType, entity);
+        StoredAggregates.Mark(entity);
         return entity;
     }
 
@@ -43,11 +45,36 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         return ValueTask.FromResult(result);
     }
 
+    /// <inheritdoc />
+    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+    {
+        Remember(eventData.Context);
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+    {
+        Remember(eventData.Context);
+        return ValueTask.FromResult(result);
+    }
+
+    // What the save wrote, for each aggregate staged with Save(): its next save then reads nothing.
+    private static void Remember(DbContext? context)
+    {
+        if (context is not null)
+        {
+            AggregateSave.RememberSaved(context);
+        }
+    }
+
     private static void Ensure(DbContext? context)
     {
         if (context is not null)
         {
             WritableChildren.Ensure(context);
+            StoredAggregates.MarkTracked(context);
         }
     }
 }

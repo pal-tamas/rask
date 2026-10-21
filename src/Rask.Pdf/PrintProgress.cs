@@ -1,0 +1,31 @@
+using System.Collections.Concurrent;
+
+namespace Rask.Printing;
+
+/// <summary>
+/// Where one print is: the step it is waiting on, and the page's requests not yet answered. A print that runs out of
+/// time says which, so a stuck print names what it was waiting for instead of only that it waited.
+/// </summary>
+internal sealed class PrintProgress
+{
+    private readonly ConcurrentDictionary<string, string> _unanswered = new(StringComparer.Ordinal);
+    private volatile string _step = "waiting for its turn";
+
+    /// <summary>Records the step the print now waits on, worded to follow "while …".</summary>
+    public void Now(string step) => _step = step;
+
+    /// <summary>A request the page made that has not been answered yet.</summary>
+    public void Asked(string requestId, string url) => _unanswered[requestId] = url;
+
+    /// <summary>The request has its answer.</summary>
+    public void Answered(string requestId) => _unanswered.TryRemove(requestId, out _);
+
+    /// <summary>"while …", and the requests still waiting for an answer, if any.</summary>
+    public string Describe()
+    {
+        var waiting = _unanswered.Values.ToList();
+        return waiting.Count == 0
+            ? $"while {_step}"
+            : $"while {_step}; the page's requests still unanswered: {string.Join(", ", waiting)}";
+    }
+}

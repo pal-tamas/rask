@@ -31,10 +31,13 @@ namespace Rask.Data;
 /// </example>
 /// </remarks>
 /// <typeparam name="TId">The key type (e.g. <see cref="Guid"/>, <see cref="int"/>, a strongly-typed id).</typeparam>
-public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
+public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents, IStoredAggregate
 {
     // Made on the first Raise: a row that is only read never raises one, and a queue or a list page reads thousands.
     private List<IEvent>? _domainEvents;
+
+    // False while only code has held it: see IStoredAggregate.
+    private bool _stored;
 
     /// <summary>Initializes the base.</summary>
     protected Aggregate()
@@ -69,6 +72,10 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
 
     /// <inheritdoc/>
     public void ClearDomainEvents() => _domainEvents?.Clear();
+
+    bool IStoredAggregate.IsStored => _stored;
+
+    void IStoredAggregate.MarkStored() => _stored = true;
 }
 
 /// <summary>An aggregate that asks for one trait, in any order — see <see cref="IAggregateTrait" />.</summary>

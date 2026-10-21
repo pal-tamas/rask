@@ -8,7 +8,8 @@ namespace Rask.Printing;
 /// under the same origin. Anything else — another host, a POST, a file the app does not have — is refused, so a
 /// print never reaches the network.
 /// </summary>
-internal sealed class DocumentServer(DevToolsConnection devTools, string session, PrintDocument document, CancellationToken cancellation)
+internal sealed class DocumentServer(
+    DevToolsConnection devTools, string session, PrintDocument document, PrintProgress progress, CancellationToken cancellation)
 {
     /// <summary>The origin the document is served under. <c>.invalid</c> never resolves, so nothing can leave the machine.</summary>
 #pragma warning disable S1075 // not a place to configure: an address Chromium never resolves, answered from memory.
@@ -27,18 +28,19 @@ internal sealed class DocumentServer(DevToolsConnection devTools, string session
         var request = paused.GetProperty("request");
         var url = request.GetProperty("url").GetString() ?? string.Empty;
         var isGet = string.Equals(request.GetProperty("method").GetString(), "GET", StringComparison.Ordinal);
+        progress.Asked(id, url);
 
         if (isGet && string.Equals(url, DocumentUrl, StringComparison.Ordinal))
         {
-            Observe(Fulfill(id, _html, "text/html; charset=utf-8"));
+            Observe(id, Fulfill(id, _html, "text/html; charset=utf-8"));
         }
         else if (isGet && document.Assets is { } assets && OwnPath(url) is { } path)
         {
-            Observe(Task.Run(() => Serve(id, assets, path), cancellation));
+            Observe(id, Task.Run(() => Serve(id, assets, path), cancellation));
         }
         else
         {
-            Observe(Refuse(id));
+            Observe(id, Refuse(id));
         }
     }
 
@@ -88,7 +90,20 @@ internal sealed class DocumentServer(DevToolsConnection devTools, string session
         },
         session);
 
-    // Nobody awaits an answer; one that fails leaves its request hanging, and the document's timeout reports it.
-    private static void Observe(Task answer) =>
-        _ = answer.ContinueWith(static task => task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+    // Nobody awaits an answer. One that went out is struck off the print's unanswered list; one that failed stays on
+    // it, so the document's timeout names the request that left the page waiting.
+    private void Observe(string id, Task answer) =>
+        _ = answer.ContinueWith(
+            task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    progress.Answered(id);
+                }
+
+                return task.Exception;
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.None,
+            TaskScheduler.Default);
 }

@@ -62,6 +62,20 @@ them until tagged releases begin.
   against `AllowedTypes`. Without `.As` the bytes decide, as before
   ([file storage](docs/file-storage.md#stating-the-type-yourself)).
 
+- **`aggregate.Delete()` deletes the aggregate you found, with no read first** — Rails' `record.destroy`, Laravel's
+  `$model->delete()`: `var file = await QueuedFile.Find(id); if (file.Expired) await file.Delete();`. Generated beside
+  `Save()` on every `Deletable`/`SoftDelete` aggregate, with the same `db:` and token. It works from `Find`'s snapshot
+  (`Find` + `Delete()` is one SELECT): a `SoftDelete` aggregate is stamped, any other has its row and children
+  removed; the `Version` read is compared (changed or deleted since → `DbUpdateConcurrencyException`; an unversioned
+  soft-deleting one is asked by its key first → `KeyNotFoundException`); one never saved is `InvalidOperationException`.
+  The tenant check runs, it takes part in `Db.Transaction` (a rollback leaves the row and its children), and its
+  events go out after the commit. The static `Delete(id)` is unchanged and still loads first.
+- **The read face of a tenant-scoped root carries its `TenantId`, read-only.** A read across tenants can now say
+  whose row each one is — `using (Tenant.Across()) await User.Where(u => u.Id == id).Select(u => new Account(u.IsAdmin,
+  u.TenantId)).First();` — without the aggregate declaring the column. It is in the column's own type: the one the
+  root declares, else `PerTenant<int>`/`PerTenant<long>`'s, else `Guid?`. Only a root's face has it (a child belongs to
+  its root's tenant), it is a column and never a navigation (an aggregate called `Tenant` is not joined), and the
+  form model still never carries it.
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`. A `RaskApp` whose app references Rask.Pdf has it with no code; a hand-wired host
   calls `builder.Services.AddRaskPdf()`.
@@ -101,6 +115,11 @@ them until tagged releases begin.
     button that downloads the PDF Rask.Pdf printed from it — rask.sh is static, so `tests/Rask.Pdf.Tests` prints that
     report and checks the served file is still it (`RASK_PDF_SITE_DEMO_WRITE=1` rewrites it).
   - Linux and macOS for now.
+  - A browser's start is not the first document's time: Rask waits for a freshly started Chromium to answer on a
+    budget of its own (two minutes, or `Timeout` if longer) — on a busy CI runner a cold start took 45–58 seconds and
+    used to time the first print out. A print that runs out of time says what it was waiting for: "… within 30
+    seconds, while loading the document (its load event); the page's requests still unanswered: …".
+  - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
   then and still have.** `Job` gets a nullable `UserClaims` column: `rask db add AddJobUserClaims && rask db update`
@@ -293,6 +312,26 @@ them until tagged releases begin.
   is refused inside a transaction, as jobs and mail are. Outside `Db.Transaction` nothing changes
   ([file storage](docs/file-storage.md#saving-inside-dbtransaction)).
 
+- **BREAKING: `Find(id)` takes no `db:`, and `Find` + `Save()` read the row once — the Rails/Laravel way.** `Find`
+  always loads through a context of its own and hands the aggregate back detached with a snapshot of what it read;
+  `Save(db?)` writes only what changed against that snapshot and never reads the row again (a 16 MB file row was read
+  twice; `Find` + `Save()` + `Save()` is now one SELECT), and every successful save — a caller's `SaveChangesAsync`
+  after `Save(db)` included — takes a new snapshot. An aggregate its factory made (`Order.Place(…)`, an app-assigned
+  Guid key) and nothing has read or saved is an INSERT with no SELECT (it was two). Changed underneath is refused, not
+  written over: on a `Versioned` aggregate a row saved or soft-deleted since is `DbUpdateConcurrencyException` (a soft
+  delete used to be `KeyNotFoundException`), a row or changed child deleted outright is `DbUpdateConcurrencyException`
+  (a missing root used to be re-inserted), and an unversioned `SoftDelete` aggregate is asked by its key alone whether
+  its row is still there (`KeyNotFoundException` when not). A copy found in one tenant and saved in another is refused
+  by the tenant check (`InvalidOperationException`) instead of reported missing. **Upgrading:** drop `db:` from `Find`
+  — keep `Save(db)` for the unit of work; read the read face or `Model(id)` to only show a row; and an aggregate built
+  or deserialised with an EXISTING row's key is now an insert refused by the key — `Find` it instead.
+- **A collection computed from one the aggregate stores is left off the form model, the read face and the mapping.**
+  `OpenLines => _lines.Where(…)` beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside
+  `Tags => _tags`, used to be taken for a second child collection (an editable list on the model, synced into
+  `_lines`; EF Core mapped it as a second relationship and failed the first save) or a second value column (an
+  app's next migration drops that duplicate `SortedTags` column). It is now computed, as a scalar `int Count =>
+  _lines.Count` always was; the stored `Lines` and `Tags` stay on the model. A view with no stored sibling — the only
+  way the children are reached — keeps its old answer (the one field behind it, or RASK088).
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.
@@ -494,6 +533,13 @@ them until tagged releases begin.
   changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Performance
+
+- **On SQL Server every tenant gets a query plan of its own.** A tenant-scoped read names the tenant in flight as a
+  typed literal (`[TenantId] = 42`, `[TenantId] = '…'`) instead of `@p`, so SQL Server no longer sniffs one plan for
+  the first tenant and reuses it for all: a fueling list's counts for an 87,000-row tenant, under a plan compiled for
+  a 734-row one, went from 1.45 s / ~1.6M logical reads to 0.41 s / ~36k. Children read through their parent get the
+  same, and `Tenant.Across` is unchanged. EF Core keeps one compiled query for every tenant, so its cache does not
+  grow with them; SQLite and PostgreSQL keep the parameter. Nothing to change in an app.
 
 - **Reading an aggregate no longer allocates a domain-events list per row.** The list is made on the first `Raise`, so
   a read that raises nothing — a queue's poll, a list page — saves one allocation a row: 1,000 rows of a small
