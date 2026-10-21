@@ -225,6 +225,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Files.Save` and `Files.Delete` inside `Db.Transaction` take part in it.** On the Database provider the
+  `StoredFile` and `StoredFileBytes` rows are written on the transaction's connection, so nothing is visible before
+  the commit and a rollback leaves nothing. On Disk, S3 and Azure the bytes go to the store at once, the row joins,
+  and a rollback deletes the stored object again (a failed delete is logged as a warning, never thrown). A delete
+  inside removes the row with the work and the bytes only after the commit. A storage context on another database
+  is refused inside a transaction, as jobs and mail are. Outside `Db.Transaction` nothing changes
+  ([file storage](docs/file-storage.md#saving-inside-dbtransaction)).
+
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

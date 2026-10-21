@@ -31,6 +31,9 @@ app.MapGet("/invoices/{id}", (Guid id) => Files.Download(id));       // behind y
 - **`Rask__Storage__Provider=Database`** keeps the bytes in a `StoredFileBytes` table beside the file rows, written in
   one transaction with the row and streamed in and out on SQL Server and PostgreSQL (SQLite works too): the
   database backup is the file backup.
+- **A save inside `Db.Transaction` takes part in it**: the row (and on the Database provider the bytes) commits
+  with the work; bytes already on a disk or in a bucket are deleted again if the work rolls back, and a delete
+  removes the bytes only after the commit.
 - **Orphaned bytes are swept**: a file whose row was never written is removed after a grace period.
 - **A file belongs to the tenant that saved it** in a multi-tenant app: finding, opening, linking and deleting
   it by id are scoped to the tenant in flight, so another tenant holding the id cannot reach it.

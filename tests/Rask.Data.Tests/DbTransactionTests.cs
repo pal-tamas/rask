@@ -99,6 +99,22 @@ public sealed class DbTransactionTests : IDisposable
     }
 
     [Fact]
+    public async Task Undo_queued_inside_runs_after_a_rollback_and_never_after_a_commit()
+    {
+        await using var database = await StartDatabaseAsync();
+        var undone = new List<string>();
+
+        await Db.Transaction(() => Queue(undone, "committed"), cancellationToken: TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await Queue(undone, "rolled back");
+            throw new InvalidOperationException("the work failed");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["rolled back"], undone);
+    }
+
+    [Fact]
     public async Task A_nested_transaction_joins_the_outer_one_and_rolls_back_with_it()
     {
         await using var database = await StartDatabaseAsync();
@@ -253,6 +269,16 @@ public sealed class DbTransactionTests : IDisposable
 
         // SQLite has one writer: the second BEGIN waits for the first COMMIT, then counts the row it wrote.
         Assert.Equal(1, await Widget.Count(w => w.Name == "pistol-7", TestContext.Current.CancellationToken));
+    }
+
+    private static Task Queue(List<string> undone, string what)
+    {
+        AmbientTransaction.Current!.OnRollback(() =>
+        {
+            undone.Add(what);
+            return Task.CompletedTask;
+        });
+        return Task.CompletedTask;
     }
 
     private async Task<TestDatabase> StartDatabaseAsync()

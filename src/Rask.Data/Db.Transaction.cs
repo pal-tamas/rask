@@ -119,7 +119,21 @@ public static partial class Db
         T result;
         using (var scope = AmbientTransaction.Enter(owner, transaction, isolation))
         {
-            result = await work().ConfigureAwait(false);
+            try
+            {
+                result = await work().ConfigureAwait(false);
+            }
+            catch
+            {
+                // The transaction is never committed now: what it could not take part in is taken back.
+                foreach (var undo in scope.Abandon())
+                {
+                    await undo().ConfigureAwait(false);
+                }
+
+                throw;
+            }
+
             afterCommit = scope.End();
         }
 

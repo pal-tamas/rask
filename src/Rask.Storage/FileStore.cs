@@ -79,46 +79,30 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
 
     public async Task<bool> Delete(Guid id, CancellationToken cancellationToken = default)
     {
-        var file = await Get(id, cancellationToken).ConfigureAwait(false);
-        if (file is null)
-        {
-            return false;
-        }
-
-        // The row first. Bytes without a row are an orphan the sweep removes; a row without bytes is a broken link.
-        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        StoredFile? file;
+        var db = await OpenAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
             // Scoped like the read: deleting another tenant's file has to be as impossible as reading it.
             var tenant = Current.Tenant;
+            var rows = db.Set<StoredFile>().Where(f => f.Id == id && f.TenantId == tenant);
 
-            var removed = await db.Set<StoredFile>()
-                .Where(f => f.Id == id && f.TenantId == tenant)
-                .ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-            if (removed == 0)
+            // The row first. Bytes without a row are an orphan the sweep removes; a row without bytes is a broken link.
+            file = await rows.AsNoTracking().FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+            if (file is null || await rows.ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false) == 0)
             {
                 return false;
             }
         }
 
-        if (file.Provider != runtime.Backend.Provider)
+        // Inside Db.Transaction the row goes with the work, and the bytes only once it has committed.
+        if (AmbientTransaction.Current is { } transaction)
         {
-            BytesLeftInOldProvider(runtime.Logger, file.Id, file.Provider);
+            transaction.AfterCommit(() => RemoveBytesAsync(file, CancellationToken.None));
             return true;
         }
 
-        try
-        {
-            await runtime.Backend.DeleteAsync(file.Key, cancellationToken).ConfigureAwait(false);
-        }
-#pragma warning disable CA1031 // The row is gone, so the file is deleted as far as the app can see; the sweep removes the bytes.
-        catch (Exception ex) when (ex is not OperationCanceledException)
-#pragma warning restore CA1031
-        {
-            BytesNotRemoved(runtime.Logger, ex, file.Id);
-        }
-
+        await RemoveBytesAsync(file, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -199,7 +183,7 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
             StoredFile Row() => StoredFile.For(
                 id, fileName, contentType, size, sha256, backend.Provider, key, isPublic, runtime.Time.GetUtcNow().UtcDateTime);
 
-            // In the database, the bytes and the row are one transaction.
+            // In the database, the bytes and the row are one transaction — Db.Transaction's, when one is in progress.
             if (backend is DatabaseBlobBackend<TContext> database)
             {
                 var row = Row();
@@ -207,15 +191,22 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
                 return row;
             }
 
-            var headers = new BlobHeaders(
-                ContentTypePolicy.ServedType(contentType),
-                StoredFileHeaders.Disposition(contentType, fileName),
-                isPublic ? StoredFileHeaders.PublicCacheControl : StoredFileHeaders.PrivateCacheControl);
-            await backend.PutFileAsync(key, spool, size, headers, cancellationToken).ConfigureAwait(false);
+            // Opened before the bytes are written, so a row that cannot join the transaction in progress refuses first.
+            var db = await OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using (db.ConfigureAwait(false))
+            {
+                var headers = new BlobHeaders(
+                    ContentTypePolicy.ServedType(contentType),
+                    StoredFileHeaders.Disposition(contentType, fileName),
+                    isPublic ? StoredFileHeaders.PublicCacheControl : StoredFileHeaders.PrivateCacheControl);
+                await backend.PutFileAsync(key, spool, size, headers, cancellationToken).ConfigureAwait(false);
+                AmbientTransaction.Current?.OnRollback(() => RemoveRolledBackAsync(id, key));
 
-            var stored = Row();
-            await AddRowAsync(stored, cancellationToken).ConfigureAwait(false);
-            return stored;
+                var stored = Row();
+                db.Set<StoredFile>().Add(stored);
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                return stored;
+            }
         }
         finally
         {
@@ -263,13 +254,42 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
         return size;
     }
 
-    private async Task AddRowAsync(StoredFile stored, CancellationToken cancellationToken)
+    /// <summary>A context on the application's database, joined to the <c>Db.Transaction</c> in progress if there is one.</summary>
+    private async Task<TContext> OpenAsync(CancellationToken cancellationToken) =>
+        AmbientTransaction.Join(await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false));
+
+    private async Task RemoveBytesAsync(StoredFile file, CancellationToken cancellationToken)
     {
-        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        await using (db.ConfigureAwait(false))
+        if (file.Provider != runtime.Backend.Provider)
         {
-            db.Set<StoredFile>().Add(stored);
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            BytesLeftInOldProvider(runtime.Logger, file.Id, file.Provider);
+            return;
+        }
+
+        try
+        {
+            await runtime.Backend.DeleteAsync(file.Key, cancellationToken).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // The row is gone, so the file is deleted as far as the app can see; the sweep removes the bytes.
+        catch (Exception ex) when (ex is not OperationCanceledException)
+#pragma warning restore CA1031
+        {
+            BytesNotRemoved(runtime.Logger, ex, file.Id);
+        }
+    }
+
+    // The work threw, so the row never commits: the bytes it would have claimed are taken back.
+    private async Task RemoveRolledBackAsync(Guid id, string key)
+    {
+        try
+        {
+            await runtime.Backend.DeleteAsync(key, CancellationToken.None).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // A cleanup on the way out of a failure must not replace it; the sweep removes the bytes.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            RolledBackBytesNotRemoved(runtime.Logger, ex, id);
         }
     }
 
@@ -324,4 +344,9 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Deleted stored file {FileId} but could not remove its bytes; the orphan sweep will.")]
     private static partial void BytesNotRemoved(ILogger logger, Exception exception, Guid fileId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Stored file {FileId} was saved in a transaction that rolled back, but its bytes could not be removed; the orphan sweep will.")]
+    private static partial void RolledBackBytesNotRemoved(ILogger logger, Exception exception, Guid fileId);
 }
