@@ -3,6 +3,9 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
+using Rask.Core.Messaging;
+using Rask.Core.Routing;
+using Rask.Server.JSInterop;
 using Rask.Server.Tests.Infrastructure;
 
 #pragma warning disable RASK019 // test-infra app predates framework-managed <head>
@@ -63,13 +66,29 @@ public class EventScopeTests
     }
 
     [Fact]
-    public async Task The_framework_s_services_are_still_the_session_s_inside_an_event()
+    public async Task A_scoped_service_made_for_an_event_is_handed_the_session_s_own_user_toaster_and_route()
     {
         await using var page = await OpenAsync();
 
         await page.ClickAsync();
 
-        Assert.Same(page.Session.Services.GetRequiredService<IUserProvider>(), page.Log.Seen[0].SessionUsers);
+        var seen = page.Log.Seen[0];
+        Assert.Same(page.Session.Services.GetRequiredService<IUserProvider>(), seen.Users);
+        Assert.Same(page.Session.Services.GetRequiredService<IToaster>(), seen.Toaster);
+        Assert.Same(page.Session.Services.GetRequiredService<RouteState>(), seen.Route);
+    }
+
+    [Fact]
+    public async Task The_session_s_connection_outlives_the_event_that_was_handed_it()
+    {
+        await using var page = await OpenAsync();
+
+        await page.ClickAsync();
+        await page.ClickAsync();
+
+        Assert.Equal(2, page.Log.Seen.Count);
+        Assert.NotNull(page.Session.Services.GetRequiredService<Microsoft.JSInterop.IJSRuntime>());
+        Assert.IsNotType<RaskJSRuntime>(page.Log.Seen[0].Js);
     }
 
     private static ClaimsPrincipal Person(string name) =>
@@ -152,17 +171,17 @@ public sealed class EventScopeLog
     private readonly Lock _gate = new();
     private int _created;
 
-    public List<(EventScopeProbe Probe, string? User, IUserProvider SessionUsers)> Seen { get; } = [];
+    public List<(EventScopeProbe Probe, string? User, IUserProvider Users, IToaster Toaster, RouteState Route, Microsoft.JSInterop.IJSRuntime Js)> Seen { get; } = [];
 
     public int Created => Volatile.Read(ref _created);
 
     public void Born() => Interlocked.Increment(ref _created);
 
-    public void Saw(EventScopeProbe probe, string? user, IUserProvider sessionUsers)
+    public void Saw(EventScopeProbe probe, string? user, IUserProvider users, IToaster toaster, RouteState route, Microsoft.JSInterop.IJSRuntime js)
     {
         lock (_gate)
         {
-            Seen.Add((probe, user, sessionUsers));
+            Seen.Add((probe, user, users, toaster, route, js));
         }
     }
 
@@ -180,19 +199,28 @@ public sealed class EventScopeLog
 public sealed class EventScopeProbe : IDisposable
 {
     private readonly IUserProvider _users;
+    private readonly IToaster _toaster;
+    private readonly RouteState _route;
+    private readonly Microsoft.JSInterop.IJSRuntime _js;
     private readonly EventScopeLog _log;
 
-    public EventScopeProbe(IUserProvider users, EventScopeLog log)
+    public EventScopeProbe(IUserProvider users, IToaster toaster, RouteState route, Microsoft.JSInterop.IJSRuntime js, EventScopeLog log)
     {
         _users = users;
+        _toaster = toaster;
+        _route = route;
+        _js = js;
         _log = log;
         log.Born();
     }
 
     public bool Disposed { get; private set; }
 
-    public void Use() =>
-        _log.Saw(this, _users.Current.IsInRole("editor") ? $"{_users.Current.Identity?.Name} editor" : _users.Current.Identity?.Name, Ambient.Services!.GetRequiredService<IUserProvider>());
+    public void Use()
+    {
+        var user = _users.Current;
+        _log.Saw(this, user.IsInRole("editor") ? $"{user.Identity?.Name} editor" : user.Identity?.Name, _users, _toaster, _route, _js);
+    }
 
     public void Dispose() => Disposed = true;
 }

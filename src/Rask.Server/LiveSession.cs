@@ -173,24 +173,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal SessionUserProvider Users => _users ??= Services.GetRequiredService<SessionUserProvider>();
 
-    // The event's scope is this session's: signed in as its user now (the job's seam, IScopeUser, when the data
-    // battery registered one), and its browser calls reach this session's connection.
-    protected internal override void SeedEventScope(IServiceProvider eventScope)
-    {
-        if (eventScope.GetService<LiveSessionAccessor>() is { } accessor)
-        {
-            accessor.Session = this;
-        }
-
-        if (eventScope.GetService<Rask.Data.IScopeUser>() is { } scopeUser)
-        {
-            scopeUser.SignIn(Users.Current);
-            return;
-        }
-
-        base.SeedEventScope(eventScope);
-    }
-
     internal ISessionRevalidator? Revalidator
     {
         get

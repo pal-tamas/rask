@@ -250,15 +250,18 @@ them until tagged releases begin.
 
 ### Changed
 
-- **BEHAVIOUR CHANGE: each live event gets the app's scoped services fresh, as a request would.** A click, a
-  submit, a navigation, a pushed render and the hooks they run now reach the services *you* registered as scoped
-  — a `DbContext`, a repository, a validator — and every transient (the CQRS dispatcher and its handlers) from a
-  scope of that event's own: signed in as the user the session revalidated for it, and disposed once it has
-  rendered. They used to live as long as the tab. An app that kept scoped state across events (a scoped unit of
-  work collecting several clicks) now gets a fresh one each time; keep that on the component instead. A
-  component's constructor and the framework's own services (route, toaster, `IUserProvider`, `IJSRuntime`) stay
-  the session's, and an event that asks for none of yours opens no scope. Both hosts; an app needs nothing — the
-  per-event helper Eszaf wrote can go. See [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
+- **BEHAVIOUR CHANGE: each live event gets its scoped services fresh, as a request would.** A click, a submit, a
+  navigation, a pushed render and the hooks they run now reach every scoped service — the app's `DbContext` and
+  repositories, the batteries' (Rask.Data, Rask.Auth), any package's — and every transient (the CQRS dispatcher
+  and its handlers, the query cache's fetches) from a scope of that event's own: signed in as the user the session
+  revalidated for it, in the tenant that user names, and disposed once it has rendered. They used to live as long
+  as the tab. An app that kept scoped state across events (a scoped unit of work collecting several clicks) now
+  gets a fresh one each time; keep that on the component instead. What stays the session's is what *is* the page —
+  route, navigator, connection, user, toaster, language, query cache, resolved tenant — and a per-event service that
+  injects one of those gets the session's own. A component's constructor stays the session's. An event that asks
+  for nothing per-event opens no scope (the live-update allocation gate is unchanged at 2,504 B). Both hosts; an app
+  needs nothing — the per-event helper Eszaf wrote can go. See
+  [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
 
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and

@@ -7,7 +7,9 @@ using Rask.Cqrs;
 namespace Rask.Querying;
 
 /// <summary>The session's cache. One instance per live session, by DI scope.</summary>
-internal sealed class SessionQueryClient : IQueryClient, IDisposable
+#pragma warning disable CA1001 // Stopped by SessionQueryClientOwner: an event's scope hands this client out, and would dispose it.
+internal sealed class SessionQueryClient : IQueryClient
+#pragma warning restore CA1001
 {
     private readonly Dictionary<QueryKey, QueryEntry> _entries = [];
     private readonly IDispatcher _dispatcher;
@@ -50,8 +52,12 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         }
     }
 
-    /// <summary>Stops the live-refresh listener when the session's scope ends.</summary>
-    public void Dispose()
+    /// <summary>Stops the live-refresh listener when the session's scope ends (<see cref="SessionQueryClientOwner" />).</summary>
+    /// <remarks>
+    ///     Not <see cref="IDisposable" />: an event's scope hands out the session's client (it is the session's, see
+    ///     <c>SessionScoped</c>), and a scope disposes what it hands out.
+    /// </remarks>
+    internal void Stop()
     {
         if (_users is not null)
         {
@@ -168,7 +174,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
     public async Task Send(ICommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        await _dispatcher.Send(command, cancellationToken).ConfigureAwait(false);
+        await Dispatching.Send(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
     }
 
@@ -177,7 +183,7 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var result = await _dispatcher.Send(command, cancellationToken).ConfigureAwait(false);
+        var result = await Dispatching.Send(command, cancellationToken).ConfigureAwait(false);
         InvalidateDeclared(command);
         return result;
     }
@@ -493,13 +499,13 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
 
     /// <summary>Dispatches a void command, for a Command that owns the surrounding state.</summary>
     internal Task DispatchCommandAsync(ICommand command, CancellationToken cancellationToken) =>
-        _dispatcher.Send(command, cancellationToken);
+        Dispatching.Send(command, cancellationToken);
 
     /// <summary>Dispatches a value-returning command, for a Command that owns the surrounding state.</summary>
     internal Task<TResult> DispatchCommandAsync<TResult>(
         ICommand<TResult> command,
         CancellationToken cancellationToken) =>
-        _dispatcher.Send(command, cancellationToken);
+        Dispatching.Send(command, cancellationToken);
 
     /// <summary>
     ///     The cached result for a message, when there is one. Used to snapshot before an optimistic
@@ -524,7 +530,11 @@ internal sealed class SessionQueryClient : IQueryClient, IDisposable
 
     /// <summary>Wraps a message as a fetch, so the entry stores the boxed result uniformly.</summary>
     internal Func<CancellationToken, Task<object?>> DispatchFetch<TResult>(IQuery<TResult> message) =>
-        async ct => await _dispatcher.Query(message, ct).ConfigureAwait(false);
+        async ct => await Dispatching.Query(message, ct).ConfigureAwait(false);
+
+    // The dispatcher of the event in progress, so its handlers get that event's scoped services (a DbContext made for
+    // it); the session's own outside any event — a poll, a refetch a write elsewhere set off.
+    private IDispatcher Dispatching => Ambient.Services?.GetService(typeof(IDispatcher)) as IDispatcher ?? _dispatcher;
 
     internal QueryEntry Attach(QueryKey key, Action listener, TimeSpan gcTime)
     {

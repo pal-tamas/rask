@@ -340,22 +340,27 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     internal IServiceProvider? OpenedEventScope => _eventServices?.Opened;
 
     /// <summary>
-    ///     Makes a scope just opened for an event the session's: signed in as the user the session holds now — the
-    ///     one it revalidated for this event. A host adds what else of the session that scope must see.
+    ///     Makes a scope just opened for an event this session's: the services that are the session's
+    ///     (<see cref="SessionScoped" />) are answered there with its own instances — its user as revalidated for this
+    ///     event, its connection, its route.
     /// </summary>
     /// <param name="eventScope">The event's own services.</param>
-    protected internal virtual void SeedEventScope(IServiceProvider eventScope)
+    internal void SeedEventScope(IServiceProvider eventScope)
     {
-        if (Services.GetService<IUserProvider>() is { } users
-            && eventScope.GetService<IUserProvider>() is ISettableUserProvider fresh
-            && !ReferenceEquals(users, fresh))
+        if (eventScope.GetService<EventScopeLink>() is { } link)
         {
-            fresh.Set(users.Current);
+            link.Session = Services;
         }
     }
 
     /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
-    internal void EndEvent() => _eventServices?.Close(Volatile.Read(ref _unsettledReads));
+    internal void EndEvent()
+    {
+        if (_eventServices is { } events)
+        {
+            events.Close(Interlocked.Exchange(ref _readsStillRunning, null));
+        }
+    }
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
     // applyDiff (post-commit ordering). Shared queue type so both hosts order interop identically.
@@ -617,6 +622,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // taken by the dispatch that made the render.
     private Task? _unsettledReads;
 
+    // The same reads without the cap: what the event's scope waits for before it is disposed, since they may still be
+    // using what they resolved from it when the browser has long been told the event is done.
+    private Task? _readsStillRunning;
+
     /// <summary>
     ///     The reads the dispatch's page went out without, as one task that completes when they are all back —
     ///     or <see cref="ReadsCap" /> has passed — so whoever tells the browser the dispatch is done can say so
@@ -718,7 +727,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         if (started.Unsettled is { } left)
         {
             // The scope stays open until they are back: what their continuations start is theirs too.
-            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(SettledAsync(started, left), ReadsCap));
+            var settled = SettledAsync(started, left);
+            Volatile.Write(ref _readsStillRunning, settled);
+            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(settled, ReadsCap));
         }
         else
         {

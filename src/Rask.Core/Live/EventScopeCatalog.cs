@@ -3,13 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Core.Live;
 
 /// <summary>
-///     Which services a live event gets fresh, in a scope of its own: the app's scoped services, and every transient.
+///     Which services a live event gets fresh, in a scope of its own: every scoped and transient registration except
+///     the few that are the session's (<see cref="SessionScoped" />).
 /// </summary>
 /// <remarks>
-///     The framework's scoped services — the route, the toaster, the user, the browser — are the session's and stay
-///     the session's. The app's are what a request would have had one of each: its <c>DbContext</c>, its repositories,
-///     its validators. A transient is made where it is asked for, so it is made in the event's scope too: that is how
-///     a dispatcher the event resolves hands its handlers the event's <c>DbContext</c>.
+///     What a request would have had one of, an event has one of: the app's <c>DbContext</c>, its repositories, the
+///     batteries' scoped services that read the user or the tenant. A transient is made where it is asked for, so in
+///     the event's scope too — which is how the dispatcher an event reaches hands its handlers the event's context.
+///     A singleton is the same instance from either side, and is answered by the session without opening a scope.
 /// </remarks>
 internal sealed class EventScopeCatalog(IServiceCollection services)
 {
@@ -23,6 +24,13 @@ internal sealed class EventScopeCatalog(IServiceCollection services)
             services.AddSingleton(new EventScopeCatalog(services));
         }
     }
+
+    /// <summary>
+    ///     Keeps <paramref name="type" />, a scoped service of an assembly that cannot mark its own registration
+    ///     (<see cref="SessionScoped" />), the session's when an event asks for it.
+    /// </summary>
+    internal static void KeepForSession(IServiceCollection services, Type type) =>
+        services.AddSingleton(new SessionKept(type));
 
     /// <summary>Whether <paramref name="type" /> is made in the event's scope rather than taken from the session.</summary>
     internal bool OwnsPerEvent(Type type)
@@ -48,12 +56,11 @@ internal sealed class EventScopeCatalog(IServiceCollection services)
     // Read on first use, after the container is built: what the app registered after the host is in it too.
     private HashSet<Type> Build()
     {
+        var kept = services.Select(static d => d.ImplementationInstance).OfType<SessionKept>().Select(static k => k.Type).ToHashSet();
         var owned = new HashSet<Type>();
         foreach (var descriptor in services)
         {
-            if (!descriptor.IsKeyedService
-                && (descriptor.Lifetime == ServiceLifetime.Transient
-                    || (descriptor.Lifetime == ServiceLifetime.Scoped && !IsFramework(descriptor.ServiceType))))
+            if (!kept.Contains(descriptor.ServiceType) && !descriptor.IsKeyedService && descriptor.Lifetime != ServiceLifetime.Singleton && !SessionScoped.Is(descriptor))
             {
                 owned.Add(descriptor.ServiceType);
             }
@@ -61,16 +68,5 @@ internal sealed class EventScopeCatalog(IServiceCollection services)
 
         _owned = owned;
         return owned;
-    }
-
-    private static bool IsFramework(Type type)
-    {
-        var name = type.Assembly.GetName().Name ?? string.Empty;
-        return name is "System" or "mscorlib" or "netstandard" or "Rask"
-               || name.StartsWith("System.", StringComparison.Ordinal)
-               || name.StartsWith("Microsoft.", StringComparison.Ordinal)
-               || (name.StartsWith("Rask.", StringComparison.Ordinal)
-                   && !name.EndsWith(".Tests", StringComparison.Ordinal)
-                   && name is not "Rask.Site");
     }
 }

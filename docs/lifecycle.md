@@ -230,10 +230,13 @@ builder.Services.AddScoped<IPricing, Pricing>();  // likewise
 public sealed class PlaceOrderHandler(ShopDb db) : ICommandHandler<PlaceOrder> { … }
 ```
 
-What gets one per event is what a request would have had one of: the services *you* register as scoped, and
-every transient (so the CQRS dispatcher a handler is reached through, and the handler, are the event's too).
-The framework's own services — the route, the toaster, `IUserProvider`, `IJSRuntime` — stay the session's. The
-scope is opened only when something asks for one of your services, so an event that asks for none costs nothing.
+Everything scoped is one per event — your services, the batteries' (Rask.Data, Rask.Auth) and any package's —
+and so is every transient, which is how the CQRS dispatcher an event reaches, and the handler behind it, get the
+event's context. A few services are the **session's**, because they *are* the open page: its route and navigator,
+its connection (`IJSRuntime`), its user (`IUserProvider`), its toaster, its language, its query cache and the
+tenant its resolver named. A service made for the event that takes one of those is handed the session's own, so
+a scoped service of yours can inject `IToaster` or `IUserProvider` as it always could. The scope is opened only
+when something asks for a per-event service, so an event that asks for none costs nothing.
 
 Two rules follow:
 
@@ -245,8 +248,7 @@ Two rules follow:
   scoped "unit of work" collecting changes over several clicks) now gets a fresh one per event — keep such state
   on the component, or in a singleton keyed by the user.
 
-A scoped service of yours that injects the toaster or the navigator gets one of the event's scope, which no
-page shows; use the `Toast` and `Go` facades there, which always reach the page.
+A read the page went out without (its budget ran out) keeps the event's scope until it is back.
 
 ## Asking another component to render, from a hook
 

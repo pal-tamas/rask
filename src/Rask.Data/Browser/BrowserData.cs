@@ -18,5 +18,8 @@ internal static class BrowserData
     {
         services.TryAddSingleton<ISessionWorkScope, BrowserDataScope>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IDataChanges, QueryDataChanges>());
+
+        // The tenant the resolver named is the page's answer, asked again at each event, not a new question per event.
+        EventScopeCatalog.KeepForSession(services, typeof(ResolvedTenant));
     }
 }
