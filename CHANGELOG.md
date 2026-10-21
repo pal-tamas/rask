@@ -64,10 +64,10 @@ them until tagged releases begin.
     `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
     structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
   - **The browser comes from the build, as Puppeteer's does — never from the running app.** Building an app that
-    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (156.0.8078.47) into the user cache
+    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (155.0.8059.79) into the user cache
     (`~/Library/Caches/Rask`, `~/.cache/rask`, `%LOCALAPPDATA%\Rask\Cache`) once, after checking its SHA-256;
     `dotnet build`, `dotnet test` and `rask dev` then print with nothing installed. `RaskPdfDownloadChromium=false`
-    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin.
+    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin, only ever to a Stable release at least 7 days old.
   - **The template images carry it.** Every scaffolded ASP.NET Dockerfile now has `dotnet publish` fetch the shell
     into the build stage (`-p:RaskPdfChromiumCache=/chrome`), copies it to `/opt/rask/chrome`, and installs the
     libraries it links against plus fonts — only when the app references Rask.Pdf. Measured on `aspnet:10.0`
@@ -80,7 +80,10 @@ them until tagged releases begin.
     cut). One browser per app, started at the first print, replaced after a crash, closed with the host; every
     document in a browser context of its own. A 5,000-row table (139–209 A4 landscape pages, heading on every page)
     prints in about a second; in the container the browser peaked at about 1.2 GB.
-  - Linux and macOS for now; not on NuGet until the package is complete.
+  - On NuGet as `Rask.Pdf`. The [PDF guide](docs/pdf.md) (rask.sh/docs/guides/pdf) shows a Flux report and a
+    button that downloads the PDF Rask.Pdf printed from it — rask.sh is static, so `tests/Rask.Pdf.Tests` prints that
+    report and checks the served file is still it (`RASK_PDF_SITE_DEMO_WRITE=1` rewrites it).
+  - Linux and macOS for now.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
   then and still have.** `Job` gets a nullable `UserClaims` column: `rask db add AddJobUserClaims && rask db update`

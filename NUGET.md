@@ -106,6 +106,7 @@ dotnet add package Rask.Ui                # the component kit those surfaces are
 dotnet add package Rask.DevTools          # the in-page devtools (wire, component tree), Debug-only, absent from every Release publish
 dotnet add package Rask.WebPush           # Web Push: subscribers on your database, Push.Send(message) to reach them
 dotnet add package Rask.Xlsx            # an Excel workbook from headings and rows: Xlsx.Write(sheet, headings, rows), zero dependencies
+dotnet add package Rask.Pdf             # a PDF of a page as its user sees it: await Pdf.From(Routes.Report(id)), headless Chromium from the build
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```
 

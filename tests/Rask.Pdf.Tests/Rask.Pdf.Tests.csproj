@@ -29,11 +29,23 @@
   <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Printing"/>
+    <!-- The site's report, linked below, is written against the usings an app gets. -->
+    <Using Include="Rask.Core"/>
   </ItemGroup>
 
-  <!-- ChromiumCacheTests reads the pin file the build fetches by. -->
+  <!-- ChromiumCacheTests reads the pin file the build fetches by; SiteDemoPdfTests the PDF rask.sh serves, and the
+       kit's fonts it prints with. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.ChromePin.props" />
+    <RaskTestReads Include="..\..\src\Rask.Site\wwwroot\demos\pdf\**" />
+    <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\**" />
+  </ItemGroup>
+
+  <!-- rask.sh's PDF demo: the very report the site shows, printed here — the site is static and cannot print. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\Rask.Site\Features\Pdf\RefundReport.cs" Link="SiteDemo\RefundReport.cs" />
+    <Compile Include="..\..\src\Rask.Site\Features\Pdf\RefundData.cs" Link="SiteDemo\RefundData.cs" />
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj" />
   </ItemGroup>
 
   <!-- The pages printed in the host tests are real Rask pages, on a real Rask.Server host. -->

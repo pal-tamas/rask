@@ -94,26 +94,45 @@ check "a digest that disagrees with checksums.txt..." refused "$(run litestream.
 check "...moves nothing"                               "" "$(unchanged "${files[@]}")"
 
 echo "==> upstream chrome"
-chrome_channels() {
-  local downloads=""
-  for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do
-    url="https://storage.googleapis.com/chrome-for-testing-public/$1/$p/chrome-headless-shell-$p.zip"
-    downloads="$downloads{\"platform\":\"$p\",\"url\":\"$url\"},"
-    answer "$url" "shell $p"
+# `chrome_releases "v:days-ago" ...` answers Chromium's Stable releases (dated against RASK_UPSTREAM_NOW) and
+# Chrome for Testing's known-good list, with a headless shell for every platform of each.
+now=2099-06-15T00:00:00Z
+chrome_releases() {
+  local releases="" versions=""
+  for spec in "$@"; do
+    v="${spec%%:*}"; days="${spec##*:}"
+    ms=$(( (4085164800 - days * 86400) * 1000 ))   # 2099-06-15T00:00:00Z minus that many days
+    releases="$releases{\"version\":\"$v\",\"time\":$ms},"
+    downloads=""
+    for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do
+      url="https://storage.googleapis.com/chrome-for-testing-public/$v/$p/chrome-headless-shell-$p.zip"
+      downloads="$downloads{\"platform\":\"$p\",\"url\":\"$url\"},"
+      answer "$url" "shell $v $p"
+    done
+    versions="$versions{\"version\":\"$v\",\"downloads\":{\"chrome-headless-shell\":[${downloads%,}]}},"
   done
-  answer "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
-    "{\"channels\":{\"Stable\":{\"version\":\"$1\",\"downloads\":{\"chrome-headless-shell\":[${downloads%,}]}}}}"
+  answer "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Linux&num=30" "[${releases%,}]"
+  answer "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" \
+    "{\"versions\":[${versions%,}]}"
 }
-fresh
-chrome_channels 999.0.1.2
-run chrome.py
-check "the shell moves to Stable"                      1 "$(count '<RaskPdfChromeVersion>999.0.1.2<')"
-check "...each platform holding its download's digest" 1 "$(count "<RaskPdfChromeSha256_linux_arm64>$(sha256 'shell linux-arm64')<")"
-check "...all five of them"                            5 "$(grep -c "$(printf '%s\\|' $(for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do sha256 "shell $p"; done) | sed 's/\\|$//')" "$tmp/tree/src/Rask.Pdf/build/Rask.Pdf.ChromePin.props")"
+chrome() { RASK_UPSTREAM_NOW="$now" run chrome.py; }
 
 fresh
-chrome_channels 1.0.0.0
-run chrome.py
+chrome_releases 999.0.1.2:2 998.0.5.6:8 997.0.0.1:30
+chrome
+check "the shell moves to the newest Stable a week old" 1 "$(count '<RaskPdfChromeVersion>998.0.5.6<')"
+check "...not to yesterday's"                          0 "$(count '999.0.1.2')"
+check "...each platform holding its download's digest" 1 "$(count "<RaskPdfChromeSha256_linux_arm64>$(sha256 'shell 998.0.5.6 linux-arm64')<")"
+check "...all five of them"                            5 "$(grep -c "$(printf '%s\\|' $(for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do sha256 "shell 998.0.5.6 $p"; done) | sed 's/\\|$//')" "$tmp/tree/src/Rask.Pdf/build/Rask.Pdf.ChromePin.props")"
+
+fresh
+chrome_releases 999.0.1.2:6
+chrome
+check "a Stable under a week old moves nothing"        "" "$(unchanged "${files[@]}")"
+
+fresh
+chrome_releases 1.0.0.0:30
+chrome
 check "an older Stable moves nothing"                  "" "$(unchanged "${files[@]}")"
 
 echo "==> upstream tools"

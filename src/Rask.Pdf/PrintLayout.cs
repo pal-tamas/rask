@@ -40,5 +40,5 @@ internal static class PrintLayout
     // zero default font size, so it carries its own.
     private static string Foot(PdfOptions options) => string.Create(
         CultureInfo.InvariantCulture,
-        $"""<div style="box-sizing:border-box;width:100%;padding:0 {options.Margins.Right}mm 0 {options.Margins.Left}mm;display:flex;justify-content:space-between;font:8pt sans-serif;color:#52525b"><span>{WebUtility.HtmlEncode(options.Footer ?? string.Empty)}</span><span>{(options.PageNumbers ? """<span class="pageNumber"></span> / <span class="totalPages"></span>""" : string.Empty)}</span></div>""");
+        $"""<div style="box-sizing:border-box;width:100%;padding:0 {options.Margins.Right}mm 0 {options.Margins.Left}mm;display:flex;justify-content:space-between;font-size:8pt;font-family:Helvetica,Arial,'DejaVu Sans','Liberation Sans',sans-serif;color:#52525b"><span>{WebUtility.HtmlEncode(options.Footer ?? string.Empty)}</span><span>{(options.PageNumbers ? """<span class="pageNumber"></span> / <span class="totalPages"></span>""" : string.Empty)}</span></div>""");
 }
