@@ -146,6 +146,17 @@ public sealed class OutboxInterceptor : SaveChangesInterceptor, IDbTransactionIn
 
     private void WakeIfCommitted(DbContext? context)
     {
+        // Joined to a Db.Transaction: the rows are durable once its owner commits.
+        if (AmbientTransaction.Of(context) is { } ambient)
+        {
+            if (context is not null && _wrote.Remove(context))
+            {
+                ambient.AfterCommit(_signal.Wake);
+            }
+
+            return;
+        }
+
         if (context?.Database.CurrentTransaction is null)
         {
             Wake(context);

@@ -16,7 +16,8 @@ namespace Rask.Data;
 /// Events are read off the tracked entities in <c>SavingChanges</c> (before a delete detaches its entity) and
 /// published in <c>SavedChanges</c> (after the change commits). They are cleared only then, so the outbox's
 /// interceptor, reading the same events in the same <c>SavingChanges</c>, sees them whichever of the two runs
-/// first. A failed save discards them, so a rolled-back change never fires its events.
+/// first. A failed save discards them, so a rolled-back change never fires its events. A save inside
+/// <c>Db.Transaction</c> publishes when that transaction commits, and not at all when it rolls back.
 /// </remarks>
 public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : SaveChangesInterceptor
 {
@@ -102,6 +103,18 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
         _pending.Remove(context);
         pending.Clear();
 
+        // Joined to a Db.Transaction: written, not committed — published once its owner commits, never on a rollback.
+        if (AmbientTransaction.Of(context) is { } ambient)
+        {
+            ambient.AfterCommit(() => PublishAsync(pending.Events, CancellationToken.None));
+            return;
+        }
+
+        await PublishAsync(pending.Events, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task PublishAsync(List<IEvent> events, CancellationToken cancellationToken)
+    {
         var scope = _scopeFactory.CreateAsyncScope();
         await using var scopeScope = scope.ConfigureAwait(false);
 
@@ -111,7 +124,7 @@ public sealed class DomainEventInterceptor(IServiceScopeFactory scopeFactory) : 
             return;
         }
 
-        foreach (var e in pending.Events)
+        foreach (var e in events)
         {
             // Publish resolves handlers by the event's concrete runtime type, so the IEvent static type is fine.
             await dispatcher.Publish(e, cancellationToken).ConfigureAwait(false);

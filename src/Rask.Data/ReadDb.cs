@@ -79,12 +79,18 @@ public static class ReadDb
     /// </remarks>
     internal static DbContext OpenFor<TEntity>() => Side<TEntity>.IsRead ? CreateContext() : Db.CreateContext();
 
-    /// <summary>A fresh read context the caller owns and disposes.</summary>
+    /// <summary>
+    ///     A fresh read context the caller owns and disposes — enlisted in the <c>Db.Transaction</c> in progress, when
+    ///     there is one, so a check and the write it guards see the same rows.
+    /// </summary>
     /// <exception cref="InvalidOperationException">The read side has not been configured.</exception>
+    internal static DbContext CreateContext() =>
+        AmbientTransaction.Current is { } transaction ? transaction.Join(CreateOwnContext()) : CreateOwnContext();
+
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "
                         + "IL2026 at the line that chose EF.")]
-    internal static DbContext CreateContext()
+    private static DbContext CreateOwnContext()
     {
         // The work in progress's own app first — as the write side does — so two apps side by side (two tests, each
         // with its own database) never read each other's rows through the one process-wide factory.

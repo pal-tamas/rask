@@ -19,9 +19,13 @@ namespace Rask.Data;
 ///     <para>
 ///         <b>The writes on a model use it the same way.</b> <c>Product.Create(model)</c>,
 ///         <c>Product.Update(id, model)</c> and <c>Product.Delete(id)</c> open a context here, save
-///         and dispose it — unless they are handed a context, which they save through and leave open. A
-///         transaction over two aggregates is that context's <c>Database.BeginTransactionAsync</c>; there is
-///         no Rask-owned unit of work to learn.
+///         and dispose it — unless they are handed a context, which they save through and leave open.
+///     </para>
+///     <para>
+///         <b>Work that must succeed or fail as one</b> runs inside
+///         <see cref="Transaction(Func{Task}, System.Data.IsolationLevel?, CancellationToken)" />: every read and
+///         write in it that is not handed a <c>db:</c> opens its context on that transaction's connection and
+///         enlists in it.
 ///     </para>
 ///     <para>
 ///         <see cref="Configure(IServiceProvider)" /> supplies the factory. A Rask app never calls it — the
@@ -29,7 +33,7 @@ namespace Rask.Data;
 ///         read. Everything else needs one line at startup.
 ///     </para>
 /// </remarks>
-public static class Db
+public static partial class Db
 {
     private static readonly AsyncLocal<IServiceProvider?> AmbientScope = new();
     private static Func<DbContext>? _factory;
@@ -201,9 +205,17 @@ public static class Db
         _factory is not null ||
         (AmbientScope.Value ?? Ambient.Services)?.GetService<AmbientContextBinding>() is not null;
 
-    /// <summary>A fresh context the caller owns and disposes.</summary>
+    /// <summary>
+    ///     A fresh context the caller owns and disposes — enlisted in the <see cref="Transaction(Func{Task}, System.Data.IsolationLevel?, CancellationToken)" />
+    ///     in progress, when there is one.
+    /// </summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>
-    internal static DbContext CreateContext()
+    internal static DbContext CreateContext() =>
+        AmbientTransaction.Current is { } transaction ? transaction.Join(CreateOwnContext()) : CreateOwnContext();
+
+    /// <summary>A fresh context on a connection of its own, whatever transaction is in progress.</summary>
+    /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>
+    internal static DbContext CreateOwnContext()
     {
         // The ambient scope wins when one is open, because it is the only thing that can build a context
         // carrying the current user — and therefore the current tenant.
