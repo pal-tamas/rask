@@ -532,6 +532,8 @@ they say when you set nothing.
 | `ConnectionSessionTimedOut` | Reconnect overlay | `Your session timed out. Reload to continue.` |
 | `CommandClear` | Command | `Clear command input` |
 | `CommandClose` | Command | `Close command modal` |
+| `HandlerForbidden` | Toast | `You do not have permission to do that.` |
+| `PageForbidden` | Page | `You do not have permission to view this page.` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

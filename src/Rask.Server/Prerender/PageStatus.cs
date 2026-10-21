@@ -11,6 +11,7 @@ internal static class PageStatus
     /// <param name="faulted">Whether the root boundary rendered its error document.</param>
     /// <param name="declaredStatus">What the page set through <c>IPageResponse.SetStatus</c>, if anything.</param>
     /// <param name="notFoundMounted">Whether the render actually mounted the not-found page.</param>
+    /// <param name="forbidden">Whether the route's guard forbids the signed-in user the page, drawn in its layout.</param>
     /// <remarks>
     ///     <para>
     ///         A page that threw does not get to claim it succeeded — the error document is what is being
@@ -23,11 +24,16 @@ internal static class PageStatus
     ///         an app serves would be a far worse lie than the one being fixed.
     ///     </para>
     /// </remarks>
-    internal static int Of(bool faulted, int? declaredStatus, bool notFoundMounted)
+    internal static int Of(bool faulted, int? declaredStatus, bool notFoundMounted, bool forbidden)
     {
         if (faulted)
         {
             return StatusCodes.Status500InternalServerError;
+        }
+
+        if (forbidden)
+        {
+            return StatusCodes.Status403Forbidden;
         }
 
         return declaredStatus ?? (notFoundMounted ? StatusCodes.Status404NotFound : StatusCodes.Status200OK);

@@ -75,6 +75,15 @@ public sealed partial class E2EVaultPage : Component
     protected override Component? Render() => P["vault-content"];
 }
 
+// A page of the vault for admins only: a signed-in user who is not one gets the vault around the forbidden sentence.
+[Route("keys")]
+[ParentRoute(typeof(E2EVaultLayout))]
+[Authorize(Roles = "admin")]
+public sealed partial class E2EVaultKeysPage : Component
+{
+    protected override Component? Render() => P["vault-keys"];
+}
+
 // A layout anyone may open that shows its page to admins only, by wrapping the Outlet in the Authorize
 // COMPONENT. A page is constructed where the outlet is rendered, so for everyone else its constructor and
 // its hooks never run — which is what makes this a gate and not a curtain.

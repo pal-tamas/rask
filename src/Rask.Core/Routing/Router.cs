@@ -151,6 +151,7 @@ public sealed class Router : Component
             Title = _namesThePage ? _state.TitleSource : null,
             Pages = _pages,
             Outer = outer,
+            Forbidden = _state.Forbidden,
         };
         return RouteChainRenderer.RenderChainEntry(ctx);
     }

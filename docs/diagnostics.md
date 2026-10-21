@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK108, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK109, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -132,6 +132,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would carry a row keyed by one |
 | [RASK107](#rask107) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
+| [RASK109](#rask109) | Warning | A call to an `[Authorize]` component method cannot be checked where it is written |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2432,6 +2433,35 @@ FuelingRead does not get 'DistributionsFrom': the name is already a column of Fu
 **Fix:** rename one side. Renaming the id (`SourceFuelingId` gives `DistributionsSource`) changes its column, so
 keep the column with `[Column("FromFuelingId")]` on an existing table; renaming the target's member works the same
 way. Two ids that clash with each other are reported on both, each naming the other.
+
+---
+
+## RASK109
+
+**A call to an `[Authorize]` component method cannot be checked where it is written** · Warning
+
+A component method with `[Authorize]` is checked wherever it is called ([handlers](authentication.md#authorize-on-an-event-handler)):
+a method group handed to a callback at run time, and every direct call — the one inside `.OnClick(() => Remove(id))`
+too — by an interceptor the build writes. An interceptor cannot be written for a generic method or a method of a
+generic component, a call through `base`, a method whose signature names a private type, or a call inside an
+expression tree; such a call would run the method unchecked, and this warning names it.
+
+```csharp
+public sealed class TrailersPage : Component
+{
+    protected override Component? Render() => Button.OnClick(() => Remove<int>(3))["Remove"];   // ⚠ RASK109
+
+    [Authorize(Roles = "admin")]
+    private void Remove<T>(T id) { }
+}
+```
+
+```text
+The call to 'App.TrailersPage.Remove<T>(T)' is not checked against its [Authorize] because it is generic — hand the method to the callback as a method group, or check the person before calling it
+```
+
+**Fix:** make the method non-generic, or hand it over as a method group (`.OnClick(Remove)`), which is checked at run
+time. A call through `base` is checked by calling the method directly.
 
 ---
 

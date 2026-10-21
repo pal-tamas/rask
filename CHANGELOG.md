@@ -35,6 +35,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
+  Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
+  Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.
+  A method group (`.OnClick(Remove)`) is checked when the event arrives, and a call inside a lambda
+  (`.OnClick(() => Remove(id))`) — every direct call in the project — by an interceptor the build writes, so a
+  handler id posted by hand is held to the same rule on Server and WASM alike. The principal is the session's at
+  the event; the refusal is the catalog's `HandlerForbidden` sentence in an error toast (a form saves nothing), and
+  one Information log line names the method and nothing of the person. A call the build cannot intercept — a
+  generic method, a call through `base` — is the new warning RASK109. A handler without the attribute costs nothing
+  ([authentication](docs/authentication.md#authorize-on-an-event-handler)).
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`. A `RaskApp` whose app references Rask.Pdf has it with no code; a hand-wired host
   calls `builder.Services.AddRaskPdf()`.
@@ -250,6 +260,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
+  The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
+  (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
+  working. Someone not signed in is still sent to sign in. An app with its own `/forbidden` page no longer reaches
+  it from a Rask page ([authentication](docs/authentication.md#a-page-the-user-may-not-open)).
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

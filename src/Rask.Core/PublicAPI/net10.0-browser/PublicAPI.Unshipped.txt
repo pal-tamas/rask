@@ -3922,6 +3922,8 @@ Rask.Core.Globalization.RaskString.ConnectionRetry = 171 -> Rask.Core.Globalizat
 Rask.Core.Globalization.RaskString.ConnectionSessionTimedOut = 175 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CommandClear = 176 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CommandClose = 177 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.HandlerForbidden = 178 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PageForbidden = 179 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionStillTrying = 170 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionUpdating = 173 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerCancel = 19 -> Rask.Core.Globalization.RaskString
@@ -19326,3 +19328,6 @@ static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLSelectElement<T>! 
 static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLSelectElement<T>! __b, bool? value) -> Rask.Core.HTMLSelectElement<T>!
 static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
+Rask.Core.Authorization.HandlerAccess
+static Rask.Core.Authorization.HandlerAccess.Demand(System.Reflection.MethodInfo! handler) -> System.Threading.Tasks.ValueTask
+static Rask.Core.Authorization.HandlerAccess.DemandNow(System.Reflection.MethodInfo! handler) -> void
