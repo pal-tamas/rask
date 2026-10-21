@@ -1134,6 +1134,13 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **What an abstract base declares is mapped on every aggregate deriving from it.** Before: a one-value value
+  object on an abstract base (`public NavBarcode? Barcode { get; private set; }` on `ReturnFiling`) was left out of
+  the generated mapping, and startup failed with "could not be mapped" until the app converted it by hand in
+  `Configure`; a collection behind a base's private field was neither mapped nor on the form model. After: the
+  base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
+  value object, the value collection (through the base's field), the read face and the form model. Each concrete
+  aggregate is still its own table; the abstract base is never an entity of the model.
 - **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
   and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
   back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had
