@@ -492,13 +492,35 @@ public class ReadModelGeneratorTests
             public Guid? TenantId { get; set; }
             public string Number { get; private set; } = "";
         }
+
+        public sealed class Tank : Aggregate<int, PerTenant<int>>
+        {
+            private readonly System.Collections.Generic.List<Compartment> _compartments = new();
+            private Tank() { }
+            public string Number { get; private set; } = "";
+            public System.Collections.Generic.IReadOnlyList<Compartment> Compartments => _compartments;
+        }
+
+        public sealed class Compartment : Entity<int>
+        {
+            private Compartment() { }
+            public string Number { get; private set; } = "";
+        }
+
+        public sealed class Crate : Aggregate<long, PerTenant>
+        {
+            private Crate() { }
+            public long? TenantId { get; private set; }
+            public string Number { get; private set; } = "";
+        }
         """;
 
     [Theory]
-    [InlineData("Invoice")]
-    [InlineData("Receipt")]
-    [InlineData("Delivery")]
-    public void The_tenant_is_never_on_a_read_face_nor_a_reference_whether_the_entity_declares_it_or_not(string entity)
+    [InlineData("Invoice", "global::System.Guid")]
+    [InlineData("Receipt", "global::System.Guid")]
+    [InlineData("Tank", "int")]
+    [InlineData("Crate", "long")]
+    public void A_per_tenant_root_reads_its_tenant_in_the_columns_own_type_declared_or_not(string entity, string type)
     {
         var run = Run(Tenants);
 
@@ -506,9 +528,42 @@ public class ReadModelGeneratorTests
         var registry = run.GeneratedSource("__RaskReadModelRegistry");
 
         Assert.Empty(run.Diagnostics);
+        Assert.Contains($"public {type}? TenantId {{ get; init; }}", source, StringComparison.Ordinal);
+        Assert.Contains("new global::Rask.Data.ReadColumnMapping(\"TenantId\", \"TenantId\", \"TenantId\")", registry, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Delivery")]
+    [InlineData("Compartment")]
+    public void A_table_that_is_not_a_per_tenant_root_keeps_its_tenant_off_its_read_face(string entity)
+    {
+        var run = Run(Tenants);
+
+        var source = run.GeneratedSource($"Shop_{entity}Read");
+
+        Assert.Empty(run.Diagnostics);
         Assert.Contains("public string Number { get; init; } = null!;", source, StringComparison.Ordinal);
         Assert.DoesNotContain("Tenant", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("Tenant", registry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_tenant_on_a_read_face_is_a_column_and_never_a_navigation_to_an_aggregate_called_Tenant()
+    {
+        var run = Run(Tenants + """
+
+            public sealed class Tenant : Aggregate<Guid>
+            {
+                private Tenant() { }
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop_InvoiceRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public global::System.Guid? TenantId { get; init; }", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("TenantRead", source, StringComparison.Ordinal);
     }
 
     [Theory]

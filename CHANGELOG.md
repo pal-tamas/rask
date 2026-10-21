@@ -35,6 +35,12 @@ them until tagged releases begin.
 
 ### Added
 
+- **The read face of a tenant-scoped root carries its `TenantId`, read-only.** A read across tenants can now say
+  whose row each one is — `using (Tenant.Across()) await User.Where(u => u.Id == id).Select(u => new Account(u.IsAdmin,
+  u.TenantId)).First();` — without the aggregate declaring the column. It is in the column's own type: the one the
+  root declares, else `PerTenant<int>`/`PerTenant<long>`'s, else `Guid?`. Only a root's face has it (a child belongs to
+  its root's tenant), it is a column and never a navigation (an aggregate called `Tenant` is not joined), and the
+  form model still never carries it.
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`; turned on with `builder.Services.AddRaskPdf()`, on a `RaskApp`
   (`RaskApp.Create(args, b => b.Services.AddRaskPdf())`) and on a hand-wired host alike.

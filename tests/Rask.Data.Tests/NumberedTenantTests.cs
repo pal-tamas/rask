@@ -61,6 +61,9 @@ public sealed class WaybillLine : Entity<long>
     internal static WaybillLine Of(string goods) => new() { Goods = goods };
 }
 
+/// <summary>A destination's name and the tenant it belongs to, read across tenants.</summary>
+public sealed record DestinationOwner(string Name, int? Tenant);
+
 /// <summary>Not an entity, so nothing maps it: only what a wrongly typed tenant is told.</summary>
 public sealed class MistypedTenant
 {
@@ -171,6 +174,22 @@ public sealed class NumberedTenantTests : IDisposable
         {
             Assert.Equal(["Vienna"], await Destination.OrderBy(d => d.Name).Take(15).Select(d => d.Name));
         }
+    }
+
+    [Fact]
+    public async Task A_read_across_tenants_tells_whose_row_each_one_is_by_its_number()
+    {
+        await using var database = await StartDatabaseAsync();
+        await SaveAsync(Acme, "Budapest");
+        await SaveAsync(Globex, "Vienna");
+
+        IReadOnlyList<DestinationOwner> owners;
+        using (Tenant.Across())
+        {
+            owners = await Destination.OrderBy(d => d.Name).Select(d => new DestinationOwner(d.Name, d.TenantId));
+        }
+
+        Assert.Equal([new DestinationOwner("Budapest", Acme), new DestinationOwner("Vienna", Globex)], owners);
     }
 
     [Fact]
