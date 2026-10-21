@@ -4,7 +4,10 @@
     <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <IsPackable>true</IsPackable>
+    <!-- Not packed yet: the solution is what the nightly packs, and Rask.Pdf ships once Pdf.From, the deploy image
+         and the guide are in. Its public names are recorded from the first slice all the same. -->
+    <IsPackable>false</IsPackable>
+    <RaskPublicApiTracked>true</RaskPublicApiTracked>
 
     <PackageId>Rask.Pdf</PackageId>
     <Title>Rask.Pdf — a PDF from a Rask page or component</Title>

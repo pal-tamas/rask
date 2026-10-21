@@ -35,6 +35,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Pdf, first slice: the engine that prints HTML with the app's own headless Chromium.** No call site yet —
+  `Pdf.From(page | component)` arrives with the next slice; this one ships `Pdf.ContentType` and `PdfPage.A4` /
+  `PdfPage.A4.Landscape` (namespace `Rask.Printing`). Underneath, Rask drives Chromium over its DevTools pipe
+  (`--remote-debugging-pipe`) with its own small protocol client, so the package has no dependency and never
+  downloads a browser: it finds Chromium or Google Chrome (`Rask:Pdf:ChromiumPath`, the usual install folders,
+  `PATH`) or fails with how to install one. One browser per app, started at the first print and kept; two documents
+  print at once and the rest wait; a crashed browser is replaced at the next print; each document gets a 30-second
+  limit, a browser context of its own, no network and no scripts. A 5,000-row table (209 landscape A4 pages,
+  heading on every page) prints in about a second as a 0.45 MB PDF; Linux and macOS only for now. Not on NuGet
+  until the package is complete.
+
 - **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
   Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a
   blue/green switch broke (the old host ran the new host's first round, so the new host's entries never cleared and

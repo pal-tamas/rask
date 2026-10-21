@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 
@@ -61,11 +62,21 @@ internal static class HtmlPrint
 
     private static async Task Load(DevToolsConnection devTools, string session, byte[] document, CancellationToken cancellation)
     {
-        var loaded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        devTools.Listen(session, "Page.loadEventFired", _ => loaded.TrySetResult());
+        // A load is matched to its navigation by loader id, so the blank page the tab opened with can never pass for
+        // the document. The event can arrive before the navigation's own reply; whichever comes first makes the entry.
+        var loads = new ConcurrentDictionary<string, TaskCompletionSource>(StringComparer.Ordinal);
+        devTools.Listen(session, "Page.lifecycleEvent", lifecycle =>
+        {
+            if (string.Equals(lifecycle.GetProperty("name").GetString(), "load", StringComparison.Ordinal))
+            {
+                Loaded(loads, lifecycle.GetProperty("loaderId").GetString()!).TrySetResult();
+            }
+        });
         devTools.Listen(session, "Fetch.requestPaused", request => Answer(devTools, session, request, document));
 
         await devTools.Send("Page.enable", sessionId: session, cancellation: cancellation).ConfigureAwait(false);
+        await devTools.Send("Page.setLifecycleEventsEnabled", json => json.WriteBoolean("enabled", true), session, cancellation)
+            .ConfigureAwait(false);
         await devTools.Send("Emulation.setScriptExecutionDisabled", json => json.WriteBoolean("value", true), session, cancellation).ConfigureAwait(false);
         await devTools.Send(
             "Fetch.enable",
@@ -86,8 +97,11 @@ internal static class HtmlPrint
             throw new InvalidOperationException($"Chromium could not load the document to print: {error.GetString()}");
         }
 
-        await loaded.Task.WaitAsync(cancellation).ConfigureAwait(false);
+        await Loaded(loads, navigated.GetProperty("loaderId").GetString()!).Task.WaitAsync(cancellation).ConfigureAwait(false);
     }
+
+    private static TaskCompletionSource Loaded(ConcurrentDictionary<string, TaskCompletionSource> loads, string loaderId) =>
+        loads.GetOrAdd(loaderId, static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
 
     // Runs on the reading thread, so it answers without waiting for the reply.
     private static void Answer(DevToolsConnection devTools, string session, JsonElement request, byte[] document)

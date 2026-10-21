@@ -83,9 +83,13 @@ internal sealed class ChromiumProcess : IAsyncDisposable
     /// <summary>Ends the browser now, without asking it — for one that stopped answering.</summary>
     public void Kill()
     {
-        if (!_process.HasExited)
+        try
         {
             _process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // It had already exited.
         }
     }
 
