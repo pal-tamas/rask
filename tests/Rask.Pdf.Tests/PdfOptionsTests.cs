@@ -67,7 +67,9 @@ public sealed class PdfOptionsTests(SharedPrinter shared) : IClassFixture<Shared
     {
         await using var printer = new ChromiumPrinter(new ChromiumSettings
         {
-            ChromiumPath = TestChromium.Path, NoSandbox = TestChromium.NoSandbox, MaxPages = 2,
+            ChromiumPath = TestChromium.Path,
+            NoSandbox = TestChromium.NoSandbox,
+            MaxPages = 2,
         });
 
         var tooLong = await Assert.ThrowsAsync<InvalidOperationException>(() => printer.Print(
@@ -82,7 +84,9 @@ public sealed class PdfOptionsTests(SharedPrinter shared) : IClassFixture<Shared
     {
         await using var printer = new ChromiumPrinter(new ChromiumSettings
         {
-            ChromiumPath = TestChromium.Path, NoSandbox = TestChromium.NoSandbox, MaxPages = 1,
+            ChromiumPath = TestChromium.Path,
+            NoSandbox = TestChromium.NoSandbox,
+            MaxPages = 1,
         });
 
         var pdf = await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Egy oldal</p>")), TestContext.Current.CancellationToken);
