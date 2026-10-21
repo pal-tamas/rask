@@ -62,6 +62,7 @@ public static class BulkInsertExtensions
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(entities);
         ChildWrites.RefuseBulkInsert(context, typeof(TEntity));
+        AmbientTransaction.Admit(context);
 
         var options = new BulkInsertOptions();
         configure?.Invoke(options);
