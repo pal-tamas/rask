@@ -923,6 +923,12 @@ show "Updating…" and reload onto the new one at their previous scroll position
 had typed put back — see
 [the shutdown ladder](deployment.md#the-shutdown-ladder).
 
+**Running jobs finish on the container that started them.** Once traffic has moved, the old container claims no
+new job but runs the ones it has to the end; the deploy waits for it — up to `"stopTimeout"` in
+`.rask/deploy.json` (`"30m"` by default, written there on the first deploy) — and prints what it is still
+finishing (`app-blue is finishing 1 job: AtPump (3m12s) — waited 3m20s of 30m`). A container still busy when the
+budget runs out is killed, and the deploy says so in red. A second deploy of the same app waits for it.
+
 **Multiple apps share one box.** Each app has its own file in the proxy (`/data/rask/sites/<app>.caddy`),
 and a deploy writes only its own, under a box-wide deploy lock — deploying a second app (a different
 `--domain`), even in the same minute, leaves the first untouched. See

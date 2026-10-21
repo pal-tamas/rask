@@ -166,6 +166,30 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`rask deploy` lets the old container finish the jobs it is running — up to the app's `"stopTimeout"`.** A
+  blue/green deploy used to `docker stop -t 20` the old colour, and a job is given 5 s after `SIGTERM`: a job sending
+  1282 settings to a fuel pump (5–6 minutes) was cut halfway, re-ran on the new container and broke on the
+  half-programmed pump. Now traffic still moves to the new container at once, and then:
+  - the old container claims **no new job** at `SIGTERM` (nor the next one of a batch it holds), but the job it is
+    running keeps a live token and its lease keeps being renewed, so the new container never starts it twice;
+  - the deploy waits for it to exit, up to `"stopTimeout"` in `.rask/deploy.json` (`"30m"`, `"90s"`, `"1h30m"`;
+    default `30m`, written there by every deploy), printing what it is waiting for
+    (`app-blue is finishing 1 job: AtPump (3m12s) — waited 3m20s of 30m`, read from the line `Rask.Jobs` now logs
+    while it drains); one still busy when the budget runs out is killed, and the deploy says so in red;
+  - the app's `HostOptions.ShutdownTimeout` is cut from the same number (`ASPNETCORE_SHUTDOWNTIMEOUTSECONDS` =
+    `stopTimeout` − 5 s), and `AddRask` keeps a budget the configuration names even when it equals 30 s;
+  - `JobsOptions.ShutdownGracePeriod` defaults to `Timeout.InfiniteTimeSpan`: a running job is cancelled when the
+    host's budget ends, not 5 s after `SIGTERM`. Mail, outbox, Litestream and live sessions keep their own bounds;
+  - the old colour drains outside the box's deploy lock (other apps' deploys don't wait) but under the app's own, so
+    a second deploy of the same app waits for it.
+
+  **Migrating an existing app:** nothing to do for the fix — the next deploy with this CLI waits up to 30 minutes
+  and writes `"stopTimeout": "30m"` into `.rask/deploy.json`. An app with no long jobs is unaffected (its old
+  container exits in seconds). Size `"stopTimeout"` above your longest job; set `"stopTimeout": "20s"` and
+  `ShutdownGracePeriod = 5.Seconds` for the old behaviour. On a bare `--port` deploy the old container must free the
+  port first, so the app is down while it drains — use `--domain` for an app with long jobs. Job handlers must still
+  honour their token and be idempotent: see `docs/jobs.md#shutdown` and `docs/deployment.md#the-shutdown-ladder`.
+
 - **`rask deploy`'s Caddy proxy keeps one config file per app.** Before: one `/etc/caddy/Caddyfile` naming every
   app, rewritten whole by every deploy. After: the base Caddyfile is `import /data/rask/sites/*.caddy` (global
   options you put above it are kept), and each app's site block and redirects are `/data/rask/sites/<app>.caddy` on
