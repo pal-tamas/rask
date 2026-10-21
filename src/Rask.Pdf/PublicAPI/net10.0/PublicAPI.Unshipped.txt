@@ -19,3 +19,7 @@ Rask.Printing.PdfOptions.Tagged.get -> bool
 Rask.Printing.PdfOptions.Tagged.init -> void
 static Rask.Printing.PdfMargins.Millimetres(double all) -> Rask.Printing.PdfMargins!
 static Rask.Printing.PdfMargins.Millimetres(double vertical, double horizontal) -> Rask.Printing.PdfMargins!
+Rask.Printing.PdfServiceCollectionExtensions
+static Rask.Printing.Pdf.From(Rask.Core.Component! component, Rask.Printing.PdfOptions? options = null) -> System.Threading.Tasks.Task<byte[]!>!
+static Rask.Printing.Pdf.From(Rask.Core.Routing.RouteUrl route, Rask.Printing.PdfOptions? options = null) -> System.Threading.Tasks.Task<byte[]!>!
+static Rask.Printing.PdfServiceCollectionExtensions.AddRaskPdf(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

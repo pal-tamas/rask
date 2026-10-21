@@ -23,4 +23,23 @@ internal sealed class ChromiumSettings
 
     /// <summary>How long one document may take, from loading its HTML to the last byte of the PDF.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>Refuses a setting no printer could run with, naming it.</summary>
+    internal void Validate()
+    {
+        if (MaxConcurrentPrints < 1)
+        {
+            throw new InvalidOperationException("Rask:Pdf:MaxConcurrentPrints must be at least 1.");
+        }
+
+        if (MaxPages < 1)
+        {
+            throw new InvalidOperationException("Rask:Pdf:MaxPages must be at least 1.");
+        }
+
+        if (Timeout <= TimeSpan.Zero)
+        {
+            throw new InvalidOperationException("Rask:Pdf:Timeout must be longer than zero.");
+        }
+    }
 }

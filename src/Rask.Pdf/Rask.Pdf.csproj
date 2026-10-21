@@ -25,4 +25,20 @@
     <InternalsVisibleTo Include="Rask.Pdf.Tests"/>
   </ItemGroup>
 
+  <!-- Pdf.From takes a route or a component, and reaches the server host's render through Core's
+       IPrintablePages; Rask.Server implements it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
+  <!-- Rask:Pdf binds through the one registration every server-side options type uses, with the binding source
+       generator writing the bind at compile time (no reflection binder for the trimmer to lose). -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
 </Project>
