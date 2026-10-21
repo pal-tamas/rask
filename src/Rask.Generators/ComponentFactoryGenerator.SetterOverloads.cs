@@ -373,7 +373,7 @@ public sealed partial class ComponentFactoryGenerator
         var track = TrackStatements(name, fold, isDelegate, pendingBit);
         if (JoinsClasses(name, typeFqn))
         {
-            (track, assigned) = JoinedClassStatements(name, fold, pendingBit);
+            (track, assigned) = JoinedClassStatements(name, pendingBit);
         }
 
         EmitCarrierPriority(sb, typeFqn);
@@ -553,19 +553,15 @@ public sealed partial class ComponentFactoryGenerator
         string.Equals(typeFqn, "string?", StringComparison.Ordinal)
         && name.EndsWith("Class", StringComparison.Ordinal);
 
-    // The joined value goes in a local the fold and the assignment both read. JoinClass clears the pending bit
-    // itself — it has to read it first, to tell this render's first write (replace) from a later one (join) —
-    // so there is no Written call. A prop the entry resets eagerly passes 0: it is at its default already.
-    private static (string Track, string Assigned) JoinedClassStatements(string name, bool fold, int pendingBit)
+    // The joined value goes in a local the assignment reads. JoinClass clears the pending bit itself — it has to
+    // read it first, to tell this render's first write (replace) from a later one (join) — and it reports the
+    // prop change too, judged on the final list when the pass settles, so there is neither a Written nor a Track
+    // call. A prop the entry resets eagerly passes 0: it is at its default already.
+    private static (string Track, string Assigned) JoinedClassStatements(string name, int pendingBit)
     {
-        var prop = EscapeIdentifier(name);
         var mask = pendingBit >= 0 ? MaskLiteral(new[] { pendingBit }) : "0UL";
-        var track = "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, " + mask + ", __c." + prop + ", value); ";
-        if (fold)
-        {
-            track += "global::Rask.Core.BuilderRuntime.Track(__c, __c." + prop + ", __v); ";
-        }
-
+        var track = "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, " + mask + ", __c."
+                    + EscapeIdentifier(name) + ", value); ";
         return (track, "__v");
     }
 

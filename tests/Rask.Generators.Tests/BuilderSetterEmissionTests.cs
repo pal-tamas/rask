@@ -63,7 +63,12 @@ public class BuilderSetterEmissionTests
         Assert.Contains(
             "ContainerClass(this global::Demo.Panel __b, string? value) { var __c = __b; "
             + "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, 0x200000000UL, __c.ContainerClass, value); "
-            + "global::Rask.Core.BuilderRuntime.Track(__c, __c.ContainerClass, __v); __c.ContainerClass = __v; return __b; }",
+            + "__c.ContainerClass = __v; return __b; }",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "__t.ContainerClass = global::Rask.Core.BuilderRuntime.CopyClass(__f, __t, 0x200000000UL, "
+            + "__t.ContainerClass, __f.ContainerClass);",
             output,
             StringComparison.Ordinal);
         Assert.Contains(
@@ -198,7 +203,7 @@ public class BuilderSetterEmissionTests
         Assert.Contains(
             "public static T Class<T>(this T __b, string? value) where T : global::Rask.Core.Element "
             + "{ var __c = __b; var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, 0x1UL, __c.Class, value); "
-            + "global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, __v); __c.Class = __v; return __b; }",
+            + "__c.Class = __v; return __b; }",
             output,
             StringComparison.Ordinal);
 

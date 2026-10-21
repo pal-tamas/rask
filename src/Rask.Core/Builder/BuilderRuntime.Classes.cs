@@ -67,6 +67,10 @@ public static partial class BuilderRuntime
     ///     by the prop's PENDING bit, which the entry sets afresh on every pass, and it replaces rather than joins:
     ///     the list can never grow render after render. With no slot the receiver is either a fresh instance built
     ///     outside a render (no context: join onto its default) or one a past render built (replace, as before).
+    ///     <para>
+    ///         The prop change is judged on the FINAL list, when the pass settles (the class watch): the
+    ///         first write of <c>.Class("a").Class("b")</c> always differs from last pass's <c>a b</c>.
+    ///     </para>
     /// </remarks>
     /// <param name="target">The component the step writes.</param>
     /// <param name="bit">The prop's pending bit, or 0 for a prop the entry resets eagerly.</param>
@@ -81,17 +85,41 @@ public static partial class BuilderRuntime
             ref var slot = ref slots[i];
             if (ReferenceEquals(slot.Target, target))
             {
+                var written = value;
                 if ((slot.PendingMask & bit) != 0)
                 {
                     slot.PendingMask &= ~bit;
-                    return value;
+                }
+                else
+                {
+                    written = JoinPair(current, value);
                 }
 
-                return JoinPair(current, value);
+                WatchClass(target, bit, current, written);
+                return written;
             }
         }
 
-        return Live.LiveRenderContext.Current is null ? JoinPair(current, value) : value;
+        var result = Live.LiveRenderContext.Current is null ? JoinPair(current, value) : value;
+        Track(target, current, result);
+        return result;
+    }
+
+    /// <summary>
+    ///     Replays a class-carrying prop the chain wrote before its <c>Key</c> step onto the instance the key
+    ///     kept, moving its pending change report along with it.
+    /// </summary>
+    /// <param name="from">The provisional instance the chain wrote first.</param>
+    /// <param name="to">The instance the key kept.</param>
+    /// <param name="bit">The prop's pending bit.</param>
+    /// <param name="before">The kept instance's value, as the last render left it.</param>
+    /// <param name="value">The value the chain wrote so far.</param>
+    /// <returns>The value to store on <paramref name="to" />.</returns>
+    public static string? CopyClass(Component from, Component to, ulong bit, string? before, string? value)
+    {
+        ForgetClass(from, bit);
+        WatchClass(to, bit, before, value);
+        return value;
     }
 
     private static string? JoinPair(string? first, string? second)

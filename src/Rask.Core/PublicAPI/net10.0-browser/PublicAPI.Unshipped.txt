@@ -17411,6 +17411,7 @@ Rask.Core.Callback<T>.Callback(System.Func<T, System.Threading.Tasks.ValueTask>!
 static Rask.Core.AutoCallback.Wrap(System.Func<System.Threading.Tasks.ValueTask>? d) -> System.Func<System.Threading.Tasks.ValueTask>?
 static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Func<T1, T2, System.Threading.Tasks.ValueTask>? d) -> System.Func<T1, T2, System.Threading.Tasks.ValueTask>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Func<T, System.Threading.Tasks.ValueTask>? d) -> System.Func<T, System.Threading.Tasks.ValueTask>?
+static Rask.Core.BuilderRuntime.CopyClass(Rask.Core.Component! from, Rask.Core.Component! to, ulong bit, string? before, string? value) -> string?
 static Rask.Core.BuilderRuntime.JoinClass(Rask.Core.Component! target, ulong bit, string? current, string? value) -> string?
 static Rask.Core.BuilderRuntime.JoinClasses(System.ReadOnlySpan<string?> parts) -> string?
 static RaskBuilderSettersRask_Core.AfterBind<T>(this Rask.Core.HTMLInputElement<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.Core.HTMLInputElement<T>!
