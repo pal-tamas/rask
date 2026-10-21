@@ -1,0 +1,6 @@
+<Project>
+
+  <!-- An app that has Rask.Pdf through another package prints with it too, so it gets the same hooks. -->
+  <Import Project="$(MSBuildThisFileDirectory)../build/Rask.Pdf.targets" />
+
+</Project>

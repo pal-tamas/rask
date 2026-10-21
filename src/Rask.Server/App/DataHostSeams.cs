@@ -40,6 +40,9 @@ internal static class DataHostSeams
         services.AddScoped<ClaimsPrincipalSource>();
         services.AddScoped<IPrincipalSource>(static sp => sp.GetRequiredService<ClaimsPrincipalSource>());
 
+        // A job runs signed in as the user who enqueued it, in a scope of its own (Rask.Jobs' JobPrincipal).
+        services.AddScoped<IScopeUser, ScopeUser>();
+
         // The same user is who a handler's [Authorize] is held to when a page dispatches to it in-process, and
         // ASP.NET's authorization is what decides a policy it names.
         services.AddSingleton<IDispatchPrincipal, DispatchPrincipal>();
