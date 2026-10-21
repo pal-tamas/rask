@@ -28,16 +28,18 @@ Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask
 Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).InLane(string! lane) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 Rask.Background.EnqueuedJobCounting.extension<TJob>(Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>).Matching(System.Func<TJob, bool>! matches, string! said) -> Rask.Batteries.Counting<Rask.Background.EnqueuedJob<TJob>!>
 Rask.Background.Enqueuing
-Rask.Background.Enqueuing.AsTask() -> System.Threading.Tasks.Task!
+Rask.Background.Enqueuing.AsTask() -> System.Threading.Tasks.Task<bool>!
 Rask.Background.Enqueuing.At(System.DateTimeOffset moment) -> Rask.Background.Enqueuing
-Rask.Background.Enqueuing.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
+Rask.Background.Enqueuing.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<bool>
 Rask.Background.Enqueuing.Enqueuing() -> void
-Rask.Background.Enqueuing.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Background.Enqueuing.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<bool>
 Rask.Background.Enqueuing.In(System.TimeSpan delay) -> Rask.Background.Enqueuing
 Rask.Background.Enqueuing.InLane(string! lane) -> Rask.Background.Enqueuing
+Rask.Background.Enqueuing.UnlessWaiting() -> Rask.Background.Enqueuing
 Rask.Background.IJob
 Rask.Background.IJobs
 Rask.Background.IJobs.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.IJobs.AddUnlessWaiting(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Background.Job
 Rask.Background.Job.Attempts.get -> int
 Rask.Background.Job.ClaimToken.get -> System.Guid?
@@ -53,8 +55,10 @@ Rask.Background.Job.RunAt.get -> System.DateTime
 Rask.Background.Job.TenantId.get -> System.Guid?
 Rask.Background.Job.Type.get -> string!
 Rask.Background.Job.UserId.get -> System.Guid?
+Rask.Background.Job.WaitingKey.get -> string?
 Rask.Background.JobBacklog<TContext>
 Rask.Background.JobBacklog<TContext>.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.JobBacklog<TContext>.AddUnlessWaiting(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Background.JobBacklog<TContext>.JobBacklog(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider) -> void
 Rask.Background.JobConfiguration
 Rask.Background.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.Job!>! builder) -> void
@@ -98,6 +102,8 @@ Rask.Background.JobRead.UpdatedAt.get -> System.DateTime
 Rask.Background.JobRead.UpdatedAt.init -> void
 Rask.Background.JobRead.UserId.get -> System.Guid?
 Rask.Background.JobRead.UserId.init -> void
+Rask.Background.JobRead.WaitingKey.get -> string?
+Rask.Background.JobRead.WaitingKey.init -> void
 Rask.Background.JobReadAccess
 Rask.Background.JobReadAccess.extension(Rask.Background.Job!)
 Rask.Background.JobSerializerRegistry

@@ -20,4 +20,12 @@ public interface IJobs
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes one job row as <see cref="Add"/> does — unless the same work already waits in <paramref name="lane"/>,
+    /// unclaimed. The primitive under <c>.UnlessWaiting()</c>; call that step instead.
+    /// </summary>
+    /// <returns><see langword="true"/> when the row was written, <see langword="false"/> when it was skipped.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Task<bool> AddUnlessWaiting(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default);
 }

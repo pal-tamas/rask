@@ -79,6 +79,17 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </summary>
     public string? Lane { get; private set; }
 
+    /// <summary>
+    ///     What makes this job "the same work" while it waits, for <c>.UnlessWaiting()</c>: a hash of its lane, its
+    ///     tenant, its kind and its payload. Null for a job enqueued without that step, and cleared by the claim, so
+    ///     only a job that is waiting and has never been claimed blocks another copy of itself.
+    /// </summary>
+    /// <remarks>
+    ///     A unique index on this column is what refuses the second copy — in the database, so two hosts enqueueing
+    ///     at the same moment still leave one row.
+    /// </remarks>
+    public string? WaitingKey { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -95,6 +106,18 @@ public sealed class Job : Aggregate<long, Timestamps>
     public static Job For(string type, string payload, DateTime runAt, string? lane = null)
     {
         return new Job { Type = type, Payload = payload, RunAt = runAt, Lane = lane, UserId = Current.UserId, TenantId = Current.Tenant };
+    }
+
+    /// <summary>Enqueues a job that is refused while the same work already waits unclaimed in its lane.</summary>
+    /// <param name="type">The job's registered type name.</param>
+    /// <param name="payload">The serialized job.</param>
+    /// <param name="runAt">The earliest time (UTC) it may run.</param>
+    /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
+    internal static Job Waiting(string type, string payload, DateTime runAt, string? lane)
+    {
+        var job = For(type, payload, runAt, lane);
+        job.WaitingKey = JobWaitingKey.Of(type, payload, lane, job.TenantId);
+        return job;
     }
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>
