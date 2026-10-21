@@ -35,6 +35,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Ui prints what a page says and leaves off what it does** — a recorded departure from Flux, inside
+  `@media print` only, so the screen is unchanged. Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar`,
+  `Ui.Header`, toasts, tooltips, open menus and popovers and a modal's backdrop print as nothing, and `Ui.Main` drops
+  its padding; `Ui.Table` wraps its cells, runs on past its scroll frame, repeats its heading on every page and never
+  splits a row. Before: a report page put `print:hidden` on
+  each control and a PDF of a table was cut at the frame. Now: `await Pdf.From(Routes.RefundReport(id))` prints the
+  page as paper; hide your own parts with `print:hidden`. +922 B on the kit's sheet (+280 B gzipped).
+  ([ui-kit](docs/ui-kit.md#printing), [pdf](docs/pdf.md#write-the-report-with-flux-pieces))
+
 - **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
   Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
   Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.

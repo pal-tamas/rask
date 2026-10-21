@@ -51,9 +51,17 @@ so no `[Authorize]` to run: the caller already holds the data it was given.
 
 ## Write the report with Flux pieces
 
-A report is an ordinary component. Its table heading is a `<thead>`, which Chromium repeats on every printed page by
-itself; `break-inside-avoid` keeps a row from being cut in two, and Tailwind's `print:` variants hide what has no
-place on paper.
+A report is an ordinary component, and the kit already knows what paper is:
+
+- **Controls are left off.** Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` and its toggle,
+  `Ui.Header`, toasts, tooltips, open dropdowns and popovers, and a modal's backdrop print as nothing, and
+  `Ui.Main` drops its screen padding and panel.
+- **`Ui.Table` prints whole.** Cells wrap instead of being cut, the scroll frame lets the table run on, its
+  heading repeats at the top of every page, and a row is never split across two.
+
+Hide your own parts with Tailwind's `print:hidden`; show something the kit hides with an important utility,
+`print:inline-flex!`. None of this touches the screen: every rule is inside `@media print`, so the same
+defaults apply when a reader prints the page from their browser.
 
 <!-- demo:pdf-report -->
 

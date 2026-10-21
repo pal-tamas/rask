@@ -2076,3 +2076,77 @@
     }
   }
 }
+
+/*
+  ON PAPER — a departure from Flux, which prints its screen (owner, 2026-10-21; flux-component's list).
+
+  A printed page is read, not used: the controls and the app's chrome print as nothing, the main area loses its
+  screen padding, a table runs on across pages whole. Rask.Pdf prints with these, and
+  so does a reader's own Ctrl+P. An app hides its own parts with Tailwind's `print:hidden`.
+
+  EVERY RULE IS INSIDE `@media print`, so none of it reaches a screen (UiPrintTests reads the compiled sheet for it).
+  In `rask-ui-corrections` because what they undo is mostly utilities — a button's `inline-flex`, a cell's
+  `whitespace-nowrap`, the inset panel's `lg:overflow-y-auto` — and only the last layer outranks `utilities`. An
+  app that wants a kit control on paper says so with an important utility: `print:inline-flex!`.
+*/
+@layer rask-ui-corrections {
+  @media print {
+    [data-ui-button],
+    [data-ui-badge-close],
+    [data-ui-pagination],
+    [data-ui-sidebar],
+    [data-ui-sidebar-toggle],
+    [data-ui-sidebar-backdrop],
+    [data-ui-header],
+    [data-ui-toast],
+    [data-ui-toast-group],
+    [data-ui-tooltip-content],
+    [data-ui-menu],
+    [data-ui-popover] {
+      display: none;
+    }
+
+    [data-ui-modal]::backdrop {
+      background: none;
+    }
+
+    /* The layout grid stops at the page: no viewport height to hold the inset panel to, no panel to scroll. */
+    :has(> [data-ui-main]) {
+      display: block;
+      height: auto;
+    }
+
+    [data-ui-main] {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    /* A table runs on: its frame scrolls nothing, its text wraps, its heading opens every page, no row is cut. */
+    :has(> [data-ui-table]) {
+      overflow: visible;
+    }
+
+    [data-ui-table],
+    [data-ui-table] :is(th, td, .truncate) {
+      white-space: normal;
+      overflow-wrap: break-word;
+    }
+
+    [data-ui-table] .truncate {
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    [data-ui-table] > thead {
+      display: table-header-group;
+    }
+
+    [data-ui-table] tr {
+      break-inside: avoid;
+    }
+  }
+}

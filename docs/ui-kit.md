@@ -542,6 +542,23 @@ page keeps the sorted column, its direction and the page number (`Sortable()`, `
 sticky parts, bleed, whose class wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
+## Printing
+
+The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.
+Inside `@media print` only, so nothing changes on screen, and the same for [Rask.Pdf](pdf.md) and a reader's own
+Ctrl+P:
+
+- **Left off:** every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` with its toggle and backdrop,
+  `Ui.Header`, toasts, tooltips, open dropdown and popover panels, and a modal's backdrop. `Ui.Main` drops its screen
+  padding, border and inner scroll.
+- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
+  run on, the heading repeats at the top of every page, and no row is split across two.
+
+```csharp
+Div.Class("print:hidden")[Ui.Callout["Only on screen."]]   // your own parts: Tailwind's print: variants
+Ui.Button.Class("print:inline-flex!")["Kept on paper"]      // a kit control you want printed: an important utility
+```
+
 ## Callouts
 
 `Ui.Callout` is [Flux's callout](https://fluxui.dev/components/callout), measured from that page and drawn the
