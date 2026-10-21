@@ -45,6 +45,13 @@ them until tagged releases begin.
   one Information log line names the method and nothing of the person. A call the build cannot intercept — a
   generic method, a call through `base` — is the new warning RASK109. A handler without the attribute costs nothing
   ([authentication](docs/authentication.md#authorize-on-an-event-handler)).
+- **Rask.Storage: `await Files.Save(xml, "bevallas.xml").As("application/xml")` states the content type.** It is
+  recorded on the `StoredFile` row in place of the sniffed one and served by `Download` and temporary URLs under the
+  usual rules (XML, HTML and SVG still go out as `application/octet-stream` attachments). The value must be a plain
+  `type/subtype` — no parameters, spaces or line breaks — or `.As` throws `ArgumentException`; it is still checked
+  against `AllowedTypes`. Without `.As` the bytes decide, as before
+  ([file storage](docs/file-storage.md#stating-the-type-yourself)).
+
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`. A `RaskApp` whose app references Rask.Pdf has it with no code; a hand-wired host
   calls `builder.Services.AddRaskPdf()`.
@@ -268,6 +275,14 @@ them until tagged releases begin.
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
   working. Someone not signed in is still sent to sign in. An app with its own `/forbidden` page no longer reaches
   it from a Rask page ([authentication](docs/authentication.md#a-page-the-user-may-not-open)).
+- **`Files.Save` and `Files.Delete` inside `Db.Transaction` take part in it.** On the Database provider the
+  `StoredFile` and `StoredFileBytes` rows are written on the transaction's connection, so nothing is visible before
+  the commit and a rollback leaves nothing. On Disk, S3 and Azure the bytes go to the store at once, the row joins,
+  and a rollback deletes the stored object again (a failed delete is logged as a warning, never thrown). A delete
+  inside removes the row with the work and the bytes only after the commit. A storage context on another database
+  is refused inside a transaction, as jobs and mail are. Outside `Db.Transaction` nothing changes
+  ([file storage](docs/file-storage.md#saving-inside-dbtransaction)).
+
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

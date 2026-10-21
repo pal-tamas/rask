@@ -15,7 +15,6 @@ public static class FilesExtensions
                 null,
                 name,
                 size,
-                false,
                 cancellationToken);
 
         /// <inheritdoc cref="Files.Save(Stream, string, CancellationToken)" />
@@ -26,7 +25,6 @@ public static class FilesExtensions
                 content ?? throw new ArgumentNullException(nameof(content)),
                 name,
                 0,
-                false,
                 cancellationToken);
 
         /// <inheritdoc cref="Files.Share(Guid, CancellationToken)" />
