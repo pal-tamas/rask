@@ -8097,6 +8097,7 @@ Rask.UiTable.ContainerClass.get -> string?
 Rask.UiTable.ContainerClass.set -> void
 Rask.UiTable.Paginate.get -> Rask.Core.Component?
 Rask.UiTable.Paginate.set -> void
+Rask.UiTable.Of<TResult>(Rask.Querying.Query<TResult>! query) -> Rask.UiTable!
 Rask.UiTableCell
 Rask.UiTableCell.Align.get -> Rask.Ui.Align?
 Rask.UiTableCell.Align.set -> void

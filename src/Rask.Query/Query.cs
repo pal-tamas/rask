@@ -18,7 +18,7 @@ namespace Rask.Querying;
 ///     </para>
 /// </remarks>
 /// <typeparam name="TResult">What the query returns.</typeparam>
-public sealed class Query<TResult> : IDisposable, IRenderSlotHandle
+public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
 {
     private readonly SessionQueryClient _client;
     private readonly IQuerySource<TResult>? _source;

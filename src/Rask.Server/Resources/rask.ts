@@ -57,7 +57,7 @@ import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
-import { answered, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
+import { answered, awaiting, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
@@ -589,7 +589,7 @@ import {
             // that render is in the queue ahead of this, not necessarily applied (rask-owned.ts).
             const seq = data.seq;
             if (typeof seq === "number") {
-                const answer = () => { answered(seq); };
+                const answer = () => { answerUpTo(seq); };
                 _renderQueue = _renderQueue.then(answer, answer);
             }
             return;
@@ -1241,6 +1241,8 @@ import {
     // route render surfaces progress even though a `navigate` frame carries no handler seq/ack. The bar
     // stays up while EITHER a handler seq or a navigation is outstanding (see hideBarIfIdle).
     let navInFlight = false;
+    // What the hooks are told when the navigation's page is on screen (rask-owned.ts, `awaiting`).
+    let navAnswered: (() => void) | null = null;
     let navBarTimer: ReturnType<typeof setTimeout> | null = null;
     let navHardTimer: ReturnType<typeof setTimeout> | null = null;
     // Polite live region that announces the new page on a forward navigation (keyboard/SR users get told
@@ -1249,6 +1251,8 @@ import {
 
     function beginNav() {
         navInFlight = true;
+        if (navAnswered) navAnswered();
+        navAnswered = awaiting();
         if (navBarTimer === null && !pendingVisible) {
             navBarTimer = setTimeout(showPendingBar, PENDING_LATENCY_MS);
         }
@@ -1263,6 +1267,10 @@ import {
 
     function endNav() {
         navInFlight = false;
+        if (navAnswered) {
+            navAnswered();
+            navAnswered = null;
+        }
         if (navHardTimer !== null) {
             clearTimeout(navHardTimer);
             navHardTimer = null;
@@ -1359,6 +1367,7 @@ import {
         if (!payload || payload.id == null || payload.type === "jsResult") return payload;
         payload.seq = ++seqCounter;
         outstandingSeq = seqCounter;
+        awaitedBySeq.set(seqCounter, awaiting());
         if (pendingTimer === null && !pendingVisible) {
             pendingTimer = setTimeout(showPendingBar, PENDING_LATENCY_MS);
         }
@@ -1392,7 +1401,11 @@ import {
         // can't wedge the next session.
         ackedSeq = outstandingSeq = seqCounter;
         navInFlight = false;
-        answered(seqCounter);
+        if (navAnswered) {
+            navAnswered();
+            navAnswered = null;
+        }
+        answerUpTo(seqCounter);
         clearPending();
         loadingBySeq.clear();
         endAllLoading();
@@ -1400,6 +1413,19 @@ import {
         releaseAllForms();
         for (const upload of uploadBySeq.values()) upload.end();
         uploadBySeq.clear();
+    }
+
+    // What the hooks wait on per handler seq (rask-owned.ts, `awaiting`): told when the render answering it is on
+    // the page, which is later than its ack when that render is still in the queue.
+    const awaitedBySeq = new Map<number, () => void>();
+
+    function answerUpTo(seq: number): void {
+        answered(seq);
+        for (const [each, done] of awaitedBySeq) {
+            if (each > seq) continue;
+            awaitedBySeq.delete(each);
+            done();
+        }
     }
 
     // The control waiting on each handler seq (rask-loading.ts). The server runs one session's handlers in
@@ -1455,7 +1481,7 @@ import {
         // Backstop: no ack came back for an outstanding handler (lost frame or a hung
         // handler). Settle and hide rather than leave the bar wedged.
         ackedSeq = outstandingSeq = seqCounter;
-        answered(seqCounter);
+        answerUpTo(seqCounter);
         clearPending();
     }
 

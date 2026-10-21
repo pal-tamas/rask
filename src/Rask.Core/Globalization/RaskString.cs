@@ -572,4 +572,7 @@ public enum RaskString
     ///     What a page says, inside the app's layout, to a signed-in person whose account may not open it.
     /// </summary>
     PageForbidden,
+
+    /// <summary>What a table drawn from a query (<c>Ui.Table.Of(query)</c>) says in its one row when the query found nothing.</summary>
+    TableEmpty,
 }

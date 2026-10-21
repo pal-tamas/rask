@@ -542,6 +542,26 @@ page keeps the sorted column, its direction and the page number (`Sortable()`, `
 sticky parts, bleed, whose class wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
+**`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:
+an addition the owner approved, 2026-10-21). The headings never leave. The first load shows a skeleton row per row
+the pager says the page holds; every later one (a page, by button or by link, a sort, a filter, a tab) turns the rows
+on screen into skeleton rows AT THE PRESS, in the browser, at their own count and heights, and the new rows replace
+them in one step, so nothing under the table moves. A query that found nothing shows one row saying so (`TableEmpty`).
+
+```csharp
+var drivers = QueryClient.Query(QueryKey.Of("drivers"), () => (_page, _fuel), (asked, ct) => Drivers.Page(asked, ct));
+
+Ui.Table.Id("drivers").Of(drivers).Paginate(Ui.Pagination.Paginator(pager).OnPage(page => _page = page))[
+    Ui.TableColumns[Ui.TableColumn["Name"], Ui.TableColumn["Fuel"]],
+    Ui.TableRows[(drivers.Data ?? []).Select(d => Ui.TableRow.Key(d.Id)[Ui.TableCell[d.Name], Ui.TableCell[d.Fuel]])]
+]
+
+Ui.Select.Bind(() => _fuel).Aria("controls", "drivers")[…]     // a control outside the table names it
+```
+
+The pager, a sortable heading and a tab above the table ask for the skeleton by themselves; a control elsewhere names
+the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows instead.
+
 ## Callouts
 
 `Ui.Callout` is [Flux's callout](https://fluxui.dev/components/callout), measured from that page and drawn the

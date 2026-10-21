@@ -235,6 +235,15 @@ public sealed class FluxConformanceTests
     };
 
     /// <summary>
+    ///     <c>part/Member</c>: what a Flux part carries that Flux does not, kept because the owner said so, with the day
+    ///     they did. A method, which <see cref="A_built_component_carries_nothing_Flux_does_not_document" /> does not see.
+    /// </summary>
+    private static readonly Dictionary<string, string> ApprovedMembers = new(StringComparer.Ordinal)
+    {
+        ["flux:table/Of"] = "the owner, 2026-10-21: a table drawn from a Rask.Query query, skeleton rows of the rows' own size while it loads",
+    };
+
+    /// <summary>
     ///     Flux's, under a part <c>flux.snapshot.json</c> does not list as a heading of its own, so the checks above cannot
     ///     hold it to one yet. Each is measured on fluxui.dev and moved to <see cref="Built" />, or deleted.
     /// </summary>
@@ -685,6 +694,16 @@ public sealed class FluxConformanceTests
             "Rask.Ui holds only Flux UI's components. Map these in `Built`, or delete them:\n  " + string.Join("\n  ", unnamed));
         Assert.True(twice.Count == 0, "Named in more than one list:\n  " + string.Join("\n  ", twice));
         Assert.True(NotFluxYet.Count <= NotFluxYetCeiling, $"`NotFluxYet` only shrinks: {NotFluxYet.Count} entries over a ceiling of {NotFluxYetCeiling}.");
+    }
+
+    [Fact]
+    public void Every_member_the_owner_approved_is_one_its_part_carries()
+    {
+        var gone = ApprovedMembers.Keys
+            .Where(entry => entry.Split('/') is [var part, var member] && Built[part].GetMember(member, Public).Length == 0)
+            .ToList();
+
+        Assert.True(gone.Count == 0, "`ApprovedMembers` names these, and the part no longer carries them. Delete the row:\n  " + string.Join("\n  ", gone));
     }
 
     [Fact]

@@ -58,6 +58,7 @@ internal static class HookBundleTag
         "data-rask-list",
         "data-rask-color",
         "data-rask-calendar",
+        "data-rask-skeleton",
     ];
 
     // An attribute follows a space. The search finds where one of the names STARTS; whether it is that name and

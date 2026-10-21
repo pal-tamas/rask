@@ -35,6 +35,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Table.Of(query)`: a table drawn from a Rask.Query query, with skeleton rows the moment it loads.** Before:
+  every table flashed on paging, sorting and a tab switch — 15 rows, then an empty or shorter table, then 15 new rows,
+  with everything under it jumping twice. Now: `Ui.Table.Of(drivers)[Ui.TableColumns[…], Ui.TableRows[(drivers.Data
+  ?? []).Select(…)]]` keeps the headings, shows a skeleton row per row of the pager's page on the first load, and on
+  every later load (a pager button or link, a sortable heading, a tab above the table, any control naming the table
+  with `aria-controls`) turns the rows on screen into skeleton rows of their own count and heights AT THE PRESS, in the
+  browser, with no round trip and no wait; the new rows replace them in one step. A query that found nothing shows
+  one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
+  approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
+  has answered what it sent. A table without `Of` dims its rows as before.
 - **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
   Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
   Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.
