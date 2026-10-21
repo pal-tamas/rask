@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Rask.Batteries;
 using Rask.Core.Authentication;
+using Rask.Data;
 using Rask.Hosting.Shared;
 
 namespace Rask.Auth;
@@ -140,6 +141,9 @@ public static class RaskAuthServiceCollectionExtensions
 
         // What a test's Page.Visit(url).As(user) signs in with: the principal this battery issues for that user.
         services.TryAddSingleton<IPrincipalFor, AuthUserPrincipals>();
+
+        // What a job enqueued by a user runs as: their principal now, cut to the rights they had at enqueue.
+        services.TryAddSingleton<IAccountPrincipals, AccountPrincipals<TUser>>();
 
         services.AddScoped<AccountService<TUser>>();
 
