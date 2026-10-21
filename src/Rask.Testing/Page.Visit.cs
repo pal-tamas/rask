@@ -93,7 +93,9 @@ public partial class Page
 
     private static Page Open(string url, IServiceProvider? services, bool visited)
     {
-        var route = TestRoute.At(Guarded(url, services));
+        var (at, forbidden) = Guarded(url, services);
+        var route = TestRoute.At(at);
+        route.Forbidden = forbidden;
         var routed = new RoutedServices(route, new Navigator(route, services?.GetService(typeof(IDownloadSink)) as IDownloadSink), services);
         // Routes = null resolves to the app's registered route table, which the chain entry does for an app.
         var router = new Router(route) { Routes = null };
@@ -119,23 +121,24 @@ public partial class Page
         return () => [router, outlet];
     }
 
-    // Where the app actually lands for url: the page's own address, or /login (or /forbidden) when a guard on the
-    // page's route refuses the current user — the redirect a host makes before rendering anything.
-    private static string Guarded(string url, IServiceProvider? services)
+    // Where the app actually lands for url: the page's own address, or /login when nobody is signed in to see it —
+    // the redirect a host makes before rendering anything. A signed-in user the route forbids stays on it, and
+    // Forbidden names the page the app draws as the forbidden sentence inside its layouts.
+    private static (string Url, Type? Forbidden) Guarded(string url, IServiceProvider? services)
     {
         var path = url.Split('?', 2)[0];
         if (services is null || !RouteResolver.TryResolve(path, out var chain))
         {
-            return url;
+            return (url, null);
         }
 
         var user = services.GetService<IUserProvider>()?.Current ?? new ClaimsPrincipal(new ClaimsIdentity());
         var result = RouteAuthorizationGuard.Evaluate(services, chain, user).GetAwaiter().GetResult();
         return result.Outcome switch
         {
-            RouteAuthorizationOutcome.Challenge => RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(url),
-            RouteAuthorizationOutcome.Forbid => RouteAuthorizationGuard.ForbidPath,
-            _ => url,
+            RouteAuthorizationOutcome.Challenge => (RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(url), null),
+            RouteAuthorizationOutcome.Forbid => (url, result.FailedOnPage),
+            _ => (url, null),
         };
     }
 

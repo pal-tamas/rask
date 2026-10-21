@@ -616,7 +616,10 @@ public static partial class RaskEndpointExtensions
         var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
         var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
 
-        if (matched && !await AuthorizeRouteAsync(httpContext, chain, user).ConfigureAwait(false))
+        var (proceeds, forbidden) = matched
+            ? await AuthorizeRouteAsync(httpContext, chain, user).ConfigureAwait(false)
+            : (true, null);
+        if (!proceeds)
         {
             return;
         }
@@ -651,7 +654,7 @@ public static partial class RaskEndpointExtensions
             .RenderAsync(
                 session,
                 new Prerender.PageRenderInput(
-                    path, AdaptQuery(httpContext.Request.Query), user, culture, chain, notFoundPage),
+                    path, AdaptQuery(httpContext.Request.Query), user, culture, chain, notFoundPage, forbidden),
                 limits,
                 CancellationToken.None)
             .ConfigureAwait(false);
@@ -700,8 +703,11 @@ public static partial class RaskEndpointExtensions
         return true;
     }
 
-    // Asks the route's authorization; false when the request was answered with a challenge or a forbid.
-    private static async Task<bool> AuthorizeRouteAsync(HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user)
+    // Asks the route's authorization; Proceeds is false when the request was answered with a challenge. A signed-in
+    // person the route forbids is still answered with the app: its layouts, and the forbidden sentence in place of
+    // the page they may not open (Forbidden), as a 403.
+    private static async Task<(bool Proceeds, Type? Forbidden)> AuthorizeRouteAsync(
+        HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user)
     {
         var authResult = await RouteAuthorizationGuard
             .Evaluate(httpContext.RequestServices, chain, user)
@@ -711,12 +717,11 @@ public static partial class RaskEndpointExtensions
         {
             case RouteAuthorizationOutcome.Challenge:
                 await ChallengeAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
-                return false;
+                return (false, null);
             case RouteAuthorizationOutcome.Forbid:
-                await ForbidAsync(httpContext, authResult.AuthenticationScheme).ConfigureAwait(false);
-                return false;
+                return (true, authResult.FailedOnPage);
             default:
-                return true;
+                return (true, null);
         }
     }
 
@@ -930,8 +935,6 @@ public static partial class RaskEndpointExtensions
     private static Task ChallengeAsync(HttpContext ctx, string? scheme) =>
         scheme is null ? ctx.ChallengeAsync() : ctx.ChallengeAsync(scheme);
 
-    private static Task ForbidAsync(HttpContext ctx, string? scheme) =>
-        scheme is null ? ctx.ForbidAsync() : ctx.ForbidAsync(scheme);
 
     private static QueryCollection AdaptQuery(IQueryCollection source)
     {
@@ -3550,7 +3553,10 @@ public static partial class RaskEndpointExtensions
         var result = await RouteAuthorizationGuard
             .Evaluate(session.Services, chain, user)
             .ConfigureAwait(false);
-        return result.Outcome == RouteAuthorizationOutcome.Allow;
+
+        // A page already drawn as forbidden shows only its layouts, whose handlers its person may still use.
+        return result.Outcome == RouteAuthorizationOutcome.Allow
+               || (result.Outcome == RouteAuthorizationOutcome.Forbid && routeState.Forbidden == result.FailedOnPage);
     }
 
     // arriving: the render mounts a page nobody asked for by address — a sign-in's return page on its
@@ -3698,16 +3704,14 @@ public static partial class RaskEndpointExtensions
         var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
         var result = await RouteAuthorizationGuard.Evaluate(session.Services, chain, user).ConfigureAwait(false);
 
-        // Client-side guard redirect targets. (The initial HTTP GET challenge already goes
-        // through the configured auth scheme's own LoginPath/AccessDeniedPath.)
-        return result.Outcome switch
-        {
-            RouteAuthorizationOutcome.Allow => null,
-            RouteAuthorizationOutcome.Forbid => new GuardRedirect(RouteAuthorizationGuard.ForbidPath, string.Empty),
-            _ => new GuardRedirect(
+        // A signed-in person the route forbids stays on it: the router draws its layouts and the forbidden sentence
+        // in place of the page. Someone not signed in is sent to sign in, as the first request's challenge does.
+        routeState.Forbidden = result.Outcome == RouteAuthorizationOutcome.Forbid ? result.FailedOnPage : null;
+        return result.Outcome is RouteAuthorizationOutcome.Allow or RouteAuthorizationOutcome.Forbid
+            ? null
+            : new GuardRedirect(
                 RouteAuthorizationGuard.ChallengePath,
-                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))),
-        };
+                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query)));
     }
 
     // AsPage: an address this application does not render, loaded as a page rather than routed — another

@@ -922,8 +922,8 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // each other. Only the final, actually-sent build's render becomes the new baseline (the
     // loop calls Snapshot once after it settles). Direct senders (RenderInScopeAsync,
     // InitialRenderAsync) leave it true: their payload reaches the client, so it must commit.
-    // Points the route at the guard's redirect when the reader may not see the page it is on, and answers the
-    // address the browser should then show; null when the page is allowed.
+    // Points the route at the sign-in page when nobody is signed in to see the page it is on, and answers the address
+    // the browser should then show; null when the page is shown — allowed, or drawn as forbidden in its layouts.
     private async Task<string?> GuardRouteAsync()
     {
         var routeState = Services.GetRequiredService<RouteState>();
@@ -937,16 +937,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         var authResult = await RouteAuthorizationGuard
             .Evaluate(Services, chain, user)
             .ConfigureAwait(false);
-        if (authResult.Outcome == RouteAuthorizationOutcome.Allow)
+        // A signed-in person the route forbids stays on it: the router draws its layouts and the forbidden sentence
+        // in place of the page. Someone not signed in is sent to sign in.
+        routeState.Forbidden = authResult.Outcome == RouteAuthorizationOutcome.Forbid ? authResult.FailedOnPage : null;
+        if (authResult.Outcome is RouteAuthorizationOutcome.Allow or RouteAuthorizationOutcome.Forbid)
         {
             return null;
-        }
-
-        if (authResult.Outcome == RouteAuthorizationOutcome.Forbid)
-        {
-            routeState.Path = RouteAuthorizationGuard.ForbidPath;
-            routeState.Query = QueryCollection.Empty;
-            return RouteAuthorizationGuard.ForbidPath;
         }
 
         var returnUrl = "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(routeState.Path, routeState.Query));
