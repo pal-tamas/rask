@@ -6,6 +6,7 @@
 #   Node LTS   the line the installers and the docs state, and the npm it bundles (scripts/upstream/node-lts.sh)
 #   images     the Docker image tags named in code and scripts: curl, alpine, postgres (images.py)
 #   Litestream RaskLitestreamVersion, its per-platform SHA-256s and the template images (litestream.py)
+#   Chrome     Rask.Pdf's pinned Chrome for Testing headless shell and its per-platform SHA-256s (chrome.py)
 #   compilers  esbuild, tsgo (typescript 7), typescript 6.x and Tailwind, with their digests (tools.py)
 #   fixtures   the adapter tests' frameworks: preact, react, vue, solid, svelte, angular, happy-dom (fixtures.py)
 #   actions    the majors a scaffolded deploy workflow uses (actions.py)
@@ -33,6 +34,7 @@ fi
 scripts/upstream/node-lts.sh
 scripts/upstream/images.py
 scripts/upstream/litestream.py
+scripts/upstream/chrome.py
 scripts/upstream/tools.py
 scripts/upstream/fixtures.py
 scripts/upstream/actions.py

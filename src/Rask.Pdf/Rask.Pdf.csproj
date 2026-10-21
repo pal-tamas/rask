@@ -41,4 +41,20 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
+  <!-- The pinned browser: the build fetches it for an app (build/Rask.Pdf.targets), and the assembly carries the
+       version so the locator finds that same copy in the user's Rask cache. -->
+  <Import Project="build\Rask.Pdf.ChromePin.props" />
+
+  <ItemGroup>
+    <AssemblyMetadata Include="RaskPdfChromeVersion" Value="$(RaskPdfChromeVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="build\Rask.Pdf.props" Pack="true" PackagePath="build/" Visible="false" />
+    <None Include="build\Rask.Pdf.targets" Pack="true" PackagePath="build/" Visible="false" />
+    <None Include="build\Rask.Pdf.ChromePin.props" Pack="true" PackagePath="build/" Visible="false" />
+    <None Include="buildTransitive\Rask.Pdf.props" Pack="true" PackagePath="buildTransitive/" Visible="false" />
+    <None Include="buildTransitive\Rask.Pdf.targets" Pack="true" PackagePath="buildTransitive/" Visible="false" />
+  </ItemGroup>
+
 </Project>
