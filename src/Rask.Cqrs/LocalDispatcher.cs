@@ -76,6 +76,11 @@ internal sealed class LocalDispatcher : IDispatcher
             feed.Publish(e);
         }
 
+        // The components of this process's open pages that handle it, each in its own session and after this
+        // event's own work: queued, never awaited here — a page's handler that publishes holds the very session one
+        // of them runs in.
+        LiveEvents.Publish(e);
+
         using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
 
         // Durable first, so an in-memory handler that throws cannot cost the ones that must not be lost.

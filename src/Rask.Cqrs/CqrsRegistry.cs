@@ -104,6 +104,24 @@ public static class CqrsRegistry
     }
 
     /// <summary>
+    ///     Installs <paramref name="listeners" /> as the complete set of components owned by
+    ///     <paramref name="groupKey" /> that implement <see cref="IEventHandler{TEvent}" />: each runs once per open page
+    ///     that has it mounted, in that page's session, when its event is published. Generated; never a DI service.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void ReplaceListeners(
+        object groupKey,
+        IEnumerable<(Type Component, Type Event, Func<object, IEvent, Task> Handle)> listeners)
+    {
+        ArgumentNullException.ThrowIfNull(groupKey);
+        ArgumentNullException.ThrowIfNull(listeners);
+
+        LiveEvents.Replace(groupKey, listeners
+            .Select(static l => (l.Component, l.Event, (Func<object, object, Task>)((component, e) => l.Handle(component, (IEvent)e))))
+            .ToArray());
+    }
+
+    /// <summary>
     ///     The event counterpart of <see cref="ReplaceRequests" />.
     /// </summary>
     public static void ReplaceEvents(

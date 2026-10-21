@@ -259,3 +259,4 @@ Rask.Cqrs.RequestAuthorization.Policies.get -> System.Collections.Generic.IReadO
 Rask.Cqrs.RequestAuthorization.RequestAuthorization(System.Collections.Generic.IReadOnlyList<string!>! roleSets, System.Collections.Generic.IReadOnlyList<string!>! policies) -> void
 Rask.Cqrs.RequestAuthorization.RoleSets.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Cqrs.CqrsRegistry.ReplaceAuthorization(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.RequestAuthorization! Declared)>! registrations) -> void
+static Rask.Cqrs.CqrsRegistry.ReplaceListeners(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Component, System.Type! Event, System.Func<object!, Rask.Cqrs.IEvent!, System.Threading.Tasks.Task!>! Handle)>! listeners) -> void

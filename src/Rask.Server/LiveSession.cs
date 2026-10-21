@@ -635,6 +635,57 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
+    // A published event a component of this page handles: behind the handlers already queued, like a click.
+    protected override void EnqueueLiveEvent(Func<Task> work) => RunInOrderCore(work);
+
+    // As a render nobody asked for is made, with the event's work first: the user asked about when the answer is
+    // old, and a page between connections renders for the next one — nothing is dropped.
+    protected override async Task RunAsEventAsync(Func<Task> work)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        if (_disposed)
+        {
+            Lock.Release();
+            return;
+        }
+
+        InHandlerScope = true;
+        try
+        {
+            using var scope = EnterWorkScope();
+            if (!await RaskEndpointExtensions.MayPushAsync(this).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            await work().ConfigureAwait(false);
+            if (!HasOpenTransport)
+            {
+                _renderRequestedWhileDetached = true;
+                return;
+            }
+
+            await RenderAndSendCoalescingAsync(null, false).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException or WebSocketException
+                                   && (_disposed || !HasOpenTransport))
+        {
+            // The connection went under the render; the next one is sent what the work changed.
+            _renderRequestedWhileDetached = true;
+        }
+        finally
+        {
+            InHandlerScope = false;
+            Lock.Release();
+            _ = DrainRenderRequestedAfterScope(afterRequestedRender: true);
+        }
+    }
+
     /// <summary>
     ///     Sends what the reads a page went out without have brought, for the ack that follows them: behind the
     ///     render their own hook has just asked for, which holds the session's lock, and then as a render of its

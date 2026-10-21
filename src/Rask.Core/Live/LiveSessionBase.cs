@@ -353,6 +353,52 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
     }
 
+    // The published events this session's components are still to handle, one after another (LiveListeners).
+    private Task _liveEvents = Task.CompletedTask;
+    private Lock? _liveEventsGate;
+
+    /// <summary>
+    ///     Hands <paramref name="e" /> to <paramref name="listener" />, mounted in this session, as an event of the
+    ///     session's own: in order behind what it is doing, under its lock, with the event's services, and rendered once.
+    /// </summary>
+    internal void DeliverLiveEvent(Component listener, Func<object, object, Task> handle, object e) =>
+        EnqueueLiveEvent(() => RunAsEventAsync(() => listener.HandleLiveEvent(handle, e, EventServices)));
+
+    /// <summary>Queues work behind this session's earlier work, in order. A host with its own chain uses that.</summary>
+    protected virtual void EnqueueLiveEvent(Func<Task> work)
+    {
+        var gate = LazyInitializer.EnsureInitialized(ref _liveEventsGate);
+        lock (gate)
+        {
+            _liveEvents = InOrderAsync(_liveEvents, work);
+        }
+    }
+
+    private static async Task InOrderAsync(Task previous, Func<Task> work)
+    {
+        await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        try
+        {
+            await work().ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // One page's delivery that fails must not stop the next one: reported.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Live", "Rask Live: delivering a published event threw", ex);
+        }
+    }
+
+    /// <summary>
+    ///     Runs <paramref name="work" /> as an event of this session — under its lock, then one render. A host without
+    ///     a lock of its own runs it and renders.
+    /// </summary>
+    protected virtual async Task RunAsEventAsync(Func<Task> work)
+    {
+        await work().ConfigureAwait(false);
+        await RequestRender().ConfigureAwait(false);
+    }
+
     /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
     internal void EndEvent()
     {

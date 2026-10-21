@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **A component that implements `IEventHandler<T>` handles a published event on every open page that shows it.**
+  `Dispatcher.Publish(e)` — from a singleton, a timer, a job or another page's handler — and a domain event an
+  aggregate raises reach each mounted listener in its own page's session: queued behind that page's events, as its
+  user, in a fresh per-event scope, and rendered once. A page between connections is sent the result when it
+  reconnects; a component that left the page hears nothing; a listener that throws shows the handler-fault toast on
+  its page only. Inside `Db.Transaction` delivery waits for the commit and a rollback delivers nothing. A service
+  handler still runs once per event; a component handler runs once per open page, and a component is never a DI
+  service. Registration is source-generated, so a component that handles nothing costs nothing. Both hosts; delivery
+  stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
+  reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
+
 ### Removed
 
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now

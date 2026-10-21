@@ -120,6 +120,7 @@ public abstract partial class Component
         // disposed component. Matches the documented "StateHasChanged() inside
         // Unmount is a no-op" contract.
         Live.IsUnmounted = true;
+        LiveListeners.Unmounted(this);
         ForgetFaultsOnLeaving();
 
         Task task;

@@ -48,6 +48,52 @@ public sealed class CqrsDispatchGeneratorTests
     }
 
     [Fact]
+    public void A_component_that_handles_an_event_is_a_page_listener_and_never_a_service_handler()
+    {
+        var run = CqrsGeneratorFixture.Run("""
+            using System.Threading.Tasks;
+            using Rask.Cqrs;
+            namespace Rask.Core { public abstract class Component { } }
+            namespace Demo
+            {
+                public sealed record Placed(int Id) : IEvent;
+                public sealed class OrdersPage : Rask.Core.Component, IEventHandler<Placed>
+                {
+                    public Task Handle(Placed e) => Task.CompletedTask;
+                }
+                public sealed class Receipt : IEventHandler<Placed>
+                {
+                    public Task Handle(Placed e) => Task.CompletedTask;
+                }
+            }
+            """);
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        var source = run.GeneratedSource("__RaskCqrsRegistry");
+        Assert.Contains("ReplaceListeners(typeof(__RaskCqrsRegistry)", source);
+        Assert.Contains("(typeof(global::Demo.OrdersPage), typeof(global::Demo.Placed), static (component, e) =>", source);
+        Assert.Contains("typeof(global::Demo.Receipt)", source);
+        Assert.DoesNotContain("typeof(global::Rask.Cqrs.IEventHandler<global::Demo.Placed>), typeof(global::Demo.OrdersPage)", source);
+        Assert.DoesNotContain("DynamicallyAccessedMemberTypes.PublicConstructors, typeof(global::Demo.OrdersPage)", source);
+    }
+
+    [Fact]
+    public void An_app_whose_components_handle_nothing_installs_no_listeners()
+    {
+        var run = CqrsGeneratorFixture.Run(Preamble + """
+            public sealed record Placed(int Id) : IEvent;
+            public sealed class Receipt : IEventHandler<Placed>
+            {
+                public Task Handle(Placed e) => Task.CompletedTask;
+            }
+            """);
+
+        var source = run.GeneratedSource("__RaskCqrsRegistry");
+
+        Assert.DoesNotContain("ReplaceListeners", source);
+    }
+
+    [Fact]
     public void A_handlers_authorize_is_recorded_for_local_dispatch_and_allow_anonymous_is_not()
     {
         var run = CqrsGeneratorFixture.Run(Preamble + """

@@ -484,27 +484,56 @@ cancel — the probe records what happened into the log:
 ## Background service
 
 An app-wide background process can push updates into the UI, and this is where ongoing work belongs — not in a
-lifecycle hook. Register the producer as a singleton with a lifetime of its own, have it raise an event each tick,
-and let components subscribe:
+lifecycle hook. Have the producer — a singleton, a hosted service, a timer, a job, another page's handler —
+**publish an event**, and let the page that shows it **handle** it:
 
 ```csharp
-protected override async Task OnMount()   => feed.Updated += StateHasChanged;
-protected override async Task OnUnmount() => feed.Updated -= StateHasChanged;
+// Anywhere: a BackgroundService, a job, a handler — any thread.
+await Dispatcher.Publish(new PumpStatusChanged(pumpId));
+
+// The page: a component that implements IEventHandler<T>.
+public sealed partial class PumpsPage : Component, IEventHandler<PumpStatusChanged>
+{
+    private List<Pump> _pumps = [];
+
+    public async Task Handle(PumpStatusChanged e) => _pumps = await Pump.Where(p => p.Active).ToList();
+
+    protected override Component? Render() => …;
+}
 ```
 
-Unlike a poll loop inside one component, this producer is **decoupled from the component tree** — it keeps ticking
+Unlike a poll loop inside one component, this producer is **decoupled from the component tree** — it keeps working
 across navigations (and, on the Server, across every session), and no first render is ever waiting on it.
 
-Each consumer subscribes on mount and **unsubscribes on unmount** so it stops repainting (and can be collected) once
-it leaves the tree. Publish the producer's state as a single immutable snapshot swapped by reference, so a reader on
-the render thread cannot catch a half-built one.
+### A page that handles an event
 
-### Following a singleton's event
+A component that implements `IEventHandler<T>` is the page's listener. **A service handler runs once per event; a
+component handler runs once per open page** that has that component mounted — each in its own page's session:
 
-`source.Changed += StateHasChanged` is the supported way to follow anything outside the page, and
-`StateHasChanged()` may be called **from any thread**: a `BackgroundService` raising its event straight from the
-pool, several threads at once, with no dispatcher and no `await`. It never renders on top of a render in flight —
-it marks the component and asks its session, which draws under its own lock. Three things are guaranteed:
+- **After what the page is doing, never beside it.** It is queued behind the page's own events, under the session's
+  lock, like a click: a click in flight finishes first, and the handlers of one page run in the order the events were
+  published.
+- **As that page's user, with the event's own services.** It gets a fresh scope, as every event does
+  ([above](#each-event-gets-its-own-scoped-services)): the session's current user and tenant, a `DbContext` of its own.
+- **Drawn once.** The page renders once when `Handle` returns; no `StateHasChanged()` to call.
+- **Never dropped.** A page between two connections handles it and is sent the result when it reconnects.
+- **Only while mounted.** A component that has left the page hears nothing more; there is nothing to unsubscribe.
+- **A fault stays on its page.** One that throws is logged and shown as the handler-fault toast, as a click's would be;
+  every other page still hears the event.
+- **After the commit.** Published inside `Db.Transaction` — or raised by an aggregate with `Raise(…)` — it reaches the
+  pages once the transaction commits, and never after a rollback.
+
+Registration is generated at build time, so a component that handles nothing costs nothing to mount, and a component
+is never a DI service: a publish never builds one. Delivery stays inside this process — every open page this server
+holds; a browser app hears what is published in that tab.
+
+### Following a plain .NET event
+
+`source.Changed += StateHasChanged` still works for anything that raises an ordinary event, and `StateHasChanged()`
+may be called **from any thread**: a `BackgroundService` raising its event straight from the pool, several threads
+at once, with no dispatcher and no `await`. It never renders on top of a render in flight — it marks the component
+and asks its session, which draws under its own lock. It does not run your code in the page's session, though: reach
+for a component handler (above) when the reaction reads data or needs the user. Three things are guaranteed:
 
 - **The last state is always drawn.** Whatever was marked when the call returned reaches the reader's page without
   another event, wherever the call landed: while a handler runs, inside a render, after a read came back, between
@@ -517,7 +546,8 @@ it marks the component and asks its session, which draws under its own lock. Thr
   each further one waits 250 ms, and a warning on `Rask.Live` names the component types that asked. The page stays
   current and the reader's events are answered in between.
 
-Mutate the state **before** the call, and do not call `StateHasChanged()` from `Render()` itself.
+Subscribe on mount and unsubscribe on unmount, mutate the state **before** the call, and do not call
+`StateHasChanged()` from `Render()` itself.
 
 ### Hosted services
 
