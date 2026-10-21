@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Templates/[^/]+/(Dockerfile|client/package\.json)$|Rask\.Core\.targets$|Rask\.External\.props$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|Rask\.External\.Tests\.csproj$|GitHubActionsWorkflow\.cs$
+# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Pdf/build/Rask\.Pdf\.ChromePin\.props$|src/Rask\.Templates/[^/]+/(Dockerfile|client/package\.json)$|Rask\.Core\.targets$|Rask\.External\.props$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|Rask\.External\.Tests\.csproj$|GitHubActionsWorkflow\.cs$
 # The Python followers under scripts/upstream/, each run in a copy of the files it rewrites against saved
 # upstream answers (RASK_UPSTREAM_FIXTURES): a newer stable release moves every copy of the pin, with digests
 # computed from what was downloaded; a prerelease, an older release or a mismatched checksum moves nothing.
@@ -14,7 +14,7 @@ root="$(git rev-parse --show-toplevel)"
 tmp="$(mktemp -d -t rask-followers.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
-files=(scripts/upstream/upstream.py scripts/upstream/images.py scripts/upstream/litestream.py scripts/upstream/tools.py
+files=(scripts/upstream/upstream.py scripts/upstream/images.py scripts/upstream/litestream.py scripts/upstream/tools.py scripts/upstream/chrome.py
        scripts/upstream/fixtures.py scripts/upstream/actions.py
        src/Rask.Cli/Commands/DeployCommand.cs src/Rask.Cli/Commands/DbCommand.Backup.cs tests/Rask.Cli.Tests/DeployCommandTests.cs
        tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs scripts/run-providers-local.sh src/Rask.Templates/wasm/Dockerfile
@@ -23,7 +23,8 @@ files=(scripts/upstream/upstream.py scripts/upstream/images.py scripts/upstream/
        src/Rask.Core/build/Rask.Core.targets src/Rask.External/build/Rask.External.props src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs
        src/Rask.Tailwind/build/Rask.Tailwind.props src/Rask.Tailwind.Tasks/TailwindPins.cs docs/tailwind.md
        src/Rask.Templates/react/client/package.json src/Rask.Templates/angular/client/package.json
-       tests/Rask.External.Tests/Rask.External.Tests.csproj src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs)
+       tests/Rask.External.Tests/Rask.External.Tests.csproj src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
+       src/Rask.Pdf/build/Rask.Pdf.ChromePin.props)
 fresh() {
   rm -rf "$tmp/tree" "$tmp/saved"
   mkdir -p "$tmp/saved"
@@ -91,6 +92,29 @@ fresh
 litestream_release tampered
 check "a digest that disagrees with checksums.txt..." refused "$(run litestream.py || echo refused)"
 check "...moves nothing"                               "" "$(unchanged "${files[@]}")"
+
+echo "==> upstream chrome"
+chrome_channels() {
+  local downloads=""
+  for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do
+    url="https://storage.googleapis.com/chrome-for-testing-public/$1/$p/chrome-headless-shell-$p.zip"
+    downloads="$downloads{\"platform\":\"$p\",\"url\":\"$url\"},"
+    answer "$url" "shell $p"
+  done
+  answer "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json" \
+    "{\"channels\":{\"Stable\":{\"version\":\"$1\",\"downloads\":{\"chrome-headless-shell\":[${downloads%,}]}}}}"
+}
+fresh
+chrome_channels 999.0.1.2
+run chrome.py
+check "the shell moves to Stable"                      1 "$(count '<RaskPdfChromeVersion>999.0.1.2<')"
+check "...each platform holding its download's digest" 1 "$(count "<RaskPdfChromeSha256_linux_arm64>$(sha256 'shell linux-arm64')<")"
+check "...all five of them"                            5 "$(grep -c "$(printf '%s\\|' $(for p in linux64 linux-arm64 mac-arm64 mac-x64 win64; do sha256 "shell $p"; done) | sed 's/\\|$//')" "$tmp/tree/src/Rask.Pdf/build/Rask.Pdf.ChromePin.props")"
+
+fresh
+chrome_channels 1.0.0.0
+run chrome.py
+check "an older Stable moves nothing"                  "" "$(unchanged "${files[@]}")"
 
 echo "==> upstream tools"
 fresh

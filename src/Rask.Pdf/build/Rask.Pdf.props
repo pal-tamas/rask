@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Imported only from the package: it is what says "this app references Rask.Pdf" to Rask.Pdf.targets. -->
+  <PropertyGroup>
+    <RaskPdfPackaged>true</RaskPdfPackaged>
+  </PropertyGroup>
+
+</Project>

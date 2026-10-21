@@ -191,6 +191,24 @@ itself — a recurring job, work at startup — records nobody, and runs for nob
 `rask db add AddJobUser && rask db update`. Until then the processor logs exactly that, instead of a generic
 failure, once it loads a pending job.
 
+### Signed in as that user, never with more rights
+
+The handler also runs **signed in** as that user, so `Current.Principal`, an `[Authorize]` check and a page
+rendered to print (Rask.Pdf's `Pdf.From`) all see them — with the rights they had when they enqueued the job and
+still have now, never one more:
+
+- At enqueue the row records the user's rights — their roles and every claim that is not who they are — in
+  `Job.UserClaims`.
+- At run time their principal is rebuilt from their account as it is **now** (the auth battery supplies it), and
+  only the rights present in both remain. A role granted since is not the job's; a role revoked since is gone.
+- A user whose account no longer exists runs signed in as nobody. A job enqueued under `Current.UseUser(other)`
+  carries none of the signed-in user's rights to that other user.
+- An app without the auth battery has no account to ask; its jobs run with the recorded rights alone.
+
+**Upgrading adds a column.** `UserClaims` is new and nullable: `rask db add AddJobUserClaims && rask db update`.
+A job enqueued before the migration runs signed in with no rights beyond being that user. Until the migration
+runs, the processor logs exactly that command.
+
 `Job` and `RecurringJobState` are Rask.Data entities with read faces, so the queue can be queried with no
 context of your own — `Job.Where(j => j.ProcessedAt == null).Count()` for the backlog. The
 [dashboard](dashboard.md) shows the same table, with retry.

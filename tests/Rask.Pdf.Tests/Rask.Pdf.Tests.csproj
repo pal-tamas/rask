@@ -31,6 +31,11 @@
     <Using Include="Rask.Printing"/>
   </ItemGroup>
 
+  <!-- ChromiumCacheTests reads the pin file the build fetches by. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.ChromePin.props" />
+  </ItemGroup>
+
   <!-- The pages printed in the host tests are real Rask pages, on a real Rask.Server host. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Pdf\Rask.Pdf.csproj"/>

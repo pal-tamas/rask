@@ -74,6 +74,16 @@ public sealed class Job : Aggregate<long, Timestamps>
     public Guid? TenantId { get; private set; }
 
     /// <summary>
+    /// The rights the enqueuing user had at the time — their roles and every claim that is not who they are — as
+    /// JSON, or <c>null</c> when they had none or nobody enqueued it.
+    /// </summary>
+    /// <remarks>
+    /// The runner rebuilds the user's principal from their account and keeps only the rights present both here
+    /// and there, so a job never runs with a right its enqueuer did not have, or has lost since.
+    /// </remarks>
+    public string? UserClaims { get; private set; }
+
+    /// <summary>
     ///     The lane the job runs in: jobs of one lane run one at a time, in the order they are due, while
     ///     different lanes run side by side. Null is the default lane, which every job without one shares.
     /// </summary>
@@ -105,7 +115,17 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </remarks>
     public static Job For(string type, string payload, DateTime runAt, string? lane = null)
     {
-        return new Job { Type = type, Payload = payload, RunAt = runAt, Lane = lane, UserId = Current.UserId, TenantId = Current.Tenant };
+        var userId = Current.UserId;
+        return new Job
+        {
+            Type = type,
+            Payload = payload,
+            RunAt = runAt,
+            Lane = lane,
+            UserId = userId,
+            TenantId = Current.Tenant,
+            UserClaims = userId is { } user ? JobPrincipal.Record(Current.Principal, user) : null,
+        };
     }
 
     /// <summary>Enqueues a job that is refused while the same work already waits unclaimed in its lane.</summary>
