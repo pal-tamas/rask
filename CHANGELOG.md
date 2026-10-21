@@ -1000,6 +1000,10 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
+  and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
+  back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had
+  just sent. Only a whole page is dropped for repeating the last one now; a diff always goes out. Both hosts.
 - **Two builds fetching the same TypeScript tool at once no longer fail one of them.** The second build's move
   into the cache met the first one's copy ("Directory not empty") and failed the build; it now keeps the copy that
   landed first, which passed the same checksum.

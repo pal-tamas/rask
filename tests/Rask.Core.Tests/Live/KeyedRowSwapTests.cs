@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 
 #pragma warning disable RASK014 // the test owns the root it re-renders; there is no parent to build it
 
@@ -57,6 +58,24 @@ public partial class KeyedRowSwapTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["9", "7"], Ids(browser));
         await browser.Click(RowButton(browser, 1, "up"));
         Assert.Equal(["7", "9"], Ids(browser));
+    }
+
+    // Eszaf #16: a swap of two neighbours and the swap back are the same ops, byte for byte. Each is a change all the
+    // same, which is why a session may never drop a diff for repeating the one before it (RepeatedDiffTests).
+    [Fact]
+    public void Swapping_two_keyed_rows_back_writes_the_very_ops_that_swapped_them()
+    {
+        var there = Reply.To(Ul[Li.Key("a")["a"], Li.Key("b")["b"]], Ul[Li.Key("b")["b"], Li.Key("a")["a"]]);
+        var back = Reply.To(Ul[Li.Key("b")["b"], Li.Key("a")["a"]], Ul[Li.Key("a")["a"], Li.Key("b")["b"]]);
+
+        there.Apply();
+        back.Apply();
+
+        var move = Assert.Single(there.Ops);
+        Assert.Equal(EditOpKind.PermutationBatch, move.Kind);
+        Assert.Equal(move.Moves, Assert.Single(back.Ops).Moves);
+        Assert.Equal(there.Expected, there.Before.Html);
+        Assert.Equal(back.Expected, back.Before.Html);
     }
 
     private static string[] Ids(LiveBrowser browser) =>
