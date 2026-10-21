@@ -1,5 +1,6 @@
 using System.Globalization;
 using Rask.Core.Routing;
+using Rask.Querying;
 
 namespace Rask.Site.Features.UiDocs;
 
@@ -9,11 +10,11 @@ public sealed partial class UiFiltersPage
 
     private static readonly Order[] Orders =
     [
-        new("#3102", "ada", Today, "open"),
-        new("#3101", "grace", Today.AddDays(-1), "shipped"),
-        new("#3099", "ada", Today.AddDays(-3), "shipped"),
-        new("#3094", "alan", Today.AddDays(-8), "open"),
-        new("#3090", "grace", Today.AddDays(-20), "returned"),
+        new("#3102", "Ada Lovelace", Today, "Open"),
+        new("#3101", "Grace Hopper", Today.AddDays(-1), "Shipped"),
+        new("#3099", "Ada Lovelace", Today.AddDays(-3), "Shipped"),
+        new("#3094", "Alan Turing", Today.AddDays(-8), "Open"),
+        new("#3090", "Grace Hopper", Today.AddDays(-20), "Returned"),
     ];
 
     [QueryParam("driver")] public string? Driver { get; set; }
@@ -27,6 +28,10 @@ public sealed partial class UiFiltersPage
 
     private bool ByDay => string.Equals(Sort, "day", StringComparison.Ordinal);
 
+    // The rows, read again whenever the address changes what they are filtered or sorted by.
+    private Query<Order[]> Filtered => field ??= QueryClient.Query(
+        QueryKey.Of("ui-filters"), () => (Driver, Period, Status, ByDay), (asked, ct) => Read(asked, ct));
+
     private Component FiltersExample()
     {
         var filters = Ui.Filters[
@@ -37,20 +42,22 @@ public sealed partial class UiFiltersPage
             ],
             Ui.DatePicker.Range.Bind(() => Period).Label("Period").WithPresets().Clearable(),
             Ui.Select.Bind(() => Status).Label("Status").Listbox.Clearable().Placeholder("Any")[
-                Ui.SelectOption.Value("open")["Open"],
-                Ui.SelectOption.Value("shipped")["Shipped"],
-                Ui.SelectOption.Value("returned")["Returned"]
+                Ui.SelectOption.Value("Open")["Open"],
+                Ui.SelectOption.Value("Shipped")["Shipped"],
+                Ui.SelectOption.Value("Returned")["Returned"]
             ]
         ];
 
-        var rows = Orders.Where(order => (Driver is null || string.Equals(order.Driver, Driver, StringComparison.Ordinal))
-                                         && (Period is not { } period || period.Contains(order.Day))
-                                         && (Status is null || string.Equals(order.Status, Status, StringComparison.Ordinal)));
-
-        return Div.Class("space-y-4")[
-            filters,
-            filters.Badges,
-            Ui.Table[
+        return Ui.Card[
+            Div.Class("flex items-center justify-between gap-4")[
+                Div[
+                    Ui.Heading["Recent orders"],
+                    Ui.Text.Class("mt-1")["What each driver delivered."]
+                ],
+                filters
+            ],
+            Div.Class("mt-4")[filters.Badges],
+            Ui.Table.Bleed().ContainerClass("mt-6").Of(Filtered)[
                 Ui.TableColumns[
                     Ui.TableColumn["Order"],
                     Ui.TableColumn["Driver"],
@@ -58,8 +65,8 @@ public sealed partial class UiFiltersPage
                     Ui.TableColumn["Status"]
                 ],
                 Ui.TableRows[
-                    (ByDay ? rows.OrderBy(order => order.Day) : rows).Select(order => Ui.TableRow.Key(order.Number)[
-                        Ui.TableCell[order.Number],
+                    (Filtered.Data ?? []).Select(order => Ui.TableRow.Key(order.Number)[
+                        Ui.TableCell.Variant(Ui.TableCellVariant.Strong)[order.Number],
                         Ui.TableCell[order.Driver],
                         Ui.TableCell[order.Day.ToString("MMM d", CultureInfo.InvariantCulture)],
                         Ui.TableCell[order.Status]
@@ -67,6 +74,16 @@ public sealed partial class UiFiltersPage
                 ]
             ]
         ];
+    }
+
+    // A slow read, so the skeleton has time to be seen.
+    private static async Task<Order[]> Read((string? Driver, UiDateRange? Period, string? Status, bool ByDay) asked, CancellationToken ct)
+    {
+        await Task.Delay(TimeSpan.FromMilliseconds(600), ct);
+        var rows = Orders.Where(order => (asked.Driver is null || order.Driver.StartsWith(asked.Driver, StringComparison.OrdinalIgnoreCase))
+                                         && (asked.Period is not { } period || period.Contains(order.Day))
+                                         && (asked.Status is null || string.Equals(order.Status, asked.Status, StringComparison.Ordinal)));
+        return [.. asked.ByDay ? rows.OrderBy(order => order.Day) : rows];
     }
 
     private sealed record Order(string Number, string Driver, DateOnly Day, string Status);

@@ -25,7 +25,7 @@ public sealed class UiKitFiltersTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenUiPageAsync("filters", "Filters");
         var example = Page.Locator("[data-testid='ui-filters']");
         await example.ScrollIntoViewIfNeededAsync();
-        await Expect(example.Locator("tbody tr")).ToHaveCountAsync(5);
+        await Expect(example.Locator("[data-rask-skeleton] tbody tr:not(:has([data-ui-skeleton-line]))")).ToHaveCountAsync(5);
 
         await example.Locator("[data-ui-filters] [data-ui-modal-trigger] button").ClickAsync();
         await Page.Locator(Panel + " [data-ui-select-button]").First.ClickAsync();
@@ -34,12 +34,12 @@ public sealed class UiKitFiltersTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Page.Locator(Panel + " button").Filter(new() { HasTextString = "Close" }).ClickAsync();
 
         await Expect(example.Locator("[data-ui-filters-badges] [data-ui-badge]")).ToHaveTextAsync("Driver: Grace Hopper");
-        await Expect(example.Locator("tbody tr")).ToHaveCountAsync(2);
+        await Expect(example.Locator("[data-rask-skeleton] tbody tr:not(:has([data-ui-skeleton-line]))")).ToHaveCountAsync(2);
 
         await example.Locator("[aria-label='Remove filter Driver']").ClickAsync();
 
         await Expect(example.Locator("[data-ui-filters-badges]")).ToHaveCountAsync(0);
-        await Expect(example.Locator("tbody tr")).ToHaveCountAsync(5);
+        await Expect(example.Locator("[data-rask-skeleton] tbody tr:not(:has([data-ui-skeleton-line]))")).ToHaveCountAsync(5);
         Assert.DoesNotContain("driver=", Page.Url, StringComparison.Ordinal);
     });
 

@@ -1,8 +1,11 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Core.Routing;
+using Rask.Cqrs;
+using Rask.Querying;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -20,13 +23,39 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
 {
     private const string Panel = "dialog[data-ui-flyout]";
 
+    // Whether the table's rows were skeleton rows in the task of the reader's press, after every listener of the page's.
+    private const string WatchThePress =
+        """
+        () => {
+            window.__skeletonAtPress = false;
+            const skeleton = () => !!document.querySelector('[data-rask-skeleton][data-skeleton], [data-rask-skeleton] [data-skeleton]');
+            const pressed = () => { window.__skeletonAtPress = window.__skeletonAtPress || skeleton(); };
+            window.addEventListener('click', pressed);
+            window.addEventListener('change', pressed);
+        }
+        """;
+
+    private Task<HookSession> OpenAsync(string path) =>
+        HookSession.OpenAsync<FiltersJourneyApp>(playwright, path: path, services: services =>
+        {
+            services.AddRaskQuery();
+            services.AddSingleton<IDispatcher, FiltersJourneyPage.NothingToAsk>();
+        });
+
+    private static async Task<bool> SkeletonAtPressAsync(IPage page, Func<Task> press)
+    {
+        await page.EvaluateAsync(WatchThePress);
+        await press();
+        return await page.EvaluateAsync<bool>("() => window.__skeletonAtPress");
+    }
+
     private static ILocator Badge(IPage page, string words) =>
         page.Locator("[data-ui-filters-badges] [data-ui-badge]").Filter(new() { HasTextString = words });
 
     [Fact]
     public async Task A_reader_filters_the_list_takes_one_filter_off_and_clears_the_rest_while_the_sort_stays()
     {
-        await using var session = await HookSession.OpenAsync<FiltersJourneyApp>(playwright, path: "/filters-journey?sort=name");
+        await using var session = await OpenAsync("/filters-journey?sort=name");
         var page = session.Page;
         await Expect(page.Locator(Panel + " [data-ui-select-button]")).ToHaveCountAsync(0);
 
@@ -65,14 +94,36 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
     [Fact]
     public async Task A_shared_address_opens_on_its_filters()
     {
-        await using var session = await HookSession.OpenAsync<FiltersJourneyApp>(
-            playwright, path: "/filters-journey?driver=ada&period=2026-10-01..2026-10-09&sort=name");
+        await using var session = await OpenAsync("/filters-journey?driver=ada&period=2026-10-01..2026-10-09&sort=name");
         var page = session.Page;
 
         var badges = await page.Locator("[data-ui-filters-badges] [data-ui-badge]").AllTextContentsAsync();
 
         Assert.Equal(["Driver: Ada Lovelace", "Period: Oct 1, 2026 – Oct 9, 2026"], badges.Select(text => text.Trim()));
         await Expect(page.Locator("#rows")).ToHaveTextAsync("ada · · name");
+    }
+
+    [Fact]
+    public async Task A_pick_and_a_badge_taken_off_turn_the_rows_into_skeleton_rows_in_the_task_of_the_press()
+    {
+        await using var session = await OpenAsync("/filters-journey?driver=ada&sort=name");
+        var page = session.Page;
+        await Expect(page.Locator("[data-rask-skeleton] table tbody tr").First).ToContainTextAsync("order for ada");
+        var table = await page.Locator("[data-rask-skeleton] table").GetAttributeAsync("id");
+        await page.ClickAsync("[data-ui-filters] [data-ui-modal-trigger] button");
+        await page.Locator(Panel + " [data-ui-select-button]").ClickAsync();
+        var fields = await page.Locator(Panel + " .space-y-6 > .space-y-6").GetAttributeAsync("aria-controls");
+
+        var atPick = await SkeletonAtPressAsync(page, () => page.Locator(Panel + " [data-ui-option]").Filter(new() { HasTextString = "Bob Ross" }).ClickAsync());
+        await Expect(page.Locator("[data-rask-skeleton] table tbody tr").First).ToContainTextAsync("order for bob");
+        await page.Locator(Panel + " button").Filter(new() { HasTextString = "Close" }).ClickAsync();
+        var atCross = await SkeletonAtPressAsync(page, () => page.ClickAsync("[aria-label='Remove filter Driver']"));
+        await Expect(page.Locator("[data-rask-skeleton] table tbody tr").First).ToContainTextAsync("order for anyone");
+
+        Assert.True(atPick, "the rows were not skeleton rows in the task of the pick");
+        Assert.True(atCross, "the rows were not skeleton rows in the task of the badge's cross");
+        Assert.NotNull(table);
+        Assert.Equal(table, fields);
     }
 }
 
@@ -88,7 +139,7 @@ public sealed partial class FiltersJourneyApp : Component
 
 /// <summary>An orders list filtered by its address: a driver, a period and a search, and a sort that is no filter.</summary>
 [Route("/filters-journey")]
-public sealed partial class FiltersJourneyPage : Component
+public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
 {
     [QueryParam("driver")] public string? Driver { get; set; }
 
@@ -113,7 +164,41 @@ public sealed partial class FiltersJourneyPage : Component
             filters,
             filters.Badges,
             P.Id("rows")[string.Join(" · ", Driver ?? "anyone", Search ?? string.Empty, Sort ?? string.Empty)],
-            P.Id("count")[filters.Active.ToString(CultureInfo.InvariantCulture)]
+            P.Id("count")[filters.Active.ToString(CultureInfo.InvariantCulture)],
+            Ui.Table.Of(Orders).Class("w-full")[
+                Ui.TableColumns[Ui.TableColumn["Order"]],
+                Ui.TableRows[(Orders.Data ?? []).Select(order => Ui.TableRow.Key(order)[Ui.TableCell[order]])]
+            ]
         ];
+    }
+
+    // The rows, read again — slowly enough to be seen — whenever the address changes what they are filtered by.
+    private Query<string[]> Orders => field ??= queries.Query(
+        QueryKey.Of("filters-journey"), () => (Driver, Search), async (asked, ct) =>
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(400), ct);
+            return Enumerable.Range(1, 3).Select(n => $"order for {asked.Driver ?? "anyone"} {n}").ToArray();
+        });
+
+    /// <summary>A query cache needs a dispatcher; these rows are read by their own lambda.</summary>
+    internal sealed class NothingToAsk : IDispatcher
+    {
+        public Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Send(ICommand command, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(
+            ISubscription<TEvent> subscription, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
     }
 }

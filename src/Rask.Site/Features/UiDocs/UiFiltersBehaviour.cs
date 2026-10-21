@@ -8,6 +8,7 @@ internal sealed partial class UiFiltersBehaviour : Component
         UiDocsBehaviour[
             Address(),
             Applying(),
+            Table(),
             Badges(),
             Panel()
         ];
@@ -27,6 +28,16 @@ internal sealed partial class UiFiltersBehaviour : Component
         UiDocsTopic.Key("applying").Heading("Applied as chosen").Paragraphs([
             "There is no Apply button. A pick in a select, a date picker or a box applies at once; a text field once "
             + "typing pauses for 150 ms. A `Debounce` or `Blur` the call site writes on a field is kept.",
+        ]);
+
+    private static UiDocsTopic Table() =>
+        UiDocsTopic.Key("table").Heading("The table it drives").Paragraphs([
+            "The set drives the first `Ui.Table.Of(query)` built after it. Its fields, each badge's cross, Clear all and "
+            + "Clear filters name that table in `aria-controls` — its own id, or one the set gives it — so a filter press "
+            + "turns the rows on screen into skeleton rows at once, as the table's own pager and sortable headings do, and "
+            + "the filtered rows take their place when the query answers.",
+            "Place the button where an action goes and the badges between the header and the table: the example above is "
+            + "Flux's full-bleed table, with the Filters button where Flux puts \"Add customer\".",
         ]);
 
     private static Component Badges() =>

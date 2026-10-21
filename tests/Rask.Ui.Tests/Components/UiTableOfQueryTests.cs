@@ -30,6 +30,17 @@ public sealed partial class UiTableOfQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_bleeding_table_drawn_from_a_query_keeps_both_its_marks()
+    {
+        var (query, _) = Pending();
+
+        var html = Ui.Table.Bleed().Of(query)[Ui.TableColumns[Ui.TableColumn["Name"]], Ui.TableRows].ToHtml();
+
+        Assert.Contains("data-ui-table-bleed", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-skeleton=\"loading\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_first_load_on_the_last_page_shows_only_the_rows_left()
     {
         var (query, _) = Pending();

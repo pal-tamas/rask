@@ -90,6 +90,7 @@ public sealed partial class UiTable : UiElement, IUiHost
     {
         ArgumentNullException.ThrowIfNull(query);
         _query = query;
+        UiFilterTables.Built(this);
         return this;
     }
 
@@ -105,16 +106,24 @@ public sealed partial class UiTable : UiElement, IUiHost
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var box = Div.Class(UiClass.Compose(Container, Bleed is true ? Bleeding : "", ContainerClass));
+        // Both marks in one step: a second Data step replaces the first, and a bleeding table drawn from a query lost
+        // the mark its cells pad against.
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal);
         if (Bleed is true)
         {
-            box = box.Data("ui-table-bleed", "");
+            marks["ui-table-bleed"] = "";
         }
 
         if (_query is { } query)
         {
             UiTableSkeleton.Fill(query, Children, Paginate);
-            box = box.Data("rask-skeleton", UiTableSkeleton.Word(query));
+            marks["rask-skeleton"] = UiTableSkeleton.Word(query);
+        }
+
+        var box = Div.Class(UiClass.Compose(Container, Bleed is true ? Bleeding : "", ContainerClass));
+        if (marks.Count > 0)
+        {
+            box = box.Data(marks);
         }
 
         return box[

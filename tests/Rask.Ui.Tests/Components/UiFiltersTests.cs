@@ -1,6 +1,8 @@
 using System.Globalization;
 using Rask.Core;
 using Rask.Core.Routing;
+using Rask.Cqrs;
+using Rask.Querying;
 using Page = Rask.Testing.Page;
 
 namespace Rask.UiTests.Components;
@@ -43,8 +45,24 @@ public sealed partial class FilteredOrdersPage(RouteState route) : Component
             filters,
             filters.Badges,
             P.Id("active")[filters.Active.ToString(CultureInfo.InvariantCulture)],
-            P.Id("at")[string.Join('&', route.Query.OrderBy(q => q.Key, StringComparer.Ordinal).Select(q => q.Key + "=" + q.Value))]
+            P.Id("at")[string.Join('&', route.Query.OrderBy(q => q.Key, StringComparer.Ordinal).Select(q => q.Key + "=" + q.Value))],
+            FilteredOrders.Table("orders")
         ];
+    }
+}
+
+/// <summary>A filtered list whose table has no id of its own: the set gives it one.</summary>
+[Route("/ui-filters-tests/unnamed")]
+public sealed partial class UnnamedTablePage : Component
+{
+    [QueryParam("driver")] public string? Driver { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")[Ui.SelectOption.Value("ada")["Ada Lovelace"]]];
+
+        return Main[filters, filters.Badges, FilteredOrders.Table()];
     }
 }
 
@@ -56,6 +74,38 @@ internal static class FilteredOrders
 
     /// <summary>How many times the reader opened the panel.</summary>
     internal static int Opened { get; set; }
+
+    private static readonly Query<string[]> Rows =
+        new SessionQueryClient(new NothingToAsk()).Query(QueryKey.Of("filtered-orders"), _ => Task.FromResult<string[]>(["#3102"]));
+
+    /// <summary>The list the filters drive: a table drawn from a query.</summary>
+    internal static Component Table(string? id = null) =>
+        Ui.Table.Id(id).Of(Rows)[
+            Ui.TableColumns[Ui.TableColumn["Order"]],
+            Ui.TableRows[(Rows.Data ?? []).Select(order => Ui.TableRow.Key(order)[Ui.TableCell[order]])]
+        ];
+
+    // A query cache needs a dispatcher. This query reads through its own lambda.
+    private sealed class NothingToAsk : IDispatcher
+    {
+        public Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Send(ICommand command, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
+
+        public Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+
+        public IAsyncEnumerable<TEvent> Subscribe<TEvent>(
+            ISubscription<TEvent> subscription, CancellationToken cancellationToken = default)
+            where TEvent : IEvent => throw new NotSupportedException();
+    }
 }
 
 /// <summary>A filter over a member the address does not fill.</summary>
@@ -221,6 +271,37 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
         var message = failure.ToString();
 
         Assert.Contains("[QueryParam(\"plain\")] public string? Plain { get; set; }", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Every_press_that_changes_the_filters_names_the_table_after_the_set()
+    {
+        var page = Page.Visit(Orders + "?driver=ada&paid=true");
+        await Open(page);
+
+        var named = new[]
+        {
+            "[aria-label=\"Remove filter Driver\"]",
+            "[aria-label=\"Remove filter Paid only\"]",
+            "[data-ui-filters-badges] [data-rask-key=\"clear-all\"]",
+            "dialog[data-modal] .space-y-6 > .space-y-6",
+        }.Select(selector => page.Find(selector).Attribute("aria-controls"));
+
+        Assert.All(named, controls => Assert.Equal("orders", controls));
+        Assert.Equal("orders", page.FindAll("dialog[data-modal] button").Single(b => b.TextContent.Contains("Clear filters", StringComparison.Ordinal)).Attribute("aria-controls"));
+        Assert.True(page.Exists("table#orders"));
+    }
+
+    [Fact]
+    public void A_table_with_no_id_is_given_one_and_named_by_the_badges()
+    {
+        var page = Page.Visit("/ui-filters-tests/unnamed?driver=ada");
+
+        var controls = page.Find("[aria-label=\"Remove filter Driver\"]").Attribute("aria-controls");
+
+        Assert.NotNull(controls);
+        Assert.EndsWith("-table", controls, StringComparison.Ordinal);
+        Assert.True(page.Exists("table#" + controls));
     }
 
     [Fact]

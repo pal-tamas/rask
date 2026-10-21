@@ -42,6 +42,10 @@ public sealed partial class UiFilters : Component
 
     private List<UiFilterEntry> _entries = [];
 
+    // The table it drives, the first Ui.Table.Of(…) built after it in this render, and the badge buttons it drew.
+    private UiTable? _table;
+    private readonly List<Element> _presses = [];
+
     // It hands its controls over each time it is drawn, which no cached render would do.
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
@@ -67,10 +71,17 @@ public sealed partial class UiFilters : Component
             }
 
             var clearAll = active.Count > 1
-                ? Ui.Button.Ghost.Sm.Key("clear-all").OnClick(ClearAsync)[RaskStrings.Get(RaskString.FiltersClearAll, "Clear all")]
+                ? Ui.Button.Ghost.Sm.Key("clear-all").OnClick(ClearAsync)
                 : null;
+            if (clearAll is not null)
+            {
+                _presses.Add(clearAll);
+            }
 
-            return Div.Class("flex flex-wrap items-center gap-2").Data(BadgesMarker.With(null))[active.Select(Badge), clearAll];
+            return Div.Class("flex flex-wrap items-center gap-2").Data(BadgesMarker.With(null))[
+                active.Select(Badge),
+                clearAll?[RaskStrings.Get(RaskString.FiltersClearAll, "Clear all")]
+            ];
         }
     }
 
@@ -84,7 +95,7 @@ public sealed partial class UiFilters : Component
         get
         {
             _ = base[children];
-            return this;
+            return Waiting();
         }
     }
 
@@ -96,7 +107,7 @@ public sealed partial class UiFilters : Component
         get
         {
             _ = base[children];
-            return this;
+            return Waiting();
         }
     }
 
@@ -107,8 +118,20 @@ public sealed partial class UiFilters : Component
         get
         {
             _ = base[children];
-            return this;
+            return Waiting();
         }
+    }
+
+    /// <summary>The table the set drives, handed over as it is built: the first after the set.</summary>
+    internal void Drives(UiTable table) => _table ??= table;
+
+    // A new render: the table and the badge buttons are this render's to find again.
+    private UiFilters Waiting()
+    {
+        _table = null;
+        _presses.Clear();
+        UiFilterTables.Wait(this);
+        return this;
     }
 
     /// <inheritdoc />
@@ -120,22 +143,24 @@ public sealed partial class UiFilters : Component
         }
 
         var name = "ui-filters-" + _instance.ToString(CultureInfo.InvariantCulture);
+        var controls = Controls(name);
         var active = Active;
         var panel = Ui.Modal.Name(name).Flyout().Lazy().Class("md:w-96")[
             Div.Class("space-y-6")[
                 Ui.Heading.Level(2).Lg[RaskStrings.Get(RaskString.Filters, "Filters")],
-                Div.Class("space-y-6")[Children ?? []],
+                Div.Class("space-y-6").Aria("controls", controls)[Children ?? []],
                 Div.Class("flex gap-2")[
-                    Ui.Button.Ghost.Disabled(active == 0).OnClick(ClearAsync)[RaskStrings.Get(RaskString.FiltersClear, "Clear filters")],
+                    Ui.Button.Ghost.Disabled(active == 0).Aria("controls", controls).OnClick(ClearAsync)[RaskStrings.Get(RaskString.FiltersClear, "Clear filters")],
                     Ui.Spacer,
                     Ui.ModalClose[Ui.Button.Primary[RaskStrings.Get(RaskString.FiltersClose, "Close")]]
                 ]
             ]
         ];
 
-        return Div.Class("contents").Data(Marker.With(null))[
+        // One box, so a header row that spreads its children apart places the button and not the closed panel.
+        return Div.Class("flex shrink-0 items-center").Data(Marker.With(null))[
             Ui.ModalTrigger.Name(name)[
-                Ui.Button.Icon(Ui.IconName.Funnel)[
+                Ui.Button.Sm.Icon(Ui.IconName.Funnel)[
                     RaskStrings.Get(RaskString.Filters, "Filters"),
                     active == 0 ? null : Ui.Badge.Sm.Key("count")[active.ToString(CultureInfo.CurrentCulture)]
                 ]
@@ -144,11 +169,36 @@ public sealed partial class UiFilters : Component
         ];
     }
 
-    private static Component Badge(UiFilterEntry entry) =>
-        Ui.Badge.Sm.Key(entry.Key ?? entry.Label)[
-            entry.Words,
-            Ui.BadgeClose.AriaLabel(RaskStrings.Get(RaskString.FilterRemove, "Remove filter {0}", entry.Label)).OnClick(() => RemoveAsync(entry))
-        ];
+    private Component Badge(UiFilterEntry entry)
+    {
+        var remove = Ui.BadgeClose.AriaLabel(RaskStrings.Get(RaskString.FilterRemove, "Remove filter {0}", entry.Label)).OnClick(() => RemoveAsync(entry));
+        _presses.Add(remove);
+
+        return Ui.Badge.Sm.Key(entry.Key ?? entry.Label)[entry.Words, remove];
+    }
+
+    // The id of the table the set drives — its own, or one the set gives it — written as aria-controls on the badge
+    // buttons the page drew, so a press there shows the table's skeleton at once (rask-skeleton.ts).
+    private string? Controls(string name)
+    {
+        if (_table is not { } table)
+        {
+            return null;
+        }
+
+        if (table.Id is null)
+        {
+            table.Id = name + "-table";
+            BuilderRuntime.MarkChanged(table);
+        }
+
+        foreach (var press in _presses)
+        {
+            press.Aria("controls", table.Id);
+        }
+
+        return table.Id;
+    }
 
     // The set's view of its children, read once for each list it is handed: Badges and Active are read in the page's
     // render, and the set renders after it from the same list.

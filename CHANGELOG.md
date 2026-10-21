@@ -40,7 +40,8 @@ them until tagged releases begin.
   every reader. Now: `var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")…, Ui.DatePicker.Range
   .Bind(() => Period).Label("Period")…]`, then `Div[filters, filters.Badges, table]` — each control bound to a
   `[QueryParam]` member moves the address as it is chosen (a text field at its 150 ms pause), the router writes the
-  member, `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
+  member, the first `Ui.Table.Of(…)` after the set shows its skeleton rows at the press (its fields, badge crosses and
+  clear buttons name it in `aria-controls`; a table with no id is given one), `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
   survives), `filters.Active` counts them, `.OnOpen(…)` loads on opening, and `Ui.Filter.Label(…).Shown(…)
   .OnRemove(…)` carries what no control can say. Not a Flux component: the owner's (2026-10-21). New texts:
   `Filters`, `FiltersClear`, `FiltersClearAll`, `FiltersClose`, `FilterRemove` (with formal Hungarian).

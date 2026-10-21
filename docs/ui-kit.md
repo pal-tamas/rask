@@ -1167,11 +1167,20 @@ var filters = Ui.Filters[
     Ui.DatePicker.Range.Bind(() => Period).Label("Period").WithPresets().Clearable(),
 ];
 
-Div[filters, filters.Badges, Ui.Table[…]]   // filters.Active counts the filters in force
+Ui.Card[                                                   // Flux's full-bleed table, with the button on the right
+    Div.Class("flex items-center justify-between gap-4")[
+        Div[Ui.Heading["Recent orders"], Ui.Text.Class("mt-1")["What each driver delivered."]],
+        filters
+    ],
+    Div.Class("mt-4")[filters.Badges],                     // filters.Active counts the filters in force
+    Ui.Table.Bleed().ContainerClass("mt-6").Of(orders)[…]
+]
 ```
 
-Placed, it draws a Filters button (a funnel, and the count once a filter is in force) that opens a lazy flyout of
-the fields, with Clear filters and Close under them. Each control is bound to a `[QueryParam]` member and the set
+Placed, it draws a small Filters button (a funnel, and the count once a filter is in force) that opens a lazy flyout
+of the fields, with Clear filters and Close under them. It drives the first `Ui.Table.Of(…)` built after it: every
+field, badge cross, Clear all and Clear filters names that table in `aria-controls` (giving it an id when it has
+none), so the table's rows turn into skeleton rows at the press, as for its own pager. Each control is bound to a `[QueryParam]` member and the set
 binds it to the address instead, so the router stays the only writer of the member and the page hears `OnUpdated`:
 a pick moves the query (replacing the history entry), a text field once typing pauses for 150 ms, and a call site's
 own `Debounce` wins. A member without `[QueryParam]` fails as the page renders, naming the declaration to write.
