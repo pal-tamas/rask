@@ -232,6 +232,7 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<Type, string> Approved = new()
     {
         [typeof(UiConfirmLeave)] = "the owner, 2026-10-13",
+        [typeof(UiConfirm)] = "the owner, 2026-10-21",
         [typeof(UiFilters)] = "the owner, 2026-10-21: a list's filters kept in the address, in a lazy flyout, with badges (TA gap B6)",
         [typeof(UiFilter)] = "the owner, 2026-10-21: the filter a UiFilters cannot read from a control by itself",
     };

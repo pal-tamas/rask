@@ -535,6 +535,9 @@ they say when you set nothing.
 | `CommandClose` | Command | `Close command modal` |
 | `HandlerForbidden` | Toast | `You do not have permission to do that.` |
 | `PageForbidden` | Page | `You do not have permission to view this page.` |
+| `ConfirmHeading` | Confirm | `Confirm` |
+| `ConfirmYes` | Confirm | `Yes` |
+| `ConfirmNo` | Confirm | `No` |
 | `Filters` | Filters | `Filters` |
 | `FiltersClear` | Filters | `Clear filters` |
 | `FiltersClearAll` | Filters | `Clear all` |

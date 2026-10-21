@@ -573,6 +573,15 @@ public enum RaskString
     /// </summary>
     PageForbidden,
 
+    /// <summary>The title of the dialog an action's <c>Confirm("…")</c> asks in, above the question.</summary>
+    ConfirmHeading,
+
+    /// <summary>The button of the confirm dialog that lets the action go.</summary>
+    ConfirmYes,
+
+    /// <summary>The button of the confirm dialog that calls the action off.</summary>
+    ConfirmNo,
+
     /// <summary>What a table drawn from a query (<c>Ui.Table.Of(query)</c>) says in its one row when the query found nothing.</summary>
     TableEmpty,
 

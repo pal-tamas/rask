@@ -67,9 +67,12 @@ public partial class UiConfirmLeaveTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.ConfirmLeave.Heading("Unsaved changes").ToHtml();
 
-        var title = Tag(html, "<h2");
+        var title = Tag(html, "<div class=\"font-medium");
 
-        Assert.Contains(title + "Unsaved changes</h2>", html, StringComparison.Ordinal);
+        // Flux's confirmation: a short title, which keeps no room for the close button as the question has to.
+        Assert.Contains(title + "Unsaved changes</div>", html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-heading", title, StringComparison.Ordinal);
+        Assert.DoesNotContain("pe-8", title, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-leave=\"message\"", title, StringComparison.Ordinal);
         Assert.Matches("<p[^>]*data-rask-leave=\"message\"[^>]*data-rask-opaque[^>]*></p>", html);
     }

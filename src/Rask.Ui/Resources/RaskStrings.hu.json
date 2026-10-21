@@ -201,6 +201,10 @@
   "HandlerForbidden": "Ehhez nincs jogosultsága.",
   "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
 
+  "ConfirmHeading": "Megerősítés",
+  "ConfirmYes": "Igen",
+  "ConfirmNo": "Nem",
+
   "TableEmpty": "Nincs találat.",
 
   "Filters": "Szűrők",

@@ -24,6 +24,12 @@ interface Seam {
     missed: Event[] | null;
     /** Asks the reader about a guarded form's unsaved edits; false when they stay. Set by rask-leave.ts. */
     leave?: (again: () => void) => boolean;
+    /**
+     * Asks `.Confirm`'s question in the kit's dialog (Ui.Confirm): true when `el` was already said yes to and is
+     * being made again, false once the dialog is asking, null when the layout placed none. Set by
+     * rask-confirm-dialog.ts.
+     */
+    confirm?: (el: Element, question: string, expect: string | null, again: () => void) => boolean | null;
     /** What the reader last opened or shut, until the page has answered it. */
     said: WeakMap<Element, Word>;
     /** The elements in `said`: a WeakMap cannot be walked. */

@@ -60,6 +60,21 @@ them until tagged releases begin.
   one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
   approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
   has answered what it sent. A table without `Of` dims its rows as before.
+- **`Ui.Confirm`: an action's `.Confirm("…")` asks in the kit's own dialog.** Placed once in the layout, every
+  `.Confirm` asks in a Flux confirmation modal instead of the browser's `confirm()` / `prompt()`; the call sites do
+  not change. Not a Flux component — approved by the owner like `Ui.ConfirmLeave`.
+  ```csharp
+  Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")                        // layout, once
+  Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Biztosan törli a partnert?") // unchanged
+  Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Írja be a partner nevét a törléshez", expect: row.Name)
+  ```
+  A short heading, the question beneath it, No (ghost) and Yes (danger). No, the X, Escape and a press outside call
+  the action off; Yes lets the same press or submit go (a form is still asked first, then held). With `expect:` a
+  field holds Yes back until the answer is typed exactly, case and all. Opening, typing and closing send nothing;
+  focus returns to the pressed control. Without `Ui.Confirm` the browser asks, as before. New catalog keys
+  `ConfirmHeading`, `ConfirmYes`, `ConfirmNo` ("Megerősítés", "Igen", "Nem" in Hungarian). `Ui.ConfirmLeave` now
+  shares its drawing and its runtime with it, and with a `Heading` its title is Flux's (no `h2`, no `pe-8`) and its
+  Leave button stands in the row as Flux's does. Held to Flux's open confirmation by `scripts/flux/parity-modal.mjs`.
 - **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
   Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
   Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.
