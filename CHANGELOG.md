@@ -42,7 +42,9 @@ them until tagged releases begin.
   writes nothing and answers `false` while a row of the same lane, tenant, job kind and serialized payload waits
   unclaimed. A claimed one — running, or waiting for a retry — does not count, so a new round queues behind a
   running one. A unique index on the new `Job.WaitingKey` (a SHA-256 of those four, cleared by the claim) makes it
-  race-free across hosts on SQLite, SQL Server and PostgreSQL. Every `Enqueue` await now answers whether a row was
+  race-free across hosts on SQLite, SQL Server and PostgreSQL. No sweeper is needed: a key left on a row that an
+  older host claimed or finished during a switch (it claims without knowing the column) is cleared by the next
+  `UnlessWaiting` that meets it. Every `Enqueue` await now answers whether a row was
   written (`Task<bool>`; a plain enqueue is always `true`), `IJobs` gains `AddUnlessWaiting`, and `Jobs.Fake()`
   skips a copy it has not `Run()` yet. [docs/jobs.md](docs/jobs.md#unless-the-same-work-already-waits)
   - **Migration:** `Job` gets a nullable `WaitingKey` column (64 characters) and a unique index on it:

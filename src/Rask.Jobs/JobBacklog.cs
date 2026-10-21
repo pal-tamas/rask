@@ -39,8 +39,16 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
 
         var db = await Open(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
-        return !await Waits(db, row.WaitingKey!, cancellationToken).ConfigureAwait(false)
-            && await Insert(db, row, cancellationToken).ConfigureAwait(false);
+        switch (await Holder(db, row.WaitingKey!, cancellationToken).ConfigureAwait(false))
+        {
+            case KeyHolder.Waiting:
+                return false;
+            case KeyHolder.Stale:
+                await ClearStale(db, row.WaitingKey!, cancellationToken).ConfigureAwait(false);
+                break;
+        }
+
+        return await Insert(db, row, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The insert alone, as a host that lost the race between its look and its write makes it.</summary>
@@ -53,33 +61,75 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
     }
 
     // Writes the waiting row, or answers false when the unique index refused it because the same work waits already.
-    // Inside a transaction, EF's own savepoint undoes the refused insert alone.
+    // Inside a transaction, EF's own savepoint undoes the refused insert alone. A stale key in the way is cleared and the
+    // insert tried again; another host clearing it at the same moment loses to the index, then finds our row waiting.
     private static async Task<bool> Insert(TContext db, Job row, CancellationToken cancellationToken)
     {
-        db.Set<Job>().Add(row);
-        try
+        const int attempts = 3;
+        var key = row.WaitingKey!;
+        var attempt = 0;
+        while (true)
         {
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            return true;
-        }
-        catch (DbUpdateException)
-        {
-            // Read back rather than parsed: a provider's error says "unique", and only the table says it was this key.
-            db.ChangeTracker.Clear();
-            if (await Waits(db, row.WaitingKey!, cancellationToken).ConfigureAwait(false))
+            attempt++;
+            db.Set<Job>().Add(row);
+            try
             {
-                return false;
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                return true;
             }
-
-            throw;
+            catch (DbUpdateException) when (attempt < attempts)
+            {
+                // Read back rather than parsed: a provider's error says "unique", and only the table says it was this key.
+                db.ChangeTracker.Clear();
+                switch (await Holder(db, key, cancellationToken).ConfigureAwait(false))
+                {
+                    case KeyHolder.Waiting:
+                        return false;
+                    case KeyHolder.None:
+                        throw;
+                    default:
+                        await ClearStale(db, key, cancellationToken).ConfigureAwait(false);
+                        break;
+                }
+            }
         }
     }
+
+    // A key on a row that was claimed or finished is stale. The claim clears it, but a host on a Rask.Jobs from
+    // before WaitingKey claims without knowing the column (a blue/green switch runs both), and its key would
+    // otherwise read as "waiting" forever. Conditional, so of two hosts clearing it at once one changes the row.
+    private static Task<int> ClearStale(TContext db, string key, CancellationToken cancellationToken) =>
+        db.Set<Job>()
+            .Where(j => j.WaitingKey == key
+                && (j.ProcessedAt != null || j.ClaimToken != null || j.ClaimedUntil != null || j.Attempts > 0))
+            .ExecuteUpdateAsync(s => s.SetProperty(j => j.WaitingKey, (string?)null), cancellationToken);
 
     // The one place an enqueue opens its context.
     private Task<TContext> Open(CancellationToken cancellationToken) => contextFactory.CreateDbContextAsync(cancellationToken);
 
-    private static Task<bool> Waits(TContext db, string key, CancellationToken cancellationToken) =>
-        db.Set<Job>().AsNoTracking().AnyAsync(j => j.WaitingKey == key, cancellationToken);
+    // Who holds the key: nobody, a row still waiting unclaimed, or a stale row an older host claimed or finished.
+    private static async Task<KeyHolder> Holder(TContext db, string key, CancellationToken cancellationToken)
+    {
+        var held = await db.Set<Job>()
+            .AsNoTracking()
+            .Where(j => j.WaitingKey == key)
+            .Select(j => (bool?)(j.ProcessedAt == null && j.ClaimToken == null && j.ClaimedUntil == null && j.Attempts == 0))
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return held switch
+        {
+            null => KeyHolder.None,
+            true => KeyHolder.Waiting,
+            false => KeyHolder.Stale,
+        };
+    }
+
+    private enum KeyHolder
+    {
+        None,
+        Waiting,
+        Stale,
+    }
 
     private DateTime Due(DateTimeOffset? at, TimeSpan? after) =>
         (at ?? timeProvider.GetUtcNow() + (after ?? TimeSpan.Zero)).UtcDateTime;

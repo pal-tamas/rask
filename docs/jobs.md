@@ -120,6 +120,10 @@ var asked = await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id).UnlessWai
 - **The job table decides, not the host's memory.** The waiting row carries a key (`Job.WaitingKey`, a SHA-256
   of the above) under a unique index, and the claim clears it. Two hosts enqueueing at once - a blue/green switch,
   a scaled-out app - still leave one waiting row; the loser's await answers `false`.
+- **No sweeper, and no key outlives its work.** A key left on a row that was claimed or finished - which is
+  what a host still on an older Rask.Jobs leaves during a blue/green switch, since it claims without knowing the
+  column - is cleared by the next `.UnlessWaiting()` that meets it, and that enqueue writes its row. The clear
+  is conditional and the index still decides, so two hosts meeting the same stale key leave one new waiting row.
 - A plain `Enqueue` (no `.UnlessWaiting()`) always writes a row, and its await answers `true`.
 - `Jobs.Fake()` keeps the same promise: a copy recorded and not yet `Run()` makes the next one answer `false`.
 
