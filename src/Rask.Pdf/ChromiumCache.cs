@@ -44,14 +44,14 @@ internal static class ChromiumCache
 
     private static string? Platform() => (OperatingSystem.IsLinux(), OperatingSystem.IsMacOS(), OperatingSystem.IsWindows(),
             RuntimeInformation.OSArchitecture) switch
-        {
-            (true, _, _, Architecture.X64) => "linux64",
-            (true, _, _, Architecture.Arm64) => "linux-arm64",
-            (_, true, _, Architecture.Arm64) => "mac-arm64",
-            (_, true, _, Architecture.X64) => "mac-x64",
-            (_, _, true, Architecture.X64) => "win64",
-            _ => null,
-        };
+    {
+        (true, _, _, Architecture.X64) => "linux64",
+        (true, _, _, Architecture.Arm64) => "linux-arm64",
+        (_, true, _, Architecture.Arm64) => "mac-arm64",
+        (_, true, _, Architecture.X64) => "mac-x64",
+        (_, _, true, Architecture.X64) => "win64",
+        _ => null,
+    };
 
     private static string Executable() => OperatingSystem.IsWindows() ? "chrome-headless-shell.exe" : "chrome-headless-shell";
 }
