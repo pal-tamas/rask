@@ -1155,6 +1155,13 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
+  at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
+  transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).
+  After: however the transaction ends — commit, rollback, a throw, a retry — the context is out of it and on its
+  own connection again: the one the caller gave it, still the caller's and still open if it was, or a fresh one of
+  its own from its connection string. Admitting it twice in one transaction is fine. The contexts `Jobs.Enqueue`,
+  `Mail.Send` and the files store open and dispose themselves need nothing handed back.
 - **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
   and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
   back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had
