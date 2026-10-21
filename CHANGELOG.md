@@ -197,8 +197,10 @@ them until tagged releases begin.
   **Migrating an existing app:** nothing to do for the fix — the next deploy with this CLI waits up to 30 minutes
   and writes `"stopTimeout": "30m"` into `.rask/deploy.json`. An app with no long jobs is unaffected (its old
   container exits in seconds). Size `"stopTimeout"` above your longest job; set `"stopTimeout": "20s"` and
-  `ShutdownGracePeriod = 5.Seconds` for the old behaviour. On a bare `--port` deploy the old container must free the
-  port first, so the app is down while it drains — use `--domain` for an app with long jobs. Job handlers must still
+  `ShutdownGracePeriod = 5.Seconds` for the old behaviour. A bare `--port` deploy has no proxy to switch, so it keeps
+  the short 20 s stop whatever `"stopTimeout"` says and warns that running jobs need a `--domain` deploy to be waited
+  for. `rask db restore --remote` now stops the app within `"stopTimeout"` the same way (progress, loud kill) instead
+  of a plain 10 s `docker stop`, and still refuses when the app isn't there. Job handlers must still
   honour their token and be idempotent: see `docs/jobs.md#shutdown` and `docs/deployment.md#the-shutdown-ladder`.
 
 - **`rask deploy`'s Caddy proxy keeps one config file per app.** Before: one `/etc/caddy/Caddyfile` naming every

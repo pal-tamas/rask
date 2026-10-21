@@ -263,7 +263,7 @@ mistake, put last night's file back" — that is [`rask db backup` / `rask db re
 
 ```bash
 rask db backup --remote                 # a consistent copy of the deployed database, pulled down
-rask db restore last-good.db --remote   # stops the app, replaces it, starts it again
+rask db restore last-good.db --remote   # stops the app (finishing its jobs), replaces it, starts it again
 ```
 
 **"The server is gone"** is the rest of this section. `rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
@@ -368,9 +368,15 @@ services stop **concurrently**, so each pillar's own grace overlaps the others i
 
 **The deploy holds the app's own lock through the wait**, so a second deploy of the same app waits — saying
 which deploy it waits for — until the old container is gone; it gives up after 45 minutes plus the stop
-budget, and names the lock to free if no deploy is running. On a bare `--port` deploy there is no proxy to
-switch, so the old container must release the port first: the app is down while it drains. Use `--domain`
-for an app with long jobs.
+budget, and names the lock to free if no deploy is running.
+
+**A bare `--port` deploy keeps a short stop.** There is no proxy to switch, so the old container holds the port
+until it exits, and a long drain would be a long outage. It is stopped within **20s** whatever `"stopTimeout"`
+says (the app is handed 15s of it), and the deploy warns that a job it is still running is cut there and runs again
+on the new container. Use `--domain` for an app whose jobs must be waited for.
+
+**`rask db restore --remote` stops the app the same way** — within `"stopTimeout"`, saying what it waits for, and
+saying loudly if it had to kill it — before it replaces the database, and starts it again after.
 
 > **An app with no long jobs pays nothing** — its old container exits in seconds. An app whose job can run
 > longer than 30 minutes raises `"stopTimeout"`; one that would rather cut its jobs short sets

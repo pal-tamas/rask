@@ -878,7 +878,8 @@ corrupt archive stops it with nothing replaced. With no archive beside it, the f
 
 **Restore replaces a database, so it behaves like `rask db drop`**: it asks first, takes `--yes` to skip
 the prompt, and refuses outright when there's no terminal to ask on rather than guessing. A remote restore
-also **stops the app first and starts it again afterwards** — replacing the file under a live writer
+also **stops the app first and starts it again afterwards** — within the app's `"stopTimeout"`, finishing the
+jobs it is running and saying what it waits for, as a deploy does — because replacing the file under a live writer
 leaves the running process holding the database it thinks it has, and its next checkpoint writes that
 belief back over the restored one. If it can't stop the app, it refuses. The stale `-wal`/`-shm` sidecars
 go with the old file for the same reason: left behind, SQLite replays them over the restored database.
@@ -927,7 +928,8 @@ had typed put back — see
 new job but runs the ones it has to the end; the deploy waits for it — up to `"stopTimeout"` in
 `.rask/deploy.json` (`"30m"` by default, written there on the first deploy) — and prints what it is still
 finishing (`app-blue is finishing 1 job: AtPump (3m12s) — waited 3m20s of 30m`). A container still busy when the
-budget runs out is killed, and the deploy says so in red. A second deploy of the same app waits for it.
+budget runs out is killed, and the deploy says so in red. A second deploy of the same app waits for it. A bare
+`--port` deploy has no proxy to switch, so it keeps a 20s stop and warns that running jobs need `--domain`.
 
 **Multiple apps share one box.** Each app has its own file in the proxy (`/data/rask/sites/<app>.caddy`),
 and a deploy writes only its own, under a box-wide deploy lock — deploying a second app (a different
