@@ -103,11 +103,25 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
         }
 
         var name = path[Prefix.Length..];
-        var kind = name.EndsWith(".css", StringComparison.Ordinal) ? AssetKind.Css : AssetKind.Js;
+        if (KindOf(name) is not { } kind)
+        {
+            return null;
+        }
+
         var hash = name[..^ScopedAssetBundle.Extension(kind).Length];
         return ScopedAssetBundle.IsContentHash(hash) && ScopedAssetRegistry.GetByHash(hash, kind) is { } bytes
             ? new PrintableFile(bytes.Utf8.ToArray(), ScopedAssetBundle.ContentType(kind))
             : null;
+    }
+
+    private static AssetKind? KindOf(string name)
+    {
+        if (name.EndsWith(".css", StringComparison.Ordinal))
+        {
+            return AssetKind.Css;
+        }
+
+        return name.EndsWith(".js", StringComparison.Ordinal) ? AssetKind.Js : null;
     }
 
     private async Task Authorize(string path, IReadOnlyList<Type> chain, ClaimsPrincipal user)
