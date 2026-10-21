@@ -41,7 +41,7 @@ them until tagged releases begin.
   its padding; `Ui.Table` wraps its cells, runs on past its scroll frame, repeats its heading on every page and never
   splits a row; `Ui.Accordion` prints every item open with no chevron. Before: a report page put `print:hidden` on
   each control and a PDF of a table was cut at the frame. Now: `await Pdf.From(Routes.RefundReport(id))` prints the
-  page as paper; hide your own parts with `print:hidden`. +922 B on the kit's sheet (+280 B gzipped).
+  page as paper; hide your own parts with `print:hidden`. +958 B on the kit's sheet (+285 B gzipped).
   ([ui-kit](docs/ui-kit.md#printing), [pdf](docs/pdf.md#write-the-report-with-flux-pieces))
 - **Rask.Pdf numbers the pages in the caller's language, from the catalog.** The new `RaskString.PdfPageNumber`
   (`{0} / {1}`; the kit's Hungarian `{0} / {1} oldal`) is read in the caller's language and translated or reworded in

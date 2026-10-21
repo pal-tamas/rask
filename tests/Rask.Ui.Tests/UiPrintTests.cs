@@ -28,6 +28,7 @@ public sealed partial class UiPrintTests
     [InlineData(":has(>[data-ui-main])", "height:auto")]
     [InlineData(":has(>[data-ui-table])", "overflow:visible")]
     [InlineData("[data-ui-table] :is(th,td,.truncate)", "white-space:normal")]
+    [InlineData("[data-ui-table]", "table-layout:auto")]
     [InlineData("[data-ui-table]>thead", "display:table-header-group")]
     [InlineData("[data-ui-table] tr", "break-inside:avoid")]
     [InlineData("[data-ui-accordion-item]::details-content", "content-visibility:visible")]

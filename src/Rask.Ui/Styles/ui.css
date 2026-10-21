@@ -2137,6 +2137,11 @@
       overflow-wrap: break-word;
     }
 
+    /* Columns sized by what they hold, so a short amount is not wrapped to fit an equal share of the page. */
+    [data-ui-table] {
+      table-layout: auto;
+    }
+
     [data-ui-table] .truncate {
       overflow: visible;
       text-overflow: clip;
