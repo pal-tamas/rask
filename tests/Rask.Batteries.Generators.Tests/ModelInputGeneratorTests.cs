@@ -902,6 +902,64 @@ public class ModelInputGeneratorTests
             StringComparison.Ordinal);
     }
 
+    // Field-backed lists — `Lines => _lines`, `Tags => _tags` — are stored; a member that computes from them is not.
+    private const string ComputedViews = """
+        using System;
+        using System.Collections.Generic;
+        using System.Linq;
+        using Rask.Data;
+        namespace Shop;
+        public sealed class Basket : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        {
+            private readonly List<BasketLine> _lines = new();
+            private readonly List<string> _tags = new();
+            private Basket() { }
+            public string Customer { get; private set; } = "";
+            public IReadOnlyList<BasketLine> Lines => _lines;
+            public IEnumerable<BasketLine> OpenLines => _lines.Where(l => l.Quantity > 0);
+            public IReadOnlyList<BasketLine> FirstLines { get { return _lines.Take(1).ToList(); } }
+            public IReadOnlyList<string> Tags => _tags;
+            public IReadOnlyList<string> SortedTags => _tags.OrderBy(t => t).ToList();
+            public int LineCount => _lines.Count;
+            public string Label { get { return "#" + Customer; } }
+        }
+        public sealed class BasketLine : Entity<Guid>
+        {
+            private BasketLine() { }
+            public int Quantity { get; private set; }
+        }
+        """;
+
+    [Theory]
+    [InlineData("OpenLines")]
+    [InlineData("FirstLines")]
+    [InlineData("SortedTags")]
+    [InlineData("LineCount")]
+    [InlineData("Label")]
+    public void A_member_computed_from_stored_state_is_left_off_the_model_and_out_of_its_fill(string computed)
+    {
+        var run = Run(ComputedViews);
+
+        var source = run.GeneratedSource("Shop.BasketModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.DoesNotContain(computed, source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("public global::System.Collections.Generic.List<global::Shop.BasketLineModel> Lines { get; set; } = [];")]
+    [InlineData("public global::System.Collections.Generic.List<string> Tags { get; set; } = [];")]
+    [InlineData("public string? Customer { get; set; }")]
+    public void A_field_backed_list_beside_a_computed_view_of_it_stays_on_the_model(string carried)
+    {
+        var run = Run(ComputedViews);
+
+        var source = run.GeneratedSource("Shop.BasketModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(carried, source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_value_collection_is_carried_on_the_model_and_replaced_wholesale()
     {
@@ -1235,6 +1293,28 @@ public class ModelInputGeneratorTests
     }
 
     // ---- Deletable / SoftDelete: whether Delete is generated -----------------------------------------
+
+    [Theory]
+    [InlineData("Deletable")]
+    [InlineData("SoftDelete")]
+    public void A_deletable_aggregate_gets_a_Delete_of_its_own_beside_Save(string trait)
+    {
+        var run = Run($$"""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class QueuedFile : Aggregate<Guid, {{trait}}>
+            {
+                public bool Expired { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.QueuedFileModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Delete(global::Microsoft.EntityFrameworkCore.DbContext? db = null, ", source, StringComparison.Ordinal);
+        Assert.Contains(".Delete<global::Shop.QueuedFile>(entity, db, cancellationToken);", source, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void An_aggregate_naming_neither_Deletable_nor_SoftDelete_gets_no_Delete_and_keeps_every_other_write()

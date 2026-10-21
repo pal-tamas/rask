@@ -76,6 +76,48 @@ public sealed class DbTransactionHostTests : IAsyncDisposable
         Assert.Equal(0, await Widget.Count(TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task A_delete_of_a_found_aggregate_announces_its_events_only_after_the_commit()
+    {
+        await using var session = _provider.CreateAsyncScope();
+        using var bound = Db.UseScope(session.ServiceProvider);
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        var eventsBefore = _events.Events.Count;
+        var eventsBeforeCommit = -1;
+
+        await Db.Transaction(async () =>
+        {
+            found.MarkDeleted();
+            await found.Delete(cancellationToken: TestContext.Current.CancellationToken);
+            eventsBeforeCommit = _events.Events.Count - eventsBefore;
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, eventsBeforeCommit);
+        Assert.IsType<WidgetDeleted>(_events.Events[^1]);
+        Assert.Equal(0, await Widget.Count(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_delete_of_a_found_aggregate_rolled_back_announces_nothing_and_stamps_nothing()
+    {
+        await using var session = _provider.CreateAsyncScope();
+        using var bound = Db.UseScope(session.ServiceProvider);
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        var eventsBefore = _events.Events.Count;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            found.MarkDeleted();
+            await found.Delete(cancellationToken: TestContext.Current.CancellationToken);
+            throw new InvalidOperationException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(eventsBefore, _events.Events.Count);
+        Assert.Equal(1, await Widget.Count(TestContext.Current.CancellationToken));
+    }
+
     private sealed class ChangeRecorder : IDataChanges
     {
         public List<Type[]> Saves { get; } = [];

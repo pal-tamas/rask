@@ -121,6 +121,7 @@ internal static class ReadModelShape
 
         AddKey(entity, members, references, keyParts);
         AddFrameworkColumns(entity, members);
+        AddTenantColumn(entity, members);
         return Shape(entity, idType, members, references, children, valueCollections);
     }
 
@@ -442,9 +443,38 @@ internal static class ReadModelShape
         }
     }
 
+    // A per-tenant ROOT's face reads its tenant, so a read under Tenant.Across() can tell whose row it is — in the
+    // column's own type: the one the root declares, else PerTenant<TKey>'s, else Guid. A column only, never a
+    // navigation, and never on a child, which belongs to its root's tenant. The face is init-only, so nothing writes it.
+    private static void AddTenantColumn(INamedTypeSymbol entity, List<ReadMember> members)
+    {
+        if (!AggregateShape.IsAggregate(entity) || !AggregateShape.Has(entity, AggregateShape.PerTenant) ||
+            members.Exists(static m => string.Equals(m.Name, AggregateShape.TenantColumn, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        var type = DeclaredTenantType(entity) ?? AggregateShape.TenantKeyOf(entity) ?? "global::System.Guid";
+        members.Add(new ReadMember(
+            AggregateShape.TenantColumn, AggregateShape.TenantColumn, AggregateShape.TenantColumn, type, true, false));
+    }
+
+    private static string? DeclaredTenantType(INamedTypeSymbol entity)
+    {
+        for (var type = entity; type is not null && !IsFrameworkBase(type); type = type.BaseType)
+        {
+            if (type.GetMembers(AggregateShape.TenantColumn).OfType<IPropertySymbol>().FirstOrDefault() is { } declared)
+            {
+                return TypeOf(declared.Type);
+            }
+        }
+
+        return null;
+    }
+
     // Derived first, so a property re-declared lower down hides the base one, and stopping at Rask's own
     // bases — their members are the framework columns, added above. A declared TenantId is the framework's
-    // too: the face filters by it as a shadow column and never shows it.
+    // too: AddTenantColumn puts it on a per-tenant root's face, in the column's type, and nowhere else.
     private static IEnumerable<IPropertySymbol> StoredProperties(INamedTypeSymbol entity)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
