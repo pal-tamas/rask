@@ -175,7 +175,7 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
         var button = page.TextOf("[data-ui-filters] [data-ui-modal-trigger] button");
 
         Assert.StartsWith("Filters", button, StringComparison.Ordinal);
-        Assert.Equal("2", page.TextOf("[data-ui-filters] [data-ui-modal-trigger] button [data-ui-badge]"));
+        Assert.Equal("2", page.TextOf("[data-ui-filters] [data-ui-modal-trigger] button span span"));
     }
 
     [Fact]

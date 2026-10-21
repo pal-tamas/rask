@@ -35,6 +35,28 @@ const MEASURE = `(card) => {
   };
 }`;
 
+// The count beside a label, as Flux draws one: its nav bar item's badge (fluxui.dev/components/navbar#with-badges), which
+// is Flux's only count set inside a control. Compared with the count in the Filters button.
+const CHIP = `([label, chip]) => {
+  const words = document.createRange();
+  words.selectNodeContents(label);
+  const s = getComputedStyle(chip);
+  return {
+    chipGap: Math.round(chip.getBoundingClientRect().left - words.getBoundingClientRect().right),
+    chipHeight: Math.round(chip.getBoundingClientRect().height),
+    chipPadding: [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft].join(' '),
+    chipRadius: s.borderRadius,
+    chipFont: s.fontSize + ' ' + s.fontWeight,
+    chipMinWidth: s.minWidth,
+  };
+}`;
+
+// The text node that says `words`, inside `root`.
+const TEXT = `(root, words) => {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.textContent.trim() === words ? 1 : 3 });
+  return walker.nextNode();
+}`;
+
 // At a phone's width these follow the words, not the layout: Flux's subtitle wraps to three lines (a taller row, the
 // button centred lower) and its four wider columns scroll inside the card. They are printed, not judged.
 const WORDS = { 390: ['rowHeight', 'buttonTop', 'tableRightInset'] };
@@ -52,6 +74,16 @@ for (const width of [1920, 390]) {
   const card = page.locator('[data-testid="ui-filters"] [data-ui-card]').first();
   await card.locator('tbody tr').first().waitFor();
   const rask = await card.evaluate(new Function(`return ${MEASURE}`)());
+
+  await page.goto('https://fluxui.dev/components/navbar', { waitUntil: 'networkidle' });
+  Object.assign(flux, await page.locator('[data-flux-navbar-items]', { hasText: 'Inbox' }).first().evaluate(
+    new Function(`return item => (${CHIP})([(${TEXT})(item, 'Inbox'), [...item.querySelectorAll('*')].find(e => e.textContent.trim() === '12' && e.children.length === 0)])`)()));
+
+  await page.goto(ours + '/ui/filters/?driver=ada', { waitUntil: 'networkidle' });
+  const button = page.locator('[data-testid="ui-filters"] [data-ui-modal-trigger] button').first();
+  await button.locator('span span').waitFor();
+  Object.assign(rask, await button.evaluate(
+    new Function(`return button => (${CHIP})([(${TEXT})(button, 'Filters'), button.querySelector('span span')])`)()));
 
   for (const key of Object.keys(flux)) {
     const same = String(flux[key]) === String(rask[key]);

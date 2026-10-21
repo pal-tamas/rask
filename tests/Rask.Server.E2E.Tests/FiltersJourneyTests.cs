@@ -71,7 +71,7 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
         await Expect(Badge(page, "Driver: Bob Ross")).ToBeVisibleAsync();
         await Expect(Badge(page, "Search: tea")).ToBeVisibleAsync();
         await Expect(page.Locator("#rows")).ToHaveTextAsync("bob · tea · name");
-        await Expect(page.Locator("[data-ui-filters] [data-ui-modal-trigger] [data-ui-badge]")).ToHaveTextAsync("2");
+        await Expect(page.Locator("[data-ui-filters] [data-ui-modal-trigger] button span span")).ToHaveTextAsync("2");
 
         await page.ClickAsync("[aria-label='Remove filter Driver']");
         await Expect(Badge(page, "Driver: Bob Ross")).ToHaveCountAsync(0);

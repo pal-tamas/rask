@@ -162,7 +162,8 @@ public sealed partial class UiFilters : Component
             Ui.ModalTrigger.Name(name)[
                 Ui.Button.Sm.Icon(Ui.IconName.Funnel)[
                     RaskStrings.Get(RaskString.Filters, "Filters"),
-                    active == 0 ? null : Ui.Badge.Sm.Key("count")[active.ToString(CultureInfo.CurrentCulture)]
+                    // The count as Flux draws one beside a label (its nav bar badge): 8px after the words, a 20px block.
+                    active == 0 ? null : UiNavItemMarkup.Badge(active.ToString(CultureInfo.CurrentCulture), null, null, "ms-2 inline-block", marked: false)
                 ]
             ],
             Context.Provide(new UiModalOpening(OnOpen), name)[panel]
