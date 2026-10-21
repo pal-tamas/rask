@@ -35,6 +35,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Db.Transaction`: a check and the writes it guards in one transaction.** Before: a read face (`Pistol.Count`,
+  `Tank.Any`) always opened a context of its own, so a check ran outside the app's `BeginTransaction` and two
+  concurrent saves could take the same pistol; `db:` could stage writes together but never a read. After:
+  `await Db.Transaction(async () => { if (await Pistol.Count(...) != n) return; await Tank.Update(id, ...); })` — every
+  read and write without a `db:` (finds, queries, read faces, creates, updates, saves, child writes, unique checks)
+  runs on that transaction's connection; committed when the work completes, rolled back and rethrown when it
+  throws. `isolation:` is optional (omitted, the database's default applies); `IsolationLevel.Serializable` makes the
+  database refuse or serialise the second of two racing check-then-writes on SQL Server and PostgreSQL. Domain
+  events, the outbox wake-up and data-changed notices go out after the commit; outbox rows commit with the work.
+  A nested `Db.Transaction` joins the outer one and refuses a different isolation. Returns a value too:
+  `var order = await Db.Transaction(async () => await Order.Create(model));`.
 - **A child keyed by several columns is written through its aggregate, at any depth.** Before: such a row was
   read-only, and a save that added, changed or deleted one threw `NotSupportedException`. After: the entity makes
   itself in a factory of its own (`new() { TransactionId = id, Quantity = q }`), Rask fills the holding aggregate's

@@ -776,6 +776,51 @@ Two things to know:
 
 A row that context already tracks is the one updated, not a second copy.
 
+### A check and the writes it guards: `Db.Transaction`
+
+`db:` stages writes; it cannot put a **read** in the same transaction, and a read face (`Pistol.Count`,
+`Tank.Any`) always opens a context of its own. A check made that way runs outside the save it guards, so two
+requests can both see "free" and both take it. `Db.Transaction` closes that gap — Laravel's `DB::transaction`,
+Rails' `transaction(isolation:)`:
+
+```csharp
+await Db.Transaction(async () =>
+{
+    if (await Pistol.Count(p => ids.Contains(p.Id)) != ids.Count) return;   // runs in the same transaction
+    await Tank.Update(id, t => t.Change(...));                              // joins it, with no db:
+});                                                                         // provider default isolation
+
+await Db.Transaction(async () => { ... }, isolation: IsolationLevel.Serializable);
+
+var order = await Db.Transaction(async () => await Order.Create(model));    // hands back a value
+```
+
+- **Everything without a `db:` joins.** `Find`, `Where`, `Any`, `Count`, the read faces, `Create`, `Update`,
+  `Delete`, `Save`, child writes and the unique/store-rule checks each still open a context — on the
+  transaction's connection, enlisted in it. A `db:` you pass stays your own unit of work, outside it.
+- **Committed when the work completes; rolled back when it throws**, and the exception reaches you unchanged.
+- **After the commit, never before:** domain events are published, the outbox is woken (its rows were written
+  inside, so they commit or roll back with the work), and the session's queries are told what changed.
+  A rollback announces nothing.
+- **`isolation` is optional.** Omitted, none is sent and the database's default applies: read committed on SQL
+  Server and PostgreSQL. SQLite is serializable and has one writer — a second `Db.Transaction` waits at its
+  `BEGIN` for the first to commit, then sees what it wrote.
+- **Serializable is what makes a check-then-write safe** on SQL Server and PostgreSQL. Two such transactions
+  that both read the same rows and then write cannot both commit: SQL Server picks a deadlock victim (1205),
+  PostgreSQL refuses one with a serialization failure (40001). Both are transient, so with retrying on (the
+  default for both providers) the loser runs again from the top and sees the winner's row; with retrying off
+  it throws.
+- **On a retrying context the whole work may run again**, so keep side effects outside the database (a mail,
+  an HTTP call) out of it — or put them in a [durable handler](outbox.md).
+- **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
+  outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
+- **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
+- **What does not join:** a battery's own writes (`Jobs.Enqueue`, `Mail.Send`, the cache) and any context you
+  build yourself.
+
+It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
+one wired by hand with `AddRaskData<TContext>()`.
+
 ### Named sets: `db.Orders`
 
 Every mapped entity also gets an accessor on `DbContext`, beside the `Set<T>()` that always worked:
@@ -1378,8 +1423,9 @@ The writes on the type cover a create, an update and a delete. **Everything past
 change several entities make together, a query-then-decide, a bulk statement: load the entities into a context,
 call their methods, save — so the entity's own rules run on every write, and so do the interceptors:
 `CreatedAt`/`UpdatedAt` are stamped and `Version` is bumped where the aggregate names them, a delete of an
-aggregate that names `SoftDelete` becomes a `DeletedAt` stamp, and the aggregate's domain events are published after the commit. There is no Rask-owned
-unit of work to learn.
+aggregate that names `SoftDelete` becomes a `DeletedAt` stamp, and the aggregate's domain events are published after the commit. When a
+check and the writes it guards must be one transaction, wrap them in
+[`Db.Transaction`](#a-check-and-the-writes-it-guards-dbtransaction) instead of opening one by hand.
 
 `RaskAppDbContext` (namespace `Rask`) is the context the host builds: every entity you declared, plus every
 battery's tables. It has no `DbSet` properties, so an entity is reached with `db.Set<Order>()`. An app that
