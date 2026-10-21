@@ -76,7 +76,7 @@ public static class ValueObjectColumn
         var rebuild = build.Compile();
 
         return (
-            new ValueConverter<TValueObject, TValue>(value, build),
+            OneValueConverters.Create(value, build),
             new ValueComparer<TValueObject>(
                 (a, b) => Same(read, a, b),
                 v => Hash(read, v),
