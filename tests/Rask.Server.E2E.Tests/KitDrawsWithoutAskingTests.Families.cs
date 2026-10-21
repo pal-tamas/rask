@@ -266,6 +266,14 @@ public abstract partial class KitDrawsWithoutAskingTests
                 await page.FocusAsync("#leave-title");
                 await page.Keyboard.TypeAsync("abc");
             })),
+        ["confirm"] = On<KitLeaveFramePage>("confirm",
+            Press("ask, and be asked", "#confirm-delete"),
+            Press("ask for a typed answer, and be asked", "#confirm-wipe"),
+            Press("ask, be asked, and say no", "#ui-confirm .flex button:not([data-rask-confirm-dialog])", Pressing("#confirm-delete")),
+            Escape(Pressing("#confirm-delete"), "ask, be asked, and close by Escape"),
+            Outside(Pressing("#confirm-delete"), "ask, be asked, and close by a press outside"),
+            Press("ask, be asked, and close by the X", "#ui-confirm [aria-label='Close modal']", Pressing("#confirm-delete")),
+            Typing("#ui-confirm [data-rask-confirm-dialog=field] input", "Acm", "type into the answer it asks for", Pressing("#confirm-wipe"))),
 
         ["toggle-heard"] = On<KitOwnFramePage>("toggle-heard", Press("press", "[data-c='toggle-heard'] button")),
         ["carousel"] = On<KitOwnFramePage>("carousel"),

@@ -123,6 +123,7 @@ const rask = await observe(pathToFileURL(raskPage).href, join(out, 'rask', 'moda
 const state = await observeState(pathToFileURL(statePage).href, join(out, 'rask', 'modal-state'), flux);
 const confirm = await observeConfirm(pathToFileURL(confirmPage).href, join(out, 'rask', 'modal-confirm'), flux);
 const leave = await observeLeave(pathToFileURL(confirmPage).href, join(out, 'rask', 'modal-confirm'));
+const confirmDialog = await observeConfirmDialog(pathToFileURL(confirmPage).href, join(out, 'rask', 'modal-confirm'));
 await browser.close();
 
 let failures = 0;
@@ -184,6 +185,26 @@ for (const width of WIDTHS) {
       { 'close button': theirs['close button'], 'min-width | max-width': theirs['min-width | max-width'], [CLEAR]: true },
       { 'close button': mine['close button'], 'min-width | max-width': mine['min-width | max-width'], [CLEAR]: mine['first line ends before the close button'] >= 0 }));
   }
+}
+
+// Ui.Confirm is Flux's confirmation example, opened by the runtime: held to Flux's open one, node for node. Its
+// answer field is not Flux's — Flux has no prompt — and is hidden unless `.Confirm("…", expect:)` asks for one.
+const ANSWER = 'data-rask-confirm-dialog';
+const YES_SENDS_NOTHING = /^dialog > div\[1\] > div\[1\] > button\[2\]: (text "" vs "[^"]*"|children <div span> vs <>)$/;
+for (const scheme of SCHEMES) {
+  const theirs = flux.open[scheme][confirmation];
+  const mine = confirmDialog[scheme];
+  const asked = withoutNode(mine.example, n => n.attrs[ANSWER] === 'field' && 'hidden' in n.attrs);
+  if (asked.nodes.length < mine.example.nodes.length) accepted.add('Ui.Confirm\'s answer field, hidden unless .Confirm("…", expect:) asks: Flux has no prompt');
+  // Flux's delete is a submit button, so it carries the spinner of the request it sends (and its label in a span).
+  // Yes sends nothing — the action it lets go shows its own wait — and is never a submit: a layout's form around
+  // the dialog would be sent.
+  const diffs = [...compareOpen(theirs.example, asked), ...compareFacts(theirs.facts, mine.facts)].filter(diff => {
+    if (!YES_SENDS_NOTHING.test(diff)) return true;
+    accepted.add('Ui.Confirm\'s Yes is no submit button, so it has no spinner and its label is its own text');
+    return false;
+  });
+  report(`${scheme} Ui.Confirm, open`, diffs);
 }
 
 for (const note of accepted) console.log(`accepted: ${note}`);
@@ -289,6 +310,33 @@ async function observeLeave(url, shots) {
   }
 
   return facts;
+}
+
+// Ui.Confirm, the example after Ui.ConfirmLeave: opened as the runtime opens it, with the text of Flux's own
+// confirmation where the question goes. Flux breaks that text in two, so the break is written as well.
+async function observeConfirmDialog(url, shots) {
+  const i = CONFIRM.length + 1;
+  const facts = {};
+  const schemes = await measurePage(browser, url, join(shots, 'confirm-dialog'), async (page, scheme) => {
+    await dressAs(page, flux.loaded[scheme][confirmation]);
+    await page.evaluate(i => {
+      const dialog = document.querySelectorAll('[data-preview-wrapper]')[i].querySelector('dialog');
+      dialog.querySelector('[data-rask-confirm-dialog="message"]').innerHTML = 'You\'re about to delete this project.<br>This action cannot be reversed.';
+      dialog.showModal();
+    }, i);
+    await settled(page, i, true);
+    facts[scheme] = await page.evaluate(openFacts, { i, LAYER });
+    await page.screenshot({ path: join(shots, `confirm-dialog-${scheme}.png`) });
+  });
+
+  return Object.fromEntries(SCHEMES.map(scheme => [scheme, { example: schemes[scheme][i], facts: facts[scheme] }]));
+}
+
+// A measured example without the nodes `drop` names, and everything under them.
+function withoutNode(example, drop) {
+  const gone = new Set();
+  for (const node of example.nodes) if (drop(node) || gone.has(node.parent)) gone.add(node.id);
+  return { ...example, nodes: example.nodes.filter(node => !gone.has(node.id)) };
 }
 
 // One light page of a given width, with its fonts in: a phone's is where a modal meets the viewport's edges.

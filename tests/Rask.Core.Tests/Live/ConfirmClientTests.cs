@@ -82,4 +82,53 @@ public sealed class ConfirmClientTests
         Assert.Equal(["confirm:Send the order?", "confirm:Really?"], askedWhenYes);
         Assert.True(noSubmitter);
     }
+
+    [Fact]
+    public void With_the_kits_dialog_the_browser_is_not_asked_and_a_yes_makes_the_same_press_again()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var waits = root.GetProperty("pressWaitsForTheDialog").GetBoolean();
+        var pressedAgain = root.GetProperty("pressedAgain").GetInt32();
+        var inDialog = root.GetProperty("inDialog").EnumerateArray().Select(e => e.GetString()).ToArray();
+        var browserAsked = root.GetProperty("browserAskedWithDialog").GetArrayLength();
+
+        Assert.False(waits);
+        Assert.Equal(1, pressedAgain);
+        Assert.Equal(["Delete it?|Acme", "Send the order?|null"], inDialog);
+        Assert.Equal(0, browserAsked);
+    }
+
+    [Fact]
+    public void With_the_kits_dialog_a_yes_submits_the_form_again_by_the_same_button()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var waits = root.GetProperty("submitWaitsForTheDialog").GetBoolean();
+        var sameButton = root.GetProperty("resubmittedBySameButton").GetBoolean();
+
+        Assert.False(waits);
+        Assert.True(sameButton);
+    }
+
+    [Fact]
+    public void A_page_without_the_kits_dialog_asks_in_the_browser()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var goes = root.GetProperty("withoutDialogBrowserAsks").GetBoolean();
+        var asked = root.GetProperty("browserAskedWithoutDialog").EnumerateArray().Select(e => e.GetString()).ToArray();
+
+        Assert.True(goes);
+        Assert.Equal(["confirm:No dialog here?"], asked);
+    }
 }

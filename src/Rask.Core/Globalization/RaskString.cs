@@ -572,4 +572,13 @@ public enum RaskString
     ///     What a page says, inside the app's layout, to a signed-in person whose account may not open it.
     /// </summary>
     PageForbidden,
+
+    /// <summary>The title of the dialog an action's <c>Confirm("…")</c> asks in, above the question.</summary>
+    ConfirmHeading,
+
+    /// <summary>The button of the confirm dialog that lets the action go.</summary>
+    ConfirmYes,
+
+    /// <summary>The button of the confirm dialog that calls the action off.</summary>
+    ConfirmNo,
 }

@@ -21,6 +21,10 @@ namespace Rask.UiTests.Flux.Parity;
 ///     Last is <c>Ui.ConfirmLeave</c>, which is not Flux's: the script opens it with the same questions and
 ///     holds its close button to Flux's corner and its question clear of the button.
 ///     </para>
+///     <para>
+///     After it, <c>Ui.Confirm</c> in the words of Flux's own confirmation example: the script opens it with that
+///     example's text and holds the open dialog to Flux's, node for node, in light and dark.
+///     </para>
 /// </remarks>
 public sealed partial class ModalConfirmParity : FluxParity
 {
@@ -38,6 +42,7 @@ public sealed partial class ModalConfirmParity : FluxParity
         yield return ("bare-long", Case("bare-long", null, LongQuestion));
         yield return ("confirmation-long", Case("confirmation-long", "parity-min-w-22", LongQuestion));
         yield return ("confirm-leave", ModalParity.Centre(Ui.ConfirmLeave));
+        yield return ("confirm", ModalParity.Centre(Ui.Confirm.Heading("Delete project?").No("Cancel").Yes("Delete project")));
     }
 
     private static Component Case(string name, string? width, string question) =>

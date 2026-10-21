@@ -481,9 +481,10 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 
 ### Asking before an action
 
-`.Confirm("…")` asks the reader in the browser's own `confirm` dialog before a click or a submit is sent —
-Livewire's `wire:confirm`. It is a step on every element, so it works on a plain `Button`, a kit
-`Ui.Button`, a `Form` and a submit button alike:
+`.Confirm("…")` asks the reader before a click or a submit is sent — in the browser's own `confirm` dialog, or
+in [`Ui.Confirm`](#ask-for-a-confirmation-in-a-dialog-of-your-own) when the layout has one. Livewire's
+`wire:confirm`. It is a step on every element, so it works on a plain `Button`, a kit `Ui.Button`, a `Form` and
+a submit button alike:
 
 ```csharp
 Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the partner?")
@@ -502,6 +503,27 @@ is sent**: not the click or the submit, and not the fields still waiting to go w
 waits for the next action keeps waiting. Both hosts ask the same way. The element carries the question as
 `data-rask-confirm` (and the expected answer as `data-rask-confirm-expect`), so it is in the page's own words
 and in its language. Do not put a secret in `expect:` — it is in the page.
+
+#### Ask for a confirmation in a dialog of your own
+
+The browser's `confirm` and `prompt` cannot be styled or translated. Put `Ui.Confirm` in the layout, once, and
+every `.Confirm("…")` under it asks in that dialog instead — a [`Ui.Modal`](ui-kit.md#who-owns-the-state) drawn
+as Flux's confirmation: a short heading, the call site's question as the sentence beneath it, No and Yes.
+
+```csharp
+Ui.Main[Outlet],
+Ui.Toast,
+Ui.ConfirmLeave,
+Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // "Confirm", "No" and "Yes" when unset
+```
+
+The call sites do not change. No, the close button, Escape and a press outside call the action off; only Yes
+lets it go — the same press, or the same submit by the same button, and a form is held only then. With
+`expect:` the dialog shows a field, and Yes waits until the answer is typed exactly, case and all; Enter in the
+field is Yes once it matches. It all happens in the browser: opening the dialog, typing in it and closing it
+send the server nothing, and focus goes back to the control that was pressed. Without `Ui.Confirm` the browser
+asks, as before. The words default from the [string catalog](localization.md) (`ConfirmHeading`, `ConfirmNo`,
+`ConfirmYes`).
 
 ### Ask before leaving unsaved changes
 
@@ -546,9 +568,9 @@ private async Task Save(Product product)
 
 #### Ask in a dialog of your own
 
-The browser's `confirm` cannot be styled or translated. Put `Ui.ConfirmLeave` in the layout, once, and every
-guarded form under it asks in that dialog instead — a [`Ui.Modal`](ui-kit.md#who-owns-the-state), with the form's message
-as its heading:
+Put `Ui.ConfirmLeave` in the layout, once, and every guarded form under it asks in that dialog instead of the
+browser's `confirm` — a [`Ui.Modal`](ui-kit.md#who-owns-the-state) drawn as `Ui.Confirm` is, with the form's
+message as its heading:
 
 ```csharp
 Ui.Main[Outlet],
