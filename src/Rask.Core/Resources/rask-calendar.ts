@@ -702,10 +702,6 @@ function key(root: Element, state: State, e: KeyboardEvent): void {
     }
 }
 
-function forget(state: State): void {
-    state.view = state.cursor = state.anchor = state.hover = null;
-}
-
 // ----- Listening ---------------------------------------------------------------------------------------
 
 function rootOf(target: EventTarget | null): HTMLElement | null {
@@ -720,10 +716,12 @@ bind(ROOT, function (root) {
     const state = stateOf(root);
     return state ? writeValue(state.config, state.value) : "";
 }, function (root, rendered) {
-    // The page wrote a value of its own: the clear button, a typed date, its own code.
+    // The page wrote a value of its own: the clear button, a typed date, its own code. Another value shows its month.
     const state = stateOf(root);
     if (!state) return;
-    state.value = readValue(rendered);
+    const value = readValue(rendered);
+    if (writeValue(state.config, value) !== writeValue(state.config, state.value)) state.view = null;
+    state.value = value;
     state.pending = null;
     state.anchor = state.hover = null;
     draw(root);
@@ -823,9 +821,10 @@ if (page) {
         }
     }, true);
 
-    // The popup opening shows the chosen day's month again, drawn for the width it opened at — measured once it
-    // shows; closing drops a choice nobody confirmed — but not on a phone, whose sheet opens again with it. The
-    // chosen day is what the typed fields hold, sent or not; half filled, nothing is chosen and it opens on today.
+    // The popup opens on the month it was left on, as Flux's does — the chosen day's while nobody paged — drawn for
+    // the width it opened at, measured once it shows; closing drops a choice nobody confirmed — but not on a phone,
+    // whose sheet opens again with it. The chosen day is what the typed fields hold, sent or not: one typed since
+    // shows its month; half filled, nothing is chosen and it opens on today.
     listen("beforetoggle", function (e) {
         const popup = e.target;
         const root = popup instanceof HTMLElement ? rootOf(popup) : null;
@@ -836,8 +835,11 @@ if (page) {
             if (typed && writeValue(state.config, typed) !== writeValue(state.config, state.value)) {
                 state.value = typed;
                 state.pending = null;
+                state.view = null;
             }
-            forget(state);
+            state.cursor = state.anchor = state.hover = null;
+            // Drawn before it shows as well, so it is placed (rask-place.ts) at the height it opens at.
+            draw(root);
         } else {
             if (!narrow(root)) state.pending = null;
             draw(root);

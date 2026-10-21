@@ -187,6 +187,28 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
+    public async Task An_open_panel_that_grows_keeps_its_side_held_to_the_room_there_and_a_scroll_chooses_again()
+    {
+        await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+
+        var open = await OpenedAsync(session, "grow");
+        await page.EvaluateAsync("() => { document.querySelector('#grow > div').style.height = '300px'; }");
+        await page.EvaluateAsync(Frames);
+        var grown = await page.EvaluateAsync<string>(Box, "grow");
+        await page.EvaluateAsync("() => window.scrollBy(0, 1)");
+        await page.EvaluateAsync(Frames);
+        var scrolled = await page.EvaluateAsync<string>(Box, "grow");
+
+        // 250 px under the trigger and 390 over it: 300 tall, it fits only over it — but it opened under it, and
+        // stays there held to 250 (a DEPARTURE from Flux, which turns it over). A scroll chooses the roomier side.
+        Assert.Equal("600,445,200,100", open);
+        Assert.Equal("600,445,200,250", grown);
+        Assert.Equal("600,93,200,302", scrolled);
+    }
+
+    [Fact]
     public async Task Opening_and_placing_a_panel_sends_the_server_nothing()
     {
         var sent = 0;
@@ -217,7 +239,7 @@ public sealed partial class PlaceHookPage : Component
           body { margin: 0; font: 14px/20px sans-serif }
           .trigger, #area { position: fixed; width: 120px; height: 40px; padding: 0 }
           [popover] { box-sizing: border-box; width: 200px; height: 100px; margin: 0; padding: 0; border: 1px solid #888 }
-          #tall { height: auto }
+          #tall, #grow { height: auto }
           @media (width >= 640px) { #sheet { inset: auto; top: calc(anchor(bottom) + 5px); left: anchor(left) } }
           @media (width < 640px) { #sheet { --rask-place: none; inset: 0; margin: auto } }
         </style>
@@ -233,6 +255,8 @@ public sealed partial class PlaceHookPage : Component
         <div id="low" popover data-rask-place="bottom start 5 0" style="position-anchor:--low;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)">low</div>
         <button id="tall-open" class="trigger" style="left:100px;top:300px;anchor-name:--tall" popovertarget="tall">tall</button>
         <div id="tall" popover data-rask-place="bottom start 5 0" style="position-anchor:--tall;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)"><div style="height:1000px"></div></div>
+        <button id="grow-open" class="trigger" style="left:600px;top:400px;anchor-name:--grow" popovertarget="grow">grow</button>
+        <div id="grow" popover data-rask-place="bottom start 5 0" style="position-anchor:--grow;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)"><div style="height:98px"></div></div>
         <div id="area" style="left:900px;top:620px;width:80px;height:60px" data-rask-contextmenu="ctx">area</div>
         <div id="ctx" popover data-rask-place="bottom end 5 0" style="position:fixed;inset:auto;left:var(--rask-context-x,0px);top:var(--rask-context-y,0px);translate:-100% 5px">menu</div>
         <div style="height:3000px"></div>

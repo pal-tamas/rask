@@ -40,6 +40,14 @@
 // the anchor rules alone would have left it — then whenever something scrolls, the window is resized or the
 // panel or its anchor changes size, once per frame: every open panel is measured in one pass and written in
 // one. Nothing is sent to the page.
+//
+// THE SIDE IS KEPT while the panel stays open — a DEPARTURE from Flux, owner 2026-10-21. Flux chooses the side
+// again whenever the panel changes size: a date picker low on a form, paged from a month of five weeks to one of
+// six, jumps over its trigger and back, and the arrow being pressed runs away from the pointer (measured:
+// scripts/flux/date-flip.mjs). Here, as CSS anchor positioning keeps its last successful position option, a panel
+// that grows or shrinks stays on its side, aligned either way, slid and held to a height there as above. Its side
+// is chosen afresh when it opens, until the first frame it is drawn in, and when something scrolls or the window
+// is resized; and when the kept side would hold less of it than it did.
 
 import {disown, isShown, listen, near, own, page} from "./rask-owned.js";
 
@@ -56,11 +64,18 @@ export interface Box {
     h: number;
 }
 
-/** Where a panel lands in the viewport, and the height it is held to — null when it fits. */
+/** Where a panel lands in the viewport, the height it is held to — null when it fits — and the side it took. */
 export interface Landing {
     x: number;
     y: number;
     cap: number | null;
+    side: string;
+}
+
+/** The side an open panel was placed on, and how far it reached across from its trigger there. */
+export interface Kept {
+    side: string;
+    size: number;
 }
 
 const OTHER: {[name: string]: string} = {
@@ -92,12 +107,20 @@ function past(x: number, y: number, w: number, h: number, vw: number, vh: number
     return {top: -y, bottom: y + h - vh, left: -x, right: x + w - vw};
 }
 
-// Step 1: which side and alignment the panel takes.
+// How far the viewport reaches past the trigger on one side, 5 px from its edge.
+function room(side: string, a: Box, gap: number, vw: number, vh: number): number {
+    return side === "bottom" ? vh - EDGE - (a.y + a.h + gap)
+        : side === "top" ? a.y - gap - EDGE
+            : side === "right" ? vw - EDGE - (a.x + a.w + gap) : a.x - gap - EDGE;
+}
+
+// Step 1: which side and alignment the panel takes. `kept`: only that side, aligned either way.
 function fit(side: string, align: string, a: Box, w: number, h: number, gap: number, offset: number,
-    vw: number, vh: number, rtl: boolean): string[] {
-    const tries = align === "center"
+    vw: number, vh: number, rtl: boolean, kept: string | null): string[] {
+    const tries = (align === "center"
         ? [[side, align], [OTHER[side], align]]
-        : [[side, align], [side, OTHER[align]], [OTHER[side], align], [OTHER[side], OTHER[align]]];
+        : [[side, align], [side, OTHER[align]], [OTHER[side], align], [OTHER[side], OTHER[align]]])
+        .filter(function (t) { return kept === null || t[0] === kept; });
     let sided: string[] | null = null;
     let sidedBy = Infinity;
     let least = tries[0];
@@ -132,20 +155,23 @@ function fit(side: string, align: string, a: Box, w: number, h: number, gap: num
 
 /**
  * Where a panel of `w` by `natural` lands against `a` in a viewport of `vw` by `vh`. `place` is the
- * attribute's value. `free` is a panel whose height is not to be held, whatever room there is.
+ * attribute's value. `free` is a panel whose height is not to be held, whatever room there is. `kept` is the
+ * side an open panel was placed on: it stays there while that side still holds as much of it as it did.
  */
 export function landing(place: string, a: Box, w: number, natural: number,
-    vw: number, vh: number, rtl: boolean, free?: boolean): Landing {
+    vw: number, vh: number, rtl: boolean, free?: boolean, kept?: Kept | null): Landing {
     const words = place.split(" ");
     const gap = parseFloat(words[2]) || 0;
     const offset = parseFloat(words[3]) || 0;
+    const side = kept && room(kept.side, a, gap, vw, vh) >= kept.size ? kept.side : null;
+    let taken = [words[0], words[1] || "start"];
     let h = natural;
     let x = 0;
     let y = 0;
     let cap: number | null = null;
     // Capped, the panel is another height and may fit somewhere it did not: placed again, until it settles.
     for (let pass = 0; pass < 4; pass++) {
-        const taken = fit(words[0], words[1] || "start", a, w, h, gap, offset, vw, vh, rtl);
+        taken = fit(words[0], words[1] || "start", a, w, h, gap, offset, vw, vh, rtl, side);
         const at = corner(taken[0], taken[1], a, w, h, gap, offset, rtl);
         x = at[0];
         y = at[1];
@@ -163,20 +189,24 @@ export function landing(place: string, a: Box, w: number, natural: number,
         }
         h = next;
     }
-    return {x, y, cap};
+    return {x, y, cap, side: taken[0]};
 }
 
 if (page) {
     const doc = page;
     const view = window;
-    /** The open panels: the number each one's rule is keyed on, and what it is placed against. */
-    const open = new Map<HTMLElement, {n: number; anchor: Element | null}>();
+    /** The open panels: the number each one's rule is keyed on, what it is placed against, the side it was placed on,
+     * and whether that side is kept: once it has been placed before a frame was drawn. */
+    const open = new Map<HTMLElement, {n: number; anchor: Element | null; kept: Kept | null; settled: boolean}>();
     const HELD = "position:absolute!important;margin:0!important;translate:none!important;justify-self:auto!important;"
         + "align-self:auto!important;position-area:none!important;position-try-fallbacks:none!important;inset:";
     let sheet: CSSStyleSheet | null = null;
     let written = "";
     let count = 0;
     let queued = false;
+    // A scroll or a resize: every open panel chooses its side again. Anything else that moves one — its own size,
+    // its trigger's — keeps the side it is on (DEPARTURE from Flux, below).
+    let choose = false;
 
     const sizes = typeof ResizeObserver === "function" ? new ResizeObserver(function () { queue(); }) : null;
 
@@ -244,7 +274,8 @@ if (page) {
         }
     }
 
-    function run(): void {
+    // `framed`: before a frame is drawn, which settles the side of every panel placed.
+    function run(framed: boolean): void {
         queued = false;
         const panels: HTMLElement[] = [];
         open.forEach(function (_, panel) {
@@ -257,6 +288,8 @@ if (page) {
         // Measured where nothing squeezes it: at the page's corner, as tall as it wants to be.
         const scrolled = panels.map(function (panel) { return panel.scrollTop; });
         write(panels.map(function (panel) { return rule(open.get(panel)!.n, "0 auto auto 0", null); }).join(""));
+        const again = choose;
+        choose = false;
         const vw = doc.documentElement.clientWidth;
         const vh = doc.documentElement.clientHeight;
         const tall: (((free: boolean) => string) | null)[] = [];
@@ -273,8 +306,11 @@ if (page) {
             }
             const rtl = getComputedStyle(panel).direction === "rtl";
             const lands = function (free: boolean): string {
-                const to = landing(panel.getAttribute(PLACE)!, a, box.width, box.height, vw, vh, rtl, free || !anchor);
+                const to = landing(panel.getAttribute(PLACE)!, a, box.width, box.height, vw, vh, rtl, free || !anchor,
+                    again || !held.settled ? null : held.kept);
                 tall[i] = to.cap === null ? null : lands;
+                const across = to.side === "top" || to.side === "bottom" ? box.height : box.width;
+                held.kept = {side: to.side, size: to.cap === null ? across : Math.min(across, to.cap)};
                 return rule(held.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap);
             };
             return lands(false);
@@ -289,24 +325,27 @@ if (page) {
         });
         write(rules.join(""));
         // Measuring let a capped panel grow, and a box that no longer overflows forgets where it was scrolled to.
+        // Placed for a frame, a panel keeps its side from now on.
         panels.forEach(function (panel, i) {
             if (scrolled[i]) {
                 panel.scrollTop = scrolled[i];
             }
+            const held = open.get(panel)!;
+            held.settled = held.settled || framed;
         });
     }
 
     function queue(): void {
         if (!queued && open.size) {
             queued = true;
-            view.requestAnimationFrame(run);
+            view.requestAnimationFrame(function () { run(true); });
         }
     }
 
     function track(panel: HTMLElement): void {
         if (!open.has(panel) && typeof CSSStyleSheet === "function" && doc.adoptedStyleSheets) {
             const anchor = anchorOf(panel);
-            open.set(panel, {n: ++count, anchor});
+            open.set(panel, {n: ++count, anchor, kept: null, settled: false});
             own(panel, PLACED);
             panel.setAttribute(PLACED, String(count));
             if (sizes) {
@@ -330,7 +369,7 @@ if (page) {
             track(panel);
             Promise.resolve().then(function () {
                 if (isShown(panel)) {
-                    run();
+                    run(false);
                 }
             });
             queue();
@@ -371,10 +410,14 @@ if (page) {
             inside = inside || (e.target instanceof Node && panel.contains(e.target));
         });
         if (!inside) {
+            choose = true;
             queue();
         }
     }, {capture: true, passive: true});
-    view.addEventListener("resize", queue);
+    view.addEventListener("resize", function () {
+        choose = true;
+        queue();
+    });
 
     // One that was open before the hooks arrived: a render opened it with the page.
     const waiting = doc.querySelectorAll<HTMLElement>("[" + PLACE + "]");
