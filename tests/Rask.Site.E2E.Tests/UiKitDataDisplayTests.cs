@@ -20,7 +20,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-waits")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
@@ -623,6 +623,44 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         {
             await Page.SetViewportSizeAsync(1280, 720);
         }
+    });
+
+    // The WebAssembly host's half of Ui.Table.Of(query): the press shows skeleton rows of the rows' own size at once,
+    // the headings stay, and the next page's rows replace them when its 1.2 s read is back.
+    [Fact]
+    public Task A_query_table_shows_skeleton_rows_of_its_rows_size_from_the_press_until_the_next_page_is_back() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+        var scope = Page.Locator("[data-testid='ui-table-of-query']");
+        var first = scope.Locator("#ui-invoices-of tbody tr").First;
+        await scope.ScrollIntoViewIfNeededAsync();
+        await Expect(first).ToContainTextAsync("INV-0001", new() { Timeout = 15_000 });
+        await Page.EvaluateAsync(
+            """
+            () => {
+                const box = document.querySelector('#ui-invoices-of').closest('[data-rask-skeleton]');
+                const body = () => box.querySelector('tbody');
+                const seen = window.__ofQuery = { height: body().getBoundingClientRect().height, rows: 5, heights: [], atPress: false };
+                const tick = () => {
+                    seen.rows = Math.min(seen.rows, body().querySelectorAll(':scope > tr').length);
+                    seen.heights.push(body().getBoundingClientRect().height);
+                    requestAnimationFrame(tick);
+                };
+                requestAnimationFrame(tick);
+                window.addEventListener('click', () => { seen.atPress = box.hasAttribute('data-skeleton'); });
+            }
+            """);
+
+        await scope.Locator("button[aria-label^='Next']:visible").ClickAsync();
+        await Expect(first).ToContainTextAsync("INV-0006", new() { Timeout = 15_000 });
+        await Expect(scope.Locator("[data-skeleton]")).ToHaveCountAsync(0, new() { Timeout = 15_000 });
+
+        var seen = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__ofQuery");
+        Assert.True(seen.GetProperty("atPress").GetBoolean(), "the skeleton was not up in the task of the press.");
+        Assert.Equal(5, seen.GetProperty("rows").GetInt32());
+        var height = seen.GetProperty("height").GetDouble();
+        Assert.All(seen.GetProperty("heights").EnumerateArray(), paint => Assert.InRange(paint.GetDouble(), height - 1, height + 1));
+        await Expect(scope.Locator("thead")).ToHaveCountAsync(1);
     });
 
     [Theory]

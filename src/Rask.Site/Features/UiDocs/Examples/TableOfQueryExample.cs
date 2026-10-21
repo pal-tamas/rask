@@ -62,7 +62,7 @@ public sealed partial class TableOfQueryExample : Component
     private static async Task<Invoice[]> Read((int Page, bool NewestFirst, string Status) asked, CancellationToken ct)
     {
         await Task.Delay(TimeSpan.FromMilliseconds(1200), ct);
-        var paid = asked.Status == "paid" ? 500 : 0;
+        var paid = string.Equals(asked.Status, "paid", StringComparison.Ordinal) ? 500 : 0;
         return
         [
             .. Enumerable.Range(((asked.Page - 1) * PageSize) + 1, PageSize)
