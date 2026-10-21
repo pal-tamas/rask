@@ -304,6 +304,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A typed `Ui.DatePicker` that is not `.Live()` opens its calendar on the date typed in it.** The calendar read the
+  value the server held, which a bound picker hears only with the next action, so it opened on today with nothing
+  marked. It now reads the field's parts when it opens (half filled: today, nothing marked), and a day picked in it
+  shows in the parts at once. Nothing more is sent: the value still goes with the next action.
 - **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
   The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep

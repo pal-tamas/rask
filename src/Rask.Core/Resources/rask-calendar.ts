@@ -35,8 +35,10 @@
 
 import {announce, bind, boundOf} from "./rask-bound.js";
 import {isShown, listen, near, own, page, setShown} from "./rask-owned.js";
+import {partsValue, refillParts} from "./rask-segments.js";
 
 const ROOT = "[data-rask-calendar]";
+const TYPED = "[data-rask-segments]";
 const PART = "data-rask-calendar-part";
 const DAY_MS = 86400000;
 
@@ -249,6 +251,23 @@ function holds(root: Element, state: State): boolean {
 
 function shown(state: State): Value {
     return state.pending || state.value;
+}
+
+// A typed date picker's fields, the start before the end. What is typed in them is the picker's value as soon as
+// it is whole, though a bound picker sends it only with the next action: the calendar reads them, not the page.
+function typedFields(root: Element): Element[] {
+    return Array.prototype.filter.call(root.querySelectorAll(TYPED), function (g: Element) { return g.closest(ROOT) === root; });
+}
+
+// What the typed fields' parts say: their dates, or nothing for parts half filled or emptied; null with none.
+function typedValue(root: Element, state: State): Value | null {
+    const fields = typedFields(root);
+    if (!fields.length) return null;
+    const days = fields.map(function (g) { return dayOf(partsValue(g)); });
+    const range = state.config.mode === "range";
+    if (days.some(isNaN) || (range && (days.length < 2 || days[0] > days[1]))) return {days: [], preset: ""};
+    const same = writeValue(state.config, {days, preset: ""}) === writeValue(state.config, {days: state.value.days, preset: ""});
+    return {days: range ? days.slice(0, 2) : days.slice(0, 1), preset: same ? state.value.preset : ""};
 }
 
 // ----- What a day is ------------------------------------------------------------------------------------
@@ -602,6 +621,10 @@ function commit(root: Element, state: State, value: Value): void {
     state.pending = null;
     announce(root, writeValue(state.config, value));
     drawText(root, state);
+    // A typed picker's fields show the choice at once, and carry it with the page's next action.
+    typedFields(root).forEach(function (g, i) {
+        refillParts(g, value.days.length ? isoOf(value.days[Math.min(i, value.days.length - 1)]) : "");
+    });
 }
 
 // A choice: the page's at once, or held for the button where the picker holds it. One that finishes the choice
@@ -801,13 +824,19 @@ if (page) {
     }, true);
 
     // The popup opening shows the chosen day's month again, drawn for the width it opened at — measured once it
-    // shows; closing drops a choice nobody confirmed — but not on a phone, whose sheet opens again with it.
+    // shows; closing drops a choice nobody confirmed — but not on a phone, whose sheet opens again with it. The
+    // chosen day is what the typed fields hold, sent or not; half filled, nothing is chosen and it opens on today.
     listen("beforetoggle", function (e) {
         const popup = e.target;
         const root = popup instanceof HTMLElement ? rootOf(popup) : null;
         const state = root ? stateOf(root) : null;
         if (!root || !state || popupOf(root) !== popup) return;
         if ((e as ToggleEvent).newState === "open") {
+            const typed = typedValue(root, state);
+            if (typed && writeValue(state.config, typed) !== writeValue(state.config, state.value)) {
+                state.value = typed;
+                state.pending = null;
+            }
             forget(state);
         } else {
             if (!narrow(root)) state.pending = null;
