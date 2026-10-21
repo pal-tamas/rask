@@ -199,7 +199,15 @@ internal sealed class DevToolsConnection : IAsyncDisposable
             && _listeners.TryGetValue((session, method.GetString() ?? string.Empty), out var listener)
             && root.TryGetProperty("params", out var parameters))
         {
-            listener(parameters);
+            try
+            {
+                listener(parameters);
+            }
+            catch (Exception e) when (e is KeyNotFoundException or InvalidOperationException or FormatException)
+            {
+                // An event shaped other than this Chromium version's protocol promised: it is dropped, and the
+                // document it belonged to fails by its timeout rather than taking the pipe down for every other one.
+            }
         }
     }
 
