@@ -1245,7 +1245,10 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 
 - **Every mapped property** of the aggregate, nullable, and its `Version` when it names `Versioned`.
 - **Not** the `Id`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, the domain events, navigations, collections or computed
-  properties.
+  properties. Computed is read off the member: no setter, no backing field, and — for a collection — a getter that
+  makes something of a list the aggregate already stores rather than handing it out. `OpenLines => _lines.Where(…)`
+  beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside `Tags => _tags`, is on neither the model
+  nor the read face, and is not mapped; `Lines` and `Tags` stay, edited by the form as before.
 - **A value object as a model of its own:** `Money Price` on `Product` is a nested `MoneyModel? Price` on `ProductModel`, filled by `new ProductModel()` and `ToModel()`, so a
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.

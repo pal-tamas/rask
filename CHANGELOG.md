@@ -241,6 +241,13 @@ them until tagged releases begin.
   saved is known to be new: its first `Save()` is an INSERT with no SELECT before it (it was two). Building an
   aggregate by hand with the key of an EXISTING row and saving it is therefore an insert, refused by the key — `Find`
   it instead. A context without Rask's interceptors knows nothing to be new and still reads first.
+- **A collection computed from one the aggregate stores is left off the form model, the read face and the mapping.**
+  `OpenLines => _lines.Where(…)` beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside
+  `Tags => _tags`, used to be taken for a second child collection (an editable list on the model, synced into
+  `_lines`; EF Core mapped it as a second relationship and failed the first save) or a second value column (an
+  app's next migration drops that duplicate `SortedTags` column). It is now computed, as a scalar `int Count =>
+  _lines.Count` always was; the stored `Lines` and `Tags` stay on the model. A view with no stored sibling — the only
+  way the children are reached — keeps its old answer (the one field behind it, or RASK088).
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

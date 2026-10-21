@@ -547,6 +547,41 @@ public class ReadModelGeneratorTests
     }
 
     [Fact]
+    public void A_view_computed_from_a_stored_list_is_not_on_the_read_face_and_the_list_is()
+    {
+        var run = Run("""
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Basket : Aggregate<Guid>
+            {
+                private readonly List<BasketLine> _lines = new();
+                private readonly List<string> _tags = new();
+                private Basket() { }
+                public IReadOnlyList<BasketLine> Lines => _lines;
+                public IEnumerable<BasketLine> OpenLines => _lines.Where(l => l.Quantity > 0);
+                public IReadOnlyList<string> Tags => _tags;
+                public IReadOnlyList<string> SortedTags => _tags.OrderBy(t => t).ToList();
+            }
+            public sealed class BasketLine : Entity<Guid>
+            {
+                private BasketLine() { }
+                public int Quantity { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop_BasketRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains(" Lines { get; init; } = [];", source, StringComparison.Ordinal);
+        Assert.Contains(" Tags { get; init; } = [];", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenLines", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SortedTags", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_tenant_on_a_read_face_is_a_column_and_never_a_navigation_to_an_aggregate_called_Tenant()
     {
         var run = Run(Tenants + """

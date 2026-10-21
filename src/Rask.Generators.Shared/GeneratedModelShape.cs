@@ -321,7 +321,8 @@ internal static class GeneratedModelShape
             CollectionElement(property.Type) is not { } element ||
             !AggregateShape.IsEntity(element) ||
             AggregateShape.IsAggregate(element) ||
-            element is not INamedTypeSymbol childType)
+            element is not INamedTypeSymbol childType ||
+            IsComputed(entity, property, element))
         {
             return null;
         }
@@ -347,6 +348,78 @@ internal static class GeneratedModelShape
         return WriteKindOf(property) is not null && TakesAList(property.Type)
             ? new ModelChild(property, childType, ModelChildAccess.Replace, null)
             : new ModelChild(property, childType, ModelChildAccess.None, null);
+    }
+
+    // A view computed from a collection the aggregate already stores — `OpenLines => _lines.Where(…)` beside `Lines =>
+    // _lines`, `SortedTags => _tags.Order().ToList()` beside `Tags => _tags` — is not a collection of its own: no
+    // setter, no backing field, a getter that makes something of a field rather than handing it out, and a sibling
+    // of the same element that IS stored. Without that sibling the property is the only way the children are reached,
+    // and keeps the older answer (the one field behind it, or RASK088), so no column of an existing app moves.
+    private static bool IsComputed(INamedTypeSymbol entity, IPropertySymbol property, ITypeSymbol element) =>
+        property.SetMethod is null &&
+        !HasBackingField(property) &&
+        Getter(property) is { } getter && !HandsOutAField(property.ContainingType, getter) &&
+        entity.GetMembers().OfType<IPropertySymbol>().Any(sibling =>
+            !SymbolEqualityComparer.Default.Equals(sibling, property) && !sibling.IsStatic &&
+            CollectionElement(sibling.Type) is { } held && SymbolEqualityComparer.Default.Equals(held, element) &&
+            IsStored(sibling));
+
+    // Stored state: a setter, the compiler's backing field, or a getter that hands out a field.
+    private static bool IsStored(IPropertySymbol property) =>
+        property.SetMethod is not null ||
+        HasBackingField(property) ||
+        (Getter(property) is { } getter && HandsOutAField(property.ContainingType, getter));
+
+    // What the getter returns, when its source is in this compilation and is one expression; null otherwise.
+    private static ExpressionSyntax? Getter(IPropertySymbol property) =>
+        property.DeclaringSyntaxReferences.Select(static r => r.GetSyntax()).OfType<PropertyDeclarationSyntax>().FirstOrDefault()
+            is { } declaration
+            ? Returned(declaration)
+            : null;
+
+    // The expression a getter returns: `=> x`, `get => x` or `get { return x; }`. Null for any other body.
+    private static ExpressionSyntax? Returned(PropertyDeclarationSyntax declaration)
+    {
+        if (declaration.ExpressionBody is { } arrow)
+        {
+            return arrow.Expression;
+        }
+
+        var getter = declaration.AccessorList?.Accessors.FirstOrDefault(static a => a.IsKind(SyntaxKind.GetAccessorDeclaration));
+        return getter?.ExpressionBody?.Expression ??
+               (getter?.Body?.Statements is { Count: 1 } statements && statements[0] is ReturnStatementSyntax { Expression: { } returned }
+                   ? returned
+                   : null);
+    }
+
+    // `_lines`, `this._lines`, `(IReadOnlyList<Line>)_lines`, `_lines!` or `_lines.AsReadOnly()`, naming an instance field.
+    private static bool HandsOutAField(INamedTypeSymbol owner, ExpressionSyntax expression)
+    {
+        while (true)
+        {
+            switch (expression)
+            {
+                case ParenthesizedExpressionSyntax parenthesized:
+                    expression = parenthesized.Expression;
+                    continue;
+                case CastExpressionSyntax cast:
+                    expression = cast.Expression;
+                    continue;
+                case PostfixUnaryExpressionSyntax suppressed when suppressed.IsKind(SyntaxKind.SuppressNullableWarningExpression):
+                    expression = suppressed.Operand;
+                    continue;
+                case InvocationExpressionSyntax { ArgumentList.Arguments.Count: 0, Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "AsReadOnly" } readOnly }:
+                    expression = readOnly.Expression;
+                    continue;
+                case MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax } member:
+                    expression = member.Name;
+                    continue;
+                case IdentifierNameSyntax name:
+                    return owner.GetMembers(name.Identifier.ValueText).OfType<IFieldSymbol>().Any(static f => !f.IsStatic);
+                default:
+                    return false;
+            }
+        }
     }
 
     // IEnumerable<T>, IReadOnlyCollection<T> or IReadOnlyList<T>: a List<T> of the same element can be assigned.
@@ -382,7 +455,8 @@ internal static class GeneratedModelShape
             // without this it would be mapped as one and every file column would change shape.
             property.Type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_Byte } ||
             CollectionElement(property.Type) is not { } element ||
-            AggregateShape.IsEntity(element))
+            AggregateShape.IsEntity(element) ||
+            IsComputed(entity, property, element))
         {
             return null;
         }
