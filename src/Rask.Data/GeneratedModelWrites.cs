@@ -80,6 +80,7 @@ public static class GeneratedModelWrites
 
         if (db is not null)
         {
+            AmbientTransaction.Admit(db);
             await AggregateSave.StageAsync(db, entity, cancellationToken).ConfigureAwait(false);
         }
         else
@@ -206,6 +207,7 @@ public static class GeneratedModelWrites
 
         if (db is not null)
         {
+            AmbientTransaction.Admit(db);
             return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
         }
 
@@ -233,6 +235,7 @@ public static class GeneratedModelWrites
 
         if (db is not null)
         {
+            AmbientTransaction.Admit(db);
             return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
         }
 
@@ -261,6 +264,8 @@ public static class GeneratedModelWrites
     {
         if (db is not null)
         {
+            // Inside Db.Transaction a handed-in context joins it, or is refused — it never commits on its own beside it.
+            AmbientTransaction.Admit(db);
             return await write(db).ConfigureAwait(false);
         }
 

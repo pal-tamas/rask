@@ -797,7 +797,15 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 
 - **Everything without a `db:` joins.** `Find`, `Where`, `Any`, `Count`, the read faces, `Create`, `Update`,
   `Delete`, `Save`, child writes and the unique/store-rule checks each still open a context — on the
-  transaction's connection, enlisted in it. A `db:` you pass stays your own unit of work, outside it.
+  transaction's connection, enlisted in it.
+- **A `db:` you pass joins too**, or is refused — it never commits on its own beside the work. On the same
+  connection string, and not opened before it was handed in, it is enlisted (so `db.SaveChangesAsync()` writes
+  inside the transaction); on another database, in a transaction of its own, or with its connection already
+  open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`.
+- **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
+  `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
+  and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the
+  enqueue throws rather than write outside.
 - **Committed when the work completes; rolled back when it throws**, and the exception reaches you unchanged.
 - **After the commit, never before:** domain events are published, the outbox is woken (its rows were written
   inside, so they commit or roll back with the work), and the session's queries are told what changed.
@@ -815,8 +823,8 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 - **Nested `Db.Transaction` joins the outer one.** Same connection, same transaction, committed by the
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
 - **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
-- **What does not join:** a battery's own writes (`Jobs.Enqueue`, `Mail.Send`, the cache) and any context you
-  build yourself.
+- **What does not join:** the cache does not take part — `Cache.Remember` and `Cache.Forget` act at once and
+  are not undone by a rollback. Nor does a context you build yourself and never hand to a Rask call.
 
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.

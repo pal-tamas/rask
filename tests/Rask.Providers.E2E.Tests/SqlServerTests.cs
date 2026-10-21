@@ -165,6 +165,19 @@ public sealed class SqlServerClaimTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Hosts_enqueueing_the_same_work_inside_Db_Transaction_collide_without_dooming_their_transactions()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+
+        var hosts = await UnlessWaitingInTransactions.Run(NewQueue, NewContext);
+
+        Assert.All(hosts, h => Assert.Null(h.Failure));
+        Assert.Single(hosts, h => h.Written);
+        await using var db = NewContext();
+        Assert.Equal(1 + UnlessWaitingInTransactions.Hosts, await db.Set<Job>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task The_waiting_key_index_holds_only_the_rows_that_carry_a_key()
     {
         Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);

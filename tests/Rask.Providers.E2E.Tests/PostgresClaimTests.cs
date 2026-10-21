@@ -174,6 +174,19 @@ public sealed class PostgresClaimTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Hosts_enqueueing_the_same_work_inside_Db_Transaction_collide_without_dooming_their_transactions()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+
+        var hosts = await UnlessWaitingInTransactions.Run(NewQueue, NewContext);
+
+        Assert.All(hosts, h => Assert.Null(h.Failure));
+        Assert.Single(hosts, h => h.Written);
+        await using var db = NewContext();
+        Assert.Equal(1 + UnlessWaitingInTransactions.Hosts, await db.Set<Job>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
     public async Task A_refused_waiting_row_inside_a_transaction_leaves_the_transaction_usable()
     {
         Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);

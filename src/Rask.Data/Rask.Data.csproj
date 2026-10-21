@@ -73,6 +73,10 @@
     <!-- The outbox wakes its processor when the rows it wrote commit, and inside Db.Transaction that is the
          ambient transaction's commit (AmbientTransaction.AfterCommit), not the joined context's. -->
     <InternalsVisibleTo Include="Rask.Outbox"/>
+    <!-- A queued job or mail is a row written inside Db.Transaction (AmbientTransaction.Join): it commits with the
+         work and is gone on a rollback, so nothing runs for work that never happened. -->
+    <InternalsVisibleTo Include="Rask.Jobs"/>
+    <InternalsVisibleTo Include="Rask.Mail"/>
     <!-- A stored file records its tenant in the column type the app's tenant-scoped tables use
          (TenantColumnFollowers), which is model plumbing no app should have to name. -->
     <InternalsVisibleTo Include="Rask.Storage"/>
