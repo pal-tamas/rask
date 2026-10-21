@@ -70,6 +70,10 @@ them until tagged releases begin.
     cut). One browser per app, started at the first print, replaced after a crash, closed with the host; every
     document in a browser context of its own. A 5,000-row table (139–209 A4 landscape pages, heading on every page)
     prints in about a second; in the container the browser peaked at about 1.2 GB.
+  - A browser's start is not the first document's time: Rask waits for a freshly started Chromium to answer on a
+    budget of its own (two minutes, or `Timeout` if longer) — on a busy CI runner a cold start took 45–58 seconds and
+    used to time the first print out. A print that runs out of time says what it was waiting for: "… within 30
+    seconds, while loading the document (its load event); the page's requests still unanswered: …".
   - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had

@@ -8,6 +8,7 @@ namespace Rask.Printing;
 /// </summary>
 internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposable
 {
+    private static readonly TimeSpan ColdStart = TimeSpan.FromMinutes(2);
     private readonly SemaphoreSlim _turns = new(settings.MaxConcurrentPrints, settings.MaxConcurrentPrints);
     private readonly SemaphoreSlim _starting = new(1, 1);
     private ChromiumProcess? _browser;
@@ -35,16 +36,17 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             var browser = await Running(cancellation).ConfigureAwait(false);
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
             deadline.CancelAfter(settings.Timeout);
+            var progress = new PrintProgress();
             try
             {
-                return await HtmlPrint.Run(browser, document, settings.MaxPages, deadline.Token).ConfigureAwait(false);
+                return await HtmlPrint.Run(browser, document, settings.MaxPages, progress, deadline.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException e) when (!cancellation.IsCancellationRequested)
             {
                 throw new TimeoutException(
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"The PDF was not ready within {settings.Timeout.TotalSeconds:0.#} seconds (Rask:Pdf:Timeout)."),
+                        $"The PDF was not ready within {settings.Timeout.TotalSeconds:0.#} seconds (Rask:Pdf:Timeout), {progress.Describe()}."),
                     e);
             }
         }
@@ -95,7 +97,23 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
                 await _browser.DisposeAsync().ConfigureAwait(false);
             }
 
-            _browser = ChromiumProcess.Start(ChromiumLocator.Find(settings.ChromiumPath), settings.NoSandbox);
+            // A browser answers its first command only once it is up, and a cold start can be slow: on a busy CI runner
+            // every browser's first answer took 45 to 58 seconds, where a document then took seconds. Waiting for
+            // that answer here, on a budget of its own, keeps a cold start from eating the first document's
+            // time, and a browser that never comes up is reported as that, not as a document that would not print.
+            var fresh = ChromiumProcess.Start(ChromiumLocator.Find(settings.ChromiumPath), settings.NoSandbox);
+            try
+            {
+                await fresh.Ready(StartupLimit(settings.Timeout), cancellation).ConfigureAwait(false);
+            }
+            catch
+            {
+                await fresh.DisposeAsync().ConfigureAwait(false);
+                _browser = null;
+                throw;
+            }
+
+            _browser = fresh;
             return _browser;
         }
         finally
@@ -103,6 +121,9 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             _starting.Release();
         }
     }
+
+    // At least two minutes, and never less than a document gets.
+    private static TimeSpan StartupLimit(TimeSpan timeout) => timeout > ColdStart ? timeout : ColdStart;
 
     private void CountIn()
     {
