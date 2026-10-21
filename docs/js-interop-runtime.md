@@ -551,6 +551,11 @@ A dialog's `OnClose` hears every close, the page's own included.
 | `data-rask-time-list` (+ `data-rask-time-start` on one row) | a time picker's root, around a `[popover]` list of `[role=option]` rows with ids and, for a button trigger, the `role="combobox"` that opens it | The list's cursor is the browser's, as Flux UI's script keeps it: opening lights the start row (`data-active`, named by the combobox's `aria-activedescendant`) and brings it into view by the least movement; the pointer lights the row it is over and never scrolls the list, and that row goes dark when the pointer leaves; closed, ArrowUp / ArrowDown open the list; open, they walk the rows past a `disabled` one and stop at the ends (from no row, the first or the last), Enter presses the lit row, Tab closes, Home / End / letters do nothing. All held against the morph; nothing is sent but the press on a row. |
 | `data-rask-scroll-to="<selector>"` | an element holding buttons or links — a pager | A press on a `<button>` or an `<a>` inside it brings the first element the selector matches into view (`"body"` for the top of the document, `"#orders"` for a table). The press is not stopped: the handler or the link runs after it. A press elsewhere in the element, and a value that is no selector, scroll nothing. |
 
+**A render removes only what the server wrote** (`rask-written.ts`): an attribute a script put on a rendered element
+itself — a canvas's `width` and `height`, sized by its scoped TypeScript — stays through every diff, morph and
+whole-page reply until a render writes that attribute; from then on it is the render's, and a render that leaves it
+out removes it. One attribute watch on the document tells the two apart; the runtime's own patch writes are not counted.
+
 **A hook that writes an attribute holds it against the morph** (`rask-owned.ts`): `data-open`, `data-copied`, a tooltip's
 `aria-expanded` and a carousel's `disabled` are not what the page rendered, and a re-render neither strips them
 nor puts the rendered value back over them.
