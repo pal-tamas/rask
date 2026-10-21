@@ -32,6 +32,25 @@ public class LiveEventListenerTests
         Assert.Equal(["alice", "bob"], log.HeardBy.Order(StringComparer.Ordinal));
     }
 
+    // What CI once saw as "nobody" was this: the test signed the page in by hand before the attach had adopted its
+    // connection's own principal (anonymous), which then replaced it. A delivery runs as the user the page holds
+    // when it runs — never one it held before.
+    [Fact]
+    public async Task A_delivery_runs_as_the_user_the_page_holds_when_it_runs()
+    {
+        using var host = CreateHost();
+        await using var page = await OpenAsync(host, "bob");
+        var log = host.Server.Services.GetRequiredService<ListenerLog>();
+
+        await Publish(host, new BoardChanged(1));
+        await WaitFor.True(() => log.HeardBy.Count == 1, "the page hears it as bob");
+        page.Session.Users.Set(Person("carol"));
+        await Publish(host, new BoardChanged(2));
+        await WaitFor.True(() => log.HeardBy.Count == 2, "the page hears it as carol");
+
+        Assert.Equal(["bob", "carol"], log.HeardBy);
+    }
+
     [Fact]
     public async Task A_listener_waits_for_the_click_its_page_is_handling()
     {
@@ -126,6 +145,7 @@ public class LiveEventListenerTests
         log.ThrowFor = null;
         await Publish(host, new BoardChanged(2));
         await alice.Ws.ReceiveUntilAsync(static f => f.Contains("heard=1", StringComparison.Ordinal), "alice's page hears the next");
+        await WaitFor.True(() => log.HeardBy.Count == 3, "bob's page hears the next too");
 
         Assert.Equal(["alice", "bob", "bob"], log.HeardBy.Order(StringComparer.Ordinal));
     }
@@ -143,17 +163,30 @@ public class LiveEventListenerTests
 
     private static async Task<OpenPage> OpenAsync(RaskTestHost host, string user)
     {
-        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
-        var sessionId = MarkupAssert.SessionId(html);
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId);
-        var session = host.Store.Get(sessionId)!;
-        await session.LastHandlerTask;
-        session.Users.Set(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.Name, user)], "Test")));
+        var (ws, session, html) = await AttachAsync(host);
+
+        // Once the attach has adopted the connection's own (anonymous) principal: set before, it would be replaced.
+        session.Users.Set(Person(user));
         await ws.SettledAsync();
         return new OpenPage(ws, session, html);
     }
+
+    private static async Task<(WebSocket Ws, LiveSession Session, string Html)> AttachAsync(RaskTestHost host)
+    {
+        var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        var sessionId = MarkupAssert.SessionId(html);
+        var session = host.Store.Peek(sessionId)!;
+        var settled = session.AttachesSettled;
+        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
+        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
+        await ws.AttachedAsync(host, sessionId);
+        await WaitFor.True(() => session.AttachesSettled > settled, "the attach has adopted its connection's user");
+        await session.LastHandlerTask;
+        return (ws, session, html);
+    }
+
+    private static ClaimsPrincipal Person(string name) =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.Name, name)], "Test"));
 
     private sealed class OpenPage(WebSocket ws, LiveSession session, string html) : IAsyncDisposable
     {
