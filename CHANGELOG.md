@@ -1000,6 +1000,12 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A read face reads every column through the converter the write model stores it with.** A converter that keeps
+  the type — bytes compressed to bytes, a string encrypted to a string — was dropped, so
+  `File.Where(f => f.Id == id).Select(f => f.Content).First()` handed back the compressed bytes and a `Where` on the
+  plain value matched nothing. Such converters now travel to the face at any depth (a property, inside a value
+  object), as does a `HasConversion<string>()` given only the stored type, and an app's own converter on a one-value
+  value object is read through that value object.
 - **Two builds fetching the same TypeScript tool at once no longer fail one of them.** The second build's move
   into the cache met the first one's copy ("Directory not empty") and failed the build; it now keeps the copy that
   landed first, which passed the same checksum.
