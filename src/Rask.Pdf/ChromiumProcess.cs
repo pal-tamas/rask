@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace Rask.Printing;
@@ -77,6 +78,26 @@ internal sealed class ChromiumProcess : IAsyncDisposable
         {
             profile.Delete(recursive: true);
             throw;
+        }
+    }
+
+    /// <summary>Waits for the browser to answer its first command: it is up, and taking documents.</summary>
+    /// <exception cref="TimeoutException">It did not answer within <paramref name="limit"/>.</exception>
+    public async Task Ready(TimeSpan limit, CancellationToken cancellation)
+    {
+        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+        waiting.CancelAfter(limit);
+        try
+        {
+            await Connection.Send("Browser.getVersion", cancellation: waiting.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException e) when (!cancellation.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Chromium started but did not answer within {limit.TotalSeconds:0.#} seconds: the machine is too busy to bring it up, or it cannot run here.{Log()}"),
+                e);
         }
     }
 

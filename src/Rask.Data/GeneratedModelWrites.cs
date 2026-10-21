@@ -164,13 +164,7 @@ public static class GeneratedModelWrites
         cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
 
-        // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
-        if (!ConventionRegistry.IsDeletable(typeof(TEntity)))
-        {
-            throw new InvalidOperationException(
-                $"{typeof(TEntity).Name} names neither Deletable nor SoftDelete, so it is never deleted; " +
-                "retire it through a method of its own (Cancel, Archive) instead.");
-        }
+        RefuseUndeletable<TEntity>();
 
         return InContextAsync(db, async context =>
         {
@@ -181,6 +175,42 @@ public static class GeneratedModelWrites
 
             return entity;
         }, cancellationToken);
+    }
+
+    /// <summary>
+    ///     Deletes the aggregate the caller holds — what <c>product.Delete()</c> does — from what <c>Find</c> read,
+    ///     with no read first: a stamp when it names <see cref="SoftDelete" />, the row and its children otherwise.
+    /// </summary>
+    /// <param name="entity">The aggregate, from <c>Find</c> or saved.</param>
+    /// <param name="db">
+    ///     The context to delete through, or <c>null</c> to open one. A given context is only STAGED — the caller saves
+    ///     it, and it is not disposed.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the save; unset, the work this call belongs to does.</param>
+    /// <exception cref="InvalidOperationException">It was never saved, or names neither Deletable nor SoftDelete.</exception>
+    /// <exception cref="KeyNotFoundException">Its row has been deleted since it was read, and it has no Version to say so.</exception>
+    /// <exception cref="DbUpdateConcurrencyException">Its row was changed or deleted by someone else since it was read.</exception>
+    public static async Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        TEntity entity,
+        DbContext? db = null,
+        CancellationToken cancellationToken = default)
+        where TEntity : class, IAggregate
+    {
+        cancellationToken = Ambient.Or(cancellationToken);
+        ArgumentNullException.ThrowIfNull(entity);
+        RefuseUndeletable<TEntity>();
+
+        if (db is not null)
+        {
+            AmbientTransaction.Admit(db);
+            await AggregateSave.StageDeleteAsync(db, entity, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var context = Db.CreateContext();
+        await using var contextScope = context.ConfigureAwait(false);
+        await AggregateSave.StageDeleteAsync(context, entity, cancellationToken).ConfigureAwait(false);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -217,27 +247,24 @@ public static class GeneratedModelWrites
     }
 
     /// <summary>
-    ///     Loads the aggregate with <paramref name="key" /> whole and untracked — what <c>Product.Find(id)</c>
-    ///     returns, to change through its own methods and <c>Save()</c>.
+    ///     Loads the aggregate with <paramref name="key" /> whole — what <c>Product.Find(id)</c> returns, to change
+    ///     through its own methods and <c>Save()</c>.
     /// </summary>
     /// <param name="key">The primary key of the row to load.</param>
-    /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
     /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
     /// <returns>The aggregate and its children, or <c>null</c> when no row has that key or it is soft-deleted.</returns>
+    /// <remarks>
+    ///     Always through a context of its own, and handed back DETACHED with what it read remembered beside it: that
+    ///     snapshot is what <c>Save()</c> diffs against, so the row is read once however it is saved. A read that only
+    ///     shows a row belongs on the read face (<c>Product.Where(…)</c>) or the form model (<c>Product.Model(id)</c>).
+    /// </remarks>
     public static async Task<TEntity?> Find<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
-        DbContext? db = null,
         CancellationToken cancellationToken = default)
         where TEntity : class, IAggregate
     {
         cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
-
-        if (db is not null)
-        {
-            AmbientTransaction.Admit(db);
-            return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
-        }
 
         // Tracked in a context about to be discarded, only so what was read can be remembered for Save().
         var context = Db.CreateContext();
@@ -251,6 +278,17 @@ public static class GeneratedModelWrites
         }
 
         return found;
+    }
+
+    // The generated Product.Delete is not emitted for such an aggregate; this closes the direct call.
+    private static void RefuseUndeletable<TEntity>()
+    {
+        if (!ConventionRegistry.IsDeletable(typeof(TEntity)))
+        {
+            throw new InvalidOperationException(
+                $"{typeof(TEntity).Name} names neither Deletable nor SoftDelete, so it is never deleted; " +
+                "retire it through a method of its own (Cancel, Archive) instead.");
+        }
     }
 
     // The one place the "given or owned" rule lives, and it decides BOTH questions: a caller's context is

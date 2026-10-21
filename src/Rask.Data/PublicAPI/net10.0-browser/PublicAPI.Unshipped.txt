@@ -269,6 +269,7 @@ static Rask.Data.GeneratedModelRules.Told(System.Collections.Generic.IList<Rask.
 static Rask.Data.GeneratedModelRules.Told(System.Collections.Generic.IList<Rask.Wire.FieldFailure!>? failures, string! path, string! field, System.Collections.Generic.IEnumerable<string!>? messages) -> System.Collections.Generic.IList<Rask.Wire.FieldFailure!>?
 static Rask.Data.GeneratedModelWrites.Create<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedModelWrites.Delete<TEntity>(object! key, int? version, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Data.GeneratedModelWrites.Delete<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 static Rask.Data.GeneratedModelWrites.ModelSource<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Update<TEntity>(object! key, int? version, System.Action<TEntity!>! apply, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 static Rask.Data.GeneratedReadQuery.Of<TRead>() -> Rask.Data.ModelQuery<TRead!>!
@@ -318,7 +319,7 @@ static Rask.Data.CurrentUser.get_RequiredTenant() -> System.Guid
 static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
 static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
 static Rask.Data.CurrentUser.get_UserId() -> System.Guid?
-static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
+static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Save<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
 Rask.Data.ModelQuery<TEntity>.Any(System.Linq.Expressions.Expression<System.Func<TEntity!, bool>!>! predicate, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
 Rask.Data.ModelQuery<TEntity>.Any(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
