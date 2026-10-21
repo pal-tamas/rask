@@ -17,5 +17,19 @@ internal static class PrintedPdf
         return document.GetPages().Select(page => (page.Width, page.Height, Words(page))).ToList();
     }
 
+    /// <summary>How far from the left edge, in points, the first page's first letter starts.</summary>
+    public static double FirstLetterLeft(byte[] pdf)
+    {
+        using var document = PdfDocument.Open(pdf);
+        return document.GetPage(1).Letters[0].StartBaseLine.X;
+    }
+
+    /// <summary>The fonts the first page's letters are drawn in.</summary>
+    public static IReadOnlySet<string> Fonts(byte[] pdf)
+    {
+        using var document = PdfDocument.Open(pdf);
+        return document.GetPage(1).Letters.Select(letter => letter.FontName ?? string.Empty).ToHashSet(StringComparer.Ordinal);
+    }
+
     private static string Words(Page page) => string.Join(' ', page.GetWords().Select(word => word.Text));
 }
