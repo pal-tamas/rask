@@ -35,6 +35,24 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
+  Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a
+  blue/green switch broke (the old host ran the new host's first round, so the new host's entries never cleared and
+  most pumps were never asked again). After: `var asked = await Jobs.Enqueue(new AskStatus(id)).InLane(id).UnlessWaiting();`
+  writes nothing and answers `false` while a row of the same lane, tenant, job kind and serialized payload waits
+  unclaimed. A claimed one — running, or waiting for a retry — does not count, so a new round queues behind a
+  running one. A unique index on the new `Job.WaitingKey` (a SHA-256 of those four, cleared by the claim) makes it
+  race-free across hosts on SQLite, SQL Server and PostgreSQL. No sweeper is needed: a key left on a row that an
+  older host claimed or finished during a switch (it claims without knowing the column) is cleared by the next
+  `UnlessWaiting` that meets it. Every `Enqueue` await now answers whether a row was
+  written (`Task<bool>`; a plain enqueue is always `true`), `IJobs` gains `AddUnlessWaiting`, and `Jobs.Fake()`
+  skips a copy it has not `Run()` yet. [docs/jobs.md](docs/jobs.md#unless-the-same-work-already-waits)
+  - **Migration:** `Job` gets a nullable `WaitingKey` column (64 characters) and a unique index on it:
+    `rask db add AddJobWaitingKey && rask db update` (until then the processor logs exactly that, and an enqueue
+    fails on the missing column). Existing rows keep it empty, so nothing is rewritten; SQL Server filters the
+    index to `[WaitingKey] IS NOT NULL`, so it starts empty, and on SQLite and PostgreSQL it is one pass over the
+    table. An app with its own `IJobs` implements `AddUnlessWaiting`.
+
 - **`Db.Transaction`: a check and the writes it guards in one transaction.** Before: a read face (`Pistol.Count`,
   `Tank.Any`) always opened a context of its own, so a check ran outside the app's `BeginTransaction` and two
   concurrent saves could take the same pistol; `db:` could stage writes together but never a read. After:

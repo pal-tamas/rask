@@ -35,5 +35,12 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // The lane is data on the row, and the claim looks a lane up to see whether it is busy.
         builder.Property(x => x.Lane).HasMaxLength(256);
         builder.HasIndex(x => new { x.Lane, x.ProcessedAt });
+
+        // What refuses a second copy of work that already waits (.UnlessWaiting()), across every host at once.
+        // Only a waiting, never-claimed row holds a key — the claim clears it — so no clock is in the predicate.
+        // NULLs never collide: SQLite and PostgreSQL treat them as distinct, and SQL Server's provider filters a
+        // unique index on a nullable column to `[WaitingKey] IS NOT NULL`, so there it indexes waiting rows alone.
+        builder.Property(x => x.WaitingKey).HasMaxLength(JobWaitingKey.Length);
+        builder.HasIndex(x => x.WaitingKey).IsUnique();
     }
 }

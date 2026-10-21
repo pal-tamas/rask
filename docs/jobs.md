@@ -102,6 +102,36 @@ await Jobs.Enqueue(new AskStatus(other.Id)).InLane(other.Id); // runs now, besid
 A recurring job has no lane of its own; let it enqueue the laned jobs (`foreach pump -> InLane(pump.Id)`).
 Upgrading adds the `Lane` column: `rask db add AddJobLane && rask db update`.
 
+### Unless the same work already waits
+
+A round that asks every pump for its status should not pile a second question behind one that has not been
+asked yet. Add `.UnlessWaiting()` and the await says whether a row was written:
+
+```csharp
+var asked = await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id).UnlessWaiting(); // false: one waits already
+```
+
+- **The same work** is the same lane, the same tenant, the same job kind and the same serialized payload — the
+  job's own properties, nothing else. When it was enqueued, when it is due and who enqueued it do not count, and
+  Rask adds no clock or id of its own; a job that carries a timestamp is only the same as one with that timestamp.
+- **Only a job nobody has claimed yet counts.** Once a processor takes it - running, or back to wait for a retry
+  after a failure or a shutdown - the same work may be enqueued again, and waits in the lane behind it. So a new
+  round always queues behind one that is running, and never behind a second copy of one that is not.
+- **The job table decides, not the host's memory.** The waiting row carries a key (`Job.WaitingKey`, a SHA-256
+  of the above) under a unique index, and the claim clears it. Two hosts enqueueing at once - a blue/green switch,
+  a scaled-out app - still leave one waiting row; the loser's await answers `false`.
+- **No sweeper, and no key outlives its work.** A key left on a row that was claimed or finished - which is
+  what a host still on an older Rask.Jobs leaves during a blue/green switch, since it claims without knowing the
+  column - is cleared by the next `.UnlessWaiting()` that meets it, and that enqueue writes its row. The clear
+  is conditional and the index still decides, so two hosts meeting the same stale key leave one new waiting row.
+- A plain `Enqueue` (no `.UnlessWaiting()`) always writes a row, and its await answers `true`.
+- `Jobs.Fake()` keeps the same promise: a copy recorded and not yet `Run()` makes the next one answer `false`.
+
+Upgrading adds the `WaitingKey` column and its unique index: `rask db add AddJobWaitingKey && rask db update`.
+The column is nullable and every existing row leaves it empty, so adding it rewrites nothing; on SQL Server the
+index is filtered to rows that carry a key, so it starts empty, and on SQLite and PostgreSQL the build is one
+pass over the table. Until the migration runs, the processor logs exactly that command.
+
 ## How it works
 
 - **`IJobs`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your

@@ -125,6 +125,94 @@ public sealed class PostgresClaimTests : IAsyncLifetime
         }
     }
 
+    [Fact]
+    public async Task Twenty_hosts_enqueueing_the_same_work_at_once_leave_one_waiting_row()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        var queues = Enumerable.Range(0, 20).Select(_ => NewQueue()).ToList();
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var enqueues = queues.Select(async queue =>
+        {
+            await start.Task;
+            return await queue.Enqueue(new ProbeJob("ask"), TestContext.Current.CancellationToken).InLane("pump-7").UnlessWaiting();
+        }).ToList();
+        start.SetResult();
+        var written = await Task.WhenAll(enqueues);
+
+        Assert.Single(written, w => w);
+        await using var db = NewContext();
+        Assert.Equal(1, await db.Set<Job>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Twenty_hosts_meeting_a_key_an_older_host_claim_left_leave_one_new_waiting_row()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        var ct = TestContext.Current.CancellationToken;
+        var queues = Enumerable.Range(0, 20).Select(_ => NewQueue()).ToList();
+        await queues[0].Enqueue(new ProbeJob("ask"), ct).InLane("pump-7").UnlessWaiting();
+        await using (var db = NewContext())
+        {
+            // An older Rask.Jobs claims without knowing WaitingKey: lease and attempt, key left in place.
+            await db.Set<Job>().ExecuteUpdateAsync(
+                s => s.SetProperty(j => j.ClaimToken, Guid.NewGuid()).SetProperty(j => j.Attempts, 1), ct);
+        }
+
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var enqueues = queues.Select(async queue =>
+        {
+            await start.Task;
+            return await queue.Enqueue(new ProbeJob("ask"), ct).InLane("pump-7").UnlessWaiting();
+        }).ToList();
+        start.SetResult();
+        var written = await Task.WhenAll(enqueues);
+
+        Assert.Single(written, w => w);
+        await using var check = NewContext();
+        Assert.Equal(2, await check.Set<Job>().CountAsync(ct));
+    }
+
+    [Fact]
+    public async Task A_refused_waiting_row_inside_a_transaction_leaves_the_transaction_usable()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        // What a Db.Transaction that an enqueue joins goes through on PostgreSQL, where a failed statement would
+        // otherwise abort the whole transaction: EF's savepoint undoes the refused insert alone.
+        var (type, payload) = JobSerializerRegistry.Serialize(new ProbeJob("ask"));
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = NewContext();
+
+        await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            db.Set<Job>().Add(Job.Waiting(type, payload, DateTime.UtcNow, "pump-7"));
+            await db.SaveChangesAsync(ct);
+            db.Set<Job>().Add(Job.Waiting(type, payload, DateTime.UtcNow, "pump-7"));
+            await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync(ct));
+            db.ChangeTracker.Clear();
+            db.Set<Job>().Add(Job.For(type, payload, DateTime.UtcNow, "pump-7"));
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        });
+
+        await using var check = NewContext();
+        Assert.Equal(2, await check.Set<Job>().CountAsync(ct));
+    }
+
+    private IJobs NewQueue()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddRaskCqrs();
+        services.AddRaskJobs<ClaimDbContext>();
+        services.AddDbContextFactory<ClaimDbContext>(o => o.UseRaskPostgresAt(Postgres.Required));
+
+        var provider = services.BuildServiceProvider();
+        _providers.Add(provider);
+        return provider.GetRequiredService<IJobs>();
+    }
+
     /// <summary>
     /// Builds every instance first, then releases all their claims at once.
     /// </summary>

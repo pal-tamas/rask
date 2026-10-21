@@ -106,6 +106,28 @@ public sealed class JobsFake : IJobs, IDisposable
         return Task.CompletedTask;
     }
 
+    // Waiting here is "recorded and not yet run": the fake has no claim, and Run() is what takes a job off the list.
+    Task<bool> IJobs.AddUnlessWaiting(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        var tenant = Current.Tenant;
+        lock (_gate)
+        {
+            for (var i = _ran; i < _enqueued.Count; i++)
+            {
+                var waiting = _enqueued[i];
+                if (string.Equals(waiting.Lane, lane, StringComparison.Ordinal) && waiting.Tenant == tenant && Equals(waiting.Job, job))
+                {
+                    return Task.FromResult(false);
+                }
+            }
+
+            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, Current.UserId, lane));
+        }
+
+        return Task.FromResult(true);
+    }
+
     private EnqueuedJob? Next()
     {
         lock (_gate)

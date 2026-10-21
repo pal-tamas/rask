@@ -107,7 +107,9 @@ public sealed partial class JobProcessor<TContext>(
                 s => s
                     .SetProperty(j => j.ClaimToken, token)
                     .SetProperty(j => j.ClaimedUntil, until)
-                    .SetProperty(j => j.Attempts, j => j.Attempts + 1),
+                    .SetProperty(j => j.Attempts, j => j.Attempts + 1)
+                    // Claimed work is no longer waiting: the same work may wait behind it from here on.
+                    .SetProperty(j => j.WaitingKey, (string?)null),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -344,6 +346,12 @@ public sealed partial class JobProcessor<TContext>(
             if (IsMissingColumn(ex, nameof(Job.Lane)))
             {
                 LaneColumnMissing(logger, ex);
+                return;
+            }
+
+            if (IsMissingColumn(ex, nameof(Job.WaitingKey)))
+            {
+                WaitingKeyColumnMissing(logger, ex);
                 return;
             }
 
@@ -820,6 +828,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added a Lane column (what lets jobs of different lanes run side by side) that this database does not have. "
             + "Run: rask db add AddJobLane && rask db update.")]
     private static partial void LaneColumnMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added a WaitingKey column (what lets .UnlessWaiting() skip work that already waits) that this database does not have. "
+            + "Run: rask db add AddJobWaitingKey && rask db update.")]
+    private static partial void WaitingKeyColumnMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);
