@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Rask.UiTests;
 
 /// <summary>
-///     The kit on paper: controls and chrome print as nothing, a table runs on whole — and
+///     The kit on paper: controls and chrome print as nothing, a table runs on whole, an accordion prints open — and
 ///     not one of those rules reaches a screen. Read from the COMPILED sheet, where Tailwind has merged the layers.
 /// </summary>
 public sealed partial class UiPrintTests
@@ -30,6 +30,9 @@ public sealed partial class UiPrintTests
     [InlineData("[data-ui-table] :is(th,td,.truncate)", "white-space:normal")]
     [InlineData("[data-ui-table]>thead", "display:table-header-group")]
     [InlineData("[data-ui-table] tr", "break-inside:avoid")]
+    [InlineData("[data-ui-accordion-item]::details-content", "content-visibility:visible")]
+    [InlineData("[data-ui-accordion-item]::details-content", "height:auto")]
+    [InlineData("[data-ui-accordion-heading]>[data-ui-icon]", "display:none")]
     public void A_print_default_is_in_the_sheet_and_only_on_paper(string selector, string declaration)
     {
         var (paper, screen) = Split(UiStylesheet.Css);

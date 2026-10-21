@@ -58,6 +58,7 @@ A report is an ordinary component, and the kit already knows what paper is:
   `Ui.Main` drops its screen padding and panel.
 - **`Ui.Table` prints whole.** Cells wrap instead of being cut, the scroll frame lets the table run on, its
   heading repeats at the top of every page, and a row is never split across two.
+- **`Ui.Accordion` prints open** — every item's content, closed ones included, with no chevron.
 
 Hide your own parts with Tailwind's `print:hidden`; show something the kit hides with an important utility,
 `print:inline-flex!`. None of this touches the screen: every rule is inside `@media print`, so the same

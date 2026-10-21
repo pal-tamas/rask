@@ -475,6 +475,8 @@ native `<details>` whose heading opens it with a click, Enter or Space and no ha
 Every example, what the browser owns and the reference of its steps:
 **[rask.sh/ui/accordion](https://rask.sh/ui/accordion/)**.
 
+On paper it prints open: every item's content, closed ones included, with no chevron ([printing](#printing)).
+
 ## Icons
 
 `Ui.Icon` is [Flux's icon](https://fluxui.dev/components/icon): every [Heroicon](https://heroicons.com), under
@@ -553,6 +555,7 @@ Ctrl+P:
   padding, border and inner scroll.
 - **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
   run on, the heading repeats at the top of every page, and no row is split across two.
+- **`Ui.Accordion` prints open,** closed items included, with no chevron.
 
 ```csharp
 Div.Class("print:hidden")[Ui.Callout["Only on screen."]]   // your own parts: Tailwind's print: variants

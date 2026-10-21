@@ -1,7 +1,8 @@
 namespace Rask.Printing.Tests.Host;
 
 /// <summary>
-/// A kit page printed through Pdf.From: the kit's print defaults leave its chrome and controls off, and run the table on with its heading on every page. RASK_PDF_SHOTS=dir also writes it there.
+/// A kit page printed through Pdf.From: the kit's print defaults leave its chrome and controls off, open every
+/// accordion item, and run the table on with its heading on every page. RASK_PDF_SHOTS=dir also writes it there.
 /// </summary>
 public sealed class KitPrintTests
 {
@@ -21,6 +22,19 @@ public sealed class KitPrintTests
         Assert.DoesNotContain("Oldalsáv menüpont", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Fejléc felirat", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Showing", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_closed_accordion_item_prints_open()
+    {
+        Assert.SkipWhen(TestChromium.Installed is null, "No Chromium is installed here, so nothing printed.");
+        await using var host = await PrintHost.Start();
+
+        var pdf = await host.As(PrintHost.Anonymous, () => Pdf.From(PrintTestApp.KitPage()));
+
+        var first = PrintedPdf.Pages(pdf)[0].Text;
+        Assert.Contains("Nyitott tartalom.", first, StringComparison.Ordinal);
+        Assert.Contains("Zárt tartalom, nyomtatva látszik.", first, StringComparison.Ordinal);
     }
 
     [Fact]

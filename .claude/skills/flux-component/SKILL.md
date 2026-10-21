@@ -72,7 +72,8 @@ departure in behaviour carries none.
 - **2026-10-21 — print defaults (`@media print` in `Styles/ui.css`, the last block).** Flux prints its screen. The
   kit leaves off `Ui.Button` (every variant), a badge's ×, `Ui.Pagination`, `Ui.Sidebar` (+ toggle, backdrop),
   `Ui.Header`, toasts, tooltips, menu/popover panels and a modal's backdrop; `Ui.Main` loses its padding and scroll;
-  `Ui.Table` wraps its cells, lets its frame run on, repeats `thead` and keeps a row on one page. Reason: Rask.Pdf (Eszaf's reports) prints app pages. Print media only, so parity
+  `Ui.Table` wraps its cells, lets its frame run on, repeats `thead` and keeps a row on one page; `Ui.Accordion`
+  prints open with no chevron. Reason: Rask.Pdf (Eszaf's reports) prints app pages. Print media only, so parity
   (screen) is untouched; an app hides its own parts with `print:hidden`. `UiPrintTests` holds every rule to print.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
