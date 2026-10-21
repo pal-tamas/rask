@@ -5,15 +5,15 @@ namespace Rask.Site.Features.UiDocs;
 
 public sealed partial class UiFiltersPage
 {
-    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly DateOnly Today = DateOnly.FromDateTime(TimeProvider.System.GetLocalNow().DateTime);
 
-    private static readonly (string Number, string Driver, DateOnly Day, string Status)[] Orders =
+    private static readonly Order[] Orders =
     [
-        ("#3102", "ada", Today, "open"),
-        ("#3101", "grace", Today.AddDays(-1), "shipped"),
-        ("#3099", "ada", Today.AddDays(-3), "shipped"),
-        ("#3094", "alan", Today.AddDays(-8), "open"),
-        ("#3090", "grace", Today.AddDays(-20), "returned"),
+        new("#3102", "ada", Today, "open"),
+        new("#3101", "grace", Today.AddDays(-1), "shipped"),
+        new("#3099", "ada", Today.AddDays(-3), "shipped"),
+        new("#3094", "alan", Today.AddDays(-8), "open"),
+        new("#3090", "grace", Today.AddDays(-20), "returned"),
     ];
 
     [QueryParam("driver")] public string? Driver { get; set; }
@@ -24,6 +24,8 @@ public sealed partial class UiFiltersPage
 
     // The list's own order, kept in the address beside the filters: no filter, so Clear all leaves it.
     [QueryParam("sort")] public string? Sort { get; set; }
+
+    private bool ByDay => string.Equals(Sort, "day", StringComparison.Ordinal);
 
     private Component FiltersExample()
     {
@@ -41,9 +43,9 @@ public sealed partial class UiFiltersPage
             ]
         ];
 
-        var rows = Orders.Where(order => (Driver is null || order.Driver == Driver)
+        var rows = Orders.Where(order => (Driver is null || string.Equals(order.Driver, Driver, StringComparison.Ordinal))
                                          && (Period is not { } period || period.Contains(order.Day))
-                                         && (Status is null || order.Status == Status));
+                                         && (Status is null || string.Equals(order.Status, Status, StringComparison.Ordinal)));
 
         return Div.Class("space-y-4")[
             filters,
@@ -52,11 +54,11 @@ public sealed partial class UiFiltersPage
                 Ui.TableColumns[
                     Ui.TableColumn["Order"],
                     Ui.TableColumn["Driver"],
-                    Ui.TableColumn.Sortable().Sorted(Sort == "day").OnSort(() => Go.With("sort", Sort == "day" ? null : "day"))["Day"],
+                    Ui.TableColumn.Sortable().Sorted(ByDay).OnSort(() => Go.With("sort", ByDay ? null : "day"))["Day"],
                     Ui.TableColumn["Status"]
                 ],
                 Ui.TableRows[
-                    (Sort == "day" ? rows.OrderBy(order => order.Day) : rows).Select(order => Ui.TableRow.Key(order.Number)[
+                    (ByDay ? rows.OrderBy(order => order.Day) : rows).Select(order => Ui.TableRow.Key(order.Number)[
                         Ui.TableCell[order.Number],
                         Ui.TableCell[order.Driver],
                         Ui.TableCell[order.Day.ToString("MMM d", CultureInfo.InvariantCulture)],
@@ -66,4 +68,6 @@ public sealed partial class UiFiltersPage
             ]
         ];
     }
+
+    private sealed record Order(string Number, string Driver, DateOnly Day, string Status);
 }

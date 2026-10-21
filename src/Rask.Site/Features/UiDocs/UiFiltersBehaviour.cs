@@ -16,7 +16,7 @@ internal sealed partial class UiFiltersBehaviour : Component
         UiDocsTopic.Key("address").Heading("Kept in the address").Paragraphs([
             "Each control is bound to a page member with `[QueryParam]`, as it would be in a form, and the set binds it to "
             + "the address instead: a pick moves the query, the router writes the member, and the page hears `OnUpdated` "
-            + "as for any move of its query. A filtered list can be linked to, reloaded and stepped back through.",
+            + "as for any move of its query. A filtered list can be linked to and reloaded.",
             "The key is the attribute's name, or the member's own. A member without one fails as the page renders, "
             + "naming the declaration to write. A range is one key, `period=2026-10-01..2026-10-09`, because "
             + "`UiDateRange` reads and writes itself as text: `[QueryParam] public UiDateRange? Period` works on any page.",

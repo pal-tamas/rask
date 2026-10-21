@@ -25,11 +25,11 @@ public sealed partial class UiFiltersPage : Component
                   + "in a flyout, and Badges says which are in force. Not one of Flux UI's components: the kit's own, built "
                   + "from its select, date picker, modal and badge.")
             .Api(UiApi.Filters)[
-            UiDocsExample.Key("ui-filters").Heading("Filters").File("FiltersExample.cs").Demo(FiltersExample()).Testid("ui-filters")
+            UiDocsExample.Key("ui-filters").Heading("Filters").File("UiFiltersPage.Filters.cs").Demo(FiltersExample()).Testid("ui-filters")
                 .Blurb("Each control is bound to a [QueryParam] of the page, as in a form. A pick applies at once and moves "
-                       + "the address, so Back undoes it and a copied link opens on the same rows. The badges say each "
-                       + "filter in its control's own words, and the table's sort is no filter: Clear all leaves it."),
-            UiDocsExample.Key("ui-filters-own").Heading("A filter of your own").File("FilterExample.cs").Demo(FilterExample()).Testid("ui-filters-own")
+                       + "the address, so a reload or a copied link opens on the same rows. The badges say each filter in "
+                       + "its control's own words, and the table's sort is no filter: Clear all leaves it."),
+            UiDocsExample.Key("ui-filters-own").Heading("A filter of your own").File("UiFiltersPage.Filter.cs").Demo(FilterExample()).Testid("ui-filters-own")
                 .Blurb("Ui.Filter carries a filter the set cannot read from a control, such as a select of several "
                        + "answers: the page says what it is called, what it holds and how it is taken off."),
             UiFiltersBehaviour
