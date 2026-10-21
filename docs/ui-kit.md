@@ -1087,7 +1087,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` `Ui.Filters` `Ui.Filter` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
@@ -1125,6 +1125,43 @@ It is rendered closed and the runtime opens it, so the question appears without 
 button, Escape and a press outside mean stay. It is drawn as the confirmation above is — `min-w-[22rem]` —
 and, because its heading may be a whole question of the form's own, with `pe-8` on it. `Heading("…")` gives
 it the shape Flux's confirmation has: a short title, the question under it.
+
+`Lazy()` is the one modal step that is not Flux's (the owner's, 2026-10-21): the modal sends what it holds only
+while it is open. Closed, the page carries the dialog alone — its id, its close button, its focus placeholder — and
+the trigger still opens it in the browser; the runtime tells the page it opened, and one frame brings the content.
+Closing takes it away again. With `Open(_field)` it holds its content exactly while the field is true. It is off by
+default, because a modal that must open with no server at all (`Ui.ConfirmLeave`, a ⌘K palette) has to hold its
+content before anyone asks.
+
+### Filters
+
+`Ui.Filters` is the kit's own — not a Flux component, the owner's (2026-10-21) — and is built from Flux's select,
+date picker, modal and badge: a list's filters, each kept in the page's address.
+
+```csharp
+[QueryParam("driver")] public string? Driver { get; set; }
+[QueryParam("period")] public UiDateRange? Period { get; set; }
+
+var filters = Ui.Filters[
+    Ui.Select.Bind(() => Driver).Label("Driver").Listbox.Searchable().Clearable()[…],
+    Ui.DatePicker.Range.Bind(() => Period).Label("Period").WithPresets().Clearable(),
+];
+
+Div[filters, filters.Badges, Ui.Table[…]]   // filters.Active counts the filters in force
+```
+
+Placed, it draws a Filters button (a funnel, and the count once a filter is in force) that opens a lazy flyout of
+the fields, with Clear filters and Close under them. Each control is bound to a `[QueryParam]` member and the set
+binds it to the address instead, so the router stays the only writer of the member and the page hears `OnUpdated`:
+a pick moves the query (replacing the history entry), a text field once typing pauses for 150 ms, and a call site's
+own `Debounce` wins. A member without `[QueryParam]` fails as the page renders, naming the declaration to write.
+`filters.Badges` is a badge for each filter in force in its control's own words — "Driver: Ada Lovelace", a range
+as its picker writes it or the preset that made it, a checkbox's label alone — each with a cross that takes that key
+out, and Clear all from two on, which takes every filter's key out in one move and leaves the sort alone.
+`Ui.Filters.OnOpen(…)` runs as the panel opens. A filter no control can say — a select of several answers, until a
+collection `[QueryParam]` exists — goes in `Ui.Filter.Label("Labels").Shown(…).OnRemove(…)[control]`. A range is one
+query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
+it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 

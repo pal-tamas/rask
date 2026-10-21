@@ -15,6 +15,9 @@ internal static class UiApi
 
     private const string Handler = "a handler, with no argument";
 
+    /// <summary>What a part's badge says where it mirrors no Flux part: the kit's own, which the owner asked for.</summary>
+    public const string NotFlux = "not in Flux UI";
+
     private const string Toggled = "a handler given the state it is now in: open => …";
 
     private const string Picked = "a handler given the new value";
@@ -281,6 +284,7 @@ internal static class UiApi
             new("Escapable", typeof(bool?), "Whether Escape closes it. On unless false."),
             new("Closable", typeof(bool?), "Whether it shows the close button in its corner. On unless false."),
             new("Open", typeof(bool?), "Hands the open state to the page, Flux's wire:model. Unset, its triggers open it."),
+            new("Lazy", typeof(bool?), "Sends what it holds only while it is open: closed, it is the dialog alone. Not Flux's."),
             new("OnClose", typeof(Callback), "Runs when it closes, by any means: where a page that set Open hears it.", Handler),
             new("OnCancel", typeof(Callback), "Runs when it is dismissed, by Escape or a click outside, before OnClose.", Handler),
         ]),
@@ -290,6 +294,20 @@ internal static class UiApi
             new("Shortcut", typeof(string), "Keys that open it from anywhere on the page: \"mod+k\" is ⌘K on a Mac and Ctrl K elsewhere."),
         ]),
         new("Ui.ModalClose", typeof(UiModalClose), "flux:modal.close", "Makes the button inside it close the modal it is in: a close, not a dismissal.", []),
+    ];
+
+    public static IReadOnlyList<UiApiPart> Filters { get; } =
+    [
+        new("Ui.Filters", typeof(UiFilters), NotFlux, "A list's filters kept in the address: a button that opens them in a lazy flyout, and badges for those in force.",
+        [
+            new("OnOpen", typeof(Callback), "Runs when the reader opens the panel: where a page loads what its fields offer.", Handler),
+        ]),
+        new("Ui.Filter", typeof(UiFilter), NotFlux, "A filter the set cannot read from a control: the page says what it is called, what it holds and how it is taken off.",
+        [
+            new("Label", typeof(string), "What it filters by: the badge's first word. Required, and taken first."),
+            new("Shown", typeof(string), "What it holds, as the badge says it. Unset, it is not in force and has no badge."),
+            new("OnRemove", typeof(Callback), "Runs when its badge is taken off, or every filter is cleared.", Handler),
+        ]),
     ];
 
     public static IReadOnlyList<UiApiPart> Popover { get; } =
@@ -818,7 +836,7 @@ internal static class UiApi
         new[]
         {
             Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
-            Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
-            Table, Tabs, Text, Timeline, Toast, Tooltip,
+            Filters, Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator,
+            Skeleton, Table, Tabs, Text, Timeline, Toast, Tooltip,
         }.SelectMany(parts => parts);
 }

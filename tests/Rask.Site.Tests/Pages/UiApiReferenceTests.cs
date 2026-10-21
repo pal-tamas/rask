@@ -44,7 +44,9 @@ public sealed class UiApiReferenceTests
     {
         var parts = UiApi.All.ToList();
 
-        Assert.All(parts, part => Assert.StartsWith("flux:", part.Flux, StringComparison.Ordinal));
+        // The kit's own parts, which the owner asked for, say so in place of a Flux part (FluxConformanceTests.Approved).
+        Assert.All(parts, part => Assert.True(
+            part.Flux.StartsWith("flux:", StringComparison.Ordinal) || part.Flux == UiApi.NotFlux, part.Entry + " names no Flux part"));
         Assert.All(parts, part => Assert.Equal("Ui" + part.Entry["Ui.".Length..], part.Component.Name.Split('`')[0]));
         Assert.Equal(parts.Count, parts.Select(part => part.Entry).Distinct(StringComparer.Ordinal).Count());
     }

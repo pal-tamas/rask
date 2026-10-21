@@ -22,6 +22,10 @@ namespace Rask;
 ///     What Flux does in script the dialog asks the runtime for: <c>data-rask-modal</c> says which of Escape
 ///     and a press outside dismiss it, and <c>data-rask-lock="scroll"</c> holds the page still behind it.
 ///     </para>
+///     <para>
+///     <see cref="Lazy" /> is not Flux's: the content travels only while the modal is open. The browser still opens
+///     it, and a field of its own tells the page so (<c>data-rask-modal-shown</c>).
+///     </para>
 /// </remarks>
 public sealed partial class UiModal : Component
 {

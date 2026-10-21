@@ -35,6 +35,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Filters`: a list's filters kept in the address, with a lazy flyout and a badge per filter in force.**
+  Before: a page wrote a `Go.With` per control, a badge row by hand and its own "clear all", and sent every field to
+  every reader. Now: `var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")…, Ui.DatePicker.Range
+  .Bind(() => Period).Label("Period")…]`, then `Div[filters, filters.Badges, table]` — each control bound to a
+  `[QueryParam]` member moves the address as it is chosen (a text field at its 150 ms pause), the router writes the
+  member, `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
+  survives), `filters.Active` counts them, `.OnOpen(…)` loads on opening, and `Ui.Filter.Label(…).Shown(…)
+  .OnRemove(…)` carries what no control can say. Not a Flux component: the owner's (2026-10-21). New texts:
+  `Filters`, `FiltersClear`, `FiltersClearAll`, `FiltersClose`, `FilterRemove` (with formal Hungarian).
+- **`Ui.Modal.Lazy()`: a modal that sends what it holds only while it is open.** Closed it is the dialog alone; the
+  trigger still opens it in the browser, the runtime reports the opening (`rask-overlay.ts`), and one frame brings
+  the content. Off by default, so `Ui.ConfirmLeave` and a ⌘K palette still open with no server.
+- **`UiDateRange` is `IParsable`: `[QueryParam("period")] public UiDateRange? Period` binds `?period=2026-10-01..2026-10-09`**
+  (`~last7Days` after it when a preset made it; text that is no range leaves it unset), and `ToString()` writes it.
 - **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
   Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
   Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.

@@ -41,6 +41,10 @@ public sealed partial class UiModalPage : Component
             UiDocsExample.Key("ui-modal-floating").Heading("Floating flyout").File("ModalFloatingExample.cs").Demo(ModalFloatingExample).Testid("ui-modal-floating")
                 .Blurb("The Floating variant stands the flyout off the edges of the viewport, rounded and shadowed "
                        + "like a panel."),
+            UiDocsExample.Key("ui-modal-lazy").Heading("Lazy").File("ModalLazyExample.cs").Demo(ModalLazyExample).Testid("ui-modal-lazy")
+                .Blurb("Lazy() sends what it holds only while it is open: closed, the page carries the dialog alone, and "
+                       + "opening it is answered with one frame of content. Not Flux's: the kit's, for a panel most "
+                       + "readers never open, as Ui.Filters' is."),
             UiModalBehaviour
         ];
 }

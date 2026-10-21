@@ -179,6 +179,12 @@ internal static class UiDocsCatalog
         + "Tailwind class, and taken by every Rask.Ui component.",
         "icon");
 
+    public static UiDocsEntry Filters { get; } = new(
+        Routes.UiFiltersPage(), "Filters", Components,
+        "List filters in C#: Ui.Filters",
+        "Filters for a list kept in the page's address: a Filters button opening a flyout of fields that apply as they "
+        + "are chosen, badges for each filter in force, Back and links that keep them.");
+
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,
         "Kanban board in C#: Ui.Kanban",
@@ -261,7 +267,7 @@ internal static class UiDocsCatalog
     [
         Introduction, Theming, DarkMode,
         Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
-        Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
+        Filters, Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
         Table, Tabs, Text, Timeline, Toast, Tooltip,
     ];
 }
