@@ -78,7 +78,10 @@ app.Run<App>();
 
 `rask new` writes it for you: `RaskApp.Create(args).Run<App>();` with every battery on, and the
 `Configure` line above when you scaffold with `--no-jobs`. There is no `DbContext` to write either —
-`RaskAppDbContext` maps every aggregate you declare and every battery's tables.
+`RaskAppDbContext` maps every aggregate you declare and every battery's tables. An aggregate changes the way a
+Rails or Laravel model does — `var order = await Order.Find(id); order.Ship("1Z999"); await order.Save();` reads the
+row once and writes only what changed, refusing a row someone else changed or deleted since; showing a row reads the
+read face (`Order.Where(…)`) or the form model (`Order.Model(id)`) instead.
 
 **The batteries, one by one** — each is also a package of its own, for a host assembled by hand: an
 `AddRaskX<AppDbContext>()` call plus a `modelBuilder.AddRaskX()` schema line:

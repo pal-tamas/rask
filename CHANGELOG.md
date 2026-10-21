@@ -231,16 +231,19 @@ them until tagged releases begin.
 
 ### Changed
 
-- **`Find(id, db)` + `Save(db)` read the row once, and a first `Save()` of an aggregate code made reads nothing.**
-  `Find` given a context now loads the aggregate TRACKED in it (as `Update(id, …, db)` always has), so `Save(db)`
-  writes from that context's change tracker instead of loading the row again to diff — one SELECT, not two, for a
-  row however large (a 16 MB file row was read twice). A change to an aggregate so found is now written by the next
-  `SaveChangesAsync` on that context even without `Save(db)`, and a row someone saved or soft-deleted since is a
-  `DbUpdateConcurrencyException` at the commit on a `Versioned` aggregate rather than a `KeyNotFoundException` at
-  `Save(db)`. And an aggregate its factory made (`Order.Place(…)`, an app-assigned Guid key) and nothing has read or
-  saved is known to be new: its first `Save()` is an INSERT with no SELECT before it (it was two). Building an
-  aggregate by hand with the key of an EXISTING row and saving it is therefore an insert, refused by the key — `Find`
-  it instead. A context without Rask's interceptors knows nothing to be new and still reads first.
+- **BREAKING: `Find(id)` takes no `db:`, and `Find` + `Save()` read the row once — the Rails/Laravel way.** `Find`
+  always loads through a context of its own and hands the aggregate back detached with a snapshot of what it read;
+  `Save(db?)` writes only what changed against that snapshot and never reads the row again (a 16 MB file row was read
+  twice; `Find` + `Save()` + `Save()` is now one SELECT), and every successful save — a caller's `SaveChangesAsync`
+  after `Save(db)` included — takes a new snapshot. An aggregate its factory made (`Order.Place(…)`, an app-assigned
+  Guid key) and nothing has read or saved is an INSERT with no SELECT (it was two). Changed underneath is refused, not
+  written over: on a `Versioned` aggregate a row saved or soft-deleted since is `DbUpdateConcurrencyException` (a soft
+  delete used to be `KeyNotFoundException`), a row or changed child deleted outright is `DbUpdateConcurrencyException`
+  (a missing root used to be re-inserted), and an unversioned `SoftDelete` aggregate is asked by its key alone whether
+  its row is still there (`KeyNotFoundException` when not). A copy found in one tenant and saved in another is refused
+  by the tenant check (`InvalidOperationException`) instead of reported missing. **Upgrading:** drop `db:` from `Find`
+  — keep `Save(db)` for the unit of work; read the read face or `Model(id)` to only show a row; and an aggregate built
+  or deserialised with an EXISTING row's key is now an insert refused by the key — `Find` it instead.
 - **A collection computed from one the aggregate stores is left off the form model, the read face and the mapping.**
   `OpenLines => _lines.Where(…)` beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside
   `Tags => _tags`, used to be taken for a second child collection (an editable list on the model, synced into

@@ -339,7 +339,7 @@ public sealed class NumberedTenantTests : IDisposable
         found.Rename("taken");
         using (Tenant.Use(Globex))
         {
-            await Assert.ThrowsAsync<KeyNotFoundException>(
+            await Assert.ThrowsAsync<InvalidOperationException>(
                 () => found.Save(cancellationToken: TestContext.Current.CancellationToken));
         }
 
@@ -447,6 +447,7 @@ public sealed class NumberedTenantTests : IDisposable
             await Destination.Delete(id, cancellationToken: TestContext.Current.CancellationToken);
         }
 
+        found.Rename("taken");
         using (Tenant.Use(Globex))
         {
             await Assert.ThrowsAsync<InvalidOperationException>(

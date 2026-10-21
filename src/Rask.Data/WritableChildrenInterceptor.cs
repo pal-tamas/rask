@@ -45,6 +45,30 @@ internal sealed class WritableChildrenInterceptor : SaveChangesInterceptor, IMat
         return ValueTask.FromResult(result);
     }
 
+    /// <inheritdoc />
+    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+    {
+        Remember(eventData.Context);
+        return result;
+    }
+
+    /// <inheritdoc />
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+    {
+        Remember(eventData.Context);
+        return ValueTask.FromResult(result);
+    }
+
+    // What the save wrote, for each aggregate staged with Save(): its next save then reads nothing.
+    private static void Remember(DbContext? context)
+    {
+        if (context is not null)
+        {
+            AggregateSave.RememberSaved(context);
+        }
+    }
+
     private static void Ensure(DbContext? context)
     {
         if (context is not null)

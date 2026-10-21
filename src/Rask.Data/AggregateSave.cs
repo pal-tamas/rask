@@ -17,12 +17,15 @@ namespace Rask.Data;
 ///         page or a handler works on it. <c>Find</c> remembers the values it read instead, beside the
 ///         aggregate and for exactly as long as it lives, and the save writes only what differs from them —
 ///         so a column somebody else changed meanwhile, and this code did not touch, keeps their value. A
-///         child that is new is inserted, and a child no longer held is deleted.
+///         child that is new is inserted, and a child no longer held is deleted. Every successful save remembers
+///         what it wrote the same way, so the row is read once however many times it is saved.
 ///     </para>
 ///     <para>
-///         The row is loaded again through the query filters, so one soft-deleted since it was read is refused
-///         rather than silently written. The <c>Version</c> compared is the one the caller READ, so a save built
-///         on a stale copy is a <see cref="DbUpdateConcurrencyException" />.
+///         Nothing is read again to write it. The <c>Version</c> compared is the one the caller READ, so a save built
+///         on a stale copy — or of a row soft-deleted since, which bumps it — is a
+///         <see cref="DbUpdateConcurrencyException" />, and so is one whose row (or a changed child's) is gone. An
+///         aggregate with no <c>Version</c> that soft-deletes is asked first, by its key alone, whether it is still
+///         there.
 ///     </para>
 /// </remarks>
 internal static class AggregateSave
@@ -30,6 +33,9 @@ internal static class AggregateSave
     // What each aggregate looked like when it was read or last saved: the values of every entity in it, shadow
     // columns included.
     private static readonly ConditionalWeakTable<object, Dictionary<(Type, string), object>> AsRead = new();
+
+    // The aggregates staged on a context, remembered once that context's save succeeds.
+    private static readonly ConditionalWeakTable<DbContext, List<object>> Staged = new();
 
     /// <summary>Remembers <paramref name="aggregate" /> as <paramref name="context" /> tracks it now.</summary>
     internal static void Remember(DbContext context, object aggregate)
@@ -45,6 +51,28 @@ internal static class AggregateSave
         StoredAggregates.Mark(aggregate);
     }
 
+    /// <summary>
+    ///     Remembers what a save of <paramref name="context" /> wrote for each aggregate staged on it — the caller's
+    ///     <c>SaveChangesAsync</c> after <c>Save(db)</c> included — so its next save reads nothing.
+    /// </summary>
+    internal static void RememberSaved(DbContext context)
+    {
+        if (!Staged.TryGetValue(context, out var staged))
+        {
+            return;
+        }
+
+        Staged.Remove(context);
+
+        foreach (var aggregate in staged)
+        {
+            if (context.Entry(aggregate).State == EntityState.Unchanged)
+            {
+                Remember(context, aggregate);
+            }
+        }
+    }
+
     /// <summary>Saves through a context of its own, and remembers what was written for the next save.</summary>
     internal static async Task SaveAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         TEntity aggregate, CancellationToken cancellationToken)
@@ -56,7 +84,11 @@ internal static class AggregateSave
         await StageAsync(context, aggregate, cancellationToken).ConfigureAwait(false);
         await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        Remember(context, aggregate);
+        // Already done by the interceptor of a context that has Rask's; this one may not.
+        if (!AsRead.TryGetValue(aggregate, out _))
+        {
+            Remember(context, aggregate);
+        }
     }
 
     /// <summary>Stages the save on <paramref name="context" />, for its owner to commit.</summary>
@@ -68,6 +100,7 @@ internal static class AggregateSave
         Tenant.DemandForWrite(typeof(TEntity));
 
         var entry = context.Entry(aggregate);
+        Staged.GetOrCreateValue(context).Add(aggregate);
 
         // Loaded through this very context: its own change tracking already knows what to write.
         if (entry.State != EntityState.Detached)
@@ -76,7 +109,7 @@ internal static class AggregateSave
         }
 
         // A key the database generates and has not yet, or one code made and nothing has read or saved: it was never
-        // saved, so there is no row to look for — an app-made Guid key used to cost two SELECTs here.
+        // saved, so there is no row to look for.
         if (!entry.IsKeySet || StoredAggregates.IsNew(context, aggregate))
         {
             context.Add(aggregate);
@@ -84,6 +117,17 @@ internal static class AggregateSave
         }
 
         var keyValues = KeyOf(entry.Metadata, aggregate);
+
+        // What was read or last saved is what the save is compared with, and the row is not read again.
+        if (AsRead.TryGetValue(aggregate, out var read))
+        {
+            await RefuseSoftDeletedSinceAsync<TEntity>(context, entry.Metadata, keyValues, cancellationToken)
+                .ConfigureAwait(false);
+            StageOver(context, entry, aggregate, read, read);
+            return;
+        }
+
+        // Stored, but nothing remembered of it — staged on a context of the caller's whose save was never seen.
         var stored = await AggregateLoad.FindAsync<TEntity>(context, keyValues, cancellationToken).ConfigureAwait(false);
 
         if (stored is null)
@@ -91,28 +135,50 @@ internal static class AggregateSave
             if (await AggregateLoad.ExistsIgnoringFiltersAsync<TEntity>(context, keyValues, cancellationToken)
                     .ConfigureAwait(false))
             {
-                throw new KeyNotFoundException(
-                    $"{typeof(TEntity).Name} '{string.Join(", ", keyValues)}' has been deleted since it was read, " +
-                    "so there is nothing to save it over.");
+                throw DeletedSinceRead<TEntity>(keyValues);
             }
 
             context.Add(aggregate);
             return;
         }
 
-        StageOver(context, entry, aggregate, stored);
+        var now = Index(entry.Metadata, stored);
+        StageOver(context, entry, aggregate, now, now);
     }
 
-    // Attaches the aggregate over the stored row it replaces, so only what this code changed is written.
-    private static void StageOver(DbContext context, EntityEntry entry, object aggregate, object stored)
+    // With a Version, a soft delete since the read bumped it and the save is refused at the commit. Without one the
+    // UPDATE would land on the deleted row, so the key alone is asked first — not the row, which may be large.
+    private static async Task RefuseSoftDeletedSinceAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        DbContext context, IEntityType rootType, object?[] keyValues, CancellationToken cancellationToken)
+        where TEntity : class, IAggregate
     {
-        // Compared with what was READ when that is known; with the row as it is now otherwise (built by hand
-        // with an existing key, or last saved through a context the caller committed).
-        var rootType = entry.Metadata;
-        var now = Index(rootType, stored);
-        var before = AsRead.TryGetValue(aggregate, out var read) ? read : now;
+        if (rootType.FindProperty(Columns.DeletedAt) is null || rootType.FindProperty(Columns.Version) is not null)
+        {
+            return;
+        }
 
-        // A context the caller commits may never commit, so what it writes is not remembered.
+        if (!await AggregateLoad.ExistsAsync<TEntity>(context, keyValues, cancellationToken).ConfigureAwait(false))
+        {
+            throw DeletedSinceRead<TEntity>(keyValues);
+        }
+    }
+
+    private static KeyNotFoundException DeletedSinceRead<TEntity>(object?[] keyValues) =>
+        new($"{typeof(TEntity).Name} '{string.Join(", ", keyValues)}' has been deleted since it was read, " +
+            "so there is nothing to save it over.");
+
+    // Attaches the aggregate over the row it replaces, so only what this code changed is written. `now` is every entity
+    // the stored aggregate holds — the row as it is, or as last read — and `before` what each looked like when read.
+    private static void StageOver(
+        DbContext context,
+        EntityEntry entry,
+        object aggregate,
+        Dictionary<(Type, string), object> now,
+        Dictionary<(Type, string), object> before)
+    {
+        var rootType = entry.Metadata;
+
+        // A context the caller commits may never commit, so what it writes is remembered only once it does.
         AsRead.Remove(aggregate);
 
         var version = rootType.FindProperty(Columns.Version) is { } token
@@ -152,11 +218,13 @@ internal static class AggregateSave
             // Only what was read and let go: a child somebody added since was never this code's to delete.
             if (!held.Contains(key) && before.TryGetValue(key, out var asRead))
             {
-                // Entry, not Remove: Remove would attach the loaded copy's whole graph beside the live one.
-                var gone = context.Entry(row);
+                // Entry, not Remove: Remove would attach the loaded copy's whole graph beside the live one. A child known
+                // only by its remembered values is rebuilt from them, to be deleted by its key.
+                var removed = row is PropertyValues values ? values.ToObject() : row;
+                var gone = context.Entry(removed);
                 gone.State = EntityState.Deleted;
                 Restore(gone, asRead);
-                ChildWrites.LetGoByItsRoot(row);
+                ChildWrites.LetGoByItsRoot(removed);
             }
         }
 
