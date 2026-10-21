@@ -118,6 +118,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["navmenu"] = On<KitOverlayFramePage>("navmenu", Popup("#navmenu-open", "[data-c='navmenu'] [popover]")),
         ["modal"] = On<KitOverlayFramePage>("modal", Dialog("modal", "#modal-open")),
         ["modal-flyout"] = On<KitOverlayFramePage>("modal-flyout", Dialog("modal-flyout", "#flyout-open")),
+        ["modal-lazy"] = On<KitOverlayFramePage>("modal-lazy", Dialog("modal-lazy", "#lazy-open")),
         ["modal-state"] = On<KitOverlayFramePage>("modal-state",
             Press("open by the page's own handler", "#state-open"),
             Escape(Pressing("#state-open")),
