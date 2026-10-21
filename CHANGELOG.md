@@ -48,6 +48,31 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Filters`: a list's filters kept in the address, with a lazy flyout and a badge per filter in force.**
+  Before: a page wrote a `Go.With` per control, a badge row by hand and its own "clear all", and sent every field to
+  every reader. Now: `var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")…, Ui.DatePicker.Range
+  .Bind(() => Period).Label("Period")…]`, then `Div[filters, filters.Badges, table]` — each control bound to a
+  `[QueryParam]` member moves the address as it is chosen (a text field at its 150 ms pause), the router writes the
+  member, the first `Ui.Table.Of(…)` after the set shows its skeleton rows at the press (its fields, badge crosses and
+  clear buttons name it in `aria-controls`; a table with no id is given one), `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
+  survives), `filters.Active` counts them, `.OnOpen(…)` loads on opening, and `Ui.Filter.Label(…).Shown(…)
+  .OnRemove(…)` carries what no control can say. Not a Flux component: the owner's (2026-10-21). New texts:
+  `Filters`, `FiltersClear`, `FiltersClearAll`, `FiltersClose`, `FilterRemove` (with formal Hungarian).
+- **`Ui.Modal.Lazy()`: a modal that sends what it holds only while it is open.** Closed it is the dialog alone; the
+  trigger still opens it in the browser, the runtime reports the opening (`rask-overlay.ts`), and one frame brings
+  the content. Off by default, so `Ui.ConfirmLeave` and a ⌘K palette still open with no server.
+- **`UiDateRange` is `IParsable`: `[QueryParam("period")] public UiDateRange? Period` binds `?period=2026-10-01..2026-10-09`**
+  (`~last7Days` after it when a preset made it; text that is no range leaves it unset), and `ToString()` writes it.
+- **`Ui.Table.Of(query)`: a table drawn from a Rask.Query query, with skeleton rows the moment it loads.** Before:
+  every table flashed on paging, sorting and a tab switch — 15 rows, then an empty or shorter table, then 15 new rows,
+  with everything under it jumping twice. Now: `Ui.Table.Of(drivers)[Ui.TableColumns[…], Ui.TableRows[(drivers.Data
+  ?? []).Select(…)]]` keeps the headings, shows a skeleton row per row of the pager's page on the first load, and on
+  every later load (a pager button or link, a sortable heading, a tab above the table, any control naming the table
+  with `aria-controls`) turns the rows on screen into skeleton rows of their own count and heights AT THE PRESS, in the
+  browser, with no round trip and no wait; the new rows replace them in one step. A query that found nothing shows
+  one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
+  approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
+  has answered what it sent. A table without `Of` dims its rows as before.
 - **Rask.Ui prints what a page says and leaves off what it does** — a recorded departure from Flux, inside
   `@media print` only, so the screen is unchanged. Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar`,
   `Ui.Header`, toasts, tooltips, open menus and popovers and a modal's backdrop print as nothing, and `Ui.Main` drops
@@ -344,6 +369,13 @@ them until tagged releases begin.
   needs nothing — the per-event helper Eszaf wrote can go. See
   [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
 
+- **A second `.Class(…)` now adds to the first instead of replacing it.** `Ui.Table.Class("w-full").Class("mb-8")`
+  renders `w-full mb-8`; it used to render `mb-8` and drop `w-full` silently. The parts join as `Class("a", "b")`
+  always did — one space, each trimmed, null and blank ones skipped, repeats kept — on every element and component,
+  and on every class-carrying kit step (`ContainerClass`, `InputClass`, `TrackClass`, `ThumbClass`, `ArrowsClass`,
+  `LogoClass`, `OptionsClass`, `IconClass`) and `NavLink.ActiveClass`. Each render starts the list afresh, so it
+  never grows, and a component counts as changed only when the finished list differs from last render's, so its
+  update hook and the render cache behave as with one `.Class`; a lone `.Class(…)` costs nothing extra ([building components](docs/building-components.md)).
 - **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
   The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep

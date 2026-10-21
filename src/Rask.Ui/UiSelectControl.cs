@@ -156,6 +156,11 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <param name="options">The <c>&lt;option&gt;</c>s and <c>&lt;optgroup&gt;</c>s.</param>
     private protected abstract Component NativeSelect(UiWithField field, string look, IReadOnlyList<Component?> options);
 
+    /// <summary>What the select's button says for <paramref name="value" />: its option's words, or the value itself.</summary>
+    private protected string Picked(T value) =>
+        Parts.Read(Children).Rows.FirstOrDefault(row => EqualityComparer<T>.Default.Equals(row.Value, value))?.Option.SelectedText
+        ?? Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty;
+
     /// <inheritdoc />
     protected override Component? Render()
     {

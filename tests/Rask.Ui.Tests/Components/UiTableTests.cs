@@ -191,11 +191,12 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
             Ui.TableRows[Ui.TableRow[Ui.TableCell["Jul 29"]]]
         ].ToHtml();
 
-        // A sortable heading inside the table, the pager right after what holds it, and the table's own mark.
+        // A sortable heading inside the table, the pager right after what holds it, and the table's own mark — on a
+        // table that is not drawn from a query, which shows skeleton rows instead.
         Assert.Contains(
-            "[data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],", sheet, StringComparison.Ordinal);
+            ":is([data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],", sheet, StringComparison.Ordinal);
         Assert.Contains(
-            ":is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows] {",
+            ":is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows]):not([data-rask-skeleton] *) {",
             sheet,
             StringComparison.Ordinal);
         Assert.Matches("<table [^>]*data-ui-table[^>]*>.*<tbody data-ui-rows>.*</table></div><div [^>]*data-ui-pagination ", html);

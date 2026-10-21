@@ -920,7 +920,9 @@ Card.Title(featured ? "Coffee" : "Tea")                // ✓
 **Reported once per chain**, naming the property, not once per extra call.
 
 **`Validate` is the one step that adds.** `.Validate(a).Validate(b)` runs `a`, then `b` if `a` let the
-value through, so a repeated `Validate` is not reported.
+value through, so a repeated `Validate` is not reported. **Neither is a repeated class step:**
+`.Class("w-full").Class("mb-8")` renders `w-full mb-8`, and a kit's `ContainerClass`, `InputClass` and the
+other `…Class` steps join the same way.
 
 Two *separate* chains are not a duplicate — `Div[Card.Title("a"), Card.Title("b")]` is two components
 that each name `Title` once, which is ordinary markup.
