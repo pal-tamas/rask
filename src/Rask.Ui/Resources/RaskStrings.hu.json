@@ -198,6 +198,9 @@
   "CommandClear": "Keresőmező törlése",
   "CommandClose": "Parancspaletta bezárása",
 
+  "HandlerForbidden": "Ehhez nincs jogosultsága.",
+  "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
+
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",
   "ConfirmNo": "Nem"

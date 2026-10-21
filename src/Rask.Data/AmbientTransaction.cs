@@ -29,6 +29,7 @@ internal sealed class AmbientTransaction
     private readonly string? _connectionString;
     private readonly DbTransaction _transaction;
     private readonly List<Func<Task>> _afterCommit = [];
+    private readonly List<Func<Task>> _onRollback = [];
     private bool _ended;
 
     private AmbientTransaction(DbContext owner, DbTransaction transaction, IsolationLevel? isolation)
@@ -141,6 +142,14 @@ internal sealed class AmbientTransaction
             return Task.CompletedTask;
         });
 
+    /// <summary>
+    ///     Runs <paramref name="undo" /> once the work throws and this transaction rolls back; never, when it commits.
+    ///     For what was written where the transaction cannot reach — a file's bytes on a disk or in a bucket — so a
+    ///     rollback takes it back too. It runs outside the transaction, and must not throw: it is a cleanup on the way
+    ///     out of a failure, and the failure is what reaches the caller.
+    /// </summary>
+    internal void OnRollback(Func<Task> undo) => _onRollback.Add(undo);
+
     /// <summary>What the outermost call holds: the flow's binding, restored on dispose.</summary>
     internal sealed class Scope : IDisposable
     {
@@ -160,6 +169,14 @@ internal sealed class AmbientTransaction
             _entered._ended = true;
             Open.Value = _previous;
             return _entered._afterCommit;
+        }
+
+        /// <summary>Ends the transaction for this flow, the work having thrown, and hands back what undoes it.</summary>
+        internal IReadOnlyList<Func<Task>> Abandon()
+        {
+            _entered._ended = true;
+            Open.Value = _previous;
+            return _entered._onRollback;
         }
 
         public void Dispose()

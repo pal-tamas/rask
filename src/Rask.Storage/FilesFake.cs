@@ -4,8 +4,10 @@ using Rask.Batteries;
 namespace Rask.Storage;
 
 /// <summary>An in-memory file store that remembers what a test asked of it.</summary>
-public sealed class FilesFake : IFiles, IDisposable
+public sealed class FilesFake : IFiles, IStatedTypeFiles, IDisposable
 {
+    private const string Unsniffed = "application/octet-stream";
+
     private readonly Dictionary<Guid, Held> _held = [];
     private readonly List<SavedFile> _saved = [];
     private readonly List<Guid> _deleted = [];
@@ -70,19 +72,37 @@ public sealed class FilesFake : IFiles, IDisposable
     public void Dispose() => Files.Faked.Value = _previous;
 
     /// <inheritdoc />
-    public async Task<StoredFile> Add(
-        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, CancellationToken cancellationToken = default)
+    public Task<StoredFile> Add(
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, CancellationToken cancellationToken = default) =>
+        AddOpened(openRead, name, isPublic, Unsniffed, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<StoredFile> Add(Stream content, string name, bool isPublic, CancellationToken cancellationToken = default) =>
+        AddContent(content, name, isPublic, Unsniffed, cancellationToken);
+
+    Task<StoredFile> IStatedTypeFiles.Add(
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, string contentType,
+        CancellationToken cancellationToken) =>
+        AddOpened(openRead, name, isPublic, contentType, cancellationToken);
+
+    Task<StoredFile> IStatedTypeFiles.Add(
+        Stream content, string name, bool isPublic, string contentType, CancellationToken cancellationToken) =>
+        AddContent(content, name, isPublic, contentType, cancellationToken);
+
+    private async Task<StoredFile> AddOpened(
+        Func<long, CancellationToken, Stream> openRead, string name, bool isPublic, string contentType,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(openRead);
         var content = openRead(long.MaxValue, cancellationToken);
         await using (content.ConfigureAwait(false))
         {
-            return await ((IFiles)this).Add(content, name, isPublic, cancellationToken).ConfigureAwait(false);
+            return await AddContent(content, name, isPublic, contentType, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    /// <inheritdoc />
-    public async Task<StoredFile> Add(Stream content, string name, bool isPublic, CancellationToken cancellationToken = default)
+    private async Task<StoredFile> AddContent(
+        Stream content, string name, bool isPublic, string contentType, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(content);
         using var buffer = new MemoryStream();
@@ -92,11 +112,11 @@ public sealed class FilesFake : IFiles, IDisposable
 
         lock (_gate)
         {
-            _held[id] = new Held(bytes, name, isPublic);
+            _held[id] = new Held(bytes, name, isPublic, contentType);
             _saved.Add(new SavedFile(id, name, bytes.LongLength, isPublic));
         }
 
-        return Row(id, name, bytes.LongLength, isPublic);
+        return Row(id, name, bytes.LongLength, isPublic, contentType);
     }
 
     /// <inheritdoc />
@@ -105,7 +125,7 @@ public sealed class FilesFake : IFiles, IDisposable
         lock (_gate)
         {
             return Task.FromResult(_held.TryGetValue(id, out var held)
-                ? Row(id, held.Name, held.Content.LongLength, held.IsPublic)
+                ? Row(id, held.Name, held.Content.LongLength, held.IsPublic, held.ContentType)
                 : null);
         }
     }
@@ -150,14 +170,15 @@ public sealed class FilesFake : IFiles, IDisposable
 
     /// <summary>
     /// The row the real store would have written, built the same way it builds one. The content type is not
-    /// sniffed and the digest is empty — a fake is not the place to reimplement either, and a test asserting
-    /// on them would be testing the fake rather than the app.
+    /// sniffed — it is the one <c>.As(…)</c> stated, or <c>application/octet-stream</c> — and the digest is empty: a
+    /// fake is not the place to reimplement either, and a test asserting on them would be testing the fake rather
+    /// than the app.
     /// </summary>
-    private static StoredFile Row(Guid id, string name, long size, bool isPublic) =>
+    private static StoredFile Row(Guid id, string name, long size, bool isPublic, string contentType) =>
         StoredFile.For(
             id,
             name,
-            "application/octet-stream",
+            contentType,
             size,
             sha256: "",
             StorageProvider.Disk,
@@ -165,5 +186,5 @@ public sealed class FilesFake : IFiles, IDisposable
             isPublic,
             Clock.Now.UtcDateTime);
 
-    private sealed record Held(byte[] Content, string Name, bool IsPublic);
+    private sealed record Held(byte[] Content, string Name, bool IsPublic, string ContentType);
 }

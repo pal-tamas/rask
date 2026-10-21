@@ -98,6 +98,7 @@ public abstract partial class SharedSmokeTests
         await WalkLocalizationGuideAsync();
         await WalkElementsGuideAsync();
         await WalkHttpAndFilesGuideAsync();
+        await WalkPdfGuideAsync();
         await WalkCqrsGuideAsync();
         await WalkQueryGuideAsync();
         await WalkAuthGuideAsync();
@@ -1169,6 +1170,36 @@ public abstract partial class SharedSmokeTests
         // File download: the download button renders (the download sink itself is unit-tested).
         await Expect(Page.Locator(".guide-demo .sample-result-body #download-report").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+    }
+
+    protected async Task WalkPdfGuideAsync()
+    {
+        // The PDF guide shows a Flux report and a button that downloads the PDF Rask.Pdf printed from it (rask.sh is
+        // static and cannot print; tests/Rask.Pdf.Tests keeps the file that report). The download is read back: the
+        // Hungarian text intact, the table over three pages with its heading on each.
+        await SideAsync("PDF", "Rask.Pdf", "main .markdown-body h1");
+        await AssertGuideDemosAsync(1, "pdf");
+        var button = Page.Locator(".guide-demo .sample-result-body #download-pdf").First;
+        await Expect(button).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+
+        var download = await Page.RunAndWaitForDownloadAsync(() => button.ClickAsync());
+
+        var file = Path.Combine(Path.GetTempPath(), $"rask-site-{Guid.NewGuid():N}.pdf");
+        await download.SaveAsAsync(file);
+        try
+        {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(file);
+            var pages = pdf.GetPages().Select(page => string.Join(' ', page.GetWords().Select(word => word.Text))).ToList();
+            Assert.Equal("visszaterites.pdf", download.SuggestedFilename);
+            Assert.True(pages.Count >= 3, $"The downloaded report has {pages.Count} pages.");
+            Assert.Contains("Gázolaj-visszatérítés", pages[0], StringComparison.Ordinal);
+            Assert.All(pages.Where(page => page.Contains("SZ-", StringComparison.Ordinal)),
+                page => Assert.Contains("Számlaszám", page, StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
     }
 
     protected async Task WalkFormsPagesAsync()

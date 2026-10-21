@@ -2,6 +2,7 @@ using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
+using Rask.Data;
 
 namespace Rask.Storage.Backends;
 
@@ -31,13 +32,23 @@ internal sealed class DatabaseBlobBackend<TContext>(IDbContextFactory<TContext> 
 
     public string CreateSpoolPath() => _spool.CreatePath();
 
-    /// <summary>Writes the spooled bytes and <paramref name="row"/> together, or neither.</summary>
+    /// <summary>
+    /// Writes the spooled bytes and <paramref name="row"/> together, or neither — inside the <c>Db.Transaction</c> in
+    /// progress when there is one, so they commit with that work and are gone when it rolls back.
+    /// </summary>
     internal async Task SaveAsync(StoredFile row, string sourcePath, long length, CancellationToken cancellationToken)
     {
-        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = AmbientTransaction.Join(await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false));
         await using (db.ConfigureAwait(false))
         {
             var table = BytesTable.Of(db);
+            if (AmbientTransaction.Of(db) is not null)
+            {
+                await InsertAsync(db, table, row.Id, sourcePath, length, cancellationToken).ConfigureAwait(false);
+                db.Set<StoredFile>().Add(row);
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
             // Inside the provider's execution strategy, which a retrying one requires of a transaction the app opens.
             await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>

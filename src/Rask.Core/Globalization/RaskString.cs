@@ -562,6 +562,17 @@ public enum RaskString
     /// <summary>The accessible name of a command palette's button that closes the modal it is in.</summary>
     CommandClose,
 
+    /// <summary>
+    ///     What the person is told, in a toast, when they acted on something their account may not do: the
+    ///     handler's <c>[Authorize]</c> turned them away and nothing was changed.
+    /// </summary>
+    HandlerForbidden,
+
+    /// <summary>
+    ///     What a page says, inside the app's layout, to a signed-in person whose account may not open it.
+    /// </summary>
+    PageForbidden,
+
     /// <summary>The title of the dialog an action's <c>Confirm("…")</c> asks in, above the question.</summary>
     ConfirmHeading,
 

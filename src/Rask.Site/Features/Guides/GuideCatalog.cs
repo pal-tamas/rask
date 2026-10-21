@@ -200,6 +200,11 @@ public static class GuideCatalog
             SearchTitle = "Export an Excel .xlsx file from C# with no library",
             Description = "Write an Excel .xlsx workbook from .NET with nothing but System.IO.Compression: bold frozen headings, filters, fitted columns, folded rows and a SUBTOTAL row.",
         },
+        new("pdf", "PDF", "A page or component to PDF, as its user sees it, with headless Chromium.", "Backend services")
+        {
+            SearchTitle = "HTML to PDF in ASP.NET Core with headless Chrome",
+            Description = "Print a page of your .NET app to PDF as its signed-in user sees it: rendered on the server, drawn by a pinned headless Chrome, headings on every page.",
+        },
         new("api-endpoints", "HTTP APIs", "Controllers and minimal APIs, called through a generated typed client.", "Backend services")
         {
             SearchTitle = "ASP.NET Core APIs with a generated typed client",

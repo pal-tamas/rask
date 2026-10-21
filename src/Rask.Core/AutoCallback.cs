@@ -47,6 +47,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -72,6 +73,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -97,6 +99,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -123,6 +126,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -149,6 +153,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -175,6 +180,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -208,6 +214,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T1, T2>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -233,6 +240,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T1, T2>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -259,6 +267,7 @@ public static class AutoCallback
             return null;
         }
 
+        d = Authorization.HandlerGuard<T1, T2>.Guard(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
             return d;
@@ -311,15 +320,23 @@ public static class AutoCallback
             return null;
         }
 
+        // A folded handler is called with DynamicInvoke below, so its [Authorize] is asked here rather than adapted.
+        var rule = Authorization.HandlerRules.Of(d);
+        var name = rule is null ? string.Empty : Authorization.HandlerRules.Name(d);
         if (DelegateOwner.Resolve(d) is not { } r)
         {
-            return d;
+            return rule is null ? d : Guarded(d, rule, name);
         }
 
         if (typeof(Task).IsAssignableFrom(d.Method.ReturnType))
         {
             return new Func<object?, Task>(async arg =>
             {
+                if (rule is not null)
+                {
+                    await Authorization.HandlerAccess.Demand(rule, name);
+                }
+
                 r.MarkDirtyForAsyncHandler();
                 Forms.PendingBinds.Precede(r);
                 using (CallbackOwnerScope.Enter(r))
@@ -336,6 +353,11 @@ public static class AutoCallback
 
         return new Action<object?>(arg =>
         {
+            if (rule is not null)
+            {
+                Authorization.HandlerAccess.DemandNow(rule, name);
+            }
+
             Forms.PendingBinds.Precede(r);
             using (CallbackOwnerScope.Enter(r))
             {
@@ -343,6 +365,28 @@ public static class AutoCallback
             }
 
             r.StateHasChanged();
+        });
+    }
+
+    // A guarded folded handler with no component to re-render: a static method.
+    private static Delegate Guarded(Delegate d, Microsoft.AspNetCore.Authorization.IAuthorizeData[] rule, string name)
+    {
+        if (typeof(Task).IsAssignableFrom(d.Method.ReturnType))
+        {
+            return new Func<object?, Task>(async arg =>
+            {
+                await Authorization.HandlerAccess.Demand(rule, name);
+                if (d.DynamicInvoke(arg) is Task t)
+                {
+                    await t.ConfigureAwait(false);
+                }
+            });
+        }
+
+        return new Action<object?>(arg =>
+        {
+            Authorization.HandlerAccess.DemandNow(rule, name);
+            d.DynamicInvoke(arg);
         });
     }
 }

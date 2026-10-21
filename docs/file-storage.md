@@ -153,25 +153,35 @@ The returned `StoredFile` carries `Id`, the display `Name` (reduced to a safe le
 `StoredFile` is a Rask.Data entity with a read face, so listing what has been uploaded is a query like any
 other, with no context of your own: `StoredFile.OrderByDescending(f => f.CreatedAt).Take(50)`.
 
-**The row is committed on its own `DbContext`, not inside a transaction your handler has open.** The bytes
-are written first and the row second, so a save that fails half way leaves bytes with no row (the
-[sweep](#the-orphan-sweep) removes them) and never a row with no bytes. But once the save returns, the
-file exists regardless of what your code does next — if the entity that was meant to refer to it then fails
-to save, deleting the file is yours to do:
+### Saving inside `Db.Transaction`
+
+A save inside [`Db.Transaction`](data.md) takes part in it — nothing to add to the call:
 
 ```csharp
-var saved = await Files.Save(upload.OpenReadStream, upload.Name, upload.Size);
-try
+await Db.Transaction(async () =>
 {
-    order.AttachReceipt(saved.Id);
-    await db.SaveChangesAsync(ct);
-}
-catch
-{
-    await Files.Delete(saved.Id, CancellationToken.None);
-    throw;
-}
+    var saved = await Files.Save(xml, "bevallas.xml");
+    await Return.Create(new() { FileId = saved.Id, Period = period });
+});
 ```
+
+- **Database provider:** the `StoredFile` and `StoredFileBytes` rows are written on the transaction's connection.
+  Nobody sees the file before the commit, and a rollback leaves nothing behind.
+- **Disk, S3, Azure:** the bytes cannot join a database transaction, so they are written at once and the
+  `StoredFile` row joins. If the work throws and the transaction rolls back, Rask deletes the stored object
+  again. A delete that fails is logged as a warning, never thrown over the error that caused the rollback, and the
+  [sweep](#the-orphan-sweep) collects what it left.
+- **A delete** (`Files.Delete`) inside the transaction removes the row with the work, and the bytes only once it
+  has committed. A rollback keeps both.
+- **The storage table must be on the transaction's database.** If the context `AddRaskStorage<TContext>()` names
+  is on another connection string, the save is refused before a byte is written. Jobs and mail follow the same
+  rule.
+
+Outside a `Db.Transaction`, each save and delete commits on its own `DbContext`. The bytes are written first and
+the row second, so a save that fails half way leaves bytes with no row (the [sweep](#the-orphan-sweep) removes
+them) and never a row with no bytes. Once the save returns, the file exists whatever your code does next. Keep the
+save and the entity that refers to it in one `Db.Transaction`, and a failed save of the entity takes the file with
+it.
 
 ### Size limits along the way
 
@@ -284,6 +294,21 @@ builder.Services.AddRaskStorage<AppDbContext>(o =>
 
 An executable renamed `invoice.pdf` is refused by that list, because its bytes don't say PDF. A family never
 admits a type that can run script: `image/*` does not let SVG in — name `image/svg+xml` if you mean it.
+
+### Stating the type yourself
+
+Bytes your own code made — an XML return, a generated report — can carry the type you know they are. `.As(…)`
+records it in place of the sniffed one:
+
+```csharp
+var saved = await Files.Save(xml, "bevallas.xml").As("application/xml");
+```
+
+The value must be a plain media type, `type/subtype`: no parameters, spaces or line breaks, because it reaches a
+response header. Anything else throws `ArgumentException` before a byte is read. The stated type is still matched
+against `AllowedTypes`, and `Download` and temporary URLs serve it under the same rules as a sniffed one — so
+`application/xml`, like HTML and SVG, still goes out as an `application/octet-stream` attachment (below). Leave
+`.As` out and the bytes decide, as before. Under `Files.Fake()` the row carries the stated type too.
 
 ### Inline or attachment
 
@@ -413,7 +438,8 @@ one row per file under the same id. It is for documents and images of a few mega
 host, with nothing node-local. SQL Server, PostgreSQL and SQLite all work.
 
 - **One transaction.** A save writes the bytes and the `StoredFile` row together, so there is never a row without
-  bytes, or bytes a save is still about to claim.
+  bytes, or bytes a save is still about to claim. Inside `Db.Transaction` that transaction is the work's own
+  ([above](#saving-inside-dbtransaction)).
 - **Streamed.** The upload is spooled to a temp file (sniffed, hashed and size-checked as for every store), then
   streamed into the row on SQL Server and PostgreSQL; SQLite reads the spooled file into memory once to bind it.
   Reads stream out of the data reader. Listing files, the [dashboard](#the-operator-console) and the sweep only
@@ -507,7 +533,8 @@ var deleted = await Files.Delete(fileId);   // false when there was no such file
 
 The row goes first, then the bytes. Once the row is gone nothing will serve the file, and app-signed
 temporary links stop working at that moment; if removing the bytes then fails, they are orphans the sweep
-collects. A provider-signed temporary URL is the exception described [above](#temporary-urls).
+collects. A provider-signed temporary URL is the exception described [above](#temporary-urls). Inside
+`Db.Transaction` the bytes wait for the commit ([saving inside `Db.Transaction`](#saving-inside-dbtransaction)).
 
 ## Files and tenants
 

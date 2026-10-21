@@ -532,6 +532,8 @@ they say when you set nothing.
 | `ConnectionSessionTimedOut` | Reconnect overlay | `Your session timed out. Reload to continue.` |
 | `CommandClear` | Command | `Clear command input` |
 | `CommandClose` | Command | `Close command modal` |
+| `HandlerForbidden` | Toast | `You do not have permission to do that.` |
+| `PageForbidden` | Page | `You do not have permission to view this page.` |
 | `ConfirmHeading` | Confirm | `Confirm` |
 | `ConfirmYes` | Confirm | `Yes` |
 | `ConfirmNo` | Confirm | `No` |

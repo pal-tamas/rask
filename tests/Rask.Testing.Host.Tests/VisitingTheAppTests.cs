@@ -70,7 +70,9 @@ public sealed class VisitingTheAppTests
     {
         var page = Page.Visit("/admin").As(Visitor);
 
-        page.IsAt("/forbidden");
+        page.IsAt("/admin");
+        page.Shows("You do not have permission to view this page.");
+        page.DoesNotShow("Only admins");
     }
 
     [Fact]

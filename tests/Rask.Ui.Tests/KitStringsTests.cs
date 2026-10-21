@@ -314,6 +314,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),
+        // A handler's or a page's [Authorize] refusing the person: the dispatch's toast and the router's sentence.
+        nameof(RaskString.HandlerForbidden), nameof(RaskString.PageForbidden),
         nameof(RaskString.ErrorTitle),
         nameof(RaskString.NotFoundTitle), nameof(RaskString.NotFoundBody), nameof(RaskString.NotFoundBackHome),
         // The reconnect overlay: the Server host writes them on the runtime's script (ConnectionTexts).

@@ -39,15 +39,16 @@ public class AuthDeferredNavDispatchTests
     // A returnUrl is checked for being local, which says nothing about who may see the page it names: the
     // route guard has to run on the reconnect's render too, or signing in as anyone opens every page.
     [Fact]
-    public async Task A_sign_in_return_url_the_new_identity_may_not_see_lands_on_forbidden()
+    public async Task A_sign_in_return_url_the_new_identity_may_not_see_shows_the_forbidden_sentence_there()
     {
         using var host = CreateHost();
 
         var (_, afterReconnect) = await SignInThenReconnectAsync(host, "to-admin");
 
         Assert.DoesNotContain("admin-only", afterReconnect);
+        Assert.Contains("You do not have permission to view this page.", afterReconnect);
         using var doc = JsonDocument.Parse(afterReconnect);
-        Assert.Equal("/forbidden", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("history", out _)); // the browser already names /admin: it stays there
     }
 
     // The landing page of a sign-in is mounted by the reconnect, with no handler behind it. "No partner chosen,

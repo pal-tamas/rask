@@ -11,10 +11,12 @@ namespace Rask.Server.Prerender;
 /// <param name="Culture">The negotiated culture, or <c>null</c> when the app configured no languages.</param>
 /// <param name="Chain">The resolved route chain, outermost layout first.</param>
 /// <param name="NotFoundPage">The not-found page the path fell through to, or <c>null</c>.</param>
+/// <param name="Forbidden">The page of the chain the user may not open, drawn as the forbidden sentence, or <c>null</c>.</param>
 internal readonly record struct PageRenderInput(
     string Path,
     QueryCollection Query,
     ClaimsPrincipal User,
     CultureNegotiation? Culture,
     IReadOnlyList<Type> Chain,
-    Type? NotFoundPage);
+    Type? NotFoundPage,
+    Type? Forbidden = null);

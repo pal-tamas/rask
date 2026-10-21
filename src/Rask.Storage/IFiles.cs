@@ -17,8 +17,13 @@ namespace Rask.Storage;
 /// <para>
 /// <b>The bytes are written before the row.</b> A save that fails half way leaves bytes with no row, never a
 /// row with no bytes, and the orphaned bytes are removed by a background sweep after
-/// <see cref="StorageOptions.OrphanGracePeriod"/>. The row is committed on its own context, not inside a
-/// transaction your handler has open — a row whose entity you then fail to save is yours to delete.
+/// <see cref="StorageOptions.OrphanGracePeriod"/>.
+/// </para>
+/// <para>
+/// <b>Inside <c>Db.Transaction</c> a save and a delete take part in it.</b> The row — and, on the Database provider,
+/// the bytes — commit with the work and are gone when it rolls back; bytes already on a disk or in a bucket are
+/// removed again on a rollback. A delete removes the bytes only once the work has committed. Outside one, each call
+/// commits on its own.
 /// </para>
 /// </remarks>
 public interface IFiles

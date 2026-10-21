@@ -78,7 +78,10 @@ app.Run<App>();
 
 `rask new` writes it for you: `RaskApp.Create(args).Run<App>();` with every battery on, and the
 `Configure` line above when you scaffold with `--no-jobs`. There is no `DbContext` to write either —
-`RaskAppDbContext` maps every aggregate you declare and every battery's tables.
+`RaskAppDbContext` maps every aggregate you declare and every battery's tables. An aggregate changes the way a
+Rails or Laravel model does — `var order = await Order.Find(id); order.Ship("1Z999"); await order.Save();` reads the
+row once and writes only what changed, refusing a row someone else changed or deleted since; showing a row reads the
+read face (`Order.Where(…)`) or the form model (`Order.Model(id)`) instead.
 
 **The batteries, one by one** — each is also a package of its own, for a host assembled by hand: an
 `AddRaskX<AppDbContext>()` call plus a `modelBuilder.AddRaskX()` schema line:
@@ -106,6 +109,7 @@ dotnet add package Rask.Ui                # the component kit those surfaces are
 dotnet add package Rask.DevTools          # the in-page devtools (wire, component tree), Debug-only, absent from every Release publish
 dotnet add package Rask.WebPush           # Web Push: subscribers on your database, Push.Send(message) to reach them
 dotnet add package Rask.Xlsx            # an Excel workbook from headings and rows: Xlsx.Write(sheet, headings, rows), zero dependencies
+dotnet add package Rask.Pdf             # a PDF of a page as its user sees it: await Pdf.From(Routes.Report(id)), headless Chromium from the build
 dotnet add package Rask.Signaling         # host the WebRTC signaling relay ISignaling connects to
 ```
 

@@ -206,10 +206,22 @@ public static class BulkInsertExtensions
         IEnumerable<TEntity> entities,
         BulkInsertOptions options,
         CancellationToken cancellationToken)
-        where TEntity : class =>
-        options.SkipChangeTracking
-            ? BulkInsertWriter.WriteAsync(context, entities, options, cancellationToken)
-            : InsertBatchesAsync(context, entities, options, cancellationToken);
+        where TEntity : class
+    {
+        if (!options.SkipChangeTracking)
+        {
+            return InsertBatchesAsync(context, entities, options, cancellationToken);
+        }
+
+        // The raw writer runs no interceptor, so it marks its rows itself: a later Save() of one is an update, never
+        // a second insert. Always a buffered collection here — the writer runs inside a transaction of its own.
+        foreach (var entity in entities)
+        {
+            StoredAggregates.Mark(entity);
+        }
+
+        return BulkInsertWriter.WriteAsync(context, entities, options, cancellationToken);
+    }
 
     private static async Task<int> InsertBatchesAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context,

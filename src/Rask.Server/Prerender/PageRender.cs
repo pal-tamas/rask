@@ -82,7 +82,7 @@ internal static class PageRender
             PageRenderKind.Rendered,
             html,
             RedirectLocation: null,
-            PageStatus.Of(session.LastRenderFaulted, pageResponse.Status, notFoundMounted));
+            PageStatus.Of(session.LastRenderFaulted, pageResponse.Status, notFoundMounted, input.Forbidden is not null));
     }
 
     // Where the page sent the reader as it rendered, as the response that takes them there; null when it stayed.
@@ -119,6 +119,7 @@ internal static class PageRender
         var routeState = services.GetRequiredService<RouteState>();
         routeState.Path = input.Path;
         routeState.Query = input.Query;
+        routeState.Forbidden = input.Forbidden;
         if (input.Culture is { } culture)
         {
             ServerCultureNegotiation.Apply(services, culture);

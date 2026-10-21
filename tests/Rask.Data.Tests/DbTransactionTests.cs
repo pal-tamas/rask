@@ -70,6 +70,74 @@ public sealed class DbTransactionTests : IDisposable
     }
 
     [Fact]
+    public async Task A_delete_of_a_found_aggregate_then_a_throw_leaves_the_row_and_its_children()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await BasketWithLinesAsync();
+        var basket = (await Basket.Find(id, cancellationToken: TestContext.Current.CancellationToken))!;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await basket.Delete(cancellationToken: TestContext.Current.CancellationToken);
+            throw new InvalidOperationException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        var stored = await database.Load<Basket>(id, TestContext.Current.CancellationToken);
+        Assert.Equal(["apple", "pear"], stored!.Lines.Select(l => l.Product).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_delete_of_a_found_aggregate_is_unseen_outside_until_the_commit_removes_it()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await BasketWithLinesAsync();
+        var basket = (await Basket.Find(id, cancellationToken: TestContext.Current.CancellationToken))!;
+        int outside = -1;
+
+        await Db.Transaction(async () =>
+        {
+            await basket.Delete(cancellationToken: TestContext.Current.CancellationToken);
+            await using var other = database.OpenRead();
+            outside = await other.Set<BasketRead>().CountAsync(TestContext.Current.CancellationToken);
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, outside);
+        Assert.Null(await database.Load<Basket>(id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, await database.Context.Set<BasketLine>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_soft_delete_of_a_found_aggregate_then_a_throw_leaves_it_unstamped()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await found.Delete(cancellationToken: TestContext.Current.CancellationToken);
+            throw new InvalidOperationException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Null(Assert.Single(await Widget.IgnoreQueryFilters()).DeletedAt);
+    }
+
+    [Fact]
+    public async Task A_soft_delete_of_a_found_aggregate_is_stamped_at_the_commit()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+
+        await Db.Transaction(
+            () => found.Delete(cancellationToken: TestContext.Current.CancellationToken),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, await Widget.Count(TestContext.Current.CancellationToken));
+        Assert.NotNull(Assert.Single(await Widget.IgnoreQueryFilters()).DeletedAt);
+    }
+
+    [Fact]
     public async Task The_work_can_hand_back_a_value()
     {
         await using var database = await StartDatabaseAsync();
@@ -96,6 +164,22 @@ public sealed class DbTransactionTests : IDisposable
         }, cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal("anvil", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task Undo_queued_inside_runs_after_a_rollback_and_never_after_a_commit()
+    {
+        await using var database = await StartDatabaseAsync();
+        var undone = new List<string>();
+
+        await Db.Transaction(() => Queue(undone, "committed"), cancellationToken: TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await Queue(undone, "rolled back");
+            throw new InvalidOperationException("the work failed");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["rolled back"], undone);
     }
 
     [Fact]
@@ -253,6 +337,25 @@ public sealed class DbTransactionTests : IDisposable
 
         // SQLite has one writer: the second BEGIN waits for the first COMMIT, then counts the row it wrote.
         Assert.Equal(1, await Widget.Count(w => w.Name == "pistol-7", TestContext.Current.CancellationToken));
+    }
+
+    private static Task Queue(List<string> undone, string what)
+    {
+        AmbientTransaction.Current!.OnRollback(() =>
+        {
+            undone.Add(what);
+            return Task.CompletedTask;
+        });
+        return Task.CompletedTask;
+    }
+
+    private static async Task<Guid> BasketWithLinesAsync()
+    {
+        var basket = Basket.Open("ada");
+        basket.Add("apple", 3);
+        basket.Add("pear", 1);
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+        return basket.Id;
     }
 
     private async Task<TestDatabase> StartDatabaseAsync()

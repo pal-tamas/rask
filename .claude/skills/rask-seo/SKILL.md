@@ -33,6 +33,7 @@ own ("blazor", "react"). Map every new page to one:
 | color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `ui-kit` (#color-picker) |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
+| HTML to PDF in ASP.NET Core / C#, print a page or report to PDF with headless Chrome, Puppeteer alternative for .NET | `pdf` |
 | PWA in C#, browser API (Geolocation, WebUSB, …) in C# | `pwa`, `apis/*` |
 | full-stack .NET web framework, C# full-stack framework, one C# codebase for UI + data + auth + jobs + deploy | `/`, `getting-started` |
 | multi-tenant .NET app, tenant isolation EF Core | `multi-tenancy` |

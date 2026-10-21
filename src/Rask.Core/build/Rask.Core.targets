@@ -71,6 +71,15 @@
   </ItemGroup>
 
   <!--
+    A component method with [Authorize] is checked wherever it is called, and a call inside a lambda is reached
+    by an interceptor the generator writes into this namespace (HandlerAuthorizationGenerator). The compiler
+    only honours interceptors in a namespace the project names.
+  -->
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Rask.Generated.Authorization</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <!--
     The excludes below name the front end's directories at ANY depth, not just the project root.
     `node_modules\**` alone is anchored, and that was enough only because the ISLANDS lane puts its
     package.json in the project root. The SPA and meta lanes put the whole front end in a subdirectory,
