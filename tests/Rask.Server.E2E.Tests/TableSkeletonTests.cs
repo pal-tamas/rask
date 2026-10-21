@@ -32,25 +32,27 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
     [Fact]
     public async Task A_page_change_shows_rows_then_skeleton_rows_of_their_size_then_the_next_rows()
     {
-        await using var session = await OpenAsync("/");
-        var sent = Sent(session.Page);
+        var sent = new List<string>();
+        await using var session = await OpenAsync("/", sent: sent);
+        Forget(sent);
 
         var paints = await PressAsync(session.Page, () => session.Page.Locator($"{Pager} button:visible", new() { HasTextString = "2" }).First.ClickAsync(), "driver 16");
 
         AssertRowsSkeletonRows(paints, "driver 1 ", "driver 16");
-        Assert.Equal(1, sent.Count(frame => frame.Contains("\"type\":\"click\"", StringComparison.Ordinal)));
+        Assert.Equal(1, Pressed(sent, "\"type\":\"click\""));
     }
 
     [Fact]
     public async Task A_page_change_by_link_shows_the_skeleton_at_the_press_and_keeps_the_headings()
     {
-        await using var session = await OpenAsync("/?links=1");
-        var sent = Sent(session.Page);
+        var sent = new List<string>();
+        await using var session = await OpenAsync("/?links=1", sent: sent);
+        Forget(sent);
 
         var paints = await PressAsync(session.Page, () => session.Page.Locator($"{Pager} a:visible", new() { HasTextString = "2" }).First.ClickAsync(), "driver 16");
 
         AssertRowsSkeletonRows(paints, "driver 1 ", "driver 16");
-        Assert.Equal(1, sent.Count(frame => frame.Contains("\"type\":\"navigate\"", StringComparison.Ordinal)));
+        Assert.Equal(1, Pressed(sent, "\"type\":\"navigate\""));
     }
 
     [Fact]
@@ -78,7 +80,7 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
     {
         await using var session = await OpenAsync("/");
 
-        var paints = await PressAsync(session.Page, () => session.Page.GetByRole(AriaRole.Tab, new() { Name = "Inaktív (552)" }).ClickAsync(), "inactive driver 1 ");
+        var paints = await PressAsync(session.Page, () => session.Page.GetByRole(Microsoft.Playwright.AriaRole.Tab, new() { Name = "Inaktív (552)" }).ClickAsync(), "inactive driver 1 ");
 
         AssertRowsSkeletonRows(paints, "driver 1 ", "inactive driver 1 ");
     }
@@ -91,15 +93,16 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
         await page.EvaluateAsync(Recorder, "#vehicles");
         TableSkeletonPage.Gate.Hold();
 
-        await page.GetByRole(AriaRole.Tab, new() { Name = "Járművek" }).ClickAsync();
+        await page.GetByRole(Microsoft.Playwright.AriaRole.Tab, new() { Name = "Járművek" }).ClickAsync();
         await TableSkeletonPage.Gate.ReadStarted();
         await Expect(page.Locator("#vehicles [data-ui-skeleton-line]").First).ToBeVisibleAsync();
         await page.WaitForTimeoutAsync(300);
         TableSkeletonPage.Gate.Release();
         await Expect(page.Locator("#vehicles tbody tr").First).ToContainTextAsync("vehicle 1 ");
+        await SettledAsync(page, "#vehicles");
         var paints = await PaintsAsync(page);
 
-        var shown = paints.Where(paint => paint.Rows > 0).ToList();
+        var shown = paints.All.Where(paint => paint.Rows > 0).ToList();
         Assert.All(shown, paint => Assert.True(paint.Head, "a paint of the vehicles table had no headings"));
         Assert.True(shown[0].Skeleton, "the vehicles table's first paint was not its skeleton");
         Assert.Equal(TableSkeletonPage.PerPage, shown[0].Rows);
@@ -147,9 +150,16 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
         await page.WaitForTimeoutAsync(400);
         TableSkeletonPage.Gate.Release();
         await Expect(page.Locator("#drivers tbody tr").First).ToContainTextAsync(arrives);
-        await page.WaitForFunctionAsync("() => !document.querySelector('#drivers').closest('[data-skeleton]')");
-        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
+        await SettledAsync(page, "#drivers");
         return await PaintsAsync(page);
+    }
+
+    // The table's rows are its own again (no skeleton, from the browser or the render), and two paints have shown it.
+    private static async Task SettledAsync(IPage page, string table)
+    {
+        await page.WaitForFunctionAsync(
+            "t => !document.querySelector(t).closest('[data-skeleton], [data-rask-skeleton=loading]')", table);
+        await page.EvaluateAsync("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))");
     }
 
     private static async Task<Paints> PaintsAsync(IPage page) =>
@@ -157,23 +167,41 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
 
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
 
-    private static List<string> Sent(IPage page)
+    private static void Forget(List<string> sent)
     {
-        var sent = new List<string>();
-        page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) =>
+        lock (sent)
         {
-            lock (sent)
-            {
-                sent.Add(frame.Text ?? string.Empty);
-            }
-        };
-        return sent;
+            sent.Clear();
+        }
     }
 
-    private async Task<HookSession> OpenAsync(string path, bool record = true)
+    // How many frames the page sent carrying `kind`.
+    private static int Pressed(List<string> sent, string kind)
+    {
+        lock (sent)
+        {
+            return sent.Count(frame => frame.Contains(kind, StringComparison.Ordinal));
+        }
+    }
+
+    // Opens the page, and from the first frame keeps what it sends in `sent`.
+    private async Task<HookSession> OpenAsync(string path, bool record = true, List<string>? sent = null)
     {
         TableSkeletonPage.Gate.Release();
-        var session = await HookSession.OpenAsync<TableSkeletonPage>(playwright, path: path, services: services =>
+        var session = await HookSession.OpenAsync<TableSkeletonPage>(playwright, path: path, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) =>
+            {
+                if (sent is not null)
+                {
+                    lock (sent)
+                    {
+                        sent.Add(frame.Text ?? string.Empty);
+                    }
+                }
+            };
+            return Task.CompletedTask;
+        }, services: services =>
         {
             services.AddRaskQuery();
             services.AddSingleton<IDispatcher, NothingToAsk>();
@@ -199,7 +227,7 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
             const paint = () => {
                 const b = box();
                 const body = b && b.querySelector('tbody');
-                if (!body) return { rows: 0, skeleton: false, height: 0, below: below.getBoundingClientRect().top, first: '', head: false };
+                if (!body) return { rows: 0, skeleton: false, height: 0, below: below.getBoundingClientRect().top + scrollY, first: '', head: false };
                 const thead = b.querySelector('thead');
                 if (thead && !head) head = thead;
                 const rows = body.querySelectorAll(':scope > tr');
@@ -207,7 +235,7 @@ public sealed class TableSkeletonTests(PlaywrightFixture playwright) : IClassFix
                     rows: rows.length,
                     skeleton: b.hasAttribute('data-skeleton') || b.getAttribute('data-rask-skeleton') === 'loading' || !!body.querySelector('[data-ui-skeleton-line]'),
                     height: body.getBoundingClientRect().height,
-                    below: below.getBoundingClientRect().top,
+                    below: below.getBoundingClientRect().top + scrollY,
                     first: rows.length ? rows[0].textContent : '',
                     head: !!thead && thead === head,
                 };
@@ -317,7 +345,7 @@ public sealed partial class TableSkeletonPage : Component
     private UiPagination Pager()
     {
         var pager = Ui.Pagination.Paginator(new UiPaginator { Page = Page, PerPage = PerPage, Total = Total });
-        return Links ? pager.Href(page => $"/?links=1&page={page}") : pager.OnPage(page => _page = page);
+        return Links ? pager.Href(page => new RouteUrl("/", $"?links=1&page={page}", typeof(TableSkeletonPage))) : pager.OnPage(page => _page = page);
     }
 
     private static async Task<string[]> Read(int page, bool desc, string fuel, string tab)
