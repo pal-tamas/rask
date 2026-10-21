@@ -45,6 +45,27 @@ them until tagged releases begin.
   one Information log line names the method and nothing of the person. A call the build cannot intercept — a
   generic method, a call through `base` — is the new warning RASK109. A handler without the attribute costs nothing
   ([authentication](docs/authentication.md#authorize-on-an-event-handler)).
+- **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
+  Namespace `Rask.Printing`; turned on with `builder.Services.AddRaskPdf()`, on a `RaskApp`
+  (`RaskApp.Create(args, b => b.Services.AddRaskPdf())`) and on a hand-wired host alike.
+  ```csharp
+  var pdf = await Pdf.From(Routes.RefundReport(id), new PdfOptions { Page = PdfPage.A4.Landscape, Footer = "Visszatérítés" });
+  var receipt = await Pdf.From(Receipt.Order(order));          // or a component written only for print
+  ```
+  - The page is rendered on the server exactly as its first GET is — static HTML, no live session left behind —
+    for the caller (the session's user), after its `[Authorize]` admits them: a page they could not open is never
+    printed (`UnauthorizedAccessException`), and one that redirects or answers 404/500 is not printed either.
+  - The app's own stylesheet, the kit's sheet, the component bundle and the fonts are served to the browser from
+    the app's web root; nothing else is reachable, and no script runs.
+  - `PdfOptions`: `Page` (`PdfPage.A4`, `PdfPage.A4.Landscape`), `Margins` (`PdfMargins.Millimetres(…)`), `Footer`,
+    `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
+    structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
+  - Drawn by headless Chromium driven over its own DevTools pipe — no dependency, never a download. `Rask:Pdf`
+    sets `ChromiumPath` (else the usual install folders and `PATH`), `NoSandbox`, `MaxConcurrentPrints` (2),
+    `Timeout` (30 s) and `MaxPages` (1000; a longer document fails rather than come out cut). One browser per app,
+    started at the first print, replaced after a crash, closed with the host; every document in a browser context
+    of its own. A 5,000-row table (209 landscape A4 pages, heading on every page) prints in about a second.
+  - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
   Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a
@@ -219,6 +240,9 @@ them until tagged releases begin.
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
   working. Someone not signed in is still sent to sign in. An app with its own `/forbidden` page no longer reaches
   it from a Rask page ([authentication](docs/authentication.md#a-page-the-user-may-not-open)).
+- **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
+  ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
+  anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.
 
 - **`rask deploy` lets the old container finish the jobs it is running — up to the app's `"stopTimeout"`.** A
   blue/green deploy used to `docker stop -t 20` the old colour, and a job is given 5 s after `SIGTERM`: a job sending
@@ -1006,6 +1030,10 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
+  and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
+  back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had
+  just sent. Only a whole page is dropped for repeating the last one now; a diff always goes out. Both hosts.
 - **Two builds fetching the same TypeScript tool at once no longer fail one of them.** The second build's move
   into the cache met the first one's copy ("Directory not empty") and failed the build; it now keeps the copy that
   landed first, which passed the same checksum.

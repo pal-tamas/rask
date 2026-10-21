@@ -90,6 +90,10 @@
     <!-- The dashboard's harness renders the console the way its mount does: against the console's own route
          table (RouteState.Table), which the main table no longer carries ([assembly: MountOnlyRoutes]). -->
     <InternalsVisibleTo Include="Rask.Dashboard.Tests"/>
+    <!-- Rask.Pdf prints a page the way a first GET renders it, which only the server host can do; Rask.Server
+         cannot be referenced by a package it may one day wire, so they meet in Core: IPrintablePages is declared
+         here, internal, and Rask.Server implements it. -->
+    <InternalsVisibleTo Include="Rask.Pdf"/>
   </ItemGroup>
 
   <!--

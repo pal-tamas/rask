@@ -1,0 +1,25 @@
+#nullable enable
+Rask.Printing.Pdf
+Rask.Printing.PdfPage
+Rask.Printing.PdfPage.Landscape.get -> Rask.Printing.PdfPage!
+const Rask.Printing.Pdf.ContentType = "application/pdf" -> string!
+static Rask.Printing.PdfPage.A4.get -> Rask.Printing.PdfPage!
+Rask.Printing.PdfMargins
+Rask.Printing.PdfOptions
+Rask.Printing.PdfOptions.Footer.get -> string?
+Rask.Printing.PdfOptions.Footer.init -> void
+Rask.Printing.PdfOptions.Margins.get -> Rask.Printing.PdfMargins!
+Rask.Printing.PdfOptions.Margins.init -> void
+Rask.Printing.PdfOptions.Page.get -> Rask.Printing.PdfPage!
+Rask.Printing.PdfOptions.Page.init -> void
+Rask.Printing.PdfOptions.PageNumbers.get -> bool
+Rask.Printing.PdfOptions.PageNumbers.init -> void
+Rask.Printing.PdfOptions.PdfOptions() -> void
+Rask.Printing.PdfOptions.Tagged.get -> bool
+Rask.Printing.PdfOptions.Tagged.init -> void
+static Rask.Printing.PdfMargins.Millimetres(double all) -> Rask.Printing.PdfMargins!
+static Rask.Printing.PdfMargins.Millimetres(double vertical, double horizontal) -> Rask.Printing.PdfMargins!
+Rask.Printing.PdfServiceCollectionExtensions
+static Rask.Printing.Pdf.From(Rask.Core.Component! component, Rask.Printing.PdfOptions? options = null) -> System.Threading.Tasks.Task<byte[]!>!
+static Rask.Printing.Pdf.From(Rask.Core.Routing.RouteUrl route, Rask.Printing.PdfOptions? options = null) -> System.Threading.Tasks.Task<byte[]!>!
+static Rask.Printing.PdfServiceCollectionExtensions.AddRaskPdf(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

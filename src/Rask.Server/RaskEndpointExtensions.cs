@@ -153,6 +153,10 @@ public static partial class RaskEndpointExtensions
         // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
         Http.AppStylesheet.Register(services);
 
+        // What Rask.Pdf prints a page through: the first GET's own render, for a given user, without a socket.
+        services.TryAddSingleton<Printing.ServerPrintablePages>();
+        services.TryAddSingleton<Core.Printing.IPrintablePages>(static sp => sp.GetRequiredService<Printing.ServerPrintablePages>());
+
         // A test is running this app's Program.cs (Page.Visit): a server that opens no socket, and the started app
         // handed to the test rather than served. Every Rask server app comes through here, however it is wired.
         if (AppCapture.Current is { } capture)
@@ -540,6 +544,7 @@ public static partial class RaskEndpointExtensions
             endpoints.ServiceProvider.GetService<IRaskServerDevTools>());
 
         EnsureRuntimeMapped(endpoints, pathBaseNormalized, selector);
+        endpoints.ServiceProvider.GetService<Printing.ServerPrintablePages>()?.Mount(selector, pathBaseNormalized);
 
         // Hoisted so the same handler can serve the host's catch-all AND each mounted application's
         // pattern. It already decides which application owns a request from the path, so mapping it more
@@ -3221,7 +3226,7 @@ public static partial class RaskEndpointExtensions
     // navigations and its Router resolve against that application's route table, and a navigation to a path
     // another application owns becomes a real page load (see NavigateAcrossApplicationsAsync). Both ways a
     // session is born — the GET and a resume — come through here, so they cannot disagree.
-    private static void BindToApplication(LiveSession session, RaskRootSelector selector, string path)
+    internal static void BindToApplication(LiveSession session, RaskRootSelector selector, string path)
     {
         session.Services.GetRequiredService<RouteState>().Table = selector.TableFor(path);
         session.OwnsPath = other => selector.SameApplication(path, other);
