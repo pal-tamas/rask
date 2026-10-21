@@ -35,6 +35,17 @@ them until tagged releases begin.
 
 ### Added
 
+- **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
+  Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
+  Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.
+  A method group (`.OnClick(Remove)`) is checked when the event arrives, and a call inside a lambda
+  (`.OnClick(() => Remove(id))`) — every direct call in the project — by an interceptor the build writes, so a
+  handler id posted by hand is held to the same rule on Server and WASM alike. The principal is the session's at
+  the event; the refusal is the catalog's `HandlerForbidden` sentence in an error toast (a form saves nothing), and
+  one Information log line names the method and nothing of the person. A call the build cannot intercept — a
+  generic method, a call through `base` — is the new warning RASK109. A handler without the attribute costs nothing
+  ([authentication](docs/authentication.md#authorize-on-an-event-handler)).
+
 - **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
   Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a
   blue/green switch broke (the old host ran the new host's first round, so the new host's entries never cleared and
@@ -202,6 +213,12 @@ them until tagged releases begin.
   See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
+
+- **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
+  The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
+  (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
+  working. Someone not signed in is still sent to sign in. An app with its own `/forbidden` page no longer reaches
+  it from a Rask page ([authentication](docs/authentication.md#a-page-the-user-may-not-open)).
 
 - **`rask deploy` lets the old container finish the jobs it is running — up to the app's `"stopTimeout"`.** A
   blue/green deploy used to `docker stop -t 20` the old colour, and a job is given 5 s after `SIGTERM`: a job sending

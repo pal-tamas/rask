@@ -142,6 +142,8 @@ choice between, not a layering.
 - [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
+- [`[Authorize]` on an event handler](#authorize-on-an-event-handler)
+- [A page the user may not open](#a-page-the-user-may-not-open)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
 - [Keycloak / OpenID Connect](authentication-providers.md#keycloak--openid-connect)
 - [Other OIDC providers — Auth0, AWS Cognito, Duende IdentityServer](authentication-providers.md#other-oidc-providers)
@@ -724,17 +726,20 @@ A few framework defaults are fixed (not configurable knobs):
 
 | Behaviour | Value |
 |---|---|
-| Initial HTTP GET challenge / forbid | the cookie scheme's `LoginPath` / `AccessDeniedPath` (`AuthOptions.LoginPath` / `AccessDeniedPath`) |
-| Client-side route-guard redirect (an in-app nav to a protected route) | `/login` / `/forbidden` — name your login route `/login` to match |
+| Initial HTTP GET challenge | the cookie scheme's `LoginPath` (`AuthOptions.LoginPath`) |
+| Client-side route-guard redirect (an in-app nav to a protected route, nobody signed in) | `/login` — name your login route `/login` to match |
+| A signed-in user the route forbids | stays on the address: [the page says so inside its layout](#a-page-the-user-may-not-open), answered 403 |
 | Sign-in/out redeem ticket lifetime | 30 seconds |
 
-The first row's two paths are `AuthOptions` values, shown here at their defaults:
+The first row's path is an `AuthOptions` value, shown here with the others at their defaults. `AccessDeniedPath`
+is where the cookie scheme sends a forbidden request to an endpoint that is not a Rask page (a controller, a
+minimal API); a Rask page answers that request itself, in its layout:
 
 ```csharp
 app.Configure(c => c.Auth.Configure(o =>
 {
     o.LoginPath = "/login";          // ← where unauthenticated users are challenged (HTTP GET)
-    o.AccessDeniedPath = "/forbidden";
+    o.AccessDeniedPath = "/forbidden";  // ← a forbidden non-page endpoint
     o.CookieName = "rask.auth";      // Secure + HttpOnly + SameSite=Lax are not knobs
 }));
 ```
@@ -777,6 +782,56 @@ And the declarative `Authorize` component, live — sign in as *user* or *admin*
 `NotAuthorized`, `Authorized`, and role-gated slots:
 
 <!-- demo:auth-authorize -->
+
+---
+
+## `[Authorize]` on an event handler
+
+Put ASP.NET's own `[Authorize]` on the component method an event runs. Someone who does not meet it is told
+so in a toast, the method does not run, and nothing on the page changes:
+
+```csharp
+Ui.Button.Danger.OnClick(Remove)["Remove"]
+
+[Authorize(Roles = "admin")]
+private async Task Remove() => await Tank.Remove(TankId);
+```
+
+- **The rule belongs to the method, however it is reached.** A method group (`.OnClick(Remove)`) is checked
+  when the event arrives; a call inside a lambda (`.OnClick(() => Remove(row.Id))`) and every other direct
+  call in your project is checked by an interceptor the build writes. A call the build cannot intercept — a
+  generic method, a call through `base` — is [RASK109](diagnostics.md#rask109).
+- **Checked at the event, against the session's principal** — the live session asks who it is on every
+  event, so a role taken away a moment ago is already gone. A handler id posted by hand runs the same check:
+  the browser never decides.
+- **What the person sees** is the catalog's `HandlerForbidden` sentence (*You do not have permission to do
+  that.*, Hungarian *Ehhez nincs jogosultsága.*) in an error toast. A form's submit handler says the same and
+  saves nothing.
+- **What is logged** is one Information line naming the method — `TanksPage.Remove was refused: the signed-in
+  user does not meet its [Authorize].` — and nothing of the person.
+- `[Authorize]` bare asks for a signed-in user, `Roles = "a,b"` for any of them, `Policy = "…"` for a policy;
+  several attributes must all pass, and `[AllowAnonymous]` on the method lifts it. A method that returns no
+  `Task` is checked without waiting, so give it a `Task` if its policy answers asynchronously.
+
+Hide what the person cannot use with [the `Authorize` component](#declarative-gating); the attribute is what
+makes it safe.
+
+## A page the user may not open
+
+A page whose `[Authorize]` refuses a **signed-in** user is not left: the address stays, the layouts above it
+render as usual, and its outlet says *You do not have permission to view this page.* (`PageForbidden`) — on
+the first request (answered 403), on an in-app navigation, and on a page whose role was taken away while it
+was open. The layouts' own buttons keep working. Someone **not signed in** is still sent to sign in, as before.
+
+```csharp
+[Route("/admin")] [Authorize] public sealed partial class AdminLayout : Component { … Outlet … }
+
+[Route("users")] [ParentRoute(typeof(AdminLayout))] [Authorize(Roles = "admin")]
+public sealed partial class UsersPage : Component { … }   // a signed-in non-admin: AdminLayout around the sentence
+```
+
+The sentence stands in for the first page of the chain that refuses the user, so a layout that itself refuses
+them is replaced too.
 
 ---
 
