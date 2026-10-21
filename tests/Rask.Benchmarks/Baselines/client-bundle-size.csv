@@ -327,3 +327,12 @@ bundle,bytes
 rask.js,108493
 rask.wasm.js,94578
 rask-hooks.js,102012
+#
+# 2026-10-21, Ui.Table.Of(query)'s skeleton rows from the press (rask-skeleton.ts, data-rask-skeleton) and both hosts
+# telling the hooks when the page has answered what it sent (rask-owned.ts `awaiting`, taken per handler event and
+# navigation): measured from a Release build of the branch on main c45114798: rask.js 108,831, rask.wasm.js 94,841,
+# rask-hooks.js 104,224 (+338 / +263 / +2,212 over the block above).
+bundle,bytes
+rask.js,108831
+rask.wasm.js,94841
+rask-hooks.js,104224
