@@ -34,6 +34,12 @@ internal sealed class ChromiumProcess : IAsyncDisposable
     /// <summary>Whether this browser can print no more: it exited, crashed, or its pipe broke.</summary>
     public bool IsGone => Connection.IsClosed || _process.HasExited;
 
+    /// <summary>Whether the browser process itself has ended.</summary>
+    internal bool HasExited => _process.HasExited;
+
+    /// <summary>The throwaway profile folder this browser keeps its state in.</summary>
+    internal string Profile => _profile.FullName;
+
     /// <summary>Starts <paramref name="binary"/> headless, on a fresh profile that no other process shares.</summary>
     public static ChromiumProcess Start(string binary, bool noSandbox)
     {

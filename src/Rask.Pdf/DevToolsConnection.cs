@@ -19,6 +19,7 @@ internal sealed class DevToolsConnection : IAsyncDisposable
     private readonly ConcurrentDictionary<(string Session, string Method), Action<JsonElement>> _listeners = new();
     private readonly Task _reading;
     private int _lastId;
+    private int _disposed;
     private volatile Exception? _closed;
 
     /// <summary>Starts reading what Chromium writes; commands go out as they are sent.</summary>
@@ -85,6 +86,11 @@ internal sealed class DevToolsConnection : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         _fromBrowser.CancelPendingRead();
         await _reading.ConfigureAwait(false);
         await _fromBrowser.CompleteAsync().ConfigureAwait(false);
