@@ -11,7 +11,8 @@ using Rask.Storage.Upload;
 namespace Rask.Storage;
 
 /// <summary><see cref="IFiles"/> over the application's <typeparamref name="TContext"/> and the configured store.</summary>
-internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> contextFactory, StorageRuntime runtime) : IFiles
+internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> contextFactory, StorageRuntime runtime)
+    : IFiles, IStatedTypeFiles
     where TContext : DbContext
 {
     /// <summary>The same ceiling on every provider, so a link's lifetime never depends on where the bytes are.</summary>
@@ -20,7 +21,23 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
     private const int CopyBufferSize = 81920;
 
     public Task<StoredFile> Add(
-        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, CancellationToken cancellationToken = default)
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, CancellationToken cancellationToken = default) =>
+        AddOpened(openRead, name, size, isPublic, null, cancellationToken);
+
+    public Task<StoredFile> Add(Stream content, string name, bool isPublic, CancellationToken cancellationToken = default) =>
+        AddContent(content, name, isPublic, null, cancellationToken);
+
+    public Task<StoredFile> Add(
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, string contentType,
+        CancellationToken cancellationToken) =>
+        AddOpened(openRead, name, size, isPublic, contentType, cancellationToken);
+
+    public Task<StoredFile> Add(Stream content, string name, bool isPublic, string contentType, CancellationToken cancellationToken) =>
+        AddContent(content, name, isPublic, contentType, cancellationToken);
+
+    private Task<StoredFile> AddOpened(
+        Func<long, CancellationToken, Stream> openRead, string name, long size, bool isPublic, string? statedType,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(openRead);
         ArgumentNullException.ThrowIfNull(name);
@@ -32,15 +49,15 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
             throw FileRejectedException.TooLarge(size, limit);
         }
 
-        return SaveOpenedAsync(openRead, name, isPublic, limit, cancellationToken);
+        return SaveOpenedAsync(openRead, name, isPublic, statedType, limit, cancellationToken);
     }
 
-    public async Task<StoredFile> Add(Stream content, string name, bool isPublic, CancellationToken cancellationToken = default)
+    private Task<StoredFile> AddContent(Stream content, string name, bool isPublic, string? statedType, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(name);
 
-        return await SaveCoreAsync(content, name, isPublic, cancellationToken).ConfigureAwait(false);
+        return SaveCoreAsync(content, name, isPublic, statedType, cancellationToken);
     }
 
     public async Task<StoredFile?> Get(Guid id, CancellationToken cancellationToken = default)
@@ -141,18 +158,19 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
     public IResult Download(Guid id) => new StoredFileResult(id, StoredFileAccess.Download);
 
     private async Task<StoredFile> SaveOpenedAsync(Func<long, CancellationToken, Stream> openRead, string name,
-        bool isPublic, long limit, CancellationToken cancellationToken)
+        bool isPublic, string? statedType, long limit, CancellationToken cancellationToken)
     {
         // The limit handed to the opener is the storage limit: an upload's own default (512 KB for IRaskFile) would
         // otherwise refuse anything larger, however high MaxFileSize is set.
         var content = openRead(limit, cancellationToken);
         await using (content.ConfigureAwait(false))
         {
-            return await SaveCoreAsync(content, name, isPublic, cancellationToken).ConfigureAwait(false);
+            return await SaveCoreAsync(content, name, isPublic, statedType, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task<StoredFile> SaveCoreAsync(Stream content, string name, bool isPublic,
+    // statedType is what .As(…) asked for, already validated as a plain media type; null, the bytes decide.
+    private async Task<StoredFile> SaveCoreAsync(Stream content, string name, bool isPublic, string? statedType,
         CancellationToken cancellationToken)
     {
         var options = runtime.Options;
@@ -170,7 +188,7 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
                 .ReadAtLeastAsync(buffer.AsMemory(0, ContentSniffer.HeadLength), ContentSniffer.HeadLength,
                     throwOnEndOfStream: false, cancellationToken)
                 .ConfigureAwait(false);
-            var contentType = ContentTypePolicy.Refine(ContentSniffer.Sniff(buffer.AsSpan(0, read)), fileName);
+            var contentType = statedType ?? ContentTypePolicy.Refine(ContentSniffer.Sniff(buffer.AsSpan(0, read)), fileName);
             if (!ContentTypePolicy.IsAllowed(contentType, options.AllowedTypes))
             {
                 throw FileRejectedException.TypeNotAllowed(contentType);

@@ -35,6 +35,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **Rask.Storage: `await Files.Save(xml, "bevallas.xml").As("application/xml")` states the content type.** It is
+  recorded on the `StoredFile` row in place of the sniffed one and served by `Download` and temporary URLs under the
+  usual rules (XML, HTML and SVG still go out as `application/octet-stream` attachments). The value must be a plain
+  `type/subtype` — no parameters, spaces or line breaks — or `.As` throws `ArgumentException`; it is still checked
+  against `AllowedTypes`. Without `.As` the bytes decide, as before
+  ([file storage](docs/file-storage.md#stating-the-type-yourself)).
+
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`; turned on with `builder.Services.AddRaskPdf()`, on a `RaskApp`
   (`RaskApp.Create(args, b => b.Services.AddRaskPdf())`) and on a hand-wired host alike.

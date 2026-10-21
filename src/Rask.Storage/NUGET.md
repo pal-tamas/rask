@@ -25,7 +25,8 @@ await Files.Share(invoice.FileId).For(5.Minutes);                    // a privat
 app.MapGet("/invoices/{id}", (Guid id) => Files.Download(id));       // behind your own check
 ```
 
-- **Content types are sniffed from the bytes**, never taken from the browser. Only images, audio and video
+- **Content types are sniffed from the bytes**, never taken from the browser — or stated by your own code with
+  `await Files.Save(xml, "bevallas.xml").As("application/xml")`. Only images, audio and video
   are served inline; everything else — SVG and HTML included — downloads as an attachment.
 - **Uploads are capped** at 50 MB by default (`MaxFileSize`), and `AllowedTypes` narrows what is accepted.
 - **`Rask__Storage__Provider=Database`** keeps the bytes in a `StoredFileBytes` table beside the file rows, written in

@@ -295,6 +295,21 @@ builder.Services.AddRaskStorage<AppDbContext>(o =>
 An executable renamed `invoice.pdf` is refused by that list, because its bytes don't say PDF. A family never
 admits a type that can run script: `image/*` does not let SVG in — name `image/svg+xml` if you mean it.
 
+### Stating the type yourself
+
+Bytes your own code made — an XML return, a generated report — can carry the type you know they are. `.As(…)`
+records it in place of the sniffed one:
+
+```csharp
+var saved = await Files.Save(xml, "bevallas.xml").As("application/xml");
+```
+
+The value must be a plain media type, `type/subtype`: no parameters, spaces or line breaks, because it reaches a
+response header. Anything else throws `ArgumentException` before a byte is read. The stated type is still matched
+against `AllowedTypes`, and `Download` and temporary URLs serve it under the same rules as a sniffed one — so
+`application/xml`, like HTML and SVG, still goes out as an `application/octet-stream` attachment (below). Leave
+`.As` out and the bytes decide, as before. Under `Files.Fake()` the row carries the stated type too.
+
 ### Inline or attachment
 
 Only types a browser displays without running anything are served `inline`:

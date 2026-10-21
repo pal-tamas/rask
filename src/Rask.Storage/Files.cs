@@ -32,14 +32,14 @@ public static class Files
     /// <param name="cancellationToken">Cancels the save.</param>
     public static Saving Save(
         Func<long, CancellationToken, Stream> openRead, string name, long size, CancellationToken cancellationToken = default) =>
-        new(null, openRead ?? throw new ArgumentNullException(nameof(openRead)), null, name, size, false, cancellationToken);
+        new(null, openRead ?? throw new ArgumentNullException(nameof(openRead)), null, name, size, cancellationToken);
 
     /// <summary>Stores <paramref name="content" /> under the display name <paramref name="name" />.</summary>
     /// <param name="content">The bytes to store. Read to the end, not disposed.</param>
     /// <param name="name">The display name.</param>
     /// <param name="cancellationToken">Cancels the save.</param>
     public static Saving Save(Stream content, string name, CancellationToken cancellationToken = default) =>
-        new(null, null, content ?? throw new ArgumentNullException(nameof(content)), name, 0, false, cancellationToken);
+        new(null, null, content ?? throw new ArgumentNullException(nameof(content)), name, 0, cancellationToken);
 
     /// <summary>The row for <paramref name="id" />, or <c>null</c> when there is none.</summary>
     public static Task<StoredFile?> Get(Guid id, CancellationToken cancellationToken = default) =>
