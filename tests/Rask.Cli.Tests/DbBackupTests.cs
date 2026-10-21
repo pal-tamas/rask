@@ -88,7 +88,6 @@ public sealed class DbBackupTests
             DbCommand.BuildRemoteReplaceArguments("h", "s", withFiles: true),
             DbCommand.BuildRemoteCleanupArguments("h", "s"),
             DbCommand.BuildRemoteReplaceArguments("h", "s"),
-            DbCommand.BuildStopArguments("h", "s"),
             DbCommand.BuildStartArguments("h", "s"),
         };
 

@@ -8,9 +8,6 @@ namespace Rask.Cli.Tests;
 /// </summary>
 public sealed partial class DeployCommandTests
 {
-    private const string DrainLine =
-        "info: Rask.Background.JobProcessor[0]\n      Stopping: no new job is claimed; waiting for 1 running job(s) to finish: AtPump (3m12s)\n";
-
     [Fact]
     public async Task The_stop_budget_comes_from_the_deploy_config_and_reaches_both_the_stop_and_the_app()
     {
@@ -61,7 +58,7 @@ public sealed partial class DeployCommandTests
     {
         var fs = new FakeFileSystem();
         var inner = new FakeProcessRunner { CaptureHandler = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n") };
-        var runner = new SlowStop(inner, "demo-blue", reportsBeforeExit: 2, logs: DrainLine);
+        var runner = new SlowStopRunner(inner, "demo-blue", reportsBeforeExit: 2, logs: SlowStopRunner.DrainLine);
         var console = new StringConsole();
         var command = CreateOn(fs, inner, runner, console);
 
@@ -83,7 +80,7 @@ public sealed partial class DeployCommandTests
         {
             CaptureHandler = args => args.Contains("{{.State.ExitCode}}") ? new ProcessResult(0, "137\n", string.Empty) : scripted(args),
         };
-        var runner = new SlowStop(inner, "demo-blue", reportsBeforeExit: 1, logs: DrainLine);
+        var runner = new SlowStopRunner(inner, "demo-blue", reportsBeforeExit: 1, logs: SlowStopRunner.DrainLine);
         var console = new StringConsole();
         var command = CreateOn(fs, inner, runner, console);
 
@@ -114,22 +111,27 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public async Task Port_mode_waits_for_the_old_container_to_finish_before_the_new_one_takes_the_port()
+    public async Task Port_mode_keeps_a_short_stop_whatever_the_stop_budget_and_says_running_jobs_need_a_domain()
     {
         var fs = new FakeFileSystem();
+        fs.Seed("/proj/.rask/deploy.json", """{"host":"deploy@box","name":"shop","port":9000,"stopTimeout":"45m"}""");
         var inner = new FakeProcessRunner { CaptureHandler = Captures() };
-        var runner = new SlowStop(inner, "shop", reportsBeforeExit: 1, logs: DrainLine);
+        var runner = new SlowStopRunner(inner, "shop", reportsBeforeExit: 1, logs: SlowStopRunner.DrainLine);
         var console = new StringConsole();
         var command = CreateOn(fs, inner, runner, console);
 
-        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--port", "9000"], CancellationToken.None);
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
 
         Assert.Equal(0, exit);
         var all = inner.Invocations.ToList();
-        int Stop = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop", ShutdownBudget.DefaultStopTimeout)));
+        int Stop = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop", ShutdownBudget.PortModeStopTimeout)));
         int Start = all.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("shop:current"));
-        Assert.True(Stop >= 0 && Stop < Start);
+        Assert.True(Stop >= 0 && Stop < Start, "the old container is stopped within the short budget before the new one starts");
+        Assert.Contains(all, i => i.Arguments.Contains("run") && i.Arguments.Contains("ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=15"));
         Assert.Contains("shop is finishing 1 job: AtPump (3m12s)", console.OutText, StringComparison.Ordinal);
+        Assert.Contains(" of 20s", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("--domain", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("running jobs", console.ErrorText, StringComparison.Ordinal);
     }
 
     private static DeployCommand CreateOn(FakeFileSystem fs, FakeProcessRunner inner, IProcessRunner runner, StringConsole console)
@@ -146,38 +148,4 @@ public sealed partial class DeployCommandTests
         };
     }
 
-    /// <summary>
-    /// A box whose <c>docker stop</c> of <paramref name="container"/> takes a while: it returns only after the deploy
-    /// has read the container's log <paramref name="reportsBeforeExit"/> times. Everything else is <paramref name="inner"/>.
-    /// </summary>
-    private sealed class SlowStop(FakeProcessRunner inner, string container, int reportsBeforeExit, string logs) : IProcessRunner
-    {
-        private readonly TaskCompletionSource<int> _stopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        private int _reports;
-
-        public async Task<int> RunAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null)
-        {
-            var exit = await inner.RunAsync(fileName, arguments, workingDirectory, cancellationToken, environment).ConfigureAwait(false);
-            return arguments.Contains("stop") && arguments[^1] == container ? await _stopped.Task.ConfigureAwait(false) : exit;
-        }
-
-        public Task<int> RunTeeAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, Action<string> onLine, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
-            inner.RunTeeAsync(fileName, arguments, workingDirectory, onLine, cancellationToken, environment);
-
-        public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null)
-        {
-            var result = await inner.CaptureAsync(fileName, arguments, workingDirectory, cancellationToken, environment).ConfigureAwait(false);
-            if (!arguments.Contains("logs") || arguments[^1] != container || _stopped.Task.IsCompleted)
-            {
-                return result;
-            }
-
-            if (Interlocked.Increment(ref _reports) >= reportsBeforeExit)
-            {
-                _stopped.TrySetResult(0);
-            }
-
-            return new ProcessResult(0, logs, string.Empty);
-        }
-    }
 }

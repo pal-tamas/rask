@@ -344,9 +344,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         Line(BuildBuildArguments(host, slug, dockerfile, contextDir));
         if (domain is null)
         {
-            Line(BuildStopArguments(host, slug, StopBudget));
+            Line(BuildStopArguments(host, slug, ShutdownBudget.PortModeStopTimeout));
             Line(BuildRemoveArguments(host, slug));
-            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, stopTimeout: StopBudget));
+            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, stopTimeout: ShutdownBudget.PortModeStopTimeout));
             Line(BuildInspectRunningArguments(host, slug));
             if (healthEnabled)
             {

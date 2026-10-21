@@ -26,13 +26,20 @@ namespace Rask.Cli;
 ///     <para>
 ///         <b>The wait costs nothing in traffic.</b> The proxy points at the new colour before the old one is
 ///         stopped, and the old one stops waiting the moment its last job finishes — the budget is a ceiling, not
-///         a sleep. Only the bare-port path, which has no proxy to switch, is down while the old container drains.
+///         a sleep. The bare-port path has no proxy to switch, so it keeps a short PortModeStopTimeout instead.
 ///     </para>
 /// </summary>
 internal static class ShutdownBudget
 {
     /// <summary>The stop budget of an app whose <c>.rask/deploy.json</c> names none.</summary>
     internal static readonly TimeSpan DefaultStopTimeout = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    ///     The stop budget of a bare <c>--port</c> deploy, whatever <c>stopTimeout</c> says. With no proxy to switch,
+    ///     the old container holds the port until it exits, so a long drain would be a long outage; running jobs
+    ///     need a <c>--domain</c> deploy to be waited for.
+    /// </summary>
+    internal static readonly TimeSpan PortModeStopTimeout = TimeSpan.FromSeconds(20);
 
     /// <summary>The smallest budget accepted: it still leaves the app a few seconds after <see cref="HostReserveSeconds"/>.</summary>
     internal static readonly TimeSpan MinimumStopTimeout = TimeSpan.FromSeconds(10);

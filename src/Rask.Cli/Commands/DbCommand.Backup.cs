@@ -142,9 +142,6 @@ internal sealed partial class DbCommand
             : ""),
     ];
 
-    internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
-        ["-H", $"ssh://{host}", "stop", container];
-
     internal static IReadOnlyList<string> BuildStartArguments(string host, string container) =>
         ["-H", $"ssh://{host}", "start", container];
 
@@ -200,9 +197,20 @@ internal sealed partial class DbCommand
         var name = app ?? config.Name ?? Path.GetFileName(projectDirectory.TrimEnd(Path.DirectorySeparatorChar));
         var slug = DeployCommand.ToContainerSlug(name);
 
-        return string.Equals(subcommand, "backup", StringComparison.Ordinal)
-            ? await BackupRemoteAsync(host, slug, output, cancellationToken).ConfigureAwait(false)
-            : await RestoreRemoteAsync(host, slug, file!, force, cancellationToken).ConfigureAwait(false);
+        if (string.Equals(subcommand, "backup", StringComparison.Ordinal))
+        {
+            return await BackupRemoteAsync(host, slug, output, cancellationToken).ConfigureAwait(false);
+        }
+
+        // The app is stopped the way a deploy retires it: within its stop budget, finishing its running jobs.
+        var budget = ShutdownBudget.DefaultStopTimeout;
+        if (config.StopTimeout is { } text && !StopTimeout.TryParse(text, out budget, out var budgetError))
+        {
+            Console.WriteErrorLine($"{Path.Combine(".rask", "deploy.json")}: {budgetError}", ConsoleStyle.Error);
+            return 1;
+        }
+
+        return await RestoreRemoteAsync(host, slug, file!, force, budget, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Copy the local database through SQLite's Online Backup API.</summary>
@@ -474,7 +482,7 @@ internal sealed partial class DbCommand
         return 0;
     }
 
-    private async Task<int> RestoreRemoteAsync(string host, string slug, string input, bool force, CancellationToken cancellationToken)
+    private async Task<int> RestoreRemoteAsync(string host, string slug, string input, bool force, TimeSpan stopBudget, CancellationToken cancellationToken)
     {
         if (IsMissingBackup(input))
         {
@@ -495,7 +503,8 @@ internal sealed partial class DbCommand
         // process holding a handle to the database it thinks it has, and the next checkpoint writes that
         // belief back over the restored one — a corrupted hybrid of the two.
         Console.WriteLine($"Stopping {slug}…", ConsoleStyle.Dim);
-        if (await DockerAsync(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false) != 0)
+        var stop = new ContainerStop(Console, _process, _workingDirectory, stopBudget) { ReportDelay = StopReportDelay };
+        if (await stop.StopAsync(host, slug, cancellationToken).ConfigureAwait(false) != StopResult.Stopped)
         {
             Console.WriteErrorLine($"Couldn't stop '{slug}' on {host}. Refusing to restore under a running app — it would corrupt the database.", ConsoleStyle.Error);
             return 1;
@@ -564,6 +573,9 @@ internal sealed partial class DbCommand
 
         return true;
     }
+
+    /// <summary>How often a restore waiting on the app to stop says what it waits for. Zero in tests.</summary>
+    internal TimeSpan StopReportDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     private Task<int> DockerAsync(IReadOnlyList<string> args, CancellationToken cancellationToken) =>
         _process.RunAsync("docker", args, _workingDirectory, cancellationToken);

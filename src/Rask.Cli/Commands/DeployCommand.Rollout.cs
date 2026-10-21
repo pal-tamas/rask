@@ -139,16 +139,23 @@ internal sealed partial class DeployCommand
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
     private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
-        // Retire the old container gracefully — it finishes its running jobs (within the stop budget), checkpoints
-        // the WAL and lets Litestream flush — before removing it. There is no proxy to switch in this mode, so the
-        // port is down while it drains; a no-op on the first deploy (no container yet).
-        await RetireContainerAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        // Retire the old container gracefully — SIGTERM, WAL checkpoint, Litestream flush — before removing it. There
+        // is no proxy to switch in this mode: the old container holds the port until it exits, so it gets the short
+        // port-mode budget whatever stopTimeout says, and a job it is still running is cut. A no-op on a first deploy.
+        if (string.Equals(tag, CurrentTag, StringComparison.Ordinal))
+        {
+            Console.WriteErrorLine(
+                $"  ! A --port deploy stops the old container within {StopTimeout.Format(ShutdownBudget.PortModeStopTimeout)}: running jobs are cut there and run again on the new one. Deploy with --domain to let them finish (up to \"{StopTimeout.Key}\").",
+                ConsoleStyle.Warning);
+        }
+
+        await RetireContainerAsync(host, slug, ShutdownBudget.PortModeStopTimeout, cancellationToken, PortModeAdvice).ConfigureAwait(false);
         await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…").ConfigureAwait(false);
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: StopBudget), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
