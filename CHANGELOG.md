@@ -53,6 +53,14 @@ them until tagged releases begin.
     index to `[WaitingKey] IS NOT NULL`, so it starts empty, and on SQLite and PostgreSQL it is one pass over the
     table. An app with its own `IJobs` implements `AddUnlessWaiting`.
 
+- **Jobs, mail and a handed-in `db:` join `Db.Transaction`.** Before: `Jobs.Enqueue` and `Mail.Send` wrote through
+  contexts of their own, so a job or mail queued inside a transaction that rolled back still ran, and a `db:`
+  context handed to `Order.Create(m, db: db)` committed beside the work. After: their rows are written in the
+  transaction — no processor sees them before the commit and a rollback leaves nothing — and a `db:` on the same
+  connection string is enlisted; on another database, in its own transaction or already open, it throws
+  `InvalidOperationException` instead of running outside. On SQL Server an `UnlessWaiting` collision inside the
+  transaction answers `false` without dooming it under `XACT_ABORT` (the key is locked with `sp_getapplock`
+  before the look). The cache does not take part.
 - **`Db.Transaction`: a check and the writes it guards in one transaction.** Before: a read face (`Pistol.Count`,
   `Tank.Any`) always opened a context of its own, so a check ran outside the app's `BeginTransaction` and two
   concurrent saves could take the same pistol; `db:` could stage writes together but never a read. After:

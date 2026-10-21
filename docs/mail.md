@@ -146,6 +146,9 @@ letter. `ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`; `Time
 
 ## Notes
 
+- **Inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) a send is a row in the
+  transaction.** Nothing is delivered before the commit, and a rollback leaves no mail behind. The mail table
+  must be in the same database; otherwise `Mail.Send` throws rather than queue a mail for work that may roll back.
 - **Server-side.** The processor is a hosted service and the store is your EF Core database — this is not a
   browser/WASM concern.
 - **Running more than one instance is safe.** Each processor *leases* the batch it claims, so an email is
