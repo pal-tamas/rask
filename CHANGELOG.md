@@ -54,10 +54,10 @@ them until tagged releases begin.
     `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
     structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
   - **The browser comes from the build, as Puppeteer's does — never from the running app.** Building an app that
-    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (156.0.8078.47) into the user cache
+    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (155.0.8059.79) into the user cache
     (`~/Library/Caches/Rask`, `~/.cache/rask`, `%LOCALAPPDATA%\Rask\Cache`) once, after checking its SHA-256;
     `dotnet build`, `dotnet test` and `rask dev` then print with nothing installed. `RaskPdfDownloadChromium=false`
-    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin.
+    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin, only ever to a Stable release at least 7 days old.
   - **The template images carry it.** Every scaffolded ASP.NET Dockerfile now has `dotnet publish` fetch the shell
     into the build stage (`-p:RaskPdfChromiumCache=/chrome`), copies it to `/opt/rask/chrome`, and installs the
     libraries it links against plus fonts — only when the app references Rask.Pdf. Measured on `aspnet:10.0`
