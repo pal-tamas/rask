@@ -375,7 +375,7 @@ public static class ModelBuilderExtensions
 
                     if (collection.Field is { } ownedField)
                     {
-                        builder.Navigation(collection.Property).HasField(ownedField);
+                        UseField(builder.Navigation(collection.Property).Metadata, clrType, ownedField);
                     }
 
                     continue;
@@ -385,7 +385,7 @@ public static class ModelBuilderExtensions
 
                 if (collection.Field is { } field)
                 {
-                    primitive.HasField(field);
+                    UseField(primitive.Metadata, clrType, field);
                 }
             }
         }
@@ -393,6 +393,33 @@ public static class ModelBuilderExtensions
 
         static bool IsDeclared(ConfigurationSource? source) =>
             source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;
+    }
+
+    // HasField(name) looks on the entity's own type only, so a field an abstract base declares — the base's
+    // `_tags` behind its `Tags` — is found on that base and set as itself.
+    private static void UseField(
+        IMutablePropertyBase property, [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType, string field) =>
+        property.FieldInfo = DeclaredField(clrType, field) ?? throw new InvalidOperationException(
+            $"The field '{field}' behind '{clrType.Name}.{property.Name}' was not found on it or on any of its bases.");
+
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The field was named by the generator from the entity's own declaration, and the bases are " +
+                        "the ones EF Core's backing-field convention walks for the same entity under the same annotation.")]
+    private static FieldInfo? DeclaredField([DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType, string name)
+    {
+#pragma warning disable S3011 // the field behind a read-only view is private by design; EF Core writes it the same way
+        const BindingFlags Declared = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+#pragma warning restore S3011
+
+        for (var type = clrType; type is not null; type = type.BaseType)
+        {
+            if (type.GetField(name, Declared) is { } field)
+            {
+                return field;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

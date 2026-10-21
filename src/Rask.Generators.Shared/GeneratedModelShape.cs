@@ -334,9 +334,7 @@ internal static class GeneratedModelShape
             return new ModelChild(property, childType, ModelChildAccess.Property, null);
         }
 
-        var fields = entity.GetMembers().OfType<IFieldSymbol>()
-            .Where(f => !f.IsStatic && !f.IsConst && ImplementsCollectionOf(f.Type, element))
-            .ToList();
+        var fields = FieldsHolding(property, element);
 
         // Exactly one, or Rask would be guessing which field the property hands out.
         if (fields.Count == 1)
@@ -359,7 +357,7 @@ internal static class GeneratedModelShape
         property.SetMethod is null &&
         !HasBackingField(property) &&
         Getter(property) is { } getter && !HandsOutAField(property.ContainingType, getter) &&
-        entity.GetMembers().OfType<IPropertySymbol>().Any(sibling =>
+        Properties(entity).Any(sibling =>
             !SymbolEqualityComparer.Default.Equals(sibling, property) && !sibling.IsStatic &&
             CollectionElement(sibling.Type) is { } held && SymbolEqualityComparer.Default.Equals(held, element) &&
             IsStored(sibling));
@@ -422,6 +420,13 @@ internal static class GeneratedModelShape
         }
     }
 
+    // The fields beside the property that could be what it hands out — on the type that declares it, which for a
+    // property an abstract base declares is the base and not the entity.
+    private static List<IFieldSymbol> FieldsHolding(IPropertySymbol property, ITypeSymbol element) =>
+        property.ContainingType.GetMembers().OfType<IFieldSymbol>()
+            .Where(f => !f.IsStatic && !f.IsConst && ImplementsCollectionOf(f.Type, element))
+            .ToList();
+
     // IEnumerable<T>, IReadOnlyCollection<T> or IReadOnlyList<T>: a List<T> of the same element can be assigned.
     private static bool TakesAList(ITypeSymbol type) =>
         type is INamedTypeSymbol { IsGenericType: true } named &&
@@ -475,9 +480,7 @@ internal static class GeneratedModelShape
             return new ModelValueCollection(property, element, valueObject, null);
         }
 
-        var fields = entity.GetMembers().OfType<IFieldSymbol>()
-            .Where(f => !f.IsStatic && !f.IsConst && ImplementsCollectionOf(f.Type, element))
-            .ToList();
+        var fields = FieldsHolding(property, element);
 
         // Exactly one, or Rask would be guessing which field the property hands out. None means the property
         // is computed, which is not stored state at all.
@@ -550,10 +553,17 @@ internal static class GeneratedModelShape
             SymbolEqualityComparer.Default.Equals(i.TypeArguments[0], element));
     }
 
-    // Derived members first, so a property re-declared lower down hides the base one by name. The walk stops at
-    // Rask's own bases, whose members (Id, the timestamps, Version, DeletedAt, the events) are the framework's —
-    // and so is a TenantId the entity declares, which a form must never carry.
-    private static IEnumerable<IPropertySymbol> Properties(INamedTypeSymbol entity)
+    /// <summary>
+    ///     The properties <paramref name="entity" /> holds — its own and every base's up to Rask's, so what an
+    ///     abstract base declares is the entity's exactly as what it declares itself.
+    /// </summary>
+    /// <remarks>
+    ///     Derived members first, so a property re-declared lower down hides the base one by name. The walk stops at
+    ///     Rask's own bases, whose members (Id, the timestamps, Version, DeletedAt, the events) are the framework's —
+    ///     and so is a TenantId the entity declares, which a form must never carry.
+    /// </remarks>
+    /// <param name="entity">The entity to walk.</param>
+    public static IEnumerable<IPropertySymbol> Properties(INamedTypeSymbol entity)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
 

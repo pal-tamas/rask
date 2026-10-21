@@ -450,6 +450,8 @@ public sealed partial class ModelInputGenerator
             s.AppendLine("    }");
         }
 
+        // Declared against the type the field is on: an UnsafeAccessor never looks in a base, so a field an abstract
+        // base declares is reached through the base, and the entity passes to it as one.
         foreach (var collection in entity.ValueCollections.Where(static c => c.ThroughField))
         {
             s.AppendLine();
@@ -458,7 +460,7 @@ public sealed partial class ModelInputGenerator
             s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind)
                 .Append(".Field, Name = \"").Append(collection.FieldName).AppendLine("\")]");
             s.Append("    private static extern ref ").Append(collection.FieldTypeName).Append(" __Values_")
-                .Append(collection.Name).Append('(').Append(entityType).AppendLine(" entity);");
+                .Append(collection.Name).Append('(').Append(collection.FieldOwnerTypeName ?? entityType).AppendLine(" entity);");
         }
 
         foreach (var child in entity.Children.Where(static c => c.ThroughField))
@@ -469,7 +471,7 @@ public sealed partial class ModelInputGenerator
             s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind)
                 .Append(".Field, Name = \"").Append(child.FieldName).AppendLine("\")]");
             s.Append("    private static extern ref ").Append(child.FieldTypeName).Append(" __Field_")
-                .Append(child.Name).Append('(').Append(entityType).AppendLine(" entity);");
+                .Append(child.Name).Append('(').Append(child.FieldOwnerTypeName ?? entityType).AppendLine(" entity);");
         }
 
         if (entity.KeyWrite is { Kind: not ModelWriteKind.Public } key)
