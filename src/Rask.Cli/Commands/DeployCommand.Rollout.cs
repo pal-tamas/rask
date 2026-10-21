@@ -139,17 +139,23 @@ internal sealed partial class DeployCommand
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
     private async Task<int> DeployPortAsync(string host, string slug, int port, int containerPort, IReadOnlyList<string> env, string? project, string? envFile, bool healthEnabled, string healthPath, CancellationToken cancellationToken, string tag = CurrentTag, bool persist = true)
     {
-        // Retire the old container gracefully (SIGTERM → WAL checkpoint, and a Litestream flush when a
-        // replica is configured) before removing it, so the last writes are durable; both no-op on the
-        // first deploy (no container yet).
-        await Run(BuildStopArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
-        await Run(BuildRemoveArguments(host, slug), cancellationToken).ConfigureAwait(false); // ignore-absent
+        // Retire the old container gracefully — SIGTERM, WAL checkpoint, Litestream flush — before removing it. There
+        // is no proxy to switch in this mode: the old container holds the port until it exits, so it gets the short
+        // port-mode budget whatever stopTimeout says, and a job it is still running is cut. A no-op on a first deploy.
+        if (string.Equals(tag, CurrentTag, StringComparison.Ordinal))
+        {
+            Console.WriteErrorLine(
+                $"  ! A --port deploy stops the old container within {StopTimeout.Format(ShutdownBudget.PortModeStopTimeout)}: running jobs are cut there and run again on the new one. Deploy with --domain to let them finish (up to \"{StopTimeout.Key}\").",
+                ConsoleStyle.Warning);
+        }
+
+        await RetireContainerAsync(host, slug, ShutdownBudget.PortModeStopTimeout, cancellationToken, PortModeAdvice).ConfigureAwait(false);
         await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…").ConfigureAwait(false);
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -303,6 +309,10 @@ internal sealed partial class DeployCommand
 
         var named = hosts.Concat(SiteDomains.Hosts(redirects)).ToList();
         Console.WriteLine($"  (make sure the DNS A/AAAA record{(named.Count > 1 ? "s" : "")} of {string.Join(", ", named)} point{(named.Count > 1 ? "" : "s")} at {HostName(host)})", ConsoleStyle.Dim);
+
+        // Traffic is already on the new colour. The old one finishes its running jobs, outside the box's lock — other
+        // apps' deploys never wait out this app's drain — but under this app's, so its next deploy does.
+        await RetireOldColorsAsync(host, slug, newContainer, cancellationToken).ConfigureAwait(false);
         return 0;
     }
 
@@ -395,7 +405,7 @@ internal sealed partial class DeployCommand
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv, redirects), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv, redirects, StopBudget), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -440,38 +450,6 @@ internal sealed partial class DeployCommand
         }
 
         return true;
-    }
-
-    /// <summary>Stops and removes this app's other colors once traffic is on the new one.</summary>
-    private async Task RetireOldColorsAsync(
-        string host, string slug, IReadOnlyList<DeployedApp> apps, string newContainer, CancellationToken cancellationToken)
-    {
-        // Let the proxy finish with the old color before pulling it out from under itself. `caddy reload`
-        // returns as soon as the admin API applies the config, but Caddy still holds pooled keep-alive
-        // connections to the old upstream — a request it is about to write onto one of those when SIGTERM
-        // lands gets a broken connection, and with the default lb_try_duration of 0 it is not retried, i.e.
-        // a 502 to a real user. There used to be no gap here at all.
-        //
-        // Deliberately NOT sized for live sessions: a WebSocket to the old color survives until the app
-        // closes it, so the SIGTERM is what triggers the client's move to the new container. Draining those
-        // gracefully is the app's job (RaskServerOptions.ShutdownDrainTimeout), not this pause's.
-        if (PreStopDrainDelay > TimeSpan.Zero)
-        {
-            await Task.Delay(PreStopDrainDelay, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Traffic is on the new color: retire the old container(s) of this app. Graceful stop first so
-        // SQLite checkpoints the WAL — and, when a replica is configured, the Litestream replicator flushes
-        // — before removal. A plain rm -f (SIGKILL) would drop the last frames.
-        var staleContainers = apps
-            .Where(a => string.Equals(a.App, slug, StringComparison.Ordinal))
-            .Select(a => a.Container)
-            .Where(container => !string.Equals(container, newContainer, StringComparison.Ordinal));
-        foreach (var stale in staleContainers)
-        {
-            await Run(BuildStopArguments(host, stale), cancellationToken).ConfigureAwait(false);
-            await Run(BuildRemoveArguments(host, stale), cancellationToken).ConfigureAwait(false);
-        }
     }
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)

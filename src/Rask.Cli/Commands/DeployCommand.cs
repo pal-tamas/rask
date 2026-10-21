@@ -54,10 +54,6 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// <summary>The default path the HTTP readiness probe hits — the endpoint <c>rask new</c> scaffolds.</summary>
     internal const string DefaultHealthPath = "/health";
 
-    /// <summary>Seconds a graceful <c>docker stop</c> waits after SIGTERM before SIGKILL. The top rung of
-    /// <see cref="ShutdownBudget"/> — see there for the whole ladder and why each rung is the size it is.</summary>
-    internal const int StopTimeoutSeconds = ShutdownBudget.DockerStopSeconds;
-
     /// <summary>
     /// The tag the running app is built to, and the one holding the version it replaced.
     ///
@@ -83,6 +79,12 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// <summary>How long to wait after the proxy has been pointed at the new color before stopping the old
     /// one — see <see cref="ShutdownBudget.PreStopDrainSeconds"/>. Overridden to zero in tests.</summary>
     internal TimeSpan PreStopDrainDelay { get; set; } = TimeSpan.FromSeconds(ShutdownBudget.PreStopDrainSeconds);
+
+    /// <summary>
+    /// How long the retiring container may take to finish its running jobs before it is killed — the app's
+    /// <c>"stopTimeout"</c> from <c>.rask/deploy.json</c>, the top rung of <see cref="ShutdownBudget"/>.
+    /// </summary>
+    internal TimeSpan StopBudget { get; set; } = ShutdownBudget.DefaultStopTimeout;
 
     public override string Name => "deploy";
 
@@ -193,7 +195,8 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             ?? ResolveEndpoint(plan)
             ?? await ResolveProjectAsync(plan).ConfigureAwait(false)
             ?? await ResolveEnvAsync(plan).ConfigureAwait(false)
-            ?? ResolveHealthAndSetup(plan);
+            ?? ResolveHealthAndSetup(plan)
+            ?? ResolveStopBudget(plan);
 
         return failure ?? await RunPlanAsync(plan, cancellationToken).ConfigureAwait(false);
     }
@@ -314,6 +317,8 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
             // Keys only — this file is committed. See DeployConfig.EnvKeys.
             EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
+            // Always written, default included: this is the knob an app with long jobs turns, so it is in plain sight.
+            StopTimeout = Cli.StopTimeout.Format(StopBudget),
         };
 
         // One domain stays "domain", as an older Rask wrote it; several become "domains".
@@ -339,8 +344,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         Line(BuildBuildArguments(host, slug, dockerfile, contextDir));
         if (domain is null)
         {
+            Line(BuildStopArguments(host, slug, ShutdownBudget.PortModeStopTimeout));
             Line(BuildRemoveArguments(host, slug));
-            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort));
+            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, stopTimeout: ShutdownBudget.PortModeStopTimeout));
             Line(BuildInspectRunningArguments(host, slug));
             if (healthEnabled)
             {
@@ -354,7 +360,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             Line(BuildListArguments(host));
             writer.WriteLine("  # when the box has no network yet, under the deploy lock:");
             Line(BuildNetworkCreateArguments(host, Network));
-            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects));
+            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects, stopTimeout: StopBudget));
             Line(BuildInspectRunningArguments(host, container));
             if (healthEnabled)
             {
@@ -366,7 +372,7 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     }
 
     /// <summary>The dry run's part under the box's deploy lock: the proxy, this app's file, the reload and the check.</summary>
-    private static void PrintSwitchPlan(TextWriter writer, string host, string slug, string domain, string container, string checkPath, DnsProvider? dns)
+    private void PrintSwitchPlan(TextWriter writer, string host, string slug, string domain, string container, string checkPath, DnsProvider? dns)
     {
         void Line(IReadOnlyList<string> args) => writer.WriteLine($"  docker {string.Join(' ', args)}");
 
@@ -394,7 +400,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
         writer.WriteLine($"  # check through the proxy that {SiteDomains.Primary(domain)} reaches {container}, else put the routes back:");
         Line(BuildAdminConfigArguments(host));
         Line(BuildThroughProxyArguments(host, CaddyRouteCheck.ProbeHost(SiteDomains.Primary(domain)), checkPath));
-        writer.WriteLine("  # then retire the previous color's container, and release both locks");
+        writer.WriteLine("  # release the box's lock; under the app's own, stop the previous color — it finishes its running jobs first:");
+        Line(BuildStopArguments(host, $"{slug}-<previous color>", StopBudget));
+        writer.WriteLine("  # then remove it, and release the app's lock");
     }
 
     /// <summary>

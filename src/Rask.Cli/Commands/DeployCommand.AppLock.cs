@@ -7,8 +7,17 @@ namespace Rask.Cli.Commands;
 /// </summary>
 internal sealed partial class DeployCommand
 {
-    /// <summary>How many attempts at an app lock another deploy of the app holds — enough to wait out a long build (45 minutes).</summary>
-    internal int AppLockAttempts { get; set; } = 900;
+    /// <summary>How long a deploy waits for an app lock another deploy of the app holds, past that deploy's stop budget.</summary>
+    private static readonly TimeSpan _buildAllowance = TimeSpan.FromMinutes(45);
+
+    /// <summary>
+    /// How many attempts at an app lock another deploy of the app holds, or <c>null</c> for enough to wait out a long
+    /// build (45 minutes) plus the old colour's drain (<see cref="StopBudget"/>), which that deploy holds the lock across.
+    /// </summary>
+    internal int? AppLockAttempts { get; set; }
+
+    private int AppLockAttemptsOrDefault =>
+        AppLockAttempts ?? (int)((_buildAllowance + StopBudget).TotalSeconds / ProxyCommands.LockPollSeconds);
 
     /// <summary>How often a held app lock's lease is renewed. Zero turns the renewal off (tests).</summary>
     internal TimeSpan AppLockHeartbeat { get; set; } = TimeSpan.FromSeconds(ProxyCommands.AppLockHeartbeatSeconds);
@@ -16,7 +25,7 @@ internal sealed partial class DeployCommand
     /// <summary>Run <paramref name="deploy"/> holding <paramref name="slug"/>'s app lock; 1 when the lock can't be had (said why).</summary>
     private async Task<int> WithAppLockAsync(string host, string slug, Func<Task<int>> deploy, CancellationToken cancellationToken)
     {
-        var appLock = DeployLock.ForApp(Console, _process, _workingDirectory, slug, new LockTiming(LockPollDelay, AppLockAttempts, AppLockHeartbeat));
+        var appLock = DeployLock.ForApp(Console, _process, _workingDirectory, slug, new LockTiming(LockPollDelay, AppLockAttemptsOrDefault, AppLockHeartbeat));
         var held = await appLock.AcquireAsync(host, slug, cancellationToken).ConfigureAwait(false);
         if (held is null)
         {

@@ -88,6 +88,11 @@ internal sealed class JobsOptionsValidator : IValidateOptions<JobsOptions>
     /// </summary>
     private static void CheckShutdownGracePeriod(TimeSpan value, List<string> failures)
     {
+        if (value == Timeout.InfiniteTimeSpan)
+        {
+            return; // the default: cancelled only when the host's shutdown budget ends
+        }
+
         if (value < TimeSpan.Zero)
         {
             failures.Add("Rask:Jobs:ShutdownGracePeriod cannot be negative (Zero cancels immediately).");

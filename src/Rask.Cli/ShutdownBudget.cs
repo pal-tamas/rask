@@ -1,38 +1,51 @@
 namespace Rask.Cli;
 
 /// <summary>
-///     The single shutdown ladder <c>rask</c> deploys and scaffolds against. Every rung is derived from the
-///     one above it, so the numbers cannot drift apart the way two hardcoded constants coupled only by a
-///     comment can — which is exactly what <c>DeployCommand</c>'s 20 and the scaffolder's 15 used to be.
+///     The single shutdown ladder <c>rask</c> deploys against. One number decides it: the app's
+///     <c>"stopTimeout"</c> in <c>.rask/deploy.json</c> (default 30 minutes). Every rung below is derived from it,
+///     so the deploy's wait and the app's own budget cannot drift apart.
 ///     <code>
-///     docker stop -t 20s                        ← DockerStopSeconds; SIGKILL lands here
-///       └─ HostOptions.ShutdownTimeout 15s      ← HostShutdownSeconds = DockerStop − HostReserve
-///            ├─ Kestrel in-flight request drain
+///     docker stop -t stopTimeout (30m)            ← the deploy waits this long; SIGKILL lands here
+///       └─ HostOptions.ShutdownTimeout 29m55s     ← HostShutdownSeconds = stopTimeout − HostReserve, passed to
+///            │                                       the app as ASPNETCORE_SHUTDOWNTIMEOUTSECONDS
+///            ├─ Kestrel in-flight request drain   (stops accepting at once; traffic is already on the new colour)
 ///            ├─ Rask live-session drain          5s  (RaskServerOptions.ShutdownDrainTimeout)
-///            └─ hosted services, stopped CONCURRENTLY (ServicesStopConcurrently in the scaffold):
+///            └─ hosted services, stopped CONCURRENTLY (ServicesStopConcurrently, set by AddRask):
 ///                 Litestream final WAL flush    10s  (LitestreamOptions.ShutdownGracePeriod)
 ///                 In-flight email send          10s  (MailOptions.ShutdownGracePeriod)
-///                 In-flight job / outbox item    5s  (Job/OutboxOptions.ShutdownGracePeriod)
+///                 In-flight outbox item          5s  (OutboxOptions.ShutdownGracePeriod)
+///                 In-flight job                 until the host's budget ends (JobsOptions.ShutdownGracePeriod
+///                                                = infinite): no new job is claimed, the running one finishes
 ///     </code>
 ///     <para>
 ///         <b>Why the inner rungs are not constants here.</b> They live in their own NuGet packages, and
 ///         <c>Rask.Cli</c> deliberately does not reference <c>Rask.Jobs</c> / <c>Rask.Mail</c> /
-///         <c>Rask.SQLite.Litestream</c> — it must not start. They are pinned instead by each package's own
-///         default test and by the table in <c>docs/deployment.md</c>, which is the one place all six
-///         numbers appear together. Inventing a shared package to hold four integers would be worse.
+///         <c>Rask.SQLite.Litestream</c>. The app learns its budget from the environment the deploy starts it
+///         with, and the table in <c>docs/deployment.md</c> is the one place every rung appears together.
 ///     </para>
 ///     <para>
-///         <b>Concurrency is what makes the arithmetic work.</b> Stopped sequentially (the .NET default) the
-///         inner rungs <em>sum</em> — 10 + 10 + 5 + 5 = 30s against a 15s budget, so whichever hosted
-///         service stops last gets no grace at all, decided by the order of <c>AddRaskX</c> calls in someone's
-///         <c>Program.cs</c>. Stopped concurrently they overlap at <c>max(...) = 10s</c>, leaving real
-///         headroom. That is why the scaffold sets <c>ServicesStopConcurrently</c> alongside the timeout.
+///         <b>The wait costs nothing in traffic.</b> The proxy points at the new colour before the old one is
+///         stopped, and the old one stops waiting the moment its last job finishes — the budget is a ceiling, not
+///         a sleep. The bare-port path has no proxy to switch, so it keeps a short PortModeStopTimeout instead.
 ///     </para>
 /// </summary>
 internal static class ShutdownBudget
 {
-    /// <summary>Seconds <c>docker stop -t</c> waits after SIGTERM before SIGKILL.</summary>
-    internal const int DockerStopSeconds = 20;
+    /// <summary>The stop budget of an app whose <c>.rask/deploy.json</c> names none.</summary>
+    internal static readonly TimeSpan DefaultStopTimeout = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    ///     The stop budget of a bare <c>--port</c> deploy, whatever <c>stopTimeout</c> says. With no proxy to switch,
+    ///     the old container holds the port until it exits, so a long drain would be a long outage; running jobs
+    ///     need a <c>--domain</c> deploy to be waited for.
+    /// </summary>
+    internal static readonly TimeSpan PortModeStopTimeout = TimeSpan.FromSeconds(20);
+
+    /// <summary>The smallest budget accepted: it still leaves the app a few seconds after <see cref="HostReserveSeconds"/>.</summary>
+    internal static readonly TimeSpan MinimumStopTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>The largest budget accepted — a deploy that may wait a day is already a mistake.</summary>
+    internal static readonly TimeSpan MaximumStopTimeout = TimeSpan.FromHours(24);
 
     /// <summary>
     ///     Margin between the app finishing and the SIGKILL: container teardown, log flush, DI-container
@@ -40,8 +53,8 @@ internal static class ShutdownBudget
     /// </summary>
     internal const int HostReserveSeconds = 5;
 
-    /// <summary>Seconds the app gives itself (<c>HostOptions.ShutdownTimeout</c>) — scaffolded into Program.cs.</summary>
-    internal const int HostShutdownSeconds = DockerStopSeconds - HostReserveSeconds;
+    /// <summary>Seconds the app gives itself (<c>HostOptions.ShutdownTimeout</c>) inside <paramref name="stopTimeout"/>.</summary>
+    internal static int HostShutdownSeconds(TimeSpan stopTimeout) => (int)stopTimeout.TotalSeconds - HostReserveSeconds;
 
     /// <summary>
     ///     Seconds between <c>caddy reload</c> returning and the retiring container's SIGTERM.
@@ -50,8 +63,7 @@ internal static class ShutdownBudget
     ///         returns as soon as the admin API applies the config, but Caddy still holds pooled
     ///         connections to the old upstream; a request it is about to write onto one of those at the
     ///         moment SIGTERM lands gets a broken connection, and with the default <c>lb_try_duration</c>
-    ///         of 0 it is not retried — a 502 to a real user. Today there is literally zero time between
-    ///         the two.
+    ///         of 0 it is not retried — a 502 to a real user.
     ///     </para>
     ///     <para>
     ///         This is explicitly <b>not</b> for letting live sessions migrate. A WebSocket to the old

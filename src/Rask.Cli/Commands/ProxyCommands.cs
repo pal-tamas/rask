@@ -23,6 +23,9 @@ internal static class ProxyCommands
     /// </summary>
     internal const int LockLeaseSeconds = 600;
 
+    /// <summary>Seconds between attempts at a deploy lock another deploy holds.</summary>
+    internal const int LockPollSeconds = 3;
+
     /// <summary>The address Caddy's admin API answers on inside its container.</summary>
 #pragma warning disable S1075, S5332 // Caddy's own admin endpoint: fixed by Caddy, plain HTTP, bound to the container's loopback only.
     internal const string AdminConfigUrl = "http://localhost:2019/config/";

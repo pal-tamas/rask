@@ -11,10 +11,10 @@ namespace Rask.Cli.Commands;
 internal sealed partial class DeployCommand
 {
     /// <summary>How long to wait between attempts at a deploy lock another deploy holds — zero in tests.</summary>
-    internal TimeSpan LockPollDelay { get; set; } = TimeSpan.FromSeconds(3);
+    internal TimeSpan LockPollDelay { get; set; } = TimeSpan.FromSeconds(LockPollSeconds);
 
     /// <summary>How many attempts at the deploy lock before giving up (past a full lease by default).</summary>
-    internal int LockAttempts { get; set; } = (LockLeaseSeconds / 3) + 20;
+    internal int LockAttempts { get; set; } = (LockLeaseSeconds / LockPollSeconds) + 20;
 
     /// <summary>What a proxy switch left behind: routed to the new colour, the old colour still routed, or unsure (said why).</summary>
     private enum SwitchOutcome
@@ -83,7 +83,7 @@ internal sealed partial class DeployCommand
         return switched == SwitchOutcome.Routed;
     }
 
-    /// <summary>Point the proxy at the new colour, check it through the proxy, then retire the old colour — all under the lock.</summary>
+    /// <summary>Point the proxy at the new colour and check it through the proxy, under the box's lock. The old colour is retired after, outside it.</summary>
     private async Task<SwitchOutcome> SwitchProxyAsync(ProxySwitch change, CancellationToken cancellationToken)
     {
         var deployLock = CreateLock();
@@ -129,7 +129,7 @@ internal sealed partial class DeployCommand
         return await RewriteRoutesAsync(change, apps, replacedBase, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Write this app's file (moving the box to one file per app first, if it isn't yet), reload, check, retire.</summary>
+    /// <summary>Write this app's file (moving the box to one file per app first, if it isn't yet), reload, check.</summary>
     private async Task<SwitchOutcome> RewriteRoutesAsync(ProxySwitch change, IReadOnlyList<DeployedApp> apps, string? replacedBase, CancellationToken cancellationToken)
     {
         var (host, slug) = (change.Host, change.Slug);
@@ -177,7 +177,6 @@ internal sealed partial class DeployCommand
             return await UndoAsync(change, undo, cancellationToken).ConfigureAwait(false);
         }
 
-        await RetireOldColorsAsync(host, slug, apps, change.Target.Container, cancellationToken).ConfigureAwait(false);
         return SwitchOutcome.Routed;
     }
 

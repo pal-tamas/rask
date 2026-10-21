@@ -398,9 +398,10 @@ Anything still connected when `ShutdownDrainTimeout` elapses is aborted, and
 > single `value`, which is only its first selected option.
 
 `ShutdownDrainTimeout` must fit inside `HostOptions.ShutdownTimeout`, which must fit inside whatever your
-container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses 20 s). Rask logs a warning at
-startup if the first of those doesn't hold. Note that `HostOptions.ServicesStopConcurrently` is `false` by
-default, so other hosted services' shutdown work is spent from the same budget first.
+container runtime allows between `SIGTERM` and `SIGKILL` (`rask deploy` uses the app's `"stopTimeout"`, default
+30 minutes, and hands the app that less 5 s — see [the shutdown ladder](deployment.md#the-shutdown-ladder)). Rask
+logs a warning at startup if the first of those doesn't hold. `AddRask` sets `HostOptions.ServicesStopConcurrently`,
+so the hosted services' shutdown work overlaps instead of being spent from the same budget one after another.
 
 ### Reconnect UX
 

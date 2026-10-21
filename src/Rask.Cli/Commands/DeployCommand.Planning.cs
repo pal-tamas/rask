@@ -231,6 +231,24 @@ internal sealed partial class DeployCommand
         return null;
     }
 
+    /// <summary>The app's stop budget from <c>.rask/deploy.json</c>, or the default when it names none.</summary>
+    private int? ResolveStopBudget(DeployPlan plan)
+    {
+        if (plan.Config.StopTimeout is not { } text)
+        {
+            StopBudget = ShutdownBudget.DefaultStopTimeout;
+            return null;
+        }
+
+        if (!Cli.StopTimeout.TryParse(text, out var budget, out var error))
+        {
+            return Fail($"{Path.Combine(".rask", "deploy.json")}: {error}");
+        }
+
+        StopBudget = budget;
+        return null;
+    }
+
     private void PersistPlan(DeployPlan plan) =>
         PersistConfig(plan.Host, plan.Domain, plan.PublishedPort, plan.Slug, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, plan.ContainerPort, plan.Env, plan.Redirects);
 

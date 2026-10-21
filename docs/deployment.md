@@ -46,6 +46,10 @@ Dockerfile below (override with `--dockerfile`).
   immediately instead of reporting a timeout — reloading only if the host that answers cannot rebuild the
   page, and then at their previous scroll position, with the fields the user had edited restored. See
   [Shutdown and redeploy](configuration.md#shutdown-and-redeploy).
+- **Running jobs finish where they started.** Once traffic is on the new container the old one claims no new
+  [job](jobs.md#shutdown), but the ones it is running run to the end — the deploy waits for it to exit, up to
+  the app's `"stopTimeout"` in `.rask/deploy.json` (default `30m`), and prints what it is waiting for. See
+  [the shutdown ladder](#the-shutdown-ladder).
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`Rask:ConnectionStrings:App` →
   `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
@@ -259,7 +263,7 @@ mistake, put last night's file back" — that is [`rask db backup` / `rask db re
 
 ```bash
 rask db backup --remote                 # a consistent copy of the deployed database, pulled down
-rask db restore last-good.db --remote   # stops the app, replaces it, starts it again
+rask db restore last-good.db --remote   # stops the app (finishing its jobs), replaces it, starts it again
 ```
 
 **"The server is gone"** is the rest of this section. `rask deploy` mounts a named volume so the database survives redeploys — but a volume is still **one copy
@@ -288,6 +292,7 @@ Beyond your own `--env` values, every deployed container gets:
 | Setting | Why |
 | --- | --- |
 | `ASPNETCORE_ENVIRONMENT=Production` | Selects `appsettings.Production.json` and turns off the developer exception page. Your own `--env` wins if you set it. |
+| `ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=<stopTimeout − 5>` | The app's own shutdown budget (`HostOptions.ShutdownTimeout`), cut from the same `"stopTimeout"` the deploy waits for, so the app gives up before the `SIGKILL`. See [the shutdown ladder](#the-shutdown-ladder). |
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
 | `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`; the first one when there are several) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
@@ -305,37 +310,86 @@ The scaffolded app is set up to match. With `--domain` the deploy sets `Rask__Be
 honours forwarded headers (`Request.Scheme` and the client IP are the visitor's, not the proxy's); a port-mode
 container is reached directly and leaves them untrusted. It also reports live-session capacity and readiness on `/health` (so a host
 that is refusing sessions with `503` — because it is full, or because it is draining — says so rather than
-answering a bare "up"), and gives itself a **15 s shutdown budget**, inside the 20 s the deploy allows
-before `SIGKILL`.
+answering a bare "up"), and gives itself the shutdown budget the deploy names.
 
 Within that budget the app closes admission, tells connected browsers it is going away, lets in-flight
-HTTP requests and event handlers finish, closes each WebSocket with a proper `1001` handshake, and
-checkpoints SQLite.
+HTTP requests and event handlers finish, closes each WebSocket with a proper `1001` handshake, finishes the
+jobs it is running, and checkpoints SQLite.
 
 ### The shutdown ladder
 
-Every rung fits inside the one above it, and hosted services stop **concurrently** — so each pillar's own
-grace overlaps the others instead of queueing behind them:
+One number decides it: the app's **stop budget**, `"stopTimeout"` in `.rask/deploy.json` — `"30m"`,
+`"90s"`, `"1h30m"`, between 10s and 24h. The first deploy writes the default there, so it is in plain sight:
+
+```json
+{
+  "host": "deploy@box.example.com",
+  "domain": "app.example.com",
+  "stopTimeout": "30m"
+}
+```
+
+Every rung is derived from it, so the deploy's wait and the app's own budget cannot drift apart. Hosted
+services stop **concurrently**, so each pillar's own grace overlaps the others instead of queueing behind them:
 
 | Rung | Budget | Set by |
 | --- | --- | --- |
-| `docker stop -t` before `SIGKILL` | 20s | `rask deploy` |
-| App `HostOptions.ShutdownTimeout` | 15s | `AddRask` |
+| `docker stop -t` before `SIGKILL` — the deploy waits this long | `stopTimeout` (30m) | `rask deploy`, from `.rask/deploy.json` |
+| App `HostOptions.ShutdownTimeout` | `stopTimeout` − 5s | `rask deploy`, as `ASPNETCORE_SHUTDOWNTIMEOUTSECONDS`; 15s when nothing names one (`AddRask`) |
+| In-flight job | until the app's budget ends; **no new job is claimed** | `JobsOptions.ShutdownGracePeriod` (default `Timeout.InfiniteTimeSpan`) |
 | Live-session drain | 5s | `RaskServerOptions.ShutdownDrainTimeout` |
 | Litestream final WAL flush | 10s | `LitestreamOptions.ShutdownGracePeriod` |
 | In-flight email send | 10s | `MailOptions.ShutdownGracePeriod` |
-| In-flight job / outbox message | 5s | `Job`/`OutboxOptions.ShutdownGracePeriod` |
+| In-flight outbox message | 5s | `OutboxOptions.ShutdownGracePeriod` |
+
+**What a deploy does with it, step by step:**
+
+1. The new container starts, passes its health check, and the proxy is switched to it under the box's lock.
+   From here every request goes to the new container.
+2. The box's lock is released — other apps' deploys never wait out this app's drain — and, after a 2s pause
+   for the proxy's pooled connections, the old container gets `docker stop -t <stopTimeout>`: a `SIGTERM`.
+3. The old container claims **no new job**, not even the next one of a batch it already holds. The job it is
+   running keeps a live cancellation token, and its lease keeps being renewed, so the new container — already
+   polling the same queue — never starts it a second time. Live sessions, HTTP, email, outbox and Litestream
+   drain within their own rungs, as before.
+4. While it waits the deploy says what for, every 30 seconds, from the line the app logs:
+
+   ```
+   Stopping app-blue: it claims no new job and finishes the ones it is running (up to 30m, "stopTimeout" in .rask/deploy.json)…
+     app-blue is finishing 1 job: AtPump (3m12s) — waited 3m20s of 30m
+   ```
+
+   The old container exits the moment its last job is done — the budget is a ceiling, not a sleep — and is
+   removed.
+5. If the budget runs out first, the app cancels the job's token 5 seconds before the end; whatever is still
+   running when `docker stop` sends `SIGKILL` is cut, and the deploy says so in red, naming the job it was
+   finishing. A cut job runs again from the start on the new container, under its usual retry rules (a
+   redeploy does not count a failed attempt).
+
+**The deploy holds the app's own lock through the wait**, so a second deploy of the same app waits — saying
+which deploy it waits for — until the old container is gone; it gives up after 45 minutes plus the stop
+budget, and names the lock to free if no deploy is running.
+
+**A bare `--port` deploy keeps a short stop.** There is no proxy to switch, so the old container holds the port
+until it exits, and a long drain would be a long outage. It is stopped within **20s** whatever `"stopTimeout"`
+says (the app is handed 15s of it), and the deploy warns that a job it is still running is cut there and runs again
+on the new container. Use `--domain` for an app whose jobs must be waited for.
+
+**`rask db restore --remote` stops the app the same way** — within `"stopTimeout"`, saying what it waits for, and
+saying loudly if it had to kill it — before it replaces the database, and starts it again after.
+
+> **An app with no long jobs pays nothing** — its old container exits in seconds. An app whose job can run
+> longer than 30 minutes raises `"stopTimeout"`; one that would rather cut its jobs short sets
+> `JobsOptions.ShutdownGracePeriod` (see [jobs](jobs.md#shutdown)) or a smaller `"stopTimeout"`.
 
 > **`ServicesStopConcurrently` is load-bearing, not a micro-optimisation.** Stopped one at a time — the
-> .NET default — those inner graces *sum*: 10 + 10 + 5 + 5 = 30s against a 15s budget, so whichever hosted
-> service stops last gets none of its grace at all, decided by the order of your `AddRaskX` calls in
-> `Program.cs`. Stopped concurrently they overlap at 10s, leaving real headroom. `AddRask` sets it
-> alongside the timeout for exactly this reason.
+> .NET default — those inner graces *sum*, so whichever hosted service stops last gets none of its grace at
+> all, decided by the order of your `AddRaskX` calls in `Program.cs`. Stopped concurrently they overlap.
+> `AddRask` sets it alongside the timeout for exactly this reason.
 
-Both come from `AddRask`, so this holds for any app rather than only a freshly scaffolded one — which is
-the point: before, the budget was sixteen lines of `Program.cs` that nine of the ten samples in this repo
-did not have, leaving them on .NET's 30s default against a 20s SIGKILL. To choose your own, configure
-`HostOptions` **after** `AddRask`:
+`AddRask` keeps a budget the configuration names (`ASPNETCORE_SHUTDOWNTIMEOUTSECONDS` or the
+`shutdownTimeoutSeconds` key) and only falls back to 15s when nothing does. To choose your own in code,
+configure `HostOptions` **after** `AddRask`:
 
 ```csharp
 builder.Services.AddRask();
@@ -347,11 +401,10 @@ These are budgets, not guarantees. Work that outlives its rung is cancelled: liv
 boot without counting a failed attempt (`rask.{jobs,outbox,mail}.interrupted`). Both are logged as warnings,
 so a budget that is too short for your app says so rather than silently degrading.
 
-One honest caveat of stopping concurrently: Litestream stops alongside a job that is still writing inside
-*its* grace, so the very last rows such a job writes may not reach the replica. Sequential stop wouldn't
-actually protect against that either — the order is reverse-registration, so nothing guarantees Litestream
-is last today — and the exposure is narrow, since the Docker volume survives redeploys and Litestream only
-matters for losing the machine itself.
+One honest caveat of stopping concurrently: Litestream stops alongside a job that is still writing, so the
+rows such a job writes after Litestream's final flush are replicated by the **new** container's replicator,
+which shares the same volume and database file, rather than by the old one. The exposure is narrow: the
+Docker volume survives redeploys, and Litestream only matters for losing the machine itself.
 
 ### Your users stay signed in across a deploy
 

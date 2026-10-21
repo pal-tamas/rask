@@ -16,10 +16,10 @@ public sealed class JobsOptions
     /// How long a claimed job stays invisible to other processor instances. Default 5 minutes.
     /// </summary>
     /// <remarks>
-    /// This is the recovery window, not a timeout: nothing cancels a job that overruns it. A processor
-    /// that dies mid-job makes its work claimable again after this long, so it must comfortably exceed the
-    /// longest job you run — set it too low and a slow job is picked up by a second instance while the
-    /// first is still working on it, which is the duplicate the lease exists to prevent.
+    /// This is the recovery window, not a timeout: nothing cancels a job that overruns it. The instance
+    /// running a job renews its lease every third of this while the job runs, so a job longer than the lease
+    /// is never picked up by a second instance — the new container of a deploy included. A processor that
+    /// dies mid-job stops renewing, and its work is claimable again after this long.
     /// </remarks>
     public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(5);
 
@@ -38,23 +38,24 @@ public sealed class JobsOptions
     /// <summary>
     /// How long a job that is already running may keep running after the host is asked to stop.
     /// <para>
-    /// On <c>SIGTERM</c> the processor immediately stops picking up <em>new</em> jobs, but the one already
-    /// in your handler is given this long to finish rather than being cancelled mid-call — so a job that
-    /// is halfway through a <c>SaveChangesAsync</c> completes instead of being torn in two.
+    /// On <c>SIGTERM</c> the processor immediately stops picking up <em>new</em> jobs — not the next one in
+    /// its batch either — but the one already in your handler keeps a live cancellation token. By default
+    /// (<see cref="Timeout.InfiniteTimeSpan"/>) that token is cancelled only when the host's own shutdown
+    /// budget, <c>HostOptions.ShutdownTimeout</c>, runs out; <c>rask deploy</c> sizes that budget from the
+    /// app's <c>stopTimeout</c> (default 30 minutes), so a job that is halfway through programming a device
+    /// finishes instead of being torn in two.
     /// </para>
     /// <para>
-    /// A job that outlives the grace is cancelled and re-runs from the top on the next boot. It does
-    /// <b>not</b> count a failed attempt: a redeploy is not a failure, and counting it would march
-    /// never-failing work toward its dead letter at the cadence you deploy. Handlers must be idempotent
-    /// either way — there is no lease or claim column, so an interrupted job always re-runs whole.
+    /// A job cancelled at the end of the budget re-runs from the top on the next boot. It does <b>not</b>
+    /// count a failed attempt: a redeploy is not a failure, and counting it would march never-failing work
+    /// toward its dead letter at the cadence you deploy. Handlers must be idempotent either way.
     /// </para>
     /// <para>
-    /// Cannot exceed <c>HostOptions.ShutdownTimeout</c>: once that elapses the host stops waiting for
-    /// hosted services, so a grace longer than it silently does not happen. Default 5s;
-    /// <see cref="TimeSpan.Zero"/> cancels immediately.
+    /// A finite value cancels the job that long after <c>SIGTERM</c> instead, and still no later than the
+    /// host's budget; <see cref="TimeSpan.Zero"/> cancels immediately.
     /// </para>
     /// </summary>
-    public TimeSpan ShutdownGracePeriod { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan ShutdownGracePeriod { get; set; } = Timeout.InfiniteTimeSpan;
 
     /// <summary>
     /// The zone a calendar schedule's wall-clock time is read in — <c>.Daily.At(3, 0)</c> means 3am here.

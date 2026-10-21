@@ -80,6 +80,13 @@ internal sealed class DeployConfig
     /// </summary>
     public int? ContainerPort { get; set; }
 
+    /// <summary>
+    /// How long a deploy lets the container it replaces finish the jobs it is running — <c>"30m"</c>, <c>"90s"</c>,
+    /// <c>"1h30m"</c> (default <c>30m</c>). The old container claims no new job from the moment traffic has moved;
+    /// past this it is killed. The app's own shutdown budget is cut from the same number (see <c>ShutdownBudget</c>).
+    /// </summary>
+    public string? StopTimeout { get; set; }
+
     /// <summary>The <c>.rask/deploy.json</c> path under <paramref name="workingDirectory"/>.</summary>
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");

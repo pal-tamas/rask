@@ -75,6 +75,8 @@ public sealed partial class DeployCommandTests
             "-e", "Rask__Auth__PublicOrigin=https://shop.example.com",
             // The environment, DB volume and connection string all come before the user env, so --env wins.
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
+            // The app's shutdown budget, cut from the default 30m stop budget the retiring `docker stop` waits for.
+            "-e", "ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=1795",
             "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",
             "-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db",
             "-e", "A=1", "shop:current",
@@ -95,6 +97,8 @@ public sealed partial class DeployCommandTests
             // Labelled but with no rask.domain, so the host inventory sees it and the proxy doesn't.
             "--label", "rask.managed=true", "--label", "rask.app=shop", "--label", "rask.port=8080",
             "-e", "ASPNETCORE_ENVIRONMENT=Production",
+            // The app's shutdown budget, cut from the default 30m stop budget the retiring `docker stop` waits for.
+            "-e", "ASPNETCORE_SHUTDOWNTIMEOUTSECONDS=1795",
             "-v", "shop-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db",
             "-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db",
             "shop:current",
@@ -102,15 +106,14 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void Stop_arguments_use_a_graceful_timeout() =>
-        // Built from the ladder, not a literal, so the deploy's grace and the budget the scaffold hands the
-        // app cannot drift apart.
+    public void Stop_arguments_wait_for_the_stop_budget() =>
+        // Built from the ladder, not a literal, so the deploy's wait and the budget the app is handed cannot drift.
         Assert.Equal(
             [
                 "-H", "ssh://deploy@box", "stop", "-t",
-                ShutdownBudget.DockerStopSeconds.ToString(CultureInfo.InvariantCulture), "shop-blue"
+                ((int)ShutdownBudget.DefaultStopTimeout.TotalSeconds).ToString(CultureInfo.InvariantCulture), "shop-blue"
             ],
-            DockerCommands.BuildStopArguments("deploy@box", "shop-blue"));
+            DockerCommands.BuildStopArguments("deploy@box", "shop-blue", ShutdownBudget.DefaultStopTimeout));
 
     [Theory]
     [InlineData(null, "blue")]
@@ -552,7 +555,7 @@ public sealed partial class DeployCommandTests
         int StartNew = runs.FindIndex(i => i.Arguments.Contains("run") && i.Arguments.Contains("demo-green"));
         int Reload = runs.FindIndex(i => i.Arguments.Contains("reload"));
         int StopOld = runs.FindIndex(i =>
-            i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue")));
+            i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue", ShutdownBudget.DefaultStopTimeout)));
         int RemoveOld = runs.FindIndex(i => i.Arguments is ["-H", "ssh://deploy@box", "rm", "-f", "demo-blue"]);
 
         Assert.True(StartNew >= 0 && Reload >= 0 && StopOld >= 0 && RemoveOld >= 0);

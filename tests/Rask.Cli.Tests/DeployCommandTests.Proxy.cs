@@ -194,7 +194,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public async Task The_lock_is_taken_after_the_health_gate_and_held_until_the_old_colour_is_retired()
+    public async Task The_lock_is_taken_after_the_health_gate_and_held_until_the_route_is_checked()
     {
         var fs = new FakeFileSystem();
         var runner = new FakeProcessRunner { CaptureHandler = OnFragmentLayout(Captures("demo-blue\tdemo\tdemo.example.com\tblue\n")) };
@@ -207,13 +207,14 @@ public sealed partial class DeployCommandTests
         int Lock = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.LockContainer));
         int Unlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
         int Gate = all.FindIndex(i => i.Arguments.Contains("container:demo-green"));
-        int Relist = all.FindLastIndex(i => i.Arguments.Contains("ps"));
         int Reload = all.FindIndex(i => i.Arguments.Contains("reload"));
+        int Relist = all.FindLastIndex(Reload, i => i.Arguments.Contains("ps"));
         int Check = all.FindIndex(i => i.Arguments.Contains("--resolve"));
-        int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue")));
+        int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue", ShutdownBudget.DefaultStopTimeout)));
         Assert.True(Gate < Lock, "the health gate runs before the lock is taken");
         Assert.True(Lock < Relist && Relist < Reload, "the containers are listed again under the lock");
-        Assert.True(Reload < Check && Check < Retire && Retire < Unlock, "reload, check and retire all happen under the lock");
+        Assert.True(Reload < Check && Check < Unlock, "reload and check happen under the lock");
+        Assert.True(Unlock < Retire, "the old colour drains after the box's lock is let go");
     }
 
     [Fact]
