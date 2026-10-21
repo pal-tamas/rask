@@ -459,7 +459,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
             return false;
         }
 
-        if (!force && _lastSentBuffer is not null && RepeatsLastSent())
+        // Only a page repeats: a diff is a change to the page the browser has, and the same change twice is two changes.
+        // A swap of two neighbours and the swap back are the same ops (#16), and dropping the second lost the move.
+        if (!force && !_writeIsDiff && _lastSentBuffer is not null && RepeatsLastSent())
         {
             View.HandlersRepeated();
             return false;
@@ -485,6 +487,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // given the next number, and is still the page the browser has when everything before the number repeats:
     // sending it would morph a document into itself, undoing whatever a script did to it since.
     private int _writeVersionBytes;
+
+    // Whether the write buffer holds a diff rather than a page.
+    private bool _writeIsDiff;
     private int _lastSentVersionBytes;
 
     private bool RepeatsLastSent() =>
@@ -775,7 +780,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
         var diffCache = frameWriter is not null && auth is null && download is null ? _renderCache : null;
         var diffPathEntered = diffCache is not null;
-        var usedDiff = diffCache is not null
+        var usedDiff = _writeIsDiff = diffCache is not null
                        && TryWriteDiff(diffCache, html, jsInvokes, historyUrl, replace, commitCache, resume, devError);
 
         // A render with a sign-in handoff or a download never reaches the differ, so the branch that names a
