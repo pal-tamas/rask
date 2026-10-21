@@ -85,6 +85,8 @@ public sealed class HandlerGate
     public Guid? ReadIn { get; set; }
 
     public Guid? WroteIn { get; set; }
+
+    public bool? SawOwnWrite { get; set; }
 }
 
 /// <summary>A live page: who and which tenant on its first render, and its tenant's rows when asked.</summary>
@@ -99,8 +101,21 @@ public sealed partial class TerminalsApp(HandlerGate gate, Microsoft.JSInterop.I
         Markup.P[$"names={(_names is null ? "unread" : string.Join(',', _names))}"],
         Button.OnClick(Load)["load"],
         Button.OnClick(AddWhenLetThrough)["add"],
-        Button.OnClick(AddWhenThePageAnswers)["ask"]
+        Button.OnClick(AddWhenThePageAnswers)["ask"],
+        Button.OnClick(Pair)["pair"]
     ];
+
+    // Two rows and a read between them, as one unit of work.
+    private async Task Pair()
+    {
+        await Db.Transaction(async () =>
+        {
+            await Terminal.Named("Pair-1").Save();
+            gate.SawOwnWrite = await Terminal.Any(t => t.Name == "Pair-1");
+            await Terminal.Named("Pair-2").Save();
+        });
+        gate.Reached.TrySetResult();
+    }
 
     private async Task Load() => _names = await Terminal.OrderBy(t => t.Name).Select(t => t.Name);
 
@@ -481,6 +496,27 @@ public sealed partial class HandWiredDataHostTests : IDisposable
                         var failure = refused.Failures.Single();
                         await context.Response.WriteAsync(
                             $"refused|{failure.Message}|{string.Join(',', failure.Fields)}|{refused.InnerException is null}");
+                    }
+                }));
+                app.Map("/api/terminals/pair", pair => pair.Run(static async context =>
+                {
+                    var name = context.Request.Query["name"].ToString();
+                    try
+                    {
+                        await Db.Transaction(async () =>
+                        {
+                            await Terminal.Named(name).Save();
+                            await Terminal.Named($"{name}-2").Save();
+                            if (context.Request.Query.ContainsKey("fail"))
+                            {
+                                throw new InvalidOperationException("rolled back");
+                            }
+                        });
+                        await context.Response.WriteAsync("saved");
+                    }
+                    catch (InvalidOperationException e)
+                    {
+                        await context.Response.WriteAsync(e.Message);
                     }
                 }));
                 app.Map("/api/terminals", list => list.Run(static async context =>
