@@ -556,11 +556,13 @@ Ui.Table.Id("drivers").Of(drivers).Paginate(Ui.Pagination.Paginator(pager).OnPag
     Ui.TableRows[(drivers.Data ?? []).Select(d => Ui.TableRow.Key(d.Id)[Ui.TableCell[d.Name], Ui.TableCell[d.Fuel]])]
 ]
 
-Ui.Select.Bind(() => _fuel).Aria("controls", "drivers")[…]     // a control outside the table names it
+Button.Aria("controls", "drivers").OnClick(Reload)["Reload"]   // a control outside the table names it
 ```
 
-The pager, a sortable heading and a tab above the table ask for the skeleton by themselves; a control elsewhere names
-the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows instead.
+The pager, a sortable heading, a tab above the table and a [`Ui.Filters`](#filters) before it ask for the skeleton by
+themselves — the filter set names the first `Ui.Table.Of(…)` after it, giving it an id if it has none. Any other control
+elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
+instead.
 
 ## Callouts
 

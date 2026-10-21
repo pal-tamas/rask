@@ -182,8 +182,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry Filters { get; } = new(
         Routes.UiFiltersPage(), "Filters", Components,
         "List filters in C#: Ui.Filters",
-        "Filters for a list kept in the page's address: a Filters button opening a flyout of fields that apply as they "
-        + "are chosen, badges for each filter in force, Back and links that keep them.");
+        "List filters kept in the page's address: a Filters button opening a flyout of fields that apply as chosen, "
+        + "and a badge for each filter in force.");
 
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,
