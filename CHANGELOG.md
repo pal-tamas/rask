@@ -105,6 +105,11 @@ them until tagged releases begin.
     button that downloads the PDF Rask.Pdf printed from it — rask.sh is static, so `tests/Rask.Pdf.Tests` prints that
     report and checks the served file is still it (`RASK_PDF_SITE_DEMO_WRITE=1` rewrites it).
   - Linux and macOS for now.
+  - A browser's start is not the first document's time: Rask waits for a freshly started Chromium to answer on a
+    budget of its own (two minutes, or `Timeout` if longer) — on a busy CI runner a cold start took 45–58 seconds and
+    used to time the first print out. A print that runs out of time says what it was waiting for: "… within 30
+    seconds, while loading the document (its load event); the page's requests still unanswered: …".
+  - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
   then and still have.** `Job` gets a nullable `UserClaims` column: `rask db add AddJobUserClaims && rask db update`
