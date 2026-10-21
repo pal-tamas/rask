@@ -534,6 +534,10 @@ they say when you set nothing.
 | `CommandClose` | Command | `Close command modal` |
 | `HandlerForbidden` | Toast | `You do not have permission to do that.` |
 | `PageForbidden` | Page | `You do not have permission to view this page.` |
+| `ConfirmHeading` | Confirm | `Confirm` |
+| `ConfirmYes` | Confirm | `Yes` |
+| `ConfirmNo` | Confirm | `No` |
+| `PdfPageNumber` | PDF foot (Rask.Pdf) | `{0} / {1}` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

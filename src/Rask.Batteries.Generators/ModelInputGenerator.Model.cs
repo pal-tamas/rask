@@ -100,7 +100,7 @@ public sealed partial class ModelInputGenerator
 
     // The children keyed by several columns, as `property|child`: read through the aggregate, never written by its form.
     private static IEnumerable<string> CompositeChildrenOf(INamedTypeSymbol symbol) =>
-        symbol.GetMembers().OfType<IPropertySymbol>()
+        GeneratedModelShape.Properties(symbol)
             .Select(p => GeneratedModelShape.DescribeChild(symbol, p))
             .Where(static c => c is not null && CompositeKeyShape.HasCompositeKey(c.ChildType))
             .Select(static c => c!.Name + "|" + c.ChildType.Name);
@@ -132,7 +132,8 @@ public sealed partial class ModelInputGenerator
         collection.Field?.Name,
         collection.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
         ?? collection.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-        collection.Field is null ? ReplaceOf(collection.Property, "Values_") : null);
+        collection.Field is null ? ReplaceOf(collection.Property, "Values_") : null,
+        collection.Field?.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     private static ChildShape ToChild(ModelChild child) => new(
         child.Name,
@@ -145,7 +146,8 @@ public sealed partial class ModelInputGenerator
         child.Field?.Name,
         child.Field?.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
         ?? child.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-        child.Access == ModelChildAccess.Replace ? ReplaceOf(child.Property, "Children_") : null);
+        child.Access == ModelChildAccess.Replace ? ReplaceOf(child.Property, "Children_") : null,
+        child.Field?.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
 
     // How a collection is written back whole — through its setter or its backing field — or null when it cannot be.
     private static Write? ReplaceOf(IPropertySymbol property, string role) =>
@@ -171,7 +173,7 @@ public sealed partial class ModelInputGenerator
     /// </remarks>
     private static IEnumerable<string> AggregateReferencesOf(INamedTypeSymbol symbol)
     {
-        foreach (var property in symbol.GetMembers().OfType<IPropertySymbol>())
+        foreach (var property in GeneratedModelShape.Properties(symbol))
         {
             if (property.IsStatic || property.IsIndexer ||
                 property.DeclaredAccessibility != Accessibility.Public ||

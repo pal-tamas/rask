@@ -43,26 +43,11 @@ public sealed partial class UiConfirmLeave : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        // The width Flux's own confirmation writes. A modal hugs what it holds, there and here.
-        Ui.Modal.Name(DialogId).Class("min-w-[22rem]")[
-            Div.Class("space-y-6")[
-                Question(),
-                Div.Class("flex gap-2")[
-                    Ui.Spacer,
-                    Ui.ModalClose.Key("stay")[Ui.Button.Ghost[Stay ?? RaskStrings.Get(RaskString.ConfirmLeaveStay, "Stay")]],
-                    Ui.ModalClose.Key("leave")[Ui.Button.Danger.Data(Part, "go")[Leave ?? RaskStrings.Get(RaskString.ConfirmLeaveLeave, "Leave")]]
-                ]
-            ]
-        ];
-
-    // The question is empty in every render and filled in the browser, so it is kept out of the morph's hands: a
-    // render that lands while the dialog is open would otherwise blank it. Flux's heading keeps no room for the
-    // close button, because its examples keep a heading short: this one may be a whole question, so it keeps
-    // the room itself (measured by parity-modal.mjs).
-    private Component Question() => Heading is { } heading
-        ? Div[
-            Ui.Heading.Level(2).Lg.Class("pe-8")[heading],
-            Ui.Text.Class("mt-2").Data(Part, "message").Attributes(("data-rask-opaque", null))
-        ]
-        : Ui.Heading.Level(2).Lg.Class("pe-8").Data(Part, "message").Attributes(("data-rask-opaque", null));
+        UiConfirmation.Dialog(
+            DialogId,
+            Part,
+            Heading is { } heading ? UiConfirmation.Titled(heading, Part) : UiConfirmation.Untitled(Part),
+            field: null,
+            no: Stay ?? RaskStrings.Get(RaskString.ConfirmLeaveStay, "Stay"),
+            yes: Leave ?? RaskStrings.Get(RaskString.ConfirmLeaveLeave, "Leave"));
 }

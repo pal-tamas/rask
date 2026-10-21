@@ -1,7 +1,10 @@
 namespace Rask.Site.Features;
 
-// Asking before an action: `.Confirm("…")` shows the browser's own confirm before the click leaves the page, and
-// `.Confirm("…", expect: name)` asks for the name to be typed. Cancelled, nothing is sent.
+// Asking before an action: `.Confirm("…")` asks before the click leaves the page, and `.Confirm("…", expect: name)`
+// asks for the name to be typed. Cancelled, nothing is sent.
+//
+// The question is asked in the dialog this site's layout places once, a Ui.Confirm in ShowcaseLayout. An app
+// without one gets the browser's own confirm and prompt.
 public sealed partial class FormConfirmDemo : Component
 {
     private readonly List<string> _partners = ["Acme", "Globex", "Initech"];

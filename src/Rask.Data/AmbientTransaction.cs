@@ -30,6 +30,7 @@ internal sealed class AmbientTransaction
     private readonly DbTransaction _transaction;
     private readonly List<Func<Task>> _afterCommit = [];
     private readonly List<Func<Task>> _onRollback = [];
+    private readonly List<AdmittedContext> _admitted = [];
     private bool _ended;
 
     private AmbientTransaction(DbContext owner, DbTransaction transaction, IsolationLevel? isolation)
@@ -83,6 +84,9 @@ internal sealed class AmbientTransaction
     ///     its row commits with the work and is gone on a rollback.
     /// </summary>
     /// <exception cref="InvalidOperationException">The context is on another database than the transaction.</exception>
+    /// <remarks>
+    ///     Not handed back: a joined context is the opener's own, opened for this one write and disposed by it.
+    /// </remarks>
     internal static TContext Join<TContext>(TContext context)
         where TContext : DbContext
     {
@@ -105,19 +109,27 @@ internal sealed class AmbientTransaction
 
     /// <summary>
     ///     A context the caller handed in as <c>db:</c>, enlisted in the transaction in progress when there is one. It is
-    ///     the caller's: never disposed here, whatever happens.
+    ///     the caller's: never disposed here, and handed back as it came — out of the transaction, on its own connection —
+    ///     however the transaction ends.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     The context is on another database, is in a transaction of its own, or has its connection open already.
     /// </exception>
-    internal static void Admit(DbContext context) => Current?.Enlist(context);
+    internal static void Admit(DbContext context)
+    {
+        if (Current is { } current && current.Enlist(context) is { } admitted)
+        {
+            current._admitted.Add(admitted);
+        }
+    }
 
     // Points the context at this transaction's connection and enlists it — refusing, never silently running it outside.
-    private void Enlist(DbContext context)
+    // Hands back what it was on before, or null when it had joined already.
+    private AdmittedContext? Enlist(DbContext context)
     {
         if (ReferenceEquals(context.Database.CurrentTransaction?.GetDbTransaction(), _transaction))
         {
-            return;
+            return null;
         }
 
         if (context.Database.CurrentTransaction is not null)
@@ -136,8 +148,28 @@ internal sealed class AmbientTransaction
             throw Refused(context, "already has its own connection open");
         }
 
+        var admitted = AdmittedContext.Capture(context);
         context.Database.SetDbConnection(_connection, contextOwnsConnection: false);
         context.Database.UseTransaction(_transaction);
+        return admitted;
+    }
+
+    // Every db: context back as its caller handed it in. One its caller disposed meanwhile has nothing to get back.
+    private void HandBack()
+    {
+        foreach (var admitted in _admitted)
+        {
+            try
+            {
+                admitted.Restore(_transaction);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed by its caller inside the work: nobody holds it any more.
+            }
+        }
+
+        _admitted.Clear();
     }
 
     private static InvalidOperationException Refused(DbContext context, string why) =>
@@ -193,10 +225,12 @@ internal sealed class AmbientTransaction
             return _entered._onRollback;
         }
 
+        /// <summary>Ends the transaction for this flow and hands every <c>db:</c> context back as it came.</summary>
         public void Dispose()
         {
             _entered._ended = true;
             Open.Value = _previous;
+            _entered.HandBack();
         }
     }
 }

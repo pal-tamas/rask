@@ -95,6 +95,20 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_confirm_dialog_asks_each_visitor_in_their_own_language()
+    {
+        var first = KitCulture.In("en-US", () => Ui.Confirm.ToHtml());
+        var switched = KitCulture.In("hu-HU", () => Ui.Confirm.ToHtml()).AsText();
+
+        Assert.Contains(">Confirm</div>", first, StringComparison.Ordinal);
+        Assert.Contains(">No<", first, StringComparison.Ordinal);
+        Assert.Contains(">Yes<", first, StringComparison.Ordinal);
+        Assert.Contains(">Megerősítés</div>", switched, StringComparison.Ordinal);
+        Assert.Contains(">Nem<", switched, StringComparison.Ordinal);
+        Assert.Contains(">Igen<", switched, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void What_the_app_passes_in_is_said_as_given_in_every_language()
     {
         var dialog = Ui.ConfirmLeave.Stay("Nem").Leave("Igen");
@@ -308,6 +322,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ConnectionReconnecting), nameof(RaskString.ConnectionOffline), nameof(RaskString.ConnectionStillTrying),
         nameof(RaskString.ConnectionRetry), nameof(RaskString.ConnectionReload), nameof(RaskString.ConnectionUpdating),
         nameof(RaskString.ConnectionAuthenticating), nameof(RaskString.ConnectionSessionTimedOut),
+        // A printed PDF's page numbers: Rask.Pdf writes them into the foot it hands Chromium.
+        nameof(RaskString.PdfPageNumber),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.

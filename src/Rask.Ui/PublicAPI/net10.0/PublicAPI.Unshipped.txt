@@ -1460,13 +1460,21 @@ Rask.UiComposer<T>.Value.get -> T?
 Rask.UiComposer<T>.Value.set -> void
 Rask.UiComposer<T>.Variant.get -> Rask.Ui.ComposerVariant?
 Rask.UiComposer<T>.Variant.set -> void
+Rask.UiConfirm
 Rask.UiConfirmLeave
+Rask.UiConfirm.Heading.get -> string?
+Rask.UiConfirm.No.get -> string?
+Rask.UiConfirm.Yes.get -> string?
 Rask.UiConfirmLeave.Heading.get -> string?
+Rask.UiConfirm.Heading.set -> void
+Rask.UiConfirm.No.set -> void
+Rask.UiConfirm.Yes.set -> void
 Rask.UiConfirmLeave.Heading.set -> void
 Rask.UiConfirmLeave.Leave.get -> string?
 Rask.UiConfirmLeave.Leave.set -> void
 Rask.UiConfirmLeave.Stay.get -> string?
 Rask.UiConfirmLeave.Stay.set -> void
+Rask.UiConfirm.UiConfirm() -> void
 Rask.UiConfirmLeave.UiConfirmLeave() -> void
 Rask.UiContext
 Rask.UiContext.Class.get -> string?
@@ -3501,6 +3509,7 @@ static Rask.Ui.CommandInput.get -> Rask.UiCommandInput!
 static Rask.Ui.CommandItem.get -> Rask.UiCommandItem!
 static Rask.Ui.CommandItems.get -> Rask.UiCommandItems!
 static Rask.Ui.Composer.get -> Rask.RaskSeed_UiComposer
+static Rask.Ui.Confirm.get -> Rask.UiConfirm!
 static Rask.Ui.ConfirmLeave.get -> Rask.UiConfirmLeave!
 static Rask.Ui.Context.get -> Rask.UiContext!
 static Rask.Ui.DatePickerButton.get -> Rask.UiDatePickerButton!
@@ -3734,6 +3743,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCommandInput(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCommandItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiCommandItems(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiComposer_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiConfirm(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiConfirmLeave(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiContext(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiDatePickerButton(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -3782,6 +3792,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCommandInput(Rask.Core.
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCommandItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCommandItems(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiComposer_1<T>(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiConfirm(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiConfirmLeave(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiContext(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAutocomplete(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -3921,6 +3932,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCommandInput(Rask.Cor
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCommandItem(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCommandItems(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiComposer_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiConfirm(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiConfirmLeave(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiContext(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiModalTrigger(Rask.Core.Component! __c0) -> void
@@ -5132,6 +5144,9 @@ static RaskBuilderSettersRask_Ui.get_Zinc(Rask.UiToggle! __b) -> Rask.UiToggle!
 static RaskBuilderSettersRask_Ui.Gutter(this Rask.UiChartSvg! __b, string? value) -> Rask.UiChartSvg!
 static RaskBuilderSettersRask_Ui.Header(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.Header<T>(this Rask.UiComposer<T>! __b, Rask.Core.Component? value) -> Rask.UiComposer<T>!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.No(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Yes(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiConfirmLeave! __b, string? value) -> Rask.UiConfirmLeave!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiFileItem! __b, string? value) -> Rask.UiFileItem!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiFileUploadDropzone! __b, string? value) -> Rask.UiFileUploadDropzone!

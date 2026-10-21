@@ -125,10 +125,14 @@ public sealed partial class KitOwnFramePage : KitFramePage
         ];
 }
 
-/// <summary>A form that asks before its unsaved edits are left, and the dialog it asks in.</summary>
+/// <summary>
+///     The kit's two questions: a form that asks before its unsaved edits are left, an action that asks before it goes,
+///     and the dialog each asks in.
+/// </summary>
 public sealed partial class KitLeaveFramePage : KitFramePage
 {
     private readonly Draft _draft = new();
+    private int _deleted;
 
     protected override Component? Render() =>
         Div.Id("stage")[
@@ -138,7 +142,11 @@ public sealed partial class KitLeaveFramePage : KitFramePage
                     Button.Type(ButtonType.Submit)["Save"]
                 ],
                 NavLink.Href("/elsewhere").Id("leave-go")["Elsewhere"],
-                Ui.ConfirmLeave.Stay("Stay").Leave("Leave"))
+                Ui.ConfirmLeave.Stay("Stay").Leave("Leave")),
+            Part("confirm",
+                Ui.Button.Danger.Id("confirm-delete").OnClick(() => _deleted++).Confirm("Delete the partner?")["Delete"],
+                Ui.Button.Danger.Id("confirm-wipe").OnClick(() => _deleted++).Confirm("Type the name", expect: "Acme")["Wipe"],
+                Ui.Confirm.No("No").Yes("Yes"))
         ];
 
     private sealed class Draft
