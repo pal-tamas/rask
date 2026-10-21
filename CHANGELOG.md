@@ -231,6 +231,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **`Find(id, db)` + `Save(db)` read the row once, and a first `Save()` of an aggregate code made reads nothing.**
+  `Find` given a context now loads the aggregate TRACKED in it (as `Update(id, …, db)` always has), so `Save(db)`
+  writes from that context's change tracker instead of loading the row again to diff — one SELECT, not two, for a
+  row however large (a 16 MB file row was read twice). A change to an aggregate so found is now written by the next
+  `SaveChangesAsync` on that context even without `Save(db)`, and a row someone saved or soft-deleted since is a
+  `DbUpdateConcurrencyException` at the commit on a `Versioned` aggregate rather than a `KeyNotFoundException` at
+  `Save(db)`. And an aggregate its factory made (`Order.Place(…)`, an app-assigned Guid key) and nothing has read or
+  saved is known to be new: its first `Save()` is an INSERT with no SELECT before it (it was two). Building an
+  aggregate by hand with the key of an EXISTING row and saving it is therefore an insert, refused by the key — `Find`
+  it instead. A context without Rask's interceptors knows nothing to be new and still reads first.
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.

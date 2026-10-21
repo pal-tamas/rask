@@ -247,7 +247,7 @@ public sealed partial class ModelInputGenerator
         s.Append("        /// <summary>Loads the <see cref=\"").Append(entityType)
             .AppendLine("\" /> with <paramref name=\"id\" />, whole, to change through its methods and <c>Save()</c>.</summary>");
         s.AppendLine("        /// <param name=\"id\">The id of the aggregate.</param>");
-        s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>");
+        s.AppendLine("        /// <param name=\"db\">The context to read through, or <c>null</c> to open one. A given context is not disposed, and tracks the aggregate, so <c>Save(db)</c> reads nothing again.</param>");
         s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the load.</param>");
         s.AppendLine("        /// <returns>The aggregate and its children, or <c>null</c> when none has that id or it is soft-deleted.</returns>");
         s.Append("        public static ").Append(TaskFqn).Append('<').Append(entityType).Append("?> Find(")

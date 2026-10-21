@@ -733,7 +733,9 @@ await Order.Place("A-1001").Save();   // a new aggregate is inserted
 
 - **Inserted or written over.** An aggregate with no row yet is inserted; one that has a row is compared with
   what `Find` read, and only the columns you changed are written — a column someone else changed meanwhile keeps
-  their value.
+  their value. One your own code made (`Order.Place(…)`, `new() { Id = Guid.CreateVersion7() }`) and never saved
+  is known to be new and inserted with no read first — so do not build one with the key of an EXISTING row to
+  write over it: that is an insert, refused by the key. `Find` it and change it instead.
 - **Children are synced by id.** A child you added is inserted, one you removed is deleted, one you changed is
   updated.
 - **A stale copy is refused** on a `Versioned` aggregate. The `Version` compared is the one `Find` read, so if someone saved in between,
@@ -742,6 +744,12 @@ await Order.Place("A-1001").Save();   // a new aggregate is inserted
   commit.
 - **Nothing is held open.** `Find` returns the aggregate untracked and closes its context, so it is safe to keep in
   a page field between `Find` and `Save`. Pass `db:` to `Save` to stage it in your own unit of work instead.
+- **`Find(id, db)` reads once.** Given your context, `Find` loads the aggregate TRACKED in it, as `Update(id, …, db)`
+  does, and `Save(db)` writes from that context's change tracker without reading the row again — one SELECT for a
+  row however large. The context then holds the aggregate like any row it loaded: a change to it is written by the
+  next `SaveChangesAsync` on that context whether or not you called `Save(db)`, and the version checked is the one
+  read, so a row saved or soft-deleted by someone else since is a `DbUpdateConcurrencyException` at the commit on a
+  `Versioned` aggregate (an unversioned one is written over).
 
 `Order.Update(id, o => o.Ship("1Z999"))` does the same in one call when there is nothing to show in between.
 

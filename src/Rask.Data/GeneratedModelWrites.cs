@@ -217,11 +217,14 @@ public static class GeneratedModelWrites
     }
 
     /// <summary>
-    ///     Loads the aggregate with <paramref name="key" /> whole and untracked — what <c>Product.Find(id)</c>
-    ///     returns, to change through its own methods and <c>Save()</c>.
+    ///     Loads the aggregate with <paramref name="key" /> whole — what <c>Product.Find(id)</c> returns, to change
+    ///     through its own methods and <c>Save()</c>.
     /// </summary>
     /// <param name="key">The primary key of the row to load.</param>
-    /// <param name="db">The context to read through, or <c>null</c> to open one. A given context is not disposed.</param>
+    /// <param name="db">
+    ///     The context to read through, or <c>null</c> to open one. A given context is not disposed, and TRACKS what
+    ///     it loads, so <c>Save(db)</c> writes what changed without reading the row again.
+    /// </param>
     /// <param name="cancellationToken">Cancels the load; unset, the work this call belongs to does.</param>
     /// <returns>The aggregate and its children, or <c>null</c> when no row has that key or it is soft-deleted.</returns>
     public static async Task<TEntity?> Find<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
@@ -233,10 +236,12 @@ public static class GeneratedModelWrites
         cancellationToken = Ambient.Or(cancellationToken);
         ArgumentNullException.ThrowIfNull(key);
 
+        // Tracked in the caller's context, as Update(id, …, db) loads: its change tracker is then what the save writes
+        // from, so a row (a file's bytes, say) is read once rather than again to diff against.
         if (db is not null)
         {
             AmbientTransaction.Admit(db);
-            return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken).ConfigureAwait(false);
+            return await AggregateLoad.FindAsync<TEntity>(db, [key], cancellationToken, tracked: true).ConfigureAwait(false);
         }
 
         // Tracked in a context about to be discarded, only so what was read can be remembered for Save().

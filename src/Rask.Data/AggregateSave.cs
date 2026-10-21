@@ -42,6 +42,7 @@ internal static class AggregateSave
         }
 
         AsRead.AddOrUpdate(aggregate, copies);
+        StoredAggregates.Mark(aggregate);
     }
 
     /// <summary>Saves through a context of its own, and remembers what was written for the next save.</summary>
@@ -74,8 +75,9 @@ internal static class AggregateSave
             return;
         }
 
-        // A key the database generates and has not yet: it was never saved.
-        if (!entry.IsKeySet)
+        // A key the database generates and has not yet, or one code made and nothing has read or saved: it was never
+        // saved, so there is no row to look for — an app-made Guid key used to cost two SELECTs here.
+        if (!entry.IsKeySet || StoredAggregates.IsNew(context, aggregate))
         {
             context.Add(aggregate);
             return;

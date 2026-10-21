@@ -11,6 +11,7 @@ public sealed class AggregateSaveTests : IDisposable
 
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-save-{Guid.NewGuid():N}.db");
     private readonly FakeClock _clock = new(Start);
+    private readonly SqlCommandLog _log = new();
 
     public void Dispose() => File.Delete(_dbPath);
 
@@ -154,6 +155,108 @@ public sealed class AggregateSaveTests : IDisposable
         Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
+    [Fact]
+    public async Task Find_and_Save_through_a_given_context_read_the_row_once()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        _log.Clear();
+
+        var found = (await Widget.Find(widget.Id, database.Context, TestContext.Current.CancellationToken))!;
+        found.Rename("hammer");
+        await found.Save(database.Context, TestContext.Current.CancellationToken);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Selects());
+        Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal(1, found.Version);
+    }
+
+    [Fact]
+    public async Task Find_and_Save_through_a_given_context_insert_update_and_delete_children_by_key()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveBasketAsync();
+        var basket = (await Basket.Find(id, database.Context, TestContext.Current.CancellationToken))!;
+
+        basket.Lines.First(l => l.Product == "apple").SetQuantity(9);
+        basket.Remove(basket.Lines.First(l => l.Product == "pear"));
+        basket.Add("plum", 2);
+        await basket.Save(database.Context, TestContext.Current.CancellationToken);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var stored = await database.Load<Basket>(id, TestContext.Current.CancellationToken);
+        Assert.Equal(
+            [("apple", 9), ("plum", 2)],
+            stored!.Lines.OrderBy(l => l.Product, StringComparer.Ordinal).Select(l => (l.Product, l.Quantity)));
+    }
+
+    [Fact]
+    public async Task Find_through_a_given_context_of_a_row_saved_since_is_refused_at_the_commit()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var mine = (await Widget.Find(widget.Id, database.Context, TestContext.Current.CancellationToken))!;
+        var theirs = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        theirs.Rename("theirs");
+        await theirs.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        mine.Rename("mine");
+        await mine.Save(database.Context, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => database.Context.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal("theirs", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task Save_of_an_aggregate_its_factory_just_made_inserts_it_with_no_read_first()
+    {
+        await using var database = await StartDatabaseAsync();
+        var basket = Basket.Open("ada");
+        basket.Add("apple", 3);
+        _log.Clear();
+
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, Selects());
+        Assert.Equal([("apple", 3)], (await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken))!
+            .Lines.Select(l => (l.Product, l.Quantity)));
+    }
+
+    [Fact]
+    public async Task The_next_save_of_an_aggregate_its_factory_made_updates_the_row_the_first_inserted()
+    {
+        await using var database = await StartDatabaseAsync();
+        var basket = Basket.Open("ada");
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        basket.Add("pear", 1);
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        var stored = await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken);
+        Assert.Equal([("pear", 1)], stored!.Lines.Select(l => (l.Product, l.Quantity)));
+        Assert.Equal(1, stored.Version);
+    }
+
+    [Fact]
+    public async Task A_new_aggregate_staged_on_a_given_context_and_committed_is_updated_by_its_next_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = Widget.Create("anvil");
+        await widget.Save(database.Context, TestContext.Current.CancellationToken);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        database.Context.ChangeTracker.Clear();
+
+        widget.Rename("hammer");
+        await widget.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Single(await Widget.IgnoreQueryFilters());
+    }
+
+    private int Selects() =>
+        _log.Texts.Count(t => t.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase));
+
     private static async Task<Guid> SaveBasketAsync()
     {
         var basket = Basket.Open("ada");
@@ -164,5 +267,5 @@ public sealed class AggregateSaveTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_log), _clock);
 }
