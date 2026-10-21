@@ -68,6 +68,7 @@
   <ItemGroup>
     <!-- One browser install and launch story for every browser suite. -->
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+    <Compile Include="..\Rask.Ui.Tests\Live\ReportColumnsDraft.cs" Link="ReportColumnsDraft.cs"/>
   </ItemGroup>
 
 </Project>
