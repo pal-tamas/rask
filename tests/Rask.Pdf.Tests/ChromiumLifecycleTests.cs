@@ -10,12 +10,12 @@ public sealed class ChromiumLifecycleTests
     public async Task A_crashed_browser_is_replaced_for_the_next_print()
     {
         await using var printer = TestChromium.Printer();
-        await printer.Print(PrintedPdf.Html("<p>Első</p>"), PdfPage.A4, TestContext.Current.CancellationToken);
+        await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Első</p>")), TestContext.Current.CancellationToken);
         var crashed = printer.Browser!;
         crashed.Kill();
         await Until(() => crashed.IsGone);
 
-        var pdf = await printer.Print(PrintedPdf.Html("<p>Második</p>"), PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Második</p>")), TestContext.Current.CancellationToken);
 
         Assert.Contains("Második", Assert.Single(PrintedPdf.Pages(pdf)).Text, StringComparison.Ordinal);
         Assert.NotSame(crashed, printer.Browser);
@@ -29,7 +29,7 @@ public sealed class ChromiumLifecycleTests
         var html = PrintedPdf.Html(HtmlPrintTests.Table(rows: 300));
 
         var pdfs = await Task.WhenAll(Enumerable.Range(0, 6)
-            .Select(_ => printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken)));
+            .Select(_ => printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken)));
 
         Assert.All(pdfs, pdf => Assert.True(PrintedPdf.Pages(pdf).Count > 1));
         Assert.InRange(printer.MostAtOnce, 1, 2);
@@ -41,7 +41,7 @@ public sealed class ChromiumLifecycleTests
         await using var printer = TestChromium.Printer(timeout: TimeSpan.FromMilliseconds(1));
 
         var late = await Assert.ThrowsAsync<TimeoutException>(
-            () => printer.Print(PrintedPdf.Html("<p>Késő</p>"), PdfPage.A4, TestContext.Current.CancellationToken));
+            () => printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Késő</p>")), TestContext.Current.CancellationToken));
 
         Assert.Contains("Rask:Pdf:Timeout", late.Message, StringComparison.Ordinal);
     }
@@ -50,7 +50,7 @@ public sealed class ChromiumLifecycleTests
     public async Task Disposing_the_printer_ends_its_browser_and_deletes_its_profile()
     {
         var printer = TestChromium.Printer();
-        await printer.Print(PrintedPdf.Html("<p>Vége</p>"), PdfPage.A4, TestContext.Current.CancellationToken);
+        await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Vége</p>")), TestContext.Current.CancellationToken);
         var browser = printer.Browser!;
 
         await printer.DisposeAsync();

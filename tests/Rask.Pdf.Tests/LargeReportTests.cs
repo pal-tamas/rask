@@ -11,11 +11,11 @@ public sealed class LargeReportTests
     {
         await using var printer = TestChromium.Printer(timeout: TimeSpan.FromMinutes(2));
         var html = PrintedPdf.Html(Report(rows: 5000));
-        await printer.Print(PrintedPdf.Html("<p>Bemelegítés</p>"), PdfPage.A4, TestContext.Current.CancellationToken);
+        await printer.Print(PrintDocument.Of(PrintedPdf.Html("<p>Bemelegítés</p>")), TestContext.Current.CancellationToken);
         var allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var clock = Stopwatch.StartNew();
 
-        var pdf = await printer.Print(html, PdfPage.A4.Landscape, TestContext.Current.CancellationToken);
+        var pdf = await printer.Print(PrintDocument.Of(html, new PdfOptions { Page = PdfPage.A4.Landscape }), TestContext.Current.CancellationToken);
 
         clock.Stop();
         var allocated = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;

@@ -9,6 +9,9 @@ internal static class TestChromium
 {
     private static readonly string? Found = Find();
 
+    /// <summary>The browser found, or null — for a host that is configured either way.</summary>
+    public static string? Installed => Found;
+
     public static string Path
     {
         get

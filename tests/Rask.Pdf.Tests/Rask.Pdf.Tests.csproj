@@ -12,6 +12,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="PdfPig"/>
     <PackageReference Include="xunit.v3"/>
@@ -22,12 +23,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit"/>
     <Using Include="Rask.Printing"/>
   </ItemGroup>
 
+  <!-- The pages printed in the host tests are real Rask pages, on a real Rask.Server host. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Pdf\Rask.Pdf.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

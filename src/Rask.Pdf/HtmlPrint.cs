@@ -1,25 +1,19 @@
 using System.Collections.Concurrent;
-using System.Text;
+using System.Globalization;
 using System.Text.Json;
 
 namespace Rask.Printing;
 
 /// <summary>
-/// Prints one HTML document in a browser context of its own — no cookie, storage or cache shared with any other
-/// document — and closes the context after. The page has no network: the document is served from memory under
-/// <see cref="DocumentUrl"/>, every other request is refused, and scripts do not run.
+/// Prints one document in a browser context of its own — no cookie, storage or cache shared with any other
+/// document — and closes the context after. The page reaches nothing but the <see cref="DocumentServer"/>, and its
+/// scripts do not run.
 /// </summary>
 internal static class HtmlPrint
 {
-    /// <summary>The address the document is served under. <c>.invalid</c> never resolves, so nothing can leave the machine.</summary>
-#pragma warning disable S1075 // not a place to configure: an address Chromium never resolves, answered from memory.
-    internal const string DocumentUrl = "https://print.rask.invalid/";
-#pragma warning restore S1075
-
-    private const double MarginInches = 10 / 25.4;
     private static readonly TimeSpan CleanupWait = TimeSpan.FromSeconds(5);
 
-    public static async Task<byte[]> Run(ChromiumProcess browser, string html, PdfPage page, CancellationToken cancellation)
+    public static async Task<byte[]> Run(ChromiumProcess browser, PrintDocument document, int maxPages, CancellationToken cancellation)
     {
         var devTools = browser.Connection;
         var context = (await devTools.Send("Target.createBrowserContext", cancellation: cancellation).ConfigureAwait(false))
@@ -46,8 +40,9 @@ internal static class HtmlPrint
                 .GetProperty("sessionId").GetString()!;
             try
             {
-                await Load(devTools, session, Encoding.UTF8.GetBytes(html), cancellation).ConfigureAwait(false);
-                return await PrintToPdf(devTools, session, page, cancellation).ConfigureAwait(false);
+                await Load(devTools, session, new DocumentServer(devTools, session, document, cancellation), cancellation).ConfigureAwait(false);
+                await FontsReady(devTools, session, cancellation).ConfigureAwait(false);
+                return await PrintToPdf(devTools, session, document.Options, maxPages, cancellation).ConfigureAwait(false);
             }
             finally
             {
@@ -60,7 +55,7 @@ internal static class HtmlPrint
         }
     }
 
-    private static async Task Load(DevToolsConnection devTools, string session, byte[] document, CancellationToken cancellation)
+    private static async Task Load(DevToolsConnection devTools, string session, DocumentServer server, CancellationToken cancellation)
     {
         // A load is matched to its navigation by loader id, so the blank page the tab opened with can never pass for
         // the document. The event can arrive before the navigation's own reply; whichever comes first makes the entry.
@@ -72,12 +67,13 @@ internal static class HtmlPrint
                 Loaded(loads, lifecycle.GetProperty("loaderId").GetString()!).TrySetResult();
             }
         });
-        devTools.Listen(session, "Fetch.requestPaused", request => Answer(devTools, session, request, document));
+        devTools.Listen(session, "Fetch.requestPaused", server.Answer);
 
         await devTools.Send("Page.enable", sessionId: session, cancellation: cancellation).ConfigureAwait(false);
         await devTools.Send("Page.setLifecycleEventsEnabled", json => json.WriteBoolean("enabled", true), session, cancellation)
             .ConfigureAwait(false);
-        await devTools.Send("Emulation.setScriptExecutionDisabled", json => json.WriteBoolean("value", true), session, cancellation).ConfigureAwait(false);
+        await devTools.Send("Emulation.setScriptExecutionDisabled", json => json.WriteBoolean("value", true), session, cancellation)
+            .ConfigureAwait(false);
         await devTools.Send(
             "Fetch.enable",
             json =>
@@ -91,7 +87,8 @@ internal static class HtmlPrint
             session,
             cancellation).ConfigureAwait(false);
 
-        var navigated = await devTools.Send("Page.navigate", json => json.WriteString("url", DocumentUrl), session, cancellation).ConfigureAwait(false);
+        var navigated = await devTools.Send("Page.navigate", json => json.WriteString("url", server.DocumentUrl), session, cancellation)
+            .ConfigureAwait(false);
         if (navigated.TryGetProperty("errorText", out var error))
         {
             throw new InvalidOperationException($"Chromium could not load the document to print: {error.GetString()}");
@@ -103,61 +100,30 @@ internal static class HtmlPrint
     private static TaskCompletionSource Loaded(ConcurrentDictionary<string, TaskCompletionSource> loads, string loaderId) =>
         loads.GetOrAdd(loaderId, static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
 
-    // Runs on the reading thread, so it answers without waiting for the reply.
-    private static void Answer(DevToolsConnection devTools, string session, JsonElement request, byte[] document)
-    {
-        var id = request.GetProperty("requestId").GetString()!;
-        var isDocument = string.Equals(request.GetProperty("request").GetProperty("url").GetString(), DocumentUrl, StringComparison.Ordinal);
-        var answer = isDocument
-            ? devTools.Send(
-                "Fetch.fulfillRequest",
-                json =>
-                {
-                    json.WriteString("requestId", id);
-                    json.WriteNumber("responseCode", 200);
-                    json.WriteStartArray("responseHeaders");
-                    json.WriteStartObject();
-                    json.WriteString("name", "Content-Type");
-                    json.WriteString("value", "text/html; charset=utf-8");
-                    json.WriteEndObject();
-                    json.WriteEndArray();
-                    json.WriteBase64String("body", document);
-                },
-                session)
-            : devTools.Send(
-                "Fetch.failRequest",
-                json =>
-                {
-                    json.WriteString("requestId", id);
-                    json.WriteString("errorReason", "BlockedByClient");
-                },
-                session);
+    // The load event does not wait for a web font the layout asks for late. The page's own scripts stay off; this
+    // expression is the protocol's, evaluated in the page, and only waits.
+    private static Task<JsonElement> FontsReady(DevToolsConnection devTools, string session, CancellationToken cancellation) => devTools.Send(
+        "Runtime.evaluate",
+        json =>
+        {
+            json.WriteString("expression", "document.fonts.ready.then(() => true)");
+            json.WriteBoolean("awaitPromise", true);
+            json.WriteBoolean("returnByValue", true);
+        },
+        session,
+        cancellation);
 
-        // Nobody awaits the answer; a failed one surfaces as the document never loading, which the timeout reports.
-        _ = answer.ContinueWith(static task => task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
-    }
-
-    private static async Task<byte[]> PrintToPdf(DevToolsConnection devTools, string session, PdfPage page, CancellationToken cancellation)
+    private static async Task<byte[]> PrintToPdf(
+        DevToolsConnection devTools, string session, PdfOptions options, int maxPages, CancellationToken cancellation)
     {
-        var printed = await devTools.Send(
-            "Page.printToPDF",
-            json =>
-            {
-                json.WriteBoolean("landscape", page.IsLandscape);
-                json.WriteBoolean("printBackground", true);
-                // Chromium tags by default, and the structure tree is most of the file: a 209-page table came out
-                // 12 MB tagged and 0.45 MB untagged, and printed in twice the time.
-                json.WriteBoolean("generateTaggedPDF", false);
-                json.WriteNumber("paperWidth", page.WidthInches);
-                json.WriteNumber("paperHeight", page.HeightInches);
-                json.WriteNumber("marginTop", MarginInches);
-                json.WriteNumber("marginBottom", MarginInches);
-                json.WriteNumber("marginLeft", MarginInches);
-                json.WriteNumber("marginRight", MarginInches);
-            },
-            session,
-            cancellation).ConfigureAwait(false);
-        return printed.GetProperty("data").GetBytesFromBase64();
+        var printed = await devTools.Send("Page.printToPDF", json => PrintLayout.Write(json, options, maxPages + 1), session, cancellation)
+            .ConfigureAwait(false);
+        var pdf = printed.GetProperty("data").GetBytesFromBase64();
+        return PdfPageCount.Of(pdf) <= maxPages
+            ? pdf
+            : throw new InvalidOperationException(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The document runs to more than {maxPages} pages, the most Rask:Pdf:MaxPages allows to print."));
     }
 
     // The context goes even when the print was cancelled. A browser that cannot close it in five seconds has

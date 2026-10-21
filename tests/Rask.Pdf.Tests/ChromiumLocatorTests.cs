@@ -46,7 +46,7 @@ public sealed class ChromiumLocatorTests
         await using var printer = new ChromiumPrinter(new ChromiumSettings { ChromiumPath = "/nowhere/chromium" });
 
         var missing = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => printer.Print("<p>x</p>", PdfPage.A4, TestContext.Current.CancellationToken));
+            () => printer.Print(PrintDocument.Of("<p>x</p>"), TestContext.Current.CancellationToken));
 
         Assert.Contains("Rask:Pdf:ChromiumPath is '/nowhere/chromium'", missing.Message, StringComparison.Ordinal);
     }

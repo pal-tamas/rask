@@ -13,7 +13,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
     {
         var html = PrintedPdf.Html("<h1>Árvíztűrő tükörfúrógép</h1><p>őű ŐŰ</p>");
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
 
         var text = Assert.Single(PrintedPdf.Pages(pdf)).Text;
         Assert.Contains("Árvíztűrő tükörfúrógép", text, StringComparison.Ordinal);
@@ -25,7 +25,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
     {
         var html = PrintedPdf.Html("<p>Fekvő</p>");
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4.Landscape, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html, new PdfOptions { Page = PdfPage.A4.Landscape }), TestContext.Current.CancellationToken);
 
         var page = Assert.Single(PrintedPdf.Pages(pdf));
         Assert.Equal(A4Long, page.Width, tolerance: 1);
@@ -37,7 +37,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
     {
         var html = PrintedPdf.Html("<p>Álló</p>");
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
 
         var page = Assert.Single(PrintedPdf.Pages(pdf));
         Assert.Equal(A4Short, page.Width, tolerance: 1);
@@ -49,7 +49,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
     {
         var html = PrintedPdf.Html(Table(rows: 150));
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
 
         var pages = PrintedPdf.Pages(pdf);
         Assert.True(pages.Count >= 3, $"The table filled {pages.Count} pages.");
@@ -63,7 +63,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
             "<link rel=\"stylesheet\" href=\"https://example.com/site.css\">"
             + "<img src=\"https://example.com/logo.png\" alt=\"\"><p>Nyomtatva hálózat nélkül</p>");
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
 
         Assert.Contains("Nyomtatva hálózat nélkül", Assert.Single(PrintedPdf.Pages(pdf)).Text, StringComparison.Ordinal);
     }
@@ -73,7 +73,7 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
     {
         var html = PrintedPdf.Html("<p id=\"p\">Eredeti</p><script>document.getElementById('p').textContent = 'Átírva';</script>");
 
-        var pdf = await shared.Printer.Print(html, PdfPage.A4, TestContext.Current.CancellationToken);
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
 
         var text = Assert.Single(PrintedPdf.Pages(pdf)).Text;
         Assert.Contains("Eredeti", text, StringComparison.Ordinal);

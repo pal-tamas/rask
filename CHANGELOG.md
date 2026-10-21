@@ -35,16 +35,27 @@ them until tagged releases begin.
 
 ### Added
 
-- **Rask.Pdf, first slice: the engine that prints HTML with the app's own headless Chromium.** No call site yet —
-  `Pdf.From(page | component)` arrives with the next slice; this one ships `Pdf.ContentType` and `PdfPage.A4` /
-  `PdfPage.A4.Landscape` (namespace `Rask.Printing`). Underneath, Rask drives Chromium over its DevTools pipe
-  (`--remote-debugging-pipe`) with its own small protocol client, so the package has no dependency and never
-  downloads a browser: it finds Chromium or Google Chrome (`Rask:Pdf:ChromiumPath`, the usual install folders,
-  `PATH`) or fails with how to install one. One browser per app, started at the first print and kept; two documents
-  print at once and the rest wait; a crashed browser is replaced at the next print; each document gets a 30-second
-  limit, a browser context of its own, no network and no scripts. A 5,000-row table (209 landscape A4 pages,
-  heading on every page) prints in about a second as a 0.45 MB PDF; Linux and macOS only for now. Not on NuGet
-  until the package is complete.
+- **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
+  Namespace `Rask.Printing`; turned on with `builder.Services.AddRaskPdf()`, on a `RaskApp`
+  (`RaskApp.Create(args, b => b.Services.AddRaskPdf())`) and on a hand-wired host alike.
+  ```csharp
+  var pdf = await Pdf.From(Routes.RefundReport(id), new PdfOptions { Page = PdfPage.A4.Landscape, Footer = "Visszatérítés" });
+  var receipt = await Pdf.From(Receipt.Order(order));          // or a component written only for print
+  ```
+  - The page is rendered on the server exactly as its first GET is — static HTML, no live session left behind —
+    for the caller (the session's user), after its `[Authorize]` admits them: a page they could not open is never
+    printed (`UnauthorizedAccessException`), and one that redirects or answers 404/500 is not printed either.
+  - The app's own stylesheet, the kit's sheet, the component bundle and the fonts are served to the browser from
+    the app's web root; nothing else is reachable, and no script runs.
+  - `PdfOptions`: `Page` (`PdfPage.A4`, `PdfPage.A4.Landscape`), `Margins` (`PdfMargins.Millimetres(…)`), `Footer`,
+    `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
+    structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
+  - Drawn by headless Chromium driven over its own DevTools pipe — no dependency, never a download. `Rask:Pdf`
+    sets `ChromiumPath` (else the usual install folders and `PATH`), `NoSandbox`, `MaxConcurrentPrints` (2),
+    `Timeout` (30 s) and `MaxPages` (1000; a longer document fails rather than come out cut). One browser per app,
+    started at the first print, replaced after a crash, closed with the host; every document in a browser context
+    of its own. A 5,000-row table (209 landscape A4 pages, heading on every page) prints in about a second.
+  - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
   Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a

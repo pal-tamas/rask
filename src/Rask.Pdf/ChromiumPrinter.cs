@@ -21,12 +21,11 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
     /// <summary>The browser printing now, if one has started.</summary>
     internal ChromiumProcess? Browser => _browser;
 
-    /// <summary>Prints <paramref name="html"/> on <paramref name="page"/> and returns the PDF's bytes.</summary>
+    /// <summary>Prints <paramref name="document"/> and returns the PDF's bytes.</summary>
     /// <exception cref="TimeoutException">The document took longer than <see cref="ChromiumSettings.Timeout"/>.</exception>
-    public async Task<byte[]> Print(string html, PdfPage page, CancellationToken cancellation = default)
+    public async Task<byte[]> Print(PrintDocument document, CancellationToken cancellation = default)
     {
-        ArgumentNullException.ThrowIfNull(html);
-        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(document);
         ObjectDisposedException.ThrowIf(_disposed, this);
 
         await _turns.WaitAsync(cancellation).ConfigureAwait(false);
@@ -38,7 +37,7 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             deadline.CancelAfter(settings.Timeout);
             try
             {
-                return await HtmlPrint.Run(browser, html, page, deadline.Token).ConfigureAwait(false);
+                return await HtmlPrint.Run(browser, document, settings.MaxPages, deadline.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException e) when (!cancellation.IsCancellationRequested)
             {
