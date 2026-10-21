@@ -35,7 +35,9 @@ public sealed partial class UiDocsLayout : Component
             Ui.Main.Class("min-w-0 px-4! py-6! pb-[calc(3rem_+_env(safe-area-inset-bottom))]! md:px-10!")[
                 Main.Class("page-main mx-auto max-w-[920px]")[Outlet]
             ]
-        ]
+        ],
+        // Once, for every page of the tab: where an action's .Confirm("…") asks, in place of `confirm`.
+        Ui.Confirm
     ];
 
     private static IEnumerable<Component> Groups() =>

@@ -41,6 +41,7 @@ own ("blazor", "react"). Map every new page to one:
 | show an error message when a form's save throws in C#, exception in a submit handler without try/catch, ValidationException to the form | `forms-validation` (#a-save-that-fails) |
 | show a "cannot delete, still referenced" message from a click handler in C#, validation exception from an event handler as a toast instead of an error page | `composition-lists` (#a-handler-that-refuses) |
 | unsaved changes warning / confirm before leaving a form in a C# web app | `forms` (#ask-before-leaving-unsaved-changes) |
+| styled confirm dialog instead of `window.confirm` in C#, Livewire `wire:confirm` in .NET, type the name to confirm a delete | `forms` (#asking-before-an-action), `/ui/modal/` (Confirm an action) |
 | number input reads as empty / "required" shown for an invalid number, input type=number validation message in C#, whole-number field rejects a decimal | `forms-validation` (#what-a-number-field-says-when-it-cannot-read-what-was-typed) |
 | page title in a layout's breadcrumb / dynamic document title per route in a C# web app, no flash on first load | `routing` (#a-pages-title--pagetitle-and-routetitle) |
 | full-text search EF Core, SQLite FTS5 / PostgreSQL tsvector / in the browser | `full-text-search` |

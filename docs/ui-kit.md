@@ -1107,7 +1107,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.ConfirmLeave` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
@@ -1130,10 +1130,22 @@ focus handed back, and the runtime adds a click outside and the page held still 
 `Ui.ModalClose`, `OnClose` and `OnCancel` are Flux's switches; `Open(_field)` hands the state to the page in place of
 `wire:model`. Every example, live, with the reference of its steps: **[rask.sh/ui/modal](https://rask.sh/ui/modal/)**.
 
-`Ui.ConfirmLeave` is the one modal here that is not Flux's: the dialog a form's
-[`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks in, in place of the browser's `confirm`.
-Place it once in a layout and it is a `Ui.Modal` composed as a confirmation — the form's message as the
-heading, a ghost button that stays and a danger button that leaves:
+`Ui.Confirm` and `Ui.ConfirmLeave` are the two modals here that are not Flux's. Each is the dialog the browser's
+own would otherwise ask in, placed once in a layout and drawn as Flux's confirmation — `min-w-[22rem]`, a ghost
+button that says no and a danger button that says yes.
+
+`Ui.Confirm` is where an action's [`.Confirm("…")`](forms.md#asking-before-an-action) asks, in place of `confirm`
+and `prompt`: a short heading, the call site's question beneath it, and with `expect:` a field that holds Yes back
+until the answer is typed exactly. No, the close button, Escape and a press outside call the action off; Yes lets
+the very press or submit go. Opening, typing and closing send nothing.
+
+```csharp
+Ui.Confirm                                                // "Confirm", "No" and "Yes"
+Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // your own words
+```
+
+`Ui.ConfirmLeave` is where a form's [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks, in
+place of `confirm` — the form's message as the heading:
 
 ```csharp
 Ui.ConfirmLeave                              // "Stay" and "Leave"
@@ -1141,10 +1153,11 @@ Ui.ConfirmLeave.Stay("Nem").Leave("Igen")    // your own words
 Ui.ConfirmLeave.Heading("Unsaved changes")   // a short title; the form's question is the sentence beneath it
 ```
 
-It is rendered closed and the runtime opens it, so the question appears without a round trip. The close
-button, Escape and a press outside mean stay. It is drawn as the confirmation above is — `min-w-[22rem]` —
-and, because its heading may be a whole question of the form's own, with `pe-8` on it. `Heading("…")` gives
-it the shape Flux's confirmation has: a short title, the question under it.
+Both are rendered closed and the runtime opens them, so the question appears without a round trip. The close
+button, Escape and a press outside mean no. A leave dialog's heading may be a whole question of the form's own,
+so it carries `pe-8` to keep clear of the close button; `Heading("…")` gives it the shape `Ui.Confirm` always
+has, Flux's: a short title, the question under it. Both are held to Flux's open confirmation by
+`scripts/flux/parity-modal.mjs`; the answer field, and a Yes that is no submit button, are the two departures.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 

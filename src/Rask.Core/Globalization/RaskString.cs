@@ -573,6 +573,15 @@ public enum RaskString
     /// </summary>
     PageForbidden,
 
+    /// <summary>The title of the dialog an action's <c>Confirm("…")</c> asks in, above the question.</summary>
+    ConfirmHeading,
+
+    /// <summary>The button of the confirm dialog that lets the action go.</summary>
+    ConfirmYes,
+
+    /// <summary>The button of the confirm dialog that calls the action off.</summary>
+    ConfirmNo,
+
     /// <summary>
     ///     A printed PDF's page number, at the foot of every page: <c>{0}</c> is the page, <c>{1}</c> how many
     ///     there are.

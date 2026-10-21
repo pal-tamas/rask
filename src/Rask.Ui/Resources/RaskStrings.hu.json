@@ -201,5 +201,8 @@
   "HandlerForbidden": "Ehhez nincs jogosultsága.",
   "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
 
+  "ConfirmHeading": "Megerősítés",
+  "ConfirmYes": "Igen",
+  "ConfirmNo": "Nem",
   "PdfPageNumber": "{0} / {1} oldal"
 }
