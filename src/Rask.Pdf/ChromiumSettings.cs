@@ -18,6 +18,9 @@ internal sealed class ChromiumSettings
     /// </summary>
     public int MaxConcurrentPrints { get; set; } = 2;
 
+    /// <summary>The longest document that prints; a longer one fails rather than come out cut short.</summary>
+    public int MaxPages { get; set; } = 1000;
+
     /// <summary>How long one document may take, from loading its HTML to the last byte of the PDF.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
 }
