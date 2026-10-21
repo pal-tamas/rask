@@ -80,6 +80,19 @@ public static class Go
         return new GoTo(navigator);
     }
 
+    /// <summary>
+    ///     Stays on this page with <paramref name="key" /> set to a list — one key, its elements joined by commas,
+    ///     as a <c>[QueryParam] IReadOnlyList&lt;T&gt;</c> reads it: <c>Go.With("drivers", ["ada", "theo"])</c>. A
+    ///     list with no element removes the key.
+    /// </summary>
+    /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="key">The query parameter, matched without regard to case.</param>
+    /// <param name="values">Its elements, in order; a null one, or one that writes as nothing, is left out.</param>
+    /// <returns>The step that makes it add a history entry.</returns>
+    /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
+    public static GoTo With<T>(string key, IEnumerable<T>? values) => With(key, QueryList.Value(values));
+
     /// <summary>Stays on this page with each of <paramref name="values" /> set in its query, in one step.</summary>
     /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
     /// <param name="values">The parameters; one whose value is <c>null</c> is removed.</param>

@@ -88,10 +88,32 @@ public static class QueryString
                 first = false;
                 sb.Append(Uri.EscapeDataString(kv.Key));
                 sb.Append('=');
-                sb.Append(Uri.EscapeDataString(v));
+                sb.Append(EscapeValue(v));
             }
         }
 
         return sb.ToString();
+    }
+
+    // A value encoded for the URL, all but its commas: a comma is as much a character of a query value written
+    // as it is, and a [QueryParam] list reads `?drivers=ada,theo` instead of `?drivers=ada%2Ctheo`.
+    internal static string EscapeValue(string value)
+    {
+        var comma = value.IndexOf(',', StringComparison.Ordinal);
+        if (comma < 0)
+        {
+            return Uri.EscapeDataString(value);
+        }
+
+        var sb = new StringBuilder(value.Length + 8);
+        var rest = value.AsSpan();
+        while (comma >= 0)
+        {
+            sb.Append(Uri.EscapeDataString(rest[..comma])).Append(',');
+            rest = rest[(comma + 1)..];
+            comma = rest.IndexOf(',');
+        }
+
+        return sb.Append(Uri.EscapeDataString(rest)).ToString();
     }
 }
