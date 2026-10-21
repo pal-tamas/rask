@@ -39,7 +39,16 @@ public sealed partial class JobProcessor<TContext>(
     // The lanes at work: each is one task, and the poll loop goes on while they run.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> _running = new();
 
+    // The jobs in a handler right now, by id: what a stopping instance says it is waiting for.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Type, long StartedAt)> _inFlight = new();
+
     private CancellationTokenSource _grace = new();
+
+    /// <summary>How often a stopping instance says which jobs it still waits for. Shortened in tests.</summary>
+    internal TimeSpan DrainReportInterval { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>How long stopping waits for the lanes to give up once the host's budget has ended.</summary>
+    private static TimeSpan CancelledLaneWait => TimeSpan.FromSeconds(2);
 
     // Whether this instance has a batch of jobs without a lane at work: it takes one at a time.
     private int _defaultLaneRunning;
@@ -171,11 +180,10 @@ public sealed partial class JobProcessor<TContext>(
     /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // The lanes at work get a bounded grace after SIGTERM instead of being cancelled mid-call. The host
-        // token ARMS a deadline on this source rather than cancelling it, so user code keeps a live token
-        // for ShutdownGracePeriod past the stop signal. (Same shape as the Litestream executor's graceful
-        // stop.) The loop refuses to START anything new the moment the host token fires, so the extra
-        // shutdown time is one grace period, not one per lane.
+        // SIGTERM stops the claiming, not the work: the lanes at work keep a live token. The host token only
+        // ARMS ShutdownGracePeriod on this source — infinite by default, so a job is cancelled when the host's
+        // own shutdown budget ends (StopAsync) and not before. The loop refuses to START anything new the
+        // moment the host token fires, so stopping waits for the jobs already running, never for the queue.
         //
         // Declaration order is load-bearing: `_grace` is replaced before the registration exists, and the
         // registration is disposed first. The reverse order lets the callback call CancelAfter on an
@@ -183,6 +191,8 @@ public sealed partial class JobProcessor<TContext>(
         _grace = new CancellationTokenSource();
         using var grace = _grace;
         using var registration = stoppingToken.Register(() => grace.CancelAfter(options.ShutdownGracePeriod));
+        using var renewing = new CancellationTokenSource();
+        var renewals = RenewLeasesAsync(renewing.Token);
         using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
@@ -198,9 +208,103 @@ public sealed partial class JobProcessor<TContext>(
         }
         finally
         {
-            // Stopping waits for the lanes at work: they finish, or the grace cancels them.
-            await Task.WhenAll(_running.Keys).ConfigureAwait(false);
+            // Stopping waits for the lanes at work: they finish, or the end of the budget cancels them.
+            await WaitForRunningJobsAsync().ConfigureAwait(false);
+            await renewing.CancelAsync().ConfigureAwait(false);
+            await renewals.ConfigureAwait(false);
         }
+    }
+
+    // Says what it waits for while it waits, so `rask deploy` can show why the old container is still up.
+    private async Task WaitForRunningJobsAsync()
+    {
+        var lanes = Task.WhenAll(_running.Keys);
+        while (!lanes.IsCompleted)
+        {
+            ReportRunningJobs();
+
+            await Task.WhenAny(lanes, Task.Delay(DrainReportInterval, timeProvider, CancellationToken.None)).ConfigureAwait(false);
+        }
+
+        await lanes.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Keeps this instance's claims from expiring while their jobs run, so a job that takes longer than
+    /// <see cref="JobsOptions.LeaseDuration"/> — or the new container of a deploy, polling while the old one
+    /// finishes — never starts it a second time.
+    /// </summary>
+    private async Task RenewLeasesAsync(CancellationToken stop)
+    {
+        using var timer = new PeriodicTimer(options.LeaseDuration / 3);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop).ConfigureAwait(false))
+            {
+                await RenewLeasesOnceAsync().ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // Stopped: every lane has finished.
+        }
+    }
+
+    private async Task RenewLeasesOnceAsync()
+    {
+        var held = _leases.Keys.Select(lease => (Guid?)lease).ToList();
+        if (held.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            var db = await contextFactory.CreateDbContextAsync(CancellationToken.None).ConfigureAwait(false);
+            await using var dbScope = db.ConfigureAwait(false);
+            var until = timeProvider.GetUtcNow().UtcDateTime + options.LeaseDuration;
+            await db.Set<Job>()
+                .Where(j => held.Contains(j.ClaimToken) && j.ProcessedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(j => j.ClaimedUntil, until), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // A missed renewal is retried on the next tick; the lease outlasts two of them.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            LeaseRenewalFailed(logger, ex);
+        }
+    }
+
+    private static string ShortName(string type)
+    {
+        var cut = type.LastIndexOfAny(['.', '+']);
+        return cut < 0 ? type : type[(cut + 1)..];
+    }
+
+    private void ReportRunningJobs()
+    {
+        if (_inFlight.IsEmpty || !logger.IsEnabled(LogLevel.Information))
+        {
+            return;
+        }
+
+        var running = DescribeInFlight();
+        WaitingForRunningJobs(logger, _inFlight.Count, running);
+    }
+
+    // "AtPump (3m12s), Backup (4s)": each job's short type name and how long it has been running.
+    private string DescribeInFlight() =>
+        string.Join(", ", _inFlight.Values.Select(j => $"{ShortName(j.Type)} ({Compact(timeProvider.GetElapsedTime(j.StartedAt))})"));
+
+    private static string Compact(TimeSpan elapsed)
+    {
+        if (elapsed.TotalHours >= 1)
+        {
+            return $"{(int)elapsed.TotalHours}h{elapsed.Minutes}m";
+        }
+
+        return elapsed.TotalMinutes >= 1 ? $"{elapsed.Minutes}m{elapsed.Seconds}s" : $"{elapsed.Seconds}s";
     }
 
     private async Task RunCycleAsync(CancellationToken cancellationToken)
@@ -356,6 +460,7 @@ public sealed partial class JobProcessor<TContext>(
         }
 
         var startedAt = timeProvider.GetTimestamp();
+        _inFlight[job.Id] = (job.Type, startedAt);
         try
         {
             await DispatchAsync(job, command, graceToken).ConfigureAwait(false);
@@ -380,7 +485,7 @@ public sealed partial class JobProcessor<TContext>(
             // cannot be done here: returning false skips the per-item SaveChanges, so an
             // in-memory edit would be discarded while the claim's increment is already on disk.
             metrics.Interrupted(job.Type);
-            InterruptedByShutdown(logger, ex, job.Id, job.Type, options.ShutdownGracePeriod);
+            InterruptedByShutdown(logger, ex, job.Id, job.Type);
             return false;
         }
 #pragma warning disable CA1031 // A failing job must not stop the drain or crash the app — record + retry with backoff.
@@ -389,6 +494,10 @@ public sealed partial class JobProcessor<TContext>(
         {
             Fail(job, ex.Message);
             JobFailed(logger, ex, job.Id, job.Attempts);
+        }
+        finally
+        {
+            _inFlight.TryRemove(job.Id, out _);
         }
 
         return true;
@@ -466,7 +575,17 @@ public sealed partial class JobProcessor<TContext>(
     /// </remarks>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        // The host's shutdown budget ending is when a running job is cancelled — with the default infinite
+        // grace, the only time. Then the lanes get a moment to record it before the claims go back.
+        using (cancellationToken.Register(static state => CancelQuietly((CancellationTokenSource)state!), _grace))
+        {
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (ExecuteTask is { IsCompleted: false } stopping)
+        {
+            await stopping.WaitAsync(CancelledLaneWait, CancellationToken.None).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
 
         var held = _leases.Keys.Select(lease => (Guid?)lease).ToList();
         if (held.Count == 0)
@@ -710,9 +829,9 @@ public sealed partial class JobProcessor<TContext>(
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "Job {Id} ({Type}) was interrupted by shutdown after its {Grace} grace period; it will run "
-            + "again on restart, so its handler must be idempotent.")]
-    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type, TimeSpan grace);
+        Message = "Job {Id} ({Type}) was cancelled by shutdown before it finished; it will run again on restart, "
+            + "so its handler must be idempotent. Give it longer with a bigger stop budget (stopTimeout in .rask/deploy.json).")]
+    private static partial void InterruptedByShutdown(ILogger logger, Exception exception, long id, string type);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job {Id} failed (attempt {Attempts}).")]
     private static partial void JobFailed(ILogger logger, Exception exception, long id, int attempts);
@@ -722,6 +841,28 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Job {Id} lost its lease mid-run on instance {Instance}; another instance owns it now. "
             + "Increase JobsOptions.LeaseDuration past the time this job takes.")]
     private static partial void LeaseLost(ILogger logger, Exception exception, long id, Guid instance);
+
+    private static void CancelQuietly(CancellationTokenSource source)
+    {
+        try
+        {
+            source.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            // The processor already finished: nothing is left to cancel.
+        }
+    }
+
+    // `rask deploy` reads this line from the stopping container's log to say what it waits for: keep the
+    // wording in step with Rask.Cli's StopProgress.
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Stopping: no new job is claimed; waiting for {Count} running job(s) to finish: {Jobs}")]
+    private static partial void WaitingForRunningJobs(ILogger logger, int count, string jobs);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not renew the leases of the running jobs; retrying.")]
+    private static partial void LeaseRenewalFailed(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not release job leases on shutdown; they expire in {Lease}.")]
     private static partial void LeaseReleaseFailed(ILogger logger, Exception exception, TimeSpan lease);

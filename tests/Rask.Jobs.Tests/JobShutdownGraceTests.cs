@@ -102,13 +102,6 @@ public sealed class JobShutdownGraceTests
     }
 
     [Fact]
-    public void The_grace_defaults_to_five_seconds()
-    {
-        // Sized to fit the deploy ladder: `docker stop -t 20` ⊃ HostOptions.ShutdownTimeout 15s ⊃ this.
-        Assert.Equal(TimeSpan.FromSeconds(5), new JobsOptions().ShutdownGracePeriod);
-    }
-
-    [Fact]
     public void A_negative_grace_is_rejected_at_registration()
     {
         var options = new JobsOptions { ShutdownGracePeriod = TimeSpan.FromSeconds(-1) };

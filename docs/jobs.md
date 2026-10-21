@@ -97,7 +97,7 @@ await Jobs.Enqueue(new AskStatus(other.Id)).InLane(other.Id); // runs now, besid
 - **Different lanes** run side by side, and the poll goes on while they do.
 - A lane is a name on the row, not something to set up: one per pump, per customer, per mailbox.
 - A job with **no lane** runs as before - a batch, one after the other, one batch at a time per instance.
-- The lease is what keeps a lane's place, so `LeaseDuration` must be longer than its longest job.
+- The lease is what keeps a lane's place; the running instance renews it while the job runs, so a long job keeps it.
 
 A recurring job has no lane of its own; let it enqueue the laned jobs (`foreach pump -> InLane(pump.Id)`).
 Upgrading adds the `Lane` column: `rask db add AddJobLane && rask db update`.
@@ -147,26 +147,36 @@ context of your own — `Job.Where(j => j.ProcessedAt == null).Count()` for the 
 
 ## Shutdown
 
-On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops picking up **new** jobs
-immediately, but the job already inside your handler gets `JobsOptions.ShutdownGracePeriod` (default 5s) to
-finish rather than being cancelled mid-call. A job halfway through a `SaveChangesAsync` completes instead of
-being torn in two.
+On `SIGTERM` — a redeploy, a container recycle, `Ctrl+C` — the processor stops claiming **new** jobs at once,
+and does not start the next job of a batch either. The job already inside your handler is **not** cancelled:
+its token stays live until the host's own shutdown budget (`HostOptions.ShutdownTimeout`) runs out.
+`rask deploy` sizes that budget from the app's `stopTimeout` in `.rask/deploy.json` (default `30m`), and
+waits that long for the old container to exit — so a job that is sending 1282 settings to a fuel pump
+finishes on the container that started it, while the new container already serves every request.
 
-Only the jobs already running are in that window - one per lane at work: because no new job starts once the
-stop signal arrives, shutdown is extended by at most a single grace period, never one per remaining job.
+While it waits the processor logs, every 10 seconds, which jobs it is waiting for —
+`Stopping: no new job is claimed; waiting for 1 running job(s) to finish: AtPump (3m12s)` — and `rask deploy`
+shows that line as it waits. It also keeps renewing the lease of a running job, so the new container never
+picks the same job up a second time, however long it runs.
 
-A job that outlives its grace **is** cancelled, and re-runs from the top on the next boot. It does **not**
-count a failed attempt — a redeploy is not a failure, and counting it would march never-failing work toward
-its dead letter at the cadence you deploy. `rask.jobs.interrupted` counts these, and a warning is logged;
-a nonzero rate means your grace period is shorter than your work.
+**The job author's contract:**
 
-> **Handlers must be idempotent regardless.** An interrupted job re-runs *whole*, not from where it stopped.
-> The processor [leases](scaling.md#running-more-than-one-instance) the jobs it claims, and a graceful shutdown
-> hands the lease back, which is why an interrupted job is immediately eligible again rather than waiting out
-> its lease after a redeploy; a processor that dies mid-job releases it when the lease runs out.
+- **Honour the token.** `Current.Cancellation` (or the token your handler is given) is cancelled only when the
+  stop budget ends. Pass it to every awaited call, and stop cleanly when it fires.
+- **Make the job idempotent.** A job cancelled at the end of the budget — or killed with the container — re-runs
+  *whole* on the next boot, not from where it stopped. It does **not** count a failed attempt (a redeploy is not
+  a failure); `rask.jobs.interrupted` counts these, and a warning is logged.
+- **Size the budget to the longest job.** A job that can run for 20 minutes needs a `stopTimeout` above that.
+  The deploy then waits that long at most; a job that finishes sooner lets the old container go sooner.
 
-`ShutdownGracePeriod` cannot exceed `HostOptions.ShutdownTimeout`: once that elapses the host stops waiting
-for hosted services, so a longer grace silently does not happen. `TimeSpan.Zero` cancels immediately.
+`JobsOptions.ShutdownGracePeriod` (default `Timeout.InfiniteTimeSpan`) cancels a running job that long after
+`SIGTERM` instead, for an app that would rather cut its jobs short; it cannot outlast the host's budget, and
+`TimeSpan.Zero` cancels immediately.
+
+> The processor [leases](scaling.md#running-more-than-one-instance) the jobs it claims, renews the lease while a
+> job runs, and hands it back when it stops, which is why an interrupted job is immediately eligible again
+> rather than waiting out its lease after a redeploy; a processor that dies mid-job releases it when the lease
+> runs out.
 
 ## Notes
 
