@@ -427,6 +427,13 @@ them until tagged releases begin.
 
 ### Performance
 
+- **On SQL Server every tenant gets a query plan of its own.** A tenant-scoped read names the tenant in flight as a
+  typed literal (`[TenantId] = 42`, `[TenantId] = '…'`) instead of `@p`, so SQL Server no longer sniffs one plan for
+  the first tenant and reuses it for all: a fueling list's counts for an 87,000-row tenant, under a plan compiled for
+  a 734-row one, went from 1.45 s / ~1.6M logical reads to 0.41 s / ~36k. Children read through their parent get the
+  same, and `Tenant.Across` is unchanged. EF Core keeps one compiled query for every tenant, so its cache does not
+  grow with them; SQLite and PostgreSQL keep the parameter. Nothing to change in an app.
+
 - **Reading an aggregate no longer allocates a domain-events list per row.** The list is made on the first `Raise`, so
   a read that raises nothing — a queue's poll, a list page — saves one allocation a row: 1,000 rows of a small
   aggregate went from 393.25 KB to 362 KB (`AggregateMaterializationBenchmarks`).
