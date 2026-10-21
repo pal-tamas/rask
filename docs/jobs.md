@@ -126,11 +126,31 @@ var asked = await Jobs.Enqueue(new AskStatus(pump.Id)).InLane(pump.Id).UnlessWai
   is conditional and the index still decides, so two hosts meeting the same stale key leave one new waiting row.
 - A plain `Enqueue` (no `.UnlessWaiting()`) always writes a row, and its await answers `true`.
 - `Jobs.Fake()` keeps the same promise: a copy recorded and not yet `Run()` makes the next one answer `false`.
+- Inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) a collision answers
+  `false` and the rest of the transaction still commits — on SQL Server too, where `XACT_ABORT` would doom the
+  whole transaction on a refused insert: there the key is locked for the transaction (`sp_getapplock` on
+  `rask-job:{key}`) before the look, so the insert never meets the index.
 
 Upgrading adds the `WaitingKey` column and its unique index: `rask db add AddJobWaitingKey && rask db update`.
 The column is nullable and every existing row leaves it empty, so adding it rewrites nothing; on SQL Server the
 index is filtered to rows that carry a key, so it starts empty, and on SQLite and PostgreSQL the build is one
 pass over the table. Until the migration runs, the processor logs exactly that command.
+
+## Inside `Db.Transaction`
+
+A job enqueued inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) is a row in
+that transaction: the processor cannot see it before the commit, and a rollback leaves no job to run.
+
+```csharp
+await Db.Transaction(async () =>
+{
+    var order = await Order.Create(model);
+    await Jobs.Enqueue(new ChargeCard(order.Id));   // runs only if the order commits
+});
+```
+
+The jobs table must live in the same database as the transaction; otherwise the enqueue throws rather than
+write a job for work that may roll back.
 
 ## How it works
 

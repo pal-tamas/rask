@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
+using Rask.Data;
 
 namespace Rask.Mailing;
 
@@ -23,9 +24,14 @@ public sealed class MailOutbox<TContext>(IDbContextFactory<TContext> contextFact
         var now = timeProvider.GetUtcNow().UtcDateTime;
         var message = MailSerializer.ToQueuedMail(email, from, runAt, now);
 
-        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = await Open(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
         db.Set<QueuedMail>().Add(message);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    // The one place a send opens its context — enlisted in Db.Transaction when one is open, so the row commits with the
+    // work and a rollback leaves no mail to deliver.
+    private async Task<TContext> Open(CancellationToken cancellationToken) =>
+        AmbientTransaction.Join(await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false));
 }
