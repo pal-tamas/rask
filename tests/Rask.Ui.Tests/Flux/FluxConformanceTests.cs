@@ -232,6 +232,8 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<Type, string> Approved = new()
     {
         [typeof(UiConfirmLeave)] = "the owner, 2026-10-13",
+        [typeof(UiFilters)] = "the owner, 2026-10-21: a list's filters kept in the address, in a lazy flyout, with badges (TA gap B6)",
+        [typeof(UiFilter)] = "the owner, 2026-10-21: the filter a UiFilters cannot read from a control by itself",
     };
 
     /// <summary>
@@ -412,6 +414,8 @@ public sealed class FluxConformanceTests
         ["flux:modal/Open"] = "`wire:model`: the page's own bool, which the runtime shows and closes the dialog by (data-rask-modal-open)",
         ["flux:modal/OnClose"] = "the `close` event (`@close`)",
         ["flux:modal/OnCancel"] = "the `cancel` event (`@cancel`)",
+        ["flux:modal/Lazy"] = "nothing of Flux's: an owner-approved departure (2026-10-21) — what it holds travels only while it is open, "
+                              + "where Flux renders it always; off unless asked, and always on for Ui.Filters' flyout",
         ["flux:chart.axis.grid/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.grid/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.zero-line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",

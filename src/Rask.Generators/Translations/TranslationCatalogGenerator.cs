@@ -224,6 +224,11 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("CommandClose", 0),
         ("HandlerForbidden", 0),
         ("PageForbidden", 0),
+        ("Filters", 0),
+        ("FiltersClear", 0),
+        ("FiltersClearAll", 0),
+        ("FiltersClose", 0),
+        ("FilterRemove", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

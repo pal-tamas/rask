@@ -49,6 +49,20 @@ internal static class UiDateRangePresets
         return char.ToLowerInvariant(name[0]) + name[1..];
     }
 
+    /// <summary>The preset <see cref="Key" /> names, or nothing for a key no preset has.</summary>
+    internal static Ui.DateRangePreset? FromKey(string key)
+    {
+        foreach (var preset in Enum.GetValues<Ui.DateRangePreset>())
+        {
+            if (string.Equals(Key(preset), key, StringComparison.Ordinal))
+            {
+                return preset;
+            }
+        }
+
+        return null;
+    }
+
     internal static UiDateRange Resolve(Ui.DateRangePreset preset, DateOnly today, DayOfWeek startDay, DateOnly? min)
     {
         var week = today.AddDays(-(((int)today.DayOfWeek - (int)startDay + 7) % 7));

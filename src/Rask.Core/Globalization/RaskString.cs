@@ -572,4 +572,19 @@ public enum RaskString
     ///     What a page says, inside the app's layout, to a signed-in person whose account may not open it.
     /// </summary>
     PageForbidden,
+
+    /// <summary>The button that opens a filter set's panel, and the panel's heading.</summary>
+    Filters,
+
+    /// <summary>The filter panel's button that takes every filter off.</summary>
+    FiltersClear,
+
+    /// <summary>The button beside a filter set's badges that takes every filter off.</summary>
+    FiltersClearAll,
+
+    /// <summary>The filter panel's button that closes it.</summary>
+    FiltersClose,
+
+    /// <summary>The accessible name of a filter badge's remove button. <c>{0}</c> is the filter's label.</summary>
+    FilterRemove,
 }
