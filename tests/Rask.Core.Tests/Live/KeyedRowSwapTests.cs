@@ -1,6 +1,5 @@
 using Rask.Core.Live;
 
-
 #pragma warning disable RASK014 // the test owns the root it re-renders; there is no parent to build it
 
 namespace Rask.Core.Tests.Live;
