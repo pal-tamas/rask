@@ -214,6 +214,10 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
+  ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
+  anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.
+
 - **`rask deploy` lets the old container finish the jobs it is running — up to the app's `"stopTimeout"`.** A
   blue/green deploy used to `docker stop -t 20` the old colour, and a job is given 5 s after `SIGTERM`: a job sending
   1282 settings to a fuel pump (5–6 minutes) was cut halfway, re-ran on the new container and broke on the

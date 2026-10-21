@@ -47,7 +47,7 @@ internal static class TypedParserRegistry
         Register<decimal>();
 
         // Other scalars.
-        Register<bool>();
+        Map[typeof(bool)] = static raw => RouteBool.TryParse(raw, out var parsed) ? (true, (object?)parsed) : (false, null);
         Register<char>();
         Register<Guid>();
 

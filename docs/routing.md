@@ -63,7 +63,8 @@ match**: `/users/abc` and `/users/99999999999999999999` are not `/users/{id:int}
 and the [not-found page](#not-found-and-auth-gating) answers — with a 404 on a first request — when none takes it. The same
 holds without a constraint, for the type of the property the segment binds to: `/on/2026-13-45` is not a
 `DateOnly`. A number is read as .NET reads it, culture-invariant: `007` and `+5` are numbers, `1,000` and
-`1.5` are not an `int`. The generator validates the template at compile time:
+`1.5` are not an `int`. A `bool` reads `true`/`false` in any case and `1`/`0` (as Laravel's `boolean` rule
+does) — never `on`/`off` or `yes`/`no` — and a generated URL always writes `true`/`false`. The generator validates the template at compile time:
 
 - A malformed template raises [RASK003](diagnostics.md#rask003).
 - A segment with no matching property raises [RASK004](diagnostics.md#rask004).

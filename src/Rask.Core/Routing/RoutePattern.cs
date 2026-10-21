@@ -121,7 +121,7 @@ internal sealed class RoutePattern
     {
         "int" => static text => int.TryParse(text, CultureInfo.InvariantCulture, out _),
         "long" => static text => long.TryParse(text, CultureInfo.InvariantCulture, out _),
-        "bool" => static text => bool.TryParse(text, out _),
+        "bool" => static text => RouteBool.TryParse(text, out _),
         "guid" => static text => Guid.TryParse(text, out _),
         _ => null,
     };
