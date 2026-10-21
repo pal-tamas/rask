@@ -42,6 +42,36 @@ public class BuilderSetterEmissionTests
             StringComparison.Ordinal);
     }
 
+    // A second `.Class(…)` adds to the first (owner decision 2026-10-21), and so does every other string prop
+    // named `…Class`: the step joins onto what this render's chain already wrote, and starts fresh when the
+    // prop's pending bit says the chain has not named it yet this pass. Any other string prop still replaces.
+    [Fact]
+    public void A_class_carrying_prop_joins_and_every_other_string_prop_replaces()
+    {
+        var src = """
+                  using Rask.Core;
+                  namespace Demo;
+                  public partial class Panel : Component
+                  {
+                      public string? Title { get; set; }
+                      public string? ContainerClass { get; set; }
+                  }
+                  """;
+
+        var output = Run(src);
+
+        Assert.Contains(
+            "ContainerClass(this global::Demo.Panel __b, string? value) { var __c = __b; "
+            + "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, 0x200000000UL, __c.ContainerClass, value); "
+            + "global::Rask.Core.BuilderRuntime.Track(__c, __c.ContainerClass, __v); __c.ContainerClass = __v; return __b; }",
+            output,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "global::Rask.Core.BuilderRuntime.Written(__c, 0x100000000UL); __c.Title = value; return __b; }",
+            output,
+            StringComparison.Ordinal);
+    }
+
     // The reset half. A folding setter also clears its pending bit, because the entry marks every
     // folding prop pending and whatever is still pending when the parent's Render() returns is put
     // back to the factory's default — that is what stops `Widget.Title("x")` on one render and
@@ -167,8 +197,8 @@ public class BuilderSetterEmissionTests
 
         Assert.Contains(
             "public static T Class<T>(this T __b, string? value) where T : global::Rask.Core.Element "
-            + "{ var __c = __b; global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, value); "
-            + "global::Rask.Core.BuilderRuntime.Written(__c, 0x1UL); __c.Class = value; return __b; }",
+            + "{ var __c = __b; var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, 0x1UL, __c.Class, value); "
+            + "global::Rask.Core.BuilderRuntime.Track(__c, __c.Class, __v); __c.Class = __v; return __b; }",
             output,
             StringComparison.Ordinal);
 

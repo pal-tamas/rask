@@ -80,6 +80,7 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
             // children indexer, a cast, the entry itself — is not a write and does not count.
             if ((current.Instance is not null || current.TargetMethod.IsExtensionMethod)
                 && !AddsARule(current.TargetMethod)
+                && !AddsAClass(current.TargetMethod)
                 && !seen.Add(current.TargetMethod.Name))
             {
                 duplicates.Add(current.TargetMethod.Name);
@@ -117,6 +118,21 @@ public sealed class DuplicateChainCallAnalyzer : DiagnosticAnalyzer
             "Func`2" => string.Equals(step.Name, "Validate", StringComparison.Ordinal),
             _ => false,
         };
+    }
+
+    // `.Class("w-full").Class("mb-8")` writes `w-full mb-8`: a class-carrying step — `Class`, or a kit's
+    // `ContainerClass` and the like — joins onto what the chain already wrote (BuilderRuntime.JoinClass).
+    private static bool AddsAClass(IMethodSymbol step)
+    {
+        if (!step.Name.EndsWith("Class", StringComparison.Ordinal) || step.Parameters.Length == 0)
+        {
+            return false;
+        }
+
+        var taken = step.Parameters[step.Parameters.Length - 1].Type;
+        return taken.SpecialType == SpecialType.System_String
+               || (taken is INamedTypeSymbol { Name: "ReadOnlySpan", TypeArguments.Length: 1 } span
+                   && span.TypeArguments[0].SpecialType == SpecialType.System_String);
     }
 
     // The next link DOWN the chain: a setter's receiver is the invocation that produced it, whether it
