@@ -13,6 +13,6 @@ public sealed partial class PdfDemo : Component
             // In an app: Ui.Button.OnClick(async () => Download.File("visszaterites.pdf", await Pdf.From(Routes.RefundReportPage()), Pdf.ContentType))
             Ui.Button.Primary.Icon(Ui.IconName.ArrowDownTray).Id("download-pdf").Href(File)
                 .Attributes(("download", "visszaterites.pdf"))["Letöltés PDF-ben"],
-            Div.Class("mt-6 max-h-[32rem] overflow-auto rounded-lg border border-ui-line p-4")[RefundReport],
+            Div.Class("mt-6 max-h-[32rem] overflow-auto rounded-lg border border-ui-line p-4")[RefundReport]
         ];
 }

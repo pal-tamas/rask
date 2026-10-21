@@ -70,7 +70,10 @@ them until tagged releases begin.
     cut). One browser per app, started at the first print, replaced after a crash, closed with the host; every
     document in a browser context of its own. A 5,000-row table (139–209 A4 landscape pages, heading on every page)
     prints in about a second; in the container the browser peaked at about 1.2 GB.
-  - Linux and macOS for now; not on NuGet until the package is complete.
+  - On NuGet as `Rask.Pdf`. The [PDF guide](docs/pdf.md) (rask.sh/docs/guides/pdf) shows a Flux report and a
+    button that downloads the PDF Rask.Pdf printed from it — rask.sh is static, so `tests/Rask.Pdf.Tests` prints that
+    report and checks the served file is still it (`RASK_PDF_SITE_DEMO_WRITE=1` rewrites it).
+  - Linux and macOS for now.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
   then and still have.** `Job` gets a nullable `UserClaims` column: `rask db add AddJobUserClaims && rask db update`
