@@ -157,7 +157,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
     {
         var names = new List<string>();
 
-        foreach (var member in entity.GetMembers().OfType<IPropertySymbol>())
+        foreach (var member in GeneratedModelShape.Properties(entity))
         {
             if (GeneratedModelShape.DescribeChild(entity, member) is { } child)
             {
@@ -212,9 +212,11 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
                 return;
             }
 
-            var properties = owner is INamedTypeSymbol named && prefix.Length > 0
-                ? AggregateShape.StoredProperties(named)
-                : owner.GetMembers().OfType<IPropertySymbol>().Where(static p =>
+            // The entity's own properties and its bases': a value object an abstract base declares is mapped on
+            // every aggregate deriving from it, which is the only place it has a table.
+            var properties = prefix.Length > 0
+                ? AggregateShape.StoredProperties((INamedTypeSymbol)owner)
+                : GeneratedModelShape.Properties(entity).Where(static p =>
                     !p.IsStatic && !p.IsIndexer && p.GetMethod is not null && p.DeclaredAccessibility == Accessibility.Public);
 
             foreach (var property in properties)

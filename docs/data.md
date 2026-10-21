@@ -1839,6 +1839,10 @@ A value object is **its values**: two with the same values are the same. Any com
 not itself an entity is one, and its values become columns on the owning row: one that holds a single value is that
 value's column, and one that holds several is an EF Core **complex type**.
 
+One an abstract base declares is mapped the same way, at any depth, on every aggregate deriving from it: each
+concrete aggregate is its own table holding the base's columns, and its read face and form model carry them too.
+The base itself is never an entity of the model.
+
 It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a
 `record struct` already does, and needs nothing else. A plain class derives from `ValueObject` and names the values
 that make it the same:
