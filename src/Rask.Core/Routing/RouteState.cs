@@ -18,6 +18,7 @@ public sealed class RouteState
     private readonly RouteTitle _title = new();
     private string _path = "/";
     private IQueryCollection _query = QueryCollection.Empty;
+    private Type? _forbidden;
 
     /// <summary>
     ///     The current path (no query string), always starting with <c>/</c>. Defaults to <c>"/"</c>.
@@ -87,6 +88,29 @@ public sealed class RouteState
     ///     it is asked again on every resolution, which the registry's per-tree cache keeps cheap.
     /// </remarks>
     internal Func<IReadOnlyList<Route>>? Table { get; set; }
+
+    /// <summary>
+    ///     The page of the current route its signed-in person may not open, or <c>null</c> when they may open all of it.
+    /// </summary>
+    /// <remarks>
+    ///     Set by the host from the route's guard, before the route renders. The router renders the layouts above that
+    ///     page as usual and the forbidden sentence in its place, so the app's frame stays around the message. Setting a
+    ///     new value raises <see cref="Changed" />.
+    /// </remarks>
+    internal Type? Forbidden
+    {
+        get => _forbidden;
+        set
+        {
+            if (_forbidden == value)
+            {
+                return;
+            }
+
+            _forbidden = value;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     /// <summary>The title as the pages of each walk declare it; the router and the render root drive it.</summary>
     internal RouteTitle TitleSource => _title;

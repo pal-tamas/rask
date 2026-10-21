@@ -31,6 +31,9 @@ internal sealed class RouteRenderState
     /// </summary>
     public RoutePageInstances? Pages { get; init; }
 
+    /// <summary>The page of this chain the person may not open, rendered as the forbidden sentence (<see cref="RouteState.Forbidden" />).</summary>
+    public Type? Forbidden { get; init; }
+
     /// <summary>The route of the router this one is rendered inside, when there is one.</summary>
     public RouteRenderState? Outer { get; init; }
 

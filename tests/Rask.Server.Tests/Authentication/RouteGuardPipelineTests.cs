@@ -70,8 +70,35 @@ public class RouteGuardPipelineTests
 
         var resp = await GetWithCookieAsync(host, "/e2e/admin", cookie);
 
-        Assert.Equal(HttpStatusCode.Found, resp.StatusCode); // forbid → AccessDeniedPath
-        Assert.Equal("/forbidden", resp.Headers.Location!.AbsolutePath);
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Contains("You do not have permission to view this page.", body);
+        Assert.DoesNotContain("admin-content", body);
+    }
+
+    [Fact]
+    public async Task A_forbidden_page_says_so_inside_its_layout()
+    {
+        using var host = CreateHost();
+        var cookie = await SignInAsync(host, "alice", "user");
+
+        var resp = await GetWithCookieAsync(host, "/e2e/vault/keys", cookie);
+
+        Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
+        var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        Assert.Matches(@"<div id=""vault"">.*You do not have permission to view this page\..*</div>", body);
+        Assert.DoesNotContain("vault-keys", body);
+    }
+
+    [Fact]
+    public async Task An_anonymous_visitor_to_a_forbidden_layouts_page_is_still_sent_to_sign_in()
+    {
+        using var host = CreateHost();
+
+        var resp = await host.Http.GetAsync("/e2e/vault/keys", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Found, resp.StatusCode);
+        Assert.Equal("/login", resp.Headers.Location!.AbsolutePath);
     }
 
     [Fact]

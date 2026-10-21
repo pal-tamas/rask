@@ -80,6 +80,18 @@ public class RouteAuthorizationGuardTests
     }
 
     [Fact]
+    public async Task A_forbid_names_the_first_page_the_user_is_refused_at_and_not_the_layout_that_let_them_in()
+    {
+        var sp = BuildServices();
+
+        var result = await RouteAuthorizationGuard.Evaluate(
+            sp, new[] { typeof(ProtectedPage), typeof(AdminOnlyPage) }, Authenticated());
+
+        Assert.Equal(RouteAuthorizationOutcome.Forbid, result.Outcome);
+        Assert.Equal(typeof(AdminOnlyPage), result.FailedOnPage);
+    }
+
+    [Fact]
     public async Task An_authenticated_user_with_the_role_is_allowed()
     {
         var sp = BuildServices();

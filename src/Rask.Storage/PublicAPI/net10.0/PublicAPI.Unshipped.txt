@@ -159,6 +159,7 @@ Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.Sa
 Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>).Private() -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 Rask.Storage.SavedFileCounting.extension(Rask.Batteries.Counting<Rask.Storage.SavedFile!>).Public() -> Rask.Batteries.Counting<Rask.Storage.SavedFile!>
 Rask.Storage.Saving
+Rask.Storage.Saving.As(string! contentType) -> Rask.Storage.Saving
 Rask.Storage.Saving.AsTask() -> System.Threading.Tasks.Task<Rask.Storage.StoredFile!>!
 Rask.Storage.Saving.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<Rask.Storage.StoredFile!>
 Rask.Storage.Saving.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<Rask.Storage.StoredFile!>

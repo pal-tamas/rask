@@ -48,6 +48,37 @@ them until tagged releases begin.
 
 ### Added
 
+- **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
+  Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).
+  Now: `[Authorize(Roles = "admin")] private async Task Remove() { … }` — the standard attribute, on the method.
+  A method group (`.OnClick(Remove)`) is checked when the event arrives, and a call inside a lambda
+  (`.OnClick(() => Remove(id))`) — every direct call in the project — by an interceptor the build writes, so a
+  handler id posted by hand is held to the same rule on Server and WASM alike. The principal is the session's at
+  the event; the refusal is the catalog's `HandlerForbidden` sentence in an error toast (a form saves nothing), and
+  one Information log line names the method and nothing of the person. A call the build cannot intercept — a
+  generic method, a call through `base` — is the new warning RASK109. A handler without the attribute costs nothing
+  ([authentication](docs/authentication.md#authorize-on-an-event-handler)).
+- **Rask.Storage: `await Files.Save(xml, "bevallas.xml").As("application/xml")` states the content type.** It is
+  recorded on the `StoredFile` row in place of the sniffed one and served by `Download` and temporary URLs under the
+  usual rules (XML, HTML and SVG still go out as `application/octet-stream` attachments). The value must be a plain
+  `type/subtype` — no parameters, spaces or line breaks — or `.As` throws `ArgumentException`; it is still checked
+  against `AllowedTypes`. Without `.As` the bytes decide, as before
+  ([file storage](docs/file-storage.md#stating-the-type-yourself)).
+
+- **`aggregate.Delete()` deletes the aggregate you found, with no read first** — Rails' `record.destroy`, Laravel's
+  `$model->delete()`: `var file = await QueuedFile.Find(id); if (file.Expired) await file.Delete();`. Generated beside
+  `Save()` on every `Deletable`/`SoftDelete` aggregate, with the same `db:` and token. It works from `Find`'s snapshot
+  (`Find` + `Delete()` is one SELECT): a `SoftDelete` aggregate is stamped, any other has its row and children
+  removed; the `Version` read is compared (changed or deleted since → `DbUpdateConcurrencyException`; an unversioned
+  soft-deleting one is asked by its key first → `KeyNotFoundException`); one never saved is `InvalidOperationException`.
+  The tenant check runs, it takes part in `Db.Transaction` (a rollback leaves the row and its children), and its
+  events go out after the commit. The static `Delete(id)` is unchanged and still loads first.
+- **The read face of a tenant-scoped root carries its `TenantId`, read-only.** A read across tenants can now say
+  whose row each one is — `using (Tenant.Across()) await User.Where(u => u.Id == id).Select(u => new Account(u.IsAdmin,
+  u.TenantId)).First();` — without the aggregate declaring the column. It is in the column's own type: the one the
+  root declares, else `PerTenant<int>`/`PerTenant<long>`'s, else `Guid?`. Only a root's face has it (a child belongs to
+  its root's tenant), it is a column and never a navigation (an aggregate called `Tenant` is not joined), and the
+  form model still never carries it.
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
   Namespace `Rask.Printing`. A `RaskApp` whose app references Rask.Pdf has it with no code; a hand-wired host
   calls `builder.Services.AddRaskPdf()`.
@@ -67,10 +98,10 @@ them until tagged releases begin.
     `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
     structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
   - **The browser comes from the build, as Puppeteer's does — never from the running app.** Building an app that
-    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (156.0.8078.47) into the user cache
+    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (155.0.8059.79) into the user cache
     (`~/Library/Caches/Rask`, `~/.cache/rask`, `%LOCALAPPDATA%\Rask\Cache`) once, after checking its SHA-256;
     `dotnet build`, `dotnet test` and `rask dev` then print with nothing installed. `RaskPdfDownloadChromium=false`
-    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin.
+    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin, only ever to a Stable release at least 7 days old.
   - **The template images carry it.** Every scaffolded ASP.NET Dockerfile now has `dotnet publish` fetch the shell
     into the build stage (`-p:RaskPdfChromiumCache=/chrome`), copies it to `/opt/rask/chrome`, and installs the
     libraries it links against plus fonts — only when the app references Rask.Pdf. Measured on `aspnet:10.0`
@@ -83,6 +114,14 @@ them until tagged releases begin.
     cut). One browser per app, started at the first print, replaced after a crash, closed with the host; every
     document in a browser context of its own. A 5,000-row table (139–209 A4 landscape pages, heading on every page)
     prints in about a second; in the container the browser peaked at about 1.2 GB.
+  - On NuGet as `Rask.Pdf`. The [PDF guide](docs/pdf.md) (rask.sh/docs/guides/pdf) shows a Flux report and a
+    button that downloads the PDF Rask.Pdf printed from it — rask.sh is static, so `tests/Rask.Pdf.Tests` prints that
+    report and checks the served file is still it (`RASK_PDF_SITE_DEMO_WRITE=1` rewrites it).
+  - Linux and macOS for now.
+  - A browser's start is not the first document's time: Rask waits for a freshly started Chromium to answer on a
+    budget of its own (two minutes, or `Timeout` if longer) — on a busy CI runner a cold start took 45–58 seconds and
+    used to time the first print out. A print that runs out of time says what it was waiting for: "… within 30
+    seconds, while loading the document (its load event); the page's requests still unanswered: …".
   - Linux and macOS for now; not on NuGet until the package is complete.
 
 - **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
@@ -276,6 +315,39 @@ them until tagged releases begin.
   needs nothing — the per-event helper Eszaf wrote can go. See
   [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
 
+- **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
+  The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
+  (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
+  working. Someone not signed in is still sent to sign in. An app with its own `/forbidden` page no longer reaches
+  it from a Rask page ([authentication](docs/authentication.md#a-page-the-user-may-not-open)).
+- **`Files.Save` and `Files.Delete` inside `Db.Transaction` take part in it.** On the Database provider the
+  `StoredFile` and `StoredFileBytes` rows are written on the transaction's connection, so nothing is visible before
+  the commit and a rollback leaves nothing. On Disk, S3 and Azure the bytes go to the store at once, the row joins,
+  and a rollback deletes the stored object again (a failed delete is logged as a warning, never thrown). A delete
+  inside removes the row with the work and the bytes only after the commit. A storage context on another database
+  is refused inside a transaction, as jobs and mail are. Outside `Db.Transaction` nothing changes
+  ([file storage](docs/file-storage.md#saving-inside-dbtransaction)).
+
+- **BREAKING: `Find(id)` takes no `db:`, and `Find` + `Save()` read the row once — the Rails/Laravel way.** `Find`
+  always loads through a context of its own and hands the aggregate back detached with a snapshot of what it read;
+  `Save(db?)` writes only what changed against that snapshot and never reads the row again (a 16 MB file row was read
+  twice; `Find` + `Save()` + `Save()` is now one SELECT), and every successful save — a caller's `SaveChangesAsync`
+  after `Save(db)` included — takes a new snapshot. An aggregate its factory made (`Order.Place(…)`, an app-assigned
+  Guid key) and nothing has read or saved is an INSERT with no SELECT (it was two). Changed underneath is refused, not
+  written over: on a `Versioned` aggregate a row saved or soft-deleted since is `DbUpdateConcurrencyException` (a soft
+  delete used to be `KeyNotFoundException`), a row or changed child deleted outright is `DbUpdateConcurrencyException`
+  (a missing root used to be re-inserted), and an unversioned `SoftDelete` aggregate is asked by its key alone whether
+  its row is still there (`KeyNotFoundException` when not). A copy found in one tenant and saved in another is refused
+  by the tenant check (`InvalidOperationException`) instead of reported missing. **Upgrading:** drop `db:` from `Find`
+  — keep `Save(db)` for the unit of work; read the read face or `Model(id)` to only show a row; and an aggregate built
+  or deserialised with an EXISTING row's key is now an insert refused by the key — `Find` it instead.
+- **A collection computed from one the aggregate stores is left off the form model, the read face and the mapping.**
+  `OpenLines => _lines.Where(…)` beside `Lines => _lines`, or `SortedTags => _tags.Order().ToList()` beside
+  `Tags => _tags`, used to be taken for a second child collection (an editable list on the model, synced into
+  `_lines`; EF Core mapped it as a second relationship and failed the first save) or a second value column (an
+  app's next migration drops that duplicate `SortedTags` column). It is now computed, as a scalar `int Count =>
+  _lines.Count` always was; the stored `Lines` and `Tags` stay on the model. A view with no stored sibling — the only
+  way the children are reached — keeps its old answer (the one field behind it, or RASK088).
 - **A route or query `bool` also reads `1` and `0`.** `?ibc=1` now binds `bool? Ibc` to `true` instead of being
   ignored, and `/flags/1` matches `{flag:bool}`; `true`/`false` still read in any case. `on`/`off`, `yes`/`no` and
   anything else stay unreadable (absent, so the initializer holds), and generated URLs keep writing `true`/`false`.
@@ -477,6 +549,13 @@ them until tagged releases begin.
   changed. See `docs/multi-tenancy.md#an-index-is-what-you-write`.
 
 ### Performance
+
+- **On SQL Server every tenant gets a query plan of its own.** A tenant-scoped read names the tenant in flight as a
+  typed literal (`[TenantId] = 42`, `[TenantId] = '…'`) instead of `@p`, so SQL Server no longer sniffs one plan for
+  the first tenant and reuses it for all: a fueling list's counts for an 87,000-row tenant, under a plan compiled for
+  a 734-row one, went from 1.45 s / ~1.6M logical reads to 0.41 s / ~36k. Children read through their parent get the
+  same, and `Tenant.Across` is unchanged. EF Core keeps one compiled query for every tenant, so its cache does not
+  grow with them; SQLite and PostgreSQL keep the parameter. Nothing to change in an app.
 
 - **Reading an aggregate no longer allocates a domain-events list per row.** The list is made on the first `Raise`, so
   a read that raises nothing — a queue's poll, a list page — saves one allocation a row: 1,000 rows of a small

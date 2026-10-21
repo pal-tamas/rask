@@ -338,6 +338,15 @@ public static partial class DemoRegistry
                 + "other state changes too (here, bump a counter); both ship in the same render.")
                 .Result(DownloadDemo),
 
+            // PDF guide: a Flux report and the PDF Rask.Pdf printed from it (docs/pdf.md).
+            ["pdf-report"] = () => CodeSample
+                .Files(["RefundReport.cs", "PdfDemo.cs"])
+                .Notes("The report is an ordinary component written with Flux pieces. On a server, "
+                + "Pdf.From(Routes.RefundReportPage()) renders it as its first GET would, for the user who clicked, and "
+                + "prints it with headless Chromium: the table heading repeats on every page by itself. rask.sh is "
+                + "static files, so the button downloads the PDF Rask.Pdf printed from this very component.")
+                .Result(PdfDemo),
+
             // --- Components-group example pages folded into their existing guides (part 1). ---
             // Events → composition.md (the GlobalEventHandlers surface).
             ["events"] = () => CodeSample

@@ -15,6 +15,9 @@ public sealed partial class PrintTestApp : Component
 
     /// <summary>A receipt for one customer, built through its chain as an app's handler builds one.</summary>
     internal static Component ReceiptFor(string customer) => Receipt.Customer(customer);
+
+    /// <summary>rask.sh's refund report, styled as the site draws it.</summary>
+    internal static Component SiteReport() => SiteReportSheet;
 }
 
 [Route("/print/refund")]

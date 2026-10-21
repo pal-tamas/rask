@@ -32,6 +32,19 @@ public static class RouteAuthorizationGuard
             return RouteAuthorizationResult.Allow();
         }
 
+        if (await AllowsAsync(services, authzData, user).ConfigureAwait(false))
+        {
+            return RouteAuthorizationResult.Allow();
+        }
+
+        var scheme = PickFirstScheme(authzData);
+        return user.Identity?.IsAuthenticated == true
+            ? RouteAuthorizationResult.Forbid(scheme, await FirstRefusedAsync(services, chain, user).ConfigureAwait(false) ?? failingPage)
+            : RouteAuthorizationResult.Challenge(scheme, failingPage);
+    }
+
+    private static async Task<bool> AllowsAsync(IServiceProvider services, List<IAuthorizeData> authzData, ClaimsPrincipal user)
+    {
         var policyProvider = services.GetService<IAuthorizationPolicyProvider>()
                              ?? throw new InvalidOperationException(
                                  "[Authorize] requires an IAuthorizationPolicyProvider in DI. " +
@@ -40,7 +53,7 @@ public static class RouteAuthorizationGuard
         var policy = await AuthorizationPolicy.CombineAsync(policyProvider, authzData).ConfigureAwait(false);
         if (policy is null)
         {
-            return RouteAuthorizationResult.Allow();
+            return true;
         }
 
         var authzService = services.GetService<IAuthorizationService>()
@@ -48,16 +61,37 @@ public static class RouteAuthorizationGuard
                                "[Authorize] requires an IAuthorizationService in DI. " +
                                "Call AddAuthorization() (server) or AddAuthorizationCore() (WASM) on the service collection.");
 
-        var authzResult = await authzService.AuthorizeAsync(user, null, policy).ConfigureAwait(false);
-        if (authzResult.Succeeded)
+        return (await authzService.AuthorizeAsync(user, null, policy).ConfigureAwait(false)).Succeeded;
+    }
+
+    // The outermost page a signed-in user is refused at: what every page down to it asks, asked a page at a time. The
+    // layouts above it let them in, so the app draws those and the forbidden sentence in its place. Asked only once
+    // the whole chain has refused, so an allowed request pays nothing for it.
+    private static async Task<Type?> FirstRefusedAsync(IServiceProvider services, IReadOnlyList<Type> chain, ClaimsPrincipal user)
+    {
+        var asked = new List<IAuthorizeData>();
+        foreach (var type in chain)
         {
-            return RouteAuthorizationResult.Allow();
+            var declared = PageAuthorizeData.Of(type);
+            if (declared.AllowsAnonymous)
+            {
+                asked.Clear();
+                continue;
+            }
+
+            if (declared.Data.Length == 0)
+            {
+                continue;
+            }
+
+            asked.AddRange(declared.Data);
+            if (!await AllowsAsync(services, asked, user).ConfigureAwait(false))
+            {
+                return type;
+            }
         }
 
-        var scheme = PickFirstScheme(authzData);
-        return user.Identity?.IsAuthenticated == true
-            ? RouteAuthorizationResult.Forbid(scheme, failingPage)
-            : RouteAuthorizationResult.Challenge(scheme, failingPage);
+        return null;
     }
 
     // Every [Authorize] along the chain, and the outermost page that declared one. An [AllowAnonymous]

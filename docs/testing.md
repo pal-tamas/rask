@@ -292,8 +292,9 @@ public void A_visitor_is_sent_to_sign_in()
   database the page does.
 - **`.As(user)`** — visit signed in, as a row of your app's user table (or any `ClaimsPrincipal`), exactly
   as that user would be after signing in: `[Authorize]`, `Authorize.Roles(…)` and `Current.UserId` all see them.
-  Without it the visitor is signed out, and a guarded page sends them to `/login` (or `/forbidden` when they
-  are signed in without the role), as the running app does.
+  Without it the visitor is signed out, and a guarded page sends them to `/login`; signed in without the role,
+  they stay on the page and see *You do not have permission to view this page.* inside its layout, as the
+  running app does.
 
 A component library has no app to run; there `Page.Visit(url, services)` routes over the services you pass.
 

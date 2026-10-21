@@ -311,9 +311,8 @@ public abstract partial class Component
             ReportCancelledAfterLeaving(owner, ex);
             return true;
         }
-        catch (Exception ex) when (Refusal.Find(ex) is { } refusal && Refusal.Say(refusal))
+        catch (Exception ex) when (Refused(owner, ex))
         {
-            ReportRefused(owner, refusal);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
@@ -354,6 +353,25 @@ public abstract partial class Component
     // catch-and-log still fires.
     private static void TripHandlerBoundary(ErrorBoundary boundary, Exception ex) =>
         boundary.Trip(ex, ErrorSource.Action);
+
+    // The person may not do this ([Authorize] on the handler), or the app's own code said no: either is a toast and
+    // not a fault. Said in the catch's filter, so a refusal no session's toast took is left to the clauses after it.
+    private static bool Refused(Component owner, Exception ex)
+    {
+        if (Authorization.HandlerForbiddenException.Find(ex) is not null)
+        {
+            ForbiddenAction.Say();
+            return true;
+        }
+
+        if (Refusal.Find(ex) is { } refusal && Refusal.Say(refusal))
+        {
+            ReportRefused(owner, refusal);
+            return true;
+        }
+
+        return false;
+    }
 
     // The app's own code said no and the toast has its sentence: no fault, no boundary, and the page renders
     // what the handler changed before it. The toast is queued in the catch's filter, so a refusal in a session

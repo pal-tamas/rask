@@ -2,6 +2,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
+/// <summary>An aggregate with no Version that soft-deletes, holding a payload that may be large.</summary>
+public sealed class Satchel : Aggregate<Guid, Model, SoftDelete>
+{
+    private Satchel() { } // EF materialization
+
+    public string Name { get; private set; } = "";
+
+    public byte[] Contents { get; private set; } = [];
+
+    public static Satchel Holding(string name, byte[] contents) =>
+        new() { Id = Guid.CreateVersion7(), Name = name, Contents = contents };
+
+    public void Rename(string name) => Name = name;
+}
+
 // `Product.Find(id)` → its own methods → `product.Save()`: the aggregate loaded, changed and written back with
 // no context held in between, against a real SQLite file with the fixture's interceptors.
 [Collection(DataDbCollection.Name)]
@@ -11,6 +26,7 @@ public sealed class AggregateSaveTests : IDisposable
 
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"rask-save-{Guid.NewGuid():N}.db");
     private readonly FakeClock _clock = new(Start);
+    private readonly SqlCommandLog _log = new();
 
     public void Dispose() => File.Delete(_dbPath);
 
@@ -125,7 +141,7 @@ public sealed class AggregateSaveTests : IDisposable
     }
 
     [Fact]
-    public async Task Save_of_a_row_deleted_since_it_was_found_throws_KeyNotFound()
+    public async Task Save_of_a_versioned_row_soft_deleted_since_it_was_found_is_a_concurrency_conflict()
     {
         await using var database = await StartDatabaseAsync();
         var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
@@ -133,9 +149,54 @@ public sealed class AggregateSaveTests : IDisposable
         await Widget.Delete(widget.Id, cancellationToken: TestContext.Current.CancellationToken);
 
         found.Rename("hammer");
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal("anvil", Assert.Single(await Widget.IgnoreQueryFilters()).Name);
+    }
+
+    [Fact]
+    public async Task Save_of_an_unversioned_row_soft_deleted_since_it_was_found_throws_KeyNotFound()
+    {
+        await using var database = await StartDatabaseAsync();
+        var satchel = Satchel.Holding("kit", [1, 2, 3]);
+        await satchel.Save(cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Satchel.Find(satchel.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await Satchel.Delete(satchel.Id, cancellationToken: TestContext.Current.CancellationToken);
+
+        found.Rename("bag");
         await Assert.ThrowsAsync<KeyNotFoundException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Single(await Widget.IgnoreQueryFilters());
+        Assert.Equal("kit", Assert.Single(await Satchel.IgnoreQueryFilters()).Name);
+    }
+
+    [Fact]
+    public async Task Save_of_a_row_deleted_outright_since_it_was_found_is_a_concurrency_conflict_not_an_insert()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await database.Context.Set<Widget>().IgnoreQueryFilters().Where(w => w.Id == widget.Id)
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+        found.Rename("hammer");
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => found.Save(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Empty(await Widget.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Save_of_a_child_deleted_by_someone_else_since_it_was_found_is_a_conflict_not_a_reinsert()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveBasketAsync();
+        var basket = (await Basket.Find(id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await database.Context.Set<BasketLine>().Where(l => l.Product == "pear")
+            .ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+
+        basket.Lines.First(l => l.Product == "pear").SetQuantity(5);
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => basket.Save(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["apple"], (await database.Load<Basket>(id, TestContext.Current.CancellationToken))!.Lines.Select(l => l.Product));
     }
 
     [Fact]
@@ -154,6 +215,209 @@ public sealed class AggregateSaveTests : IDisposable
         Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
     }
 
+    [Fact]
+    public async Task Find_and_Save_read_the_row_once()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        _log.Clear();
+
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        found.Rename("hammer");
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Selects());
+        Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal(1, found.Version);
+    }
+
+    [Fact]
+    public async Task Find_Save_and_Save_again_read_the_row_once()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        _log.Clear();
+
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        found.Rename("hammer");
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+        found.Rename("mallet");
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Selects());
+        Assert.Equal("mallet", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Equal(2, found.Version);
+    }
+
+    [Fact]
+    public async Task A_sixteen_megabyte_row_is_read_once_by_Find_and_never_by_Save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var satchel = Satchel.Holding("kit", new byte[16 * 1024 * 1024]);
+        await satchel.Save(cancellationToken: TestContext.Current.CancellationToken);
+        _log.Clear();
+
+        var found = (await Satchel.Find(satchel.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        found.Rename("bag");
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        // The other SELECT asks whether the unversioned row is still there, by its key alone.
+        Assert.Equal(1, _log.Texts.Count(t => t.Contains("\"Contents\"", StringComparison.Ordinal) && t.TrimStart().StartsWith("SELECT", StringComparison.Ordinal)));
+        Assert.Equal(2, Selects());
+        Assert.Equal("bag", (await database.Load<Satchel>(satchel.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task A_save_staged_on_a_given_context_and_committed_leaves_the_next_save_read_free()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        found.Rename("hammer");
+        await found.Save(database.Context, TestContext.Current.CancellationToken);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        database.Context.ChangeTracker.Clear();
+        _log.Clear();
+
+        found.Rename("mallet");
+        await found.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, Selects());
+        Assert.Equal("mallet", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task An_aggregate_built_by_hand_with_the_key_of_a_stored_row_is_an_insert_and_is_refused()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var copy = Widget.Create("copy");
+        typeof(Entity<Guid>).GetProperty(nameof(Widget.Id))!.SetValue(copy, widget.Id);
+        copy.ClearDomainEvents();
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => copy.Save(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal("anvil", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task Save_of_an_aggregate_its_factory_just_made_inserts_it_with_no_read_first()
+    {
+        await using var database = await StartDatabaseAsync();
+        var basket = Basket.Open("ada");
+        basket.Add("apple", 3);
+        _log.Clear();
+
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, Selects());
+        Assert.Equal([("apple", 3)], (await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken))!
+            .Lines.Select(l => (l.Product, l.Quantity)));
+    }
+
+    [Fact]
+    public async Task The_next_save_of_an_aggregate_its_factory_made_updates_the_row_the_first_inserted()
+    {
+        await using var database = await StartDatabaseAsync();
+        var basket = Basket.Open("ada");
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        basket.Add("pear", 1);
+        await basket.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        var stored = await database.Load<Basket>(basket.Id, TestContext.Current.CancellationToken);
+        Assert.Equal([("pear", 1)], stored!.Lines.Select(l => (l.Product, l.Quantity)));
+        Assert.Equal(1, stored.Version);
+    }
+
+    [Fact]
+    public async Task A_new_aggregate_staged_on_a_given_context_and_committed_is_updated_by_its_next_save()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = Widget.Create("anvil");
+        await widget.Save(database.Context, TestContext.Current.CancellationToken);
+        await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        database.Context.ChangeTracker.Clear();
+
+        widget.Rename("hammer");
+        await widget.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("hammer", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+        Assert.Single(await Widget.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task Find_and_Delete_read_the_row_once_and_stamp_a_soft_deleting_one()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        _log.Clear();
+
+        var found = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await found.Delete(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Selects());
+        var stored = Assert.Single(await Widget.IgnoreQueryFilters());
+        Assert.NotNull(stored.DeletedAt);
+        Assert.Equal("anvil", stored.Name);
+    }
+
+    [Fact]
+    public async Task Find_and_Delete_remove_a_row_and_its_children_with_one_read()
+    {
+        await using var database = await StartDatabaseAsync();
+        var id = await SaveBasketAsync();
+        _log.Clear();
+
+        var basket = (await Basket.Find(id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await basket.Delete(cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, Selects());
+        Assert.Null(await database.Load<Basket>(id, TestContext.Current.CancellationToken));
+        Assert.Equal(0, await database.Context.Set<BasketLine>().CountAsync(TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Delete_of_a_row_saved_by_someone_else_since_it_was_found_is_a_concurrency_conflict()
+    {
+        await using var database = await StartDatabaseAsync();
+        var widget = await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken);
+        var mine = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        var theirs = (await Widget.Find(widget.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        theirs.Rename("theirs");
+        await theirs.Save(cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => mine.Delete(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal("theirs", (await database.Load<Widget>(widget.Id, TestContext.Current.CancellationToken))!.Name);
+    }
+
+    [Fact]
+    public async Task Delete_of_an_unversioned_row_soft_deleted_since_it_was_found_throws_KeyNotFound()
+    {
+        await using var database = await StartDatabaseAsync();
+        var satchel = Satchel.Holding("kit", [1]);
+        await satchel.Save(cancellationToken: TestContext.Current.CancellationToken);
+        var found = (await Satchel.Find(satchel.Id, cancellationToken: TestContext.Current.CancellationToken))!;
+        await Satchel.Delete(satchel.Id, cancellationToken: TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => found.Delete(cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task Delete_of_an_aggregate_never_saved_is_refused()
+    {
+        await using var database = await StartDatabaseAsync();
+        var basket = Basket.Open("ada");
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => basket.Delete(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("never been saved", refused.Message, StringComparison.Ordinal);
+    }
+
+    private int Selects() =>
+        _log.Texts.Count(t => t.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase));
+
     private static async Task<Guid> SaveBasketAsync()
     {
         var basket = Basket.Open("ada");
@@ -164,5 +428,5 @@ public sealed class AggregateSaveTests : IDisposable
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_log), _clock);
 }

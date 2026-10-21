@@ -194,7 +194,7 @@ failure, once it loads a pending job.
 ### Signed in as that user, never with more rights
 
 The handler also runs **signed in** as that user, so `Current.Principal`, an `[Authorize]` check and a page
-rendered to print (Rask.Pdf's `Pdf.From`) all see them — with the rights they had when they enqueued the job and
+rendered to print ([`Pdf.From`](pdf.md)) all see them — with the rights they had when they enqueued the job and
 still have now, never one more:
 
 - At enqueue the row records the user's rights — their roles and every claim that is not who they are — in

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Storage.Upload;
 
 namespace Rask.Storage;
 
@@ -102,7 +103,7 @@ public sealed class StorageOptions
             throw new InvalidOperationException("StorageOptions.SweepInterval must be positive and at most 49 days.");
         }
 
-        if (AllowedTypes.FirstOrDefault(type => !IsMediaTypePattern(type)) is { } notAType)
+        if (AllowedTypes.FirstOrDefault(type => !MediaType.IsValid(type, family: true)) is { } notAType)
         {
             throw new InvalidOperationException(
                 $"StorageOptions.AllowedTypes contains '{notAType}', which is not a media type. Name types, not extensions: "
@@ -217,36 +218,5 @@ public sealed class StorageOptions
 
         var text = uri.GetLeftPart(UriPartial.Path);
         return text.EndsWith('/') ? text : text + "/";
-    }
-
-    private static bool IsMediaTypePattern(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        var slash = value.IndexOf('/', StringComparison.Ordinal);
-        if (slash <= 0 || slash == value.Length - 1 || value.IndexOf('/', slash + 1) >= 0)
-        {
-            return false;
-        }
-
-        var type = value.AsSpan(0, slash);
-        var subtype = value.AsSpan(slash + 1);
-        return IsToken(type) && (subtype is "*" || IsToken(subtype));
-    }
-
-    private static bool IsToken(ReadOnlySpan<char> value)
-    {
-        foreach (var c in value)
-        {
-            if (!(char.IsAsciiLetterOrDigit(c) || c is '!' or '#' or '$' or '&' or '^' or '_' or '.' or '+' or '-'))
-            {
-                return false;
-            }
-        }
-
-        return !value.IsEmpty;
     }
 }

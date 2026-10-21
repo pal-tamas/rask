@@ -4,16 +4,20 @@
     <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- Not packed yet: the solution is what the nightly packs, and Rask.Pdf ships once Pdf.From, the deploy image
-         and the guide are in. Its public names are recorded from the first slice all the same. -->
-    <IsPackable>false</IsPackable>
-    <RaskPublicApiTracked>true</RaskPublicApiTracked>
+    <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Pdf</PackageId>
     <Title>Rask.Pdf — a PDF from a Rask page or component</Title>
-    <Description>Prints HTML to PDF with the headless Chromium installed beside the app, over the browser's own DevTools pipe: real fonts, every script, a table heading repeated on every page. Zero dependencies; never downloads a browser.</Description>
-    <PackageTags>pdf print chromium headless report dotnet net10</PackageTags>
+    <Description>A PDF of a Rask page or component, as the calling user sees it: await Pdf.From(Routes.Report(id)). Rendered on the server like a first GET, [Authorize] first; drawn by a pinned Chrome for Testing headless shell that the build fetches (checksum verified) and the container image carries — never downloaded at run time. Real fonts and every script, table headings repeated on every page, a footer and page numbers. Zero NuGet dependencies: Rask drives the browser over its own DevTools pipe.</Description>
+    <PackageTags>pdf html-to-pdf print report chromium headless puppeteer dotnet net10</PackageTags>
   </PropertyGroup>
+
+  <!-- Ship this package's own README instead of the framework overview Directory.Build.props packs by default. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
 
   <!-- Server only: the PDF is drawn by a Chromium process the app starts, so there is no browser face. Hosting
        (IHostedService, configuration, logging) comes with the shared framework, not a package. -->

@@ -116,8 +116,30 @@ public static class ModelBuilderExtensions
                     modelBuilder.Entity(entityType.ClrType).Ignore(complex.Name);
                 }
             }
+
+            foreach (var view in ComputedViews(entityType))
+            {
+                modelBuilder.Entity(entityType.ClrType).Ignore(view);
+            }
         }
 #pragma warning restore S3267
+    }
+
+    // `HeavyItems => _items.Where(…)` beside `Items => _items`: EF Core takes the view for a second relationship to the
+    // same children, and fails the first save ("does not implement ICollection<>"). A collection navigation with no
+    // setter and no field, beside one to the same entity that has either, is computed from that one — the rule the
+    // generators leave it off the form model and the read face by.
+    private static List<string> ComputedViews(IMutableEntityType entityType)
+    {
+        var collections = entityType.GetDeclaredNavigations().Where(static n => n.IsCollection).ToList();
+
+        return [.. collections
+            .Where(view => IsView(view) && collections.Exists(stored =>
+                !IsView(stored) && ReferenceEquals(stored.TargetEntityType, view.TargetEntityType)))
+            .Select(static view => view.Name)];
+
+        static bool IsView(IMutableNavigation navigation) =>
+            navigation.FieldInfo is null && navigation.PropertyInfo is { SetMethod: null };
     }
 
     private static void ApplyEntityConventions(

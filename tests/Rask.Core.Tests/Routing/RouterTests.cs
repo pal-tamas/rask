@@ -139,6 +139,36 @@ public partial class RouterTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_forbidden_page_is_the_forbidden_sentence_inside_its_layout()
+    {
+        var routes = new[] { Route.To<DashboardPage>("/dashboard", new[] { Route.To<DashOverview>("overview") }) };
+        var (view, state, sp) = BuildView(routes);
+        state.Path = "/dashboard/overview";
+        state.Forbidden = typeof(DashOverview);
+
+        var html = Render(view, sp);
+
+        Assert.Equal(
+            "<div><span>dash:</span><p class=\"rask-forbidden\" role=\"alert\">You do not have permission to view this page.</p></div>",
+            html);
+    }
+
+    [Fact]
+    public void A_page_shown_again_once_it_is_no_longer_forbidden()
+    {
+        var routes = new[] { Route.To<DashboardPage>("/dashboard", new[] { Route.To<DashOverview>("overview") }) };
+        var (view, state, sp) = BuildView(routes);
+        state.Path = "/dashboard/overview";
+        state.Forbidden = typeof(DashOverview);
+        Render(view, sp);
+
+        state.Forbidden = null;
+        var html = Render(view, sp);
+
+        Assert.Equal("<div><span>dash:</span><span>overview</span></div>", html);
+    }
+
+    [Fact]
     public void A_subroute_renders_into_the_outlet()
     {
         var routes = new[]

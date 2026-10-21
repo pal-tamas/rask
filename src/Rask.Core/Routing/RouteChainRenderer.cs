@@ -28,6 +28,15 @@ internal static class RouteChainRenderer
         // its Outlet keeps the page from being constructed. The instance itself is the router's to
         // remember (RoutePageInstances), so it outlives an outlet its layout re-creates.
         var index = route.Cursor++;
+
+        // The page the person may not open: its layouts above are already drawn, and the sentence stands where it
+        // would have. Nothing below it is reached, so no outlet further down pulls a page of the chain.
+        if (route.Chain[index] == route.Forbidden)
+        {
+            route.Cursor = route.Chain.Count;
+            return new ForbiddenPage();
+        }
+
         var page = route.Pages!.At(index, route.Chain[index], route.Chain.Count, ctx);
         // The path goes in with the values: a multi-route page can change address without changing a
         // property (`/todos` ↔ `/todos/new`, Id null on both), and whatever it derives from RouteState.Path

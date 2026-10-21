@@ -36,6 +36,17 @@ public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
 }
 ```
 
+A read needs no declaration: the read face of a tenant-scoped ROOT carries `TenantId`, read-only and in the
+column's own type (`Guid?`, or `int?`/`long?` for [numbered tenants](#tenants-that-are-numbered)), so a read
+across tenants can say whose row each one is. A child's face has none — it belongs to its root's tenant.
+
+```csharp
+using (Tenant.Across())
+{
+    var account = await User.Where(u => u.Id == id).Select(u => new Account(u.IsAdmin, u.TenantId)).First();
+}
+```
+
 **Why a type argument.** Like the other traits, it is read at compile time rather than reflected over, so a
 trimmed publish cannot lose it and quietly fall back to "shared".
 

@@ -77,6 +77,19 @@ internal static class AggregateLoad
         return found;
     }
 
+    /// <summary>Whether a row with the key is there to read — not soft-deleted, and the tenant's — asked by its key alone.</summary>
+    internal static Task<bool> ExistsAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        DbContext context, object?[] keyValues, CancellationToken cancellationToken)
+        where TEntity : class, IAggregate
+    {
+        var primaryKey = context.Model.FindEntityType(typeof(TEntity))!.FindPrimaryKey()!;
+
+        // A key no predicate can express is found by EF Core's own Find, which skips the filters: nothing to ask then.
+        return KeyPredicate<TEntity>(primaryKey, keyValues) is { } predicate
+            ? context.Set<TEntity>().AnyAsync(predicate, cancellationToken)
+            : Task.FromResult(true);
+    }
+
     /// <summary>Whether a row with the key exists at all, soft-deleted or another tenant's included.</summary>
     internal static Task<bool> ExistsIgnoringFiltersAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         DbContext context, object?[] keyValues, CancellationToken cancellationToken)
