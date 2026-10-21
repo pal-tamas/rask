@@ -273,8 +273,27 @@ public sealed partial class ModelInputGenerator
         s.Append("        public ").Append(TaskFqn).Append(" Save(").Append(DbParameter).Append(TokenFqn)
             .AppendLine(" cancellationToken = default) =>");
         s.Append("            ").Append(WritesFqn).AppendLine(".Save(entity, db, cancellationToken);");
+        AppendInstanceDelete(s, entity);
         s.AppendLine("    }");
         s.AppendLine();
+    }
+
+    // `file.Delete()`: the aggregate the caller holds, deleted from what Find read — no read first. Only where the
+    // static Delete(id) is, so an aggregate retired through its own methods has neither.
+    private static void AppendInstanceDelete(StringBuilder s, Entity entity)
+    {
+        var deleteMark = s.Length;
+        s.AppendLine();
+        s.AppendLine("        /// <summary>Deletes this aggregate from what was read, with no read first: stamped when it soft-deletes, otherwise its row and its children removed.</summary>");
+        s.AppendLine(DbDoc);
+        s.AppendLine("        /// <param name=\"cancellationToken\">Cancels the save.</param>");
+        s.AppendLine("        /// <exception cref=\"global::System.InvalidOperationException\">It has never been saved.</exception>");
+        s.AppendLine("        /// <exception cref=\"global::Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException\">Its row was changed or deleted by someone else since it was read.</exception>");
+        s.Append("        public ").Append(TaskFqn).Append(" Delete(").Append(DbParameter).Append(TokenFqn)
+            .AppendLine(" cancellationToken = default) =>");
+        s.Append("            ").Append(WritesFqn).Append(".Delete<").Append(entity.FullyQualifiedName)
+            .AppendLine(">(entity, db, cancellationToken);");
+        Keep(s, entity.Deletable, deleteMark);
     }
 
     private static string JoinWrites(List<string> writes) =>

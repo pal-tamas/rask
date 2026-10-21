@@ -1294,6 +1294,28 @@ public class ModelInputGeneratorTests
 
     // ---- Deletable / SoftDelete: whether Delete is generated -----------------------------------------
 
+    [Theory]
+    [InlineData("Deletable")]
+    [InlineData("SoftDelete")]
+    public void A_deletable_aggregate_gets_a_Delete_of_its_own_beside_Save(string trait)
+    {
+        var run = Run($$"""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class QueuedFile : Aggregate<Guid, {{trait}}>
+            {
+                public bool Expired { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.QueuedFileModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("Delete(global::Microsoft.EntityFrameworkCore.DbContext? db = null, ", source, StringComparison.Ordinal);
+        Assert.Contains(".Delete<global::Shop.QueuedFile>(entity, db, cancellationToken);", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void An_aggregate_naming_neither_Deletable_nor_SoftDelete_gets_no_Delete_and_keeps_every_other_write()
     {

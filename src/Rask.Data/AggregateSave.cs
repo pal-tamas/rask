@@ -146,6 +146,49 @@ internal static class AggregateSave
         StageOver(context, entry, aggregate, now, now);
     }
 
+    /// <summary>
+    ///     Stages the delete of the aggregate the caller holds — <c>await file.Delete()</c> — from what was read: a stamp
+    ///     for one that soft-deletes, the row and its children otherwise, with no read first.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">It was never saved, so there is no row to delete.</exception>
+    /// <exception cref="KeyNotFoundException">Its row is gone (or soft-deleted) and no Version can say so at the commit.</exception>
+    internal static async Task StageDeleteAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
+        DbContext context, TEntity aggregate, CancellationToken cancellationToken)
+        where TEntity : class, IAggregate
+    {
+        Tenant.DemandForWrite(typeof(TEntity));
+
+        var entry = context.Entry(aggregate);
+
+        if (entry.State == EntityState.Detached)
+        {
+            if (!entry.IsKeySet || StoredAggregates.IsNew(context, aggregate))
+            {
+                throw new InvalidOperationException(
+                    $"This {typeof(TEntity).Name} has never been saved, so there is no row to delete. Let it go instead.");
+            }
+
+            var keyValues = KeyOf(entry.Metadata, aggregate);
+
+            if (AsRead.TryGetValue(aggregate, out var read))
+            {
+                await RefuseSoftDeletedSinceAsync<TEntity>(context, entry.Metadata, keyValues, cancellationToken)
+                    .ConfigureAwait(false);
+                StageOver(context, entry, aggregate, read, read);
+            }
+            else
+            {
+                var stored = await AggregateLoad.FindAsync<TEntity>(context, keyValues, cancellationToken).ConfigureAwait(false)
+                             ?? throw DeletedSinceRead<TEntity>(keyValues);
+                var now = Index(entry.Metadata, stored);
+                StageOver(context, entry, aggregate, now, now);
+            }
+        }
+
+        // The Version stays the one read: a row changed or deleted since is refused at the commit.
+        TrackedReferenceRefusal.Remove(context, aggregate);
+    }
+
     // With a Version, a soft delete since the read bumped it and the save is refused at the commit. Without one the
     // UPDATE would land on the deleted row, so the key alone is asked first — not the row, which may be large.
     private static async Task RefuseSoftDeletedSinceAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(

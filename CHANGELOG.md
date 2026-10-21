@@ -35,6 +35,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **`aggregate.Delete()` deletes the aggregate you found, with no read first** — Rails' `record.destroy`, Laravel's
+  `$model->delete()`: `var file = await QueuedFile.Find(id); if (file.Expired) await file.Delete();`. Generated beside
+  `Save()` on every `Deletable`/`SoftDelete` aggregate, with the same `db:` and token. It works from `Find`'s snapshot
+  (`Find` + `Delete()` is one SELECT): a `SoftDelete` aggregate is stamped, any other has its row and children
+  removed; the `Version` read is compared (changed or deleted since → `DbUpdateConcurrencyException`; an unversioned
+  soft-deleting one is asked by its key first → `KeyNotFoundException`); one never saved is `InvalidOperationException`.
+  The tenant check runs, it takes part in `Db.Transaction` (a rollback leaves the row and its children), and its
+  events go out after the commit. The static `Delete(id)` is unchanged and still loads first.
 - **The read face of a tenant-scoped root carries its `TenantId`, read-only.** A read across tenants can now say
   whose row each one is — `using (Tenant.Across()) await User.Where(u => u.Id == id).Select(u => new Account(u.IsAdmin,
   u.TenantId)).First();` — without the aggregate declaring the column. It is in the column's own type: the one the

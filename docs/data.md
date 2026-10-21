@@ -753,6 +753,14 @@ writes what changed since — it never reads the row again.
 - **Nothing is held open.** `Find` takes no `db:` and returns the aggregate untracked, so it is safe to keep in a
   page field between `Find` and `Save`. Pass `db:` to `Save` to stage it in your own unit of work; its snapshot is
   taken when that context's `SaveChangesAsync` succeeds.
+- **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
+  file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
+  read first: an aggregate that names `SoftDelete` is stamped, any other has its row and its children removed. The
+  `Version` read is compared, so a row changed or deleted since is `DbUpdateConcurrencyException` (an unversioned
+  soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
+  `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
+  transaction — a rollback leaves the row and its children, and its events go out after the commit. The static
+  `QueuedFile.Delete(id)` stays, and loads the row first.
 - **Only to show it? Do not `Find` it.** A list, a detail page or a check reads the
   [read face](#reading-the-read-face) (`Order.Where(…)`); an edit form reads `Order.Model(id)`. `Find` is for changing
   the aggregate through its own methods.
