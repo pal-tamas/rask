@@ -34,6 +34,11 @@ public sealed partial class UiModalPage : Component
             UiDocsExample.Key("ui-modal-confirm").Heading("Confirmation").File("ModalConfirmationExample.cs").Demo(ModalConfirmationExample).Testid("ui-modal-confirm")
                 .Blurb("Ask before a dangerous action. Ui.ModalClose makes the button inside it close the modal: a "
                        + "close, not a dismissal, and the button's own handler still runs."),
+            UiDocsExample.Key("ui-modal-confirm-action").Heading("Confirm an action").File("ModalConfirmActionExample.cs").Demo(ModalConfirmActionExample).Testid("ui-modal-confirm-action")
+                .Blurb("Not Flux's, and drawn as the confirmation above: place Ui.Confirm in the layout once, and "
+                       + ".Confirm(\"…\") on any button or form asks in it instead of the browser. With expect: Yes "
+                       + "waits for the answer typed exactly. Opening it, typing and No send nothing; Yes lets the "
+                       + "press go."),
             UiDocsExample.Key("ui-modal-flyout").Heading("Flyout").File("ModalFlyoutExample.cs").Demo(ModalFlyoutExample).Testid("ui-modal-flyout")
                 .Blurb("Flyout anchors it to an edge at full height, for longer forms."),
             UiDocsExample.Key("ui-modal-flyout-position").Heading("Flyout positioning").File("ModalFlyoutPositionExample.cs").Demo(ModalFlyoutPositionExample).Testid("ui-modal-flyout-position")

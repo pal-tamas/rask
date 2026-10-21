@@ -22,7 +22,7 @@
 // rask-owned.ts): a chart writing the box it was measured at is nobody's edit.
 //
 // HOW IT ASKS. With `confirm`, unless the layout placed Ui.ConfirmLeave: then in that dialog, which is a
-// Ui.Modal, and the exit waits for the answer.
+// Ui.Modal, and the exit waits for the answer (rask-ask.ts, shared with Ui.Confirm).
 //
 // WHO ASKS. A navigation the reader starts inside the app goes through `mayLeave` in rask-owned.ts, from both
 // hosts (a nav link, `__raskHost.navigate`); Back and Forward arrive here as `popstate`, ahead of the host;
@@ -30,6 +30,7 @@
 // A navigation the server makes from a handler takes none of those paths, so a save that ends in
 // `Go.To(…)` is never asked about. A form that has left the document is not found, and guards nothing.
 
+import {dialogAsking} from "./rask-ask.js";
 import {isUnasked, listen, near, page, seam} from "./rask-owned.js";
 
 const MESSAGE = "data-rask-confirm-leave";
@@ -97,51 +98,27 @@ if (page) {
     const doc = page;
 
     // THE QUESTION. Without Ui.ConfirmLeave it is `confirm`, answered before this returns. With it the
-    // question is a modal dialog in the page, which answers later: the exit is refused now, kept as `asked`,
-    // and run again — let through by `leaving` — if the reader presses the button that leaves. Every other
-    // way the dialog closes (its other button, the X, Escape, a press outside) is staying, and needs nothing.
-    let asked: (() => void) | null = null;
+    // question is a modal dialog in the page, which answers later (rask-ask.ts): the exit is refused now, and run
+    // again — let through by `leaving` — if the reader leaves by the dialog's button that says so.
     let leaving = false;
-
-    const dialogFor = function (message: string): HTMLDialogElement | null {
-        const text = doc.querySelector("[" + PART + "=message]");
-        const dialog = text ? text.closest("dialog") : null;
-        if (text && dialog) text.textContent = message;
-        return dialog;
-    };
+    const inDialog = dialogAsking(PART);
 
     const ask = function (again: () => void): boolean {
         const message = leaving ? null : unsavedMessage(doc);
         if (message === null) {
             return true;
         }
-        const dialog = dialogFor(message);
-        if (!dialog) {
-            return window.confirm(message);
-        }
-        asked = again;
-        // The platform's own call, which is what the dialog's invoker buttons make: rask-overlay.ts marks it
-        // open and dismisses it as it does any Ui.Modal, and the browser moves focus in and hands it back.
-        if (!dialog.open) dialog.showModal();
-        return false;
+        const dialog = inDialog(message, function () {
+            leaving = true;
+            try {
+                again();
+            } finally {
+                leaving = false;
+            }
+        });
+        return dialog ? false : window.confirm(message);
     };
     seam.leave = ask;
-
-    listen("click", function (e) {
-        const again = asked;
-        if (!again || !near(e.target, "[" + PART + "=go]")) {
-            return;
-        }
-        asked = null;
-        leaving = true;
-        try {
-            again();
-        } finally {
-            leaving = false;
-        }
-    });
-    // `close` does not bubble. Closed any other way, the exit that was asked about is forgotten.
-    listen("close", function () { asked = null; }, true);
 
     const unloading = function (e: BeforeUnloadEvent): void {
         if (unsavedMessage(doc) === null) {

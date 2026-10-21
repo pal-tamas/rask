@@ -232,6 +232,7 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<Type, string> Approved = new()
     {
         [typeof(UiConfirmLeave)] = "the owner, 2026-10-13",
+        [typeof(UiConfirm)] = "the owner, 2026-10-21",
     };
 
     /// <summary>

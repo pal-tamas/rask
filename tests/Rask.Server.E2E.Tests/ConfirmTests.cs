@@ -107,18 +107,24 @@ internal sealed class ConfirmOrder
     public string Item { get; set; } = "";
 }
 
-/// <summary>A button, a prompt and a form that each ask first, beside a field that waits for the next action.</summary>
+/// <summary>The page <see cref="ConfirmActions" /> is on, alone: every question is the browser's.</summary>
 public sealed partial class ConfirmPage : Component
+{
+    protected override Component? HeadAssets => Markup.Title["confirm"];
+
+    protected override string? HtmlLang => "en";
+
+    protected override Component? Render() => ConfirmActions;
+}
+
+/// <summary>A button, a prompt and a form that each ask first, beside a field that waits for the next action.</summary>
+public sealed partial class ConfirmActions : Component
 {
     private readonly ConfirmOrder _order = new();
     private readonly ConfirmOrder _draft = new();
     private int _deleted;
     private int _wiped;
     private int _sent;
-
-    protected override Component? HeadAssets => Markup.Title["confirm"];
-
-    protected override string? HtmlLang => "en";
 
     protected override Component? Render() =>
     [
