@@ -57,4 +57,50 @@ public sealed class MissingLeaseColumnTests
             h.Logs,
             l => l.Contains("Job processing cycle failed", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task A_database_without_the_waiting_key_says_which_commands_to_run()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"rask-nowaitingkey-{Guid.NewGuid():N}.db");
+        await using var h = new JobsHarness(dbPath: path);
+        await using (var db = h.NewContext())
+        {
+            await db.Database.ExecuteSqlRawAsync("DROP TABLE Job;", cancellationToken: TestContext.Current.CancellationToken);
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                CREATE TABLE Job (
+                    Id INTEGER NOT NULL CONSTRAINT PK_Job PRIMARY KEY AUTOINCREMENT,
+                    Type TEXT NOT NULL,
+                    Payload TEXT NOT NULL,
+                    RunAt TEXT NOT NULL,
+                    ProcessedAt TEXT NULL,
+                    Attempts INTEGER NOT NULL,
+                    Error TEXT NULL,
+                    ClaimToken TEXT NULL,
+                    ClaimedUntil TEXT NULL,
+                    CreatedAt TEXT NOT NULL,
+                    UpdatedAt TEXT NOT NULL,
+                    UserId TEXT NULL,
+                    TenantId TEXT NULL,
+                    Lane TEXT NULL);
+                INSERT INTO Job (Type, Payload, RunAt, Attempts, CreatedAt, UpdatedAt)
+                VALUES ('x', 'null','2025-01-01 00:00:00', 0, '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+                """, cancellationToken: TestContext.Current.CancellationToken);
+        }
+
+        await h.Processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await h.WaitUntilAsync(() => Task.FromResult(
+                h.Logs.Any(l => l.Contains("rask db add AddJobWaitingKey", StringComparison.Ordinal))));
+        }
+        finally
+        {
+            await h.Processor.StopAsync(CancellationToken.None);
+        }
+
+        Assert.DoesNotContain(
+            h.Logs,
+            l => l.Contains("Job processing cycle failed", StringComparison.Ordinal));
+    }
 }
