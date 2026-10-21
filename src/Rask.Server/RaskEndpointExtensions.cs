@@ -2418,7 +2418,7 @@ public static partial class RaskEndpointExtensions
         // Before the route moves: this is the render the sign-in handoff deferred its route check to, and a
         // returnUrl is only known to be local, not to be a page this principal may see.
         var guard = await GuardRouteAsync(session, destination.Path, destination.Query).ConfigureAwait(false);
-        if (guard is { } redirect)
+        if (guard.Redirect is { } redirect)
         {
             session.PendingAuthNavigation = null;
             await RenderGuardRedirectAsync(session, redirect, ct).ConfigureAwait(false);
@@ -3661,7 +3661,12 @@ public static partial class RaskEndpointExtensions
     private static async Task<GuardRedirect?> RedirectUnauthorizedRouteAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (await GuardRouteAsync(session, routeState.Path, routeState.Query).ConfigureAwait(false) is not { } redirect)
+        var guard = await GuardRouteAsync(session, routeState.Path, routeState.Query).ConfigureAwait(false);
+
+        // A signed-in person the route forbids stays on it: the router draws its layouts and the forbidden sentence
+        // in place of the page. Set here, where the caller is about to render, and not where the guard is only asked.
+        routeState.Forbidden = guard.Forbidden;
+        if (guard.Redirect is not { } redirect)
         {
             return null;
         }
@@ -3683,35 +3688,35 @@ public static partial class RaskEndpointExtensions
         session.DiscardPendingRender();
     }
 
-    // Where the guard sends the session's principal instead of a route; null when it may see the page (or the
-    // path resolves to nothing — a NotFound page has nothing to gate). Moves nothing: moving the route asks
-    // for a render, so a caller has to know the answer before it moves it. A session whose sign-in ended is sent
-    // to the sign-in page whatever the page, once (SignInAgainAsync).
-    private static async Task<GuardRedirect?> GuardRouteAsync(
+    // Where the guard sends the session's principal instead of a route — null when it may see the page, or the path
+    // resolves to nothing (a NotFound page has nothing to gate) — and the page of it a signed-in principal may not
+    // open (Forbidden), which stays on the route as the forbidden sentence. Moves nothing: moving the route asks for
+    // a render, so a caller has to know the answer before it moves it. A session whose sign-in ended is sent to the
+    // sign-in page whatever the page, once (SignInAgainAsync).
+    private static async Task<(GuardRedirect? Redirect, Type? Forbidden)> GuardRouteAsync(
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         if (session.SignInEnded && await SignInAgainAsync(session, path, query).ConfigureAwait(false) is { } signIn)
         {
-            return signIn;
+            return (signIn, null);
         }
 
         var routeState = session.Services.GetRequiredService<RouteState>();
         if (!session.Routes.TryResolve(routeState.CurrentTable, path, out var chain))
         {
-            return null;
+            return (null, null);
         }
 
         var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
         var result = await RouteAuthorizationGuard.Evaluate(session.Services, chain, user).ConfigureAwait(false);
-
-        // A signed-in person the route forbids stays on it: the router draws its layouts and the forbidden sentence
-        // in place of the page. Someone not signed in is sent to sign in, as the first request's challenge does.
-        routeState.Forbidden = result.Outcome == RouteAuthorizationOutcome.Forbid ? result.FailedOnPage : null;
-        return result.Outcome is RouteAuthorizationOutcome.Allow or RouteAuthorizationOutcome.Forbid
-            ? null
-            : new GuardRedirect(
+        return result.Outcome switch
+        {
+            RouteAuthorizationOutcome.Allow => (null, null),
+            RouteAuthorizationOutcome.Forbid => (null, result.FailedOnPage),
+            _ => (new GuardRedirect(
                 RouteAuthorizationGuard.ChallengePath,
-                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query)));
+                "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))), null),
+        };
     }
 
     // AsPage: an address this application does not render, loaded as a page rather than routed — another

@@ -48,7 +48,7 @@ public class AuthDeferredNavDispatchTests
         Assert.DoesNotContain("admin-only", afterReconnect);
         Assert.Contains("You do not have permission to view this page.", afterReconnect);
         using var doc = JsonDocument.Parse(afterReconnect);
-        Assert.Equal("/admin", doc.RootElement.GetProperty("history").GetProperty("url").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("history", out _)); // the browser already names /admin: it stays there
     }
 
     // The landing page of a sign-in is mounted by the reconnect, with no handler behind it. "No partner chosen,

@@ -86,7 +86,7 @@ public class RouteGuardPipelineTests
 
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
         var body = await resp.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        Assert.Matches("<div id=\"vault\">.*You do not have permission to view this page\..*</div>", body);
+        Assert.Matches(@"<div id=""vault"">.*You do not have permission to view this page\..*</div>", body);
         Assert.DoesNotContain("vault-keys", body);
     }
 
