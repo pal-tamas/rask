@@ -1,0 +1,6 @@
+#nullable enable
+Rask.Printing.Pdf
+Rask.Printing.PdfPage
+Rask.Printing.PdfPage.Landscape.get -> Rask.Printing.PdfPage!
+const Rask.Printing.Pdf.ContentType = "application/pdf" -> string!
+static Rask.Printing.PdfPage.A4.get -> Rask.Printing.PdfPage!

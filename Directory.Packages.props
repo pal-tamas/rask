@@ -54,6 +54,9 @@
     <!-- Rask.Postgres. Npgsql versions on its own line (10.0.x tracks EF Core 10 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version. -->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <!-- Test-only: Rask.Pdf.Tests reads the printed PDFs back (text, page sizes, page count). Rask.Pdf itself has
+         no dependency. -->
+    <PackageVersion Include="PdfPig" Version="0.1.16" />
     <!--
       Spectre.Console renders the `rask` CLI's terminal surface. Keep the two entries on the same
       version: Spectre.Console.Testing ships the input/console doubles the CLI's prompt tests drive,
