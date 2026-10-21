@@ -198,14 +198,7 @@ public static class ReadModelRegistry
             property.HasColumnType(columnType);
         }
 
-        // A face that already holds the STORED value — the string of a one-value value object, which the write
-        // side keeps as `Email` and converts — reads the column as it is. Only a face that holds the model's
-        // own type (a strongly-typed id) converts the way the write side does.
-        if (source.GetValueConverter() is { } converter &&
-            (Nullable.GetUnderlyingType(property.Metadata.ClrType) ?? property.Metadata.ClrType) != converter.ProviderClrType)
-        {
-            property.HasConversion(converter);
-        }
+        MirrorConversion(property, source);
 
         if (source.GetMaxLength() is { } maxLength)
         {
@@ -215,6 +208,35 @@ public static class ReadModelRegistry
         if (source.IsUnicode() is { } unicode)
         {
             property.IsUnicode(unicode);
+        }
+    }
+
+    // Every conversion the write side reads a column through, the face reads it through too — one that keeps the type
+    // (bytes compressed to bytes, a string sealed to a string) included, or the face hands back what is stored. A face
+    // holding the value inside a one-value value object reads Rask's own column as it is, and an app's converter
+    // through the value object it was written for.
+    private static void MirrorConversion(PropertyBuilder property, IProperty source)
+    {
+        // A converter written out, or only the type it is stored as (HasConversion<string>()), which EF Core builds
+        // the converter from: the write model's type mapping holds the one in force.
+        var converter = source.GetValueConverter() ??
+                        (source.GetProviderClrType() is null ? null : source.FindTypeMapping()?.Converter);
+        if (converter is null)
+        {
+            return;
+        }
+
+        var face = property.Metadata.ClrType;
+        if ((Nullable.GetUnderlyingType(face) ?? face) == (Nullable.GetUnderlyingType(converter.ModelClrType) ?? converter.ModelClrType))
+        {
+            var comparer = source.GetValueComparer();
+            property.HasConversion(converter, comparer.Type == face ? comparer : null);
+            return;
+        }
+
+        if (OneValueConverters.ForValue(converter) is { } throughValueObject)
+        {
+            property.HasConversion(throughValueObject);
         }
     }
 
