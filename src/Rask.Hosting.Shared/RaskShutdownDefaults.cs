@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
@@ -18,22 +19,24 @@ namespace Rask.Hosting.Shared;
 /// <c>max(…) = 10s</c>, which fits the budget with room to spare.
 /// </para>
 /// <para>
-/// The timeout is sized to <c>rask deploy</c>, which sends SIGTERM and SIGKILLs 20 seconds later; the
-/// margin covers what happens after <c>StopAsync</c> returns — container teardown, log flush, DI disposal,
-/// EF connection teardown. It is a sensible budget for any host, and an app that needs a different one
-/// configures <see cref="HostOptions"/> <em>after</em> <c>AddRask</c>: options setups run in registration
-/// order, so the last writer decides.
+/// <c>rask deploy</c> names the budget itself: it hands the app <c>ASPNETCORE_SHUTDOWNTIMEOUTSECONDS</c> — its
+/// <c>stopTimeout</c> less a margin for what happens after <c>StopAsync</c> returns (container teardown, log
+/// flush, DI disposal, EF connection teardown) — and that value is kept. The 15 seconds here are only for a
+/// host nobody gave a budget: one deployed some other way, or by an older <c>rask</c> that SIGKILLed at 20s.
+/// An app that needs a different one configures <see cref="HostOptions"/> <em>after</em> <c>AddRask</c>:
+/// options setups run in registration order, so the last writer decides.
 /// </para>
 /// </remarks>
-internal sealed class RaskShutdownDefaults : IConfigureOptions<HostOptions>
+internal sealed class RaskShutdownDefaults(IConfiguration? configuration = null) : IConfigureOptions<HostOptions>
 {
-    /// <summary>Seconds <c>rask deploy</c>'s <c>docker stop -t</c> waits after SIGTERM before SIGKILL.</summary>
+    /// <summary>The host-configuration key .NET binds <see cref="HostOptions.ShutdownTimeout"/> from.</summary>
     /// <remarks>
-    /// Mirrored by <c>Rask.Cli</c>'s <c>ShutdownBudget.DockerStopSeconds</c>, which is what actually passes
-    /// the flag. The two are held together by a test rather than by this comment — see
-    /// <c>Rask.Cli.Tests.SamplesShutdownBudgetTests</c>, which resolves the options this type produces and
-    /// checks them against the deploy ladder.
+    /// <c>rask deploy</c> sets it (as <c>ASPNETCORE_SHUTDOWNTIMEOUTSECONDS</c>) from the app's <c>stopTimeout</c>,
+    /// so the budget the app gives itself and the one the deploy waits for come from one number.
     /// </remarks>
+    internal const string ShutdownTimeoutKey = "shutdownTimeoutSeconds";
+
+    /// <summary>The stop window assumed when nobody named one: the 20s an older <c>rask deploy</c> allowed.</summary>
     internal const int DockerStopSeconds = 20;
 
     /// <summary>Margin between the app finishing and the SIGKILL landing.</summary>
@@ -57,7 +60,9 @@ internal sealed class RaskShutdownDefaults : IConfigureOptions<HostOptions>
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (options.ShutdownTimeout == _frameworkDefault)
+        // A budget configuration names is a decision even when it equals the framework default — a stopTimeout
+        // of 35s hands the app exactly 30 — so the value check alone would overrule it.
+        if (options.ShutdownTimeout == _frameworkDefault && string.IsNullOrEmpty(configuration?[ShutdownTimeoutKey]))
         {
             options.ShutdownTimeout = TimeSpan.FromSeconds(HostShutdownSeconds);
         }

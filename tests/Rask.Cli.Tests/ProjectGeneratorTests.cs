@@ -103,12 +103,13 @@ public sealed class ProjectGeneratorTests
     [Fact]
     public void The_app_budget_leaves_room_inside_the_docker_stop_grace()
     {
-        Assert.True(ShutdownBudget.HostShutdownSeconds < ShutdownBudget.DockerStopSeconds,
-            "the app must finish before docker SIGKILLs it");
-        Assert.True(ShutdownBudget.DockerStopSeconds - ShutdownBudget.HostShutdownSeconds >= 5,
-            "leave margin for container teardown and log flush after Host.StopAsync returns");
-        Assert.True(ShutdownBudget.PreStopDrainSeconds < ShutdownBudget.HostShutdownSeconds,
-            "the pre-stop pause must not dominate the deploy");
+        var smallest = ShutdownBudget.MinimumStopTimeout;
+
+        var host = ShutdownBudget.HostShutdownSeconds(smallest);
+
+        Assert.True(host < smallest.TotalSeconds, "the app must finish before docker SIGKILLs it");
+        Assert.True(smallest.TotalSeconds - host >= 5, "leave margin for container teardown and log flush after Host.StopAsync returns");
+        Assert.True(ShutdownBudget.PreStopDrainSeconds < host, "the pre-stop pause must not dominate the deploy");
     }
 
     /// <summary>

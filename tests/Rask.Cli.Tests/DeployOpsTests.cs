@@ -211,7 +211,7 @@ public sealed class DeployOpsTests
         int Lock = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.LockContainer));
         int Write = all.FindIndex(i => i.Arguments.Any(arg => arg.StartsWith("rask-caddy:/data/rask/sites/shop.caddy.tmp-", StringComparison.Ordinal)));
         int Check = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.AdminConfigUrl));
-        int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop-blue")));
+        int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "shop-blue", ShutdownBudget.DefaultStopTimeout)));
         Assert.True(Lock >= 0 && Lock < Write && Write < Check && Check < Retire, "locked, own file written, checked through the proxy, then retired");
     }
 

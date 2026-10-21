@@ -7,10 +7,11 @@ namespace Rask.Cli.Commands;
 /// A lock on the box, held as a container: docker refuses a second container of one name, so taking it is atomic,
 /// and the container removes itself when its lease ends, so a deploy that died holding it cannot wedge the box.
 /// <list type="bullet">
-/// <item>The box lock (<see cref="ForBox"/>) guards what every app shares — the network, the proxy, its config and the
-/// retire after a switch — for seconds, never across a build, a start or a health gate. Its lease is fixed.</item>
-/// <item>An app lock (<see cref="ForApp"/>) makes two deploys of one app take turns, for the whole deploy. A build has
-/// no upper bound, so its lease is renewed by a heartbeat while it is held and runs out only after the holder stops.</item>
+/// <item>The box lock (<see cref="ForBox"/>) guards what every app shares — the network, the proxy and its config — for
+/// seconds, never across a build, a start, a health gate or an old colour's drain. Its lease is fixed.</item>
+/// <item>An app lock (<see cref="ForApp"/>) makes two deploys of one app take turns, for the whole deploy, through the
+/// old colour finishing its jobs. A build has no upper bound, so its lease is renewed by a heartbeat while it is held
+/// and runs out only after the holder stops.</item>
 /// </list>
 /// </summary>
 internal sealed class DeployLock

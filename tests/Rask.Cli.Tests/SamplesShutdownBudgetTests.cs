@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -34,17 +35,13 @@ public class SamplesShutdownBudgetTests
     }
 
     [Fact]
-    public void The_host_budgets_the_shutdown_inside_the_deploy_window()
+    public void A_host_nobody_gave_a_budget_keeps_the_fifteen_seconds_rung()
     {
-        // The two numbers are owned by different assemblies on purpose — Rask.Cli passes `docker stop -t`
-        // and must not reference the framework — so this is what holds them together. Asserted as a
-        // relationship rather than a literal: either may move, but the app must always give up first.
         var options = Resolve();
 
-        Assert.True(
-            options.ShutdownTimeout < TimeSpan.FromSeconds(ShutdownBudget.DockerStopSeconds),
-            $"the host budgets {options.ShutdownTimeout.TotalSeconds}s, but `rask deploy` SIGKILLs at "
-            + $"{ShutdownBudget.DockerStopSeconds}s — the app would be killed mid-shutdown");
+        // With no budget named — a host not started by `rask deploy`, or by an older one that SIGKILLed at 20s —
+        // the app keeps the old rung. `rask deploy` names one from stopTimeout; the test below keeps it.
+        Assert.Equal(TimeSpan.FromSeconds(15), options.ShutdownTimeout);
     }
 
     [Fact]
@@ -75,6 +72,25 @@ public class SamplesShutdownBudgetTests
 
         Assert.Equal(TimeSpan.FromSeconds(42), options.ShutdownTimeout);
         Assert.True(options.ServicesStopConcurrently); // still applied — it has no config binding to defer to
+    }
+
+    [Fact]
+    public void A_budget_the_deploy_names_is_kept_even_when_it_equals_the_framework_default()
+    {
+        // `rask deploy` hands the app its budget as ASPNETCORE_SHUTDOWNTIMEOUTSECONDS. A stopTimeout of 35s makes
+        // that 30 — .NET's own default — which the value check alone would mistake for "nobody chose" and cut to 15.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["SHUTDOWNTIMEOUTSECONDS"] = "30" })
+            .Build());
+        services.Configure<HostOptions>(o => o.ShutdownTimeout = TimeSpan.FromSeconds(30));
+        services.AddRask();
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<HostOptions>>().Value;
+
+        Assert.Equal(TimeSpan.FromSeconds(30), options.ShutdownTimeout);
     }
 
     [Fact]

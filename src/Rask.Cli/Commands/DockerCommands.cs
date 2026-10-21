@@ -32,7 +32,7 @@ internal static class DockerCommands
     /// so the values never appear in this machine's process table the way <c>-e KEY=VALUE</c> does. Entries
     /// whose value spans lines can't be expressed in that format and stay inline.
     /// </summary>
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, string redirects = "")
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, string redirects = "", TimeSpan? stopTimeout = null)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
 
@@ -60,6 +60,11 @@ internal static class DockerCommands
         // exception page; relying on the base image's default left a deployed app in whatever environment
         // the image happened to assume. Set before the user's own --env, so an explicit override still wins.
         args.AddRange(["-e", "ASPNETCORE_ENVIRONMENT=Production"]);
+
+        // The app's own shutdown budget, cut from the same stopTimeout the retiring `docker stop -t` waits for, so
+        // the app gives up (and cancels a job still running) before the SIGKILL lands. See ShutdownBudget.
+        var hostShutdown = ShutdownBudget.HostShutdownSeconds(stopTimeout ?? ShutdownBudget.DefaultStopTimeout);
+        args.AddRange(["-e", $"ASPNETCORE_SHUTDOWNTIMEOUTSECONDS={hostShutdown.ToString(CultureInfo.InvariantCulture)}"]);
 
         args.AddRange(["-v", $"{slug}-data:/data", "-e", "Rask__ConnectionStrings__App=Data Source=/data/app.db"]);
 
@@ -115,13 +120,21 @@ internal static class DockerCommands
     }
 
     /// <summary>
-    /// Gracefully stop a container: SIGTERM, then SIGKILL after <see cref="StopTimeoutSeconds"/>. Used before
-    /// retiring a container that's serving, so SQLite checkpoints the WAL cleanly before exit — and, when a
-    /// replica is configured, the in-process Litestream replicator flushes. A plain <c>rm -f</c> (SIGKILL)
-    /// would lose the last frames.
+    /// Gracefully stop a container: SIGTERM, then SIGKILL after <paramref name="stopTimeout"/> — the app's stop
+    /// budget. Docker returns as soon as the app exits, so the budget is a ceiling: the app claims no new job, finishes
+    /// the running ones, checkpoints SQLite's WAL and lets Litestream flush. A plain <c>rm -f</c> (SIGKILL) would cut
+    /// all of that.
     /// </summary>
-    internal static IReadOnlyList<string> BuildStopArguments(string host, string container) =>
-        [.. Prefix(host), "stop", "-t", StopTimeoutSeconds.ToString(CultureInfo.InvariantCulture), container];
+    internal static IReadOnlyList<string> BuildStopArguments(string host, string container, TimeSpan stopTimeout) =>
+        [.. Prefix(host), "stop", "-t", ((int)stopTimeout.TotalSeconds).ToString(CultureInfo.InvariantCulture), container];
+
+    /// <summary>SIGKILL a container whose stop budget has run out — only when <c>docker stop</c> could not do it itself.</summary>
+    internal static IReadOnlyList<string> BuildKillArguments(string host, string container) =>
+        [.. Prefix(host), "kill", container];
+
+    /// <summary>How a stopped container ended: <c>137</c> when the SIGKILL at the end of its budget did it.</summary>
+    internal static IReadOnlyList<string> BuildExitCodeArguments(string host, string container) =>
+        [.. Prefix(host), "inspect", "--format", "{{.State.ExitCode}}", container];
 
     /// <summary>The label on an app container naming the hosts the proxy redirects to it (<c>--redirect</c>).</summary>
     internal const string RedirectLabel = "rask.redirect";
