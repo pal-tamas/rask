@@ -12,8 +12,11 @@ internal sealed class ChromiumSettings
     /// </summary>
     public bool NoSandbox { get; set; }
 
-    /// <summary>How many documents print at once; the rest wait their turn.</summary>
-    public int MaxConcurrentPrints { get; set; } = Math.Clamp(Environment.ProcessorCount, 1, 4);
+    /// <summary>
+    /// How many documents print at once; the rest wait their turn. Memory is the bound, not cores: laying out a
+    /// 5,000-row table (209 A4 pages) peaked its renderer at about 1.3 GB.
+    /// </summary>
+    public int MaxConcurrentPrints { get; set; } = 2;
 
     /// <summary>How long one document may take, from loading its HTML to the last byte of the PDF.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);

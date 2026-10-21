@@ -131,6 +131,9 @@ internal static class HtmlPrint
             {
                 json.WriteBoolean("landscape", page.IsLandscape);
                 json.WriteBoolean("printBackground", true);
+                // Chromium tags by default, and the structure tree is most of the file: a 209-page table came out
+                // 12 MB tagged and 0.45 MB untagged, and printed in twice the time.
+                json.WriteBoolean("generateTaggedPDF", false);
                 json.WriteNumber("paperWidth", page.WidthInches);
                 json.WriteNumber("paperHeight", page.HeightInches);
                 json.WriteNumber("marginTop", MarginInches);
