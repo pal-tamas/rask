@@ -5,6 +5,7 @@ using Rask.Data;
 namespace Rask.Auth.Tests;
 
 /// <summary>What a job enqueued by a user is checked against at run time: the principal their account issues now.</summary>
+[Collection(AuthDbCollection.Name)]
 public sealed class AccountPrincipalsTests
 {
     [Fact]
