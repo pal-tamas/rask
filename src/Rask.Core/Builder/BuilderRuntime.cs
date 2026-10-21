@@ -298,12 +298,18 @@ public static partial class BuilderRuntime
         // One forward pass: reset what this parent owns (in creation order, the order the chains ran)
         // and compact everything else down. No allocation, and no reliance on where the slots sit.
         var write = 0;
+        var settle = HasClassWatches;
         for (var read = 0; read < slots.Count; read++)
         {
             var slot = slots[read];
             if (ReferenceEquals(slot.Parent, parent))
             {
                 slot.Reset(slot.Target, slot.PendingMask);
+                if (settle)
+                {
+                    SettleClasses(slot.Target);
+                }
+
                 continue;
             }
 
@@ -357,10 +363,15 @@ public static partial class BuilderRuntime
             return;
         }
 
+        var settle = HasClassWatches;
         for (var i = depth; i < slots.Count; i++)
         {
             var slot = slots[i];
             slot.Reset(slot.Target, slot.PendingMask);
+            if (settle)
+            {
+                SettleClasses(slot.Target);
+            }
         }
 
         slots.RemoveRange(depth, slots.Count - depth);

@@ -371,6 +371,11 @@ public sealed partial class ComponentFactoryGenerator
 
         var (paramType, assigned) = SetterParameter(typeFqn, wrap);
         var track = TrackStatements(name, fold, isDelegate, pendingBit);
+        if (JoinsClasses(name, typeFqn))
+        {
+            (track, assigned) = JoinedClassStatements(name, pendingBit);
+        }
+
         EmitCarrierPriority(sb, typeFqn);
 
         sb.Append("    ").Append(visibility).Append(" static ");
@@ -539,6 +544,25 @@ public sealed partial class ComponentFactoryGenerator
         }
 
         return track;
+    }
+
+    // A class-carrying prop — `Class`, or a kit's `ContainerClass` — joins: `.Class("w-full").Class("mb-8")` is
+    // `w-full mb-8` (owner decision 2026-10-21). Told by name and type, so a string prop that merely ends in
+    // "Class" and is not one would join too; none exists.
+    private static bool JoinsClasses(string name, string typeFqn) =>
+        string.Equals(typeFqn, "string?", StringComparison.Ordinal)
+        && name.EndsWith("Class", StringComparison.Ordinal);
+
+    // The joined value goes in a local the assignment reads. JoinClass clears the pending bit itself — it has to
+    // read it first, to tell this render's first write (replace) from a later one (join) — and it reports the
+    // prop change too, judged on the final list when the pass settles, so there is neither a Written nor a Track
+    // call. A prop the entry resets eagerly passes 0: it is at its default already.
+    private static (string Track, string Assigned) JoinedClassStatements(string name, int pendingBit)
+    {
+        var mask = pendingBit >= 0 ? MaskLiteral(new[] { pendingBit }) : "0UL";
+        var track = "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, " + mask + ", __c."
+                    + EscapeIdentifier(name) + ", value); ";
+        return (track, "__v");
     }
 
     // `.Validate(a).Validate(b)` runs a, then b if a let the value through: the one step that adds to what

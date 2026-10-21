@@ -20,6 +20,7 @@ public class DuplicateChainCallAnalyzerTests
             {
                 public string? Title { get; set; }
                 public string? Note { get; set; }
+                public string? ContainerClass { get; set; }
             }
         }
         """;
@@ -79,6 +80,23 @@ public class DuplicateChainCallAnalyzerTests
                                 await System.Threading.Tasks.Task.Yield();
                                 return System.Array.Empty<string>();
                             });
+                }
+            }
+            """));
+
+    // A second `.Class(…)` adds to the first (owner decision 2026-10-21), and so does every class-carrying step:
+    // naming one twice is the point, not a stale line.
+    [Fact]
+    public async Task A_chain_that_adds_a_second_class_is_not_reported() =>
+        Assert.Empty(await AnalyzeAsync("""
+            namespace Demo
+            {
+                public sealed partial class Page : Rask.Core.Component
+                {
+                    protected override Rask.Core.Component? Render() =>
+                        Div[
+                            Div.Class("w-full").Id("x").Class("mb-8", "p-4"),
+                            Card.ContainerClass("max-h-80").Note("n").ContainerClass("rounded")];
                 }
             }
             """));

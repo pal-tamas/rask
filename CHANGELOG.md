@@ -343,6 +343,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A second `.Class(…)` now adds to the first instead of replacing it.** `Ui.Table.Class("w-full").Class("mb-8")`
+  renders `w-full mb-8`; it used to render `mb-8` and drop `w-full` silently. The parts join as `Class("a", "b")`
+  always did — one space, each trimmed, null and blank ones skipped, repeats kept — on every element and component,
+  and on every class-carrying kit step (`ContainerClass`, `InputClass`, `TrackClass`, `ThumbClass`, `ArrowsClass`,
+  `LogoClass`, `OptionsClass`, `IconClass`) and `NavLink.ActiveClass`. Each render starts the list afresh, so it
+  never grows, and a component counts as changed only when the finished list differs from last render's, so its
+  update hook and the render cache behave as with one `.Class`; a lone `.Class(…)` costs nothing extra ([building components](docs/building-components.md)).
 - **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
   The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
