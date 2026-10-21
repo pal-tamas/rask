@@ -83,7 +83,8 @@ public partial class ClassJoinTests : RaskMarkup
         var renders = Enumerable.Range(0, 5).Select(_ => RenderLive(host, sp)).ToList();
 
         Assert.Contains("<p class=\"w-full mb-8\"></p>", first, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"leaf a b\"><span class=\"l1 l2\">x</span></div>", first, StringComparison.Ordinal);
+        Assert.Equal(2, first.Split("<div class=\"leaf a b\" data-rask-key=").Length - 1);
+        Assert.Equal(2, first.Split("<span class=\"l1 l2\">").Length - 1);
         Assert.All(renders, html => Assert.Equal(first, html));
     }
 

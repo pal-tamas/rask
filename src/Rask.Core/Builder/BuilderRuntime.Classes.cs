@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace Rask.Core;
 
 public static partial class BuilderRuntime
@@ -52,5 +54,53 @@ public static partial class BuilderRuntime
         }
 
         return new string(buffer);
+    }
+
+    /// <summary>
+    ///     The value a class-carrying step (<c>Class</c>, <c>ContainerClass</c>…) writes: <paramref name="value" />
+    ///     itself on the chain's first write of this render, the two joined by <see cref="JoinClasses" />'s rules
+    ///     on every later one — so <c>.Class("w-full").Class("mb-8")</c> is <c>w-full mb-8</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A chain re-runs every render against the instance the last render left, whose class is still on it —
+    ///     a folding prop is put back only when the parent's <c>Render()</c> returns. So the first write is told
+    ///     by the prop's PENDING bit, which the entry sets afresh on every pass, and it replaces rather than joins:
+    ///     the list can never grow render after render. With no slot the receiver is either a fresh instance built
+    ///     outside a render (no context: join onto its default) or one a past render built (replace, as before).
+    /// </remarks>
+    /// <param name="target">The component the step writes.</param>
+    /// <param name="bit">The prop's pending bit, or 0 for a prop the entry resets eagerly.</param>
+    /// <param name="current">The prop's value now.</param>
+    /// <param name="value">What the step was given.</param>
+    /// <returns>The value to store.</returns>
+    public static string? JoinClass(Component target, ulong bit, string? current, string? value)
+    {
+        var slots = CollectionsMarshal.AsSpan(_slots);
+        for (var i = slots.Length - 1; i >= 0; i--)
+        {
+            ref var slot = ref slots[i];
+            if (ReferenceEquals(slot.Target, target))
+            {
+                if ((slot.PendingMask & bit) != 0)
+                {
+                    slot.PendingMask &= ~bit;
+                    return value;
+                }
+
+                return JoinPair(current, value);
+            }
+        }
+
+        return Live.LiveRenderContext.Current is null ? JoinPair(current, value) : value;
+    }
+
+    private static string? JoinPair(string? first, string? second)
+    {
+        if (string.IsNullOrWhiteSpace(second))
+        {
+            return first;
+        }
+
+        return string.IsNullOrWhiteSpace(first) ? second : JoinClasses([first, second]);
     }
 }
