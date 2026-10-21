@@ -74,7 +74,8 @@ public sealed partial class UiTableOfQueryTests : global::Rask.Core.RaskMarkup
         var page = 1;
         var answers = new Dictionary<int, TaskCompletionSource<string[]>>
         {
-            [1] = new(), [2] = new(),
+            [1] = new(),
+            [2] = new(),
         };
         using var query = Client().Query(QueryKey.Of("invoices"), () => page, (asked, _) => answers[asked].Task);
         _ = query.Data;
@@ -97,7 +98,8 @@ public sealed partial class UiTableOfQueryTests : global::Rask.Core.RaskMarkup
         var page = 1;
         var answers = new Dictionary<int, TaskCompletionSource<string[]>>
         {
-            [1] = new(), [2] = new(),
+            [1] = new(),
+            [2] = new(),
         };
         using var query = Client().Query(
             QueryKey.Of("invoices"), () => page, (asked, _) => answers[asked].Task, new QueryOptions { KeepPreviousData = true });
