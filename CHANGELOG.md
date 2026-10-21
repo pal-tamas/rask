@@ -36,26 +36,51 @@ them until tagged releases begin.
 ### Added
 
 - **Rask.Pdf: `await Pdf.From(Routes.RefundReport(id))` prints a page of the app as the calling user sees it.**
-  Namespace `Rask.Printing`; turned on with `builder.Services.AddRaskPdf()`, on a `RaskApp`
-  (`RaskApp.Create(args, b => b.Services.AddRaskPdf())`) and on a hand-wired host alike.
+  Namespace `Rask.Printing`. A `RaskApp` whose app references Rask.Pdf has it with no code; a hand-wired host
+  calls `builder.Services.AddRaskPdf()`.
   ```csharp
   var pdf = await Pdf.From(Routes.RefundReport(id), new PdfOptions { Page = PdfPage.A4.Landscape, Footer = "Visszatérítés" });
   var receipt = await Pdf.From(Receipt.Order(order));          // or a component written only for print
+  app.MapGet("/refund/{id}.pdf", async (Guid id) => Results.File(await Pdf.From(Routes.RefundReport(id)), Pdf.ContentType));
   ```
   - The page is rendered on the server exactly as its first GET is — static HTML, no live session left behind —
-    for the caller (the session's user), after its `[Authorize]` admits them: a page they could not open is never
-    printed (`UnauthorizedAccessException`), and one that redirects or answers 404/500 is not printed either.
+    for the caller, after its `[Authorize]` admits them: a page they could not open is never printed
+    (`UnauthorizedAccessException`), and one that redirects or answers 404/500 is not printed either. The caller is
+    the session's user in a handler, the request's user in a minimal-API endpoint, and in a job the user who
+    enqueued it, with no more rights than they had then and still have (see the jobs entry below).
   - The app's own stylesheet, the kit's sheet, the component bundle and the fonts are served to the browser from
     the app's web root; nothing else is reachable, and no script runs.
   - `PdfOptions`: `Page` (`PdfPage.A4`, `PdfPage.A4.Landscape`), `Margins` (`PdfMargins.Millimetres(…)`), `Footer`,
     `PageNumbers` ("1 / 5", on by default) and `Tagged` (an accessible, tagged PDF; off by default, since the
     structure is most of the file: 12 MB against 0.45 MB for a 209-page table).
-  - Drawn by headless Chromium driven over its own DevTools pipe — no dependency, never a download. `Rask:Pdf`
-    sets `ChromiumPath` (else the usual install folders and `PATH`), `NoSandbox`, `MaxConcurrentPrints` (2),
-    `Timeout` (30 s) and `MaxPages` (1000; a longer document fails rather than come out cut). One browser per app,
-    started at the first print, replaced after a crash, closed with the host; every document in a browser context
-    of its own. A 5,000-row table (209 landscape A4 pages, heading on every page) prints in about a second.
+  - **The browser comes from the build, as Puppeteer's does — never from the running app.** Building an app that
+    references Rask.Pdf fetches the pinned Chrome for Testing headless shell (156.0.8078.47) into the user cache
+    (`~/Library/Caches/Rask`, `~/.cache/rask`, `%LOCALAPPDATA%\Rask\Cache`) once, after checking its SHA-256;
+    `dotnet build`, `dotnet test` and `rask dev` then print with nothing installed. `RaskPdfDownloadChromium=false`
+    turns the fetch off; `Rask:Pdf:ChromiumPath` names a browser of your own. The daily upstream run moves the pin.
+  - **The template images carry it.** Every scaffolded ASP.NET Dockerfile now has `dotnet publish` fetch the shell
+    into the build stage (`-p:RaskPdfChromiumCache=/chrome`), copies it to `/opt/rask/chrome`, and installs the
+    libraries it links against plus fonts — only when the app references Rask.Pdf. Measured on `aspnet:10.0`
+    (Ubuntu 24.04, arm64): the image grows by about 510 MB (the shell 289 MB, its libraries 220 MB, most of that
+    the GPU stack `libgbm1` brings). An existing app adds the same lines to its own Dockerfile (see any template's).
+    The browser keeps its sandbox as the image's non-root user; `Rask__Pdf__NoSandbox=true` is for a host whose
+    kernel forbids it.
+  - Driven over the browser's own DevTools pipe — no dependency. `Rask:Pdf` sets `ChromiumPath`, `NoSandbox`,
+    `MaxConcurrentPrints` (2), `Timeout` (30 s) and `MaxPages` (1000; a longer document fails rather than come out
+    cut). One browser per app, started at the first print, replaced after a crash, closed with the host; every
+    document in a browser context of its own. A 5,000-row table (139–209 A4 landscape pages, heading on every page)
+    prints in about a second; in the container the browser peaked at about 1.2 GB.
   - Linux and macOS for now; not on NuGet until the package is complete.
+
+- **BREAKING (migration): a job runs signed in as the user who enqueued it, never with more rights than they had
+  then and still have.** `Job` gets a nullable `UserClaims` column: `rask db add AddJobUserClaims && rask db update`
+  (until then the processor logs exactly that command, and no job runs).
+  - At enqueue the row records the user's rights — roles and every claim that is not who they are. At run time
+    the processor rebuilds the user's principal from their account as it is now (Rask.Auth) and keeps only the
+    rights in both, signs it into the job's scope and makes the scope ambient: `Current.Principal`, an
+    `[Authorize]` check and `Pdf.From` all see that user. A role granted since is not the job's, a revoked one is
+    gone, and a deleted account runs as nobody. Without Rask.Auth the recorded rights alone apply.
+  - A job enqueued before the migration runs signed in with no rights beyond being that user.
 
 - **`Jobs.Enqueue(job).InLane(id).UnlessWaiting()` skips work that already waits — decided in the job table.**
   Before: an app that wanted "ask each pump once per round" kept its own in-memory set of what waits, which a

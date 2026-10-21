@@ -9,9 +9,9 @@ public sealed class ChromiumLocatorTests
 
         var missing = Assert.Throws<InvalidOperationException>(() => ChromiumLocator.Find(null, nowhere, "/no-bin"));
 
-        Assert.Contains("apt-get install -y chromium", missing.Message, StringComparison.Ordinal);
+        Assert.Contains("fetches the pinned Chrome for Testing", missing.Message, StringComparison.Ordinal);
         Assert.Contains("Rask__Pdf__ChromiumPath", missing.Message, StringComparison.Ordinal);
-        Assert.Contains("never downloads a browser", missing.Message, StringComparison.Ordinal);
+        Assert.Contains("Nothing downloads a browser at run time", missing.Message, StringComparison.Ordinal);
         Assert.Contains("/nowhere/Google Chrome", missing.Message, StringComparison.Ordinal);
         Assert.Contains(Path.Combine("/no-bin", "chromium"), missing.Message, StringComparison.Ordinal);
     }
@@ -24,7 +24,7 @@ public sealed class ChromiumLocatorTests
         var missing = Assert.Throws<InvalidOperationException>(() => ChromiumLocator.Find(configured, [], path: null));
 
         Assert.Contains($"Rask:Pdf:ChromiumPath is '{configured}'", missing.Message, StringComparison.Ordinal);
-        Assert.Contains("never downloads a browser", missing.Message, StringComparison.Ordinal);
+        Assert.Contains("Nothing downloads a browser at run time", missing.Message, StringComparison.Ordinal);
     }
 
     [Fact]

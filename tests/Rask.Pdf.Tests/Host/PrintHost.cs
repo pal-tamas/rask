@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Pdf.Tests;
 using Rask.Server;
 using Rask.Server.Authentication;
 
@@ -23,7 +25,12 @@ internal sealed class PrintHost : IAsyncDisposable
         _webRoot = webRoot;
     }
 
+    /// <summary>The header the test middleware reads the request's user from.</summary>
+    public const string UserHeader = "X-Test-User";
+
     public IServiceProvider Services => _app.Services;
+
+    public HttpClient Http => _app.GetTestClient();
 
     /// <summary>Starts the host; <paramref name="files"/> are written into its web root first.</summary>
     public static async Task<PrintHost> Start(IReadOnlyDictionary<string, byte[]>? files = null, string? chromium = null)
@@ -45,6 +52,32 @@ internal sealed class PrintHost : IAsyncDisposable
         builder.Services.AddRaskPdf();
 
         var app = builder.Build();
+
+        // The request's user, as an authentication handler would set it: named by a header, for the endpoint tests.
+        app.Use((context, next) =>
+        {
+            if (context.Request.Headers.TryGetValue(UserHeader, out var name))
+            {
+                context.User = SignedIn(name.ToString());
+            }
+
+            return next(context);
+        });
+
+        // Pdf.From in a minimal-API endpoint, as a download button's endpoint would call it.
+        app.MapGet("/download/refund", async () => Results.File(await Pdf.From(Routes.RefundReportPage()), Pdf.ContentType));
+        app.MapGet("/download/mine", async () =>
+        {
+            try
+            {
+                return Results.File(await Pdf.From(Routes.MyReportPage()), Pdf.ContentType);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            }
+        });
+
         app.MapRask<PrintTestApp>();
         await app.StartAsync();
         return new PrintHost(app, webRoot);

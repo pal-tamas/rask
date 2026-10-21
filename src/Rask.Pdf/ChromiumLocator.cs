@@ -1,6 +1,10 @@
 namespace Rask.Printing;
 
-/// <summary>Finds the Chromium the app prints with. It never downloads one: a missing browser is an error that says how to install it.</summary>
+/// <summary>
+/// Finds the Chromium the app prints with: the configured one, the pinned shell the build fetched or the image
+/// carries, then an installed Chrome or Chromium. It never downloads one at run time: a missing browser is an
+/// error that says how to get it.
+/// </summary>
 internal static class ChromiumLocator
 {
     private static readonly string[] CommandNames =
@@ -8,7 +12,7 @@ internal static class ChromiumLocator
 
     /// <summary>The configured binary, or the first installed one found in the usual places and on <c>PATH</c>.</summary>
     public static string Find(string? configured) =>
-        Find(configured, InstallLocations(), Environment.GetEnvironmentVariable("PATH"));
+        Find(configured, Pinned().Concat(InstallLocations()).ToList(), Environment.GetEnvironmentVariable("PATH"));
 
     internal static string Find(string? configured, IReadOnlyList<string> installLocations, string? path)
     {
@@ -28,9 +32,13 @@ internal static class ChromiumLocator
     }
 
     private const string HowToInstall =
-        "Install Chromium or Google Chrome — `apt-get install -y chromium` in a Debian or Ubuntu image, "
-        + "`brew install --cask google-chrome` on a Mac — or point Rask:Pdf:ChromiumPath (environment variable "
-        + "Rask__Pdf__ChromiumPath) at the binary. Rask never downloads a browser.";
+        "Building the app fetches the pinned Chrome for Testing headless shell into the Rask cache (`dotnet build`, "
+        + "unless RaskPdfDownloadChromium is false); a container gets it from the scaffolded Dockerfile, into "
+        + ChromiumCache.ContainerPath + ". Or install Chromium or Google Chrome and point Rask:Pdf:ChromiumPath "
+        + "(environment variable Rask__Pdf__ChromiumPath) at the binary. Nothing downloads a browser at run time.";
+
+    private static IEnumerable<string> Pinned() =>
+        ChromiumCache.PinnedShell() is { } shell ? [shell, ChromiumCache.ContainerPath] : [ChromiumCache.ContainerPath];
 
     private static IEnumerable<string> OnPath(string? path) =>
         (path ?? string.Empty)

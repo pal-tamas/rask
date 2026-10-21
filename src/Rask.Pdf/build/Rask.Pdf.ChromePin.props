@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    THE PINNED BROWSER: the Chrome for Testing headless shell Rask.Pdf prints with in development, in CI and in the
+    container image. One version, one SHA-256 per platform, checked before anything is unpacked. Google publishes
+    no checksums for these archives, so the hashes are ours: taken when the pin moves, by the dependency check
+    (.claude/skills/check-dependency-updates, scripts/upstream/chrome-for-testing-pin.sh), never at build time.
+
+    Read by the build (build/Rask.Pdf.targets), by the scaffolded Dockerfile through it, and by Rask.Pdf itself,
+    which looks for this version in the user's Rask cache (the assembly carries it as metadata).
+  -->
+  <PropertyGroup>
+    <RaskPdfChromeVersion>156.0.8078.47</RaskPdfChromeVersion>
+    <RaskPdfChromeSha256_linux64>0d5acc62c3e213f8c87d3c298d66ffcf9a236d12ea4b9f85318bf85dbc279daa</RaskPdfChromeSha256_linux64>
+    <RaskPdfChromeSha256_linux_arm64>955059fa7020d7be85eb503e21339fd4d718f51f5996d3b60633fbf908bda132</RaskPdfChromeSha256_linux_arm64>
+    <RaskPdfChromeSha256_mac_arm64>2fd1c09a3e1ebde9e69e6aba92f1dd3f21ad247b55d9bf66e39213ff4205436d</RaskPdfChromeSha256_mac_arm64>
+    <RaskPdfChromeSha256_mac_x64>5e230044c6ac989597f4a4e301a0a710d257e07d6f7754754da2bf62ea3d272c</RaskPdfChromeSha256_mac_x64>
+    <RaskPdfChromeSha256_win64>e0af9b23f8051cca4f37ca49cd425e8055701bfc0383c198d67f8d5cc5884249</RaskPdfChromeSha256_win64>
+  </PropertyGroup>
+
+</Project>

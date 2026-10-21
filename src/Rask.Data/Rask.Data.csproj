@@ -77,6 +77,11 @@
          work and is gone on a rollback, so nothing runs for work that never happened. -->
     <InternalsVisibleTo Include="Rask.Jobs"/>
     <InternalsVisibleTo Include="Rask.Mail"/>
+    <!-- IAccountPrincipals: the auth battery rebuilds a user's principal from their account for a job that runs
+         as them (Rask.Jobs), so the job never holds a right the user has lost since. -->
+    <InternalsVisibleTo Include="Rask.Auth.Api"/>
+    <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <InternalsVisibleTo Include="Rask.Auth.Tests"/>
     <!-- A stored file records its tenant in the column type the app's tenant-scoped tables use
          (TenantColumnFollowers), which is model plumbing no app should have to name. -->
     <InternalsVisibleTo Include="Rask.Storage"/>

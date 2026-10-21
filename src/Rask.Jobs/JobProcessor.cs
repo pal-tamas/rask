@@ -355,6 +355,12 @@ public sealed partial class JobProcessor<TContext>(
                 return;
             }
 
+            if (IsMissingColumn(ex, nameof(Job.UserClaims)))
+            {
+                UserClaimsColumnMissing(logger, ex);
+                return;
+            }
+
             CycleFailed(logger, ex);
         }
     }
@@ -530,6 +536,17 @@ public sealed partial class JobProcessor<TContext>(
         // And AS the user, unconditionally: a job enqueued by nobody runs for nobody, rather than
         // for whatever user happened to be ambient on the processor's own flow.
         using var user = Current.UseUser(job.UserId);
+
+        // With the rights that user had when they enqueued it AND still has, as the scope's signed-in user, and the
+        // scope ambient like a request's: so Current.Principal, an [Authorize] check and Pdf.From all see them.
+        var principal = await JobPrincipal.For(job, scope.ServiceProvider.GetService<IAccountPrincipals>(), graceToken)
+            .ConfigureAwait(false);
+        if (principal is not null)
+        {
+            scope.ServiceProvider.GetService<IScopeUser>()?.SignIn(principal);
+        }
+
+        using var ambient = Ambient.Enter(scope.ServiceProvider);
 
         await dispatcher.Send(command, graceToken).ConfigureAwait(false);
     }
@@ -834,6 +851,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added a WaitingKey column (what lets .UnlessWaiting() skip work that already waits) that this database does not have. "
             + "Run: rask db add AddJobWaitingKey && rask db update.")]
     private static partial void WaitingKeyColumnMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added a UserClaims column (the rights a job's user had when they enqueued it, which it never exceeds) that this database does not have. "
+            + "Run: rask db add AddJobUserClaims && rask db update.")]
+    private static partial void UserClaimsColumnMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

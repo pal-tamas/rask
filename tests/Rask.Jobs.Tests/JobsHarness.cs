@@ -158,13 +158,24 @@ public sealed class JobsHarness : IAsyncDisposable
     private readonly ServiceProvider _provider;
     private readonly bool _ownsDb;
 
-    public JobsHarness(Action<JobsOptions>? configure = null, DateTimeOffset? start = null, string? dbPath = null)
+    public JobsHarness(
+        Action<JobsOptions>? configure = null, DateTimeOffset? start = null, string? dbPath = null,
+        Action<IServiceCollection>? services = null)
     {
         _ownsDb = dbPath is null;
         DbPath = dbPath ?? Path.Combine(Path.GetTempPath(), $"rask-jobs-test-{Guid.NewGuid():N}.db");
         Clock = new FakeTimeProvider(start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 
-        var services = new ServiceCollection();
+        var collection = new ServiceCollection();
+        services?.Invoke(collection);
+        RegisterJobs(collection, configure);
+        _provider = collection.BuildServiceProvider();
+        using var db = NewContext();
+        db.Database.EnsureCreated();
+    }
+
+    private void RegisterJobs(ServiceCollection services, Action<JobsOptions>? configure)
+    {
         services.AddLogging(b => b.AddProvider(new CapturingLoggerProvider(Logs)));
         services.AddSingleton(Recorder);
         services.AddSingleton(Gate);
@@ -177,10 +188,6 @@ public sealed class JobsHarness : IAsyncDisposable
             configure?.Invoke(o);
         });
         services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
-
-        _provider = services.BuildServiceProvider();
-        using var db = NewContext();
-        db.Database.EnsureCreated();
     }
 
     public string DbPath { get; }

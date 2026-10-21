@@ -23,6 +23,9 @@ public static class PdfServiceCollectionExtensions
         {
             // A singleton the container disposes when the host stops, which closes the browser.
             services.TryAddSingleton(static sp => new ChromiumPrinter(sp.GetRequiredService<ChromiumSettings>()));
+
+            // So Pdf.From in a minimal-API endpoint finds its request, and the request's user.
+            services.AddHttpContextAccessor();
         }
 
         return services;

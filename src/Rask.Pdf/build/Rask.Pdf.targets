@@ -1,0 +1,87 @@
+<Project>
+
+  <!--
+    THE BROWSER A PDF IS PRINTED WITH, fetched by the build — as Puppeteer does — never by the running app.
+
+    An app (an Exe) that references Rask.Pdf gets the pinned Chrome for Testing headless shell in the user's Rask
+    cache when it builds, so `dotnet build`, `dotnet test` and `rask dev` print with no browser installed. The
+    archive's SHA-256 is checked against build/Rask.Pdf.ChromePin.props BEFORE it is unpacked; a mismatch fails
+    the build and leaves nothing behind. Fetched once per version and platform, then the build is a file check.
+
+    Production does not use this cache: the container image carries the browser (the scaffolded Dockerfile has
+    `dotnet publish` fetch it into a folder of its own, -p:RaskPdfChromiumCache=…, and copies that into the
+    runtime image). A machine with no network, or an app that brings its own Chromium (Rask:Pdf:ChromiumPath),
+    turns the fetch off with <RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>.
+  -->
+
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Pdf.ChromePin.props" Condition="'$(RaskPdfChromeVersion)' == ''" />
+
+  <PropertyGroup>
+    <RaskPdfDownloadChromium Condition="'$(RaskPdfDownloadChromium)' == ''">true</RaskPdfDownloadChromium>
+
+    <_RaskPdfArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</_RaskPdfArch>
+    <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_RaskPdfArch)' == 'X64'">linux64</_RaskPdfPlatform>
+    <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_RaskPdfArch)' == 'Arm64'">linux-arm64</_RaskPdfPlatform>
+    <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_RaskPdfArch)' == 'Arm64'">mac-arm64</_RaskPdfPlatform>
+    <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('OSX')) And '$(_RaskPdfArch)' == 'X64'">mac-x64</_RaskPdfPlatform>
+    <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('Windows')) And '$(_RaskPdfArch)' == 'X64'">win64</_RaskPdfPlatform>
+    <_RaskPdfChromeSha256 Condition="'$(_RaskPdfPlatform)' == 'linux64'">$(RaskPdfChromeSha256_linux64)</_RaskPdfChromeSha256>
+    <_RaskPdfChromeSha256 Condition="'$(_RaskPdfPlatform)' == 'linux-arm64'">$(RaskPdfChromeSha256_linux_arm64)</_RaskPdfChromeSha256>
+    <_RaskPdfChromeSha256 Condition="'$(_RaskPdfPlatform)' == 'mac-arm64'">$(RaskPdfChromeSha256_mac_arm64)</_RaskPdfChromeSha256>
+    <_RaskPdfChromeSha256 Condition="'$(_RaskPdfPlatform)' == 'mac-x64'">$(RaskPdfChromeSha256_mac_x64)</_RaskPdfChromeSha256>
+    <_RaskPdfChromeSha256 Condition="'$(_RaskPdfPlatform)' == 'win64'">$(RaskPdfChromeSha256_win64)</_RaskPdfChromeSha256>
+
+    <!-- The same folder Rask.Pdf's locator reads at run time (ChromiumCache.cs). -->
+    <_RaskPdfCacheRoot Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(LOCALAPPDATA)\Rask\Cache</_RaskPdfCacheRoot>
+    <_RaskPdfCacheRoot Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Caches/Rask</_RaskPdfCacheRoot>
+    <_RaskPdfCacheRoot Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(XDG_CACHE_HOME)' != ''">$(XDG_CACHE_HOME)/rask</_RaskPdfCacheRoot>
+    <_RaskPdfCacheRoot Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(XDG_CACHE_HOME)' == ''">$(HOME)/.cache/rask</_RaskPdfCacheRoot>
+    <RaskPdfChromiumCache Condition="'$(RaskPdfChromiumCache)' == ''">$([System.IO.Path]::Combine('$(_RaskPdfCacheRoot)', 'chrome-headless-shell'))</RaskPdfChromiumCache>
+  </PropertyGroup>
+
+  <!--
+    Only an app: a library that references Rask.Pdf prints nothing by itself. In this repository a project
+    reference does not carry the package's build files, so Directory.Build.targets imports this file into every
+    project and the reference itself is what turns it on; a package consumer has it because it has the package.
+  -->
+  <Target Name="RaskPdfFetchChromium"
+          AfterTargets="Build"
+          Condition="'$(RaskPdfDownloadChromium)' == 'true' And '$(OutputType)' == 'Exe' And '$(DesignTimeBuild)' != 'true'
+                     And ('$(RaskPdfPackaged)' == 'true' Or '@(ProjectReference->AnyHaveMetadataValue('Filename', 'Rask.Pdf'))' == 'true')">
+
+    <Warning Condition="'$(_RaskPdfPlatform)' == ''"
+             Text="Rask.Pdf has no pinned Chrome for Testing for $(_RaskPdfArch) on this OS, so none was fetched. Install Chromium and set Rask:Pdf:ChromiumPath, or set RaskPdfDownloadChromium=false to silence this." />
+
+    <PropertyGroup Condition="'$(_RaskPdfPlatform)' != ''">
+      <_RaskPdfDir>$([System.IO.Path]::Combine('$(RaskPdfChromiumCache)', '$(RaskPdfChromeVersion)', '$(_RaskPdfPlatform)'))</_RaskPdfDir>
+      <_RaskPdfMarker>$(_RaskPdfDir)/.verified</_RaskPdfMarker>
+      <_RaskPdfArchive>chrome-headless-shell-$(_RaskPdfPlatform).zip</_RaskPdfArchive>
+      <_RaskPdfDownload>$(_RaskPdfDir)/$(_RaskPdfArchive).$([System.Guid]::NewGuid().ToString('N')).part</_RaskPdfDownload>
+      <_RaskPdfUrl>https://storage.googleapis.com/chrome-for-testing-public/$(RaskPdfChromeVersion)/$(_RaskPdfPlatform)/$(_RaskPdfArchive)</_RaskPdfUrl>
+      <_RaskPdfFetch Condition="!Exists('$(_RaskPdfMarker)')">true</_RaskPdfFetch>
+    </PropertyGroup>
+
+    <Message Condition="'$(_RaskPdfFetch)' == 'true'" Importance="high"
+             Text="Rask.Pdf: fetching Chrome for Testing headless shell $(RaskPdfChromeVersion) ($(_RaskPdfPlatform)) into $(_RaskPdfDir) — once per version." />
+    <MakeDir Condition="'$(_RaskPdfFetch)' == 'true'" Directories="$(_RaskPdfDir)" />
+    <DownloadFile Condition="'$(_RaskPdfFetch)' == 'true'"
+                  SourceUrl="$(_RaskPdfUrl)"
+                  DestinationFolder="$(_RaskPdfDir)"
+                  DestinationFileName="$([System.IO.Path]::GetFileName('$(_RaskPdfDownload)'))"
+                  Retries="2" />
+    <GetFileHash Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfDownload)" Algorithm="SHA256">
+      <Output TaskParameter="Hash" PropertyName="_RaskPdfActualSha256" />
+    </GetFileHash>
+    <Delete Condition="'$(_RaskPdfFetch)' == 'true' And '$(_RaskPdfActualSha256.ToLowerInvariant())' != '$(_RaskPdfChromeSha256)'"
+            Files="$(_RaskPdfDownload)" />
+    <Error Condition="'$(_RaskPdfFetch)' == 'true' And '$(_RaskPdfActualSha256.ToLowerInvariant())' != '$(_RaskPdfChromeSha256)'"
+           Text="Rask.Pdf: $(_RaskPdfUrl) has SHA-256 $(_RaskPdfActualSha256.ToLowerInvariant()), not the pinned $(_RaskPdfChromeSha256). Nothing was unpacked. A proxy that rewrites downloads, or a changed archive: report it, and meanwhile set RaskPdfDownloadChromium=false and Rask:Pdf:ChromiumPath." />
+    <Unzip Condition="'$(_RaskPdfFetch)' == 'true'" SourceFiles="$(_RaskPdfDownload)" DestinationFolder="$(_RaskPdfDir)" />
+    <!-- MSBuild's Unzip does not carry the archive's executable bits. -->
+    <Exec Condition="'$(_RaskPdfFetch)' == 'true' And !$([MSBuild]::IsOSPlatform('Windows'))"
+          Command="chmod -R u+rwX,go+rX &quot;$(_RaskPdfDir)&quot; &amp;&amp; chmod +x &quot;$(_RaskPdfDir)/chrome-headless-shell-$(_RaskPdfPlatform)/chrome-headless-shell&quot;" />
+    <Delete Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfDownload)" />
+    <Touch Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfMarker)" AlwaysCreate="true" />
+  </Target>
+
+</Project>
