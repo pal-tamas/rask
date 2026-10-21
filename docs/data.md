@@ -823,7 +823,9 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 - **A `db:` you pass joins too**, or is refused — it never commits on its own beside the work. On the same
   connection string, and not opened before it was handed in, it is enlisted (so `db.SaveChangesAsync()` writes
   inside the transaction); on another database, in a transaction of its own, or with its connection already
-  open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`.
+  open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`. It stays yours:
+  when the transaction ends — committed, rolled back or retried — it is out of it and back on its own connection,
+  so the same `db` can go into the next `Db.Transaction` or save on its own.
 - **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
   `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
   and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the

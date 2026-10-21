@@ -475,6 +475,8 @@ native `<details>` whose heading opens it with a click, Enter or Space and no ha
 Every example, what the browser owns and the reference of its steps:
 **[rask.sh/ui/accordion](https://rask.sh/ui/accordion/)**.
 
+On paper it prints open: every item's content, closed ones included, with no chevron ([printing](#printing)).
+
 ## Icons
 
 `Ui.Icon` is [Flux's icon](https://fluxui.dev/components/icon): every [Heroicon](https://heroicons.com), under
@@ -563,6 +565,24 @@ The pager, a sortable heading, a tab above the table and a [`Ui.Filters`](#filte
 themselves — the filter set names the first `Ui.Table.Of(…)` after it, giving it an id if it has none. Any other control
 elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
 instead.
+
+## Printing
+
+The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.
+Inside `@media print` only, so nothing changes on screen, and the same for [Rask.Pdf](pdf.md) and a reader's own
+Ctrl+P:
+
+- **Left off:** every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` with its toggle and backdrop,
+  `Ui.Header`, toasts, tooltips, open dropdown and popover panels, and a modal's backdrop. `Ui.Main` drops its screen
+  padding, border and inner scroll.
+- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
+  run on, the heading repeats at the top of every page, and no row is split across two.
+- **`Ui.Accordion` prints open,** closed items included, with no chevron.
+
+```csharp
+Div.Class("print:hidden")[Ui.Callout["Only on screen."]]   // your own parts: Tailwind's print: variants
+Ui.Button.Class("print:inline-flex!")["Kept on paper"]      // a kit control you want printed: an important utility
+```
 
 ## Callouts
 

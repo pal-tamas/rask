@@ -538,6 +538,7 @@ they say when you set nothing.
 | `ConfirmHeading` | Confirm | `Confirm` |
 | `ConfirmYes` | Confirm | `Yes` |
 | `ConfirmNo` | Confirm | `No` |
+| `PdfPageNumber` | PDF foot (Rask.Pdf) | `{0} / {1}` |
 | `Filters` | Filters | `Filters` |
 | `FiltersClear` | Filters | `Clear filters` |
 | `FiltersClearAll` | Filters | `Clear all` |

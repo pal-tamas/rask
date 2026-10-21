@@ -227,6 +227,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ConfirmHeading", 0),
         ("ConfirmYes", 0),
         ("ConfirmNo", 0),
+        ("PdfPageNumber", 2),
         ("TableEmpty", 0),
         ("Filters", 0),
         ("FiltersClear", 0),

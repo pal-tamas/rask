@@ -60,6 +60,20 @@ them until tagged releases begin.
   one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
   approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
   has answered what it sent. A table without `Of` dims its rows as before.
+- **Rask.Ui prints what a page says and leaves off what it does** — a recorded departure from Flux, inside
+  `@media print` only, so the screen is unchanged. Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar`,
+  `Ui.Header`, toasts, tooltips, open menus and popovers and a modal's backdrop print as nothing, and `Ui.Main` drops
+  its padding; `Ui.Table` wraps its cells, runs on past its scroll frame, repeats its heading on every page and never
+  splits a row; `Ui.Accordion` prints every item open with no chevron. Before: a report page put `print:hidden` on
+  each control and a PDF of a table was cut at the frame. Now: `await Pdf.From(Routes.RefundReport(id))` prints the
+  page as paper; hide your own parts with `print:hidden`. +958 B on the kit's sheet (+285 B gzipped).
+  ([ui-kit](docs/ui-kit.md#printing), [pdf](docs/pdf.md#write-the-report-with-flux-pieces))
+- **Rask.Pdf numbers the pages in the caller's language, from the catalog.** The new `RaskString.PdfPageNumber`
+  (`{0} / {1}`; the kit's Hungarian `{0} / {1} oldal`) is read in the caller's language and translated or reworded in
+  an app's `Resources/RaskStrings.{culture}.json` like any framework text; the page itself is now rendered in the
+  caller's language too when the app ships it (it was the app's default). Before: `1 / 3` whatever the language.
+  Now: `1 / 3 oldal` for a Hungarian caller. ([pdf](docs/pdf.md#options))
+
 - **`Ui.Confirm`: an action's `.Confirm("…")` asks in the kit's own dialog.** Placed once in the layout, every
   `.Confirm` asks in a Flux confirmation modal instead of the browser's `confirm()` / `prompt()`; the call sites do
   not change. Not a Flux component — approved by the owner like `Ui.ConfirmLeave`.
@@ -1166,6 +1180,13 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
+  at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
+  transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).
+  After: however the transaction ends — commit, rollback, a throw, a retry — the context is out of it and on its
+  own connection again: the one the caller gave it, still the caller's and still open if it was, or a fresh one of
+  its own from its connection string. Admitting it twice in one transaction is fine. The contexts `Jobs.Enqueue`,
+  `Mail.Send` and the files store open and dispose themselves need nothing handed back.
 - **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
   and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
   back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had

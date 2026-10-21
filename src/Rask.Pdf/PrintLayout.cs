@@ -13,8 +13,9 @@ internal static class PrintLayout
     /// <summary>Writes paper, margins, foot, tagging and the page range.</summary>
     /// <param name="json">The command's parameters being written.</param>
     /// <param name="options">The layout asked for.</param>
+    /// <param name="pageNumbers">The page numbers as HTML, Chromium's spans in the caller's words (<see cref="PageNumberFoot"/>).</param>
     /// <param name="lastPage">The last page printed: one past the limit, so a longer document is caught, not cut.</param>
-    public static void Write(Utf8JsonWriter json, PdfOptions options, int lastPage)
+    public static void Write(Utf8JsonWriter json, PdfOptions options, string pageNumbers, int lastPage)
     {
         var page = options.Page;
         var margins = options.Margins;
@@ -32,13 +33,13 @@ internal static class PrintLayout
         if (options.HasFoot)
         {
             json.WriteString("headerTemplate", "<span></span>");
-            json.WriteString("footerTemplate", Foot(options));
+            json.WriteString("footerTemplate", Foot(options, pageNumbers));
         }
     }
 
     // Chromium fills the pageNumber and totalPages spans itself. The template has no stylesheet of the page's and a
     // zero default font size, so it carries its own.
-    private static string Foot(PdfOptions options) => string.Create(
+    private static string Foot(PdfOptions options, string pageNumbers) => string.Create(
         CultureInfo.InvariantCulture,
-        $"""<div style="box-sizing:border-box;width:100%;padding:0 {options.Margins.Right}mm 0 {options.Margins.Left}mm;display:flex;justify-content:space-between;font-size:8pt;font-family:Helvetica,Arial,'DejaVu Sans','Liberation Sans',sans-serif;color:#52525b"><span>{WebUtility.HtmlEncode(options.Footer ?? string.Empty)}</span><span>{(options.PageNumbers ? """<span class="pageNumber"></span> / <span class="totalPages"></span>""" : string.Empty)}</span></div>""");
+        $"""<div style="box-sizing:border-box;width:100%;padding:0 {options.Margins.Right}mm 0 {options.Margins.Left}mm;display:flex;justify-content:space-between;font-size:8pt;font-family:Helvetica,Arial,'DejaVu Sans','Liberation Sans',sans-serif;color:#52525b"><span>{WebUtility.HtmlEncode(options.Footer ?? string.Empty)}</span><span>{(options.PageNumbers ? pageNumbers : string.Empty)}</span></div>""");
 }
