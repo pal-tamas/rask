@@ -742,13 +742,47 @@
     - the pager right after something that holds the table: the scroll area (`Ui.Table.Paginate(…)`) or the
       table's box (a `Ui.Pagination` placed after the table);
     - the table itself, for a page that knows better than the kit when its rows are stale: `.Data("loading", "")`.
+
+  A table drawn from a query (`Ui.Table.Of(query)`, `data-rask-skeleton` on its box) does not dim: it shows skeleton
+  rows instead, below.
 */
 @layer rask {
-  [data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],
-  :is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows] {
+  :is([data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],
+  :is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows]):not([data-rask-skeleton] *) {
     opacity: 0.5;
     transition: opacity var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+}
+
+/*
+  A TABLE DRAWN FROM A QUERY SHOWS SKELETON ROWS WHILE THE NEXT ONES LOAD (Ui.Table.Of(query); owner, 2026-10-21).
+
+  Not Flux's: Flux documents no loading treatment for a table. The owner's rule is that the headings stay and a
+  skeleton of exactly the size of what was there appears at once, so nothing under the table moves.
+
+  The rows stay where they are and draw a bar in place of what each cell holds: the same row count and the same
+  heights, because they ARE the rows. The bar is the kit's skeleton line (`Ui.SkeletonLine`: 14px, bg-zinc-400/20)
+  across the cell's content box, so a cell's own padding is kept. Two marks ask for it:
+    - `data-skeleton`, written by the runtime (rask-skeleton.ts) at the press that asks for other rows, until the
+      render answering it is on the page;
+    - `data-rask-skeleton="loading"`, written by the render while the query has no rows of its own on screen (its
+      previous page, kept with KeepPreviousData).
+  A cell that is a skeleton already — the first load's rows — is left as it is.
+*/
+@layer rask {
+  [data-rask-skeleton]:is([data-skeleton], [data-rask-skeleton="loading"]) [data-ui-rows] > tr > td:not(:has([data-ui-skeleton-line])) {
+    color: transparent;
+    background-image: linear-gradient(color-mix(in oklab, var(--color-zinc-400) 20%, transparent) 0 0);
+    background-origin: content-box;
+    background-clip: content-box;
+    background-position: center;
+    background-size: 100% 0.875rem;
+    background-repeat: no-repeat;
+
+    & > * {
+      visibility: hidden;
+    }
   }
 }
 

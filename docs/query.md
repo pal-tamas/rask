@@ -404,6 +404,23 @@ next arrives (`IsPlaceholderData` says so). A `Ui.Table` dims its rows by itself
 heading is waiting ([tables](ui-kit.md#tables)), so the page needs no
 `IsPlaceholderData` branch to grey them.
 
+### A table drawn from a query
+
+`Ui.Table.Of(query)` hands the table the query itself, and the table reads `IsLoading` and `IsPlaceholderData` for
+you: the headings stay, the first load shows skeleton rows (as many as the pager's page holds), a query that found
+nothing shows one row saying so, and every later load (a page, a sort, a filter, a tab) shows skeleton rows of exactly
+the size of the rows on screen from the moment of the press, in the browser, until the new rows are on the page. With
+`KeepPreviousData` or without it, nothing under the table moves.
+
+```csharp
+var orders = QueryClient.Query(() => new GetOrders(_page));
+
+Ui.Table.Of(orders).Paginate(Ui.Pagination.Paginator(new UiPaginator { Page = _page, Total = 1200 }).OnPage(p => _page = p))[
+    Ui.TableColumns[Ui.TableColumn["Order"], Ui.TableColumn["Customer"]],
+    Ui.TableRows[(orders.Data ?? []).Select(o => Ui.TableRow.Key(o.Id)[Ui.TableCell[o.Number], Ui.TableCell[o.Customer]])]
+]
+```
+
 ## See also
 
 - [`docs/cqrs.md`](cqrs.md) — the dispatcher this wraps.

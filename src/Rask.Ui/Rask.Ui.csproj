@@ -48,6 +48,10 @@
          on no feed and make Rask.Ui unrestorable. Guarded by PackageDependencyTests. -->
     <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
 
+    <!-- Ui.Table.Of(query): a table drawn from a Rask.Query query, with skeleton rows while it loads. Both hosts
+         reference Rask.Query already, so an app pays nothing more for it. -->
+    <ProjectReference Include="..\Rask.Query\Rask.Query.csproj"/>
+
     <!-- Emits this assembly's own Generated.* factories, so a consuming app can open a chain on
          Ui.Button, Ui.Card and the rest exactly as it does on a tag. -->
     <ProjectReference Include="..\Rask.Generators\Rask.Generators.csproj"

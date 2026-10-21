@@ -41,7 +41,7 @@ import "../../Rask.Core/Resources/rask-events.js";
 import "../../Rask.Core/Resources/rask-offline.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
-import { tell } from "../../Rask.Core/Resources/rask-owned.js";
+import { awaiting, tell } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
@@ -604,9 +604,20 @@ function send(payload: unknown): Promise<void> {
     sendTypedFirst(payload);
     // A field whose value is leaving waits on its answer as a pressed button does (rask-loading.ts).
     const ticket = beginLoading(fieldTarget(payload), null, false);
+    // What the hooks wait on (rask-owned.ts): a handler event or a navigation, until its page is whole.
+    const done = isHandlerEvent(payload) || isNavigation(payload) ? awaiting() : null;
     const answered = leave(payload);
-    if (ticket) answered.then(settled).finally(() => endLoading(ticket));
+    if (ticket || done) {
+        answered.then(settled).finally(() => {
+            endLoading(ticket);
+            if (done) done();
+        });
+    }
     return answered;
+}
+
+function isNavigation(payload: unknown): boolean {
+    return (payload as {type?: unknown} | null)?.type === "navigate";
 }
 
 function leave(payload: unknown): Promise<void> {

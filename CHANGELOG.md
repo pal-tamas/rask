@@ -35,6 +35,31 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Filters`: a list's filters kept in the address, with a lazy flyout and a badge per filter in force.**
+  Before: a page wrote a `Go.With` per control, a badge row by hand and its own "clear all", and sent every field to
+  every reader. Now: `var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")…, Ui.DatePicker.Range
+  .Bind(() => Period).Label("Period")…]`, then `Div[filters, filters.Badges, table]` — each control bound to a
+  `[QueryParam]` member moves the address as it is chosen (a text field at its 150 ms pause), the router writes the
+  member, the first `Ui.Table.Of(…)` after the set shows its skeleton rows at the press (its fields, badge crosses and
+  clear buttons name it in `aria-controls`; a table with no id is given one), `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
+  survives), `filters.Active` counts them, `.OnOpen(…)` loads on opening, and `Ui.Filter.Label(…).Shown(…)
+  .OnRemove(…)` carries what no control can say. Not a Flux component: the owner's (2026-10-21). New texts:
+  `Filters`, `FiltersClear`, `FiltersClearAll`, `FiltersClose`, `FilterRemove` (with formal Hungarian).
+- **`Ui.Modal.Lazy()`: a modal that sends what it holds only while it is open.** Closed it is the dialog alone; the
+  trigger still opens it in the browser, the runtime reports the opening (`rask-overlay.ts`), and one frame brings
+  the content. Off by default, so `Ui.ConfirmLeave` and a ⌘K palette still open with no server.
+- **`UiDateRange` is `IParsable`: `[QueryParam("period")] public UiDateRange? Period` binds `?period=2026-10-01..2026-10-09`**
+  (`~last7Days` after it when a preset made it; text that is no range leaves it unset), and `ToString()` writes it.
+- **`Ui.Table.Of(query)`: a table drawn from a Rask.Query query, with skeleton rows the moment it loads.** Before:
+  every table flashed on paging, sorting and a tab switch — 15 rows, then an empty or shorter table, then 15 new rows,
+  with everything under it jumping twice. Now: `Ui.Table.Of(drivers)[Ui.TableColumns[…], Ui.TableRows[(drivers.Data
+  ?? []).Select(…)]]` keeps the headings, shows a skeleton row per row of the pager's page on the first load, and on
+  every later load (a pager button or link, a sortable heading, a tab above the table, any control naming the table
+  with `aria-controls`) turns the rows on screen into skeleton rows of their own count and heights AT THE PRESS, in the
+  browser, with no round trip and no wait; the new rows replace them in one step. A query that found nothing shows
+  one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
+  approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
+  has answered what it sent. A table without `Of` dims its rows as before.
 - **Rask.Ui prints what a page says and leaves off what it does** — a recorded departure from Flux, inside
   `@media print` only, so the screen is unchanged. Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar`,
   `Ui.Header`, toasts, tooltips, open menus and popovers and a modal's backdrop print as nothing, and `Ui.Main` drops

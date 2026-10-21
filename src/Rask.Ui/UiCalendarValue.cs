@@ -64,12 +64,7 @@ internal static class UiCalendarValue
             return false;
         }
 
-        var preset = parts.Length == 3
-            ? Enum.GetValues<Ui.DateRangePreset>()
-                .Where(p => string.Equals(UiDateRangePresets.Key(p), parts[2], StringComparison.Ordinal))
-                .Select(p => (Ui.DateRangePreset?)p)
-                .FirstOrDefault()
-            : null;
+        var preset = parts.Length == 3 ? UiDateRangePresets.FromKey(parts[2]) : null;
         range = UiDateRange.Between(start, end) with { Preset = preset };
 
         return true;
