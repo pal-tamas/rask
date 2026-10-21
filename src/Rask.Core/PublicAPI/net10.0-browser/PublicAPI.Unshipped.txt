@@ -19329,5 +19329,5 @@ static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLSelectElement<T>! 
 static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b) -> Rask.Core.HTMLTextAreaElement<T>!
 static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, bool? value) -> Rask.Core.HTMLTextAreaElement<T>!
 Rask.Core.Authorization.HandlerAccess
-static Rask.Core.Authorization.HandlerAccess.Demand(Microsoft.AspNetCore.Authorization.IAuthorizeData![]! rule, string! handler) -> System.Threading.Tasks.ValueTask
-static Rask.Core.Authorization.HandlerAccess.DemandNow(Microsoft.AspNetCore.Authorization.IAuthorizeData![]! rule, string! handler) -> void
+static Rask.Core.Authorization.HandlerAccess.Demand(System.Reflection.MethodInfo! handler) -> System.Threading.Tasks.ValueTask
+static Rask.Core.Authorization.HandlerAccess.DemandNow(System.Reflection.MethodInfo! handler) -> void

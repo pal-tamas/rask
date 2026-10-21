@@ -41,11 +41,17 @@ internal static class HandlerRules
             return null;
         }
 
-        return ByMethod.GetOrAdd(handler.Method, static method => Read(method));
+        return Of(handler.Method);
     }
 
+    /// <summary>What <paramref name="method" /> asks of the person who calls it, or null for nothing.</summary>
+    public static IAuthorizeData[]? Of(MethodInfo method) => ByMethod.GetOrAdd(method, static method => Read(method));
+
     /// <summary>The method's name as the log says it: <c>Page.Remove</c>.</summary>
-    public static string Name(Delegate handler) => handler.Method.DeclaringType?.Name + "." + handler.Method.Name;
+    public static string Name(Delegate handler) => Name(handler.Method);
+
+    /// <inheritdoc cref="Name(Delegate)" />
+    public static string Name(MethodInfo method) => method.DeclaringType?.Name + "." + method.Name;
 
     public static void Forget()
     {

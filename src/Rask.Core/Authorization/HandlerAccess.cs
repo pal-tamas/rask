@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,27 +25,38 @@ public static class HandlerAccess
 {
     private static readonly ClaimsPrincipal Nobody = new(new ClaimsIdentity());
 
-    /// <summary>Returns when the current principal meets <paramref name="rule" />; throws when it does not.</summary>
-    /// <param name="rule">The method's <c>[Authorize]</c> attributes.</param>
-    /// <param name="handler">The method's name, for the log.</param>
-    public static async ValueTask Demand(IAuthorizeData[] rule, string handler)
+    /// <summary>Returns when the current principal meets <paramref name="handler" />'s <c>[Authorize]</c>; throws when it does not.</summary>
+    /// <param name="handler">The guarded method.</param>
+    public static ValueTask Demand(MethodInfo handler)
     {
-        ArgumentNullException.ThrowIfNull(rule);
+        ArgumentNullException.ThrowIfNull(handler);
+        return HandlerRules.Of(handler) is { } rule ? Demand(rule, HandlerRules.Name(handler)) : default;
+    }
+
+    /// <summary>
+    ///     <see cref="Demand(MethodInfo)" /> for a method that returns no task: it cannot wait, so a policy that only
+    ///     answers asynchronously refuses it.
+    /// </summary>
+    /// <param name="handler">The guarded method.</param>
+    public static void DemandNow(MethodInfo handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        if (HandlerRules.Of(handler) is { } rule)
+        {
+            DemandNow(rule, HandlerRules.Name(handler));
+        }
+    }
+
+    internal static async ValueTask Demand(IAuthorizeData[] rule, string handler)
+    {
         if (!await Allows(rule).ConfigureAwait(false))
         {
             throw Refuse(handler, null);
         }
     }
 
-    /// <summary>
-    ///     <see cref="Demand" /> for a method that returns no task: it cannot wait, so a policy that only answers
-    ///     asynchronously refuses it.
-    /// </summary>
-    /// <param name="rule">The method's <c>[Authorize]</c> attributes.</param>
-    /// <param name="handler">The method's name, for the log.</param>
-    public static void DemandNow(IAuthorizeData[] rule, string handler)
+    internal static void DemandNow(IAuthorizeData[] rule, string handler)
     {
-        ArgumentNullException.ThrowIfNull(rule);
         var answer = Allows(rule);
         if (answer.IsCompletedSuccessfully)
         {
