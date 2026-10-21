@@ -211,7 +211,7 @@ public static partial class Db
     /// </summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>
     internal static DbContext CreateContext() =>
-        AmbientTransaction.Current is { } transaction ? transaction.Join(CreateOwnContext()) : CreateOwnContext();
+        AmbientTransaction.Join(CreateOwnContext());
 
     /// <summary>A fresh context on a connection of its own, whatever transaction is in progress.</summary>
     /// <exception cref="InvalidOperationException">The model surface has not been configured.</exception>

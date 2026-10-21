@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
+using Rask.Data;
 
 namespace Rask.Background;
 
@@ -39,6 +40,35 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
 
         var db = await Open(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
+        if (!OnSqlServer(db))
+        {
+            return await AddChecked(db, row, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Inside a transaction already (Db.Transaction): the key lock lasts until that transaction ends.
+        if (db.Database.CurrentTransaction is not null)
+        {
+            return await AddUnderKeyLock(db, row, cancellationToken).ConfigureAwait(false);
+        }
+
+        return await db.Database.CreateExecutionStrategy().ExecuteAsync(
+            (db, row),
+            static async (_, state, token) =>
+            {
+                state.db.ChangeTracker.Clear();
+                var transaction = await state.db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
+                await using var transactionScope = transaction.ConfigureAwait(false);
+                var added = await AddUnderKeyLock(state.db, state.row, token).ConfigureAwait(false);
+                await transaction.CommitAsync(token).ConfigureAwait(false);
+                return added;
+            },
+            verifySucceeded: null,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    // The look, then the insert — refused by the unique index when another host wrote the same work in between.
+    private static async Task<bool> AddChecked(TContext db, Job row, CancellationToken cancellationToken)
+    {
         switch (await Holder(db, row.WaitingKey!, cancellationToken).ConfigureAwait(false))
         {
             case KeyHolder.Waiting:
@@ -50,6 +80,24 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
 
         return await Insert(db, row, cancellationToken).ConfigureAwait(false);
     }
+
+    // SQL Server under XACT_ABORT dooms a whole transaction on a refused insert, savepoint or not, so there a collision
+    // must never reach the index: the key is locked for the transaction, and the look under it is the answer.
+    private static async Task<bool> AddUnderKeyLock(TContext db, Job row, CancellationToken cancellationToken)
+    {
+        var resource = $"rask-job:{row.WaitingKey}";
+        await db.Database.ExecuteSqlAsync(
+            $"""
+             DECLARE @granted int;
+             EXEC @granted = sp_getapplock @Resource = {resource}, @LockMode = 'Exclusive', @LockOwner = 'Transaction';
+             IF @granted < 0 THROW 51000, 'The rask-job key lock was not granted.', 1;
+             """,
+            cancellationToken).ConfigureAwait(false);
+        return await AddChecked(db, row, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static bool OnSqlServer(TContext db) =>
+        string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.SqlServer", StringComparison.Ordinal);
 
     /// <summary>The insert alone, as a host that lost the race between its look and its write makes it.</summary>
     internal async Task<bool> Insert(IJob job, DateTime due, string? lane, CancellationToken cancellationToken)
@@ -104,8 +152,10 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
                 && (j.ProcessedAt != null || j.ClaimToken != null || j.ClaimedUntil != null || j.Attempts > 0))
             .ExecuteUpdateAsync(s => s.SetProperty(j => j.WaitingKey, (string?)null), cancellationToken);
 
-    // The one place an enqueue opens its context.
-    private Task<TContext> Open(CancellationToken cancellationToken) => contextFactory.CreateDbContextAsync(cancellationToken);
+    // The one place an enqueue opens its context — enlisted in Db.Transaction when one is open, so the row commits with
+    // the work and a rollback leaves no job to run.
+    private async Task<TContext> Open(CancellationToken cancellationToken) =>
+        AmbientTransaction.Join(await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false));
 
     // Who holds the key: nobody, a row still waiting unclaimed, or a stale row an older host claimed or finished.
     private static async Task<KeyHolder> Holder(TContext db, string key, CancellationToken cancellationToken)

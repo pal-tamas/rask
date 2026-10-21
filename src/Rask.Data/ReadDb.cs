@@ -85,7 +85,7 @@ public static class ReadDb
     /// </summary>
     /// <exception cref="InvalidOperationException">The read side has not been configured.</exception>
     internal static DbContext CreateContext() =>
-        AmbientTransaction.Current is { } transaction ? transaction.Join(CreateOwnContext()) : CreateOwnContext();
+        AmbientTransaction.Join(CreateOwnContext());
 
     [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
         Justification = "As Configure(IServiceProvider): the factory is the app's own registration, which reported EF's "

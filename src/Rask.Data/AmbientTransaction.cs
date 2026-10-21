@@ -26,13 +26,15 @@ internal sealed class AmbientTransaction
     private static readonly AsyncLocal<AmbientTransaction?> Open = new();
 
     private readonly DbConnection _connection;
+    private readonly string? _connectionString;
     private readonly DbTransaction _transaction;
     private readonly List<Func<Task>> _afterCommit = [];
     private bool _ended;
 
-    private AmbientTransaction(DbConnection connection, DbTransaction transaction, IsolationLevel? isolation)
+    private AmbientTransaction(DbContext owner, DbTransaction transaction, IsolationLevel? isolation)
     {
-        _connection = connection;
+        _connection = owner.Database.GetDbConnection();
+        _connectionString = owner.Database.GetConnectionString();
         _transaction = transaction;
         Isolation = isolation;
     }
@@ -56,17 +58,27 @@ internal sealed class AmbientTransaction
     /// <summary>Makes <paramref name="transaction" /> the one every context in this flow joins, until disposed.</summary>
     internal static Scope Enter(DbContext owner, IDbContextTransaction transaction, IsolationLevel? isolation)
     {
-        var entered = new AmbientTransaction(owner.Database.GetDbConnection(), transaction.GetDbTransaction(), isolation);
+        var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation);
         return new Scope(entered);
     }
 
-    /// <summary>Points <paramref name="context" /> at this transaction's connection and enlists it.</summary>
-    internal DbContext Join(DbContext context)
+    /// <summary>
+    ///     <paramref name="context" />, freshly opened by its caller, enlisted in the transaction in progress — or as it
+    ///     was when there is none. A battery's queue (<c>Jobs.Enqueue</c>, <c>Mail.Send</c>) opens its context here, so
+    ///     its row commits with the work and is gone on a rollback.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The context is on another database than the transaction.</exception>
+    internal static TContext Join<TContext>(TContext context)
+        where TContext : DbContext
     {
+        if (Current is not { } current)
+        {
+            return context;
+        }
+
         try
         {
-            context.Database.SetDbConnection(_connection, contextOwnsConnection: false);
-            context.Database.UseTransaction(_transaction);
+            current.Enlist(context);
             return context;
         }
         catch
@@ -75,6 +87,48 @@ internal sealed class AmbientTransaction
             throw;
         }
     }
+
+    /// <summary>
+    ///     A context the caller handed in as <c>db:</c>, enlisted in the transaction in progress when there is one. It is
+    ///     the caller's: never disposed here, whatever happens.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///     The context is on another database, is in a transaction of its own, or has its connection open already.
+    /// </exception>
+    internal static void Admit(DbContext context) => Current?.Enlist(context);
+
+    // Points the context at this transaction's connection and enlists it — refusing, never silently running it outside.
+    private void Enlist(DbContext context)
+    {
+        if (ReferenceEquals(context.Database.CurrentTransaction?.GetDbTransaction(), _transaction))
+        {
+            return;
+        }
+
+        if (context.Database.CurrentTransaction is not null)
+        {
+            throw Refused(context, "is in a transaction of its own");
+        }
+
+        if (!string.Equals(context.Database.GetConnectionString(), _connectionString, StringComparison.Ordinal))
+        {
+            throw Refused(context, "is on another database (its connection string differs)");
+        }
+
+        var connection = context.Database.GetDbConnection();
+        if (!ReferenceEquals(connection, _connection) && connection.State != ConnectionState.Closed)
+        {
+            throw Refused(context, "already has its own connection open");
+        }
+
+        context.Database.SetDbConnection(_connection, contextOwnsConnection: false);
+        context.Database.UseTransaction(_transaction);
+    }
+
+    private static InvalidOperationException Refused(DbContext context, string why) =>
+        new($"A {context.GetType().Name} used inside Db.Transaction {why}, so it cannot join the transaction — and " +
+            "running it outside would let it commit what the transaction rolls back. Use a context on the same " +
+            "connection string, opened inside the Db.Transaction, or move this work out of it.");
 
     /// <summary>Runs <paramref name="work" /> once this transaction commits; never, when it rolls back.</summary>
     internal void AfterCommit(Func<Task> work) => _afterCommit.Add(work);
