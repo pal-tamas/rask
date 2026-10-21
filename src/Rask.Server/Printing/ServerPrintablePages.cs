@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.StaticFiles;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authorization;
+using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Printing;
 using Rask.Core.Routing;
@@ -32,7 +34,7 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
         _pathBase = pathBase;
     }
 
-    public async Task<PrintablePage> Render(RouteUrl route, ClaimsPrincipal user, CancellationToken cancellation)
+    public async Task<PrintablePage> Render(RouteUrl route, ClaimsPrincipal user, CultureInfo? culture, CancellationToken cancellation)
     {
         ArgumentNullException.ThrowIfNull(user);
         var selector = _selector ?? throw new InvalidOperationException(
@@ -50,12 +52,12 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
 
         await Authorize(path, chain, user).ConfigureAwait(false);
 
-        var input = new PageRenderInput(path, Query(route.QueryString), user, Culture: null, chain, NotFoundPage: null);
+        var input = new PageRenderInput(path, Query(route.QueryString), user, Negotiated(culture), chain, NotFoundPage: null);
         return await RenderInSession(selector.FactoryFor(path), session => Bind(session, selector, path), input, cancellation)
             .ConfigureAwait(false);
     }
 
-    public Task<PrintablePage> Render(Component component, ClaimsPrincipal user, CancellationToken cancellation)
+    public Task<PrintablePage> Render(Component component, ClaimsPrincipal user, CultureInfo? culture, CancellationToken cancellation)
     {
         ArgumentNullException.ThrowIfNull(component);
         ArgumentNullException.ThrowIfNull(user);
@@ -66,7 +68,7 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
             new RootErrorBoundary(component) { Defaults = sessionServices.GetService<RaskDocumentDefaults>() };
 #pragma warning restore RASK014
 
-        var input = new PageRenderInput("/", QueryCollection.Empty, user, Culture: null, [], NotFoundPage: null);
+        var input = new PageRenderInput("/", QueryCollection.Empty, user, Negotiated(culture), [], NotFoundPage: null);
         return RenderInSession(Root, session => { if (_selector is { } selector) Bind(session, selector, "/"); }, input, cancellation);
     }
 
@@ -162,6 +164,14 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
             await store.RemoveAsync(session.Id).ConfigureAwait(false);
         }
     }
+
+    // The caller's language, as one of the app's own: a page is printed in it when the app ships it, and in the app's
+    // default otherwise — the same choice a visitor's request gets.
+    private CultureNegotiation? Negotiated(CultureInfo? culture) =>
+        culture is not null && services.GetService<RaskCultureOptions>() is { } options
+        && RaskCultureNegotiator.TrySelect(culture.Name, options, out var selected)
+            ? selected
+            : null;
 
     private static void Bind(LiveSession session, RaskRootSelector selector, string path) =>
         RaskEndpointExtensions.BindToApplication(session, selector, path);

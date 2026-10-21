@@ -43,6 +43,11 @@ them until tagged releases begin.
   each control and a PDF of a table was cut at the frame. Now: `await Pdf.From(Routes.RefundReport(id))` prints the
   page as paper; hide your own parts with `print:hidden`. +922 B on the kit's sheet (+280 B gzipped).
   ([ui-kit](docs/ui-kit.md#printing), [pdf](docs/pdf.md#write-the-report-with-flux-pieces))
+- **Rask.Pdf numbers the pages in the caller's language, from the catalog.** The new `RaskString.PdfPageNumber`
+  (`{0} / {1}`; the kit's Hungarian `{0} / {1} oldal`) is read in the caller's language and translated or reworded in
+  an app's `Resources/RaskStrings.{culture}.json` like any framework text; the page itself is now rendered in the
+  caller's language too when the app ships it (it was the app's default). Before: `1 / 3` whatever the language.
+  Now: `1 / 3 oldal` for a Hungarian caller. ([pdf](docs/pdf.md#options))
 
 - **`[Authorize]` on a component's event handler: someone who may not run it gets a toast, and nothing runs.**
   Before: a page checked the role by hand at the top of every handler (`if (NotAllowed.Refuses(users)) return;`).

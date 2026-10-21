@@ -572,4 +572,10 @@ public enum RaskString
     ///     What a page says, inside the app's layout, to a signed-in person whose account may not open it.
     /// </summary>
     PageForbidden,
+
+    /// <summary>
+    ///     A printed PDF's page number, at the foot of every page: <c>{0}</c> is the page, <c>{1}</c> how many
+    ///     there are.
+    /// </summary>
+    PdfPageNumber,
 }

@@ -42,7 +42,7 @@ internal static class HtmlPrint
             {
                 await Load(devTools, session, new DocumentServer(devTools, session, document, cancellation), cancellation).ConfigureAwait(false);
                 await FontsReady(devTools, session, cancellation).ConfigureAwait(false);
-                return await PrintToPdf(devTools, session, document.Options, maxPages, cancellation).ConfigureAwait(false);
+                return await PrintToPdf(devTools, session, document, maxPages, cancellation).ConfigureAwait(false);
             }
             finally
             {
@@ -114,9 +114,9 @@ internal static class HtmlPrint
         cancellation);
 
     private static async Task<byte[]> PrintToPdf(
-        DevToolsConnection devTools, string session, PdfOptions options, int maxPages, CancellationToken cancellation)
+        DevToolsConnection devTools, string session, PrintDocument document, int maxPages, CancellationToken cancellation)
     {
-        var printed = await devTools.Send("Page.printToPDF", json => PrintLayout.Write(json, options, maxPages + 1), session, cancellation)
+        var printed = await devTools.Send("Page.printToPDF", json => PrintLayout.Write(json, document.Options, document.PageNumbers, maxPages + 1), session, cancellation)
             .ConfigureAwait(false);
         var pdf = printed.GetProperty("data").GetBytesFromBase64();
         return PdfPageCount.Of(pdf) <= maxPages
