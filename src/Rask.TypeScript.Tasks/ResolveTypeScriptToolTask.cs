@@ -269,16 +269,7 @@ public sealed class ResolveTypeScriptToolTask : Task
                 MakeExecutable(Path.Combine(staging, executable));
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(directory)!);
-            if (Directory.Exists(directory))
-            {
-                // Another build won the race while this one was downloading. Its copy passed the same
-                // checksum, so it is the same tree; keeping it avoids deleting a file that process may
-                // be executing right now.
-                return;
-            }
-
-            Directory.Move(staging, directory);
+            MoveIntoPlace(staging, directory);
         }
         finally
         {
@@ -293,6 +284,28 @@ public sealed class ResolveTypeScriptToolTask : Task
                     // A leftover staging directory is litter in a cache, not a build failure.
                 }
             }
+        }
+    }
+
+    // Another build may win the race while this one was downloading: before the check, or between the check and
+    // the move (a rename onto a directory that is not empty then fails). Its copy passed the same checksum, so it
+    // is the same tree; keeping it avoids deleting a file that process may be executing right now.
+    internal static void MoveIntoPlace(string staging, string directory)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(directory)!);
+        if (Directory.Exists(directory))
+        {
+            return;
+        }
+
+        try
+        {
+            Directory.Move(staging, directory);
+        }
+        catch (IOException) when (Directory.Exists(directory))
+        {
+            // The other build's copy landed between the check and the move: it is the tree this one would be.
+            return;
         }
     }
 

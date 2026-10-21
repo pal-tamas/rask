@@ -937,6 +937,9 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Two builds fetching the same TypeScript tool at once no longer fail one of them.** The second build's move
+  into the cache met the first one's copy ("Directory not empty") and failed the build; it now keeps the copy that
+  landed first, which passed the same checksum.
 - **A render no longer removes an attribute the server never wrote.** `Canvas.Ref(_ground).Class(…).AriaHidden(true)`
   sized by its scoped script (`canvas.width = …`) lost its width and height on the next render that morphed around
   it — a form error appearing beside it was enough, and a whole-page reply did the same (TA). The morph, on both
