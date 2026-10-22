@@ -77,6 +77,14 @@ export function announce(group: Element, value: string, settled: boolean = true)
     }
 }
 
+/** Writes `value` into the group's bound field and tells the page nothing: it hears it with what is sent next. */
+export function hold(group: Element, value: string): void {
+    const bound = boundOf(group);
+    if (bound) {
+        write(bound, value);
+    }
+}
+
 /**
  * Tells the page about the bound field again though its value has not moved: what the group holds has, and the
  * field says so beside its value (rask-segments.ts).

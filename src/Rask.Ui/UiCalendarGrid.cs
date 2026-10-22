@@ -183,7 +183,8 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var grid = Div.Key(month.DayNumber).Role("grid").Data("month", "");
 
         return (folded ? grid.Class(UiCalendarLook.MonthFolded) : grid)[
-            Div.Class(options.SelectableHeader ? UiCalendarLook.HeadingHidden : UiCalendarLook.Heading)[
+            // The lists in the header name the first month; every month after it keeps its title, as without them.
+            Div.Class(options.SelectableHeader && !folded ? UiCalendarLook.HeadingHidden : UiCalendarLook.Heading)[
                 Div.Class(UiCalendarLook.HeadingText)[month.ToString("Y", options.Culture)]
             ],
             Table[

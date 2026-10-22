@@ -34,6 +34,9 @@ internal sealed class SocketFrames
             .Select(match => match.Groups[1].Value),
     ];
 
+    /// <summary>How many frames the page has put on the socket so far.</summary>
+    public int Sent => _frames.Count(frame => frame.Sent);
+
     /// <summary>The largest reply so far, in bytes.</summary>
     public int LargestReply => _frames.Where(frame => !frame.Sent).Select(frame => frame.Text.Length).DefaultIfEmpty().Max();
 

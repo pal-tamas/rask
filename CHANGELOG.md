@@ -364,6 +364,15 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A `Ui.DatePicker` reopens on the month it was left on, as Flux's does,** where it went back to the chosen
+  day's month or today: paged with the arrows or chosen from `.SelectableHeader()`'s lists, closed and opened again,
+  it shows that month. A date typed or written since shows its own month.
+- **A two-month calendar with `.SelectableHeader()` titles its second month.** The header's lists name the first
+  month; the months after it had no title at all and now keep theirs, as they do without the lists.
+- **A typed `Ui.DatePicker` that is not `.Live()` opens its calendar on the date typed in it.** The calendar read the
+  value the server held, which a bound picker hears only with the next action, so it opened on today with nothing
+  marked. It now reads the field's parts when it opens (half filled: today, nothing marked), and a day picked in it
+  shows in the parts at once. Nothing more is sent: the value still goes with the next action.
 - **BEHAVIOUR CHANGE: each live event gets its scoped services fresh, as a request would.** A click, a submit, a
   navigation, a pushed render and the hooks they run now reach every scoped service — the app's `DbContext` and
   repositories, the batteries' (Rask.Data, Rask.Auth), any package's — and every transient (the CQRS dispatcher
@@ -1214,6 +1223,9 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
+  in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
+  trigger drew none. After: no ring either way, as Flux.
 - **What an abstract base declares is mapped on every aggregate deriving from it.** Before: a one-value value
   object on an abstract base (`public NavBarcode? Barcode { get; private set; }` on `ReturnFiling`) was left out of
   the generated mapping, and startup failed with "could not be mapped" until the app converted it by hand in

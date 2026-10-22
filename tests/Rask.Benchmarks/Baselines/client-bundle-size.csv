@@ -353,3 +353,13 @@ bundle,bytes
 rask.js,109015
 rask.wasm.js,95025
 rask-hooks.js,105622
+#
+# 2026-10-22, a typed date picker's calendar opens on the date typed in it and a day picked in it fills the parts
+# (rask-calendar.ts, rask-segments.ts, rask-bound.ts), it reopens on the month it was left on and is drawn before it
+# shows, and a second month keeps its title under the header lists (rask-calendar.ts). Placement is main's. The two
+# runtimes are unchanged. Measured from a Release build of the branch merged with main 5b9989c3e: rask.js 109,015,
+# rask.wasm.js 95,025, rask-hooks.js 106,504 (+882).
+bundle,bytes
+rask.js,109015
+rask.wasm.js,95025
+rask-hooks.js,106504

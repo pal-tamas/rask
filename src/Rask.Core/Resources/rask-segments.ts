@@ -23,7 +23,7 @@
 // An empty part that has focus shows its placeholder as selected text, so the reader sees which part the next
 // digit goes to; it is taken out again on the way out.
 
-import {announce, bind, boundOf, restate} from "./rask-bound.js";
+import {announce, bind, boundOf, hold, restate} from "./rask-bound.js";
 import {disown, listen, own, page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-segments]";
@@ -293,9 +293,8 @@ function step(group: Element, el: HTMLInputElement, by: number): void {
     commit(group);
 }
 
-bind(GROUP, function (group) {
-    return value(group) || "";
-}, function (group, rendered) {
+// The page wrote the bound field: the parts show what it says.
+function adopt(group: Element, rendered: string): void {
     const date = /(\d{1,4})-(\d\d)-(\d\d)/.exec(rendered);
     const time = /(\d\d):(\d\d)/.exec(rendered);
     const fill = function (kind: string, text: string): void {
@@ -313,7 +312,28 @@ bind(GROUP, function (group) {
     fill("meridiem", "");
     if (time) showHour(group, Number(time[1]), false);
     unmark(group);
-}, function (group, rendered) {
+}
+
+/** What the parts say now: the whole value, or "" while one is missing or half typed (rask-calendar.ts). */
+export function partsValue(group: Element): string {
+    return value(group) || "";
+}
+
+/**
+ * Shows `whole` ("yyyy-mm-dd", "HH:mm", or "" for nothing) in the group's parts and its bound field, as the page
+ * writing the field would, and tells no one: what the calendar beside a typed date picks (rask-calendar.ts).
+ */
+export function refillParts(group: Element, whole: string): void {
+    const bound = boundOf(group);
+    if (partsValue(group) !== whole || (bound && bound.value !== whole)) {
+        adopt(group, whole);
+        hold(group, whole);
+    }
+}
+
+bind(GROUP, function (group) {
+    return value(group) || "";
+}, adopt, function (group, rendered) {
     return before.get(group) === rendered;
 });
 
