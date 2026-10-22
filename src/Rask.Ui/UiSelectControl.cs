@@ -51,6 +51,9 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <summary>True to pick several options. The listbox's, over a select that holds a collection.</summary>
     public bool? Multiple { get; set; }
 
+    /// <summary>A checkmark beside the picked row, or a checkbox beside every row. The listbox's.</summary>
+    public Ui.SelectIndicator? Indicator { get; set; }
+
     /// <summary>
     ///     False to leave every option in the list whatever is typed: the page filters, answering the search's
     ///     <c>OnInput</c> by rendering the options that match.

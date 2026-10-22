@@ -322,8 +322,7 @@ public sealed class FluxConformanceTests
         ["flux:editor/custom-items"] = "A Blade file under resources/views/flux/editor, named in `toolbar`. In Rask an item of the app's own is composed into Ui.EditorToolbar[…] as a Ui.EditorButton.",
         ["flux:editor/extensions"] = "`flux:editor` is a DOM event; the kit raises it as `ui:editor` on the editor, with the same registerExtension(s) / enableExtension / disableExtension / init.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
-        ["flux:input/mask:dynamic"] = "An Alpine expression evaluated in the browser on every keystroke. The runtime shapes an amount (`data-rask-mask-money`, Flux's `$money($input)`) and nothing else; what a C# prop for it takes is not decided, so Mask takes the static pattern only.",
-        ["flux:autocomplete/mask:dynamic"] = "The input's: see flux:input/mask:dynamic.",
+        ["flux:autocomplete/mask:dynamic"] = "The input's `$money($input)` is its Money() step (see `Steps`); the autocomplete does not hand it to its text box yet.",
         ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
@@ -348,6 +347,15 @@ public sealed class FluxConformanceTests
         ["flux:otp/submit"] = "submit=\"auto\" calls requestSubmit() on the enclosing <form> the moment the last cell is filled (measured: a `submit` event with no submitter). The runtime's otp hook does not submit; it needs `data-rask-otp-submit` on the group: after a commit that leaves every cell filled, `group.closest('form')?.requestSubmit()`. Until then Ui.Otp raises OnComplete with the full code, in a form or out of one.",
         ["flux:otp.input/\u2014"] = "The reference's empty row: the part takes no props.",
         ["flux:otp.separator/\u2014"] = "The reference's empty row: the part takes no props.",
+    };
+
+    /// <summary>
+    ///     <c>part/prop</c> → the method a call site writes it with: a Flux prop that takes an expression where a property
+    ///     would take one value. <see cref="Every_built_component_takes_what_Flux_documents" /> reads it in place of the property.
+    /// </summary>
+    private static readonly Dictionary<string, string> Steps = new(StringComparer.Ordinal)
+    {
+        ["flux:input/mask:dynamic"] = nameof(UiInput<>.Money),
     };
 
     /// <summary>
@@ -590,6 +598,9 @@ public sealed class FluxConformanceTests
         ["flux:otp/Name"] = "the forwarded native `name` attribute: what the code posts under, on the one field that carries it",
         ["flux:otp/Disabled"] = "the <input>'s own `disabled`, forwarded to every cell",
         ["flux:otp/OnComplete"] = "`submit=\"auto\"` with the form's `wire:submit`: what runs when the last cell is filled",
+        ["flux:otp/LabelSrOnly"] = "`label:sr-only`, which Flux's \"Example usage\" (the form) sets and its reference omits",
+        ["flux:otp/ErrorIcon"] = "`:error:icon=\"false\"`, the field's error icon, which Flux's \"Example usage\" sets and its reference omits",
+        ["flux:otp/ErrorClass"] = "`error:class`, the field's error classes, which Flux's \"Example usage\" sets and its reference omits",
         ["flux:phone/Bind"] = "`wire:model`, two-way: written with the next action",
         ["flux:phone/OnChange"] = "`wire:model`'s write, handed to the parent",
         ["flux:phone/Validate"] = "the Livewire component's rule for the `wire:model` property",
@@ -607,6 +618,7 @@ public sealed class FluxConformanceTests
         ["flux:radio.group/Name"] = "the forwarded native `name` attribute: what every radio of the group posts under",
         ["flux:switch/Name"] = "the forwarded native `name` attribute, on the <input>",
         ["flux:radio.group/Size"] = "`size=\"sm\"`, which Flux documents under \"Segmented\" and not in the reference",
+        ["flux:select/Indicator"] = "`indicator=\"checkbox\"`, which Flux documents under \"Checkbox indicator\" and not in the reference",
         ["flux:radio.group/Indicator"] = "`:indicator=\"false\"`, which Flux documents under \"Cards without indicators\" and not in the reference",
         ["flux:switch/Align=Left"] = "`left|end`, which the reference lists as one option with two spellings",
         ["flux:editor/Bind"] = "`wire:model`, as the expression a Rask form binds by: Ui.Editor.Bind(() => post.Body)",
@@ -717,6 +729,16 @@ public sealed class FluxConformanceTests
         {
             foreach (var prop in props.Where(prop => !IsDirective(prop.Name) && !NotTranslated.ContainsKey($"{part}/{prop.Name}")))
             {
+                if (Steps.TryGetValue($"{part}/{prop.Name}", out var step))
+                {
+                    if (Built[part].GetMethod(step, Public) is null)
+                    {
+                        missing.Add($"{part}/{prop.Name}: no {Built[part].Name}.{step}(…)");
+                    }
+
+                    continue;
+                }
+
                 var property = Built[part].GetProperty(Pascal(prop.Name), Public | BindingFlags.IgnoreCase);
                 if (property is null)
                 {

@@ -142,6 +142,12 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     private bool _saidInvalid;
     private bool _saidRequired;
 
+    /// <summary>
+    ///     The marks of an amount this input shows grouped (<c>data-rask-mask-money</c>): its value is written with
+    ///     them, and what it sends is read with them. The kit's <c>Ui.Input.Money()</c>.
+    /// </summary>
+    internal MoneyMarks? Money { get; set; }
+
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -217,7 +223,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         if (acc is null)
         {
             checkedState = Checked;
-            valueString = Value is not null ? BindingHelpers.FormatValue(Value) : null;
+            valueString = Value is not null ? Shown(Value) : null;
         }
         else if (isCheckbox)
         {
@@ -225,7 +231,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
         else
         {
-            valueString = BindingHelpers.FormatValue(acc.Getter());
+            valueString = Shown(acc.Getter());
         }
 
         // A secret's value is the browser's: the server writes a clear and never the text (SecretField).
@@ -270,6 +276,8 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
     }
 
+    private string Shown(object? value) => Money?.Show(value) ?? BindingHelpers.FormatValue(value);
+
     // Bound: a checkbox writes the model as it is ticked, a typed field when its timing says, the rest as chosen.
     private void WireBound(
         StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
@@ -286,7 +294,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
 
         if (typedInto)
         {
-            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)));
+            WriteTypedBind(sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)), Money);
             return;
         }
 
@@ -302,6 +310,21 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind), bindCtx, fid);
     }
 
+    // An amount reaches the parser in its spelling, read with the field's marks; text that is none is no change.
+    private Delegate? Spelled(Delegate? change)
+    {
+        if (Money is not { } money || change is not Func<string, Task> parse || !UnreadValue.IsNumeric(typeof(T)))
+        {
+            return change;
+        }
+
+        return new Func<string, Task>(raw =>
+        {
+            var spelled = raw.Length == 0 ? raw : money.Read(raw);
+            return spelled is null ? Task.CompletedTask : parse(spelled);
+        });
+    }
+
     // Plain / controlled.
     private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
     {
@@ -311,7 +334,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
         }
 
-        var change = ((IFormControl<T>)this).ControlledChangeHandler();
+        var change = Spelled(((IFormControl<T>)this).ControlledChangeHandler());
         if (change is not null)
         {
             AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));

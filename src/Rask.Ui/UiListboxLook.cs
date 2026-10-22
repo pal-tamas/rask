@@ -65,6 +65,19 @@ internal static class UiListboxLook
     /// <summary>The tick, drawn in the picked row only.</summary>
     internal const string Check = "shrink-0 hidden group-data-selected/option:block";
 
+    /// <summary>
+    ///     The box of <c>indicator="checkbox"</c>: Flux's checkbox (<see cref="UiOptionLook" />), filled with the accent
+    ///     in a picked row. Flux's page shows no live example of this indicator, so it is drawn as Flux's own checkbox
+    ///     is measured, not measured where it sits.
+    /// </summary>
+    internal const string CheckboxBox =
+        "flex size-[1.125rem] shrink-0 items-center justify-center rounded-[.3rem] border shadow-xs "
+        + "border-zinc-300 bg-white dark:border-white/10 dark:bg-white/10 "
+        + "group-data-selected/option:border-transparent group-data-selected/option:bg-fx-accent group-data-selected/option:shadow-none";
+
+    /// <summary>The tick inside that box, drawn in a picked row only.</summary>
+    internal const string CheckboxTick = "hidden text-fx-accent-foreground group-data-selected/option:block";
+
     /// <summary>The option's icon.</summary>
     internal const string Icon = "shrink-0 me-2 text-zinc-400 dark:text-white/60";
 

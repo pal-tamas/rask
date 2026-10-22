@@ -29,6 +29,17 @@ them until tagged releases begin.
   `--template wasm-hosted` lists `"Cultures": [ "en" ]` in the host's `appsettings.json` with its catalog moved to
   `Client/Resources/`, where the browser half renders it.
 
+- **Three more of Flux's steps: `Ui.Input.Money()`, the OTP form's field parts, and a listbox's checkbox indicator.**
+  Before: `mask:dynamic="$money($input)"` was not built, the OTP form example wrote its field out by hand, and
+  `indicator="checkbox"` had no translation. After: `Ui.Input.Bind(() => m.Amount).Money()` shows `1234.56` as
+  `1,234.56`, groups what is typed as Flux does, and hands the bound `decimal` `1234.56` — read with the field's own
+  marks, so `.Money(decimals: ",", thousands: " ")` round-trips `1 234,56` whatever the reader's language says a comma
+  is; `Ui.Otp.Bind(() => Code).Label("OTP Code").LabelSrOnly().ErrorIcon(false).ErrorClass("text-center")` is Flux's
+  OTP form; `Ui.Select.Bind(() => m.Industries).Listbox.Checkbox.Multiple()` draws a checkbox beside every row
+  (`Ui.SelectIndicator`). The runtime's amount mask now keeps leading zeros (`007`), as Flux's does, and a
+  bound `Ui.Otp` whose code a handler empties after the next action is drawn empty (it served the typed cells from
+  the render cache).
+
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
   `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
@@ -72,6 +83,15 @@ them until tagged releases begin.
   service. Registration is source-generated, so a component that handles nothing costs nothing. Both hosts; delivery
   stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
+
+### Fixed
+
+- **A prerendered WebAssembly app with no ICU bakes the dates and numbers its browser shows.** An English-only app
+  ships no culture data, so the browser formats `"en"` with the invariant culture's (`03/14/2026`, `2026 March`),
+  while the prerender used the publishing machine's real English (`3/14/2026`, `March 2026`) and the page changed
+  when the app booted. The prerender now runs under the app's own `InvariantGlobalization`; `lang="en"` and the
+  English strings are unchanged, and an app that ships ICU still bakes with real culture data. See
+  [localization](docs/localization.md#wasm-and-icu).
 
 ### Removed
 
@@ -562,7 +582,16 @@ them until tagged releases begin.
   hooks that stand in for Flux's script (clear, copy, mask, big steps, the OTP cells, the list's keys and lock),
   searching in the browser and on the server, the check-all, the radios' and the slider's keys, and Flux's
   attributes as steps. Flux's checkbox indicator for a multiple select, the input's `mask:dynamic` and the OTP
-  input's `label:sr-only`, `error:icon` and `error:class` have no step yet, so those examples are left out. The
+  input's `label:sr-only`, `error:icon` and `error:class` have no step yet, so those examples are left out. Then the pickers and rich inputs: Autocomplete, Pillbox,
+  Calendar, Date picker, Time picker, Color picker, File upload, Phone, Rich text editor, Composer and Toggle, every
+  example on Flux's pages in Flux's order (the date picker's and the calendar's with `WithInputs()`, the date
+  picker's with `WithInputs(Ui.DatePickerInputVariant.Native)` and `Ui.DatePickerInput.Native` beside them), and a
+  few of the kit's own that the browser tests drive (suggestions and pillbox options found on the server, a
+  clearable date picker beside a clearable time picker, a colour saved with a form, a disabled toggle); their
+  Behaviour sections carry the mode as the opening step and the range written whole, the popup, the phone's sheet,
+  typed dates and times, presets, the colour picker's keys and what a typed colour becomes, the real file input,
+  dragging and progress, the phone's E.164 value and engine, the editor's HTML, engine, items and extensions, the
+  composer's keys, and the toggle that sends nothing. The
   reference tables now list a component's steps from the kit's own bases too (a select's live on
   `UiSelectControl`). The Card page gained a Behaviour section of its own, from what
   `docs/ui-kit.md` still held. The examples' avatars are four small SVG portraits the site ships under
@@ -573,8 +602,8 @@ them until tagged releases begin.
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
   every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
   same, to `/ui/progress/`, and `/docs/ui/data-display` to `/ui/accordion/` — with the tree's old URL; the data grid's
-  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. `/docs/ui/data-input` keeps the pickers and rich
-  inputs that have no page yet and links the nine that moved. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. `/docs/ui/data-input`, emptied in turn, goes on to
+  `/ui/date-picker/` and links all twenty pages that took its components. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

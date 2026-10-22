@@ -33,11 +33,19 @@ public sealed class UiApiReferenceTests
             .SelectMany(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .Where(property => property.SetMethod is { IsPublic: true } && !Common.Contains(property.Name))
             .ToDictionary(property => property.Name, property => property.PropertyType, StringComparer.Ordinal);
+        var methods = ChainMethods(part.Component).ToHashSet(StringComparer.Ordinal);
         var rows = part.Steps.ToDictionary(step => step.Name, step => step.Takes, StringComparer.Ordinal);
 
-        Assert.Equal(steps.Keys.Order(StringComparer.Ordinal), rows.Keys.Order(StringComparer.Ordinal));
-        Assert.All(rows, row => Assert.Equal(steps[row.Key], row.Value));
+        Assert.Equal(steps.Keys.Concat(methods).Order(StringComparer.Ordinal), rows.Keys.Order(StringComparer.Ordinal));
+        Assert.All(rows.Where(row => !methods.Contains(row.Key)), row => Assert.Equal(steps[row.Key], row.Value));
     }
+
+    // A step written as a method on the component — `Ui.Input.Bind(() => m.Amount).Money()` — hands the component back.
+    private static IEnumerable<string> ChainMethods(Type component) =>
+        component.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(method => !method.IsSpecialName && method.ReturnType == component)
+            .Select(method => method.Name)
+            .Distinct(StringComparer.Ordinal);
 
     // The component and the kit's own bases under it (a select's steps live on UiSelectControl), down to Rask's Component.
     private static IEnumerable<Type> KitTypes(Type component)

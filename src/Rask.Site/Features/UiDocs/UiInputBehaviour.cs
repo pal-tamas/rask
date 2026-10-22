@@ -56,7 +56,7 @@ internal sealed partial class UiInputBehaviour : Component
                 ("`<x-slot name=\"iconTrailing\">`", "`.IconTrailing(Ui.Button.Sm.Subtle.Icon(Ui.IconName.XMark))`"),
                 ("`input:class=\"font-mono\"`", "`.InputClass(\"font-mono\")`"),
                 ("`as=\"button\"`", "`.As(Ui.InputAs.Button)`"),
-                ("`mask:dynamic=\"$money($input)\"`", "Not built: it is an Alpine expression."),
+                ("`mask:dynamic=\"$money($input)\"`", "`.Money()`; `.Money(decimals: \",\", thousands: \" \")` for `$money($input, ',', ' ')`"),
             ])
         ];
 }

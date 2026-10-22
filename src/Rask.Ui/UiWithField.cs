@@ -108,12 +108,16 @@ internal sealed class UiWithField
     /// <param name="controlFirst">Inline only: the control before its label rather than after.</param>
     /// <param name="labelSrOnly">Flux's <c>label:sr-only</c>: the label kept for screen readers only.</param>
     /// <param name="descriptionSrOnly">Flux's <c>description:sr-only</c>: the description kept for screen readers only.</param>
+    /// <param name="errorIcon">Flux's <c>:error:icon="false"</c> when false: the message without its icon.</param>
+    /// <param name="errorClass">Flux's <c>error:class</c>: classes for the message.</param>
     internal Component Wrap(
         Component control,
         Ui.FieldVariant variant = Ui.FieldVariant.Block,
         bool controlFirst = false,
         bool labelSrOnly = false,
-        bool descriptionSrOnly = false)
+        bool descriptionSrOnly = false,
+        bool errorIcon = true,
+        string? errorClass = null)
     {
         if (!Wraps)
         {
@@ -125,7 +129,7 @@ internal sealed class UiWithField
             ? null
             : Ui.Description.Id(UiFieldId.Description(ControlId)).Class(Hidden(descriptionSrOnly))[_description];
         var trailing = _descriptionTrailing is null ? null : Ui.Description.Id(TrailingId)[_descriptionTrailing];
-        var error = _showValidation ? Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error) : null;
+        var error = _showValidation ? Error(errorIcon, errorClass) : null;
         var field = Ui.Field.Variant(variant);
 
         return controlFirst
@@ -134,6 +138,13 @@ internal sealed class UiWithField
     }
 
     private static string? Hidden(bool srOnly) => srOnly ? SrOnly : null;
+
+    private UiError Error(bool icon, string? classes)
+    {
+        var error = Ui.Error.Id(UiFieldId.Error(ControlId)).For(_bound).Message(_error).Class(classes);
+
+        return icon ? error : error.Icon(false);
+    }
 
     private Dictionary<string, string?> BuildAria()
     {

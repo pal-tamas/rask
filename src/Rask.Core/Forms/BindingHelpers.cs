@@ -215,9 +215,15 @@ public static class BindingHelpers
     public static Func<string, Task> StringSetHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
         Func<Task>? afterBind = null) =>
+        StringSetHandler(acc, ctx, fid, validateOnSet, afterBind, money: null);
+
+    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    internal static Func<string, Task> StringSetHandler(
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool validateOnSet,
+        Func<Task>? afterBind, MoneyMarks? money) =>
         async raw =>
         {
-            if (!TryBind(acc, ctx, fid, raw))
+            if (!TryBind(acc, ctx, fid, raw, money))
             {
                 return;
             }
@@ -250,9 +256,15 @@ public static class BindingHelpers
     public static Func<string, Task> TouchAndValidateHandler(
         ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
         Func<Task>? afterBind = null) =>
+        TouchAndValidateHandler(acc, ctx, fid, setOnChange, afterBind, money: null);
+
+    // As above, for a field that shows an amount: what arrives is read with its marks (MoneyMarks).
+    internal static Func<string, Task> TouchAndValidateHandler(
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, bool setOnChange,
+        Func<Task>? afterBind, MoneyMarks? money) =>
         async raw =>
         {
-            var didBind = setOnChange && TryBind(acc, ctx, fid, raw);
+            var didBind = setOnChange && TryBind(acc, ctx, fid, raw, money);
             if (didBind && afterBind is not null)
             {
                 await afterBind().ConfigureAwait(false);
@@ -274,7 +286,7 @@ public static class BindingHelpers
 
     /// <summary>
     ///     The bound handler for a <c>&lt;select multiple&gt;</c> — the sibling of
-    ///     <see cref="TouchAndValidateHandler" /> for a control that reports a whole selection rather
+    ///     <see cref="TouchAndValidateHandler(ExpressionAccessor.Accessor, EditContext?, FieldIdentifier, bool, Func{Task}?)" /> for a control that reports a whole selection rather
     ///     than one value.
     /// </summary>
     /// <remarks>
@@ -429,8 +441,13 @@ public static class BindingHelpers
     // must not pass for it: the form says under the field what it could not read (UnreadValue), and until a
     // value arrives that it can, no rule is asked about the old one and no save goes through. The same for
     // text the browser held back and reported as an empty field (UnreadInput): it is not an empty field.
-    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw)
+    private static bool TryBind(ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, string raw, MoneyMarks? money)
     {
+        if (money is not null && !TrySpellAmount(acc, ctx, fid, money, ref raw))
+        {
+            return false;
+        }
+
         var heldBack = UnreadInput.Current is { } input ? UnreadValue.HeldBack(acc.PropertyType, input) : null;
         if (heldBack is null && TrySetTyped(acc, raw))
         {
@@ -439,6 +456,30 @@ public static class BindingHelpers
         }
 
         if ((heldBack ?? UnreadValue.Unparsed(acc.PropertyType, raw)) is { } sentence)
+        {
+            ctx?.NoteUnread(fid, sentence);
+        }
+
+        return false;
+    }
+
+    // An amount is read with the field's own marks, and handed on in the one spelling every culture leaves alone.
+    // Text that is no amount is unread, as a number the reader's culture cannot read is.
+    private static bool TrySpellAmount(
+        ExpressionAccessor.Accessor acc, EditContext? ctx, FieldIdentifier fid, MoneyMarks money, ref string raw)
+    {
+        if (raw.Length == 0 || !UnreadValue.IsNumeric(acc.PropertyType))
+        {
+            return true;
+        }
+
+        if (money.Read(raw) is { } spelled)
+        {
+            raw = spelled;
+            return true;
+        }
+
+        if (UnreadValue.Unparsed(acc.PropertyType, string.Empty) is { } sentence)
         {
             ctx?.NoteUnread(fid, sentence);
         }

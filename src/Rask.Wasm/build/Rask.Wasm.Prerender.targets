@@ -178,6 +178,15 @@
       <_RaskPrerenderLine Include="    &lt;RaskScopedCssAutoInclude&gt;false&lt;/RaskScopedCssAutoInclude&gt;"/>
       <_RaskPrerenderLine Include="    &lt;RaskScopedTsGlob&gt;false&lt;/RaskScopedTsGlob&gt;"/>
       <_RaskPrerenderLine Include="    &lt;RaskScopedTsRootDir&gt;$(MSBuildProjectDirectory)&lt;/RaskScopedTsRootDir&gt;"/>
+      <!--
+        The browser's globalization, so the page is baked with the culture data the bundle ships. An English-only
+        app ships no ICU and formats "en" with the invariant culture's data (03/14/2026); the build machine has
+        real en-US data (3/14/2026), and a companion that used it baked a page the booted app contradicted.
+      -->
+      <_RaskPrerenderLine Condition=" '$(InvariantGlobalization)' == 'true' "
+                          Include="    &lt;InvariantGlobalization&gt;true&lt;/InvariantGlobalization&gt;"/>
+      <_RaskPrerenderLine Condition=" '$(PredefinedCulturesOnly)' != '' "
+                          Include="    &lt;PredefinedCulturesOnly&gt;$(PredefinedCulturesOnly)&lt;/PredefinedCulturesOnly&gt;"/>
       <_RaskPrerenderLine Include="  &lt;/PropertyGroup&gt;"/>
 
       <!--

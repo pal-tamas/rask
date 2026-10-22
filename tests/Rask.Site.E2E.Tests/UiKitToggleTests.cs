@@ -106,13 +106,13 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
         var scope = await OpenAsync();
         var sound = scope.Locator("[data-testid='ui-toggle-stateful-icon'] [data-ui-toggle]");
         var labelled = scope.Locator("[data-testid='ui-toggle-stateful-label'] [data-ui-toggle]");
-        await Expect(scope.Locator("[data-testid='ui-toggle-sound']")).ToHaveTextAsync("Playing");
+        await Expect(scope.Locator("[data-testid='ui-toggle-sound']")).ToHaveTextAsync("Muted");
         await Expect(labelled.Locator("span:visible")).ToHaveTextAsync("Sound off");
 
         await sound.ClickAsync();
         await labelled.ClickAsync();
 
-        await Expect(scope.Locator("[data-testid='ui-toggle-sound']")).ToHaveTextAsync("Muted");
+        await Expect(scope.Locator("[data-testid='ui-toggle-sound']")).ToHaveTextAsync("Playing");
         await Expect(sound).ToHaveAttributeAsync("aria-checked", "true");
         await Expect(labelled.Locator("span:visible")).ToHaveTextAsync("Sound on");
     });
@@ -133,15 +133,9 @@ public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixtur
 
     private async Task<ILocator> OpenAsync()
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await OpenUiPageAsync("toggle", "Toggle");
 
-        await ClickSidebar("Data input");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        var scope = Page.Locator("[data-testid='ui-toggle']");
+        var scope = Page.Locator("main");
         await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await scope.ScrollIntoViewIfNeededAsync();
         return scope;
