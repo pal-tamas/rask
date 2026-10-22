@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Rask.Batteries.Generators;
@@ -29,7 +28,7 @@ namespace Rask.Generators.Shared;
 internal static class ReadModelShape
 {
     /// <summary>The suffix a read face takes after its entity's name.</summary>
-    public const string ReadSuffix = "Read";
+    public const string ReadSuffix = ReadFaceName.Suffix;
 
     private const string NotMappedAttribute = "System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute";
 
@@ -40,32 +39,11 @@ internal static class ReadModelShape
     /// </remarks>
     public static bool IsCandidate(INamedTypeSymbol symbol) => AggregateShape.IsMappedEntity(symbol);
 
-    /// <summary>
-    ///     The read face's simple name: <c>OrderRead</c>, or <c>OuterOrderRead</c> for a nested entity.
-    /// </summary>
-    /// <remarks>
-    ///     A read face is always emitted at the top level — nesting it would need the containing type to be
-    ///     <c>partial</c>, which is not something declaring an entity should require. The containing names
-    ///     are carried into the face's own name so two entities called <c>Post</c> under different parents
-    ///     do not collide, and nobody types the result: <c>Post.Where(…)</c> is the door.
-    /// </remarks>
-    public static string ReadName(INamedTypeSymbol entity)
-    {
-        var name = new StringBuilder(entity.Name).Append(ReadSuffix);
-
-        for (var parent = entity.ContainingType; parent is not null; parent = parent.ContainingType)
-        {
-            name.Insert(0, parent.Name);
-        }
-
-        return name.ToString();
-    }
+    /// <summary>The read face's simple name: <c>OrderRead</c>, or <c>OuterOrderRead</c> for a nested entity.</summary>
+    public static string ReadName(INamedTypeSymbol entity) => ReadFaceName.Of(entity);
 
     /// <summary>The read face's fully-qualified name, ready to emit.</summary>
-    public static string ReadFqn(INamedTypeSymbol entity) =>
-        (entity.ContainingNamespace is null || entity.ContainingNamespace.IsGlobalNamespace
-            ? "global::"
-            : "global::" + entity.ContainingNamespace.ToDisplayString() + ".") + ReadName(entity);
+    public static string ReadFqn(INamedTypeSymbol entity) => ReadFaceName.Fqn(entity);
 
     /// <summary>
     ///     Describes the read face of <paramref name="entity" />, or null when it has no key to be found by.

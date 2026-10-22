@@ -4,6 +4,7 @@ using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators.Authorization;
 
@@ -23,7 +24,9 @@ internal static class GuardedCalls
             return null;
         }
 
+        var compilation = context.SemanticModel.Compilation;
         var unsupported = Unsupported(call, method, context.SemanticModel, cancellation);
+        var scope = unsupported is null ? Scope(method, compilation, cancellation, out unsupported) : null;
 #pragma warning disable RSEXPERIMENTAL002 // the interceptable-location API is the documented way to name a call to intercept
         var intercepts = unsupported is null
             ? context.SemanticModel.GetInterceptableLocation(call, cancellation)?.GetInterceptsLocationAttributeSyntax()
@@ -36,12 +39,13 @@ internal static class GuardedCalls
             + "(" + string.Join(", ", method.Parameters.Select(p => p.Type.ToDisplayString())) + ")",
             method.ContainingType.ToDisplayString(Signature),
             method.Name,
-            method.ReturnsVoid ? "void" : method.ReturnType.ToDisplayString(Signature),
+            method.ReturnsVoid ? "void" : GeneratedModelShape.DisplayName(method.ReturnType, Signature, compilation),
             Returns(method),
             Awaits(method),
             method.IsStatic,
-            new EquatableArray<GuardedParameter>(method.Parameters.Select(Parameter)),
+            new EquatableArray<GuardedParameter>(method.Parameters.Select(p => Parameter(p, compilation))),
             unsupported ?? (intercepts is null ? "the compiler gives this call no location to intercept" : null),
+            scope,
             line.Path,
             call.Span,
             line.Span);
@@ -117,6 +121,33 @@ internal static class GuardedCalls
         return InExpressionTree(call, model, cancellation) ? "it is called inside an expression tree" : null;
     }
 
+    // A type another generator makes is unseen here and prints as the bare name its author wrote. A Rask model or
+    // read face is named from the root; any other is named inside the method's own lookup, rebuilt — or, when that
+    // cannot be rebuilt exactly, the call is left unintercepted and reported rather than written uncompilable.
+    private static EquatableArray<string>? Scope(
+        IMethodSymbol method, Compilation compilation, CancellationToken cancellation, out string? unsupported)
+    {
+        unsupported = null;
+        var signature = method.Parameters.Select(p => (Type: p.Type, TypeOf: true))
+            .Append((Type: method.ReturnType, TypeOf: false))
+            .ToList();
+        if (!signature.Any(t => DeclarationScope.NamesUnseen(t.Type, compilation)))
+        {
+            return null;
+        }
+
+        var scope = signature.All(t => DeclarationScope.Nameable(t.Type, compilation, t.TypeOf))
+                    && method.DeclaringSyntaxReferences.FirstOrDefault() is { } declaration
+            ? DeclarationScope.Of(declaration.GetSyntax(cancellation), compilation, cancellation)
+            : null;
+        if (scope is null)
+        {
+            unsupported = "a type in its signature is made by another generator and cannot be named from generated code";
+        }
+
+        return scope;
+    }
+
     // Whether a file-local class in this assembly can name the type: the interceptor repeats the signature.
     private static bool Reachable(ITypeSymbol type, IAssemblySymbol assembly)
     {
@@ -171,7 +202,7 @@ internal static class GuardedCalls
         Returns(method) is GuardedReturn.Task or GuardedReturn.ValueTask
         && method.Parameters.All(p => p.RefKind == RefKind.None && !p.Type.IsRefLikeType);
 
-    private static GuardedParameter Parameter(IParameterSymbol parameter)
+    private static GuardedParameter Parameter(IParameterSymbol parameter, Compilation compilation)
     {
         var modifier = parameter.RefKind switch
         {
@@ -181,9 +212,9 @@ internal static class GuardedCalls
             RefKind.RefReadOnlyParameter => "ref readonly ",
             _ => parameter.IsParams ? "params " : string.Empty,
         };
-        var typeOf = "typeof(" + parameter.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+        var typeOf = "typeof(" + GeneratedModelShape.DisplayName(parameter.Type, SymbolDisplayFormat.FullyQualifiedFormat, compilation)
                      + ")" + (parameter.RefKind == RefKind.None ? string.Empty : ".MakeByRefType()");
         return new GuardedParameter(
-            parameter.Type.ToDisplayString(Signature), typeOf, modifier, "@" + parameter.Name);
+            GeneratedModelShape.DisplayName(parameter.Type, Signature, compilation), typeOf, modifier, "@" + parameter.Name);
     }
 }

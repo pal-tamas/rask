@@ -2451,6 +2451,10 @@ too — by an interceptor the build writes. An interceptor cannot be written for
 generic component, a call through `base`, a method whose signature names a private type, or a call inside an
 expression tree; such a call would run the method unchecked, and this warning names it.
 
+A type another source generator makes — a Rask.Data read face (`CompanyRead`), a generated model, a strongly-typed
+id — is named exactly as the method's own file names it. One case cannot be: a nullable parameter of a non-Rask
+generated type (`CompanyId?`), which generated code cannot tell from a nullable struct; that call is reported here.
+
 ```csharp
 public sealed class TrailersPage : Component
 {
@@ -2466,7 +2470,8 @@ The call to 'App.TrailersPage.Remove<T>(T)' is not checked against its [Authoriz
 ```
 
 **Fix:** make the method non-generic, or hand it over as a method group (`.OnClick(Remove)`), which is checked at run
-time. A call through `base` is checked by calling the method directly.
+time. A call through `base` is checked by calling the method directly. For a nullable generated type, take the
+parameter non-nullable or pass the method group.
 
 ---
 
