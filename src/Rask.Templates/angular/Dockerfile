@@ -49,11 +49,15 @@ RUN mkdir -p /data && chown $APP_UID:$APP_UID /data
 # most of it the GPU stack libgbm1 drags in; an app without Rask.Pdf skips the step.
 RUN if [ -f /opt/rask/chrome/chrome-headless-shell ]; then \
       apt-get update \
-      && apt-get install -y --no-install-recommends libglib2.0-0t64 libnspr4 libnss3 libatk1.0-0t64 libatspi2.0-0t64 \
+      && apt-get install -y --no-install-recommends libglib2.0-0t64 libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 \
            libdbus-1-3 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libexpat1 \
            libxkbcommon0 libasound2t64 fonts-dejavu-core fonts-liberation \
       && rm -rf /var/lib/apt/lists/*; \
     fi
+# Chromium's sandbox needs user namespaces, which a host on Ubuntu 24.04 or later refuses a container (AppArmor), so
+# the browser runs without it here. It only ever prints the app's own pages, its network held to the app's origin and
+# its scripts off. On a host without that restriction you may delete this line; `rask dev` keeps the sandbox on.
+ENV Rask__Pdf__NoSandbox=true
 USER $APP_UID
 
 EXPOSE 8080
