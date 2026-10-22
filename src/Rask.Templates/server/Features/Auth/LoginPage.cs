@@ -38,32 +38,24 @@ public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 
     protected override Component? Content =>
         [
-            H1.Class("text-2xl font-bold")["Sign in"],
+            Title("Sign in"),
             _error is AuthError.None ? null : Error("login-error", AuthMessages.For(_error)),
-            Form.Model(_model).OnSubmit(Submit)[
-                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
-                Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
-                Label.Class("label cursor-pointer gap-2")[
-                    Input.Bind(() => _model.Remember).Id("remember").Class("checkbox checkbox-sm"),
-                    Span["Remember me"]
-                ],
-                Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Submit).Id("login-submit").Class("btn btn-primary btn-block")["Sign in"]
-                ]
+            Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-6")[
+                Ui.Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Label("Email"),
+                Ui.Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Label("Password"),
+                Ui.Checkbox.Bind(() => _model.Remember).Id("remember").Label("Remember me"),
+                Ui.Button.Primary.Type(Ui.ButtonType.Submit).Id("login-submit").Class("w-full")["Sign in"]
             ],
             _passkeysSupported
-                ? Div[
-                    Div.Class("divider")["or"],
-                    Button.Type(ButtonType.Button).Id("login-passkey").Class("btn btn-outline btn-block").OnClick(Passkey)[
-                        "Sign in with a passkey"]
+                ? Div.Class("flex flex-col gap-6")[
+                    Ui.Separator.Text("or"),
+                    Ui.Button.Id("login-passkey").Class("w-full").OnClick(Passkey)["Sign in with a passkey"]
                 ]
                 : null,
-            P.Class("text-sm opacity-70")[
-                "No account yet? ",
-                NavLink.Href(Routes.RegisterPage()).Class("link link-primary")["Create one"],
-                "."],
-            P.Class("text-sm opacity-70")[
-                NavLink.Href(Routes.ForgotPasswordPage()).Class("link link-primary")["Forgotten your password?"]]
+            Div.Class("space-y-2 text-center")[
+                Ui.Text["No account yet? ", Ui.Link.Href(Routes.RegisterPage())["Create one"], "."],
+                Ui.Text[Ui.Link.Href(Routes.ForgotPasswordPage())["Forgotten your password?"]]
+            ]
         ];
 
     private async Task Submit(SignInModel model)

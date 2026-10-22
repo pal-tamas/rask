@@ -15,18 +15,13 @@ public sealed partial class LogoutPage(IAuth auth, IUserProvider users) : AuthPa
     protected override Component? Content =>
         users.Current.Identity?.IsAuthenticated == true
             ? [
-                H1.Class("text-2xl font-bold")["Sign out"],
-                P.Class("text-sm opacity-70")[$"You are signed in as {users.Current.Identity.Name}."],
-                Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Button).Id("logout-submit").Class("btn btn-primary btn-block").OnClick(SignOut)["Sign out"]
-                ]
+                Title("Sign out"),
+                Ui.Text[$"You are signed in as {users.Current.Identity.Name}."],
+                Ui.Button.Primary.Id("logout-submit").Class("w-full").OnClick(SignOut)["Sign out"]
             ]
             : [
-                H1.Class("text-2xl font-bold")["Signed out"],
-                P.Class("text-sm opacity-70")[
-                    "You are not signed in. ",
-                    NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"],
-                    "."]
+                Title("Signed out"),
+                Ui.Text["You are not signed in. ", Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
             ];
 
     private Task SignOut() => auth.SignOut(ReturnUrl);

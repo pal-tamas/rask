@@ -603,19 +603,8 @@ public sealed class ProjectGeneratorBuildE2ETests
             // against a stylesheet that shipped all of Tailwind, which is the other way to get this wrong.
             Assert.DoesNotContain("skew-x-12", css, StringComparison.Ordinal);
 
-            // daisyUI itself, compiled HERE from the plugin Rask.Ui ships — no npm, no node_modules.
-            // This is the whole claim: without it the page's card/btn/navbar are correct strings in the
-            // markup naming rules that exist nowhere, and the app renders as unstyled text.
-            foreach (var component in (string[])["card", "card-body", "btn", "navbar", "hero", "footer"])
-            {
-                Assert.True(
-                    Regex.IsMatch(css, $@"(^|[\s,}}]) *\.{component}\s*\{{", RegexOptions.Multiline),
-                    $"[wasm={wasm}] .{component} is not in the compiled sheet, so the starter page "
-                    + $"renders unstyled.{CliBuildE2E.Diagnostics(output)}");
-            }
-
-            // And the plugin must not have been scanned as a safelist: nothing here, and nothing in the
-            // kit, writes `glass`.
+            // The plugin must not have been scanned as a safelist: nothing here, and nothing in the kit,
+            // writes `glass`.
             Assert.False(
                 Regex.IsMatch(css, @"(^|[\s,}]) *\.glass\s*\{", RegexOptions.Multiline),
                 $"[wasm={wasm}] the sheet carries components nothing names, so vendor/daisyui.mjs is "

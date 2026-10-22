@@ -191,20 +191,24 @@ file and names it, rather than reporting a machine with no .NET on it — which 
 satisfies looks like from the outside, since `dotnet --version` is the thing that fails. Delete the
 file if you would rather track whatever SDK is newest.
 
-**Styling is not a choice: every project is Tailwind and [daisyUI](ui-kit.md).** The compiler ships
+**Styling is not a choice: every project is Tailwind and the [UI kit](ui-kit.md).** The compiler ships
 inside the host package, so the build compiles `Styles/app.css` into `wwwroot/css/app.css` by scanning
-the project's own source (see [Tailwind](tailwind.md)), and daisyUI's plugin arrives with `Rask.Ui` —
-so a C# project gets the whole component vocabulary with **no npm and no `node_modules`**. There is no
+the project's own source (see [Tailwind](tailwind.md)), and the classes the kit's components write
+arrive with `Rask.Ui` — so a C# project gets the whole component vocabulary with **no npm and no
+`node_modules`**. There is no
 config file and no property that turns it off. `--bootstrap` and `--tailwind` are gone, and both are
 *refused* rather than ignored, because a flag the CLI accepts and then disregards is the most expensive
 kind to discover.
 
-**Every C# template draws the same starter page**, in the same daisyUI class names — a navbar, a hero, a
-card and a footer — so a project looks the same whether it runs on the server or in WebAssembly. The
+**Every C# template draws the same starter page**, with the [UI kit](ui-kit.md)'s Flux components and
+plain Tailwind around them — a `Ui.Header` with the `Ui.Brand`, a `Ui.Heading`, a `Ui.Card` holding the
+next steps and a primary `Ui.Button`, and a footer — so a project looks the same whether it runs on the
+server or in WebAssembly. The
 seven front-end templates draw one starter too, in plain Tailwind utilities: a front end brings its own
 component library.
-The sign-in pages `rask new` writes into `Features/Auth/` are drawn with it too, and an app with a database
-links sign-in from the starter's navbar.
+The sign-in pages `rask new` writes into `Features/Auth/` are drawn with the kit too — a `Ui.Card` of
+`Ui.Input`s, a `Ui.Checkbox`, a primary `Ui.Button` and a `Ui.Callout` for what went wrong — and an app
+with a database links sign-in from the starter's header.
 
 The CLI writes the project's files itself, pins the `Rask.*` package references, and runs `dotnet
 restore` so the output builds immediately.

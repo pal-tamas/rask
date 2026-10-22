@@ -229,13 +229,12 @@ public sealed class ProjectGeneratorTests
         // The welcome copy points at the file it actually lives in.
         Assert.Contains("HomePage.cs", home, StringComparison.Ordinal);
 
-        // The page is written in daisyUI's own class names, which is what every project gets: the
-        // classes here are the ones its own build scans this file for, and the same ones every other
-        // `rask new` template draws so a project looks the same whichever front end it was scaffolded
-        // with.
+        // The page is drawn with the UI kit's components, which every project references, and plain
+        // Tailwind around them: the same ones every C# template draws, so a project looks the same
+        // whether it runs on the server or in WebAssembly.
         var page = Generate().Files["Features/Home/HomePage.cs"];
-        Assert.Contains("card bg-base-100", page, StringComparison.Ordinal);
-        Assert.Contains("btn btn-primary", page, StringComparison.Ordinal);
+        Assert.Contains("Ui.Card", page, StringComparison.Ordinal);
+        Assert.Contains("Ui.Button.Primary", page, StringComparison.Ordinal);
     }
 
     [Fact]

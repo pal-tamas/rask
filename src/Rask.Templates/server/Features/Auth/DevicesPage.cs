@@ -37,14 +37,14 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
 
     protected override Component? Content =>
         [
-            H1.Class("text-2xl font-bold")["Your devices"],
+            Title("Your devices"),
             _signedOutOthers ? Ok("devices-signed-out", "Every other device is signed out.") : null,
-            Ul.Class("list")[
+            Ul.Class(List)[
                 _sessions.Select(session =>
-                    Li.Key(session.Id).Class("list-row")[
-                        Div[
-                            Div.Class("font-semibold")[Describe(session.UserAgent)],
-                            Div.Class("text-xs opacity-70")[
+                    Li.Key(session.Id).Class(Row)[
+                        Div.Class("min-w-0")[
+                            Ui.Heading.Class("truncate")[Describe(session.UserAgent)],
+                            Ui.Text.Sm[
                                 session.Id == users.Current.SessionId()
                                     ? "This device"
                                     : "Last seen " + session.LastSeenAt.ToString("g", CultureInfo.CurrentCulture)]
@@ -52,10 +52,7 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
                     ])
             ],
             _sessions.Count > 1
-                ? Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Button).Id("devices-sign-out-others").Class("btn btn-outline btn-block").OnClick(SignOutOthers)[
-                        "Sign out every other device"]
-                ]
+                ? Ui.Button.Id("devices-sign-out-others").Class("w-full").OnClick(SignOutOthers)["Sign out every other device"]
                 : null,
             Passkeys
         ];
@@ -63,36 +60,35 @@ public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAut
     // A passkey is a second way into this account, so the list says what each one is and offers to take it away.
     private Component? Passkeys =>
         [
-            Div.Class("divider")["Passkeys"],
+            Ui.Separator.Text("Passkeys"),
             _passkeyError is AuthError.None ? null : Error("passkey-error", AuthMessages.For(_passkeyError)),
             _passkeys.Count == 0
-                ? P.Class("text-sm opacity-70")["No passkeys yet. Add one to sign in without a password."]
-                : Ul.Class("list").Id("passkey-list")[
+                ? Ui.Text["No passkeys yet. Add one to sign in without a password."]
+                : Ul.Class(List).Id("passkey-list")[
                     _passkeys.Select(passkey =>
-                        Li.Key(passkey.Id).Class("list-row")[
-                            Div[
-                                Div.Class("font-semibold")[passkey.Name],
-                                Div.Class("text-xs opacity-70")[
+                        Li.Key(passkey.Id).Class(Row)[
+                            Div.Class("min-w-0")[
+                                Ui.Heading.Class("truncate")[passkey.Name],
+                                Ui.Text.Sm[
                                     passkey.LastUsedAt is { } used
                                         ? "Last used " + used.ToString("g", CultureInfo.CurrentCulture)
                                         : "Never used"]
                             ],
-                            Button.Type(ButtonType.Button).Class("btn btn-ghost btn-xs").OnClick(() => Remove(passkey.Id))[
-                                "Remove"]
+                            Ui.Button.Ghost.Xs.OnClick(() => Remove(passkey.Id))["Remove"]
                         ])
                 ],
             _passkeysSupported
-                ? Form.Model(_passkey).OnSubmit(Add)[
-                    Field(
-                        "passkey-name",
-                        "Name this device",
-                        Input.Bind(() => _passkey.Name).Id("passkey-name").Class("input w-full")),
-                    Div.Class("card-actions mt-2")[
-                        Button.Type(ButtonType.Submit).Id("passkey-add").Class("btn btn-outline btn-block")["Add a passkey"]
-                    ]
+                ? Form.Model(_passkey).OnSubmit(Add).Class("flex flex-col gap-6")[
+                    Ui.Input.Bind(() => _passkey.Name).Id("passkey-name").Label("Name this device"),
+                    Ui.Button.Type(Ui.ButtonType.Submit).Id("passkey-add").Class("w-full")["Add a passkey"]
                 ]
-                : P.Class("text-sm opacity-70")["This browser cannot use passkeys."]
+                : Ui.Text["This browser cannot use passkeys."]
         ];
+
+    // A divided list: one row per device or passkey, its button at the end of the row.
+    private const string List = "divide-y divide-zinc-800/10 dark:divide-white/20";
+
+    private const string Row = "flex items-center justify-between gap-4 py-3";
 
     private async Task Add(PasskeyModel model)
     {
