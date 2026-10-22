@@ -160,6 +160,10 @@ public static partial class RaskEndpointExtensions
         services.TryAddSingleton<Printing.ServerPrintablePages>();
         services.TryAddSingleton<Core.Printing.IPrintablePages>(static sp => sp.GetRequiredService<Printing.ServerPrintablePages>());
 
+        // And the printer itself, when the app references Rask.Pdf: found by name, since Rask.Server cannot reference
+        // it. Here rather than in RaskApp, so a hand-wired host prints with no call of its own; AddRaskPdf is idempotent.
+        Core.Printing.PdfLoader.TryAttach(services);
+
         // A test is running this app's Program.cs (Page.Visit): a server that opens no socket, and the started app
         // handed to the test rather than served. Every Rask server app comes through here, however it is wired.
         if (AppCapture.Current is { } capture)

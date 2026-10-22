@@ -11,8 +11,8 @@ public static class PdfServiceCollectionExtensions
     /// <summary>
     /// Registers the app's printer: one headless Chromium, started at the first <see cref="Pdf.From(Rask.Core.Routing.RouteUrl, PdfOptions?)"/>
     /// and closed with the host, configured from <c>Rask:Pdf</c> (<c>ChromiumPath</c>, <c>NoSandbox</c>,
-    /// <c>MaxConcurrentPrints</c>, <c>Timeout</c>, <c>MaxPages</c>). The same call on a <c>RaskApp</c> host
-    /// (<c>RaskApp.Create(args, b =&gt; b.Services.AddRaskPdf())</c>) and on a hand-wired one.
+    /// <c>MaxConcurrentPrints</c>, <c>Timeout</c>, <c>MaxPages</c>). Rarely needed: <c>AddRask()</c> — and so every
+    /// <c>RaskApp</c> — calls it whenever the app references Rask.Pdf. Idempotent, so an explicit call is harmless.
     /// </summary>
     public static IServiceCollection AddRaskPdf(this IServiceCollection services)
     {

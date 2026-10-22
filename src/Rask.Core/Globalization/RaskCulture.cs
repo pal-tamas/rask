@@ -37,6 +37,12 @@ public static class RaskCulture
     public static bool IsEnabled { get; internal set; }
 
     /// <summary>
+    ///     The language a document is written in when the app configured none: the <c>&lt;html lang&gt;</c>
+    ///     every such page carries, and the culture the WASM host formats in so the page never contradicts it.
+    /// </summary>
+    internal const string UnconfiguredLanguage = "en";
+
+    /// <summary>
     ///     The culture to format with, and a declaration that the calling component depends on it.
     /// </summary>
     public static CultureInfo Current
