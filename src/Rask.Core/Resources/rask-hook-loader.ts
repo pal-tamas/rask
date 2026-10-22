@@ -55,6 +55,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " phone"                                                    // rask-phone
     + " submit-keys"                                              // rask-submit
     + " grow"                                                     // rask-grow
+    + " lazy"                                                     // rask-lazy
     + " list"                                                     // rask-list
     + " color"                                                    // rask-color
     + " calendar"                                                 // rask-calendar

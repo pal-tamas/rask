@@ -637,6 +637,11 @@ Rask.Core.Components.InstallTrigger.OnOutcome.get -> Rask.Core.Callback<string?>
 Rask.Core.Components.InstallTrigger.OnOutcome.set -> void
 Rask.Core.Components.InstallTrigger.Template.get -> System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>!
 Rask.Core.Components.InstallTrigger.Template.set -> void
+Rask.Core.Components.Lazy
+Rask.Core.Components.Lazy.Lazy() -> void
+Rask.Core.Components.Lazy.Placeholder.get -> Rask.Core.Component?
+Rask.Core.Components.Lazy.Placeholder.set -> void
+Rask.Core.Components.Lazy.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Components.Lazy!
 Rask.Core.Components.MediaCaptureTrigger
 Rask.Core.Components.MediaCaptureTrigger.Audio.get -> bool
 Rask.Core.Components.MediaCaptureTrigger.Audio.set -> void
@@ -7323,6 +7328,7 @@ static Rask.Core.RaskMarkup.DefaultNotFoundPage.get -> Rask.Core.Components.Defa
 static Rask.Core.RaskMarkup.Doctype.get -> Rask.Core.Components.Doctype!
 static Rask.Core.RaskMarkup.DragDrop.get -> Rask.Core.Components.DragDrop!
 static Rask.Core.RaskMarkup.ErrorBoundary.get -> Rask.Core.Components.ErrorBoundary!
+static Rask.Core.RaskMarkup.Lazy.get -> Rask.Core.Components.Lazy!
 static Rask.Core.RaskMarkup.NavLink.get -> Rask.Core.Components.NavLink!
 static Rask.Core.RaskMarkup.Outlet.get -> Rask.Core.Routing.Outlet!
 static Rask.Core.RaskMarkup.RaskRuntimeScript.get -> Rask.Core.Components.RaskRuntimeScript!
@@ -7393,6 +7399,10 @@ static Rask.Core.Virtualization.ItemsProviderResult<T>.operator ==(Rask.Core.Vir
 static Rask.Core.Virtualization.VirtualItem<T>.operator !=(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
 static Rask.Core.Virtualization.VirtualItem<T>.operator ==(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
 static Rask.Markup.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
+static Rask.Markup.Lazy.get -> Rask.Core.Components.Lazy!
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Lazy(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskResetEager_Rask_Core_Components_Lazy(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Lazy(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.ActiveClass(this Rask.Core.Components.NavLink! __b, string? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.ActiveMatch(this Rask.Core.Components.NavLink! __b, Rask.Core.Components.NavLinkMatch? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.Aria<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
@@ -7516,6 +7526,7 @@ static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Action? value
 static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
 static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Components.ScreenOrientationTrigger! __b, string! value) -> Rask.Core.Components.ScreenOrientationTrigger!
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
+static RaskBuilderSettersRask_Core.Placeholder(this Rask.Core.Components.Lazy! __b, Rask.Core.Component? value) -> Rask.Core.Components.Lazy!
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Components.Authorize! __b, string? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.Ref<T>(this T! __b, Rask.Core.ElementRef? value) -> T!
 static RaskBuilderSettersRask_Core.Role<T>(this T! __b, string? value) -> T!
@@ -7588,6 +7599,7 @@ static RaskEntriesRask_Core.DefaultNotFoundPage.get -> Rask.Core.Components.Defa
 static RaskEntriesRask_Core.Doctype.get -> Rask.Core.Components.Doctype!
 static RaskEntriesRask_Core.DragDrop.get -> Rask.Core.Components.DragDrop!
 static RaskEntriesRask_Core.ErrorBoundary.get -> Rask.Core.Components.ErrorBoundary!
+static RaskEntriesRask_Core.Lazy.get -> Rask.Core.Components.Lazy!
 static RaskEntriesRask_Core.NavLink.get -> Rask.Core.Components.NavLink!
 static RaskEntriesRask_Core.Outlet.get -> Rask.Core.Routing.Outlet!
 static RaskEntriesRask_Core.RaskRuntimeScript.get -> Rask.Core.Components.RaskRuntimeScript!

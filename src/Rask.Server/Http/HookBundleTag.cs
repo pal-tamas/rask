@@ -55,6 +55,7 @@ internal static class HookBundleTag
         "data-rask-phone",
         "data-rask-submit-keys",
         "data-rask-grow",
+        "data-rask-lazy",
         "data-rask-list",
         "data-rask-color",
         "data-rask-calendar",

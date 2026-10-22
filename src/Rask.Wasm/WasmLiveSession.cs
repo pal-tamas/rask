@@ -458,6 +458,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return HandleNavigateAsync(root, copyFrame);
         }
 
+        // The tab went out of sight or came back: what polls waits for it. No render needed.
+        if (PageVisibility.Heard(root, Services))
+        {
+            return NoFrame;
+        }
+
         if (string.Equals(type, "batch", StringComparison.Ordinal))
         {
             return root.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array

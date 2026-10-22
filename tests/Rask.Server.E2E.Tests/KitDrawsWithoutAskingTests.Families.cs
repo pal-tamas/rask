@@ -278,6 +278,8 @@ public abstract partial class KitDrawsWithoutAskingTests
 
         ["toggle-heard"] = On<KitOwnFramePage>("toggle-heard", Press("press", "[data-c='toggle-heard'] button")),
         ["carousel"] = On<KitOwnFramePage>("carousel"),
+        ["lazy"] = On<KitOwnFramePage>("lazy",
+            new KitGesture("scroll it into view", page => page.Locator("#lazy-placeholder").ScrollIntoViewIfNeededAsync())),
     };
 
     // A modal's own: opened by its trigger, walked, and closed each of the ways a reader closes one.

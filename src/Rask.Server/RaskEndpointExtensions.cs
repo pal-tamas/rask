@@ -324,6 +324,7 @@ public static partial class RaskEndpointExtensions
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<PageVisibility>();
         services.AddScoped<ServerPageResponse>();
         services.AddScoped<IPageResponse>(sp => sp.GetRequiredService<ServerPageResponse>());
         // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
@@ -2274,7 +2275,8 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        return false;
+        // The tab went out of sight or came back: what polls waits for it (PageVisibility). No render needed.
+        return PageVisibility.Heard(root, session.Services);
     }
 
     // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
