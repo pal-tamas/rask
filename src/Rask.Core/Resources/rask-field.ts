@@ -94,7 +94,7 @@ export function maskMoney(text: string, marks: string, caret: number = text.leng
             kept++;
         }
     }
-    whole = whole.replace(/^0+(?=\d)/, "");
+    // Leading zeros stay, as Flux's (Alpine's) $money keeps them: "007" is shown as it was typed.
 
     let value = negative ? "-" : "";
     for (let i = 0; i < whole.length; i++) {

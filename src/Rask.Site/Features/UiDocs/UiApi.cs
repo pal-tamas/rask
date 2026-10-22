@@ -463,6 +463,9 @@ internal static partial class UiApi
             new("Bleed", typeof(bool?), "Runs the row dividers through the padding of the box it sits in, by --ui-bleed (1.5rem unless the box says)."),
             new("Paginate", typeof(Component), "The pager under the rows, outside the scroll area: a Ui.Pagination.", "a Ui.Pagination"),
             new("ContainerClass", typeof(string), "Classes for the box around the table: a height to scroll within, max-h-80, or min-w-0 in a grid."),
+            new("Of", typeof(Rask.Querying.Query<>), "Skeleton rows while a Rask.Query query loads, and a row saying there is nothing when it holds none.",
+                "a Query, and up to two more it waits for"),
+            new("Loading", typeof(bool), "Skeleton rows while the page's own rows are on their way.", "a bool: _rows is null"),
         ]),
         new("Ui.TableColumns", typeof(UiTableColumns), "flux:table.columns", "The heading row: the <thead>.",
         [

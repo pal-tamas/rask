@@ -266,6 +266,43 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_label_kept_for_screen_readers_still_names_the_group()
+    {
+        var html = Ui.Otp.Value("").Length(6).Label("OTP Code").LabelSrOnly().ToHtml();
+
+        Assert.Matches("<label [^>]*class=\"[^\"]*\\bsr-only\\b[^\"]*\"[^>]*>OTP Code", html);
+        Assert.Contains("aria-labelledby=\"f-otp-code-label\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_message_under_the_cells_takes_its_classes_and_can_go_without_its_icon()
+    {
+        var model = new Login();
+        var form = new EditContext(model);
+        form.AddValidationMessage(new FieldIdentifier(model, nameof(Login.Code)), "The code field is required.");
+
+        var page = Page.Render(() => Form.Model(model).Context(form)[
+            Ui.Otp.Bind(() => model.Code).Length(6).Label("OTP Code").LabelSrOnly().ErrorIcon(false).ErrorClass("text-center").Class("mx-auto")]);
+        var error = page.Find("[data-ui-error]");
+
+        Assert.True(error.HasClass("text-center"));
+        Assert.Equal("The code field is required.", error.TextContent.Trim());
+        Assert.DoesNotContain(error.DescendantsAndSelf(), node => node.Tag == "svg");
+    }
+
+    [Fact]
+    public void The_message_under_the_cells_keeps_its_icon_unless_told_otherwise()
+    {
+        var model = new Login();
+        var form = new EditContext(model);
+        form.AddValidationMessage(new FieldIdentifier(model, nameof(Login.Code)), "Wrong code.");
+
+        var page = Page.Render(() => Form.Model(model).Context(form)[Ui.Otp.Bind(() => model.Code).Length(4).Label("Code")]);
+
+        Assert.Contains(page.Find("[data-ui-error]").DescendantsAndSelf(), node => node.Tag == "svg");
+    }
+
+    [Fact]
     public void A_disabled_code_disables_every_cell()
     {
         var html = Ui.Otp.Value("").Length(4).Disabled().ToHtml();
@@ -301,6 +338,32 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
 
     [System.Text.RegularExpressions.GeneratedRegex("<input[^>]*>")]
     private static partial System.Text.RegularExpressions.Regex InputTag();
+
+    [Fact]
+    public async Task A_bound_code_a_handler_empties_is_drawn_empty()
+    {
+        var page = Page.Render(new Resending());
+
+        await page.On(Field).Input("4321");
+        await page.On("#resend").Click();
+
+        Assert.Contains("resent=4321", page.Html, StringComparison.Ordinal);
+        Assert.Contains("value=\"\"", Hidden(page.Html), StringComparison.Ordinal);
+    }
+
+    private sealed partial class Resending : Rask.Core.Component
+    {
+        private string _resent = "";
+
+        public string Code { get; set; } = "";
+
+        protected override Rask.Core.Component? Render() =>
+        [
+            Ui.Otp.Bind(() => Code).Length(6).Label("Code"),
+            Markup.Button.Id("resend").OnClick(() => { _resent = Code; Code = ""; })["Resend"],
+            P[$"resent={_resent}"]
+        ];
+    }
 
     private sealed class Login
     {

@@ -30,19 +30,13 @@ public sealed partial class OtpParity : FluxParity
     {
         yield return ("", Centered(Ui.Otp.Value("").Length(6).Class("mx-auto")));
 
-        // label:sr-only, error:icon and error:class there are the shorthand's pass-throughs to the label and the
-        // error; here the field is written out and each takes its own.
         yield return ("example-usage", Div.Style("width:384px;margin:0 auto")[
             Raw.Value(AppUtilities),
             Ui.Card[
                 Form.Model(new object())[
                     Div.Style(Intro)[Heading(), Words()],
                     Div.Style("margin-bottom:32px")[
-                        Ui.Field[
-                            Ui.Label.Class("sr-only")["OTP Code"],
-                            Ui.Otp.Value("").Length(6).Class("mx-auto"),
-                            Ui.Error.Icon(false).Class("text-center")
-                        ]
+                        Ui.Otp.Value("").Length(6).Label("OTP Code").LabelSrOnly().ErrorIcon(false).ErrorClass("text-center").Class("mx-auto")
                     ],
                     Div[
                         StandIn("height:40px;margin-bottom:16px", "Verify"),

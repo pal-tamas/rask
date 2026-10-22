@@ -193,6 +193,39 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     // beside it, its clear button and its copy button reach THIS input and not the first such one on the page.
     private string? _ownId;
 
+    // Flux's `mask:dynamic="$money($input)"`, when the chain says `.Money()`.
+    private MoneyMarks? _money;
+
+    /// <summary>
+    ///     Shows an amount grouped as it is typed — Flux's <c>mask:dynamic="$money($input)"</c>:
+    ///     <c>Ui.Input.Bind(() =&gt; m.Amount).Money()</c> shows <c>1234.56</c> as <c>1,234.56</c>, and
+    ///     <c>.Money(decimals: ",", thousands: " ")</c> as <c>1 234,56</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A bound number receives the amount read with these marks, whatever the reader's language says a comma
+    ///     is: <c>"1 234,56"</c> is <c>1234.56</c>. The input is a text field, as Flux's is.
+    /// </remarks>
+    /// <param name="decimals">The decimal mark, one character.</param>
+    /// <param name="thousands">The mark between groups of three digits, one character.</param>
+    /// <param name="precision">How many decimals can be typed; 0 for whole amounts.</param>
+    /// <returns>This input.</returns>
+    public UiInput<T> Money(string decimals = ".", string thousands = ",", int precision = 2)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(decimals);
+        ArgumentException.ThrowIfNullOrEmpty(thousands);
+        ArgumentOutOfRangeException.ThrowIfNegative(precision);
+        if (decimals.Length != 1 || thousands.Length != 1 || string.Equals(decimals, thousands, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Money takes one character for each mark, and two different ones: not \"{decimals}\" and \"{thousands}\".",
+                nameof(thousands));
+        }
+
+        _money = new MoneyMarks(decimals[0], thousands[0], precision);
+        BuilderRuntime.MarkChanged(this);
+        return this;
+    }
+
     /// <summary>The control this input is the text box of, when it is one's: its list and its bound member.</summary>
     internal UiInputHost? Host { get; private set; }
 
@@ -265,12 +298,18 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             input = input.Data("rask-mask", mask);
         }
 
+        if (_money is { } money)
+        {
+            input.Money = money;
+            input = input.Data("rask-mask-money", money.Attribute);
+        }
+
         return input
             .Id(field.ControlId)
             .Name(Name)
             .Ref(Ref)
             .OnInput(OnInput)
-            .Type(Type)
+            .Type(Type ?? (_money is null ? null : InputType.Text))
             .Placeholder(Placeholder ?? (ShowsClear ? " " : null))
             .Min(Min)
             .Max(Max)

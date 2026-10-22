@@ -43,6 +43,7 @@ internal sealed partial class UiOtpBehaviour : Component
             + "(the first empty cell), `autocomplete=\"one-time-code\"` on the first cell (`Autocomplete(\"off\")` stops "
             + "the browser offering a code), `inputmode=\"numeric\"` for digits and `type=\"password\"` with `Private()`. "
             + "An invalid code is the bound member's message, which marks every cell, and `Disabled()` disables every "
-            + "cell. Flux's `label:sr-only`, `error:icon` and `error:class` are not steps yet.",
+            + "cell. Flux's `label:sr-only`, `:error:icon=\"false\"` and `error:class` are `LabelSrOnly()`, "
+            + "`ErrorIcon(false)` and `ErrorClass(\"text-center\")`.",
         ]);
 }

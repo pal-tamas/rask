@@ -78,7 +78,7 @@ public sealed class RuntimeHookShapingTests
 
         Assert.Equal("1.234.567,89", money.GetProperty("european").GetString());
         Assert.Equal("12,345", money.GetProperty("whole").GetString());
-        Assert.Equal("7", money.GetProperty("zeros").GetString());
+        Assert.Equal("007", money.GetProperty("zeros").GetString());
     }
 
     [Fact]

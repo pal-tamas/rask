@@ -35,7 +35,8 @@ public sealed partial class UiInputPage : Component
             UiDocsExample.Key("ui-input-invalid").Heading("Invalid").File("InputInvalidExample.cs").Demo(InputInvalidExample).Testid("ui-input-invalid")
                 .Blurb("Error styling the form did not ask for. A bound input is marked invalid on its own."),
             UiDocsExample.Key("ui-input-mask").Heading("Input masking").File("InputMaskExample.cs").Demo(InputMaskExample).Testid("ui-input-mask")
-                .Blurb("Each keystroke is held to the pattern: 9 is a digit, a a letter, * either."),
+                .Blurb("Each keystroke is held to the pattern: 9 is a digit, a a letter, * either. Money() groups an amount "
+                       + "as it is typed, and a bound number receives the amount it spells."),
             UiDocsExample.Key("ui-input-icons").Heading("Icons").File("InputIconsExample.cs").Demo(InputIconsExample).Testid("ui-input-icons"),
             UiDocsExample.Key("ui-input-icon-buttons").Heading("Icon buttons").File("InputIconButtonsExample.cs").Demo(InputIconButtonsExample).Testid("ui-input-icon-buttons")
                 .Blurb("IconTrailing also takes content of your own, such as a button."),

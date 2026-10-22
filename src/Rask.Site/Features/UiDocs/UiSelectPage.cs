@@ -61,6 +61,8 @@ public sealed partial class UiSelectPage : Component
             .Blurb("Opened on a collection, the listbox picks several and stays open while you do."),
         UiDocsExample.Key("ui-select-suffix").Heading("Selected suffix").File("SelectSelectedSuffixExample.cs").Demo(SelectSelectedSuffixExample).Testid("ui-select-suffix")
             .Blurb("What follows the count once several are picked: \"2 industries selected\"."),
+        UiDocsExample.Key("ui-select-checkbox").Heading("Checkbox indicator").File("SelectCheckboxIndicatorExample.cs").Demo(SelectCheckboxIndicatorExample).Testid("ui-select-checkbox")
+            .Blurb("Checkbox puts a checkbox beside every row in place of the checkmark beside the picked ones."),
         UiDocsExample.Key("ui-select-clear").Heading("Clearing search").File("SelectClearSearchExample.cs").Demo(SelectClearSearchExample).Testid("ui-select-clear")
             .Blurb("Clear(Ui.SelectClear.Close) keeps the search through each pick and empties it when the list closes."),
     ];

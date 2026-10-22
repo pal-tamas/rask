@@ -29,6 +29,17 @@ them until tagged releases begin.
   `--template wasm-hosted` lists `"Cultures": [ "en" ]` in the host's `appsettings.json` with its catalog moved to
   `Client/Resources/`, where the browser half renders it.
 
+- **Three more of Flux's steps: `Ui.Input.Money()`, the OTP form's field parts, and a listbox's checkbox indicator.**
+  Before: `mask:dynamic="$money($input)"` was not built, the OTP form example wrote its field out by hand, and
+  `indicator="checkbox"` had no translation. After: `Ui.Input.Bind(() => m.Amount).Money()` shows `1234.56` as
+  `1,234.56`, groups what is typed as Flux does, and hands the bound `decimal` `1234.56` — read with the field's own
+  marks, so `.Money(decimals: ",", thousands: " ")` round-trips `1 234,56` whatever the reader's language says a comma
+  is; `Ui.Otp.Bind(() => Code).Label("OTP Code").LabelSrOnly().ErrorIcon(false).ErrorClass("text-center")` is Flux's
+  OTP form; `Ui.Select.Bind(() => m.Industries).Listbox.Checkbox.Multiple()` draws a checkbox beside every row
+  (`Ui.SelectIndicator`). The runtime's amount mask now keeps leading zeros (`007`), as Flux's does, and a
+  bound `Ui.Otp` whose code a handler empties after the next action is drawn empty (it served the typed cells from
+  the render cache).
+
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
   `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
