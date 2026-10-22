@@ -23,7 +23,7 @@ public sealed class PrintMeasurements
         await using var host = await PrintHost.Start(SiteDemoPdfTests.Fonts(), timeout: TimeSpan.FromMinutes(10));
         var printer = host.Services.GetRequiredService<ChromiumPrinter>();
         var report = new StringBuilder(
-            "| rows | look | HTML | pages | PDF | total | render | to Chrome + load | draw + fonts | printToPDF |\n"
+            "| rows | look | HTML | pages | PDF | total | render | to Chrome + load | draw, fonts, cut | printToPDF |\n"
             + "|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|\n");
         await host.As(PrintHost.Anonymous, () => Pdf.From(PrintTestApp.ThreePages()));
 
