@@ -73,10 +73,10 @@ internal static class UiListboxLook
     internal const string CheckboxBox =
         "flex size-[1.125rem] shrink-0 items-center justify-center rounded-[.3rem] border shadow-xs "
         + "border-zinc-300 bg-white dark:border-white/10 dark:bg-white/10 "
-        + "group-data-selected/option:border-transparent group-data-selected/option:bg-fx-accent group-data-selected/option:shadow-none";
+        + "group-data-selected/option:border-transparent group-data-selected/option:bg-accent group-data-selected/option:shadow-none";
 
     /// <summary>The tick inside that box, drawn in a picked row only.</summary>
-    internal const string CheckboxTick = "hidden text-fx-accent-foreground group-data-selected/option:block";
+    internal const string CheckboxTick = "hidden text-accent-foreground group-data-selected/option:block";
 
     /// <summary>The option's icon.</summary>
     internal const string Icon = "shrink-0 me-2 text-zinc-400 dark:text-white/60";

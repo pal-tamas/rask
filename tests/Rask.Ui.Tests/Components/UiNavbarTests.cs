@@ -134,9 +134,9 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
 
         var plain = Ui.NavbarItem.Href("/").Current(true).Accent(false)["Home"].ToHtml();
 
-        Assert.Contains("aria-[current=page]:text-fx-accent-content", accent, StringComparison.Ordinal);
-        Assert.Contains("aria-[current=page]:after:bg-fx-accent", accent, StringComparison.Ordinal);
-        Assert.DoesNotContain("fx-accent", plain, StringComparison.Ordinal);
+        Assert.Contains("aria-[current=page]:text-accent-content", accent, StringComparison.Ordinal);
+        Assert.Contains("aria-[current=page]:after:bg-accent", accent, StringComparison.Ordinal);
+        Assert.DoesNotContain("accent", plain, StringComparison.Ordinal);
         Assert.Contains("aria-[current=page]:after:bg-zinc-800", plain, StringComparison.Ordinal);
     }
 

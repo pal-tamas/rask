@@ -1,7 +1,7 @@
 /* Scoped styles for the narrative-guide chrome. These rules attach to GuideChrome's own
    elements (the banner, Chapters TOC, on-this-page rail, prev/next) — the guide prose itself is Raw
-   HTML under .markdown-body and is styled globally (wwwroot/global.css). Reuses the showcase's brand
-   tokens (violet accent, Space Grotesk display), so it stays on-brand while using a classic docs IA. */
+   HTML under .markdown-body and is styled globally (wwwroot/global.css). Reuses the showcase's
+   type (Space Grotesk display) and Flux's zinc + accent colours, light and dark. */
 
 .guide {
     max-width: 100%;
@@ -15,9 +15,9 @@
     padding: .6rem .9rem;
     margin-bottom: 1.25rem;
     font-size: .875rem;
-    color: var(--rask-accent-strong);
-    background: var(--rask-accent-soft);
-    border: 1px solid var(--rask-line);
+    color: var(--color-accent-content);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+    border: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
     border-radius: .6rem;
 }
 
@@ -29,15 +29,15 @@
 }
 
 .guide-backlink {
-    color: var(--rask-accent-strong);
+    color: var(--color-accent-content);
 }
 
 /* Chapters table of contents */
 .guide-chapters {
     padding: 1.1rem 1.35rem;
     margin-bottom: 2rem;
-    background: var(--rask-mist);
-    border: 1px solid var(--rask-line);
+    background: light-dark(var(--color-white), var(--color-zinc-800));
+    border: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
     border-radius: .75rem;
 }
 
@@ -47,7 +47,7 @@
     font-size: .8rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: var(--rask-accent-strong);
+    color: var(--color-accent-content);
     margin-bottom: .5rem;
 }
 
@@ -69,17 +69,17 @@
 .guide-chapter-link,
 .guide-chapter-sublink {
     text-decoration: none;
-    color: var(--rask-body);
+    color: light-dark(var(--color-zinc-800), var(--color-white));
 }
 
 .guide-chapter-sublink {
     font-size: .9rem;
-    color: var(--muted);
+    color: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
 }
 
 .guide-chapter-link:hover,
 .guide-chapter-sublink:hover {
-    color: var(--rask-accent);
+    color: var(--color-accent);
     text-decoration: underline;
 }
 
@@ -116,7 +116,7 @@
     max-height: calc(100vh - var(--nav-h) - 3rem);
     overflow-y: auto;
     padding-left: 1rem;
-    border-left: 1px solid var(--rask-line);
+    border-left: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
 }
 
 .guide-onthispage-title {
@@ -125,7 +125,7 @@
     font-size: .72rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
     margin-bottom: .6rem;
 }
 
@@ -151,17 +151,17 @@
     border-left: 2px solid transparent;
     margin-left: -1rem;
     text-decoration: none;
-    color: var(--ink-soft);
+    color: light-dark(var(--color-zinc-800), var(--color-white));
     transition: color .12s ease, border-color .12s ease;
 }
 
 .guide-onthispage-link:hover {
-    color: var(--rask-accent);
+    color: var(--color-accent);
 }
 
 .guide-onthispage-link.active {
-    color: var(--rask-accent-strong);
-    border-left-color: var(--rask-accent);
+    color: var(--color-accent-content);
+    border-left-color: var(--color-accent);
     font-weight: 600;
 }
 
@@ -171,7 +171,7 @@
     gap: 1rem;
     margin-top: 3rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--rask-line);
+    border-top: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
 }
 
 /* Stacked on a phone. Side by side, each card gets ~175px, which is not enough for a guide title —
@@ -201,16 +201,16 @@
     align-items: center;
     padding: .85rem 1.1rem;
     text-decoration: none;
-    color: var(--rask-body);
-    background: var(--panel);
-    border: 1px solid var(--rask-line);
+    color: light-dark(var(--color-zinc-800), var(--color-white));
+    background: light-dark(var(--color-white), var(--color-zinc-800));
+    border: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
     border-radius: .75rem;
     transition: border-color .12s ease, box-shadow .12s ease, transform .12s ease;
 }
 
 .guide-prevnext-link:hover {
-    border-color: var(--rask-accent);
-    box-shadow: 0 6px 18px rgba(124, 58, 237, .12);
+    border-color: var(--color-accent);
+    box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
     transform: translateY(-1px);
 }
 
@@ -229,7 +229,7 @@
     font-size: .7rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
 }
 
 .guide-prevnext-title {

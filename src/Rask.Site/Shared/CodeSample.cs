@@ -69,7 +69,7 @@ public sealed partial class CodeSample : Component
         }
 
         var spacing = Title is null ? "" : "mt-1";
-        return P.Class($"text-ui-muted text-sm mb-0 {spacing}")[Notes];
+        return P.Class($"text-zinc-500 dark:text-white/70 text-sm mb-0 {spacing}")[Notes];
     }
 
     // The header is a strip above the code: the file name, or Flux's small segmented tabs when there are several
@@ -77,7 +77,7 @@ public sealed partial class CodeSample : Component
     private Component Header()
     {
         Component files = Files.Count == 1
-            ? Span.Class("sample-code-label truncate font-mono text-xs text-ui-muted")[Files[0]]
+            ? Span.Class("sample-code-label truncate font-mono text-xs text-zinc-500 dark:text-white/70")[Files[0]]
             // Flux's scrollable row, faded at the edge it continues past: a second row of tabs on a phone is a
             // second header.
             : Div.Class("min-w-0")[
@@ -91,7 +91,7 @@ public sealed partial class CodeSample : Component
                 ]
             ];
 
-        return Div.Class("sample-code-header flex min-h-11 items-center gap-2 border-b border-ui-line bg-ui-well px-3 py-1.5")[
+        return Div.Class("sample-code-header flex min-h-11 items-center gap-2 border-b border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 px-3 py-1.5")[
             files,
             Ui.Button.Ghost.Sm
                 .Icon(Ui.IconName.ClipboardDocumentCheck)
@@ -114,10 +114,10 @@ public sealed partial class CodeSample : Component
         // A panel drawn as Flux's card is: hairline border, rounded corners, the overflow clip that keeps the dark
         // code pane inside them. The name stays: five assertions across the unit and browser suites select on it.
         return Div.Class(
-            "sample-card mb-4 flex flex-col overflow-hidden rounded-xl border border-ui-line bg-ui-bg shadow-xs")[
+            "sample-card mb-4 flex flex-col overflow-hidden rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 shadow-xs")[
             Title is null && Notes is null
                 ? null
-                : Div.Class("border-b border-ui-line px-5 py-3 font-medium bg-ui-bg")[
+                : Div.Class("border-b border-zinc-200 dark:border-white/10 px-5 py-3 font-medium bg-white dark:bg-zinc-800")[
                     TitleLine(),
                     NotesLine()
                 ],
@@ -138,11 +138,11 @@ public sealed partial class CodeSample : Component
                     ]
                 ]
             ],
-            Div.Class("sample-result-col flex flex-col border-t border-ui-line bg-ui-bg p-4")[
+            Div.Class("sample-result-col flex flex-col border-t border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 p-4")[
                 // The output side of the pairing: a dot in the brand colour, pulsing unless the visitor asked for
                 // less motion, beside a mono label that rhymes with the code header above.
-                Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-ui-brand-ink")[
-                    Span.Class("sample-dot size-2 rounded-full bg-ui-brand motion-safe:animate-pulse").Aria("hidden", "true"),
+                Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-accent-content")[
+                    Span.Class("sample-dot size-2 rounded-full bg-accent motion-safe:animate-pulse").Aria("hidden", "true"),
                     "Live result"
                 ],
                 Div.Class("sample-result-body flex-1")[Result ?? null]

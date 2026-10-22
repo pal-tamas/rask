@@ -14,8 +14,8 @@ public sealed partial class StorageEstimateDemo : Component
                 Ui.Button.Class("mb-2")
                     .Id("storage-est-read")
                     .OnClick(Read)["Estimate storage"],
-                Div.Class("text-sm text-ui-muted")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Budget: ", Code.Id("storage-est-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("storage-est-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

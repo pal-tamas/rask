@@ -1,15 +1,15 @@
 # Rask.Ui
 
-**Every [daisyUI](https://daisyui.com) component, as a typed C# component** for the
-[Rask](https://github.com/pal-tamas/rask) One Person Framework — the operator console, the landing
-site and the docs showcase all draw with these.
+**[Flux UI](https://fluxui.dev)'s component catalogue, as typed C# components** for the
+[Rask](https://github.com/pal-tamas/rask) framework — the operator console, the landing site and the docs
+showcase all draw with these.
 
-- **The whole daisyUI vocabulary, typed.** Colour, fill and size are independent enums that compose,
-  so an outlined error button needs no member of its own. daisyUI's own words, deliberately: its
-  documentation is the documentation for everything these components render.
+- **Flux's names, Flux's look.** Each component is built from Flux UI's public docs, measured in a browser
+  in light and dark and held to them by a parity test: `flux:button variant="primary" size="sm"` is
+  `Ui.Button.Primary.Sm`, and Flux's documentation reads as the documentation for what these render.
 - **The stylesheet comes with it.** Tailwind scans the project it runs in, so a compiled library's
   class names are invisible to *your* Tailwind build and would emit nothing. This package compiles its
-  own sheet — daisyUI included — and hands it to you. No npm install, no Tailwind configuration, no
+  own sheet and hands it to you. No npm install, no Tailwind configuration, no
   `_content/` path to map.
 - **Ships no JavaScript — but for the rich text editor and the phone field,** whose engines (Tiptap, intl-tel-input) are scripts a page fetches only when it draws one. Where the platform can own the interaction it does: a dialog is a real modal
   `<dialog>` opened by an invoker command, so the browser supplies the top layer, the inert page, Escape
@@ -21,8 +21,9 @@ site and the docs showcase all draw with these.
 - **Every control has a name.** A label is required rather than optional, and it becomes the
   accessible name rather than a placeholder — which disappears the moment typing starts.
 - **Dark mode, and re-skinned by tokens rather than overrides.** `Ui.AppearanceScript` puts a `dark`
-  class on `<html>` before the first paint (light, dark or system, remembered); re-point
-  `--color-zinc-*` and the accent variables in your own `@theme` and every component follows.
+  class on `<html>` before the first paint (light, dark or system, remembered) — `RaskApp` and the WASM
+  host write it on every page; re-point `--color-zinc-*` and Flux's `--color-accent`,
+  `--color-accent-content` and `--color-accent-foreground` in your own `@theme` and every component follows.
 
 ## Use
 
@@ -40,17 +41,14 @@ One line in `Styles/app.css`, in place of `@import "tailwindcss";`:
 That is Tailwind, the kit's theme and `dark` variant, and every class its components write, compiled
 beside the classes you write. The build puts the files in `Styles/vendor/` (no npm, no `node_modules`;
 do not commit them), and on `RaskApp` (`Rask.Server`) or the WASM host (`Rask.Wasm`) that is all: the
-host links your `css/app.css` and turns the theme scope on. A hand-wired host does both itself:
+host links your `css/app.css` and writes the dark-mode script. A hand-wired host does both itself:
 
 ```csharp
 protected override Component? HeadAssets =>
 [
+    Ui.AppearanceScript,                           // dark mode, before the first paint
     Link.Rel("stylesheet").Href("/css/app.css"),   // the ONE sheet: Tailwind, the kit, your classes
 ];
-
-// Nothing in the kit has a colour until an ancestor carries this.
-protected override Component Shell(Component head, Component body) =>
-    Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
 ```
 
 **A surface with no Tailwind build of its own** takes the precompiled sheet instead: set

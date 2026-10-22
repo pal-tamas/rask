@@ -30,7 +30,7 @@ public sealed partial class MediaDevicesDemo : Component
                         .Disabled(_stream is null)
                         .OnClick(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("media-status")[_status]]
             ];
 
     // An empty constraints object asks for the camera with whatever the browser picks; `Video = null` would not ask.

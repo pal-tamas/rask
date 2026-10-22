@@ -6,7 +6,7 @@ namespace Rask.Site;
 /// <remarks>
 ///     <para>
 ///         There were two. The landing page had this: a <c>&lt;header&gt;</c>, a bolt and a wordmark, and
-///         three quiet text links at the trailing edge. <c>/docs</c> had daisyUI's <c>navbar</c>, a
+///         three quiet text links at the trailing edge. <c>/docs</c> had a navbar of its own, a
 ///         hamburger, the brand mark, a "showcase" pill, a version badge, a live <c>path:</c> readout and
 ///         a bordered <c>★ GitHub</c> button. They already shared a height (<c>--nav-h</c>, 4rem) and a
 ///         glass background, which is what made the rest of the difference read as drift rather than as
@@ -51,7 +51,7 @@ internal sealed partial class SiteHeader : Component
     // row below stays 4rem either way, which is what --nav-h (global.css) tells the docs sidebar to
     // clear.
     private const string Bar =
-        "app-navbar sticky top-0 z-50 border-b border-ui-line bg-ui-bg/85 text-ui-ink backdrop-blur "
+        "app-navbar sticky top-0 z-50 border-b border-zinc-200 dark:border-white/10 bg-white/85 dark:bg-zinc-800/85 text-zinc-800 dark:text-white backdrop-blur "
         + "pt-[env(safe-area-inset-top)]";
 
     // The row, joined to each container at COMPILE time — constant + constant is folded by the compiler,
@@ -64,7 +64,7 @@ internal sealed partial class SiteHeader : Component
 
     protected override Component? Render() =>
         // A <header> with a <nav> inside it, which is what this is. The docs bar used to be a bare <nav>
-        // carrying daisyUI's `navbar`; `app-navbar` and `app-brand` survive as the hooks the E2E selects
+        // of its own; `app-navbar` and `app-brand` survive as the hooks the E2E selects
         // on (and style nothing), so those selectors keep working — as `header.app-navbar` now.
         Header.Class(Bar)[
             Div.Class(FullBleed ? FullBleedRow : WrapRow)[

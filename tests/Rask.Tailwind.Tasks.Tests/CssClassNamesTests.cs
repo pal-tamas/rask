@@ -52,7 +52,7 @@ public sealed class CssClassNamesTests
         // A length, a file name, a string, a comment and a layer's dotted name all carry dots.
         var css = """
             /* .commented{} */
-            @layer daisyui.l1.l2{.a{margin:.5rem 1.5rem;background:url(img.hidden.png);content:".flex{";transition:all .2s}}
+            @layer kit.l1.l2{.a{margin:.5rem 1.5rem;background:url(img.hidden.png);content:".flex{";transition:all .2s}}
             @keyframes spin{12.5%{opacity:.5}}
             """;
 

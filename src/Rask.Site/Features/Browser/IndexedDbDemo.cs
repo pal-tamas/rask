@@ -39,9 +39,9 @@ public sealed partial class IndexedDbDemo(IIndexedDb indexedDb) : Component
                     Ui.Button.Id("idb-keys").OnClick(Keys)["List keys"],
                     Ui.Button.Red.Id("idb-clear").OnClick(Clear)["Clear"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
-                Div.Class("text-sm text-ui-muted")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Read: ", Code.Id("idb-read")[_read ?? "(none)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Keys: ", Code.Id("idb-keys-value")[_keys ?? "(none)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("idb-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Set()

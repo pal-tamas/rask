@@ -12,7 +12,7 @@
 
   Styles/vendor/ is written by the build (src/Rask.Ui/build/Rask.Ui.targets) and is not committed.
 */
-@layer properties, theme, base, components, daisyui, rask, utilities;
+@layer properties, theme, base, components, rask, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);

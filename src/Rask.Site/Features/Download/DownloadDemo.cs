@@ -22,7 +22,7 @@ public sealed partial class DownloadDemo : Component
         Div[
             Ui.Button.Primary.Icon(Ui.IconName.DocumentText).Id("download-report").OnClick(DownloadReport)["Download report"],
             Div
-                .Class("text-sm text-ui-muted mt-2")
+                .Class("text-sm text-zinc-500 dark:text-white/70 mt-2")
                 .Data("rask-report-count", "true")[
                 $"Generated {_reportCount} time(s)."
             ]

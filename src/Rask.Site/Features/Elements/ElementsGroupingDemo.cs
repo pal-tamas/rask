@@ -5,8 +5,8 @@ public sealed partial class ElementsGroupingDemo : Component
 {
     protected override Component? Render() => Div.Class("flex flex-col gap-3")[
         P["A paragraph of flow content, grouped in a ", Code["Div"], "."],
-        Pre.Class("bg-ui-well border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
-        Blockquote.Class("border-l-4 border-ui-line ps-3 text-base italic text-ui-muted").Cite("https://example.com")[
+        Pre.Class("bg-zinc-50 dark:bg-zinc-900 border rounded p-2 mb-0")["  preformatted\n  text  keeps   spacing"],
+        Blockquote.Class("border-l-4 border-zinc-200 dark:border-white/10 ps-3 text-base italic text-zinc-500 dark:text-white/70").Cite("https://example.com")[
             "A small DSL, an honest day's HTML."],
         Hr,
         Div.Class("grid grid-cols-12 gap-4")[
@@ -30,7 +30,7 @@ public sealed partial class ElementsGroupingDemo : Component
         ],
         Figure.Class("mb-0")[
             Pre.Class("bg-slate-900 text-slate-100 rounded p-2")["Div[Span[\"hi\"]]"],
-            Figcaption.Class("mt-2 text-sm text-ui-muted")["Figure: a tiny component tree."]
+            Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["Figure: a tiny component tree."]
         ]
     ];
 }

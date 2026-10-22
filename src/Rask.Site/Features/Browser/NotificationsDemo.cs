@@ -26,7 +26,7 @@ public sealed partial class NotificationsDemo : Component
                         .Id("badge-clear")
                         .OnClick(ClearBadge)["Clear badge"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("notif-status")[_status ?? "(idle)"]]
             ];
 
     private async Task RequestPermission()

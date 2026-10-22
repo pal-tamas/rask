@@ -89,36 +89,20 @@ public sealed class NoBootstrapClassesTests
     // @theme token that collides with Bootstrap needs somewhere to go that is not "delete the check".
     private static readonly HashSet<string> ThemeGenerated = new(StringComparer.Ordinal);
 
+    // A name a measured fixture writes as a bare hook, where changing it would move the bytes a benchmark or a
+    // corpus counts. Keyed by file, like the set above.
+    private static readonly HashSet<string> MeasuredFixtures = new(StringComparer.Ordinal)
+    {
+        "tests/Rask.Benchmarks/PayloadBytesReport.cs:card",
+        "tests/Rask.Benchmarks/PayloadBytesReport.cs:badge",
+        "tests/Rask.Core.Tests/Live/RefusedLevelCorpus.cs:card",
+    };
+
     /// <summary>
-    ///     The class names daisyUI actually defines, read from the stylesheet the kit ships.
+    ///     The class names the kit's shipped sheet defines: a name Bootstrap shares with a rule the kit writes
+    ///     (a utility such as <c>text-center</c>) styles something, so it is not a leftover.
     /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         This test's premise is that a Bootstrap class name in the tree STYLES NOTHING. That was true
-    ///         while Tailwind was the only styling system; it stopped being true when the kit took daisyUI,
-    ///         because the two libraries share a great deal of vocabulary — <c>btn</c>, <c>card</c>,
-    ///         <c>alert</c>, <c>badge</c>, <c>navbar</c>, <c>tabs</c>, <c>modal-*</c>, <c>dropdown-*</c>,
-    ///         <c>toast</c> and more are live daisyUI classes. Reporting those would fail the test on
-    ///         correct code, which the note above calls the fastest way to get a convention test switched
-    ///         off, and is exactly why the spellings Tailwind shares were left out of the pattern already.
-    ///     </para>
-    ///     <para>
-    ///         Read from the SHIPPED sheet rather than listed by hand, so it cannot drift as daisyUI grows
-    ///         or shrinks. The cost is honest and worth stating: on a surface that does not inline the
-    ///         kit's stylesheet, a genuine Bootstrap leftover spelled like a daisyUI class now goes
-    ///         unreported. The alternative was a list that silently rots.
-    ///     </para>
-    ///     <para>
-    ///         The bundle's own names count too: the shipped sheet carries only what the kit writes, and a
-    ///         project with its own Tailwind build (the site, a scaffolded app) gets any daisyUI class it
-    ///         writes itself.
-    ///     </para>
-    /// </remarks>
-    private static readonly HashSet<string> DaisyUi =
-    [
-        .. DefinedClassNames(UiStylesheet.Css),
-        .. DefinedClassNames(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Styles", "daisyui.mjs"))),
-    ];
+    private static readonly HashSet<string> KitClasses = DefinedClassNames(UiStylesheet.Css);
 
     private static HashSet<string> DefinedClassNames(string css)
     {
@@ -155,8 +139,9 @@ public sealed class NoBootstrapClassesTests
                 foreach (var token in m.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
                 {
                     if (!Bootstrap.IsMatch(token)
-                        || DaisyUi.Contains(token)
-                        || ThemeGenerated.Contains($"{relative}:{token}"))
+                        || KitClasses.Contains(token)
+                        || ThemeGenerated.Contains($"{relative}:{token}")
+                        || MeasuredFixtures.Contains($"{relative}:{token}"))
                     {
                         continue;
                     }
@@ -188,6 +173,7 @@ public sealed class NoBootstrapClassesTests
             "node_modules/",
             "wwwroot/lib/", // vendored third-party JS/CSS
             ".claude/worktrees/", // other branches
+            "CHANGELOG.md", // history: what a release wrote then
         ];
 
         // Pruned as it descends rather than filtered afterwards — see RepoFiles. The `skip` list below

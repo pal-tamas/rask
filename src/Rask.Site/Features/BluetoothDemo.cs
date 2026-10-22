@@ -25,14 +25,14 @@ public sealed partial class BluetoothDemo : Component
                         .OnClick(Disconnect)["Disconnect"]
                 ],
                 _name is null
-                    ? Div.Class("text-sm text-ui-muted")["No device paired."]
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70")["No device paired."]
                     : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-2").Id("bt-info")[
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Device"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Device"],
                         Dd.Class("col-span-7 sm:col-span-8")[_name],
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Battery"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Battery"],
                         Dd.Class("col-span-7 sm:col-span-8")[Code.Id("bt-battery")[_battery]]
                     ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("bt-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("bt-status")[_status]]
             ];
 
     // navigator.bluetooth.requestDevice() shows the chooser (dismissing it rejects), then the GATT server walks

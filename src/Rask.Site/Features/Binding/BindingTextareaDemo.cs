@@ -10,7 +10,7 @@ public sealed partial class BindingTextareaDemo : Component
             .Id("bind-textarea")
             .Rows(3)
             .Placeholder("Jot something down…").Class("mb-2"),
-        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-zinc-50 dark:bg-zinc-900 border rounded")[
             Code[
                 $"Notes  = \"{_model.Notes}\"\n" +
                 $"Length = {_model.Notes.Length}"

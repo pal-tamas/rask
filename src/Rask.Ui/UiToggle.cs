@@ -303,6 +303,6 @@ public sealed partial class UiToggle : Component, IDeferredBind
         Ui.Color.Fuchsia => "group-data-checked:text-fuchsia-600 dark:group-data-checked:text-fuchsia-400",
         Ui.Color.Pink => "group-data-checked:text-pink-600 dark:group-data-checked:text-pink-400",
         Ui.Color.Rose => "group-data-checked:text-rose-600 dark:group-data-checked:text-rose-400",
-        _ => Variant == Ui.ToggleVariant.Subtle ? "" : "group-data-checked:text-fx-accent-content",
+        _ => Variant == Ui.ToggleVariant.Subtle ? "" : "group-data-checked:text-accent-content",
     };
 }

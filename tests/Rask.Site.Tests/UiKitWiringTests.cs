@@ -5,7 +5,7 @@ namespace Rask.Site.Tests;
 
 /// <summary>
 /// Every app that draws with <c>Rask.Ui</c> and runs Tailwind is wired for it: its ONE stylesheet takes
-/// the kit in with a single import, it links no second sheet, and it turns the kit's theme scope on.
+/// the kit in with a single import, it links no second sheet, and its pages start dark mode before they paint.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,17 +25,15 @@ namespace Rask.Site.Tests;
 /// <c>dark:bg-white/4</c>, and a Flux card was white in dark mode.
 /// </item>
 /// <item>
-/// <b>The theme scope.</b> The kit confines daisyUI's theme to <c>data-rask-ui</c> so that referencing
-/// the package cannot repaint an app that only wanted a button. Every kit token is an alias onto
-/// <c>--color-base-*</c>, which is defined only inside that scope — so without the attribute the
-/// utilities generate and then resolve to nothing.
+/// <b>Dark mode.</b> The kit's <c>dark:</c> is Flux's <c>dark</c> class, which only the appearance script
+/// puts on <c>&lt;html&gt;</c>; a page without it never turns dark, and its accent never flips.
 /// </item>
 /// </list>
 /// </remarks>
 public sealed class UiKitWiringTests
 {
     private static readonly Regex Token =
-        new(@"(?<name>--color-ui-[a-z0-9-]+)\s*:", RegexOptions.Compiled);
+        new(@"(?<name>--color-accent[a-z0-9-]*)\s*:", RegexOptions.Compiled);
 
     // The apps that reference Rask.Ui AND compile a stylesheet of their own. A new one added without
     // the import fails here rather than on a deployed page.
@@ -71,7 +69,7 @@ public sealed class UiKitWiringTests
         var sheet = Code(Path.Combine(RepoRoot(), appDir, "Styles", "app.css"));
 
         // Guard the extractor: a regex that stopped matching would make this vacuous.
-        Assert.True(kit.Count >= 13, $"only {kit.Count} token(s) parsed out of the kit's palette.");
+        Assert.True(kit.Count >= 3, $"only {kit.Count} token(s) parsed out of the kit's theme.");
 
         var copied = kit.Intersect(Tokens(sheet), StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         Assert.True(
@@ -108,32 +106,16 @@ public sealed class UiKitWiringTests
     }
 
     [Fact]
-    public void The_document_opts_into_the_kits_theme_scope()
+    public void The_document_starts_dark_mode_once_before_its_stylesheet()
     {
-        // Load-bearing, and silent when missing. The kit scopes daisyUI's theme to this attribute so that
-        // referencing the package cannot repaint an application that only wanted a button — which means
-        // every kit token resolves to nothing until something in the ancestry carries it. Structure and
-        // layout survive without it, colour does not, and nothing that reads class names can tell.
         var html = Page.RenderDocument(new global::Rask.Site.App(), TestServices.Default()).Html;
 
-        Assert.Matches(new Regex(@"<html[^>]*\sdata-rask-ui\b"), html);
-    }
+        var script = html.IndexOf("data-rask-appearance=\"", StringComparison.Ordinal);
 
-    [Theory]
-    [MemberData(nameof(KitApps))]
-    public void Every_kit_app_turns_the_theme_scope_on(string appDir)
-    {
-        var root = Path.Combine(RepoRoot(), appDir, "App.cs");
-
-        Assert.True(File.Exists(root), $"{appDir} has no App.cs to carry the theme scope.");
-
-        var source = File.ReadAllText(root);
-
-        Assert.True(
-            source.Contains("ThemeScopeAttribute", StringComparison.Ordinal),
-            $"{appDir}/App.cs never sets UiStylesheet.ThemeScopeAttribute, so daisyUI's theme is out of "
-            + "scope for the whole document and every --color-ui-* token resolves to nothing. Put it on "
-            + "<html> in a Shell override, as the showcase does.");
+        Assert.True(script >= 0, "the document has no appearance script, so it never turns dark.");
+        Assert.Equal(script, html.LastIndexOf("data-rask-appearance=\"", StringComparison.Ordinal));
+        Assert.True(script < html.IndexOf("/css/app.css", StringComparison.Ordinal), "the script runs after the stylesheet.");
+        Assert.DoesNotMatch(new Regex(@"<html[^>]*\sdata-rask-ui\b"), html);
     }
 
     private static HashSet<string> Tokens(string css) =>

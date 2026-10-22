@@ -6,13 +6,13 @@ using Rask.Core.Routing;
 namespace Rask.Wasm.Tests.Hosting;
 
 /// <summary>
-///     The WASM host writes the document around the App — the charset, the UI kit's stylesheet and its
-///     theme scope — into the page it bakes, so an App is a title and a router here as on the server.
+///     The WASM host writes the document around the App — the charset, the UI kit's dark-mode script and its
+///     stylesheet — into the page it bakes, so an App is a title and a router here as on the server.
 /// </summary>
 /// <remarks>
 ///     Driven through <c>RunAsync</c>'s prerender branch rather than the boot path: it is the one that
-///     writes a file this test can read, and it is the path a crawler sees, where a missing theme scope
-///     would publish a grey page with a green build.
+///     writes a file this test can read, and it is the path a crawler sees, where a missing stylesheet
+///     would publish an unstyled page with a green build.
 /// </remarks>
 [Collection("RaskPrerenderEnvironment")]
 public class PrerenderDocumentTests
@@ -26,8 +26,9 @@ public class PrerenderDocumentTests
 
         var html = await BakeAsync(host);
 
-        Assert.Contains(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-appearance=\"", html, StringComparison.Ordinal);
         Assert.Contains(UiStylesheet.Href(), html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-ui=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -37,7 +38,7 @@ public class PrerenderDocumentTests
 
         var html = await BakeAsync(host);
 
-        Assert.DoesNotContain(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-appearance", html, StringComparison.Ordinal);
         Assert.DoesNotContain(UiStylesheet.Href(), html, StringComparison.Ordinal);
         Assert.Contains("charset=\"utf-8\"", html, StringComparison.Ordinal);
     }

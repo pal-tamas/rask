@@ -76,7 +76,7 @@ internal static class UiDatePickerLook
 
     internal const string PresetChecked =
         "block w-full px-2 py-1.5 rounded-lg text-sm font-medium text-start whitespace-nowrap cursor-auto "
-        + "bg-fx-accent text-fx-accent-foreground dark:hover:bg-white/5 dark:hover:text-white";
+        + "bg-accent text-accent-foreground dark:hover:bg-white/5 dark:hover:text-white";
 
     internal const string Footer = "sm:col-start-2 flex justify-end gap-2 p-2 max-sm:p-4";
 

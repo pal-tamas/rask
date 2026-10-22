@@ -84,7 +84,7 @@ public sealed partial class CancellationProbe : Component
 
         return Div.Class("flex gap-2 items-center flex-wrap items-center")[
             Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
-            Span.Class("text-ui-muted text-sm")[
+            Span.Class("text-zinc-500 dark:text-white/70 text-sm")[
                 _status is "running"
                     ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."

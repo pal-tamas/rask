@@ -21,14 +21,13 @@
   page it is linked into.
 
   THE LAYER ORDER, declared before anything can imply a different one. CSS orders layers by FIRST
-  APPEARANCE and nothing later can reorder them. Left to accident the blocks land as properties, theme,
-  utilities, daisyui, rask, base — daisyUI emits its `base` rules last — which puts `base` ABOVE
-  `utilities` for the whole page. `rask` after `daisyui` because the kit's corrections exist to outrank
-  the library, and both below `utilities`. rask-ui.css makes the same statement for an app's sheet, and
+  APPEARANCE and nothing later can reorder them. Left to accident the blocks land in the order this file
+  first names them, which can put `base` ABOVE `utilities` for the whole page. `rask` — the kit's own rules —
+  below `utilities`, so an app's utility on a kit element still wins. rask-ui.css makes the same statement for an app's sheet, and
   UiStylesheetEntryTests holds the two to one order; UiLayerOrderTests reads it back out of the compiled
   bytes.
 */
-@layer properties, theme, base, components, daisyui, rask, utilities;
+@layer properties, theme, base, components, rask, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
@@ -39,7 +38,7 @@
   obj/<tfm>/tailwind-scan, a copy of the project's C# with the comments taken out (RaskTailwindSourceRoot
   and WriteRaskUiScanSources in Rask.Ui.csproj), and detects its sources there. Prose is words, and a word
   that is a class name was a rule in this sheet — and in the class list an app compiles from — with no
-  component writing it: daisyUI's `.glass`, from "a magnifying glass" in a doc comment (#1214). The icon
+  component writing it: `.glass`, from "a magnifying glass" in a doc comment (#1214). The icon
   tables, whose path data reads as `h-4.5` and `m-3.75`, are left out of that copy.
 */
 

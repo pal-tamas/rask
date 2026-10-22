@@ -4,7 +4,7 @@
    here can be reached by a {Component}.css, because none of it carries a scope id.
 
    That is the whole remit, and the boundary is enforced by ChromeStylesheetTests. This sheet is
-   UNLAYERED and linked last, so any rule in it outranks every Tailwind utility and every daisyUI
+   UNLAYERED and linked last, so any rule in it outranks every Tailwind utility and every kit
    component on the page — a selector for a chrome element beats the classes written on that element,
    silently, with every class name still present and correct. See the note on the missing `a { color }`
    rule below, and the one over the .app-* names further down. */
@@ -87,28 +87,12 @@
 }
 
 :root {
-    /* The violet dark-first palette lives in Styles/app.css now, compiled into this project's own
-       stylesheet — it used to come from Rask.Bootstrap's tokens.css, which is gone. This block keeps
-       what is specific to the showcase: the type system, the fixed nav height, thin --rask-* aliases so
-       the existing var(--rask-*) references across this file + GuideChrome.css keep resolving, and the
-       two fixed-dark code-surface tokens (code blocks stay dark in both themes). */
-    /* TWO accents, and which one a rule reaches for is a readability decision rather than a shade
-       preference. --rask-accent is the brand SURFACE (daisyUI's --color-primary): correct for a border,
-       a tint, a gradient stop. --rask-accent-strong is the brand as TEXT, pulled toward the ink until it
-       clears AA — and every `color:` in this file uses it, because the surface read as text is 1.37:1 on
-       pastel and 3.40:1 on daisyUI's `dark`. The reader now picks the theme, so neither number is
-       hypothetical. See the -ink notes in src/Rask.Ui/Styles/ui.css. */
-    --rask-accent: var(--accent);
-    --rask-accent-strong: var(--accent-2);
-    --rask-accent-soft: color-mix(in srgb, var(--accent) 15%, transparent);
-    --rask-gradient: linear-gradient(135deg, var(--accent), var(--accent-2));
-
+    /* What is specific to the showcase: the type system, the fixed nav height and the two fixed-dark
+       code-surface tokens (code blocks stay dark in both themes). Every other colour is Flux's own —
+       the zinc scale and the accent, light and dark through `light-dark()` — written where it is used. */
     --rask-ink: #14101f; /* deep violet-black: code panes — always dark, both themes */
     --rask-ink-2: #211b30; /* one step lifted from ink */
     --rask-code-ink: #e7e3ff; /* the text on --rask-ink: code panes, guide code blocks */
-    --rask-mist: var(--panel-2); /* faint lifted surface for boxes (Chapters TOC, etc.) */
-    --rask-line: var(--line); /* hairline */
-    --rask-body: var(--ink); /* body text */
 
     /* Type system: Space Grotesk (display) / Inter (body) / JetBrains Mono (code). Routed through
        Bootstrap's own font vars so every Bs component picks them up, plus --font-* for direct use. */
@@ -117,8 +101,7 @@
     --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
     /* The top bar's real height, which the sticky sidebar, the drawer's top padding and every
-       heading's scroll-margin are measured against. It is daisyUI's `.navbar` min-height now, and
-       saying 56px while the bar rendered 61px is what put the mobile drawer's filter box 5px under
+       heading's scroll-margin are measured against. Saying 56px while the bar rendered 61px is what put the mobile drawer's filter box 5px under
        the bar it was supposed to clear. */
     --nav-h: 4rem;
 }
@@ -127,7 +110,7 @@ body {
     font-family: var(--font-body);
     /* Inter stylistic sets: single-storey a (cv11), open digits — quiet, technical legibility. */
     font-feature-settings: "cv11", "ss01";
-    color: var(--rask-body);
+    color: light-dark(var(--color-zinc-800), var(--color-white));
     letter-spacing: -0.004em;
 }
 
@@ -140,7 +123,7 @@ h1, h2, h3, h4, h5, h6 {
 /* THERE IS NO GLOBAL `a { color }` RULE, and that is deliberate.
 
    There was one, and it silently defeated every Tailwind text-colour utility on every link in the
-   site. The landing page's primary call to action reads `bg-ui-ink text-ui-bg` and rendered as brand
+   site. The landing page's primary call to action wrote its own ink and ground and rendered as brand
    violet on near-black — a contrast ratio of 2.12:1, found by Lighthouse rather than by eye. The class
    was there, the token was right, and the rule never applied.
 
@@ -158,8 +141,8 @@ code, pre, .font-monospace {
 }
 
 :not(pre) > code {
-    background: var(--rask-accent-soft);
-    color: var(--rask-accent-strong);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+    color: var(--color-accent-content);
     padding: 0.08rem 0.32rem;
     border-radius: 4px;
     font-size: 0.86em;
@@ -255,8 +238,8 @@ button, a, [role="button"] {
     color: #c3e88d;
 }
 
-/* ShowcaseLayout's shell has no rules here any more (#1101). The bar is daisyUI's `navbar`, the sidebar's
-   links and groups are its `menu`, and the rail's own layout — the pinned filter over a scrolling list, the
+/* ShowcaseLayout's shell has no rules here any more (#1101). The bar, the sidebar's links and groups are the
+   kit's Flux components, and the rail's own layout — the pinned filter over a scrolling list, the
    sticky md column capped at the viewport, the drawer's top padding — is utilities on the elements. The
    .app-*, .side-nav* and .nav-group* names stay there because the unit and browser suites select on them;
    ChromeStylesheetTests fails if a rule for one comes back, since an unlayered rule in this file outranks

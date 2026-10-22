@@ -211,7 +211,7 @@ public sealed class WasmHostBuilder
         // Whose assembly the build baked Rask:Cultures into.
         _app ??= typeof(TApp).Assembly;
 
-        // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
+        // The head every page starts with — the kit's dark-mode script and stylesheets — so App.cs is a title and a router.
         // Registered before either path below builds the container, so the boot and the baked pages agree.
         Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, WasmHostBuilderExtensions.UiEnabled(this), WasmHostBuilderExtensions.Toasts(this)));
 

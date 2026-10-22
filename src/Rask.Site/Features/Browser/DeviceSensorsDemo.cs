@@ -67,18 +67,18 @@ public sealed partial class DeviceSensorsDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Ui.Button.Primary.Class("mb-3").Id("sensor-start").OnClick(Start)["Start"],
-                Div.Class("text-sm text-ui-muted mb-2")["Status: ", Code.Id("sensor-status")[_status]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")["Status: ", Code.Id("sensor-status")[_status]],
                 Div.Class("grid grid-cols-12 gap-4")[
                     Div.Class("col-span-12 sm:col-span-6")[
                         Div.Class("font-semibold text-sm mb-1")["Orientation (°)"],
-                        Div.Class("text-sm text-ui-muted")[
+                        Div.Class("text-sm text-zinc-500 dark:text-white/70")[
                             "α ", Code.Id("sensor-alpha")[Fmt(_tilt?.Alpha)],
                             " · β ", Code.Id("sensor-beta")[Fmt(_tilt?.Beta)],
                             " · γ ", Code.Id("sensor-gamma")[Fmt(_tilt?.Gamma)]]
                     ],
                     Div.Class("col-span-12 sm:col-span-6")[
                         Div.Class("font-semibold text-sm mb-1")["Acceleration (m/s²)"],
-                        Div.Class("text-sm text-ui-muted")[
+                        Div.Class("text-sm text-zinc-500 dark:text-white/70")[
                             "x ", Code.Id("sensor-ax")[Fmt(_accel?.X)],
                             " · y ", Code.Id("sensor-ay")[Fmt(_accel?.Y)],
                             " · z ", Code.Id("sensor-az")[Fmt(_accel?.Z)]]

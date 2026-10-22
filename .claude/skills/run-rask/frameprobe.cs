@@ -34,7 +34,7 @@ const snap = () => {
     t: Math.round(performance.now()),
     sheets: document.styleSheets.length,
     bg: cs.backgroundColor, fg: cs.color, fam: cs.fontFamily.slice(0, 16),
-    theme: document.documentElement.getAttribute('data-theme') || '-',
+    theme: getComputedStyle(document.documentElement).colorScheme || '-',
     cls: (document.documentElement.className || '-').slice(0, 30),
     kids: b.childElementCount, h: document.documentElement.scrollHeight,
     mainTop: r ? Math.round(r.top) : null, mainH: r ? Math.round(r.height) : null,

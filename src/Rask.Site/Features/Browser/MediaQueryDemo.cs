@@ -12,8 +12,8 @@ public sealed partial class MediaQueryDemo : Component
                 Ui.Button.Class("mb-2")
                     .Id("media-read")
                     .OnClick(Read)["Evaluate media queries"],
-                Div.Class("text-sm text-ui-muted")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Result: ", Code.Id("media-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("media-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

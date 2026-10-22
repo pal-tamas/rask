@@ -245,9 +245,9 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.TabsVariant.Default, "border-b", "data-selected:border-fx-accent-content", "border-transparent")]
+    [InlineData(Ui.TabsVariant.Default, "border-b", "data-selected:border-accent-content", "border-transparent")]
     [InlineData(Ui.TabsVariant.Segmented, "rounded-lg", "data-selected:shadow-xs", "text-zinc-600")]
-    [InlineData(Ui.TabsVariant.Pills, "h-8", "data-selected:bg-fx-accent", "bg-zinc-800/5")]
+    [InlineData(Ui.TabsVariant.Pills, "h-8", "data-selected:bg-accent", "bg-zinc-800/5")]
     public void Each_variant_draws_its_row_and_paints_the_selected_tab_from_the_mark_the_browser_moves(
         Ui.TabsVariant variant, string row, string selected, string other)
     {
@@ -261,8 +261,8 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.TabsVariant.Default, "data-selected:border-zinc-800", "data-selected:border-fx-accent-content")]
-    [InlineData(Ui.TabsVariant.Pills, "data-selected:bg-zinc-800", "data-selected:bg-fx-accent")]
+    [InlineData(Ui.TabsVariant.Default, "data-selected:border-zinc-800", "data-selected:border-accent-content")]
+    [InlineData(Ui.TabsVariant.Pills, "data-selected:bg-zinc-800", "data-selected:bg-accent")]
     public void A_tab_that_turns_the_accent_off_is_selected_in_the_base_colour(
         Ui.TabsVariant variant, string plain, string accent)
     {
@@ -342,17 +342,5 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         var selected = page.FindAll("[role=\"tab\"]").Select(tab => tab.Attribute("aria-selected"));
 
         Assert.Equal(["true", "true", "false"], selected);
-    }
-
-    [Fact]
-    public void Nothing_daisyUI_draws_is_left_in_the_markup()
-    {
-        var html = Page.Render(Three(Ui.Tabs.Segmented)).Html;
-
-        var classes = Page.Render(Three(Ui.Tabs)).Html + html;
-
-        Assert.DoesNotContain("tab-active", classes, StringComparison.Ordinal);
-        Assert.DoesNotContain("tabs-box", classes, StringComparison.Ordinal);
-        Assert.DoesNotContain("base-", classes, StringComparison.Ordinal);
     }
 }

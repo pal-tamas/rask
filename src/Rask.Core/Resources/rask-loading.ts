@@ -13,7 +13,7 @@
 // What it writes, on the element that owns the handler:
 //   data-loading   — a styling hook. Rask UI's button fades its label out and its spinner in on it.
 //   aria-busy=true — what assistive tech reads. NOT `disabled`, which would drop keyboard focus mid-press,
-//                    and not `aria-disabled`, which daisyUI greys the button out for.
+//                    and not `aria-disabled`, which a kit may grey the button out for.
 // Both after LOADING_DELAY_MS, so a handler that finishes in a frame or two never flashes a spinner. The
 // delay is below the pending bar's 300 ms on purpose: the control nearest the reader answers first.
 //

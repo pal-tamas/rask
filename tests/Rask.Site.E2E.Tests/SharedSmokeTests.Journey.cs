@@ -70,13 +70,13 @@ public abstract partial class SharedSmokeTests
         // assert on.
         //
         // Asserted rather than deleted: a toggle reappearing is a change worth noticing, and so is the
-        // chrome quietly going dark again. The navigation is the kit's now, so it carries the kit's ink
-        // token — a hardcoded slate-* would mean the layout drifted back off the shared palette.
+        // chrome quietly going dark again. The navigation is drawn in Flux's ink, zinc-800 — a slate-* would
+        // mean the layout drifted back off Flux's palette.
         await Expect(Page.Locator("nav button[aria-label='Toggle light / dark theme']")).ToHaveCountAsync(0);
-        await Expect(Page.Locator("header.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-ui-ink\b"));
+        await Expect(Page.Locator("header.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-zinc-800\b"));
 
         // …and the bar is the LANDING PAGE'S, shared with `/` rather than shaped like it: a <header>,
-        // where the docs used to draw daisyUI's navbar and its two halves. SiteHeaderTests compares the
+        // where the docs used to draw a navbar of their own and its two halves. SiteHeaderTests compares the
         // two pages' bars byte for byte from the wordmark rightwards; what a browser adds here is that
         // the selector resolves to exactly one element on a real page.
         //
@@ -144,11 +144,11 @@ public abstract partial class SharedSmokeTests
     // The top bar's wordmark, measured against what is actually behind it.
     //
     // This exists because every class name on that bar was already right when it was illegible. The
-    // showcase moved onto Rask.Ui's light palette and the markup said `bg-ui-bg text-ui-ink`, but
+    // showcase moved onto Rask.Ui's light palette and the markup named a light ground and dark ink, but
     // global.css still carried `.app-navbar { background: rgba(20, 16, 31, .82) }` from the dark-first
     // design — UNLAYERED, and therefore ahead of every layered utility on the page. The bar rendered
     // near-black behind near-black text, at about 1.4:1, and a class-name assertion cannot see any of
-    // it: `text-ui-ink` was present and correct throughout. Same shape as #1033, one layer up.
+    // it: the ink class was present and correct throughout. Same shape as #1033, one layer up.
     //
     // So: composite the real background (the bar's own colour is translucent, so the ancestors behind it
     // count), composite the text over that, and compare luminance. WCAG 1.4.3 wants 4.5:1 for text this
@@ -1464,22 +1464,12 @@ public abstract partial class SharedSmokeTests
         // read — poll for each rather than asserting once.
         await Expect(Page.Locator("head link[rel='stylesheet'][href$='/global.css']"))
             .ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
-        // The brand palette is applied, and it is the SHARED one. --accent used to be a violet the
-        // showcase published on its own, asserted as one of two hard-coded hexes that tracked the theme
-        // toggle. Both are gone: the showcase draws from Rask.Ui's palette now, so --accent is an alias
-        // for --color-ui-brand and the useful claim is that the alias resolves to it — a hex would only
-        // pin whichever colour the kit happens to ship today, and would go red on a re-skin that is
-        // working perfectly.
-        //
-        // Both are read and compared in the browser so the comparison is of COMPUTED values, whatever
-        // spelling it uses for the colour. Non-empty is asserted too: two undefined custom properties
-        // both read as "" and would otherwise compare equal, which is exactly the "silently gone
-        // palette" this step exists to catch.
+        // The palette is applied, and it is Flux's: the accent the kit declares resolves on the document. A hex
+        // would only pin whichever colour the kit happens to ship today, and would go red on a re-skin that is
+        // working perfectly; non-empty is the claim, because an undefined property reads as "" — exactly the
+        // "silently gone palette" this step exists to catch.
         await Page.WaitForFunctionAsync(
-            "() => { const s = getComputedStyle(document.documentElement);"
-            + " const norm = n => s.getPropertyValue(n).replace(/\\s+/g, '').toLowerCase();"
-            + " const accent = norm('--accent'), brand = norm('--color-ui-brand');"
-            + " return accent.length > 0 && accent === brand; }",
+            "() => getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim().length > 0",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 

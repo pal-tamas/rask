@@ -10,13 +10,13 @@ public sealed partial class FullscreenDemo : Component
     private string? _status;
 
     protected override Component? Render() =>
-        Div.Ref(_demo).Class("bg-ui-bg")[
+        Div.Ref(_demo).Class("bg-white dark:bg-zinc-800")[
             Ui.Card[
                 Div
                     .Ref(_stage)
-                    .Class("border rounded bg-ui-well flex items-center justify-center mb-2")
+                    .Class("border rounded bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center mb-2")
                     .Style("min-height: 8rem")[
-                    Span.Class("text-ui-muted text-sm")["This box goes fullscreen."]
+                    Span.Class("text-zinc-500 dark:text-white/70 text-sm")["This box goes fullscreen."]
                 ],
                 Div.Class("flex gap-2 flex-wrap mb-2")[
                     Ui.Button.Primary.Id("fullscreen-enter").OnClick(() => Enter(_stage, "Box"))["Fullscreen this box"],
@@ -25,7 +25,7 @@ public sealed partial class FullscreenDemo : Component
                         .OnClick(() => Enter(_demo, "Demo"))["Fullscreen the whole demo"],
                     Ui.Button.Red.Id("fullscreen-exit").OnClick(Exit)["Exit"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("fullscreen-status")[_status ?? "(idle)"]]
             ]
         ];
 

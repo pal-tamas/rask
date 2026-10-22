@@ -9,9 +9,9 @@ namespace Rask.Site.E2E.Tests;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The unit tests assert the markup: which daisyUI classes a set of props writes. They cannot
+///         The unit tests assert the markup: which classes a set of props writes. They cannot
 ///         assert the two things that actually break. The first is that a class STYLES anything —
-///         <c>ToHtml()</c> renders exactly the class the call site asked for whether or not daisyUI
+///         <c>ToHtml()</c> renders exactly the class the call site asked for whether or not the sheet
 ///         emitted a rule for it, so an unstyled component passes every markup assertion and appears as
 ///         a zero-sized box only in a browser. The second is that a callback runs at all: a handler is
 ///         not in the static HTML, it is attached when the runtime boots.

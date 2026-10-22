@@ -19,7 +19,7 @@ public sealed partial class VibrationDemo : Component
                         .Id("vibrate-cancel")
                         .OnClick(() => Vibrate([0], "Cancelled"))["Cancel"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("vibrate-status")[_status ?? "(idle)"]]
             ];
 
     // A pattern of 0 cancels. A browser without navigator.vibrate (Safari, Firefox) fails the call outright.

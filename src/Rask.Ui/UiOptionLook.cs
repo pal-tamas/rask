@@ -47,21 +47,21 @@ internal static class UiOptionLook
 
     /// <summary>The tick: shown while checked, unless the box is indeterminate.</summary>
     internal const string Tick =
-        "hidden text-fx-accent-foreground group-has-checked/option:block "
+        "hidden text-accent-foreground group-has-checked/option:block "
         + "group-data-indeterminate/option:group-has-checked/option:hidden";
 
     /// <summary>The dash of an indeterminate checkbox.</summary>
-    internal const string Dash = "hidden text-fx-accent-foreground group-data-indeterminate/option:block";
+    internal const string Dash = "hidden text-accent-foreground group-data-indeterminate/option:block";
 
     /// <summary>The dot of a chosen radio.</summary>
-    internal const string Dot = "hidden size-2 rounded-full bg-fx-accent-foreground group-has-checked/option:block";
+    internal const string Dot = "hidden size-2 rounded-full bg-accent-foreground group-has-checked/option:block";
 
     /// <summary>A card: bordered, the accent border and a faint tint when chosen.</summary>
     internal const string Card =
         "group/option relative flex flex-1 justify-between gap-3 rounded-lg border p-4 shadow-xs "
         + "border-zinc-800/15 bg-white hover:border-zinc-800/20 "
         + "dark:border-white/10 dark:bg-white/10 dark:hover:border-white/10 dark:hover:bg-white/15 "
-        + "has-checked:border-fx-accent has-checked:hover:border-fx-accent dark:has-checked:bg-white/15 "
+        + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
         + "after:absolute after:-inset-px after:rounded-lg has-checked:after:bg-zinc-800/[2.5%] dark:has-checked:after:bg-white/10 "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
         + Focus;
@@ -84,8 +84,8 @@ internal static class UiOptionLook
         "group/option flex items-center gap-2 rounded-full px-2 py-1 text-sm leading-4 font-medium whitespace-nowrap "
         + "bg-zinc-800/6 text-zinc-800 hover:bg-zinc-800/10 "
         + "dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/15 dark:hover:text-white "
-        + "has-checked:bg-fx-accent has-checked:text-fx-accent-foreground "
-        + "has-checked:hover:bg-fx-accent has-checked:hover:text-fx-accent-foreground "
+        + "has-checked:bg-accent has-checked:text-accent-foreground "
+        + "has-checked:hover:bg-accent has-checked:hover:text-accent-foreground "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
         + Focus;
 
@@ -95,7 +95,7 @@ internal static class UiOptionLook
         + "text-sm font-medium whitespace-nowrap shadow-xs "
         + "border-zinc-200 border-b-zinc-300/80 bg-white text-zinc-800 hover:border-zinc-800/20 "
         + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white dark:hover:border-zinc-500 "
-        + "has-checked:border-fx-accent has-checked:hover:border-fx-accent dark:has-checked:bg-white/15 "
+        + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
         + "after:absolute after:-inset-px after:rounded-lg has-checked:after:bg-zinc-800/[2.5%] dark:has-checked:after:bg-white/10 "
         + Focus;
 
@@ -123,8 +123,8 @@ internal static class UiOptionLook
     private const string Box =
         "flex size-[1.125rem] shrink-0 items-center justify-center border text-sm text-zinc-700 dark:text-zinc-800 "
         + "border-zinc-300 bg-white shadow-xs dark:border-white/10 dark:bg-white/10 "
-        + "group-has-checked/option:border-transparent group-has-checked/option:bg-fx-accent group-has-checked/option:shadow-none "
-        + "group-data-indeterminate/option:border-transparent group-data-indeterminate/option:bg-fx-accent "
+        + "group-has-checked/option:border-transparent group-has-checked/option:bg-accent group-has-checked/option:shadow-none "
+        + "group-data-indeterminate/option:border-transparent group-data-indeterminate/option:bg-accent "
         + "group-data-indeterminate/option:shadow-none "
         + "group-has-disabled/option:border-zinc-200 group-has-disabled/option:opacity-75 group-has-disabled/option:shadow-none "
         + "dark:group-has-disabled/option:border-white/5 "

@@ -32,16 +32,16 @@ public sealed partial class HomePage : Component
     private const string Wrap = SiteLayout.Wrap;
 
     private const string Eyebrow =
-        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ui-brand-ink";
+        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-accent-content";
 
-    private const string Lede = "mt-5 text-lg leading-relaxed text-ui-ink";
+    private const string Lede = "mt-5 text-lg leading-relaxed text-zinc-800 dark:text-white";
 
-    private const string Sub = "mt-4 text-sm leading-relaxed text-ui-muted";
+    private const string Sub = "mt-4 text-sm leading-relaxed text-zinc-500 dark:text-white/70";
 
-    private const string Card = "rounded-2xl border border-ui-line bg-ui-bg";
+    private const string Card = "rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800";
 
     private const string Badge =
-        "rounded-full border border-ui-line bg-ui-bg px-3 py-1 text-xs text-ui-muted";
+        "rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 px-3 py-1 text-xs text-zinc-500 dark:text-white/70";
 
     // Btn, not Button: a constant named Button would shadow the Button chain entry inside this markup
     // host, and every <button> on the page would then need qualifying.
@@ -53,20 +53,20 @@ public sealed partial class HomePage : Component
         "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold "
         + "no-underline transition-colors";
 
-    // `text-ui-bg!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
+    // `text-white!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
     // `a { color: inherit }` in its base layer; in this document that rule outranks the text-* utilities,
     // so the primary button took its colour from the hero instead of from its own class. It rendered
-    // ink-on-ink at a contrast ratio of 1:1 with `text-ui-bg` sitting right there in the markup, which
+    // ink-on-ink at a contrast ratio of 1:1 with its own text colour sitting right there in the markup, which
     // is a defect Lighthouse found and no reviewer would. The important modifier is what says "this
     // element's own colour, not the one it inherits".
-    private const string BtnPrimary = Btn + " bg-ui-ink text-ui-bg! hover:bg-ui-ink/90";
+    private const string BtnPrimary = Btn + " bg-zinc-800 dark:bg-white text-white! dark:text-zinc-800! hover:bg-zinc-800/90 dark:hover:bg-white/90";
 
     private const string BtnGhost =
-        Btn + " border border-ui-line bg-ui-bg text-ui-ink! hover:border-ui-brand hover:text-ui-brand-ink";
+        Btn + " border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 text-zinc-800! dark:text-white! hover:border-accent hover:text-accent-content";
 
     private const string SectionPad = "py-16 sm:py-24";
 
-    private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-ui-ink sm:text-4xl";
+    private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-zinc-800 dark:text-white sm:text-4xl";
 
     /// <inheritdoc />
     // The front door. Its title and description are the site's, which App already carries as the
@@ -79,7 +79,7 @@ public sealed partial class HomePage : Component
     protected override Component? Render() =>
     [
         // The shared bar, centred in this page's own column. It used to be written out here; /docs wore
-        // a different one, and "different" had grown to a daisyUI navbar, a second brand mark, two
+        // a different one, and "different" had grown to a navbar of its own, a second brand mark, two
         // badges, a route readout and a bordered button.
         SiteHeader.FullBleed(false),
         Hero(),
@@ -116,9 +116,9 @@ public sealed partial class HomePage : Component
                         P.Class(Eyebrow)["The full-stack .NET web framework"],
                         // 2.75rem beside the code: the text track is 452px there, and a longer first line
                         // would break the headline's two designed lines into three.
-                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-ui-ink sm:text-5xl lg:text-[2.75rem]")[
+                        H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-zinc-800 dark:text-white sm:text-5xl lg:text-[2.75rem]")[
                             "The whole stack,", Br, "in ",
-                            Span.Class("text-ui-brand-ink")["C#"], "."
+                            Span.Class("text-accent-content")["C#"], "."
                         ],
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
                         P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — with React, Vue or Angular components inside them as islands."],
@@ -150,9 +150,9 @@ public sealed partial class HomePage : Component
 
     private static Component CodeWindow() =>
         Div.Class($"{Card} min-w-0 overflow-hidden")[
-            Div.Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2.5")[
+            Div.Class("flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 px-4 py-2.5")[
                 Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
-                Span.Class("ml-2 font-mono text-xs text-ui-muted")["Counter.cs"]
+                Span.Class("ml-2 font-mono text-xs text-zinc-500 dark:text-white/70")["Counter.cs"]
             ],
             Pre.Class("overflow-x-auto p-4 text-xs leading-relaxed")[
                 Code.Class("font-mono")[Raw.Value(CounterCodeHtml)]
@@ -179,17 +179,17 @@ public sealed partial class HomePage : Component
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")[
+                + "hover:border-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
             Div.Class("flex items-center gap-2")[
-                Ui.Icon.Name(icon).Class("size-5 shrink-0 text-ui-brand-ink"),
-                Span.Class("font-mono text-xs text-ui-muted")[tag],
+                Ui.Icon.Name(icon).Class("size-5 shrink-0 text-accent-content"),
+                Span.Class("font-mono text-xs text-zinc-500 dark:text-white/70")[tag],
                 Ui.Icon
                     .Name(Ui.IconName.ChevronRight)
-                    .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
+                    .Class("ml-auto size-4 shrink-0 text-zinc-500 dark:text-white/70 transition-transform group-hover:translate-x-0.5")
             ],
-            H3.Class("mt-2 text-lg font-semibold text-ui-ink")[title],
-            P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[body],
-            Span.Class("mt-4 block font-mono text-xs text-ui-ink")[prev]
+            H3.Class("mt-2 text-lg font-semibold text-zinc-800 dark:text-white")[title],
+            P.Class("mt-2 text-sm leading-relaxed text-zinc-500 dark:text-white/70")[body],
+            Span.Class("mt-4 block font-mono text-xs text-zinc-800 dark:text-white")[prev]
         ];
 
     private static Component HostsSection() =>
@@ -263,15 +263,15 @@ public sealed partial class HomePage : Component
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
-                + "hover:border-ui-brand/40 hover:bg-ui-well")[
-            Div.Class("flex items-center gap-2 text-sm font-semibold text-ui-ink")[
-                Ui.Icon.Name(icon).Class("size-4 shrink-0 text-ui-brand-ink"),
+                + "hover:border-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
+            Div.Class("flex items-center gap-2 text-sm font-semibold text-zinc-800 dark:text-white")[
+                Ui.Icon.Name(icon).Class("size-4 shrink-0 text-accent-content"),
                 title,
                 Ui.Icon
                     .Name(Ui.IconName.ChevronRight)
-                    .Class("ml-auto size-4 shrink-0 text-ui-muted transition-transform group-hover:translate-x-0.5")
+                    .Class("ml-auto size-4 shrink-0 text-zinc-500 dark:text-white/70 transition-transform group-hover:translate-x-0.5")
             ],
-            P.Class("mt-2 text-sm leading-relaxed text-ui-muted")[desc]
+            P.Class("mt-2 text-sm leading-relaxed text-zinc-500 dark:text-white/70")[desc]
         ];
 
     /// <summary>
@@ -374,7 +374,7 @@ public sealed partial class HomePage : Component
 
     // ---- footer ----
     private static Component FooterSection() =>
-        Footer.Class("border-t border-ui-line py-16 sm:py-20")[
+        Footer.Class("border-t border-zinc-200 dark:border-white/10 py-16 sm:py-20")[
             Div.Class(Wrap)[
                 Div.Class("mx-auto max-w-2xl text-center")[
                     H2.Class(H2Class)["The live docs are the real tour."],
@@ -397,14 +397,14 @@ public sealed partial class HomePage : Component
                     // actually needs — and three of them 20px apart is the shape that makes a phone user
                     // hit "GitHub" when they meant "NuGet". Padding is the fix rather than a bigger font:
                     // the target grows, the type stays as designed.
-                    Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-ui-muted "
+                    Div.Class("mt-10 flex flex-wrap justify-center gap-6 text-sm text-zinc-500 dark:text-white/70 "
                               + "[&>a]:no-underline [&>a]:inline-flex [&>a]:min-h-11 [&>a]:items-center "
-                              + "[&>a]:px-2 hover:[&>a]:text-ui-ink")[
+                              + "[&>a]:px-2 hover:[&>a]:text-zinc-800 dark:text-white")[
                         NavLink.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).ActiveClass("")["Docs"],
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
-                    P.Class("mt-8 text-xs text-ui-muted")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
+                    P.Class("mt-8 text-xs text-zinc-500 dark:text-white/70")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
                 ]
             ]
         ];
@@ -418,13 +418,13 @@ public sealed partial class HomePage : Component
     // change and the code may not.
     private const string CounterCodeHtml =
         """
-        [<span class="text-ui-ok-ink">Route</span>(<span class="text-amber-700">"/counter"</span>)]
-        <span class="text-ui-brand-ink">public sealed partial class</span> <span class="text-ui-ok-ink">Counter</span> : <span class="text-ui-ok-ink">Component</span>
+        [<span class="text-green-700 dark:text-green-400">Route</span>(<span class="text-amber-700">"/counter"</span>)]
+        <span class="text-accent-content">public sealed partial class</span> <span class="text-green-700 dark:text-green-400">Counter</span> : <span class="text-green-700 dark:text-green-400">Component</span>
         {
-            <span class="text-ui-brand-ink">private int</span> _count;
+            <span class="text-accent-content">private int</span> _count;
 
-            <span class="text-ui-brand-ink">protected override</span> <span class="text-ui-ok-ink">Component</span>? <span class="text-ui-ink">Render</span>() =&gt;
-                <span class="text-ui-ok-ink">Button</span>.<span class="text-ui-ink">OnClick</span>(() =&gt; _count++)[<span class="text-amber-700">$"Current count: {_count}"</span>];
+            <span class="text-accent-content">protected override</span> <span class="text-green-700 dark:text-green-400">Component</span>? <span class="text-zinc-800 dark:text-white">Render</span>() =&gt;
+                <span class="text-green-700 dark:text-green-400">Button</span>.<span class="text-zinc-800 dark:text-white">OnClick</span>(() =&gt; _count++)[<span class="text-amber-700">$"Current count: {_count}"</span>];
         }
         """;
 }

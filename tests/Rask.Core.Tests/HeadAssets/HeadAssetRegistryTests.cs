@@ -180,6 +180,24 @@ public partial class HeadAssetRegistryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_appearance_script_is_one_per_document_the_last_writer_in_the_first_ones_place()
+    {
+        // The host writes the kit's dark-mode script ahead of the stylesheets, and an app may still write its own with
+        // a key of its own: two different scripts by their text, one by their marker.
+        var registry = new HeadAssetRegistry();
+        registry.Add(Script.Attributes((HeadAssetRegistry.AppearanceScriptMarker, ""))["var K='rask.appearance';"]);
+        registry.Add(Link.Rel("stylesheet").Href("/a.css"));
+        registry.Add(Script.Attributes((HeadAssetRegistry.AppearanceScriptMarker, ""))["var K='app.look';"]);
+
+        var result = registry.ApplyTo($"<head>{HeadAssetRegistry.Sentinel}</head>");
+
+        Assert.Equal(1, CountOccurrences(result, HeadAssetRegistry.AppearanceScriptMarker));
+        Assert.Contains("app.look", result);
+        Assert.DoesNotContain("rask.appearance", result);
+        Assert.True(result.IndexOf("app.look", StringComparison.Ordinal) < result.IndexOf("/a.css", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_singleton_meta_keeps_one_morph_identity_across_renders()
     {
         // Why the key matters beyond dedup: it becomes the data-rask-key, and the client morph matches

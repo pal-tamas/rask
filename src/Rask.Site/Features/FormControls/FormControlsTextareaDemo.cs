@@ -19,7 +19,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                     .Rows(3)
                     .Description("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-textarea-controlled").Class("mb-2"),
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-controlled-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-textarea-controlled-out")[
                     "Length: ", Strong[_controlled.Length]
                 ]
             ],
@@ -29,7 +29,7 @@ public sealed partial class FormControlsTextareaDemo : Component
                         .Rows(3)
                         .Id("fc-textarea-bound").Class("mb-2")
                 ],
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-textarea-bound-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-textarea-bound-out")[
                     "Length: ", Strong[_model.Bio.Length]
                 ]
             ]

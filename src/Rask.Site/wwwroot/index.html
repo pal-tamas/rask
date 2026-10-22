@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-rask-ui>
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
     <!--
@@ -14,11 +14,6 @@
       <base href> — replaces the body below with the rendered page, and carries the script at the end
       over. So what a visitor is served has the real markup AND still boots. Keep it minimal; the App
       component is the source of truth for the page's real <head>.
-
-      data-rask-ui on <html> turns the component kit's theme on for the whole document. It lives HERE
-      rather than only in App.Shell because this shell's opening tag is what survives the splice.
-      Without it every --color-ui-* token resolves to nothing and the site ships structurally perfect
-      and entirely grey.
     -->
     <!-- <base href> is rewritten to /<prefix>/ by the framework's _RaskRewriteBaseHref target when
          published with -p:RaskPathBase=/<prefix>. This app is served from the origin root, so it is
@@ -36,8 +31,7 @@
     <style>
         /*
           The boot screen, on the light ground the page itself uses so there is no flash between the
-          two. There is no theme-init script any more: this page has one palette, and the script that
-          stamped data-theme existed to serve a dark default and a toggle that are both gone.
+          two. Dark mode arrives with the page's own head (Ui.AppearanceScript), before its first paint.
 
           On a published build almost nobody sees this — prerendering replaces the body below with the
           real page — so it is what `dotnet run` shows locally, and the fallback if the pass ever skips

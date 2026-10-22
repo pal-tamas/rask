@@ -36,29 +36,26 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
 
     private Component Done =>
         [
-            H1.Class("text-2xl font-bold")["Password changed"],
+            Title("Password changed"),
             Ok("reset-done", "Your password has been changed, and every session for this account is signed out."),
-            P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
+            Ui.Text[Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
     private Component Incomplete =>
         [
-            H1.Class("text-2xl font-bold")["That link is incomplete"],
+            Title("That link is incomplete"),
             Error("reset-error", "Open the link from your email in full, or ask for a new one."),
-            P.Class("text-sm opacity-70")[
-                NavLink.Href(Routes.ForgotPasswordPage()).Class("link link-primary")["Send another link"], "."]
+            Ui.Text[Ui.Link.Href(Routes.ForgotPasswordPage())["Send another link"], "."]
         ];
 
     private Component Ask =>
         [
-            H1.Class("text-2xl font-bold")["Choose a new password"],
+            Title("Choose a new password"),
             Message is null ? null : Error("reset-error", Message),
-            Form.Model(_model).OnSubmit(Submit)[
-                Field("password", "New password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
-                Field("confirm", "New password again", Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Class("input w-full")),
-                Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Submit).Id("reset-submit").Class("btn btn-primary btn-block")["Change my password"]
-                ]
+            Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-6")[
+                Ui.Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Label("New password"),
+                Ui.Input.Bind(() => _model.Confirm).Id("confirm").Type(InputType.Password).Label("New password again"),
+                Ui.Button.Primary.Type(Ui.ButtonType.Submit).Id("reset-submit").Class("w-full")["Change my password"]
             ]
         ];
 

@@ -40,7 +40,7 @@ public sealed partial class QueryParcelsDemo(RouteState route, ParcelStore store
                 Ui.Button.Id("query-prev").Disabled(PageNumber <= 1).OnClick(() => GoTo(PageNumber - 1))["Previous"],
                 Span.Id("query-page")[$"Page {PageNumber} of {pages}"],
                 Ui.Button.Id("query-next").Disabled(PageNumber >= pages).OnClick(() => GoTo(PageNumber + 1))["Next"],
-                Span.Id("query-status").Class("text-ui-muted text-sm")[
+                Span.Id("query-status").Class("text-zinc-500 dark:text-white/70 text-sm")[
                     parcels switch
                     {
                         { IsLoading: true } => "loading…",

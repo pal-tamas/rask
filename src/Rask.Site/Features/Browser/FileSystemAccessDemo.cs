@@ -24,7 +24,7 @@ public sealed partial class FileSystemAccessDemo : Component
                         .OnClick(Save)["Save"],
                     Ui.Button.Id("fs-saveas").OnClick(SaveAs)["Save as…"]
                 ],
-                Div.Class("mb-2 text-sm text-ui-muted")["File: ", Code.Id("fs-name")[_name ?? "(none)"]],
+                Div.Class("mb-2 text-sm text-zinc-500 dark:text-white/70")["File: ", Code.Id("fs-name")[_name ?? "(none)"]],
                 Ui.Textarea
                     .Value(_text)
                     .Label("File contents")
@@ -33,7 +33,7 @@ public sealed partial class FileSystemAccessDemo : Component
                     .Rows(8)
                     .Description("Open a text file, or type here and Save as…")
                     .OnInput(v => _text = v),
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("fs-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("fs-status")[_status]]
             ];
 
     private const string Unsupported = "File System Access not supported — use Chrome/Edge";

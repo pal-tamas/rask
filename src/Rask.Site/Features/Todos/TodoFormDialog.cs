@@ -19,7 +19,7 @@ public sealed partial class TodoFormDialog : Component
     // Template is required, so it is the chain's opening step: a validation message with no way to
     // render itself is not a thing the type system lets you ask for.
     private static Component FieldError(IReadOnlyList<string> errors) =>
-        Div.Class("field-error text-sm text-ui-danger-ink")[errors.Select(e => Div.Key(e)[e])];
+        Div.Class("field-error text-sm text-red-600 dark:text-red-400")[errors.Select(e => Div.Key(e)[e])];
 
     protected override Component? Render() =>
         // The native <dialog>. A modal supplies a backdrop, Escape-to-dismiss and a focus trap. A
@@ -34,7 +34,7 @@ public sealed partial class TodoFormDialog : Component
                 ? null
                 : Div.Class("dialog-backdrop fixed inset-0 z-40 bg-black/40").OnClick(OnCancel),
             Dialog.Open(Open).Class(
-                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-ui-bg p-5 shadow-xl")
+                "fixed inset-0 z-50 m-auto h-fit w-full max-w-md rounded-xl bg-white dark:bg-zinc-800 p-5 shadow-xl")
                 // Escape dismisses. A non-modal dialog fires no `cancel` event, so the key is read
                 // where it lands — no client script, just the same routed cancel the backdrop uses.
                 .OnKeyDown(async e =>

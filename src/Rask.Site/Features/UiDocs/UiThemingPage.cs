@@ -25,16 +25,16 @@ public sealed partial class UiThemingPage : Component
 
     private const string AccentSnippet = """
         @theme {
-          --color-fx-accent: var(--color-red-500);
-          --color-fx-accent-content: var(--color-red-600);
-          --color-fx-accent-foreground: var(--color-white);
+          --color-accent: var(--color-red-500);
+          --color-accent-content: var(--color-red-600);
+          --color-accent-foreground: var(--color-white);
         }
 
         @layer theme {
           .dark {
-            --color-fx-accent: var(--color-red-500);
-            --color-fx-accent-content: var(--color-red-400);
-            --color-fx-accent-foreground: var(--color-white);
+            --color-accent: var(--color-red-500);
+            --color-accent-content: var(--color-red-400);
+            --color-accent-foreground: var(--color-white);
           }
         }
         """;
@@ -76,9 +76,8 @@ public sealed partial class UiThemingPage : Component
                 .Blurb("An arbitrary-property class sets the tokens for one subtree. The default is the kit's own: "
                        + "zinc-800, and white in dark mode."),
             CodeBlock.Source(AccentSnippet).Language("css"),
-            Ui.Text.Sm.Subtle["Flux names them --color-accent, --color-accent-content and --color-accent-foreground. "
-                              + "Rask.Ui's carry fx- while the last daisyUI-drawn parts of the kit still define "
-                              + "--color-accent with another meaning."]
+            Ui.Text.Sm.Subtle["The names are Flux's: --color-accent, --color-accent-content and "
+                              + "--color-accent-foreground, light in @theme and dark under .dark."]
         ],
         UiDocsSection.Key("font").Heading("Font")[
             Ui.Text["Rask.Ui is drawn in Inter, as Flux is, and its charts lay their labels out with Inter's metrics. "

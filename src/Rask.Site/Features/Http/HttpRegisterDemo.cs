@@ -16,7 +16,7 @@ public sealed partial class HttpRegisterDemo : Component
 
     protected override Component? Render() =>
         Ui.Card.Muted[
-                Div.Class("text-sm text-ui-muted uppercase mb-1")["Configured HttpClient"],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 uppercase mb-1")["Configured HttpClient"],
                 P.Class("mb-0 text-sm")[
                     "BaseAddress: ", Code[CreateClient(() => "https://localhost/").BaseAddress!.ToString()],
                     " — relative fetches resolve against the app's own origin."

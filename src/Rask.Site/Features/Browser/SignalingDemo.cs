@@ -40,15 +40,15 @@ public sealed partial class SignalingDemo(ISignaling signaling) : Component, IAs
                         .OnClick(Send)["Relay a payload"]
                 ],
                 _unavailable
-                    ? Div.Class("text-sm text-ui-muted italic").Id("signal-status")[
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70 italic").Id("signal-status")[
                         "This host isn't running the relay — it needs AddRaskSignaling() + "
                         + "MapRaskSignaling() on the server."]
-                    : Div.Class("text-sm text-ui-muted mb-1")[
+                    : Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Peers: ",
                     Span.Id("signal-peers")[Peers()]],
-                Div.Class("text-sm text-ui-muted mb-1")["What the relay reported:"],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")["What the relay reported:"],
                 _log.Count == 0
-                    ? Div.Class("text-sm text-ui-muted italic").Id("signal-log")["(nothing yet)"]
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70 italic").Id("signal-log")["(nothing yet)"]
                     : Ul.Class("text-sm mb-0").Id("signal-log")[
                         _log.Select(m => Li.Key(m)[m])
                     ]

@@ -38,13 +38,15 @@ public sealed partial class UiAppearanceScript : Component
     /// </remarks>
     public string StorageKey { get; set; } = "rask.appearance";
 
+    /// <summary>
+    /// The attribute that marks the script, so a document's head holds one however many places write it: the
+    /// head keeps the LAST script carrying it (the app's own, with its key), where the host wrote the first.
+    /// </summary>
+    internal const string Marker = "data-rask-appearance";
+
     /// <inheritdoc />
     protected override Component? Render() =>
-        Script[Raw.Value(Js(StorageKey))];
-
-    // GOES WITH daisyUI: the components it still draws read data-theme, so the scheme is mirrored there
-    // as daisyUI's `dark` or `light`. Delete this constant and its one use with the plugin.
-    private const string DaisyBridge = "d.setAttribute('data-theme',on?'dark':'light');";
+        Script.Attributes((Marker, ""))[Raw.Value(Js(StorageKey))];
 
     internal static string Js(string storageKey) =>
         "(function(){var d=document.documentElement,K='" + Checked(storageKey) + "'," +
@@ -53,7 +55,7 @@ public sealed partial class UiAppearanceScript : Component
         "function read(){try{var v=localStorage.getItem(K);return ok(v)?v:'system';}" +
         "catch(e){return 'system';}}" +
         "function dark(){return A==='dark'||(A==='system'&&M.matches);}" +
-        "function apply(){var on=dark();d.classList.toggle('dark',on);" + DaisyBridge + "}" +
+        "function apply(){var on=dark();d.classList.toggle('dark',on);}" +
         "function set(v){A=ok(v)?v:'system';" +
         "try{if(A==='system')localStorage.removeItem(K);else localStorage.setItem(K,A);}catch(e){}" +
         "apply();}" +

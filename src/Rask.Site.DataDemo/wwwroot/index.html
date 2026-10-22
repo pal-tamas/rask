@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" data-rask-ui>
+<html lang="en">
 <head>
     <meta charset="utf-8"/>
     <!--
-      The data demo's boot shell. data-rask-ui turns the kit's theme on for the whole document. <base href> is
+      The data demo's boot shell. <base href> is
       rewritten to "/demos/data/" at publish (<RaskPathBase> in the csproj); `dotnet run` keeps "/".
     -->
     <base href="/"/>
@@ -23,8 +23,6 @@
                 try { stored = localStorage.getItem("rask.appearance"); } catch (e) { }
                 var dark = stored === "dark" || (stored !== "light" && media.matches);
                 document.documentElement.classList.toggle("dark", dark);
-                // Goes with daisyUI, which still draws most of the kit and reads data-theme.
-                document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
             }
             apply();
             media.addEventListener("change", apply);

@@ -36,7 +36,7 @@ public sealed partial class EditorParity : FluxParity
         "<style>.parity-short [data-slot=content]{min-height:100px!important}"
         + ".parity-size-5{width:20px!important;height:20px!important}.parity-hidden{display:none}"
         // The docs site's accent, which a link in the document takes: blue, where the kit's own default is zinc.
-        + ".parity-accent{--color-fx-accent-content:rgb(37 99 235)}.dark .parity-accent{--color-fx-accent-content:rgb(103 145 253)}</style>";
+        + ".parity-accent{--color-accent-content:rgb(37 99 235)}.dark .parity-accent{--color-accent-content:rgb(103 145 253)}</style>";
 
     public override string Page => "editor";
 

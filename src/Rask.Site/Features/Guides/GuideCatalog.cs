@@ -330,7 +330,7 @@ public static class GuideCatalog
         new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.", "Frontend")
         {
             SearchTitle = "Tailwind CSS in .NET without npm or Node.js",
-            Description = "Compile Tailwind CSS and daisyUI with dotnet build: no package.json, node_modules or PostCSS. The build scans your C# for classes, with knobs and fixes.",
+            Description = "Compile Tailwind CSS with dotnet build: no package.json, node_modules or PostCSS. The build scans your C# for classes, with knobs and fixes.",
         },
         new("ui-kit", "UI kit", "The components the framework's own surfaces are drawn with.", "Frontend")
         {

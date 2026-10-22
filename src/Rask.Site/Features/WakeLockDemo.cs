@@ -20,7 +20,7 @@ public sealed partial class WakeLockDemo : Component
                         .Id("wakelock-toggle")
                         .OnClick(Toggle)[_sentinel is null ? "Keep screen awake" : "Release"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("wakelock-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Toggle()

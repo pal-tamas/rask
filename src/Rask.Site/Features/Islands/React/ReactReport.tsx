@@ -11,7 +11,7 @@ export default function ReactReport({ back }: ReactReportProps) {
     <article data-testid="react-report">
       <h1 className="text-3xl font-bold mb-1">An island as a whole page</h1>
 
-      <p className="text-ui-muted">
+      <p className="text-zinc-500 dark:text-white/70">
         React rendered everything below the site's own chrome. The title in the tab came from C#, and a
         skeleton stood here until this chunk loaded.
       </p>

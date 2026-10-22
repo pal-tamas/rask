@@ -36,7 +36,7 @@ public sealed partial class ResizeObserverDemo : Component
 
     protected override Component? Render() =>
         Ui.Card[
-                Div.Class("text-sm text-ui-muted mb-2")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")[
                     "Observed size: ",
                     Code.Id("resize-value")[
                         _width > 0 ? $"{_width.ToString("0", Inv)} × {_height.ToString("0", Inv)} px" : "(measuring…)"]
@@ -47,7 +47,7 @@ public sealed partial class ResizeObserverDemo : Component
                 Div
                     .Ref(_box)
                     .Id("resize-box")
-                    .Class("p-4 rounded bg-ui-well text-center", _wide ? "w-full" : "w-1/2")[
+                    .Class("p-4 rounded bg-zinc-50 dark:bg-zinc-900 text-center", _wide ? "w-full" : "w-1/2")[
                     "📐 observed box (resize the window too)"
                 ]
             ];

@@ -37,7 +37,7 @@ public partial class UiSelectIndicatorTests : global::Rask.Core.RaskMarkup
         var picked = page.FindAll("[data-ui-option][data-selected]");
 
         Assert.Equal("Design services", Assert.Single(picked).TextContent.Trim());
-        Assert.Contains(picked[0].DescendantsAndSelf(), node => node.HasClass("group-data-selected/option:bg-fx-accent"));
+        Assert.Contains(picked[0].DescendantsAndSelf(), node => node.HasClass("group-data-selected/option:bg-accent"));
     }
 
     [Fact]

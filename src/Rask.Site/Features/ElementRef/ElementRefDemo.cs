@@ -22,15 +22,15 @@ public sealed partial class ElementRefDemo : Component
                 Ui.Button.OnClick(MeasureInJs)["Measure it in TypeScript"],
                 Ui.Button.OnClick(OpenDialog)["Open the dialog"]
             ],
-            Div.Ref(_box).Class("border rounded p-3 bg-ui-well")[
+            Div.Ref(_box).Class("border rounded p-3 bg-zinc-50 dark:bg-zinc-900")[
                 "A box carrying an ElementRef — measured from C# through MDN's getBoundingClientRect, or in TypeScript."
             ],
-            Dialog.Ref(_dialog).Class("rounded-box p-4")[
+            Dialog.Ref(_dialog).Class("rounded-xl border border-zinc-200 bg-white p-6 text-zinc-800 shadow-lg dark:border-white/10 dark:bg-zinc-800 dark:text-white")[
                 P.Class("mb-3")["Opened with MDN's showModal(), from C#."],
                 Ui.Button.OnClick(CloseDialog)["Close"]
             ],
             _measured.Length > 0
-                ? P.Class("text-sm text-ui-muted mt-2 mb-0")[_measured]
+                ? P.Class("text-sm text-zinc-500 dark:text-white/70 mt-2 mb-0")[_measured]
                 : null
         ];
 

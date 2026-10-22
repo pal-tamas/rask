@@ -91,7 +91,7 @@ public sealed class FluxParityPages
 
     private static StringBuilder Head(string title) =>
         new StringBuilder()
-            .Append("<!doctype html><html lang=\"en\" ").Append(UiStylesheet.ThemeScopeAttribute).Append("><head>")
+            .Append("<!doctype html><html lang=\"en\"><head>")
             .Append("<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
             .Append("<title>").Append(title).Append(" · parity</title>")
             .Append("<link href=\"https://fonts.bunny.net/css?family=inter:400,500,600&display=swap\" rel=\"stylesheet\">")

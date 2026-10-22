@@ -17,9 +17,9 @@ public sealed partial class IdleDetectorDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Ui.Button.Primary.Class("mb-3").Id("idle-start").OnClick(Start)["Start watching (60s threshold)"],
-                Div.Class("text-sm text-ui-muted")["User: ", Code.Id("idle-user")[_user]],
-                Div.Class("text-sm text-ui-muted")["Screen: ", Code.Id("idle-screen")[_screen]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("idle-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["User: ", Code.Id("idle-user")[_user]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Screen: ", Code.Id("idle-screen")[_screen]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("idle-status")[_status]]
             ];
 
     private async Task Start()

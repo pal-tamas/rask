@@ -19,7 +19,7 @@ public sealed partial class FixturesStyleFromTheKitSheetTests
     private static readonly string _frames = Path.Combine("tests", "Rask.Server.E2E.Tests");
 
     // Written by a frame, never defined by the sheet, and nothing a journey measures: a header hidden from
-    // the large breakpoint up, and the carousel track daisyUI's carousel is excluded from.
+    // the large breakpoint up, and a carousel slide's marker class.
     private static readonly string[] _unstyledByDesign = ["lg:hidden", "carousel-item"];
 
     [Fact]

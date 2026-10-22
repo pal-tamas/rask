@@ -6639,44 +6639,6 @@ Rask.UiTextarea<T>.Placeholder.set -> void
 Rask.UiTextarea<T>.Resize.set -> void
 Rask.UiTextarea<T>.Rows.set -> void
 Rask.UiTextarea<T>.UiTextarea() -> void
-Rask.UiTheme
-Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Abyss = 2 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Acid = 3 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Aqua = 4 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Autumn = 5 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Black = 6 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Bumblebee = 7 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Business = 8 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Caramellatte = 9 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Cmyk = 10 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Coffee = 11 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Corporate = 12 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Cupcake = 13 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Cyberpunk = 14 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Dark = 1 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Dim = 15 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Dracula = 16 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Emerald = 17 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Fantasy = 18 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Forest = 19 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Garden = 20 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Halloween = 21 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Lemonade = 22 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Light = 0 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Lofi = 23 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Luxury = 24 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Night = 25 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Nord = 26 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Pastel = 27 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Retro = 28 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Silk = 29 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Sunset = 30 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Synthwave = 31 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.System = 35 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Valentine = 32 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Winter = 33 -> Rask.Ui.ThemeName
-Rask.Ui.ThemeName.Wireframe = 34 -> Rask.Ui.ThemeName
 Rask.UiTimeline
 Rask.UiTimeline.Class.get -> string?
 Rask.UiTimeline.Class.set -> void
@@ -6784,8 +6746,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiBadgeClose!).Outline.get -> Rask.UiBa
 RaskBuilderSettersRask_Ui.extension(Rask.UiBadgeClose!).Solid.get -> Rask.UiBadgeClose!
 RaskEntriesRask_Ui
 const Rask.UiStylesheet.Path = "/css/rask-ui.css" -> string!
-const Rask.UiStylesheet.ThemeScopeAttribute = "data-rask-ui" -> string!
-const Rask.UiTheme.SystemValue = "system" -> string!
 override Rask.UiDateRange.GetHashCode() -> int
 override Rask.UiElement.WriteAttributes(System.Text.StringBuilder! sb) -> void
 static Rask.Ui.AppearanceScript.get -> Rask.UiAppearanceScript!
@@ -6804,8 +6764,6 @@ static Rask.UiDateRange.operator ==(Rask.UiDateRange left, Rask.UiDateRange righ
 static Rask.UiStylesheet.Css.get -> string!
 static Rask.UiStylesheet.Href(string? pathBase = null) -> string!
 static Rask.UiStylesheet.Version.get -> string!
-static Rask.UiTheme.All.get -> System.Collections.Generic.IReadOnlyList<Rask.Ui.ThemeName>!
-static Rask.UiTheme.Value(Rask.Ui.ThemeName theme) -> string!
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAppearanceScript(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAppearanceScript(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAppearanceScript(Rask.Core.Component! __c0, ulong __p) -> void

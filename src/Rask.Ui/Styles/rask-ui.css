@@ -9,15 +9,14 @@
   longhands. Do not also link the kit's precompiled sheet (UiStylesheet.Href()); the build stops if
   RaskUiWriteStylesheet asks for it.
 
-  GENERATED INTO Styles/vendor/ by the build, with rask-ui.kit.css, rask-ui.classes.txt and daisyui.mjs
-  beside it. Do not edit or commit them; `rask new` ignores the folder.
+  GENERATED INTO Styles/vendor/ by the build, with rask-ui.kit.css and rask-ui.classes.txt beside it. Do not edit or commit them; `rask new` ignores the folder.
 
   The layer order for the document is declared here, first, because CSS ranks layers by first appearance
   and nothing later can reorder them. To add a layer of your own, name it in a statement of your own
   BEFORE the import — `@layer theme, base, brand;` puts `brand` above `base` and below everything the
   line below adds after it.
 */
-@layer properties, theme, base, components, daisyui, rask, utilities;
+@layer properties, theme, base, components, rask, utilities;
 
 @import "tailwindcss";
 @import "./rask-ui.kit.css";

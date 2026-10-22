@@ -14,25 +14,26 @@ namespace Rask.Site.DataDemo;
 /// </remarks>
 public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownership) : Component
 {
-    // No Tailwind build here: the kit's sheet carries the components, and these few rules lay the page out.
+    // No Tailwind build here: the kit's sheet carries the components, and these few rules lay the page out
+    // in Flux's colours (white on zinc-800 in the dark: #27272a).
     private const string Layout = """
         *,*::before,*::after{box-sizing:border-box}
-        body{margin:0;background:var(--color-base-100);color:var(--color-base-content);
+        body{margin:0;background:#fff;color:#27272a;
           font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+        .dark body{background:#27272a;color:#fff}
         h1,h2,p,ul{margin:0}
         .notes{max-width:44rem;margin:0 auto;padding:1rem;display:flex;flex-direction:column;gap:1.25rem}
         .notes-lede{opacity:.75;font-size:.875rem}
         .notes-form{display:flex;flex-direction:column;gap:.75rem}
-        .notes-form .btn{align-self:flex-start}
-        .notes .fieldset,.notes .floating-label,.notes .input,.notes .textarea{width:100%}
+        .notes-form>button{align-self:flex-start}
         .notes textarea{font:inherit}
         .notes h2{font-size:1rem;font-weight:600}
         .notes-list{padding:0;list-style:none}
         .notes-list>li{display:flex;flex-direction:column;gap:.125rem;padding:.625rem 0;
-          border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);overflow-wrap:anywhere}
+          border-bottom:1px solid color-mix(in oklab,currentColor 12%,transparent);overflow-wrap:anywhere}
         .notes-list>li:last-child{border-bottom:0}
         .note-body{opacity:.8;font-size:.875rem}
-        .notes mark{background:color-mix(in oklab,var(--color-warning) 45%,transparent);color:inherit;border-radius:.2em}
+        .notes mark{background:color-mix(in oklab,#fbbf24 45%,transparent);color:inherit;border-radius:.2em}
         .notes-foot{opacity:.65;font-size:.75rem}
         """;
 
@@ -51,10 +52,6 @@ public sealed partial class App(NotesReady ready, BrowserSqliteOwnership ownersh
         Style[Raw.Value(UiStylesheet.Css)],
         Style[Raw.Value(Layout)],
     ];
-
-    /// <summary>Turns the kit's theme on for the whole document; without the scope every kit colour resolves to nothing.</summary>
-    protected override Component Shell(Component head, Component body) =>
-        Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, Body[body]];
 
     /// <inheritdoc />
     protected override async Task OnMount() => _owner = await ownership.Resolved.ConfigureAwait(false);

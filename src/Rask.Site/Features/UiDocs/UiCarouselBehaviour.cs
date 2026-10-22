@@ -18,8 +18,7 @@ internal sealed partial class UiCarouselBehaviour : Component
             + "marks the root and each arrow `data-at-start` and `data-at-end`, disables the arrow with nowhere to go, "
             + "marks the slide in view `data-selected` and its indicator `aria-current`, moves the track when an arrow "
             + "or an indicator is pressed, and runs autoplay. There is no `OnChange`, as Flux has none.",
-            "A slide's width is its class, and decides how many are in view. daisyUI's `carousel` wrapper, which "
-            + "`Ui.Carousel` used to draw around `carousel-item` children, is gone.",
+            "A slide's width is its class, and decides how many are in view.",
         ]);
 
     private static UiDocsTopic Autoplay() =>

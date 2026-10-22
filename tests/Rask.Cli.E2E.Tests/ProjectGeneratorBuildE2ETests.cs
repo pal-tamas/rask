@@ -603,24 +603,6 @@ public sealed class ProjectGeneratorBuildE2ETests
             // against a stylesheet that shipped all of Tailwind, which is the other way to get this wrong.
             Assert.DoesNotContain("skew-x-12", css, StringComparison.Ordinal);
 
-            // daisyUI itself, compiled HERE from the plugin Rask.Ui ships — no npm, no node_modules.
-            // This is the whole claim: without it the page's card/btn/navbar are correct strings in the
-            // markup naming rules that exist nowhere, and the app renders as unstyled text.
-            foreach (var component in (string[])["card", "card-body", "btn", "navbar", "hero", "footer"])
-            {
-                Assert.True(
-                    Regex.IsMatch(css, $@"(^|[\s,}}]) *\.{component}\s*\{{", RegexOptions.Multiline),
-                    $"[wasm={wasm}] .{component} is not in the compiled sheet, so the starter page "
-                    + $"renders unstyled.{CliBuildE2E.Diagnostics(output)}");
-            }
-
-            // And the plugin must not have been scanned as a safelist: nothing here, and nothing in the
-            // kit, writes `glass`.
-            Assert.False(
-                Regex.IsMatch(css, @"(^|[\s,}]) *\.glass\s*\{", RegexOptions.Multiline),
-                $"[wasm={wasm}] the sheet carries components nothing names, so vendor/daisyui.mjs is "
-                + "being scanned and this stylesheet is the whole library.");
-
             // ONE sheet, with the kit in it: a class only a kit component writes is compiled HERE, from
             // the list the kit ships, beside the starter page's own.
             Assert.True(
@@ -629,7 +611,7 @@ public sealed class ProjectGeneratorBuildE2ETests
                 + $"would render unstyled.{CliBuildE2E.Diagnostics(output)}");
 
             // The kit's Tailwind sources are copied into the tree by the build; they are not the author's.
-            foreach (var source in (string[])["rask-ui.css", "rask-ui.kit.css", "rask-ui.classes.txt", "daisyui.mjs"])
+            foreach (var source in (string[])["rask-ui.css", "rask-ui.kit.css", "rask-ui.classes.txt"])
             {
                 Assert.True(
                     File.Exists(Path.Combine(projectDir, "Styles", "vendor", source)),

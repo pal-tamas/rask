@@ -22,7 +22,7 @@ public sealed partial class DisposalUnmountDemo : Component
             ],
             _hookMounted
                 ? UnmountTimerProbe.InstanceId(_nextHookId).Log(AppendHookLog)
-                : P.Class("text-ui-muted italic mb-0")["Ticker not running."],
+                : P.Class("text-zinc-500 dark:text-white/70 italic mb-0")["Ticker not running."],
             DisposalDemoLog.Entries(_hookLog).ListId("unmount-hook-log")
         ];
 

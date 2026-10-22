@@ -70,11 +70,11 @@ public sealed partial class UiLink : UiElement
 
     // The text, and an underline at a fifth of it — which is what the pointer brings up to full.
     private static string Ink(bool accent) => accent
-        ? "text-fx-accent-content decoration-fx-accent-content/20"
+        ? "text-accent-content decoration-accent-content/20"
         : "text-zinc-800 decoration-zinc-800/20 dark:text-white dark:decoration-white/20";
 
     private static string SubtleInk(bool accent) => accent
-        ? "text-zinc-500 dark:text-white/70 hover:text-fx-accent-content"
+        ? "text-zinc-500 dark:text-white/70 hover:text-accent-content"
         : "text-zinc-500 dark:text-white/70 hover:text-zinc-800 dark:hover:text-white";
 
     /// <inheritdoc />

@@ -22,7 +22,7 @@ public sealed partial class DisposalAsyncDemo : Component
             ],
             _asyncMounted
                 ? DisposableAsyncProbe.InstanceId(_nextAsyncId).Log(AppendAsyncLog)
-                : P.Class("text-ui-muted italic mb-0")["Probe not mounted."],
+                : P.Class("text-zinc-500 dark:text-white/70 italic mb-0")["Probe not mounted."],
             DisposalDemoLog.Entries(_asyncLog).ListId("dispose-async-log")
         ];
 

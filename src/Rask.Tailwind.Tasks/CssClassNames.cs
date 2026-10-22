@@ -17,7 +17,7 @@ namespace Rask.Tailwind.Tasks;
 ///     </para>
 ///     <para>
 ///         Selectors only: a declaration's value (<c>1.5rem</c>, <c>url(a.png)</c>), a string, a comment
-///         and an at-rule's prelude (<c>@layer daisyui.l1</c>) all carry dots that are not classes.
+///         and an at-rule's prelude (<c>@layer kit.l1</c>) all carry dots that are not classes.
 ///         Every class in a selector is taken, not just the first, because a variant can put the
 ///         candidate anywhere (<c>:where(.dark) .x</c>); a marker class that rides along (<c>group</c>,
 ///         <c>dark</c>) names no utility and emits nothing.

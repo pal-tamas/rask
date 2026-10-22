@@ -82,6 +82,7 @@
     <RaskTestReads Include="..\..\**\*.css" />
     <RaskTestReads Include="..\..\**\*.ts" />
     <RaskTestReads Include="..\..\src\Rask.Ui\**" />
+    <RaskTestReads Include="..\..\src\**" />
   </ItemGroup>
 
 </Project>

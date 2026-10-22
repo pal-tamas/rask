@@ -72,7 +72,7 @@ public sealed partial class IslandsDemo : Component
     private Component VueCard() =>
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Vue island calling back into C#, in WebAssembly"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     Code["VueChart.vue"], " builds unchanged on either host. Clicking a bar ",
                     "re-enters C# — here through a ", Code["[JSExport]"], " call into this tab's ",
                     "runtime rather than over a socket."
@@ -92,7 +92,7 @@ public sealed partial class IslandsDemo : Component
     private Component ReactSvelteCard() =>
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["React and Svelte keeping their own state"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "Both hold state C# never sees. Raising the reading re-renders this component, and ",
                     "the counters below have to survive it — a remount would reset them, and nothing ",
                     "else on the page would look any different. Inside the React counter are a colour ",
@@ -127,7 +127,7 @@ public sealed partial class IslandsDemo : Component
     private Component LitCard() =>
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Lit island, beside this app's own scoped TypeScript"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     Code["LitBadge.ts"], " imports nothing at all — a custom element needs no ",
                     "framework and no npm package. It sits in a project that also has scoped ",
                     "TypeScript, which is spelled identically; the build tells them apart by reading ",
@@ -146,7 +146,7 @@ public sealed partial class IslandsDemo : Component
     private Component SolidCard() =>
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")["A Solid island, keeping its own state"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     Code["SolidSpark.tsx"], " knows nothing of the host it runs on. Its hover count ",
                     "belongs to Solid and C# never sees it, so raising the reading has to reach it as a ",
                     "prop change rather than a remount."

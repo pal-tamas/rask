@@ -42,7 +42,7 @@ public sealed partial class UiHeading : UiElement
     protected override string? ResolveClass() =>
         UiClass.Compose(
             "font-medium",
-            Accent == true ? "text-fx-accent-content" : "text-zinc-800 dark:text-white",
+            Accent == true ? "text-accent-content" : "text-zinc-800 dark:text-white",
             SizeClass(Size),
             Class);
 

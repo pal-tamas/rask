@@ -34,7 +34,7 @@ public sealed partial class ProductCard : Component
     public string? Subtitle { get; set; }        // an optional setter
 
     protected override Component? Render() =>
-        Div.Class("card")[H2[Title], Subtitle is null ? null : P[Subtitle]];
+        Div.Class("rounded-xl border p-6")[H2[Title], Subtitle is null ? null : P[Subtitle]];
 }
 ```
 

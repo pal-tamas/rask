@@ -1,7 +1,7 @@
 /*
-  THE KIT, as Tailwind source: its theme tokens, its `dark` variant, daisyUI while it lasts, and the few
-  rules a utility cannot say. It names no Tailwind entry point and declares no layer order — whoever
-  imports it does both, and two do:
+  THE KIT, as Tailwind source: Flux's theme tokens, its `dark` variant, and the few rules a utility cannot
+  say. It names no Tailwind entry point and declares no layer order — whoever imports it does both, and two
+  do:
 
     ui.precompiled.css   the kit's own sheet, compiled at THIS project's build from this project's
                          sources and embedded (UiStylesheet.Css). For a surface with no Tailwind build
@@ -10,201 +10,41 @@
                          kit in. The build hands it over as Styles/vendor/rask-ui.css with this file
                          beside it as rask-ui.kit.css (build/Rask.Ui.targets).
 
-  So everything here is written to be true in both places. Paths are relative to this file and name only
-  what travels with it (daisyui.mjs); nothing below scans a source or resets a document.
+  So everything here is written to be true in both places. Nothing below scans a source or resets a
+  document an application owns.
 */
-/*
-  daisyUI supplies the component vocabulary; this kit supplies the typed C# API over it.
-
-  VENDORED, and referenced by relative path. daisyUI publishes a standalone bundle for exactly this
-  case, which matters because Tailwind resolves `@plugin "daisyui"` the way Node does — by walking up
-  from this file looking for node_modules — and the standalone binary Rask.Tailwind prefers bundles
-  Tailwind inside itself and carries no package tree to find anything in:
-
-      Error: Can't resolve 'daisyui' in .../src/Rask.Ui/Styles
-
-  A relative path sidesteps the resolution entirely, so this project keeps the standalone engine and
-  needs no npm install, no node_modules and no package.json of its own. daisyui.mjs is
-  daisyUI 5.7.27 verbatim (MIT), taken from its pinned GitHub release, which is byte-identical to the
-  `latest` download at that version. It is build-time input only: the package hands it to an app's
-  build beside this file and it reaches no browser.
-
-  THE VERSION IN THAT SENTENCE IS CHECKED. It is the pin's second statement — the first is
-  `var version = "…"` inside the bundle — and a bump that replaces the file and forgets the prose
-  leaves this comment naming a version the repository no longer ships. DaisyUiVersionPinTests reads
-  both and fails when they disagree, and ties them to the COMPILED sheet besides: the themes daisyUI
-  defines and the themes the shipped bytes carry have to be the same set, or the sheet an application
-  receives was not built by the bundle whose version this claims.
-
-  themes: light is the default and dark follows the OS. Both are daisyUI's own, which is what makes the
-  theme switch work with NO JavaScript — daisyUI matches `input.theme-controller[value=x]:checked` and
-  `[data-theme=x]`, so a checkbox or a radio flips the whole palette through CSS alone.
-
-  root: the theme is confined to [data-rask-ui] rather than the document. By default daisyUI paints
-  `:root`, so merely REFERENCING this package would repaint the background and text colour of an app
-  that only wanted a button. This kit already refuses to ship a preflight for that reason, and a `:root`
-  background is the same bug wearing a different selector. See UiStylesheet.ThemeScopeAttribute.
-
-  exclude rootscrollgutter, which paints the document for its own reasons — and the components the kit has
-  replaced with Flux's while still saying their names in prose (the hover bubble, the checkbox, the radio, the toggle, the old vertical track).
-
-  NOTE ON EMISSION: daisyUI 5 emits a component's CSS only where Tailwind can SEE its class name in the
-  scanned source. So every class a component writes must appear as a COMPLETE literal in C#, never
-  built by concatenating ("btn-" + tone). A composed name is
-  invisible to the scan, and the failure is silent: the component renders with no styling at all and the
-  build stays green. Measured: adding one file naming `drawer` grew this sheet by 4 KB.
-*/
-/*
-  The plugin bundle is NOT a source file, and saying so is load-bearing.
-
-  It sits beside this file wherever this file is — in this project's Styles/, and in an app's
-  Styles/vendor/ — which is inside the tree Tailwind scans: 348 KB of daisyUI's own code, naming every
-  class daisyUI defines. Scanned, it acts as a safelist for the whole library, so the compiled sheet
-  carried every component whether or not anything used one. It reads as correct, because a sheet
-  containing too much looks exactly like a sheet containing enough.
-*/
-@source not "./daisyui.mjs";
-
-/* Nor the flag drawings Ui.Flag serves as files: path data, not markup, and 254 files to read for nothing. */
+/* Not a source: the flag drawings Ui.Flag serves as files — path data, not markup, and 254 files to read for nothing. */
 @source not "../Flags";
 
 /* Nor the typeface the @font-face rules below serve: font data, not markup. */
 @source not "../Fonts";
 
-@plugin "./daisyui.mjs" {
-  themes: all;
-  root: "[data-rask-ui]";
-  exclude: rootscrollgutter, tooltip, dropdown, checkbox, radio, toggle, range, timeline, swap, carousel, aura, chat, countdown, diff, dock, fab, filter, hover3d, hovergallery, indicator, join, mask, rating, stack, steps, textrotate, validator;
-}
-
-@theme {
-  /*
-    TRANSITIONAL. These are the kit's original token names, now expressed in daisyUI's semantic
-    variables so that both vocabularies resolve to the same colour while call sites migrate off them.
-    They are not a second palette: every one is an alias, and they go away once nothing names them.
-
-    They resolve only inside the theme scope — daisyUI defines --color-base-* under [data-rask-ui], so
-    outside it these are invalid and compute to nothing, exactly like every other kit colour.
-  */
-  --color-ui-bg: var(--color-base-100);
-  --color-ui-panel: var(--color-base-100);
-  --color-ui-well: var(--color-base-200);
-  --color-ui-line: var(--color-base-300);
-  --color-ui-ink: var(--color-base-content);
-  /*
-    MUTED IS DERIVED FROM THE INK, not from --color-neutral, and that is a readability fix rather than a
-    re-skin. daisyUI publishes `neutral` as a SURFACE — the dark chip you put neutral-content on top of
-    — so handing it to a text utility is the same mistake the -ink pair below exists to avoid, and it
-    was by far the worst one the kit shipped: on a dark theme `neutral` is a near-black against a
-    near-black ground. Measured across every theme the kit ships: 1.08:1 on halloween, 1.10:1 on
-    business, 1.26:1 on daisyUI's own `dark`. Seventeen of thirty-six palettes failed AA, and the
-    showcase writes text-ui-muted 282 times.
-
-    Mixed TOWARD the ground rather than toward black, which is what makes one formula work in both
-    directions: in a light theme base-100 is white and the ink lightens to a grey, in a dark theme it is
-    near-black and the same 80% lands a lighter grey. Nothing here knows which theme is showing, and it
-    does not need to.
-  */
-  --color-ui-muted: color-mix(in oklab, var(--color-base-content) 80%, var(--color-base-100));
-
-  --color-ui-brand: var(--color-primary);
-  /*
-    The brand as TEXT. --color-primary is a surface too, and a pale primary read as a label is the same
-    class of defect: 1.37:1 on pastel, 1.40:1 on cupcake, 3.40:1 on `dark`. Pulled toward the ink so it
-    keeps its hue and lands at the ink's lightness — 30% primary is still recognisably the brand colour.
-  */
-  --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 30%, var(--color-base-content));
-
-  --color-ui-ok: var(--color-success);
-  --color-ui-warn: var(--color-warning);
-  --color-ui-danger: var(--color-error);
-  --color-ui-info: var(--color-info);
-
-  /*
-    The SURFACE tier: the quiet wash behind a badge, an alert, or a hovered outline button.
-
-    A solid mix with the ground rather than the colour at an alpha, and that is the correction. Written
-    as `bg-ui-warn/15` the surface is whatever is BEHIND it, so the same badge is one colour on a card
-    and another on the well, and the text on it has two contrast ratios instead of one. On the six
-    palettes with the least room to spare that difference was the whole failure: text that cleared AA on
-    base-100 measured 4.03:1 on the same badge sitting on base-200.
-
-    Mixed with base-100 so the ratio is a property of the token and not of the page.
-  */
-  --color-ui-brand-surface: color-mix(in oklab, var(--color-primary) 12%, var(--color-base-100));
-  --color-ui-ok-surface: color-mix(in oklab, var(--color-success) 12%, var(--color-base-100));
-  --color-ui-warn-surface: color-mix(in oklab, var(--color-warning) 12%, var(--color-base-100));
-  --color-ui-danger-surface: color-mix(in oklab, var(--color-error) 12%, var(--color-base-100));
-  --color-ui-info-surface: color-mix(in oklab, var(--color-info) 12%, var(--color-base-100));
-
-  /*
-    The -ink trio are TEXT colours, and daisyUI's success/warning/error are not.
-
-    They are surface colours — the ones you set as a background and pair with success-content on top —
-    and read as text on base-100 they fail WCAG badly: success is oklch(76% .177 163), which is 1.95:1
-    against white. Aliasing them straight across shipped unreadable status text everywhere the kit is
-    used, and it is the kind of defect that looks fine to anyone who already knows what the label says.
-
-    TOWARD THE INK, NOT TOWARD BLACK, and that is the whole correction here. Darkening in oklab keeps
-    the hue and only moves lightness, which is right — but it only moves it the right WAY on a light
-    theme. On a dark one it pushed a status colour further into its own background: the 70%-toward-black
-    success measured 3.26:1 on daisyUI's `dark` and 1.46:1 on aqua, and warning 2.71:1 and 1.20:1. The
-    kit was readable in exactly the palettes it was measured against.
-
-    --color-base-content is the ground's opposite by construction in every theme daisyUI ships, so
-    mixing toward it darkens on light and lightens on dark from one declaration. The weights are the
-    largest that clear AA (4.5:1) on base-100 AND base-200 across all thirty-six palettes, solved rather
-    than guessed; six low-contrast themes need a little more and get it in the block below.
-
-    error joins the pair it used to be left out of. "already dark enough to pass" was measured on one
-    theme: --color-error read as text is 2.87:1 on daisyUI's own `light`, and 1.50:1 on lemonade.
-  */
-  --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 35%, var(--color-base-content));
-  --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 35%, var(--color-base-content));
-  --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 35%, var(--color-base-content));
-  --color-ui-info-ink: color-mix(in oklab, var(--color-info) 35%, var(--color-base-content));
-
-  /*
-    The three daisyUI tones the kit's own palette never named, given the same treatment for the same
-    reason: the components below write .btn-secondary and .alert-info, and those are
-    fills whose label has to be readable too. Weights solved like the others — the largest that clears
-    4.6:1 against both grounds on every palette — and lower than the semantic tones because these three
-    run to pale mid-tones (`accent` needs 14%, and no palette needs a correction on top).
-  */
-  --color-ui-secondary-ink: color-mix(in oklab, var(--color-secondary) 14%, var(--color-base-content));
-  --color-ui-accent-ink: color-mix(in oklab, var(--color-accent) 7%, var(--color-base-content));
-  --color-ui-neutral-ink: color-mix(in oklab, var(--color-neutral) 17%, var(--color-base-content));
-}
-
 /*
-  AFTER the kit's own @theme block, deliberately: ThemeContrastTests reads the FIRST one as the palette.
-*/
-/*
-  FLUX UI's theme model, which the kit is moving to component by component (daisyUI goes when the last
-  component drawn with it does).
+  FLUX UI's theme model, under Flux's names (fluxui.dev/docs/theming).
 
   It is two colours. The BASE is Tailwind's own `zinc` scale, written directly — `bg-zinc-800/5`,
   `border-zinc-200` — so an app re-skins every component by re-pointing `--color-zinc-*` at another
   gray in its own @theme. The ACCENT is three variables: the fill of a primary action, the same hue
-  as readable text, and the text that sits on the fill. Dark mode is a `dark` variant, not a second
-  palette.
+  as readable text, and the text that sits on the fill. An app sets its own in its stylesheet, as Flux's
+  docs write it — `@theme { --color-accent: var(--color-amber-400); … }` and the dark three under `.dark`
+  in `@layer theme` — and, coming after this file, it wins.
 
-  NAMED `fx-accent` FOR NOW, and only for now. Flux calls these `--color-accent`,
-  `--color-accent-content` and `--color-accent-foreground`; daisyUI defines the first two as well, with
-  other meanings, inside [data-rask-ui] — so under Flux's names a primary button would be painted
-  daisyUI's pink. They take Flux's names in the commit that removes the plugin.
+  Dark mode is a `dark` class on <html> (Ui.AppearanceScript), not a second palette. It also says
+  `color-scheme: dark`, so the browser's own parts — scrollbars, a native control, `light-dark()` — turn
+  with the page.
 */
 @theme {
-  --color-fx-accent: var(--color-zinc-800);
-  --color-fx-accent-content: var(--color-zinc-800);
-  --color-fx-accent-foreground: var(--color-white);
+  --color-accent: var(--color-zinc-800);
+  --color-accent-content: var(--color-zinc-800);
+  --color-accent-foreground: var(--color-white);
 }
 
 @layer theme {
   .dark {
-    --color-fx-accent: var(--color-white);
-    --color-fx-accent-content: var(--color-white);
-    --color-fx-accent-foreground: var(--color-zinc-800);
+    --color-accent: var(--color-white);
+    --color-accent-content: var(--color-white);
+    --color-accent-foreground: var(--color-zinc-800);
+    color-scheme: dark;
   }
 }
 
@@ -257,19 +97,11 @@
 }
 
 /*
-  `dark:` is Flux's — a `dark` class on an ancestor, which Ui.AppearanceScript sets — and, on a kit surface
-  that runs no such script and pins no theme (DevTools), the operating system's preference. A surface pinned
-  with `data-theme` matches neither arm. The second arm goes with daisyUI.
+  `dark:` is Flux's — a `dark` class on an ancestor, which Ui.AppearanceScript sets.
 */
 @custom-variant dark {
   &:where(.dark, .dark *) {
     @slot;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    &:where([data-rask-ui]:not([data-theme]), [data-rask-ui]:not([data-theme]) *) {
-      @slot;
-    }
   }
 }
 
@@ -339,204 +171,6 @@
 }
 
 /*
-  AN -ink TOKEN IS ALSO THE ONLY SAFE FILL, and that is worth stating because it replaces a whole
-  vocabulary nobody needs.
-
-  A filled control wants a saturated background and a label on top of it. The obvious label is white,
-  and `bg-ui-brand text-white` is what the showcase shipped: 1.00:1 on luxury, 1.07:1 on black, 1.27:1
-  on lofi — a button with an invisible label on a third of the palettes. daisyUI's own answer,
-  --color-primary-content, is better and still not AA: it measures 3.64:1 on winter and 3.06:1 for
-  warning on pastel, because it is generated to clear 3:1 for a large label rather than 4.5 for a small
-  one.
-
-  Contrast is symmetric, so the fix needs no new token. `--color-ui-brand-ink` is already held to 4.5:1
-  against `--color-ui-bg` — which is the same measurement as `--color-ui-bg` read on a
-  `--color-ui-brand-ink` fill. So a filled control is `bg-ui-brand-ink text-ui-bg`, and every pair in it
-  is one the gate already proves on all thirty-six palettes. The hover state moves to `bg-ui-ink`, whose
-  pair with the ground is proven the same way.
-*/
-
-/*
-  THE SIX PALETTES THAT NEED MORE THAN ONE FORMULA CAN GIVE THEM.
-
-  A single weight cannot clear AA everywhere, because a handful of daisyUI's themes are low-contrast
-  designs to begin with: valentine's own base-content is 4.97:1 against its base-100 and retro's is
-  6.51:1, so there is almost no room underneath the body text for a muted or a tinted tier to sit in.
-  The other thirty palettes have 8:1 to 19:1 to spend.
-
-  So the weights above are the generous ones — the ones that keep a status green visibly green — and
-  these are the per-theme corrections that buy AA back where the theme cannot afford them. Every value
-  is SOLVED, not picked: the largest weight in 1% steps that still clears 4.6:1 on both grounds, which
-  leaves a little over the 4.5 the gate asserts for the difference between this arithmetic and a
-  browser's. `ThemeContrastTests` recomputes the whole matrix out of this sheet, so a weight edited by
-  hand here fails a test rather than a reader.
-
-  In the `rask` layer, which the order statement of the importing sheet puts after `theme` — these have
-  the same specificity as the :root declarations they correct (0,1,0 either way), so nothing but the
-  layer decides which one wins.
-*/
-/*
-  THE COMPONENTS' OWN COLOURS, CORRECTED — the same defect as the -ink tiers above, one layer down.
-
-  daisyUI pairs every filled component with its tone's `-content` colour: `.btn-primary` sets
-  `--btn-fg: var(--color-primary-content)`, `.alert-warning` a plain
-  `color`. Those pairs are generated to clear 3:1 — enough for a large label, not for the small text
-  these components actually render — and measured across all thirty-six palettes they fail WCAG AA on
-  between two and ten of them per tone: `secondary` is 3.05:1 on daisyUI's own `dark`, `warning` 3.06:1
-  on `pastel`, `error` under AA on ten palettes. A button whose label is unreadable looks like a button.
-
-  So a filled component is the `-ink` fill with the GROUND as its label, which is the same correction
-  Tw.cs makes for the showcase's own controls and rests on the same fact: contrast is symmetric, so
-  `--color-ui-bg` read on `--color-ui-brand-ink` is the pair `ThemeContrastTests` already proves. Every
-  override points at a TOKEN rather than repeating a mix, which is what makes the per-theme corrections
-  above apply here too — valentine's 2% primary reaches `.btn-primary` for free.
-
-  It is all custom properties, deliberately: daisyUI drives these components through `--btn-color`,
-  `--badge-fg`, `--tt-bg` and friends, so nothing here overrides a structural rule, and a daisyUI upgrade
-  that changes padding or radius carries straight through.
-
-  In `@layer rask`, which the order statement of the importing sheet puts after `daisyui` — that is the
-  whole reason these land, since several of them are lower specificity than the rules they correct.
-
-  WHAT IS NOT HERE, and why. The `checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` tones
-  carry no text: WCAG asks 3:1 of them as non-text UI (1.4.11), not 4.5, and recolouring them would be a
-  redesign rather than a fix. It is measured and filed rather than left implicit.
-
-  IN `rask-ui-corrections`, NOT `rask`, and that is the whole reason these land at all.
-
-  daisyUI emits its component rules INSIDE `@layer utilities` — `.btn-primary` is in there, not in the
-  `daisyui` layer its name implies — and the order statement of the importing sheet deliberately puts
-  `rask` BEFORE `utilities` so that an app's own utilities beat the kit. Written in `rask`, every override
-  below lost to the exact rule it was correcting: measured in a browser, `.btn-primary` still computed
-  `oklch(1 0 0)` on the raw primary — 3.29:1 on `corporate`, 3.15:1 on `retro` — while the compiled sheet
-  contained the correction and every token-level test stayed green. That is the failure this whole change
-  is about, one level up: right value, wrong cascade, nothing red.
-
-  `rask-ui-corrections` is named in no order statement, so it is appended last and outranks `utilities`.
-
-  The per-theme TOKEN corrections further down are the opposite case and stay in `rask`: they compete with
-  the app's own `@theme` copy of the palette, which is in the `theme` layer, and `rask` already beats that.
-
-  The cost of being last: the families that set `color` directly rather than through a custom property —
-  alert and link — now also outrank an app's own `text-*` utility on those elements.
-  daisyUI's own rules already competed with app utilities by source order, so this narrows the problem
-  rather than introducing it, but it is a real consequence and worth knowing before adding to this block.
-*/
-@layer rask-ui-corrections {
-  /* Filled buttons. */
-  .btn-primary {
-    --btn-color: var(--color-ui-brand-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-secondary {
-    --btn-color: var(--color-ui-secondary-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-accent {
-    --btn-color: var(--color-ui-accent-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-neutral {
-    --btn-color: var(--color-ui-neutral-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-info {
-    --btn-color: var(--color-ui-info-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-success {
-    --btn-color: var(--color-ui-ok-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-warning {
-    --btn-color: var(--color-ui-warn-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-  .btn-error {
-    --btn-color: var(--color-ui-danger-ink);
-    --btn-fg: var(--color-ui-bg);
-  }
-
-  /*
-    Alerts: daisyUI puts the text colour on the element and the fill in --alert-color. The kit writes no
-    `alert` any more (Ui.Callout is Flux's); these stay for an app's own `alert alert-*` markup, which the
-    scaffolded sign-in and register pages still write.
-  */
-  .alert-info {
-    color: var(--color-ui-bg);
-    --alert-color: var(--color-ui-info-ink);
-    --alert-border-color: var(--color-ui-info-ink);
-  }
-  .alert-success {
-    color: var(--color-ui-bg);
-    --alert-color: var(--color-ui-ok-ink);
-    --alert-border-color: var(--color-ui-ok-ink);
-  }
-  .alert-warning {
-    color: var(--color-ui-bg);
-    --alert-color: var(--color-ui-warn-ink);
-    --alert-border-color: var(--color-ui-warn-ink);
-  }
-  .alert-error {
-    color: var(--color-ui-bg);
-    --alert-color: var(--color-ui-danger-ink);
-    --alert-border-color: var(--color-ui-danger-ink);
-  }
-
-  /* Links, which are text on the page ground rather than a fill — so the ink tier IS the colour,
-     and the hover state is darkened toward the ink instead of toward #000 (daisyUI's own rule mixes
-     with black, which lightens nothing on a dark theme — it pushes the link into the background). */
-  .link-primary {
-    color: var(--color-ui-brand-ink);
-  }
-  .link-primary:hover {
-    color: color-mix(in oklab, var(--color-ui-brand-ink) 80%, var(--color-base-content));
-  }
-  .link-secondary {
-    color: var(--color-ui-secondary-ink);
-  }
-  .link-secondary:hover {
-    color: color-mix(in oklab, var(--color-ui-secondary-ink) 80%, var(--color-base-content));
-  }
-  .link-accent {
-    color: var(--color-ui-accent-ink);
-  }
-  .link-accent:hover {
-    color: color-mix(in oklab, var(--color-ui-accent-ink) 80%, var(--color-base-content));
-  }
-  .link-neutral {
-    color: var(--color-ui-neutral-ink);
-  }
-  .link-neutral:hover {
-    color: color-mix(in oklab, var(--color-ui-neutral-ink) 80%, var(--color-base-content));
-  }
-  .link-info {
-    color: var(--color-ui-info-ink);
-  }
-  .link-info:hover {
-    color: color-mix(in oklab, var(--color-ui-info-ink) 80%, var(--color-base-content));
-  }
-  .link-success {
-    color: var(--color-ui-ok-ink);
-  }
-  .link-success:hover {
-    color: color-mix(in oklab, var(--color-ui-ok-ink) 80%, var(--color-base-content));
-  }
-  .link-warning {
-    color: var(--color-ui-warn-ink);
-  }
-  .link-warning:hover {
-    color: color-mix(in oklab, var(--color-ui-warn-ink) 80%, var(--color-base-content));
-  }
-  .link-error {
-    color: var(--color-ui-danger-ink);
-  }
-  .link-error:hover {
-    color: color-mix(in oklab, var(--color-ui-danger-ink) 80%, var(--color-base-content));
-  }
-}
-
-/*
   A KIT-ONLY DOCUMENT'S RESET — and only a kit-only document's.
 
   The header of this file says the kit ships no preflight, and for an application that is right: it owns its
@@ -548,8 +182,8 @@
   write the attribute is untouched, and an application that links this sheet keeps its own reset exactly as
   it was:
 
-  - `:where()` around every selector, so each rule has ZERO specificity: daisyUI's components, the corrections
-    below and every utility still win, just as they do over a real preflight.
+  - `:where()` around every selector, so each rule has ZERO specificity: the kit's rules and every utility
+    still win, just as they do over a real preflight.
   - In `base`, which the order statement of the importing sheet ranks below everything else.
   - `body:has(.rask-ops)` for the one thing a reset inside the frame cannot reach — the body's own 8px margin,
     a white border round the console otherwise. `:has()` is what keeps even that rule off every other document.
@@ -864,72 +498,6 @@
   }
 }
 
-@layer rask {
-  [data-theme="caramellatte"] {
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));
-  }
-
-  [data-theme="emerald"] {
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 31%, var(--color-base-content));
-  }
-
-  [data-theme="retro"] {
-    --color-ui-muted: color-mix(in oklab, var(--color-base-content) 85%, var(--color-base-100));
-    --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 19%, var(--color-base-content));
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 30%, var(--color-base-content));
-    --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 25%, var(--color-base-content));
-    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 34%, var(--color-base-content));
-  }
-
-  [data-theme="silk"] {
-    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 27%, var(--color-base-content));
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 28%, var(--color-base-content));
-    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 29%, var(--color-base-content));
-  }
-
-  /* The tightest palette the kit ships, and the one worth reading the numbers on. Every derived tier
-     needs correcting and most of them collapse almost onto the body ink — 2% of the brand, 1% of the
-     error. On valentine there is no readable tint of anything between its ink and its ground: its own
-     base-content is 4.97:1, so a tier that is visibly a different colour is a tier that is unreadable.
-     Keeping the hue and losing the contrast would be the easier-looking choice and the wrong one. */
-  [data-theme="valentine"] {
-    --color-ui-muted: color-mix(in oklab, var(--color-base-content) 95%, var(--color-base-100));
-    --color-ui-brand-ink: color-mix(in oklab, var(--color-primary) 2%, var(--color-base-content));
-    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 6%, var(--color-base-content));
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 7%, var(--color-base-content));
-    --color-ui-danger-ink: color-mix(in oklab, var(--color-error) 1%, var(--color-base-content));
-    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 5%, var(--color-base-content));
-  }
-
-  [data-theme="winter"] {
-    --color-ui-ok-ink: color-mix(in oklab, var(--color-success) 30%, var(--color-base-content));
-    --color-ui-warn-ink: color-mix(in oklab, var(--color-warning) 25%, var(--color-base-content));
-    --color-ui-info-ink: color-mix(in oklab, var(--color-info) 25%, var(--color-base-content));
-  }
-}
-
-/*
-  AN ICON IN A DAISY BUTTON IS SIZED BY WHAT IT SITS IN — unless the call site sized it.
-
-  Ui.Icon is Flux's icon now and 24px when nobody names a size, which is right in Flux's components and too
-  big here: a daisy button's line takes 16px. The icon is its child, which the kit does not build and cannot
-  give a class to, so it is sized here from what it sits in. THIS RULE GOES WITH THE DAISY BUTTON: Flux's
-  button, Ui.Callout and the label Flux draws size their own icon.
-
-  "Nobody named a size" is read off the class attribute. UiIcon writes its own classes first, so a
-  `size-*`, `w-*` or `h-*` from the call site always follows a space — and UiIcon's own default, which is
-  spelled `[:where(&)]:size-6`, never does. The second selector keeps what the first version of this rule
-  did for an icon written `size-5 shrink-0` by hand: that pair was the old default, and it still shrinks.
-  In `rask-ui-corrections` because the size is a utility, and a rule in `rask` would lose to it.
-*/
-@layer rask-ui-corrections {
-  .btn > svg[data-ui-icon]:not([class*=" size-"], [class*=" w-"], [class*=" h-"]),
-  .btn > svg.size-5[class*=" shrink-0"] {
-    width: 1rem;
-    height: 1rem;
-  }
-}
-
 /*
   Ui.Menu (Flux's flux:menu), for what a utility cannot say: a :has() chain, anchor positioning, the top layer.
 
@@ -992,26 +560,6 @@
 
   [data-ui-menu-submenu][data-open] > [data-ui-menu] {
     display: block;
-  }
-}
-
-/*
-  Ui.Command's rows, which are daisyUI's `menu` rows until the palette is rebuilt on Flux's: a shortcut at the
-  end of its row, and the line between two runs of commands.
-
-  In `rask-ui-corrections` because daisyUI's `.menu li` rules live in `utilities`.
-*/
-@layer rask-ui-corrections {
-  .menu .ui-menu-kbd {
-    margin-inline-start: auto;
-    opacity: 0.7;
-  }
-
-  .menu > li.ui-menu-separator {
-    block-size: 1px;
-    margin-block: 0.25rem;
-    padding: 0;
-    background-color: var(--color-base-300);
   }
 }
 
@@ -1108,53 +656,6 @@
 
   [data-ui-file-upload] > input:focus-visible ~ * {
     outline: auto 1px -webkit-focus-ring-color;
-  }
-}
-
-/*
-  A HAND-WRITTEN daisy button waiting on its own handler (the runtime's rask-loading.ts). Ui.Button is
-  Flux's and draws its own spinner with utilities; this is for the `btn` the templates and the kit's
-  remaining daisy-drawn components still write, and it goes when the last of them does.
-
-  The runtime writes `data-loading` + `aria-busy` once a dispatch has gone 200 ms without an answer, and a
-  render can write the same `data-loading` for work that outlives the handler. The label stays in the layout
-  and turns transparent, so the button keeps its width and the row around it does not jump; the spinner is
-  drawn over it in the button's own foreground colour. `pointer-events: none` stops a second press by pointer —
-  the runtime drops a keyboard one.
-
-  In `rask-ui-corrections` for the reason given above: daisyUI's `.btn` rules sit in `utilities`. The mask is
-  daisyUI's own `loading-spinner` (MIT), slowed the way daisyUI slows it for reduced motion.
-*/
-@layer rask-ui-corrections {
-  .btn[data-loading] {
-    position: relative;
-    color: transparent;
-    cursor: progress;
-    pointer-events: none;
-  }
-
-  .btn[data-loading] > svg {
-    opacity: 0;
-  }
-
-  .btn[data-loading]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    margin: auto;
-    width: 1.25em;
-    aspect-ratio: 1 / 1;
-    background-color: var(--btn-fg, currentColor);
-    mask-size: 100%;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='8s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .btn[data-loading]::after {
-      mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='2s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='1.5s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
-    }
   }
 }
 
@@ -1388,6 +889,11 @@
   }
 }
 
+/*
+  `rask-ui-corrections` is named in no order statement, so it is appended LAST and outranks `utilities` —
+  the one place a kit rule can undo a utility (here, a toggle's `flex` once the sidebar is docked). The cost
+  of being last: whatever is here also outranks an app's own utility on that element, so keep it small.
+*/
 @layer rask-ui-corrections {
   @media (min-width: 40rem) {
     [data-ui-sidebar-backdrop]:has(+ [data-ui-sidebar][data-breakpoint="sm"]),
@@ -1520,7 +1026,7 @@
   /*
     Dark, keyed on the document element itself. `@variant dark` cannot say it: at the top of a rule it puts the
     `.dark` ancestor ABOVE `[data-rask-ui-document]`, and both sit on the one <html>, so the ground stayed white
-    under white text. The two arms are the `dark` variant's: Flux's class, and the OS for an unpinned kit scope.
+    under white text.
   */
   :where([data-rask-ui-document].dark) body {
     background-color: var(--color-zinc-800);
@@ -1532,17 +1038,6 @@
     border-color: var(--color-zinc-700);
   }
 
-  @media (prefers-color-scheme: dark) {
-    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) body {
-      background-color: var(--color-zinc-800);
-    }
-
-    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) [data-ui-sidebar],
-    :where([data-rask-ui-document][data-rask-ui]:not([data-theme])) [data-ui-header] {
-      background-color: var(--color-zinc-900);
-      border-color: var(--color-zinc-700);
-    }
-  }
 }
 
 /*
@@ -1657,7 +1152,7 @@
   }
 
   [data-ui-editor] [data-slot="content"] a {
-    color: var(--color-fx-accent-content);
+    color: var(--color-accent-content);
     font-weight: 500;
     cursor: text;
   }

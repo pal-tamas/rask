@@ -20,7 +20,7 @@ internal sealed partial class CodeBlock : Component
     protected override Component? Render()
     {
         var language = SyntaxHighlighter.LanguageFor(Language);
-        return Pre.Class("code-block my-4 overflow-x-auto rounded-xl border border-ui-line bg-(--rask-ink) px-5 py-4 "
+        return Pre.Class("code-block my-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10 bg-(--rask-ink) px-5 py-4 "
                          + "text-[0.82rem] leading-relaxed text-[#e7e3ff]")[
             Code.Class("language-" + Language)[
                 language is null

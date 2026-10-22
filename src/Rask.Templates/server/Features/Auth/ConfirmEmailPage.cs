@@ -30,38 +30,36 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
 
     private Component Ready =>
         [
-            H1.Class("text-2xl font-bold")["Confirm your email"],
-            P.Class("text-sm opacity-70")["Press the button to finish confirming this address."],
-            Div.Class("card-actions mt-2")[
-                Button.Type(ButtonType.Button).Id("confirm-submit").Class("btn btn-primary btn-block").OnClick(Confirm)["Confirm my email"]
-            ]
+            Title("Confirm your email"),
+            Ui.Text["Press the button to finish confirming this address."],
+            Ui.Button.Primary.Id("confirm-submit").Class("w-full").OnClick(Confirm)["Confirm my email"]
         ];
 
     private Component AlreadyConfirmed =>
         [
-            H1.Class("text-2xl font-bold")["Already confirmed"],
+            Title("Already confirmed"),
             Ok("confirm-already", AuthMessages.For(_error)),
-            P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
+            Ui.Text[Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
     private Component Confirmed =>
         [
-            H1.Class("text-2xl font-bold")["Email confirmed"],
+            Title("Email confirmed"),
             Ok("confirm-ok", "Your email address is confirmed."),
-            P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
+            Ui.Text[Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
     private Component Failed =>
         [
-            H1.Class("text-2xl font-bold")["That link did not work"],
+            Title("That link did not work"),
             Error("confirm-error", AuthMessages.For(_error)),
-            P.Class("text-sm opacity-70")[NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Back to sign in"], "."]
+            Ui.Text[Ui.Link.Href(Routes.LoginPage())["Back to sign in"], "."]
         ];
 
     private static Component Working =>
         [
-            H1.Class("text-2xl font-bold")["Confirming…"],
-            Span.Class("loading loading-spinner").Attributes(("aria-hidden", "true"))
+            Title("Confirming…"),
+            Ui.Icon.Name(Ui.IconName.Loading).Class("text-zinc-500 dark:text-zinc-400")
         ];
 
     protected override Task OnUpdated()

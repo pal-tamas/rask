@@ -56,7 +56,7 @@ internal static class UiButtonClasses
     internal static string Variant(Ui.ButtonVariant variant, bool hued) => (variant, hued) switch
     {
         (Ui.ButtonVariant.Primary, _) =>
-            "bg-fx-accent hover:bg-fx-accent/90 text-fx-accent-foreground border border-black/10 dark:border-0",
+            "bg-accent hover:bg-accent/90 text-accent-foreground border border-black/10 dark:border-0",
         (Ui.ButtonVariant.Danger, _) =>
             "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white",
         (Ui.ButtonVariant.Filled, false) =>
@@ -220,49 +220,49 @@ internal static class UiButtonClasses
     internal static string Accent(Ui.Color color) => color switch
     {
         Ui.Color.Red =>
-            "[--color-fx-accent:var(--color-red-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-red-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Orange =>
-            "[--color-fx-accent:var(--color-orange-500)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-orange-400)] dark:[--color-fx-accent-foreground:var(--color-orange-950)]",
+            "[--color-accent:var(--color-orange-500)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-orange-400)] dark:[--color-accent-foreground:var(--color-orange-950)]",
         Ui.Color.Amber =>
-            "[--color-fx-accent:var(--color-amber-400)] [--color-fx-accent-foreground:var(--color-amber-950)]",
+            "[--color-accent:var(--color-amber-400)] [--color-accent-foreground:var(--color-amber-950)]",
         Ui.Color.Yellow =>
-            "[--color-fx-accent:var(--color-yellow-400)] [--color-fx-accent-foreground:var(--color-yellow-950)]",
+            "[--color-accent:var(--color-yellow-400)] [--color-accent-foreground:var(--color-yellow-950)]",
         Ui.Color.Lime =>
-            "[--color-fx-accent:var(--color-lime-400)] [--color-fx-accent-foreground:var(--color-lime-900)] dark:[--color-fx-accent-foreground:var(--color-lime-950)]",
+            "[--color-accent:var(--color-lime-400)] [--color-accent-foreground:var(--color-lime-900)] dark:[--color-accent-foreground:var(--color-lime-950)]",
         Ui.Color.Green =>
-            "[--color-fx-accent:var(--color-green-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-green-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Emerald =>
-            "[--color-fx-accent:var(--color-emerald-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-emerald-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Teal =>
-            "[--color-fx-accent:var(--color-teal-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-teal-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Cyan =>
-            "[--color-fx-accent:var(--color-cyan-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-cyan-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Sky =>
-            "[--color-fx-accent:var(--color-sky-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-sky-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Blue =>
-            "[--color-fx-accent:var(--color-blue-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-blue-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Indigo =>
-            "[--color-fx-accent:var(--color-indigo-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-indigo-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Violet =>
-            "[--color-fx-accent:var(--color-violet-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-violet-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Purple =>
-            "[--color-fx-accent:var(--color-purple-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-purple-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Fuchsia =>
-            "[--color-fx-accent:var(--color-fuchsia-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-fuchsia-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Pink =>
-            "[--color-fx-accent:var(--color-pink-600)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-pink-600)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Rose =>
-            "[--color-fx-accent:var(--color-rose-500)] [--color-fx-accent-foreground:var(--color-white)]",
+            "[--color-accent:var(--color-rose-500)] [--color-accent-foreground:var(--color-white)]",
         Ui.Color.Slate =>
-            "[--color-fx-accent:var(--color-slate-800)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-white)] dark:[--color-fx-accent-foreground:var(--color-slate-800)]",
+            "[--color-accent:var(--color-slate-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-foreground:var(--color-slate-800)]",
         Ui.Color.Gray =>
-            "[--color-fx-accent:var(--color-gray-800)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-white)] dark:[--color-fx-accent-foreground:var(--color-gray-800)]",
+            "[--color-accent:var(--color-gray-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-foreground:var(--color-gray-800)]",
         Ui.Color.Zinc =>
-            "[--color-fx-accent:var(--color-zinc-800)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-white)] dark:[--color-fx-accent-foreground:var(--color-zinc-800)]",
+            "[--color-accent:var(--color-zinc-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-foreground:var(--color-zinc-800)]",
         Ui.Color.Neutral =>
-            "[--color-fx-accent:var(--color-neutral-800)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-white)] dark:[--color-fx-accent-foreground:var(--color-neutral-800)]",
+            "[--color-accent:var(--color-neutral-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-foreground:var(--color-neutral-800)]",
         Ui.Color.Stone =>
-            "[--color-fx-accent:var(--color-stone-800)] [--color-fx-accent-foreground:var(--color-white)] dark:[--color-fx-accent:var(--color-white)] dark:[--color-fx-accent-foreground:var(--color-stone-800)]",
+            "[--color-accent:var(--color-stone-800)] [--color-accent-foreground:var(--color-white)] dark:[--color-accent:var(--color-white)] dark:[--color-accent-foreground:var(--color-stone-800)]",
         _ => "",
     };
 }

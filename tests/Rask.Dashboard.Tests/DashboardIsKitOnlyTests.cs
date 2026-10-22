@@ -91,7 +91,7 @@ public sealed partial class DashboardIsKitOnlyTests : global::Rask.Core.RaskMark
 
     /// <summary>
     ///     Dark mode is Flux's: a <c>dark</c> class on <c>&lt;html&gt;</c> from the operator's preference, never a
-    ///     pinned daisyUI theme.
+    ///     pinned theme.
     /// </summary>
     [Fact]
     public async Task The_document_takes_fluxs_dark_mode_rather_than_a_pinned_theme()

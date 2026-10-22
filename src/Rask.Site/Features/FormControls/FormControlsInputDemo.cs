@@ -17,7 +17,7 @@ public sealed partial class FormControlsInputDemo : Component
                     .OnChange(v => _controlled = v)
                     .Description("Type, then leave the field — OnChange fires on commit.")
                     .Id("fc-input-controlled").Class("mb-2"),
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-input-controlled-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-input-controlled-out")[
                     "Echo: ", Strong[_controlled.Length == 0 ? "(empty)" : _controlled]
                 ]
             ],
@@ -26,7 +26,7 @@ public sealed partial class FormControlsInputDemo : Component
                     Ui.Input.Bind(() => _model.Text).Live().Label("Bound (two-way)")
                         .Id("fc-input-bound").Class("mb-2")
                 ],
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-input-bound-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-input-bound-out")[
                     "Echo: ", Strong[_model.Text.Length == 0 ? "(empty)" : _model.Text]
                 ]
             ]

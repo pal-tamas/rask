@@ -91,7 +91,7 @@ public sealed partial class InstallPromptDemo : Component
                         .Id("install-refresh")
                         .OnClick(Refresh)["Re-check"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("install-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("install-status")[_status]]
             ];
 
     protected override async Task OnUnmount()

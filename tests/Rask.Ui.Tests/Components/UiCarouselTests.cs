@@ -154,14 +154,4 @@ public partial class UiCarouselTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-at-end:opacity-50", html, StringComparison.Ordinal);
         Assert.Matches("aria-label=\"Previous slide\"[^>]* disabled[ >]", html);
     }
-
-    [Fact]
-    public void Daisys_carousel_rules_are_gone_from_the_kits_sheet()
-    {
-        var css = UiStylesheet.Css;
-
-        var daisy = css.Contains(".carousel-item", StringComparison.Ordinal) || css.Contains(".swap-active", StringComparison.Ordinal);
-
-        Assert.False(daisy, "daisyUI's carousel or swap rules are back in the compiled sheet.");
-    }
 }

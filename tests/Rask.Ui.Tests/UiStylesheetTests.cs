@@ -4,7 +4,7 @@ namespace Rask.UiTests;
 
 /// <summary>
 ///     The shipped stylesheet. These assert on the COMPILED artifact rather than on the source it was
-///     built from: the sheet is produced by Tailwind and daisyUI at this project's build and embedded as a
+///     built from: the sheet is produced by Tailwind at this project's build and embedded as a
 ///     resource, so the source stating an intention is not evidence the bytes an app receives carry it.
 /// </summary>
 public sealed class UiStylesheetTests
@@ -18,30 +18,28 @@ public sealed class UiStylesheetTests
     }
 
     [Fact]
-    public void The_theme_is_scoped_to_the_opt_in_attribute()
+    public void The_dark_class_turns_the_accent_and_the_browsers_own_parts_dark()
     {
-        Assert.Contains($"[{UiStylesheet.ThemeScopeAttribute}]", UiStylesheet.Css);
+        var css = UiStylesheet.Css;
+
+        var dark = Regex.Match(css, @"(?<![\w-])\.dark\{([^}]*)\}").Groups[1].Value;
+
+        Assert.Contains("--color-accent:var(--color-white)", dark, StringComparison.Ordinal);
+        Assert.Contains("color-scheme:dark", dark, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_theme_never_reaches_a_document_that_did_not_ask_for_it()
+    public void Nothing_is_keyed_on_a_theme_attribute_only_on_Fluxs_dark_class()
     {
-        // daisyUI defines its palette at the document root by default, which would mean that merely
-        // REFERENCING this package repaints the background and text colour of an application that wanted
-        // a button. The kit scopes the theme instead, and this is what holds that line: no rule may
-        // introduce a base colour at a bare `:root` or `[data-theme]`, only inside the opt-in scope.
-        foreach (var rule in Rules(UiStylesheet.Css))
-        {
-            // DEFINES one, not merely uses one. Component rules reference var(--color-base-content) all
-            // over the sheet and should: outside the scope those resolve to nothing, which is the whole
-            // mechanism. Only a declaration would put a colour on a page that never opted in.
-            if (!Regex.IsMatch(rule.Body, @"(^|;)\s*--color-base-[\w-]*\s*:"))
-            {
-                continue;
-            }
+        var css = UiStylesheet.Css;
 
-            Assert.Contains(UiStylesheet.ThemeScopeAttribute, rule.Selector);
-        }
+        var dark = Regex.Matches(css, @"\.dark\\:bg-zinc-800[^{]*\{").Select(m => m.Value).ToList();
+
+        Assert.DoesNotContain("data-theme", css, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"\[data-rask-ui\]", css);
+        Assert.DoesNotContain("prefers-color-scheme:dark", css, StringComparison.Ordinal);
+        Assert.NotEmpty(dark);
+        Assert.All(dark, selector => Assert.Contains(":where(.dark,.dark *)", selector, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -104,15 +102,6 @@ public sealed class UiStylesheetTests
         Assert.Contains(rules, r => r.Selector.EndsWith(" body", StringComparison.Ordinal)
                                     && r.Selector.Contains("data-rask-ui-document", StringComparison.Ordinal)
                                     && r.Body.Contains("margin:0", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void The_theme_can_be_switched_without_javascript()
-    {
-        // daisyUI matches a checked input and an explicit attribute, which is what lets a surface offer a
-        // theme toggle as a checkbox rather than as a script.
-        Assert.Contains("theme-controller", UiStylesheet.Css);
-        Assert.Contains("[data-theme=dark]", UiStylesheet.Css);
     }
 
     private static IEnumerable<(string Selector, string Body)> Rules(string css)

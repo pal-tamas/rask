@@ -25,7 +25,7 @@ public sealed partial class IslandsPage : Component
     protected override Component? Render() =>
     [
         H1.Class("text-3xl font-bold mb-1")["Islands on WebAssembly"],
-        P.Class("text-ui-muted")[
+        P.Class("text-zinc-500 dark:text-white/70")[
             "An island is an ordinary Rask component whose markup a front-end framework produces. ",
             "The same files build unchanged on the Server host — C# owns the props, the generated ",
             "types cross back into the ", Code[".vue"], ", the two ", Code[".tsx"], " and the ",
@@ -34,7 +34,7 @@ public sealed partial class IslandsPage : Component
             "react-colorful from npm, declared once as ", Code["Colorful.HexColorPicker"], " and ",
             Code["Colorful.HexColorInput"], ", their chain steps generated from the package's own TypeScript."
         ],
-        P.Class("text-ui-muted")[
+        P.Class("text-zinc-500 dark:text-white/70")[
             "An island can also be the whole page: ",
             NavLink.Href(PageMeta.LinkTo(Routes.ReactReport())).Class("underline")["a route React owns outright"],
             ", with its title set from C# and a skeleton in the first response."

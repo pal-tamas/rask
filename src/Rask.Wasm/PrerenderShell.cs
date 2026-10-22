@@ -214,8 +214,8 @@ internal static class PrerenderShell
     ///         opening tag comes from the SDK rather than from the app.
     ///     </para>
     ///     <para>
-    ///         It is not a theoretical loss. The landing site sets <c>data-rask-ui</c> there to turn the
-    ///         component kit's theme on, and shipped to production with every colour computing to
+    ///         It is not a theoretical loss. The landing site once set the UI kit's theme attribute there,
+    ///         and shipped to production with every colour computing to
     ///         nothing — structurally perfect, entirely grey — because the attribute never reached the
     ///         published page. Layout survives that, which is what makes it so quiet.
     ///     </para>
@@ -653,7 +653,7 @@ internal static class PrerenderShell
     ///         the prefix handed to <see cref="MergeHtmlAttributes" /> contained no <c>&lt;html&gt;</c>
     ///         at all, so it returned unchanged and every attribute a <c>Shell</c> override put on
     ///         <c>&lt;html&gt;</c> was dropped — which is the exact failure that method was written to
-    ///         fix. It read as working because the site had already moved <c>data-rask-ui</c> into the
+    ///         fix. It read as working because the site had already moved that theme attribute into the
     ///         shell's own literal tag after being bitten by it once, so the one attribute anyone was
     ///         watching survived for a different reason.
     ///     </para>

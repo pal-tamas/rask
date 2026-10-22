@@ -31,7 +31,7 @@ public sealed partial class BindingMultiDemo : Component
                 Colors.Select(color => Ui.SelectOption.Key(color.Text).Value(color.Value)[color.Text])
             ]
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-zinc-50 dark:bg-zinc-900 border rounded")[
             Code[
                 $"Subscribe = {(_model.Subscribe ? "true" : "false")}\n" +
                 $"Age       = {_model.Age}\n" +

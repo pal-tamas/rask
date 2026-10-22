@@ -22,7 +22,7 @@ public sealed partial class ListArrivalApp : Component
     ];
 
     protected override Component Shell(Component head, Component body) =>
-        Html.Lang("hu").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[
+        Html.Lang("hu")[
             head,
             Body.Class("min-h-screen bg-white dark:bg-zinc-800")[body]];
 

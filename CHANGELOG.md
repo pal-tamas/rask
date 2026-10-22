@@ -93,6 +93,22 @@ them until tagged releases begin.
   stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
+### Changed
+
+- **rask.sh is drawn in Flux's own colours.** The site and the notes demo wrote the kit's transitional `ui-*` tokens
+  (`text-ui-muted`, `bg-ui-well`, `border-ui-line`), which were daisyUI's palette under another name. They write
+  Flux's zinc scale and accent now, light and dark: `text-ui-muted` → `text-zinc-500 dark:text-white/70`,
+  `bg-ui-well` → `bg-zinc-50 dark:bg-zinc-900`, `border-ui-line` → `border-zinc-200 dark:border-white/10`,
+  `text-ui-brand-ink` → `text-accent-content`; the raw form elements on the Elements page carry the utilities
+  Flux's input and button are drawn with.
+- **`rask new` draws its pages with the UI kit's Flux components, not daisyUI.** Before: the starter page and the
+  sign-in pages were daisyUI class names — `Div.Class("card bg-base-100")`, `Button.Class("btn btn-primary btn-block")`,
+  `Div.Class("alert alert-error")`. After: `Ui.Header` with `Ui.Brand`, `Ui.Card`, `Ui.Heading`, `Ui.Text`,
+  `Ui.Input.Bind(() => m.Email).Label("Email")`, `Ui.Checkbox`, `Ui.Button.Primary.Class("w-full")`, `Ui.Link`,
+  `Ui.Separator` and a `Ui.Callout.Danger` / `.Success` for what happened, in plain zinc Tailwind around them. Every
+  id, route, binding and message is the same; a guard test keeps daisyUI's classes and theme colours out of every
+  template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
+
 ### Fixed
 
 - **A long table prints in seconds, not minutes.** Chromium drew a printed page while it was still parsing it, and
@@ -118,6 +134,32 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: daisyUI is gone from Rask; the kit's theme is Flux UI's alone, under Flux's names.** The vendored
+  plugin, its theme scope, its 36 palettes and the `ui-*` tokens over them are deleted; nothing in the kit wrote a
+  daisy class any more, so a page drawn with `Ui.*` looks the same. What an app changes:
+  - **The theme scope attribute is gone.** `UiStylesheet.ThemeScopeAttribute` (`data-rask-ui`) scoped daisyUI's
+    palette, and nothing reads it now. Before: `Html.Lang("hu").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body]`.
+    After: `Html.Lang("hu")[head, body]`. `RaskApp` and the WASM host no longer stamp it on `<html>`.
+  - **The accent is Flux's theming API, `--color-accent*`.** An app theme that set `--color-fx-accent`,
+    `--color-fx-accent-content` and `--color-fx-accent-foreground` (in `@theme` and under `.dark`) now sets
+    `--color-accent`, `--color-accent-content` and `--color-accent-foreground`, as
+    [Flux's theming docs](https://fluxui.dev/docs/theming) write them; the utilities are `bg-accent`,
+    `text-accent-content`, `text-accent-foreground` (were `bg-fx-accent`, …), and an arbitrary
+    `bg-[var(--color-fx-accent)]` is `bg-[var(--color-accent)]`. Written after the kit's import, an app's own
+    accent still wins, light and dark.
+  - **`Ui.ThemeName` and `UiTheme` are gone**, and `Ui.AppearanceScript` writes no `data-theme`.
+  - **daisy classes no longer compile.** `btn`, `card`, `alert`, `bg-base-100`, `link-primary` and the kit's
+    transitional `text-ui-muted` / `bg-ui-well` / `border-ui-line` style nothing now: write Flux's components
+    (`Ui.Button`, `Ui.Card`, `Ui.Callout`, `Ui.Link`) or Tailwind's zinc (`text-zinc-500 dark:text-white/70`,
+    `bg-zinc-50 dark:bg-zinc-900`, `border-zinc-200 dark:border-white/10`).
+  - **Dark mode is Flux's `.dark` only.** `dark:` follows the `dark` class `Ui.AppearanceScript` sets, never the
+    OS directly, and `.dark` also says `color-scheme: dark`. In exchange **`RaskApp` and the WASM host write
+    `Ui.AppearanceScript` at the top of every page's head**, as Flux's layout writes `@fluxAppearance` — so a
+    scaffolded app follows the reader's system appearance (its buttons were dark-on-dark before). An App that
+    writes its own `Ui.AppearanceScript` gets exactly one, its own (with its `StorageKey`), deduplicated by the
+    script's `data-rask-appearance` marker; delete the line when convenient. `Rask.DevTools` writes it too.
+  - The kit's Tailwind sources in `Styles/vendor/` are three files (no `daisyui.mjs`); the build sweeps a stale
+    one away, and the layer order is `properties, theme, base, components, rask, utilities`.
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now
   holds only Flux UI's components, plus `Ui.ConfirmLeave`.
   - `Ui.DataGrid` (`UiDataGrid<T, TKey>`, `UiColumn<T>`, `UiGridPage<T>`, `UiGridRequest`, `UiGridSort`) → draw the

@@ -128,15 +128,15 @@ public sealed partial class TodosPage : Component
                 .Lead("A small CRUD screen built on top of Rask primitives. The page declares three [Route] attributes — /todos shows the list, /todos/new opens the add dialog, /todos/{id:guid}/edit opens the edit dialog. Browser Back closes the dialog; deep links open it."),
             Div
                 .Class("flex justify-between items-center mb-3")[
-                Span.Class("text-ui-muted text-sm")[
+                Span.Class("text-zinc-500 dark:text-white/70 text-sm")[
                     $"{_todos.Count} item{(_todos.Count == 1 ? "" : "s")}, {_todos.Count(t => t.Completed)} done"
                 ],
                 Ui.Button.Primary.Icon(Ui.IconName.Plus).OnClick(OpenAdd)["New todo"]
             ],
             _todos.Count == 0
-                ? Div.Class("text-ui-muted text-sm")["No todos yet — click \"New todo\" to add one."]
+                ? Div.Class("text-zinc-500 dark:text-white/70 text-sm")["No todos yet — click \"New todo\" to add one."]
                 : Ul.Id("todo-list")
-                    .Class("divide-y divide-ui-line rounded-lg ring-1 ring-ui-line")[
+                    .Class("divide-y divide-zinc-200 dark:divide-white/10 rounded-lg ring-1 ring-zinc-200 dark:ring-white/10")[
                     _todos.Select(TodoRow)
                 ],
             CodeSample

@@ -61,7 +61,7 @@ PROJECT_GATES = {
 # TemplatesCompileTests, in the unit gate, compiles the templates against the assemblies on every one.
 # The kit and the Tailwind build are on the list because a scaffold COMPILES them: an app's one sheet
 # is Tailwind over the kit's class list, which is Tailwind's scan of src/Rask.Ui. A word in a kit
-# comment once shipped daisyUI's `.glass` that way, and only the CLI build's Tailwind test saw it (#1214).
+# comment once shipped a `.glass` rule that way, and only the CLI build's Tailwind test saw it (#1214).
 PACKAGING_FILES = re.compile(
     r"^(src/Rask\.Cli/|src/Rask\.Templates/|tests/Rask\.Cli\.E2E\.Tests/|tests/Rask\.Templates\.E2E\.Tests/"
     r"|src/Rask\.Ui/|src/Rask\.Tailwind/|src/Rask\.Tailwind\.Tasks/"

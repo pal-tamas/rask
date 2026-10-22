@@ -19,7 +19,7 @@ internal sealed partial class UiTooltipBehaviour : Component
         UiDocsTopic.Key("look").Heading("Look and placement").Paragraphs([
             "Measured on fluxui.dev, in light and dark, by `scripts/flux/parity-tooltip.mjs`: zinc-800 with white 12px "
             + "text (zinc-700 inside a hairline in dark), 5px from its trigger, no arrow, no shadow, no transition and "
-            + "no delay. One look: the daisyUI tones are gone.",
+            + "no delay. One look, with no tones.",
             "The content is a `popover` placed by CSS anchor positioning, and the runtime keeps it inside the viewport "
             + "as Flux's script does (`data-rask-place`): it flips to the other side at the viewport's edge, keeps its "
             + "side where it can and slides along the trigger to stay 5px inside, and is held to the height that is "

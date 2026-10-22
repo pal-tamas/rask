@@ -189,8 +189,8 @@ public partial class UiToggleTests : global::Rask.Core.RaskMarkup
         var plain = Ui.Toggle.Icon(Ui.IconName.Heart).ToHtml();
 
         Assert.Contains("group-data-checked:text-red-600 dark:group-data-checked:text-red-400", red, StringComparison.Ordinal);
-        Assert.Contains("group-data-checked:text-fx-accent-content", plain, StringComparison.Ordinal);
-        Assert.DoesNotContain("fx-accent-content", red, StringComparison.Ordinal);
+        Assert.Contains("group-data-checked:text-accent-content", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("accent-content", red, StringComparison.Ordinal);
     }
 
     [Fact]
