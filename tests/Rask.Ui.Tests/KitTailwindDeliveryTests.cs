@@ -16,9 +16,8 @@ namespace Rask.UiTests;
 ///     </para>
 ///     <para>
 ///         A Flux app has one Tailwind build that scans Flux's own views. This is the same arrangement
-///         for an assembly: the build writes four files into <c>Styles/vendor/</c> — the entry an app
-///         imports, the kit's theme and rules, the list of classes its components write, and daisyUI's
-///         plugin while the kit still draws with it — with no npm, no <c>node_modules</c> and no
+///         for an assembly: the build writes three files into <c>Styles/vendor/</c> — the entry an app
+///         imports, the kit's theme and rules, and the list of classes its components write — with no npm, no <c>node_modules</c> and no
 ///         <c>package.json</c>.
 ///     </para>
 /// </remarks>
@@ -35,7 +34,7 @@ public sealed class KitTailwindDeliveryTests
 
         Assert.Contains("""<None Include="Styles\rask-ui.css" Pack="true" PackagePath="build\" """, csproj, StringComparison.Ordinal);
         Assert.Contains("""<None Include="Styles\ui.css" Pack="true" PackagePath="build\rask-ui.kit.css" """, csproj, StringComparison.Ordinal);
-        Assert.Contains("""<None Include="Styles\daisyui.mjs" Pack="true" PackagePath="build\" """, csproj, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"<None Include=""Styles\\[^""]+\.mjs""", csproj);
         Assert.Contains("""PackagePath="build/rask-ui.classes.txt" """, csproj, StringComparison.Ordinal);
 
         // And transitively: a scaffold references Rask.Server alone, which brings the kit.
@@ -211,46 +210,12 @@ public sealed class KitTailwindDeliveryTests
     }
 
     [Fact]
-    public void The_app_compiles_the_daisyUI_classes_it_writes_itself_in_the_same_pass()
-    {
-        // `rask new` writes daisyUI names in its own markup. They compile from the plugin the kit's file
-        // loads, beside the app's own utilities — this is one stylesheet, not two.
-        var css = _withPage.Value;
-
-        foreach (var name in (string[])["navbar", "hero", "footer", "card-actions", "px-8"])
-        {
-            Assert.True(Regex.IsMatch(css, $@"^\s*\.{Regex.Escape(name)}\s*\{{", RegexOptions.Multiline), $".{name} is not in the compiled sheet.");
-        }
-    }
-
-    [Fact]
-    public void The_plugin_bundle_is_not_scanned_as_a_safelist()
-    {
-        // 348 KB of daisyUI's own code sits beside the kit's file, naming every class daisyUI defines.
-        // Scanned, it is a safelist for the whole library and the sheet carries every component whether
-        // or not anything uses one — which reads as correct, because a sheet containing too much looks
-        // exactly like a sheet containing enough. `@source not "./daisyui.mjs"` is what stops it.
-        // The kit draws with nearly all of daisyUI, so the candidates are the few names it leaves alone.
-        var unused = ((string[])["glass", "link-hover", "skeleton-text", "react-day-picker", "pika-single", "timeline", "carousel"])
-            .Where(name => !KitConsumer.Classes.Contains(name))
-            .ToArray();
-
-        Assert.NotEmpty(unused);
-        foreach (var name in unused)
-        {
-            Assert.False(
-                Regex.IsMatch(_withPage.Value, $@"^\s*\.{name}\s*\{{", RegexOptions.Multiline),
-                $".{name} is in a sheet whose sources never name it — the bundle is being scanned.");
-        }
-    }
-
-    [Fact]
     public void The_class_list_carries_candidates_as_markup_writes_them()
     {
         // Unescaped, variants and arbitrary values included: Tailwind reads the list the way it reads a
         // page, and `.dark\:bg-white\/10` is a selector, not a class name.
         Assert.Contains("dark:bg-white/10", KitConsumer.Classes);
-        Assert.Contains("btn", KitConsumer.Classes);
+        Assert.Contains("rounded-lg", KitConsumer.Classes);
         Assert.DoesNotContain(KitConsumer.Classes, name => name.Contains('\\', StringComparison.Ordinal));
     }
 
@@ -260,7 +225,30 @@ public sealed class KitTailwindDeliveryTests
 
     private static readonly Lazy<string> _withPage = new(() => KitConsumer.Compile(
         KitConsumer.Import,
-        "navbar bg-base-100 shadow-sm hero bg-base-200 py-16 card card-body card-actions btn btn-primary footer px-8"));
+        "bg-white shadow-sm py-16 px-8"));
+
+    [Fact]
+    public void The_app_compiles_the_utilities_it_writes_itself_in_the_same_pass()
+    {
+        var css = _withPage.Value;
+
+        var missing = ((string[])["py-16", "px-8", "shadow-sm"])
+            .Where(name => !Regex.IsMatch(css, $@"^\s*\.{Regex.Escape(name)}\s*\{{", RegexOptions.Multiline))
+            .ToList();
+
+        Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void A_file_an_older_kit_left_in_vendor_is_removed_before_Tailwind_scans_it()
+    {
+        var targets = _targets;
+
+        var swept = targets.Contains("<_RaskUiTailwindStale Include=\"$(_RaskUiTailwindDirectory)/*\"", StringComparison.Ordinal);
+
+        Assert.True(swept, "the vendor folder is no longer swept of files the kit does not write.");
+        Assert.Contains("""<Delete Condition="'@(_RaskUiTailwindStale)' != ''" Files="@(_RaskUiTailwindStale)"/>""", targets, StringComparison.Ordinal);
+    }
 
     // Every class with a rule of its own, read the way a reader would: `.name` opening a selector.
     private static HashSet<string> ClassesDefinedIn(string css) =>

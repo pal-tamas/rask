@@ -76,7 +76,7 @@ public abstract partial class SharedSmokeTests
         await Expect(Page.Locator("header.app-navbar")).ToHaveClassAsync(new Regex(@"\btext-zinc-800\b"));
 
         // …and the bar is the LANDING PAGE'S, shared with `/` rather than shaped like it: a <header>,
-        // where the docs used to draw daisyUI's navbar and its two halves. SiteHeaderTests compares the
+        // where the docs used to draw a navbar of their own and its two halves. SiteHeaderTests compares the
         // two pages' bars byte for byte from the wordmark rightwards; what a browser adds here is that
         // the selector resolves to exactly one element on a real page.
         //
@@ -1469,7 +1469,7 @@ public abstract partial class SharedSmokeTests
         // working perfectly; non-empty is the claim, because an undefined property reads as "" — exactly the
         // "silently gone palette" this step exists to catch.
         await Page.WaitForFunctionAsync(
-            "() => getComputedStyle(document.documentElement).getPropertyValue('--color-fx-accent').trim().length > 0",
+            "() => getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim().length > 0",
             null,
             new PageWaitForFunctionOptions { Timeout = 10_000 });
 

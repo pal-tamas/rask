@@ -36,7 +36,7 @@ internal static class NavigationStandIns
         // Flux's "Launchpad" mark: a cyan-500 disc, white, text-xs, bold.
         + ".logo-launchpad{width:28px;height:28px;border-radius:calc(infinity*1px);background:oklch(71.5% .143 215.221);"
         + "color:#fff;font-size:.75rem;line-height:calc(1/.75);font-weight:700}"
-        + ".logo-accent{background:var(--color-fx-accent);color:#fff}.logo-accent:where(.dark,.dark *){color:oklch(27.4% .006 286.033)}"
+        + ".logo-accent{background:var(--color-accent);color:#fff}.logo-accent:where(.dark,.dark *){color:oklch(27.4% .006 286.033)}"
         + ".logo-tile{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:24px;border-radius:.25rem}"
         // Flux's header and sidebar, which the layouts own: zinc-50 on zinc-100, zinc-800 on white/5 on dark.
         + ".stand-in-bar{display:flex;align-items:center;min-height:56px;padding-inline:16px;border-radius:8px;"

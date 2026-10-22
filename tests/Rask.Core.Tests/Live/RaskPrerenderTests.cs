@@ -144,18 +144,18 @@ public class RaskPrerenderTests
     }
 
     [Fact]
-    public async Task The_hosts_document_defaults_lead_the_head_and_scope_the_html()
+    public async Task The_hosts_document_defaults_lead_the_head_with_the_script_before_the_stylesheets()
     {
         var defaults = new RaskDocumentDefaults(
             pathBase => pathBase + "/css/kit.css",
             "css/app.css",
-            new Dictionary<string, string?> { ["data-kit"] = "" });
+            () => Markup.Script.Id("look")["/* appearance */"]);
 
         var html = (await RaskPrerender.RenderDocument(
             new TitledPage(), Services(defaults), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken)).Html;
 
-        Assert.Contains("<html lang=\"en\" data-kit=\"\">", html, StringComparison.Ordinal);
-        var order = new[] { "charset=\"utf-8\"", "name=\"viewport\"", "/css/kit.css", "/css/app.css", "page</title>" }
+        Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
+        var order = new[] { "charset=\"utf-8\"", "name=\"viewport\"", "id=\"look\"", "/css/kit.css", "/css/app.css", "page</title>" }
             .Select(tag => html.IndexOf(tag, StringComparison.Ordinal))
             .ToArray();
         Assert.True(order[0] >= 0 && order.SequenceEqual(order.Order()), $"head out of order:\n{html}");
@@ -164,13 +164,13 @@ public class RaskPrerenderTests
     [Fact]
     public async Task An_App_that_writes_its_own_shell_keeps_its_own_html_element()
     {
-        var defaults = new RaskDocumentDefaults(null, null, new Dictionary<string, string?> { ["data-kit"] = "" });
+        var defaults = new RaskDocumentDefaults(null, null, () => Markup.Script.Id("look")["/* appearance */"]);
 
         var html = (await RaskPrerender.RenderDocument(
             new OwnShellPage(), Services(defaults), TimeSpan.FromSeconds(5), cancellationToken: TestContext.Current.CancellationToken)).Html;
 
         Assert.Contains("<html lang=\"fr\">", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("data-kit", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"look\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

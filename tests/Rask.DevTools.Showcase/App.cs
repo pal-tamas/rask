@@ -14,7 +14,7 @@ public sealed partial class App : Component
     ];
 
     protected override Component? Render() =>
-        Div.Attributes((UiStylesheet.ThemeScopeAttribute, ""), ("data-theme", "light"))[
+        Div[
             Ui.Header[Ui.Brand.Name("Release board").Href("#")],
             Ui.Main[
                 Div.Class("grid gap-4 md:grid-cols-2")[

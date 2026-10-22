@@ -138,16 +138,14 @@ Two questions arithmetic cannot answer, because both are about what a browser do
 sheets.
 
 ```bash
-dotnet run themeprobe.cs   http://127.0.0.1:PORT       # theme: OS default, per-theme corrections, AA
+dotnet run themeprobe.cs   http://127.0.0.1:PORT       # dark mode: OS default, a stored choice, AA
 dotnet run hydrateprobe.cs http://127.0.0.1:PORT /     # prerender -> hydrate: what flickers
 ```
 
-`themeprobe.cs` loads the page under `prefers-color-scheme` light AND dark and prints whether
-`data-theme` is absent (it must be — the absence is what follows the OS), which palette painted, and
-the measured contrast of each `--color-ui-*` token against the ground it sits on. Then it picks
-`valentine`, `retro`, `dark` and `luxury` in turn and re-measures, which is the only way to confirm the
-kit's per-theme corrections in `@layer rask` actually win the cascade — they correct tokens the app's
-own `@theme` declares at `:root` from a *different* `<link>`, same specificity either way.
+`themeprobe.cs` loads the page under `prefers-color-scheme` light AND dark and prints whether Flux's `dark`
+class is on `<html>`, the computed `color-scheme`, the ground, and the measured contrast of the body's ink and
+of the accent as text against it. Then it stores `dark` under a light OS and `light` under a dark one and
+measures again — the reader's choice has to beat the OS.
 
 `hydrateprobe.cs` needs the **published** bundle, not `dotnet run`: `dotnet publish` prerenders each
 route to real HTML, so the handover it measures does not exist in the dev host.
@@ -243,24 +241,11 @@ spinner-then-page "flicker" that is entirely the probe's fault. Put matrices in 
 a wait is satisfied before the runtime exists and reports a clean boot it never observed. This waits for
 the runtime's own `raskAfterMorph` hook and says `NEVER HYDRATED` rather than implying a verdict.
 
-## Do the kit's corrections win? (`toneprobe.cs`, `navlist.cs`)
+## What does the sidebar render? (`navlist.cs`)
 
 ```bash
-dotnet run toneprobe.cs http://127.0.0.1:PORT     # every daisyUI tone, every palette, measured
 dotnet run navlist.cs   http://127.0.0.1:PORT     # what the sidebar ACTUALLY renders, with hrefs
 ```
-
-`toneprobe.cs` exists because a stylesheet can contain a correct value and still lose. The kit corrects
-daisyUI's filled components (`.btn-primary`, `.badge-error`, …) in `@layer rask-ui-corrections`, and those
-overrides are *lower specificity* than the rules they correct — so the layer is the whole mechanism, and a
-wrong one loses silently while every number computed from the tokens still looks right. That is not a
-hypothetical: written in `@layer rask` (which the kit's order statement puts BEFORE `utilities`, where
-daisyUI actually emits its components), `.btn-primary` measured **3.29:1 on `corporate`** with the fix
-present in the shipped bytes and the entire unit suite green. This probe is what found it.
-
-It **injects** one element per tone instead of navigating to a page that renders them, then flips through
-nine palettes and measures each label against the background it is actually read on. The question is about
-CSS, so anything the probe has to find in the markup first is a second thing that can go wrong.
 
 `navlist.cs` prints the sidebar's real link text and hrefs. Reach for it the moment a driver times out on
 `:has-text('…')`: **the rows under "PWA", "UI kit" and "Islands" are contributed by the HOST at boot**

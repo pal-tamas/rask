@@ -29,7 +29,7 @@ public sealed class ShowcaseLayoutTests
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 
-        // …and the bar is the LANDING PAGE'S, shared rather than shaped alike: a <header>, not daisyUI's
+        // …and the bar is the LANDING PAGE'S, shared rather than shaped alike: a <header>, not the
         // navbar with its two halves. SiteHeaderTests is what holds the two pages to one bar (it compares
         // them byte for byte from the wordmark rightwards); this only states that the docs route reaches
         // it. The hamburger is the kit's sidebar toggle, drawn as Flux draws it.

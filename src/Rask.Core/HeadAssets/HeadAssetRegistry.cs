@@ -29,6 +29,9 @@ internal sealed class HeadAssetRegistry
     /// </summary>
     internal const string FrameworkAssetKeyPrefix = "rsk-";
 
+    // Written by Rask.Ui's UiAppearanceScript (its Marker); Core cannot name the kit, so the two are held equal by a test.
+    internal const string AppearanceScriptMarker = "data-rask-appearance";
+
     private static readonly char[] _attrSpecials = { '&', '"', '<', '>' };
     private readonly List<string> _orderedHtml = new();
     private readonly List<string> _orderedKeys = new();
@@ -152,6 +155,14 @@ internal sealed class HeadAssetRegistry
         if (StartsWithOpenTag(html, "meta"))
         {
             return MetaSingletonKey(html);
+        }
+
+        // The kit's dark-mode script (Ui.AppearanceScript), which the host writes for every page and an app may
+        // write too, with its own storage key: one per document, the app's where both do. By its marker, not
+        // its text — two keys are two different scripts that must not both run.
+        if (StartsWithOpenTag(html, "script") && TryReadAttribute(html, AppearanceScriptMarker) is not null)
+        {
+            return "tag:script:appearance";
         }
 
         if (StartsWithOpenTag(html, "link")

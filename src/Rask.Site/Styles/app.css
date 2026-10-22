@@ -75,16 +75,16 @@
   --tw-prose-body: light-dark(var(--color-zinc-800), var(--color-white));
   --tw-prose-headings: light-dark(var(--color-zinc-800), var(--color-white));
   --tw-prose-lead: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
-  --tw-prose-links: var(--color-fx-accent-content);
+  --tw-prose-links: var(--color-accent-content);
   --tw-prose-bold: light-dark(var(--color-zinc-800), var(--color-white));
   --tw-prose-counters: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
   --tw-prose-bullets: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
   --tw-prose-hr: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
   --tw-prose-quotes: light-dark(var(--color-zinc-800), var(--color-white));
-  --tw-prose-quote-borders: var(--color-fx-accent);
+  --tw-prose-quote-borders: var(--color-accent);
   --tw-prose-captions: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
   --tw-prose-kbd: light-dark(var(--color-zinc-800), var(--color-white));
-  --tw-prose-code: var(--color-fx-accent-content);
+  --tw-prose-code: var(--color-accent-content);
   --tw-prose-pre-code: var(--rask-code-ink);
   --tw-prose-pre-bg: var(--rask-ink);
   --tw-prose-th-borders: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
@@ -106,7 +106,7 @@
   }
 
   & :where(:not(pre) > code) {
-    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
     border-radius: 4px;
     padding: 0.08rem 0.34rem;
     font-weight: 500;
@@ -132,7 +132,7 @@
   }
 
   & :where(blockquote) {
-    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
     border-radius: 0 0.4rem 0.4rem 0;
     padding: 0.6rem 1rem;
     font-style: normal;

@@ -43,15 +43,16 @@ public sealed partial class DarkModeTests
             var dark = scheme == ColorScheme.Dark;
             Assert.Equal(dark, await IsDarkAsync(page));
             Assert.Null(await StoredAsync(page));
-            // daisyUI still draws most of the page and reads data-theme; this line goes with it.
-            await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", dark ? "dark" : "light");
+            // Flux's class alone: no theme attribute, and the browser's own parts turn with it.
+            Assert.Null(await page.Locator("html").GetAttributeAsync("data-theme"));
+            Assert.Equal(dark ? "dark" : "normal", await page.EvaluateAsync<string>("() => getComputedStyle(document.documentElement).colorScheme"));
             await AssertGroundAsync(page, dark);
 
-            // Body text clears AA against whichever ground won.
-            foreach (var token in new[] { "--color-ui-ink", "--color-ui-muted" })
+            // Body text and the accent as text clear AA against whichever ground won.
+            foreach (var colour in new[] { "inherit", "var(--color-accent-content)" })
             {
-                var ratio = await Contrast(page, token);
-                Assert.True(ratio >= 4.5, $"{token} measures {ratio:0.00}:1 on the {scheme} ground.");
+                var ratio = await Contrast(page, colour);
+                Assert.True(ratio >= 4.5, $"{colour} measures {ratio:0.00}:1 on the {scheme} ground.");
             }
         }
         finally
@@ -248,13 +249,13 @@ public sealed partial class DarkModeTests
             $"the {(dark ? "dark" : "light")} page painted the wrong ground (luminance {luminance:0.000}).");
     }
 
-    /// <summary>A token's contrast against the document's own ground, as a browser composites it.</summary>
-    private static Task<double> Contrast(IPage page, string token) =>
+    /// <summary>A colour's contrast against the document's own ground, as a browser composites it.</summary>
+    private static Task<double> Contrast(IPage page, string colour) =>
         page.EvaluateAsync<double>(Rgb + $$"""
             (() => {
               const probe = document.createElement('span');
               probe.style.cssText = 'position:fixed;opacity:0';
-              probe.style.color = 'var({{token}})';
+              probe.style.color = '{{colour}}';
               document.body.appendChild(probe);
               const fg = lum(getComputedStyle(probe).color);
               probe.remove();

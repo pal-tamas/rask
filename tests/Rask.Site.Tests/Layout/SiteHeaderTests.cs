@@ -10,7 +10,7 @@ namespace Rask.Site.Tests.Layout;
 ///     <para>
 ///         They were two bars that agreed on a height and a background and on nothing else: the landing
 ///         page had a <c>&lt;header&gt;</c>, a bolt, a wordmark and three quiet text links; the docs had
-///         daisyUI's <c>navbar</c>, a hamburger, a second brand mark in the display face, a "showcase"
+///         a navbar of its own, a hamburger, a second brand mark in the display face, a "showcase"
 ///         pill, a version badge, a live <c>path:</c> readout and a bordered ★ GitHub button.
 ///     </para>
 ///     <para>
@@ -167,7 +167,7 @@ public sealed class SiteHeaderTests
     }
 
     [Theory]
-    // daisyUI's navbar halves, which drew the docs bar and nothing else on the site.
+    // the old navbar's halves, which drew the docs bar and nothing else on the site.
     [InlineData("navbar-start")]
     [InlineData("navbar-end")]
     // The pill that told a reader of the docs they were in "the showcase", a word the site uses nowhere else.

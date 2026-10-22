@@ -13,8 +13,8 @@ namespace Rask.UiTests;
 ///         clean CI checkout publishing a browser-WASM app never does.
 ///     </para>
 ///     <para>
-///         <b>It shipped rask.sh entirely unstyled.</b> The base colours and the whole daisyUI palette
-///         live in that sheet, so with it missing every colour token resolved to nothing: a page that is
+///         <b>It shipped rask.sh entirely unstyled.</b> Every colour the kit's components write
+///         lives in that sheet, so with it missing every colour token resolved to nothing: a page that is
 ///         structurally perfect, fully interactive, and completely grey. Locally every build, every
 ///         publish and the whole browser suite were green, because the file was already on disk from an
 ///         earlier build. The only trace was one line in a CI log.

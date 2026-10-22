@@ -49,20 +49,6 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Nothing_in_an_accordion_is_drawn_by_daisyUI()
-    {
-        var html = Ui.Accordion.Exclusive().Transition().Reverse[
-            Ui.AccordionItem.Heading("Shipping").Expanded()["Two days."],
-            Ui.AccordionItem.Heading("Payment").Disabled()["Card."]
-        ].ToHtml();
-
-        var classes = ClassAttribute().Matches(html).SelectMany(m => m.Groups[1].Value.Split(' ')).ToList();
-
-        Assert.DoesNotContain(classes, name => name.StartsWith("collapse", StringComparison.Ordinal) || name is "join" or "join-item");
-        Assert.DoesNotContain(classes, name => name.Contains("base-", StringComparison.Ordinal) || name.Contains("-ui-", StringComparison.Ordinal));
-    }
-
-    [Fact]
     public void An_exclusive_accordion_names_its_items_as_one_group_so_the_browser_closes_the_others()
     {
         var page = Page.Render(() => Ui.Accordion.Exclusive()[

@@ -141,8 +141,8 @@ code, pre, .font-monospace {
 }
 
 :not(pre) > code {
-    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
-    color: var(--color-fx-accent-content);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
+    color: var(--color-accent-content);
     padding: 0.08rem 0.32rem;
     border-radius: 4px;
     font-size: 0.86em;

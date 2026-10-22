@@ -5,14 +5,11 @@
 // Three questions no unit test can answer, because all three are about what a BROWSER does with the
 // shipped sheets:
 //
-//   1. Does the page follow prefers-color-scheme when the reader has chosen nothing? The boot script
-//      writes NO data-theme in that case and leans on daisyUI's own
-//      `[data-rask-ui]:not([data-theme])` under the dark media query. Whether that actually paints is
-//      a cascade question, and arithmetic over the CSS cannot see it.
-//   2. Do the kit's per-theme corrections WIN? They live in `@layer rask` in ui.css and correct tokens
-//      the app's own @theme also declares at :root, in a different <link>. Same specificity either
-//      way, so only the layer order decides — and layer order across separate sheets is exactly the
-//      thing this repo has been bitten by before.
+//   1. Does the page follow prefers-color-scheme when the reader has chosen nothing? Ui.AppearanceScript
+//      puts Flux's `dark` class on <html> from the OS, and `.dark` says `color-scheme: dark` — whether the
+//      ground, the ink and the accent all turn with it is a cascade question arithmetic cannot see.
+//   2. Does a stored choice beat the OS? The reader's `rask.appearance` is set before the page loads, against
+//      the opposite OS preference, and the same colours are measured again.
 //   3. What flickers on first paint? Reported on / and /docs. Instrumented rather than eyeballed:
 //      every <html> attribute mutation, every <body> replacement, the paint timings, and the layout
 //      shifts, with their sources.
@@ -63,13 +60,12 @@ new PerformanceObserver(function (list) {
 }).observe({ type: 'layout-shift', buffered: true });
 """;
 
-// Resolves a custom property to the rgb() a browser computes, by letting the browser do it: the value
-// of --color-ui-muted is a color-mix() expression, and only `getComputedStyle` on a property that
-// CONSUMES it reports the colour. Reading the custom property itself returns the unresolved text.
+// Resolves a colour to the rgb() a browser computes, by letting the browser do it: a `light-dark()` or a
+// custom property is only a colour once something CONSUMES it, and `getComputedStyle` then reports it.
 const string ResolveFn = """
 (names) => {
-  // Chromium reports a computed colour in the space it was AUTHORED in — `oklch(0.2533 0.016 252.42)`
-  // for a daisyUI token, `oklab(...)` for a color-mix() result — so the value does not parse as rgb and
+  // Chromium reports a computed colour in the space it was AUTHORED in — `oklch(...)` for Tailwind's
+  // palette, `oklab(...)` for a color-mix() result — so the value does not parse as rgb and
   // a caller that assumes it does scores NaN in silence. A 1x1 canvas converts it the way the
   // compositor would, which is the only form a contrast ratio may be computed from.
   const canvas = document.createElement('canvas');
@@ -91,23 +87,20 @@ const string ResolveFn = """
   document.body.appendChild(probe);
   const out = {};
   for (const n of names) {
-    probe.style.color = 'var(' + n + ')';
+    probe.style.color = n;
     out[n] = toRgb(getComputedStyle(probe).color);
   }
   out['__html-bg'] = toRgb(getComputedStyle(document.documentElement).backgroundColor);
   out['__body-bg'] = toRgb(getComputedStyle(document.body).backgroundColor);
-  out['__data-theme'] = document.documentElement.getAttribute('data-theme');
+  out['__dark'] = document.documentElement.classList.contains('dark') ? 'yes' : 'no';
   out['__color-scheme'] = getComputedStyle(document.documentElement).colorScheme;
   probe.remove();
   return out;
 }
 """;
 
-string[] tokens =
-[
-    "--color-ui-bg", "--color-ui-well", "--color-ui-ink", "--color-ui-muted",
-    "--color-ui-brand-ink", "--color-ui-ok-ink", "--color-ui-warn-ink",
-];
+// The body's own ink, and the accent as text — the two colours every page reads in.
+string[] tokens = ["inherit", "var(--color-accent-content)"];
 
 using var pw = await Playwright.CreateAsync();
 await using var browser = await pw.Chromium.LaunchAsync(new() { Headless = true });
@@ -123,56 +116,24 @@ foreach (var scheme in new[] { ColorScheme.Light, ColorScheme.Dark })
 
     var values = await page.EvaluateAsync<JsonElement>(ResolveFn, tokens);
     Console.WriteLine($"== prefers-color-scheme: {scheme.ToString()!.ToLowerInvariant()} ==");
-    Console.WriteLine($"   data-theme      : {Show(values, "__data-theme")}");
-    Console.WriteLine($"   color-scheme    : {Show(values, "__color-scheme")}");
-    Console.WriteLine($"   html background : {Show(values, "__html-bg")}");
-    Console.WriteLine($"   --color-ui-ink  : {Show(values, "--color-ui-ink")}");
-    Console.WriteLine($"   --color-ui-muted: {Show(values, "--color-ui-muted")}");
-    Console.WriteLine($"   contrast ink/bg : {Ratio(Show(values, "--color-ui-ink"), Show(values, "__html-bg")):0.00}:1");
-    Console.WriteLine($"   contrast muted  : {Ratio(Show(values, "--color-ui-muted"), Show(values, "__html-bg")):0.00}:1");
+    Report(values, tokens);
 }
 
-// ---- 2. the per-theme corrections win -----------------------------------------------------------
+// ---- 2. a stored choice beats the OS ------------------------------------------------------------
 
 Console.WriteLine();
 
-foreach (var theme in new[] { "valentine", "retro", "dark", "luxury" })
+foreach (var (stored, os) in new[] { ("dark", ColorScheme.Light), ("light", ColorScheme.Dark) })
 {
-    await using var ctx = await browser.NewContextAsync();
+    await using var ctx = await browser.NewContextAsync(new() { ColorScheme = os });
+    await ctx.AddInitScriptAsync($"localStorage.setItem('rask.appearance', '{stored}')");
     var page = await ctx.NewPageAsync();
     await page.GotoAsync(baseUrl, new() { Timeout = 90_000 });
     await page.WaitForSelectorAsync("h1", new() { Timeout = 90_000 });
-    await page.EvaluateAsync("t => window.raskSetTheme(t)", theme);
 
     var values = await page.EvaluateAsync<JsonElement>(ResolveFn, tokens);
-    var ink = Show(values, "--color-ui-ink");
-    var bg = Show(values, "__html-bg");
-
-    Console.WriteLine($"== {theme} (picked) ==");
-    Console.WriteLine($"   data-theme       : {Show(values, "__data-theme")}");
-    Console.WriteLine($"   ground           : {bg}");
-
-    foreach (var token in tokens.Where(t => t != "--color-ui-bg" && t != "--color-ui-well"))
-    {
-        var value = Show(values, token);
-        Console.WriteLine(
-            $"   {token,-22}{value,-22} {Ratio(value, bg):0.00}:1"
-            + (Ratio(value, bg) < 4.5 ? "   << UNDER AA" : string.Empty));
-    }
-
-    // The correction's fingerprint: on valentine and retro, muted is pulled much closer to the ink than
-    // the 80% default would put it. Equal-ish to the ink means the @layer rask block is winning.
-    if (theme is "valentine" or "retro")
-    {
-        // The fingerprint of the correction IS the ratio, which is the whole point of it: the 80%
-        // default cannot clear AA on these two palettes and the override can. Comparing the colour to a
-        // re-derived expectation would only re-test this file's own arithmetic.
-        var muted = Show(values, "--color-ui-muted");
-        var ratio = Ratio(muted, bg);
-        Console.WriteLine(
-            $"   correction applied : {(ratio >= 4.5 ? "YES" : "NO — the @layer rask override lost the cascade")}"
-            + $" (muted {muted} at {ratio:0.00}:1, ink {ink})");
-    }
+    Console.WriteLine($"== stored {stored}, OS {os.ToString()!.ToLowerInvariant()} ==");
+    Report(values, tokens);
 }
 
 // ---- 3. what actually flickers ------------------------------------------------------------------
@@ -222,6 +183,22 @@ foreach (var path in new[] { "/", "/docs" })
     {
         var sources = string.Join(", ", s.GetProperty("sources").EnumerateArray().Select(x => x.GetString()));
         Console.WriteLine($"      {s.GetProperty("at").GetInt32(),5}ms {s.GetProperty("value").GetDouble():0.0000}  {sources}");
+    }
+}
+
+static void Report(JsonElement values, string[] colours)
+{
+    var bg = Show(values, "__html-bg");
+    Console.WriteLine($"   dark class      : {Show(values, "__dark")}");
+    Console.WriteLine($"   color-scheme    : {Show(values, "__color-scheme")}");
+    Console.WriteLine($"   html background : {bg}");
+
+    foreach (var colour in colours)
+    {
+        var value = Show(values, colour);
+        Console.WriteLine(
+            $"   {colour,-30}{value,-22} {Ratio(value, bg):0.00}:1"
+            + (Ratio(value, bg) < 4.5 ? "   << UNDER AA" : string.Empty));
     }
 }
 

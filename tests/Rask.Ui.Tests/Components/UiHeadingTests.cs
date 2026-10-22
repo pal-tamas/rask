@@ -55,7 +55,7 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
 
         var html = heading.ToHtml();
 
-        Assert.Contains("text-fx-accent-content", html, StringComparison.Ordinal);
+        Assert.Contains("text-accent-content", html, StringComparison.Ordinal);
         Assert.DoesNotContain("text-zinc-800", html, StringComparison.Ordinal);
     }
 

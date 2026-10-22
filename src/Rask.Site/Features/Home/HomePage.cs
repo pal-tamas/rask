@@ -32,7 +32,7 @@ public sealed partial class HomePage : Component
     private const string Wrap = SiteLayout.Wrap;
 
     private const string Eyebrow =
-        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-fx-accent-content";
+        "mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-accent-content";
 
     private const string Lede = "mt-5 text-lg leading-relaxed text-zinc-800 dark:text-white";
 
@@ -62,7 +62,7 @@ public sealed partial class HomePage : Component
     private const string BtnPrimary = Btn + " bg-zinc-800 dark:bg-white text-white! dark:text-zinc-800! hover:bg-zinc-800/90 dark:hover:bg-white/90";
 
     private const string BtnGhost =
-        Btn + " border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 text-zinc-800! dark:text-white! hover:border-fx-accent hover:text-fx-accent-content";
+        Btn + " border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 text-zinc-800! dark:text-white! hover:border-accent hover:text-accent-content";
 
     private const string SectionPad = "py-16 sm:py-24";
 
@@ -79,7 +79,7 @@ public sealed partial class HomePage : Component
     protected override Component? Render() =>
     [
         // The shared bar, centred in this page's own column. It used to be written out here; /docs wore
-        // a different one, and "different" had grown to a daisyUI navbar, a second brand mark, two
+        // a different one, and "different" had grown to a navbar of its own, a second brand mark, two
         // badges, a route readout and a bordered button.
         SiteHeader.FullBleed(false),
         Hero(),
@@ -118,7 +118,7 @@ public sealed partial class HomePage : Component
                         // would break the headline's two designed lines into three.
                         H1.Class("text-4xl font-semibold leading-[1.1] tracking-tight text-zinc-800 dark:text-white sm:text-5xl lg:text-[2.75rem]")[
                             "The whole stack,", Br, "in ",
-                            Span.Class("text-fx-accent-content")["C#"], "."
+                            Span.Class("text-accent-content")["C#"], "."
                         ],
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
                         P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — with React, Vue or Angular components inside them as islands."],
@@ -179,9 +179,9 @@ public sealed partial class HomePage : Component
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-6 no-underline transition-colors "
-                + "hover:border-fx-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
+                + "hover:border-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
             Div.Class("flex items-center gap-2")[
-                Ui.Icon.Name(icon).Class("size-5 shrink-0 text-fx-accent-content"),
+                Ui.Icon.Name(icon).Class("size-5 shrink-0 text-accent-content"),
                 Span.Class("font-mono text-xs text-zinc-500 dark:text-white/70")[tag],
                 Ui.Icon
                     .Name(Ui.IconName.ChevronRight)
@@ -263,9 +263,9 @@ public sealed partial class HomePage : Component
             .ActiveClass("")
             .Class(
                 $"{Card} guide-link group flex flex-col p-5 no-underline transition-colors "
-                + "hover:border-fx-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
+                + "hover:border-accent/40 hover:bg-zinc-50 dark:hover:bg-zinc-900")[
             Div.Class("flex items-center gap-2 text-sm font-semibold text-zinc-800 dark:text-white")[
-                Ui.Icon.Name(icon).Class("size-4 shrink-0 text-fx-accent-content"),
+                Ui.Icon.Name(icon).Class("size-4 shrink-0 text-accent-content"),
                 title,
                 Ui.Icon
                     .Name(Ui.IconName.ChevronRight)
@@ -419,11 +419,11 @@ public sealed partial class HomePage : Component
     private const string CounterCodeHtml =
         """
         [<span class="text-green-700 dark:text-green-400">Route</span>(<span class="text-amber-700">"/counter"</span>)]
-        <span class="text-fx-accent-content">public sealed partial class</span> <span class="text-green-700 dark:text-green-400">Counter</span> : <span class="text-green-700 dark:text-green-400">Component</span>
+        <span class="text-accent-content">public sealed partial class</span> <span class="text-green-700 dark:text-green-400">Counter</span> : <span class="text-green-700 dark:text-green-400">Component</span>
         {
-            <span class="text-fx-accent-content">private int</span> _count;
+            <span class="text-accent-content">private int</span> _count;
 
-            <span class="text-fx-accent-content">protected override</span> <span class="text-green-700 dark:text-green-400">Component</span>? <span class="text-zinc-800 dark:text-white">Render</span>() =&gt;
+            <span class="text-accent-content">protected override</span> <span class="text-green-700 dark:text-green-400">Component</span>? <span class="text-zinc-800 dark:text-white">Render</span>() =&gt;
                 <span class="text-green-700 dark:text-green-400">Button</span>.<span class="text-zinc-800 dark:text-white">OnClick</span>(() =&gt; _count++)[<span class="text-amber-700">$"Current count: {_count}"</span>];
         }
         """;

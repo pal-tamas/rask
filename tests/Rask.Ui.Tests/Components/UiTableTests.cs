@@ -283,15 +283,4 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("data-rask-key=\"order-428\"", html, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void No_part_draws_with_daisyui()
-    {
-        var html = Ui.Table.Bleed()[
-            Ui.TableColumns.Sticky()[Ui.TableColumn.Sortable().Sticky()["Date"]],
-            Ui.TableRows[Ui.TableRow.Sticky()[Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Sticky()["x"]]]
-        ].ToHtml();
-
-        Assert.DoesNotMatch("base-[0-9c]|ui-table[\" ]|[\" ]table-(zebra|pin|xs|sm|md|lg)|color-ui-", html);
-    }
 }

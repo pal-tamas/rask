@@ -4,13 +4,13 @@ using System.Text.RegularExpressions;
 namespace Rask.Site.Tests.Layout;
 
 /// <summary>
-///     The showcase's chrome is drawn by utilities and by daisyUI, and <c>wwwroot/global.css</c> is not
+///     The showcase's chrome is drawn by utilities and by the kit, and <c>wwwroot/global.css</c> is not
 ///     allowed to take any of it back.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///     That file is a plain, UNLAYERED stylesheet, linked after everything else. Unlayered rules outrank
-///     every layered one on the page — all of Tailwind's utilities and all of daisyUI's components live
+///     every layered one on the page — all of Tailwind's utilities and all of the kit's rules live
 ///     in <c>@layer</c>s — so a single selector here silently beats the classes written in the markup,
 ///     with no specificity fight to notice and nothing in a build or a class-name assertion to see it.
 ///     </para>
@@ -34,7 +34,7 @@ public sealed class ChromeStylesheetTests
 {
     /// <summary>
     ///     Chrome hooks whose appearance is settled in the markup. <c>.side-nav-link</c> and
-    ///     <c>.nav-group-*</c> joined this list with the sidebar's conversion to daisyUI's <c>menu</c>;
+    ///     <c>.nav-group-*</c> joined this list with the sidebar's conversion to the kit's menu;
     ///     these arrive with the top bar's to <c>navbar</c>.
     /// </summary>
     public static TheoryData<string> UtilityStyledHooks =>

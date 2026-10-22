@@ -52,7 +52,7 @@ public sealed partial class GuideCards : Component
                 .ActiveClass("")
                 .Class("block h-full no-underline")[
                 // A card is a link, so it needs a hover and a focus state. It had neither.
-                Ui.Card.Class("h-full transition-colors hover:border-fx-accent focus-within:border-fx-accent")[
+                Ui.Card.Class("h-full transition-colors hover:border-accent focus-within:border-accent")[
                     Div.Class("flex items-start gap-3")[
                         Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-zinc-500 dark:text-white/70"),
                         // min-w-0: without it this flex item cannot shrink below the longest

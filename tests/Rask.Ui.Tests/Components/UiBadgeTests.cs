@@ -227,21 +227,6 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_kit_writes_no_daisy_badge_class_any_more()
-    {
-        var kit = string.Concat(
-            Ui.Badge.Color(Ui.Color.Green)["x"].ToHtml(),
-            Ui.NavbarItem.Href("/errors").Badge("12").BadgeColor(Ui.Color.Red)["Errors"].ToHtml(),
-            Ui.Select.Value("").Label("Email").Badge("Required").ToHtml());
-
-        Assert.DoesNotContain("class=\"badge", kit, StringComparison.Ordinal);
-        Assert.DoesNotContain(" badge-", kit, StringComparison.Ordinal);
-        // A navbar item's count and the label's own word beside a field ("Required") are theirs, not a Ui.Badge:
-        // one badge, not three.
-        Assert.Equal(1, kit.Split("data-ui-badge ").Length + kit.Split("data-ui-badge>").Length - 2);
-    }
-
-    [Fact]
     public void The_kit_sheet_carries_what_wraps_a_long_token_in_a_badge()
     {
         // Flux's badge has no such prop, so the Dashboard and DevTools hand the utilities to Class — from packages

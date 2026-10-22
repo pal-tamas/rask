@@ -58,13 +58,13 @@ public sealed class UiAppearanceScriptTests
 
         Assert.False(html.GetProperty("darkClass").GetBoolean());
         Assert.Equal("system", html.GetProperty("appearance").GetString());
-        Assert.Equal("light", html.GetProperty("dataTheme").GetString());
+        Assert.Equal(JsonValueKind.Null, html.GetProperty("dataTheme").ValueKind);
     }
 
     [Theory]
-    [InlineData(true, "dark")]
-    [InlineData(false, "light")]
-    public void The_scheme_is_mirrored_to_data_theme_while_daisyUI_draws_the_kit(bool osDark, string theme)
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_scheme_is_the_dark_class_alone_with_no_theme_attribute(bool osDark)
     {
         var scenario = new { key = Key, stored = (string?)null, osDark, steps = Array.Empty<object>() };
 
@@ -75,7 +75,8 @@ public sealed class UiAppearanceScriptTests
             return;
         }
 
-        Assert.Equal(theme, html.GetProperty("dataTheme").GetString());
+        Assert.Equal(osDark, html.GetProperty("darkClass").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, html.GetProperty("dataTheme").ValueKind);
     }
 
     [Fact]
@@ -145,7 +146,6 @@ public sealed class UiAppearanceScriptTests
         }
 
         Assert.True(html.GetProperty("darkClass").GetBoolean());
-        Assert.Equal("dark", html.GetProperty("dataTheme").GetString());
         Assert.True(html.GetProperty("earlierHookRan").GetBoolean());
     }
 
@@ -223,7 +223,7 @@ public sealed class UiAppearanceScriptTests
 
         var html = script.ToHtml();
 
-        Assert.StartsWith("<script>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<script data-rask-appearance=\"\">", html, StringComparison.Ordinal);
         Assert.EndsWith("</script>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-on", html, StringComparison.Ordinal);
     }

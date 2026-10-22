@@ -33,7 +33,7 @@ public sealed class StylingTests
     public void The_stylesheet_takes_Tailwind_and_the_kit_in_with_one_import()
     {
         // The app compiles ONE sheet, as a Flux app does: Tailwind, the kit's theme and `dark` variant,
-        // daisyUI, and the classes the kit's components write, beside the classes this project writes.
+        // and the classes the kit's components write, beside the classes this project writes.
         // The kit's precompiled sheet used to be linked ahead of this one, and two `@layer utilities`
         // are ranked by link order alone — the app's `bg-white` over the kit's `dark:bg-zinc-800`.
         var sheet = Code(Generate()["Styles/app.css"]);
@@ -46,7 +46,7 @@ public sealed class StylingTests
     {
         // Each of these was a line of the scaffold once, and each is in rask-ui.css now. A second copy
         // is a second Tailwind (every utility twice), a second layer order that can only be a no-op or
-        // wrong, and a second daisyUI whose theme paints :root where the kit's is scoped.
+        // wrong, and a plugin or a source the kit's import already settles.
         var sheet = Code(Generate()["Styles/app.css"]);
 
         Assert.DoesNotContain("@import \"tailwindcss\"", sheet, StringComparison.Ordinal);
@@ -58,9 +58,9 @@ public sealed class StylingTests
     [Fact]
     public void The_App_leaves_the_stylesheet_and_the_theme_to_the_host()
     {
-        // RaskApp links the app's one sheet and puts the theme scope on <html> — see RaskAppDocumentTests.
+        // RaskApp links the app's one sheet and writes the dark-mode script — see RaskAppDocumentTests.
         // An App that linked the kit's precompiled sheet as well would be the double include the build
-        // refuses, from a place the build cannot see; a Shell override would take the theme scope away.
+        // refuses, from a place the build cannot see.
         var app = Generate()["Features/Shared/App.cs"];
 
         Assert.DoesNotContain("UiStylesheet", app, StringComparison.Ordinal);
@@ -77,7 +77,6 @@ public sealed class StylingTests
         var csproj = Generate()["App.csproj"];
 
         Assert.DoesNotContain("RaskUiWriteStylesheet", csproj, StringComparison.Ordinal);
-        Assert.DoesNotContain("RaskUiWriteDaisyUiPlugin", csproj, StringComparison.Ordinal);
         Assert.DoesNotContain("RaskUiTailwind", csproj, StringComparison.Ordinal);
     }
 

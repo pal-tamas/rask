@@ -17,7 +17,7 @@ public partial class UiLinkTests : global::Rask.Core.RaskMarkup
         var html = link.ToHtml();
 
         Assert.Equal(
-            "<a class=\"font-medium underline-offset-[6px] text-fx-accent-content decoration-fx-accent-content/20 "
+            "<a class=\"font-medium underline-offset-[6px] text-accent-content decoration-accent-content/20 "
             + "underline hover:decoration-current\" data-ui-link href=\"https://example.test/\">Docs</a>",
             html);
     }
@@ -49,7 +49,7 @@ public partial class UiLinkTests : global::Rask.Core.RaskMarkup
 
         var html = link.ToHtml();
 
-        Assert.Contains("text-zinc-500 dark:text-white/70 hover:text-fx-accent-content no-underline\"", html, StringComparison.Ordinal);
+        Assert.Contains("text-zinc-500 dark:text-white/70 hover:text-accent-content no-underline\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public partial class UiLinkTests : global::Rask.Core.RaskMarkup
         var html = link.ToHtml();
 
         Assert.Contains("text-zinc-800 decoration-zinc-800/20 dark:text-white dark:decoration-white/20", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("fx-accent", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("accent", html, StringComparison.Ordinal);
     }
 
     [Fact]

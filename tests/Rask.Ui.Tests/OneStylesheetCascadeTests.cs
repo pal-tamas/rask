@@ -89,15 +89,14 @@ public sealed class OneStylesheetCascadeTests
         var selectors = string.Join('\n', Regex.Matches(_appWithKit.Value, @"\.dark\\:bg-red-500[^{]*\{").Select(m => m.Value));
 
         Assert.Contains(":where(.dark, .dark *)", selectors, StringComparison.Ordinal);
-        Assert.Contains("[data-rask-ui]:not([data-theme])", selectors, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-theme", selectors, StringComparison.Ordinal);
     }
 
     [Theory]
-    // An app's utilities beat its own preflight, daisyUI and the kit's rules...
+    // An app's utilities beat its own preflight and the kit's rules...
     [InlineData("base", "utilities")]
-    [InlineData("daisyui", "utilities")]
     [InlineData("rask", "utilities")]
-    // ...and the kit's corrections beat the daisyUI component rules they correct, which are in `utilities`.
+    // ...and the kit's few corrections beat the utilities they undo.
     [InlineData("utilities", "rask-ui-corrections")]
     [InlineData("theme", "base")]
     public void The_one_sheet_ranks_its_layers_as_the_kits_own_sheet_does(string lower, string higher)
@@ -119,7 +118,7 @@ public sealed class OneStylesheetCascadeTests
         var precompiled = Statement(File.ReadAllText(Path.Combine(styles, "ui.precompiled.css")));
         var app = Statement(File.ReadAllText(Path.Combine(styles, "rask-ui.css")));
 
-        Assert.Equal("properties, theme, base, components, daisyui, rask, utilities", app);
+        Assert.Equal("properties, theme, base, components, rask, utilities", app);
         Assert.Equal(precompiled, app);
     }
 

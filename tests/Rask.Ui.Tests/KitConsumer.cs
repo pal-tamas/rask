@@ -26,7 +26,6 @@ internal static class KitConsumer
         ["rask-ui.css"] = Path.Combine(_kit, "Styles", "rask-ui.css"),
         ["rask-ui.kit.css"] = Path.Combine(_kit, "Styles", "ui.css"),
         ["rask-ui.classes.txt"] = ClassList(),
-        ["daisyui.mjs"] = Path.Combine(_kit, "Styles", "daisyui.mjs"),
     };
 
     /// <summary>Compiles <paramref name="sheet" /> in an app whose one page writes <paramref name="markup" />.</summary>

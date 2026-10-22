@@ -24,15 +24,15 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
     // 32×20, the accent when on; in dark an outline that the fill replaces. 150ms on Tailwind's default curve.
     private const string Track =
         "group/switch relative flex h-5 w-8 min-w-8 items-center rounded-full transition "
-        + "bg-zinc-800/15 has-checked:bg-fx-accent "
-        + "dark:border dark:border-white/20 dark:bg-transparent dark:has-checked:border-0 dark:has-checked:bg-fx-accent "
+        + "bg-zinc-800/15 has-checked:bg-accent "
+        + "dark:border dark:border-white/20 dark:bg-transparent dark:has-checked:border-0 dark:has-checked:bg-accent "
         + "has-disabled:opacity-50 dark:has-disabled:border-white/10 "
         + "outline-offset-2 " + UiOptionLook.Focus;
 
     // 14px, 3px from the edge it rests against: 12px of travel.
     private const string Thumb =
         "size-3.5 rounded-full bg-white transition translate-x-[3px] dark:translate-x-[2px] "
-        + "group-has-checked/switch:translate-x-[15px] group-has-checked/switch:bg-fx-accent-foreground";
+        + "group-has-checked/switch:translate-x-[15px] group-has-checked/switch:bg-accent-foreground";
 
     private string? _ownId;
 

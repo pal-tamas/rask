@@ -27,8 +27,8 @@ public sealed partial class UiNavbarItem : Component, IUiTrigger
         + "dark:hover:aria-[current=page]:bg-white/10";
 
     private const string AccentCurrent =
-        "aria-[current=page]:text-fx-accent-content hover:aria-[current=page]:text-fx-accent-content "
-        + "aria-[current=page]:after:bg-fx-accent";
+        "aria-[current=page]:text-accent-content hover:aria-[current=page]:text-accent-content "
+        + "aria-[current=page]:after:bg-accent";
 
     private const string PlainCurrent =
         "aria-[current=page]:text-zinc-800 hover:aria-[current=page]:text-zinc-800 aria-[current=page]:after:bg-zinc-800 "

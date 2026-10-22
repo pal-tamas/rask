@@ -12,7 +12,7 @@ public sealed partial class DevToolsKitTestApp : Component
     private readonly List<string> _rows = ["one", "two"];
 
     protected override Component? Render() =>
-        Div.Attributes((UiStylesheet.ThemeScopeAttribute, ""), ("data-theme", "light"))[
+        Div[
             Ui.Header[Ui.Brand.Name("Kit").Href("#")],
             Ui.Main[
                 DevToolsKitBoard.Heading("Board")[

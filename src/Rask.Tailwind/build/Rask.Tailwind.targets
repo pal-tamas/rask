@@ -202,7 +202,7 @@
     The source LIST, written where the build can compare it (#1016).
 
     Inputs/Outputs compares timestamps, and a DELETED file has none. Remove the last component using
-    `bg-ui-brand` and every remaining source is older than the sheet, so the target is skipped and the
+    `bg-sky-600` and every remaining source is older than the sheet, so the target is skipped and the
     sheet keeps a utility nothing writes any more. The page still renders, so the staleness shows up as
     styling that is a version behind — the shape this repository's casebook keeps recording.
 

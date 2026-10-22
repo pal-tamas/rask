@@ -13,9 +13,9 @@ namespace Rask.UiTests;
 ///     by, including the consuming app's own Tailwind output.
 ///     </para>
 ///     <para>
-///     Left implicit, that order came out as <c>properties, theme, utilities, daisyui, rask, base</c> —
-///     daisyUI emits its <c>base</c> rules last — which put <c>base</c> ABOVE <c>utilities</c> for the
-///     entire page. The app's own <c>@layer theme, base, components, utilities;</c> was then a no-op,
+///     Left implicit, that order came out as <c>properties, theme, utilities, …, base</c> — a plugin
+///     the kit used to load emitted its <c>base</c> rules last — which put <c>base</c> ABOVE <c>utilities</c>
+///     for the entire page. The app's own <c>@layer theme, base, components, utilities;</c> was then a no-op,
 ///     because those names were already ordered, and its Tailwind preflight outranked every utility it
 ///     had emitted. On rask.sh that rendered the whole site as near-unstyled HTML with every class name
 ///     present and correct in the markup, on a green build: <c>h1.text-4xl.font-semibold</c> computed to
@@ -66,18 +66,12 @@ public sealed class UiLayerOrderTests
     [Theory]
     // A consuming app's utilities must beat its own preflight. This is the pair that broke.
     [InlineData("base", "utilities")]
-    // …and they must beat both daisyUI and the kit's own corrections, which is the "an app keeps its
-    // own cascade" promise the layer() imports in ui.css are already making.
-    [InlineData("daisyui", "utilities")]
+    // …and they must beat the kit's own rules, which is the "an app keeps its own cascade" promise the
+    // layer() imports in ui.css are already making.
     [InlineData("rask", "utilities")]
-    // The kit's corrections exist precisely to outrank the library they correct.
-    [InlineData("daisyui", "rask")]
-    // The corrections layer outranks UTILITIES, which is where daisyUI actually emits its component rules
-    // (`.btn-primary` is in there, not in the `daisyui` layer its name implies). `rask` is deliberately
-    // below `utilities` so an app keeps its own cascade — so a correction that has to beat a daisyUI
-    // component rule cannot live there. Written in `rask`, the kit's tone corrections computed the right
-    // value and lost the cascade: a browser measured .btn-primary at 3.29:1 on `corporate` while the
-    // compiled sheet contained the fix and every token-level test passed.
+    // The corrections layer outranks UTILITIES: `rask` is deliberately below `utilities` so an app keeps its
+    // own cascade, so a kit rule that has to undo a utility (a docked sidebar's toggle, a control on paper)
+    // cannot live there.
     [InlineData("utilities", "rask-ui-corrections")]
     // Tokens have to be defined before the reset that reads them.
     [InlineData("theme", "base")]

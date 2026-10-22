@@ -16,7 +16,7 @@ public partial class UiContextTests : global::Rask.Core.RaskMarkup
 {
     private static global::Rask.Core.Component Menu() =>
         Ui.Context[
-            Div.Class("card")["Invoice 42"],
+            Div.Class("p-4")["Invoice 42"],
             Ui.Menu[
                 Ui.MenuItem["Open"],
                 Ui.MenuItem.Disabled(true)["Duplicate"],

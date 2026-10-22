@@ -8,7 +8,7 @@ namespace Rask.Tailwind.Tasks;
 /// <remarks>
 ///     <para>
 ///         Tailwind reads every word of a scanned file as a candidate class, and prose is words. A doc
-///         comment saying "a magnifying glass" put daisyUI's <c>.glass</c> into the kit's sheet and into
+///         comment saying "a magnifying glass" put a <c>.glass</c> rule into the kit's sheet and into
 ///         every app compiled from its class list (#1214). The code is kept whole — a class is written
 ///         as a string literal, but a scan that saw only literals would be a different scan, and the
 ///         sheet must not lose a rule some other token was carrying.

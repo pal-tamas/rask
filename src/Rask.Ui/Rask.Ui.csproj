@@ -25,7 +25,7 @@
     <PackageId>Rask.Ui</PackageId>
     <Title>Rask — UI Kit</Title>
     <Description>The Rask component kit: the chrome, controls, data display and overlays the framework's own surfaces are built from — shell, top bar, breadcrumb switcher, tab bar, buttons, search, status dots, metric rows, detail lists, code blocks, sheets and toasts. Mobile-first, Tailwind v4 only, and no JavaScript but the rich text editor's and the phone field's, which a page loads only when it draws one. An app with a Tailwind build compiles the kit into its one stylesheet with a single import; a precompiled sheet is embedded for a surface without one.</Description>
-    <PackageTags>dotnet csharp aspnetcore webassembly net10 ui-kit components daisyui tailwind design-system mobile-first</PackageTags>
+    <PackageTags>dotnet csharp aspnetcore webassembly net10 ui-kit components flux-ui tailwind design-system mobile-first</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README instead of the shared framework overview Directory.Build.props
@@ -115,8 +115,8 @@
 
   <!--
     THE SCAN READS CODE, NOT PROSE. Tailwind takes every word of a file it scans as a candidate class,
-    and a doc comment is words: "A magnifying glass when unset." on two search fields put daisyUI's
-    `.glass` into this sheet, into the class list, and so into every app compiled from it (#1214). Nothing
+    and a doc comment is words: "A magnifying glass when unset." on two search fields put a
+    `.glass` rule into this sheet, into the class list, and so into every app compiled from it (#1214). Nothing
     caught it but the CLI build's Tailwind test, a push later.
 
     So Tailwind does not run over this project. It runs in obj/<tfm>/tailwind-scan, a copy of the
@@ -232,14 +232,10 @@
       how an app's `bg-white` came to beat the kit's `dark:bg-zinc-800` — so it gets the kit's sources
       instead and compiles them itself, with one line: `@import "./vendor/rask-ui.css";`.
 
-      Four files, written into the app's Styles/vendor/ by build/Rask.Ui.targets:
+      Three files, written into the app's Styles/vendor/ by build/Rask.Ui.targets:
         rask-ui.css          the line an app imports: layer order, Tailwind, the kit, the class list.
         rask-ui.kit.css      Styles/ui.css under the name an app sees — theme, `dark` variant, rules.
         rask-ui.classes.txt  every class the kit's components write (PackRaskUiStylesheet, above).
-        daisyui.mjs          the daisyUI plugin the kit file loads; goes when daisyUI does.
-
-      Tailwind's standalone engine carries no package tree to resolve `@plugin "daisyui"` the Node way,
-      which is why the bundle travels and is named by relative path: no npm install, no node_modules.
 
       Not EmbeddedResources: the copy has to happen at BUILD time, before Tailwind runs.
     -->
@@ -247,8 +243,6 @@
     <None Include="Styles\rask-ui.css" Pack="true" PackagePath="buildTransitive\rask-ui.css" Visible="false"/>
     <None Include="Styles\ui.css" Pack="true" PackagePath="build\rask-ui.kit.css" Visible="false"/>
     <None Include="Styles\ui.css" Pack="true" PackagePath="buildTransitive\rask-ui.kit.css" Visible="false"/>
-    <None Include="Styles\daisyui.mjs" Pack="true" PackagePath="build\" Visible="false"/>
-    <None Include="Styles\daisyui.mjs" Pack="true" PackagePath="buildTransitive\daisyui.mjs" Visible="false"/>
   </ItemGroup>
 
   <!--

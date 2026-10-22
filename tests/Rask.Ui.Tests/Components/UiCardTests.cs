@@ -307,22 +307,6 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         Assert.Contains(mine + "\"", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void No_part_writes_a_daisy_class_or_a_retired_token()
-    {
-        var card = Ui.Card.Inset.Soft[
-            Ui.CardHeader[Ui.CardHeading["h"], Ui.CardSubheading["s"], Ui.CardActions["a"]],
-            Ui.CardBody[Ui.CardBleed["m"]],
-            Ui.CardFooter["f"]
-        ];
-
-        var html = card.ToHtml();
-
-        Assert.DoesNotContain("base-", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("ui-bg", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("card-body", html.Replace("data-ui-card-body", "", StringComparison.Ordinal), StringComparison.Ordinal);
-    }
-
     // The opening tag that ends with `marker`, which is where a part's classes are.
     private static string Part(string html, string marker)
     {

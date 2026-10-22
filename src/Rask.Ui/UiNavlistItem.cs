@@ -19,7 +19,7 @@ public sealed partial class UiNavlistItem : Component
         + "aria-[current=page]:bg-zinc-800/[4%] dark:aria-[current=page]:bg-white/[7%]";
 
     private const string AccentCurrent =
-        "aria-[current=page]:text-fx-accent-content hover:aria-[current=page]:text-fx-accent-content";
+        "aria-[current=page]:text-accent-content hover:aria-[current=page]:text-accent-content";
 
     private const string PlainCurrent =
         "aria-[current=page]:text-zinc-800 hover:aria-[current=page]:text-zinc-800 "

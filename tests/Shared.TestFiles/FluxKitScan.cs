@@ -22,8 +22,8 @@ internal static class FluxKitScan
     // every Flux page's head carries (a helper there).
     private static readonly string[] FluxBesidesTheSnapshot = ["Navmenu", "NavmenuItem", "Spacer", "AppearanceScript"];
 
-    // The kit's own vocabulary for things Flux says otherwise: daisyUI's tones, themes and breakpoints, and the
-    // class lists that went with them.
+    // The kit's old vocabulary for things Flux says otherwise: tones, themes and breakpoints, and the class lists
+    // that went with them. None may come back.
     private static readonly string[] NotFlux = ["Tone", "ThemeName", "Breakpoint", "Styles", "Theme"];
 
     /// <summary>Every kit piece the C# under <paramref name="sourceRoot" /> names that is not Flux's, with where.</summary>
@@ -58,7 +58,7 @@ internal static class FluxKitScan
 
     // A name is Flux's when the snapshot lists its part, or it is one of the few Flux pieces the snapshot does not
     // head. A type of the kit that is no component — an enum, the paginator, the stylesheet's constants — is a
-    // value, not a piece drawn, except the daisyUI-era vocabulary in NotFlux.
+    // value, not a piece drawn, except the old vocabulary in NotFlux.
     private static IEnumerable<string> NotFluxNames(string line, HashSet<string> flux)
     {
         var kit = typeof(UiTable).Assembly;

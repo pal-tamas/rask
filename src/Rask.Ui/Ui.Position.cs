@@ -9,7 +9,7 @@ public static partial class Ui
     /// <para>
     /// One of the two words every floating part in the kit is placed with, and the same two Flux UI uses:
     /// <c>Position</c> picks the SIDE, <see cref="Ui.Align" /> slides the part along that side. They are two
-    /// properties rather than one enum because daisyUI composes them — <c>dropdown-top dropdown-end</c> is a
+    /// properties rather than one enum because they compose — <c>Position.Top</c> with <c>Align.End</c> is a
     /// menu above its trigger, flush with the trigger's end edge — and a single enum can only name one of the
     /// pair, which is how the old <c>UiPlacement</c> came to mix sides and edges and offer neither whole.
     /// </para>
@@ -21,7 +21,7 @@ public static partial class Ui
     /// </remarks>
     public enum Position
     {
-        /// <summary>The component's own default, whatever daisyUI's theme says that is.</summary>
+        /// <summary>The component's own default.</summary>
         Default = 0,
 
         /// <summary>Above.</summary>

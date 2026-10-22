@@ -79,12 +79,12 @@ internal static class UiCalendarLook
 
     internal const string DaySelected =
         "flex flex-col items-center justify-center rounded-lg text-sm font-medium cursor-default "
-        + "bg-fx-accent text-fx-accent-foreground";
+        + "bg-accent text-accent-foreground";
 
     internal const string DayStatic = "relative flex items-center justify-center rounded-lg text-sm font-medium text-zinc-800 dark:text-white";
 
     internal const string DayStaticSelected =
-        "relative flex items-center justify-center rounded-lg text-sm font-medium bg-fx-accent text-fx-accent-foreground";
+        "relative flex items-center justify-center rounded-lg text-sm font-medium bg-accent text-accent-foreground";
 
     internal const string DayText = "relative";
 
@@ -98,7 +98,7 @@ internal static class UiCalendarLook
 
     internal const string Dot = "size-1 rounded-full bg-zinc-800 dark:bg-white";
 
-    internal const string DotSelected = "size-1 rounded-full bg-fx-accent-foreground";
+    internal const string DotSelected = "size-1 rounded-full bg-accent-foreground";
 
     // Under 640 px Flux draws a day a thumb can press and a week the phone can hold: measured there are Xs (40),
     // Sm and Base (44) and Xl (48). Lg is 48 at every width; Xxl has no example, and is drawn as Xl on a phone.

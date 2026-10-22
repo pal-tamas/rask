@@ -14,10 +14,9 @@ That is the whole setup — and there was no step you skipped. Styling is
 [not a choice `rask new` offers](cli.md#rask-new--scaffold-a-project): every project is a Tailwind
 project, with no flag to pass, nothing to turn on, and nothing to turn off.
 
-**And a daisyUI project.** [daisyUI](ui-kit.md) is a Tailwind plugin — component classes like `btn`,
-`card` and `navbar` on top of the utilities — and it arrives with [the UI kit](ui-kit.md), in the same
-import: already there, no npm, nothing to install. It is what the scaffolded starter page is written in, on every template `rask new`
-can emit, so a project looks the same whether it runs on the server or in WebAssembly.
+**And a Flux UI project.** [The UI kit](ui-kit.md) — Flux UI's components as C# — arrives in the same
+import: already there, no npm, nothing to install. It is what the scaffolded pages are drawn with, on every
+template `rask new` can emit, so a project looks the same whether it runs on the server or in WebAssembly.
 
 It works on every template. On `wasm` the stylesheet belongs to the **browser**
 project — Tailwind scans the tree it runs in, and the components whose classes it is looking for are
@@ -42,7 +41,7 @@ One file and one link — the whole of it, and all of it already there:
    the way a [Flux](https://fluxui.dev) app does. `rask-ui.css` is four lines:
 
    ```css
-   @layer properties, theme, base, components, daisyui, rask, utilities;
+   @layer properties, theme, base, components, rask, utilities;
 
    @import "tailwindcss";
    @import "./rask-ui.kit.css";
@@ -50,12 +49,11 @@ One file and one link — the whole of it, and all of it already there:
    ```
 
    - **`@layer`** declares the order for the document before anything can imply another: your
-     utilities above preflight, above daisyUI and above the kit's own rules. It is why the import goes
+     utilities above preflight and above the kit's own rules. It is why the import goes
      first in your sheet.
-   - **`rask-ui.kit.css`** is the kit as Tailwind source: its `@theme` tokens, the `dark` variant its
-     components and your `dark:` utilities share, [daisyUI](ui-kit.md) (loaded from `daisyui.mjs`
-     beside it, by relative path — the standalone engine carries no package tree, so there is still
-     **no npm and no `node_modules`**), and the few rules a utility cannot say.
+   - **`rask-ui.kit.css`** is the kit as Tailwind source: Flux's `@theme` tokens (the accent), the `dark`
+     variant its components and your `dark:` utilities share, and the few rules a utility cannot say —
+     still **no npm and no `node_modules`**.
    - **`rask-ui.classes.txt`** is every class the kit's components write. They are C# string literals
      in a compiled assembly, where no scan can find them, so the kit's build lists them and yours reads
      the list.
@@ -103,35 +101,13 @@ variants, a shorthand before its longhands. So the build **refuses** the old pai
 `<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` in a project that compiles its own Tailwind
 stylesheet is an error, with the line to write instead.
 
-**Upgrading an app scaffolded before this:**
-
-```diff
-  /* Styles/app.css */
-- @layer properties, theme, base, components, daisyui, utilities;
--
-- @import "tailwindcss";
--
-- @source not "./vendor";
-- @plugin "./vendor/daisyui.mjs";
-+ @import "./vendor/rask-ui.css";
-```
-
-```diff
-  <!-- the .csproj -->
-- <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
-- <RaskUiWriteDaisyUiPlugin>true</RaskUiWriteDaisyUiPlugin>
-```
-
-and, in a hand-wired host, drop the `UiStylesheet.Href()` link. `wwwroot/css/rask-ui.css` is deleted by
-the next build.
-
 ### Without Tailwind's preflight, or with a layer of your own
 
 `rask-ui.css` is short so that you can write it out. A sheet that wants Tailwind's utilities without
 its reset imports the kit's own file and says the rest itself — this is what `Rask.Dashboard` does:
 
 ```css
-@layer properties, theme, base, components, daisyui, rask, utilities;
+@layer properties, theme, base, components, rask, utilities;
 
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);

@@ -107,7 +107,7 @@ public sealed partial class PwaPage : Component
                         Li.Key(section.Slug)[
                             A
                                 .Href("#" + section.Slug)
-                                .Class("text-sm text-fx-accent-content underline-offset-2 hover:underline")[
+                                .Class("text-sm text-accent-content underline-offset-2 hover:underline")[
                                     section.Title
                                 ]
                         ])

@@ -20,16 +20,18 @@ internal sealed partial class DevToolsShell : Component
     [
         Meta.Charset("utf-8"),
         Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
+        // Dark mode as Flux has it: the app's own appearance (same origin, same key), the system's until one is
+        // picked — so the panel matches the page it is docked to, as a browser's own devtools follow its setting.
+        Ui.AppearanceScript,
         // A developer tool has no business in a search index.
         Meta.Name("robots").Content("noindex, nofollow"),
     ];
 
     /// <summary>
-    ///     The kit's theme scope on <c>&lt;html&gt;</c>, where its tokens resolve — with no theme named, so the panel
-    ///     follows the developer's light or dark setting the way their browser's own devtools do.
+    ///     A document drawn with the kit alone: its reset and its ground (<see cref="UiStylesheet.DocumentAttribute" />).
     /// </summary>
     protected override Component Shell(Component head, Component body) =>
-        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.ThemeScopeAttribute, ""), (UiStylesheet.DocumentAttribute, ""))[
+        Html.Lang(HtmlLang).Dir(HtmlDir).Attributes((UiStylesheet.DocumentAttribute, ""))[
             head,
             Body.Class(BodyClass)[body]
         ];

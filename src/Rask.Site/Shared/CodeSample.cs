@@ -141,8 +141,8 @@ public sealed partial class CodeSample : Component
             Div.Class("sample-result-col flex flex-col border-t border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 p-4")[
                 // The output side of the pairing: a dot in the brand colour, pulsing unless the visitor asked for
                 // less motion, beside a mono label that rhymes with the code header above.
-                Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-fx-accent-content")[
-                    Span.Class("sample-dot size-2 rounded-full bg-fx-accent motion-safe:animate-pulse").Aria("hidden", "true"),
+                Div.Class("sample-result-label mb-3 inline-flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-accent-content")[
+                    Span.Class("sample-dot size-2 rounded-full bg-accent motion-safe:animate-pulse").Aria("hidden", "true"),
                     "Live result"
                 ],
                 Div.Class("sample-result-body flex-1")[Result ?? null]

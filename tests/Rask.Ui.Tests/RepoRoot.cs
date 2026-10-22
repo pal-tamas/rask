@@ -5,7 +5,7 @@ namespace Rask.UiTests;
 /// </summary>
 /// <remarks>
 ///     Several tests here assert on files in the SOURCE tree rather than on the compiled kit — the
-///     vendored daisyUI bundle, <c>ui.css</c>, <c>Rask.Ui.targets</c> — because those are the artifacts
+///     <c>ui.css</c>, <c>rask-ui.css</c>, <c>Rask.Ui.targets</c> — because those are the artifacts
 ///     whose agreement is the thing under test. Each had grown its own copy of this walk.
 /// </remarks>
 internal static class RepoRoot

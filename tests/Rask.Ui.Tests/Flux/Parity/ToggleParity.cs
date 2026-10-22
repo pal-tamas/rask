@@ -20,7 +20,7 @@ public sealed partial class ToggleParity : FluxParity
     // What an app's own Tailwind build emits for the classes "Custom icons" hands its two drawings.
     private const string AppUtilities =
         "<style>.parity-icon{width:20px;height:20px;flex-shrink:0}"
-        + ".parity-on{display:none;color:var(--color-fx-accent-content)}"
+        + ".parity-on{display:none;color:var(--color-accent-content)}"
         + "[data-checked] .parity-on{display:block}[data-checked] .parity-off{display:none}"
         + ".parity-off{color:color-mix(in oklab,oklch(55.2% .016 285.938) 85%,transparent)}"
         + "@media (prefers-color-scheme:dark){.parity-off{color:color-mix(in oklab,oklch(87.1% .006 286.286) 80%,transparent)}}</style>";

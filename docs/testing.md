@@ -442,7 +442,7 @@ public void Setting_every_prop_emits_the_base_attributes_before_the_tags_own() =
             .Name("action")
             .Value("save")
             .Id("go")
-            .Class("btn")
+            .Class("cta")
             .Style("color:red")
             .Data("test-id", "primary")
             .ToHtml());

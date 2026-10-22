@@ -484,7 +484,7 @@ self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`):
 | `fixtures.py` | the adapter fixtures in `Rask.External.Tests.csproj` (rxjs: the newest Angular's peer range takes) | npm |
 | `actions.py` | the action majors in the deploy workflow `rask deploy` scaffolds | GitHub releases |
 
-Not followed, on purpose: Roslyn (held to the SDK's compiler), daisyUI (leaving with the Flux rebuild).
+Not followed, on purpose: Roslyn (held to the SDK's compiler).
 The runner image (`runs-on: ubuntu-26.04`) is moved by hand: the workflow token may not push a change
 to `.github/workflows`.
 

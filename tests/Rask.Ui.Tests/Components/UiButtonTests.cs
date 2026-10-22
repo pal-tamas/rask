@@ -25,7 +25,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
     [Theory]
     [InlineData(Ui.ButtonVariant.Outline, "border-b-zinc-300/80")]
-    [InlineData(Ui.ButtonVariant.Primary, "bg-fx-accent")]
+    [InlineData(Ui.ButtonVariant.Primary, "bg-accent")]
     [InlineData(Ui.ButtonVariant.Filled, "bg-zinc-800/5")]
     [InlineData(Ui.ButtonVariant.Danger, "bg-red-500")]
     [InlineData(Ui.ButtonVariant.Ghost, "hover:bg-zinc-800/5")]
@@ -84,8 +84,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var blue = Ui.Button.Primary.Blue["Save"].ToHtml();
         var amber = Ui.Button.Primary.Amber["Save"].ToHtml();
 
-        Assert.Contains("[--color-fx-accent:var(--color-blue-500)] [--color-fx-accent-foreground:var(--color-white)]", blue, StringComparison.Ordinal);
-        Assert.Contains("[--color-fx-accent:var(--color-amber-400)] [--color-fx-accent-foreground:var(--color-amber-950)]", amber, StringComparison.Ordinal);
+        Assert.Contains("[--color-accent:var(--color-blue-500)] [--color-accent-foreground:var(--color-white)]", blue, StringComparison.Ordinal);
+        Assert.Contains("[--color-accent:var(--color-amber-400)] [--color-accent-foreground:var(--color-amber-950)]", amber, StringComparison.Ordinal);
         Assert.DoesNotContain("--ui-hue-", blue, StringComparison.Ordinal);
     }
 
@@ -95,7 +95,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var primary = Ui.Button.Primary.Slate["Save"].ToHtml();
         var outline = Ui.Button.Slate["Save"].ToHtml();
 
-        Assert.Contains("[--color-fx-accent:var(--color-slate-800)]", primary, StringComparison.Ordinal);
+        Assert.Contains("[--color-accent:var(--color-slate-800)]", primary, StringComparison.Ordinal);
         Assert.Equal(Ui.Button["Save"].ToHtml(), outline);
     }
 

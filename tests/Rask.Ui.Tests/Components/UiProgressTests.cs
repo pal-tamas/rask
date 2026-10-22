@@ -54,9 +54,9 @@ public partial class UiProgressTests : global::Rask.Core.RaskMarkup
         var accent = Ui.Progress.Value(75).ToHtml();
         var purple = Ui.Progress.Value(75).Color(Ui.Color.Purple).ToHtml();
 
-        Assert.Contains("bg-fx-accent", accent, StringComparison.Ordinal);
+        Assert.Contains("bg-accent", accent, StringComparison.Ordinal);
         Assert.Contains("bg-purple-600 dark:bg-purple-400", purple, StringComparison.Ordinal);
-        Assert.DoesNotContain("bg-fx-accent", purple, StringComparison.Ordinal);
+        Assert.DoesNotContain("bg-accent", purple, StringComparison.Ordinal);
     }
 
     [Theory]

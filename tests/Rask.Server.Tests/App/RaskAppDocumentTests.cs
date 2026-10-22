@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -11,11 +12,12 @@ namespace Rask.Server.Tests.App;
 
 /// <summary>
 ///     A <see cref="RaskApp"/> writes the document around the App — the charset and viewport, the UI kit's
-///     stylesheet and its theme scope on <c>&lt;html&gt;</c> — so an App is a title and a router.
+///     dark-mode script and its stylesheet — so an App is a title and a router.
 /// </summary>
 /// <remarks>
-///     The theme scope is the one whose absence is silent: without it every kit component renders
-///     structurally correct and completely grey, which only a page's own HTML can show.
+///     Dark mode is Flux's layout's (<c>@fluxAppearance</c>): the script on every page, before the stylesheets, so a
+///     page follows the reader's appearance from its first paint. Without it a scaffold's <c>dark:</c> utilities never
+///     turn on.
 /// </remarks>
 [Collection(RaskAppCollection.Name)]
 public sealed class RaskAppDocumentTests
@@ -27,11 +29,14 @@ public sealed class RaskAppDocumentTests
 
         var html = await PageAsync(app);
 
-        Assert.Contains($"<html lang=\"en\" {UiStylesheet.ThemeScopeAttribute}", html, StringComparison.Ordinal);
+        Assert.Contains("<html lang=\"en\">", html, StringComparison.Ordinal);
         var charset = html.IndexOf("charset=\"utf-8\"", StringComparison.Ordinal);
+        var appearance = html.IndexOf("data-rask-appearance=\"", StringComparison.Ordinal);
         var kit = html.IndexOf(UiStylesheet.Href(), StringComparison.Ordinal);
         var title = html.IndexOf("rask-server-tests</title>", StringComparison.Ordinal);
-        Assert.True(charset >= 0 && kit > charset && title > kit, $"expected charset, kit sheet, then title:\n{html}");
+        Assert.True(
+            charset >= 0 && appearance > charset && kit > appearance && title > kit,
+            $"expected charset, the appearance script, the kit sheet, then title:\n{html}");
         Assert.Contains("name=\"viewport\"", html, StringComparison.Ordinal);
     }
 
@@ -44,7 +49,7 @@ public sealed class RaskAppDocumentTests
 
         var html = await PageAsync(app);
 
-        Assert.DoesNotContain(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-appearance", html, StringComparison.Ordinal);
         Assert.DoesNotContain(UiStylesheet.Href(), html, StringComparison.Ordinal);
         Assert.Contains("charset=\"utf-8\"", html, StringComparison.Ordinal);
     }
@@ -70,8 +75,23 @@ public sealed class RaskAppDocumentTests
             await app.StopAsync(TestContext.Current.CancellationToken);
         }
 
-        Assert.DoesNotContain(UiStylesheet.ThemeScopeAttribute, html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-appearance", html, StringComparison.Ordinal);
         Assert.DoesNotContain(UiStylesheet.Href(), html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_app_that_writes_its_own_appearance_script_gets_exactly_one_and_it_is_its_own()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0")).Build<OwnAppearanceApp>();
+
+        var html = await PageAsync(app);
+
+        var scripts = Regex.Matches(html, "data-rask-appearance=\"").Count;
+        Assert.Equal(1, scripts);
+        Assert.Contains("K='app.look'", html, StringComparison.Ordinal);
+        Assert.True(
+            html.IndexOf("data-rask-appearance", StringComparison.Ordinal) < html.IndexOf(UiStylesheet.Href(), StringComparison.Ordinal),
+            $"the app's script took the host's place ahead of the stylesheets:\n{html}");
     }
 
     [Fact]
@@ -105,8 +125,8 @@ public sealed class RaskAppDocumentTests
 
         Assert.Null(one.KitStylesheet);
         Assert.Equal("css/app.css", one.AppStylesheet);
-        // The theme scope stays: the kit's theme is in that one sheet, still confined to data-rask-ui.
-        Assert.NotNull(one.HtmlAttributes);
+        // The dark-mode script stays: it is the kit's, whichever sheet carries the kit's classes.
+        Assert.NotNull(one.HeadScript);
         Assert.NotNull(two.KitStylesheet);
     }
 

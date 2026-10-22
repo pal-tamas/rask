@@ -27,9 +27,9 @@ internal static class RaskDocument
         new(
             kit && Metadata(app, KitStylesheetMetadata) is null ? UiStylesheet.Href : null,
             StylesheetOf(app),
-            kit
-                ? new Dictionary<string, string?>(StringComparer.Ordinal) { [UiStylesheet.ThemeScopeAttribute] = "" }
-                : null,
+            // Dark mode the way Flux's layout has it (@fluxAppearance): every page of an app on the kit follows the
+            // reader's appearance — the system's until they pick one.
+            kit ? () => Ui.AppearanceScript : null,
             // Toasts are always built in: the kit's look with the kit on, Rask's own without it.
             kit
                 ? (messages, dismiss) => UiToast.Messages(messages, dismiss, toasts)

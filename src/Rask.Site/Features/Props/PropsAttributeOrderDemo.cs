@@ -6,6 +6,6 @@ public sealed partial class PropsAttributeOrderDemo : Component
         A
             .Href("/tags")
             .Id("out")
-            .Class("font-medium text-fx-accent-content underline underline-offset-4")
+            .Class("font-medium text-accent-content underline underline-offset-4")
             .Data("external", "true")["See HTML order"];
 }

@@ -152,16 +152,6 @@ public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_stylesheet_no_longer_carries_the_tooltip_it_replaced()
-    {
-        var css = UiStylesheet.Css;
-
-        // The bare word in a kit comment would bring daisyUI's class back; the plugin's `exclude` keeps it out.
-        Assert.DoesNotContain(".tooltip", css, StringComparison.Ordinal);
-        Assert.DoesNotContain("--tt-", css, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void A_gap_is_the_inset_that_faces_the_trigger_and_an_offset_slides_it_along_that_side()
     {
         var above = Ui.Tooltip.Content("Settings").Gap(12).Offset(20)[Button["Open"]].ToHtml();

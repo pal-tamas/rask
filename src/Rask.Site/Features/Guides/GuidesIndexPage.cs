@@ -51,7 +51,7 @@ public sealed partial class GuidesIndexPage : Component
     private static Component Install() =>
         Div.Class("install-block mb-6 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 p-4 sm:p-5")[
             Div.Class("flex items-center gap-2")[
-                Ui.Icon.Name(Ui.IconName.CommandLine).Class("size-5 shrink-0 text-fx-accent-content"),
+                Ui.Icon.Name(Ui.IconName.CommandLine).Class("size-5 shrink-0 text-accent-content"),
                 H2.Class("text-base font-semibold tracking-tight text-zinc-800 dark:text-white sm:text-lg")["Start a project"]
             ],
             P.Class("mt-1 text-sm text-zinc-500 dark:text-white/70")[
@@ -74,5 +74,5 @@ public sealed partial class GuidesIndexPage : Component
             ]
         ];
 
-    private static Component Prompt() => Span.Class("select-none text-fx-accent-content")["$"];
+    private static Component Prompt() => Span.Class("select-none text-accent-content")["$"];
 }

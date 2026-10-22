@@ -146,8 +146,8 @@
       It was `obj/net10.0/ui.generated.css`. Rask.Ui multi-targets net10.0;net10.0-browser, so that
       path exists only if something built the net10.0 face — which a developer's machine always has,
       and a clean CI checkout building a browser-WASM app never does. The published site at rask.sh
-      shipped ENTIRELY UNSTYLED for exactly this reason: the base colours and the whole daisyUI palette
-      live in this sheet, so with it missing every colour token resolved to nothing. The page was
+      shipped ENTIRELY UNSTYLED for exactly this reason: every colour the kit's components write lives in
+      this sheet, so with it missing nothing had a colour. The page was
       structurally perfect and completely grey, and the only trace was one warning in a build log.
 
       So: the consumer's own TFM first, because that is the matching sheet, and any TFM the kit has
@@ -244,7 +244,7 @@
            Text="Rask.Ui: $(RaskTailwindInput) compiles the kit into this project's own stylesheet (it imports rask-ui.css), and RaskUiWriteStylesheet=true asks for the kit's precompiled sheet as well. That is the kit twice, in two sheets whose utilities are ranked by link order alone, so one of this app's utilities can outrank a kit variant (bg-white over dark:bg-zinc-800). Remove &lt;RaskUiWriteStylesheet&gt; from the project and any link to UiStylesheet.Href() from the app."/>
 
     <Error Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(_RaskUiTailwind)' != 'true' AND '$(RaskUiWriteStylesheet)' == 'true'"
-           Text="Rask.Ui: this project compiles its own Tailwind stylesheet ($(RaskTailwindInput)) and RaskUiWriteStylesheet=true links the kit's precompiled sheet beside it. Two sheets each carry an `@layer utilities`, ranked by link order alone, so one of this app's utilities can outrank a kit variant (bg-white over dark:bg-zinc-800). Compile ONE sheet instead: in $(RaskTailwindInput) replace `@import &quot;tailwindcss&quot;;` (and any layer statement or daisyUI `@plugin` line) with `@import &quot;./vendor/rask-ui.css&quot;;`, and remove &lt;RaskUiWriteStylesheet&gt; from the project. See docs/ui-kit.md."/>
+           Text="Rask.Ui: this project compiles its own Tailwind stylesheet ($(RaskTailwindInput)) and RaskUiWriteStylesheet=true links the kit's precompiled sheet beside it. Two sheets each carry an `@layer utilities`, ranked by link order alone, so one of this app's utilities can outrank a kit variant (bg-white over dark:bg-zinc-800). Compile ONE sheet instead: in $(RaskTailwindInput) replace `@import &quot;tailwindcss&quot;;` (and any layer statement of its own) with `@import &quot;./vendor/rask-ui.css&quot;;`, and remove &lt;RaskUiWriteStylesheet&gt; from the project. See docs/ui-kit.md."/>
 
     <Error Condition="'$(_RaskUiHasTailwind)' == 'true' AND '$(_RaskUiImported)' == 'true' AND '$(RaskUiTailwind)' == 'false'"
            Text="Rask.Ui: $(RaskTailwindInput) imports the kit's Tailwind sources (rask-ui.css) but RaskUiTailwind=false tells the build not to write them, so the import cannot resolve. Remove one of the two."/>
@@ -257,11 +257,10 @@
       <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.css" Name="rask-ui.css"/>
       <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.kit.css" Name="rask-ui.kit.css"/>
       <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)rask-ui.classes.txt" Name="rask-ui.classes.txt"/>
-      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)daisyui.mjs" Name="daisyui.mjs"/>
     </ItemGroup>
 
     <!--
-      In-repo there is no package: the three sources are in the kit's own Styles/ (ui.css is what ships as
+      In-repo there is no package: the two sources are in the kit's own Styles/ (ui.css is what ships as
       rask-ui.kit.css), and the class list is build output in its obj/ — per TFM, so the consumer's own
       face first and any face the kit has built as the fallback, exactly as for the precompiled sheet
       above and for the reason recorded there. The kit has been built by now: this runs as a hook on
@@ -270,12 +269,11 @@
     <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND '@(_RaskUiTailwindSource)' == ''">
       <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/rask-ui.css" Name="rask-ui.css"/>
       <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/ui.css" Name="rask-ui.kit.css"/>
-      <_RaskUiTailwindSource Include="$(MSBuildThisFileDirectory)../Styles/daisyui.mjs" Name="daisyui.mjs"/>
       <_RaskUiClassList Include="$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/rask-ui.classes.txt"
                         Condition="Exists('$(MSBuildThisFileDirectory)../obj/$(TargetFramework)/rask-ui.classes.txt')"/>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND '@(_RaskUiTailwindSource->Count())' == '3' AND '@(_RaskUiClassList)' == ''">
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true' AND '@(_RaskUiTailwindSource->Count())' == '2' AND '@(_RaskUiClassList)' == ''">
       <_RaskUiClassListCandidate Include="$(MSBuildThisFileDirectory)../obj/*/rask-ui.classes.txt"/>
     </ItemGroup>
 
@@ -309,8 +307,8 @@
       compiles — with none of the kit's classes in it, so every component renders unstyled on a green
       build. That is the failure this whole file keeps recording.
     -->
-    <Error Condition="'$(_RaskUiTailwind)' == 'true' AND ('@(_RaskUiTailwindSource->Count())' != '4' OR '@(_RaskUiTailwindMissing)' != '')"
-           Text="Rask.Ui: $(RaskTailwindInput) compiles the kit in, but the kit's Tailwind sources could not all be found (found @(_RaskUiTailwindSource->Count()) of 4; missing on disk: @(_RaskUiTailwindMissing)), so $(RaskUiTailwindDirectory) cannot be written and the kit's components would render unstyled. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/rask-ui.classes.txt); from the package they ship beside these targets as build/rask-ui.css, rask-ui.kit.css, rask-ui.classes.txt and daisyui.mjs."/>
+    <Error Condition="'$(_RaskUiTailwind)' == 'true' AND ('@(_RaskUiTailwindSource->Count())' != '3' OR '@(_RaskUiTailwindMissing)' != '')"
+           Text="Rask.Ui: $(RaskTailwindInput) compiles the kit in, but the kit's Tailwind sources could not all be found (found @(_RaskUiTailwindSource->Count()) of 3; missing on disk: @(_RaskUiTailwindMissing)), so $(RaskUiTailwindDirectory) cannot be written and the kit's components would render unstyled. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/rask-ui.classes.txt); from the package they ship beside these targets as build/rask-ui.css, rask-ui.kit.css and rask-ui.classes.txt."/>
 
     <PropertyGroup Condition="'$(_RaskUiTailwind)' == 'true'">
       <_RaskUiTailwindDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskUiTailwindDirectory)'))</_RaskUiTailwindDirectory>
@@ -323,6 +321,16 @@
           SkipUnchangedFiles="true">
       <Output TaskParameter="WroteAtLeastOneFile" PropertyName="_RaskUiTailwindWrote"/>
     </Copy>
+
+    <!--
+      Anything else in the folder is a file an older kit wrote there (a plugin bundle it no longer loads).
+      The folder is inside the tree Tailwind scans, so a stale file is read for class names on every build.
+    -->
+    <ItemGroup Condition="'$(_RaskUiTailwind)' == 'true'">
+      <_RaskUiTailwindStale Include="$(_RaskUiTailwindDirectory)/*"
+                            Exclude="@(_RaskUiTailwindSource->'$(_RaskUiTailwindDirectory)/%(Name)')"/>
+    </ItemGroup>
+    <Delete Condition="'@(_RaskUiTailwindStale)' != ''" Files="@(_RaskUiTailwindStale)"/>
 
     <!--
       A copy keeps its source's timestamp, and a package's files are dated when the package was built —

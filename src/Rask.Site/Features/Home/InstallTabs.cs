@@ -43,7 +43,7 @@ public sealed partial class InstallTabs : Component
                 NavLink
                     .Href(PageMeta.LinkTo(Routes.GuidePage("getting-started")))
                     .ActiveClass("")
-                    .Class("text-fx-accent-content no-underline hover:underline")["getting-started guide"], "."
+                    .Class("text-accent-content no-underline hover:underline")["getting-started guide"], "."
             ]
         ];
 

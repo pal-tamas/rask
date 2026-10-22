@@ -12,7 +12,7 @@
 }
 
 .dd-drop-target {
-    outline: 2px dashed var(--color-fx-accent);
+    outline: 2px dashed var(--color-accent);
     outline-offset: -2px;
-    background-color: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
+    background-color: color-mix(in oklab, var(--color-accent) 8%, transparent);
 }

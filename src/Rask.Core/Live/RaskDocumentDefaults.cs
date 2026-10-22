@@ -1,8 +1,8 @@
 namespace Rask.Core.Live;
 
 // What a Rask-owned host writes into every document around the app, so App.cs does not have to: the
-// charset and viewport, the UI kit's stylesheet FIRST (it declares the @layer order for the whole
-// document), the app's compiled stylesheet, and the kit's theme scope on <html>. RaskApp and the WASM host
+// charset and viewport, the UI kit's dark-mode script, the kit's stylesheet FIRST (it declares the @layer
+// order for the whole document) and the app's compiled stylesheet. RaskApp and the WASM host
 // register one and set it on the app's own root; a hand-wired MapRask host and a mounted app (the operator
 // console) register none and build their own.
 //
@@ -11,7 +11,7 @@ namespace Rask.Core.Live;
 internal sealed class RaskDocumentDefaults(
     Func<string?, string>? kitStylesheet,
     string? appStylesheet,
-    IReadOnlyDictionary<string, string?>? htmlAttributes,
+    Func<Component>? headScript,
     Func<IReadOnlyList<Messaging.ToastMessage>, Action<int>, Component>? toasts = null,
     TimeSpan? toastDuration = null,
     bool toastsTimeThemselves = false,
@@ -42,6 +42,6 @@ internal sealed class RaskDocumentDefaults(
     // Rask.Stylesheet); null when the app has none.
     public string? AppStylesheet { get; } = appStylesheet;
 
-    // Read by Component's default Shell. An app that overrides Shell writes its own <html> and skips these.
-    public IReadOnlyDictionary<string, string?>? HtmlAttributes { get; } = htmlAttributes;
+    // A script the head starts with, ahead of every stylesheet — the kit's Ui.AppearanceScript; null without the kit.
+    public Func<Component>? HeadScript { get; } = headScript;
 }

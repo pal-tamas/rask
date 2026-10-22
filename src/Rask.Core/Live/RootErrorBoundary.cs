@@ -72,6 +72,13 @@ internal sealed class RootErrorBoundary : Component
             Meta.Name("viewport").Content("width=device-width, initial-scale=1"),
         ];
 
+        // Before the stylesheets: it is the only code that runs ahead of the first paint, so the only place a dark
+        // page can start dark. An App that writes its own keeps its own, here (HeadAssetRegistry, by its marker).
+        if (defaults.HeadScript is { } script)
+        {
+            head.Add(script());
+        }
+
         if (defaults.KitStylesheet is { } kit)
         {
             head.Add(Link.Rel("stylesheet").Href(kit(pathBase)));
@@ -134,7 +141,7 @@ internal sealed class RootErrorBoundary : Component
             Defaults is { Toasts: not null } defaults ? [inner, BuiltInToasts(ctx, defaults)] : [inner],
             (ex, recover) => Fallback(ctx, boundary, inner, ex, recover));
 
-        var document = ComposeDocument(ctx, inner, boundary);
+        var document = ComposeDocument(inner, boundary);
 
         // A collection expression, not F.Fragment(): the factory would make the wrapper a tracked child
         // and retain it, and this one is pure grouping — two children that never change, on the one
@@ -231,10 +238,9 @@ internal sealed class RootErrorBoundary : Component
     // the host as a 500. The framework's own default shell takes over for that render — a custom
     // shell cannot be trusted after it has just failed, and the error page needs a document to live
     // in.
-    private Component ComposeDocument(LiveRenderContext ctx, Component inner, ErrorBoundary boundary)
+    private Component ComposeDocument(Component inner, ErrorBoundary boundary)
     {
         var head = Head;
-        ctx.DocumentAttributes = Defaults?.HtmlAttributes;
         try
         {
             // A shell that forgot its Body element gets one, or the page paints and never connects (#1234).

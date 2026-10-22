@@ -19,11 +19,6 @@ public sealed partial class UiIntroductionPage : Component
         ];
         """;
 
-    private const string ThemeScope = """
-        protected override Component Shell(Component head, Component body) =>
-            Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
-        """;
-
     /// <inheritdoc />
     protected override Component? HeadAssets => UiDocsCatalog.Introduction.Meta();
 
@@ -41,22 +36,20 @@ public sealed partial class UiIntroductionPage : Component
                    + "redraws what changed."),
         UiDocsSection.Key("Install").Heading("Install")[
             Ui.Text["An app made with ", Code["rask new"], " has it already: the template imports the kit into its one "
-                    + "stylesheet and turns its theme on. Anywhere else, add the package:"],
+                    + "stylesheet, and every page starts with the kit's dark-mode script. Anywhere else, add the package:"],
             CodeBlock.Source("dotnet add package Rask.Ui").Language("bash"),
             Ui.Text["Every component is reached from ", Code["Ui"], ", in the ", Code["Rask"], " namespace every template "
                     + "already imports: ", Code["Ui.Button.Primary[\"Save\"]"], "."]],
         UiDocsSection.Key("Wiring a host by hand").Heading("Wiring a host by hand")[
-            Ui.Text["Only for a host wired with ", Code["AddRask()"], " and ", Code["MapRask<App>()"], ", or an App "
-                    + "that writes its own shell. Two things, and forgetting either draws the right markup with no style."],
+            Ui.Text["Only for a host wired with ", Code["AddRask()"], " and ", Code["MapRask<App>()"], ": a RaskApp "
+                    + "or a WebAssembly app does both of these itself. Forgetting the first draws the right markup with no style."],
             Ui.Text["First, take the kit into the app's stylesheet, in place of ", Code["@import \"tailwindcss\";"],
                     ". The build writes the kit's Tailwind sources beside it before Tailwind runs, so the one sheet the app "
                     + "compiles carries the kit's theme, its dark variant and every class its components write:"],
             CodeBlock.Source(Import).Language("css"),
-            Ui.Text["Link that sheet, and nothing else:"],
-            CodeBlock.Source(Stylesheet).Language("csharp"),
-            Ui.Text["Second, turn the theme on. Nothing has a colour until an ancestor carries the theme scope, so "
-                    + "referencing the package cannot repaint an app that only wanted one button:"],
-            CodeBlock.Source(ThemeScope).Language("csharp")],
+            Ui.Text["Then link that sheet, with the dark-mode script before it — the only code that runs ahead of the "
+                    + "first paint, so the only place a dark page can start dark:"],
+            CodeBlock.Source(Stylesheet).Language("csharp")],
         UiDocsSection.Key("How it follows Flux UI").Heading("How it follows Flux UI")[
             Ui.Text["Each component is built from Flux UI's public docs — every example on its page, measured in a "
                     + "browser in light and dark — and a parity test holds it to them. The names carry over by rule:"],

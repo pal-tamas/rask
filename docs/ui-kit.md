@@ -1,9 +1,9 @@
 # The UI kit (`Rask.Ui`)
 
-**Every daisyUI component, as a typed Rask component.** The kit wraps
-[daisyUI](https://daisyui.com) 5 — vendored, compiled at the kit's own build, and shipped inside the
-package — so a Rask app gets the whole component vocabulary without a single utility string, an npm
-install, or a Tailwind configuration of its own.
+**[Flux UI](https://fluxui.dev)'s component catalogue, as typed Rask components.** Each is built from Flux's
+public docs — measured in a browser in light and dark and held to them by a parity test — and its styles ship
+inside the package, so a Rask app gets the whole catalogue without a single utility string, an npm install, or a
+Tailwind configuration of its own.
 
 It is **markup and nothing else**: no data access, no host dependency, and no JavaScript — with two exceptions, the
 [rich text editor](#rich-text-editor) and the [phone](#phone) field, whose engines are scripts a page loads only when
@@ -76,12 +76,12 @@ C# component framework that ships no script of its own:
 ## Wiring it up
 
 > **An app on `RaskApp` or the WASM host needs none of this in its code.** `rask new` writes the one
-> import below into `Styles/app.css`; the host links the compiled `css/app.css` and puts the theme scope
-> on `<html>`, so `App.cs` is a title and a router. `app.Configure(c => c.Ui.Off())` leaves the kit out.
+> import below into `Styles/app.css`; the host links the compiled `css/app.css` and writes the dark-mode script
+> (`Ui.AppearanceScript`) at the top of every page's head, so `App.cs` is a title and a router. `app.Configure(c => c.Ui.Off())` leaves the kit out.
 > This section is for a hand-wired `AddRask()`/`MapRask<App>()` host, or an App that overrides `Shell`.
 
-Two things, and forgetting either produces a page that renders structurally correct components with
-**no styling, or no colour at all** — so both are worth doing before anything else.
+Two things: forgetting the first renders structurally correct components with **no styling at all**, and
+forgetting the second leaves the page light whatever the reader chose.
 
 **1. Take the kit into your stylesheet.** One line in `Styles/app.css`, in place of
 `@import "tailwindcss";`:
@@ -90,43 +90,36 @@ Two things, and forgetting either produces a page that renders structurally corr
 @import "./vendor/rask-ui.css";
 ```
 
-Your app then compiles **one stylesheet** — Tailwind, the kit's theme, its `dark` variant, daisyUI while
-it lasts, and the classes the kit's components write, beside the classes you write — exactly as a
+Your app then compiles **one stylesheet** — Tailwind, the kit's theme, its `dark` variant, and the classes the kit's components write, beside the classes you write — exactly as a
 [Flux](https://fluxui.dev) app's one Tailwind build scans Flux's own views. The kit's class names are
 C# string literals inside a compiled assembly, where no scan can find them, so the package ships them
-as a list and the import reads it. Link that sheet and nothing else:
-
-```csharp
-protected override Component? HeadAssets =>
-[
-    Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css"),
-];
-```
+as a list and the import reads it.
 
 There is nothing to set in the `.csproj`. The build sees the import, writes the kit's Tailwind sources
-into `Styles/vendor/` before Tailwind runs — `rask-ui.css`, `rask-ui.kit.css`, `rask-ui.classes.txt`
-and `daisyui.mjs`; generated, not committed, no npm — and records in the assembly that the kit is
+into `Styles/vendor/` before Tailwind runs — `rask-ui.css`, `rask-ui.kit.css` and `rask-ui.classes.txt`;
+generated, not committed, no npm — and records in the assembly that the kit is
 already in the app's sheet. [The Tailwind guide](tailwind.md#what-a-new-project-starts-with) walks
 through the four lines of `rask-ui.css`, and how to write them out yourself when you want Tailwind
 without its preflight or a layer of your own.
 
-**2. Turn the theme on.** Nothing in the kit has a colour until an ancestor carries the theme scope:
+**2. Link that sheet, with the dark-mode script before it** — the only code that runs ahead of the first
+paint, so the only place a dark page can start dark:
 
 ```csharp
-protected override Component Shell(Component head, Component body) =>
-    Html.Lang("en").Attributes((UiStylesheet.ThemeScopeAttribute, ""))[head, body];
+protected override Component? HeadAssets =>
+[
+    Ui.AppearanceScript,
+    Link.Rel("stylesheet").Href(LiveOptions.PathBase + "/css/app.css"),
+];
 ```
-
-The scope exists so that *referencing* this package cannot repaint an application that only wanted a
-button. daisyUI paints `:root` by default; the kit confines it to `[data-rask-ui]` instead.
 
 **The layer order is one statement, and the import owns it.** `rask-ui.css` opens with
 
 ```css
-@layer properties, theme, base, components, daisyui, rask, utilities;
+@layer properties, theme, base, components, rask, utilities;
 ```
 
-which puts your utilities above Tailwind's preflight, above daisyUI, and above the kit's own rules — a
+which puts your utilities above Tailwind's preflight and above the kit's own rules — a
 browser orders `@layer` names by *first appearance* and nothing later can reorder a name already
 placed, which is why the import is the first line of your sheet. `OneStylesheetCascadeTests` holds the
 order in a compiled app sheet, and `UiLayerOrderTests` in the kit's precompiled one.
@@ -156,25 +149,14 @@ those utilities exists once and Tailwind's own order holds — a base utility be
 shorthand before its longhands — so the build **refuses** the pairing: `RaskUiWriteStylesheet` in a
 project that compiles its own Tailwind stylesheet is an error that names the line to write instead.
 
-## Writing daisyUI class names yourself
-
-Nothing more to do. The import in step 1 loads daisyUI's plugin into **your** Tailwind build, so a
-`card-body` or `navbar` you write in your own markup is compiled from your own source, in the same
-sheet as the kit's components and under the same scoped theme — one copy of daisyUI, not two. (An app
-that linked the kit's precompiled sheet had to run the plugin a second time for its own markup, with
-its own layer statement and a `@source not` to keep the bundle from being scanned as a safelist. All of
-that is inside `rask-ui.kit.css` now.)
-
-The plugin is the copy `Rask.Ui` ships (`Styles/vendor/daisyui.mjs`), loaded by relative path because
-Tailwind resolves a plugin the way Node does and the standalone engine a C# host compiles with carries
-no package tree — so there is still no npm and no `node_modules`.
-
 ## Dark mode
 
 Dark mode is [Flux UI's](https://fluxui.dev/docs/dark-mode): a `dark` class on `<html>`, and `dark:`
 utilities that follow it. There is no theme list and no theme picker.
 
-Put `Ui.AppearanceScript` in your root component's head assets, **before the stylesheets**:
+`RaskApp` and the WASM host write `Ui.AppearanceScript` at the top of every page's head, as Flux's layout
+writes `@fluxAppearance`. A hand-wired host puts it in the root component's head assets, **before the
+stylesheets** (an App that still writes its own gets exactly one — its own, with its key):
 
 ```csharp
 protected override Component? HeadAssets => [Title["…"], Ui.AppearanceScript, /* stylesheets */];
@@ -204,11 +186,10 @@ Button.Type(ButtonType.Button).AriaLabel("Toggle dark mode")
 That is the moon in rask.sh's own top bar. A Light / Dark / System menu sets `Rask.appearance` the same
 way.
 
-In your own Tailwind sheet, point `dark:` at the class, as Flux does:
-
-```css
-@custom-variant dark (&:where(.dark, .dark *));
-```
+The kit's import already points `dark:` at the class, as Flux does — `@custom-variant dark (&:where(.dark,
+.dark *));` — and `.dark` also says `color-scheme: dark`, so scrollbars, native controls and `light-dark()` turn
+with the page. Nothing else switches it: there is no theme attribute and no operating-system arm outside the
+script.
 
 ### Re-skinning
 
@@ -224,27 +205,28 @@ scale, written directly in the components, so an app changes every gray by re-po
 }
 ```
 
-The **accent** is three variables — the fill of a primary action, the same hue as readable text, and
-the text on the fill — with a second set under `.dark`:
+The **accent** is three variables, Flux's own names — the fill of a primary action (`--color-accent`), the
+same hue as readable text (`--color-accent-content`), and the text on the fill (`--color-accent-foreground`) —
+with a second set under `.dark`. Written after the kit's import, yours win over the kit's zinc defaults:
 
 ```css
 @theme {
-  --color-fx-accent: var(--color-red-500);
-  --color-fx-accent-content: var(--color-red-600);
-  --color-fx-accent-foreground: var(--color-white);
+  --color-accent: var(--color-red-500);
+  --color-accent-content: var(--color-red-600);
+  --color-accent-foreground: var(--color-white);
 }
 
 @layer theme {
   .dark {
-    --color-fx-accent: var(--color-red-500);
-    --color-fx-accent-content: var(--color-red-400);
-    --color-fx-accent-foreground: var(--color-white);
+    --color-accent: var(--color-red-500);
+    --color-accent-content: var(--color-red-400);
+    --color-accent-foreground: var(--color-white);
   }
 }
 ```
 
-(Flux's names are `--color-accent*`; the kit's carry `fx-` until daisyUI, which defines `--color-accent`
-with another meaning, is gone.)
+The utilities follow: `bg-accent`, `text-accent-content`, `text-accent-foreground`, `border-accent`, and
+`var(--color-accent)` in an arbitrary value.
 
 ### The typeface
 
@@ -269,60 +251,6 @@ copy off:
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
 }
 ```
-
-### While daisyUI still draws part of the kit
-
-The components not yet rebuilt on Flux's model are daisyUI's, and daisyUI reads `data-theme`. Until the
-last of them is replaced, `Ui.AppearanceScript` also writes `data-theme="dark"` or `"light"` on
-`<html>` to match the class — daisyUI's other 33 themes are no longer reachable from it. `Ui.Shell`
-still takes `.Theme(Ui.ThemeName.Light)` to pin a subtree (`Rask.Dashboard` pins its console light; see
-[the dashboard](dashboard.md)); `Ui.ThemeName` and `UiTheme` leave with daisyUI.
-
-### Reading the palette
-
-Every token is readable in every theme, and that is measured rather than intended — see
-`ThemeContrastTests`, which resolves every pair out of the shipped stylesheets across all 36 palettes
-and holds them to WCAG AA (4.5:1).
-
-Three tiers, and picking the wrong one is the classic silent defect:
-
-| Tier | Example | Use it for |
-|---|---|---|
-| surface | `bg-ui-brand`, `bg-ui-warn` | a fill that carries no text of its own |
-| `-surface` | `bg-ui-ok-surface` | the quiet wash behind a badge or alert |
-| `-ink` | `text-ui-danger-ink` | **any text**, and any fill that carries text |
-
-daisyUI's `primary`/`success`/`warning`/`error`/`neutral` are **surfaces**. Read as text they fail AA
-badly — `--color-neutral` is 1.26:1 on daisyUI's own `dark`, `--color-error` 2.87:1 on its `light` —
-so the `-ink` tiers exist, each mixed toward `--color-base-content` (the ground's opposite in every
-palette, so one declaration darkens on a light theme and lightens on a dark one; mixing toward `black`
-is the trap, because it is only the right direction on half the palettes).
-
-A **filled control is `bg-ui-*-ink text-ui-bg`**, never a saturated fill with a white label:
-`bg-ui-brand text-white` measures 1.00:1 on `luxury`. Contrast is symmetric, so the ground read on an
-`-ink` fill is the same proven measurement as `-ink` read on the ground. daisyUI's own `-content`
-colours are generated for 3:1, not 4.5.
-
-### The kit's own components are corrected the same way
-
-The `link-*` tones render daisyUI classes, and
-daisyUI labels each tone with its own `-content` colour — generated for 3:1, so small text on them fails
-AA on between two and ten palettes per tone (`secondary` is 3.05:1 on daisyUI's own `dark`, `error`
-under AA on ten). The kit corrects them to the `-ink` fill with the ground as the label, in
-`@layer rask-ui-corrections`, pointing at the tokens above so the per-theme corrections apply for free.
-
-Two consequences worth knowing:
-
-- **It is all custom properties** (`--btn-color`) except where daisyUI declares
-  `color` outright — alert and link. Those two therefore also outrank your own `text-*`
-  utility on those elements, because the corrections layer is appended after `utilities`.
-- **`checkbox-*`, `radio-*`, `toggle-*`, `range-*` and `progress-*` are deliberately untouched** — they
-  carry no text, so WCAG asks 3:1 of them as non-text UI, and recolouring them would be a redesign.
-  `step-*` carries a label and is *not* yet corrected: daisyUI sets its variables on compound
-  pseudo-element selectors an inherited custom property cannot reach.
-
-If you write your own daisyUI classes (see above), you are on daisyUI's `-content` pairs, not these —
-the corrections name the classes the kit writes.
 
 ## Buttons
 
@@ -387,7 +315,7 @@ A selected toggle is `.AriaPressed(AriaPressed.True)` on the variant that reads 
 Everything that floats against something else is placed with the same two words, the ones Flux UI uses:
 **`Position`** picks the side (`Ui.Position` — Top, Right, Bottom, Left) and **`Align`** slides it along that
 side (`Ui.Align` — Start, Center, End, following the reading direction). They are two properties because
-daisyUI composes them — a menu above its trigger, flush with the trigger's end edge, is both.
+they compose — a menu above its trigger, flush with the trigger's end edge, is both.
 
 A component rebuilt on Flux has its own pair, with Flux's values and Flux's default first — a dropdown is
 `Ui.DropdownPosition` (Bottom, Top, Right, Left) and `Ui.DropdownAlign` (Start, Center, End), each member a chain
@@ -427,9 +355,7 @@ Ui.Badge.Color(Ui.Color.Green)["Live"]
 Ui.TableCell.Id("total").Class("py-0")[Ui.Badge.Sm.Green["Paid"]]
 ```
 
-A button and a badge take their icons as props and size them themselves. Inside a hand-written daisy `btn` a
-bare `Ui.Icon.Name(…)` is the right size too: the kit's stylesheet sizes an icon nobody sized from the button
-it sits in, and leaves alone one that has a size class of its own.
+A button and a badge take their icons as props and size them themselves.
 
 ## Badges
 
@@ -857,8 +783,7 @@ started.
 
 It is the **runtime** that marks the button, not script in the kit, because only the runtime knows when a
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
-attributes — `Ui.Button` is what turns them into a spinner, a hand-written daisyUI `btn` still gets the
-kit's older one, and your own CSS can style `[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
+attributes — `Ui.Button` is what turns them into a spinner, and your own CSS can style `[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
 opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
 throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
 dispatch over the same channel.
@@ -876,7 +801,7 @@ press anywhere inside: that is how a table knows its pager is waiting.
 
 ## What is in it
 
-Grouped as daisyUI groups them, so its documentation reads straight across.
+Grouped by what each piece is for.
 
 | | |
 | --- | --- |
@@ -1229,8 +1154,8 @@ it, digit for digit, and text that is no colour holds a form's save. Every examp
 
 ## The rule the whole kit rests on
 
-daisyUI emits a component's CSS only where Tailwind can **see** its class name in the scanned source.
-A name built by concatenation — `"btn-" + tone` — is a name no scanner ever reads, so the class is
+Tailwind emits a rule only where it can **see** the class name in the scanned source. A name built by
+concatenation — `"bg-" + colour + "-500"` — is a name no scanner ever reads, so the class is
 absent from the compiled sheet and the component renders **with no styling whatsoever**. Not
 misaligned, not the wrong colour: unstyled. The build stays green and the markup carries exactly the
 class the call site asked for.
@@ -1238,9 +1163,9 @@ class the call site asked for.
 That is why every class the kit can write is spelled out as a complete literal in `UiClassNames.cs`,
 and why the axes above are closed enums rather than strings.
 
-If you write your own `ui-*` classes, there is nothing to copy: the kit's `@theme` reaches your Tailwind
-build through `@import "./vendor/rask-ui.css"`, so `bg-ui-brand/10` or `text-ui-warn-ink` in your own
-markup compiles against the same tokens the kit's components use.
+If you write the accent yourself, there is nothing to copy: the kit's `@theme` reaches your Tailwind build
+through `@import "./vendor/rask-ui.css"`, so `bg-accent/10` or `text-accent-content` in your own markup
+compiles against the same tokens the kit's components use.
 
 ## Two rules it holds itself to
 

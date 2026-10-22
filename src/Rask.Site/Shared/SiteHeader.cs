@@ -6,7 +6,7 @@ namespace Rask.Site;
 /// <remarks>
 ///     <para>
 ///         There were two. The landing page had this: a <c>&lt;header&gt;</c>, a bolt and a wordmark, and
-///         three quiet text links at the trailing edge. <c>/docs</c> had daisyUI's <c>navbar</c>, a
+///         three quiet text links at the trailing edge. <c>/docs</c> had a navbar of its own, a
 ///         hamburger, the brand mark, a "showcase" pill, a version badge, a live <c>path:</c> readout and
 ///         a bordered <c>★ GitHub</c> button. They already shared a height (<c>--nav-h</c>, 4rem) and a
 ///         glass background, which is what made the rest of the difference read as drift rather than as
@@ -64,7 +64,7 @@ internal sealed partial class SiteHeader : Component
 
     protected override Component? Render() =>
         // A <header> with a <nav> inside it, which is what this is. The docs bar used to be a bare <nav>
-        // carrying daisyUI's `navbar`; `app-navbar` and `app-brand` survive as the hooks the E2E selects
+        // of its own; `app-navbar` and `app-brand` survive as the hooks the E2E selects
         // on (and style nothing), so those selectors keep working — as `header.app-navbar` now.
         Header.Class(Bar)[
             Div.Class(FullBleed ? FullBleedRow : WrapRow)[

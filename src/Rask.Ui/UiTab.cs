@@ -171,9 +171,9 @@ public sealed partial class UiTab : Component
         "flex items-center gap-2 px-2 -mb-px border-b-2 border-transparent text-sm font-medium whitespace-nowrap "
         + "text-zinc-400 hover:text-zinc-800 dark:text-white/50 dark:hover:text-white";
     private const string UnderlinedPaint =
-        "data-selected:border-fx-accent-content data-selected:text-fx-accent-content "
-        + "dark:data-selected:border-fx-accent-content dark:data-selected:text-fx-accent-content "
-        + "hover:data-selected:text-fx-accent-content dark:hover:data-selected:text-fx-accent-content";
+        "data-selected:border-accent-content data-selected:text-accent-content "
+        + "dark:data-selected:border-accent-content dark:data-selected:text-accent-content "
+        + "hover:data-selected:text-accent-content dark:hover:data-selected:text-accent-content";
     private const string UnderlinedPaintBase =
         "data-selected:border-zinc-800 data-selected:text-zinc-800 "
         + "dark:data-selected:border-white dark:data-selected:text-white";
@@ -196,10 +196,10 @@ public sealed partial class UiTab : Component
         + "bg-zinc-800/5 text-zinc-600 hover:bg-zinc-800/10 hover:text-zinc-800 "
         + "dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white";
     private const string PillPaint =
-        "data-selected:bg-fx-accent hover:data-selected:bg-fx-accent dark:data-selected:bg-fx-accent "
-        + "dark:hover:data-selected:bg-fx-accent data-selected:text-fx-accent-foreground "
-        + "hover:data-selected:text-fx-accent-foreground dark:data-selected:text-fx-accent-foreground "
-        + "dark:hover:data-selected:text-fx-accent-foreground";
+        "data-selected:bg-accent hover:data-selected:bg-accent dark:data-selected:bg-accent "
+        + "dark:hover:data-selected:bg-accent data-selected:text-accent-foreground "
+        + "hover:data-selected:text-accent-foreground dark:data-selected:text-accent-foreground "
+        + "dark:hover:data-selected:text-accent-foreground";
     private const string PillPaintBase =
         "data-selected:bg-zinc-800 hover:data-selected:bg-zinc-800 data-selected:text-white "
         + "hover:data-selected:text-white dark:data-selected:bg-white dark:hover:data-selected:bg-white "

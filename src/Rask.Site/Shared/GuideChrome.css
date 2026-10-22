@@ -15,8 +15,8 @@
     padding: .6rem .9rem;
     margin-bottom: 1.25rem;
     font-size: .875rem;
-    color: var(--color-fx-accent-content);
-    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
+    color: var(--color-accent-content);
+    background: color-mix(in oklab, var(--color-accent) 8%, transparent);
     border: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
     border-radius: .6rem;
 }
@@ -29,7 +29,7 @@
 }
 
 .guide-backlink {
-    color: var(--color-fx-accent-content);
+    color: var(--color-accent-content);
 }
 
 /* Chapters table of contents */
@@ -47,7 +47,7 @@
     font-size: .8rem;
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: var(--color-fx-accent-content);
+    color: var(--color-accent-content);
     margin-bottom: .5rem;
 }
 
@@ -79,7 +79,7 @@
 
 .guide-chapter-link:hover,
 .guide-chapter-sublink:hover {
-    color: var(--color-fx-accent);
+    color: var(--color-accent);
     text-decoration: underline;
 }
 
@@ -156,12 +156,12 @@
 }
 
 .guide-onthispage-link:hover {
-    color: var(--color-fx-accent);
+    color: var(--color-accent);
 }
 
 .guide-onthispage-link.active {
-    color: var(--color-fx-accent-content);
-    border-left-color: var(--color-fx-accent);
+    color: var(--color-accent-content);
+    border-left-color: var(--color-accent);
     font-weight: 600;
 }
 
@@ -209,7 +209,7 @@
 }
 
 .guide-prevnext-link:hover {
-    border-color: var(--color-fx-accent);
+    border-color: var(--color-accent);
     box-shadow: 0 6px 18px rgb(0 0 0 / 8%);
     transform: translateY(-1px);
 }

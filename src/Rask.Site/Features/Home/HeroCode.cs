@@ -167,7 +167,7 @@ public sealed partial class HeroCode : Component
                 var word = source[start..i];
                 if (Keywords.Contains(word))
                 {
-                    Token(html, "text-fx-accent-content", word);
+                    Token(html, "text-accent-content", word);
                 }
                 else if (Types.Contains(word))
                 {

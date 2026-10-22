@@ -48,7 +48,7 @@ public class PrerenderShellTests
         // prefix handed to the attribute merge then contained no <html> at all, so every attribute a
         // Shell override set on it was silently dropped.
         //
-        // It read as working for years because the site had already moved data-rask-ui into the shell's
+        // It read as working for years because the site had already moved its theme attribute into the shell's
         // own literal tag after being bitten once, so the one attribute anyone watched survived for an
         // unrelated reason.
         const string Commented =
@@ -137,8 +137,7 @@ public class PrerenderShellTests
         return count;
     }
 
-    // Regression: the landing site set data-rask-ui on <html> through its Shell override to turn the
-    // component kit's theme on, and shipped to production with every colour computing to nothing —
+    // Regression: the landing site set the UI kit's theme attribute on <html> through its Shell override, and shipped to production with every colour computing to nothing —
     // structurally perfect, entirely grey — because the merge kept the SDK's opening tag and dropped
     // the render's attributes. Layout survives that, which is what made it so quiet.
     [Fact]
@@ -146,7 +145,7 @@ public class PrerenderShellTests
     {
         const string themed =
             """
-            <!doctype html><html lang="en" data-rask-ui dir="rtl"><head><title>T</title></head>
+            <!doctype html><html lang="en" data-app dir="rtl"><head><title>T</title></head>
             <body><h1>Hi</h1></body></html>
             """;
 
@@ -157,7 +156,7 @@ public class PrerenderShellTests
         var gt = merged.IndexOf('>', open);
         var tag = merged[open..gt];
 
-        Assert.Contains("data-rask-ui", tag, StringComparison.Ordinal);
+        Assert.Contains("data-app", tag, StringComparison.Ordinal);
         Assert.Contains("dir=\"rtl\"", tag, StringComparison.Ordinal);
     }
 
@@ -168,7 +167,7 @@ public class PrerenderShellTests
         // about it. Only attributes the shell lacks are added.
         const string other =
             """
-            <!doctype html><html lang="de" data-rask-ui><head><title>T</title></head>
+            <!doctype html><html lang="de" data-app><head><title>T</title></head>
             <body><h1>Hi</h1></body></html>
             """;
 
@@ -180,7 +179,7 @@ public class PrerenderShellTests
 
         Assert.Contains("lang=\"en\"", tag, StringComparison.Ordinal);
         Assert.DoesNotContain("lang=\"de\"", tag, StringComparison.Ordinal);
-        Assert.Contains("data-rask-ui", tag, StringComparison.Ordinal);
+        Assert.Contains("data-app", tag, StringComparison.Ordinal);
     }
 
     // Regression: the published page's <body> was the SHELL's, so a BodyClass — the app's ground and text

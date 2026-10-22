@@ -133,6 +133,6 @@ public sealed partial class UiProgress : UiElement
         Ui.Color.Zinc => "bg-zinc-600 dark:bg-zinc-400",
         Ui.Color.Neutral => "bg-neutral-600 dark:bg-neutral-400",
         Ui.Color.Stone => "bg-stone-600 dark:bg-stone-400",
-        _ => "bg-fx-accent",
+        _ => "bg-accent",
     };
 }
