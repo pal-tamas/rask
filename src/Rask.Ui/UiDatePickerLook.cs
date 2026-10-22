@@ -37,8 +37,9 @@ internal static class UiDatePickerLook
     // picker, whose name the dialog's own style states, and the runtime keeps it inside the viewport from there
     // (data-rask-place). Under `sm` it is Flux's sheet — centred over a dimmed page, where the browser puts a
     // popover that is told nothing — and the runtime leaves it there (--rask-place).
+    // The popup takes the focus as it opens (autofocus); Flux's draws no ring however it was opened.
     internal const string Dialog =
-        "p-0 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-700 shadow-2xs text-inherit "
+        "focus:outline-hidden p-0 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-700 shadow-2xs text-inherit "
         + "[&:popover-open]:max-w-[calc(100%-2em-6px)] overflow-visible [&:popover-open]:overflow-auto "
         + "sm:inset-auto sm:top-[anchor(bottom)] sm:left-[anchor(left)] sm:mx-0 sm:my-[5px] "
         + "sm:[position-try-fallbacks:flip-block,flip-inline] "

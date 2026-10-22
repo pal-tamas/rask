@@ -1014,6 +1014,25 @@ public sealed class UiKitDataInputTests(WasmExampleAppFixture app, PlaywrightFix
     });
 
     [Fact]
+    public Task An_open_picker_holds_the_focus_with_no_ring_after_a_key() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var picker = Page.Locator("[data-testid='ui-date-picker'] [data-ui-date-picker]").First;
+        var field = picker.Locator("[data-ui-date-picker-button]");
+        await field.ScrollIntoViewIfNeededAsync();
+        await field.ClickAsync();
+        var dialog = picker.Locator("dialog");
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+
+        // A key makes the focus visible, as Tab into the form before it did on an app's page.
+        await Page.Keyboard.PressAsync("Shift");
+
+        await Expect(dialog).ToBeFocusedAsync();
+        Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':focus-visible')"));
+        await Expect(dialog).ToHaveCSSAsync("outline-style", "none");
+    });
+
+    [Fact]
     public Task A_picker_opens_the_grid_and_closes_on_the_pick() => RunAsync(async () =>
     {
         await OpenAsync();

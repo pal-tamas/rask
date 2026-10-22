@@ -1215,6 +1215,9 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
+  in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
+  trigger drew none. After: no ring either way, as Flux.
 - **What an abstract base declares is mapped on every aggregate deriving from it.** Before: a one-value value
   object on an abstract base (`public NavBarcode? Barcode { get; private set; }` on `ReturnFiling`) was left out of
   the generated mapping, and startup failed with "could not be mapped" until the app converted it by hand in
