@@ -16,6 +16,22 @@ public partial class ScopedAssetRegistryTests
 
     // ─── Registration & retrieval ─────────────────────────────────────────
 
+    // They run in a library's module initializer, where a wall-clock timeout tripped by a stalled thread failed the
+    // initializer for good, and with it every type of the library for the rest of the process.
+    [Fact]
+    public void The_export_patterns_have_no_wall_clock_timeout_to_fail_a_module_initializer_with()
+    {
+        var patterns = typeof(ScopedAssetRegistry).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Where(static method => method.ReturnType == typeof(System.Text.RegularExpressions.Regex))
+            .Select(static method => (System.Text.RegularExpressions.Regex)method.Invoke(null, null)!)
+            .ToList();
+
+        var timeouts = patterns.Select(static pattern => pattern.MatchTimeout).ToList();
+
+        Assert.Equal(4, timeouts.Count);
+        Assert.All(timeouts, static timeout => Assert.Equal(System.Text.RegularExpressions.Regex.InfiniteMatchTimeout, timeout));
+    }
+
     [Fact]
     public void An_empty_registry_has_no_css()
     {

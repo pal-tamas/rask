@@ -64,31 +64,36 @@ public static partial class ScopedAssetRegistry
     private static ConcurrentDictionary<Type, string>? _stagingJsHashByType;
     private static Dictionary<string, AssetEntry>? _stagingJsByHash;
 
+    // No match timeout on the four patterns below, on purpose. What they read is a component's own script, compiled
+    // into its assembly (or, in development, the file beside it): never a visitor's input, so there is no one to mount
+    // a ReDoS. A timeout is wall-clock, and these run inside the assembly's module initializer: on a starved machine a
+    // one-second stall of the thread failed the initializer, and a failed module initializer is permanent — every
+    // type of that assembly threw TypeInitializationException for the rest of the process (seen in CI, 1.6 KB input).
     // Strips the leading `export ` (and an optional `default `) from a declaration so the
     // module body can run inside the IIFE. The lookahead lists `async function` alongside
     // the bare forms — without it an `export async function` keeps its `export` keyword and
     // throws a SyntaxError inside the (non-module) wrapper. `class` for the same reason: an exported
     // class kept its keyword and took the component's whole script down with it.
     [GeneratedRegex(@"(?<lead>^|\n)\s*export\s+(default\s+)?(?=(async\s+function|function|class|const|let|var)\b)",
-        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex ExportStrip();
 
     // Exported classes, exposed through a factory — `__new_Chart(...)` — because a call from C# can
     // invoke a function but has no `new`. The generated `NewChart(...)` on the component calls it.
     [GeneratedRegex(@"(^|\n)\s*export\s+(default\s+)?class\s+(?<name>\w+)\b",
-        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex ExportedClassNames();
 
     // `export const double = (x) => x * 2` — a function held in a binding. Collected with the functions, and
     // exposed only when the value really is one (the same typeof guard), so `export const PI = 3.14` stays private.
     [GeneratedRegex(@"(^|\n)\s*export\s+(const|let|var)\s+(?<name>\w+)\s*[=:]",
-        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex ExportedBindingNames();
 
     // Collects the names of exported function declarations (sync or async) so they can be
     // re-exposed on the returned object. The `async` modifier is optional; the name is the `name` group.
     [GeneratedRegex(@"(^|\n)\s*export\s+(default\s+)?(async\s+)?function\s+(?<name>\w+)\s*\(",
-        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex ExportedFunctionNames();
 
     internal static int CssEntryCount

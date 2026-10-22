@@ -1215,6 +1215,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A stalled thread no longer breaks a component library for the rest of the process.** Before: the patterns that
+  wrap a component's scoped script ran with a one-second wall-clock timeout inside the library's module initializer,
+  so a busy machine that paused the thread past it failed the initializer — permanently, and every `Ui.*` type then
+  threw `TypeInitializationException` until restart (seen in CI on a 1.6 KB script). After: they read only the
+  component's own compiled script, never a visitor's input, and run without a timeout.
 - **A hand-wired host prints with Rask.Pdf as soon as it references the package.** Before: only a `RaskApp` found
   Rask.Pdf by name; a `builder.Services.AddRask()` + `app.MapRask<App>()` host had no printer, and the first
   `Pdf.From(…)` threw "Pdf.From is not running in this app" until it also called `AddRaskPdf()`. After: `AddRask()`
