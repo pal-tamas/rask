@@ -60,6 +60,9 @@
     <Compile Include="..\Rask.Cli.Tests\DeployHostFixture.cs" Link="DeployHostFixture.cs"/>
     <Compile Include="..\Rask.Cli.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <!-- The cause Rask.Pdf names for a browser that will not start, read off the template image's real output. -->
+    <Compile Include="..\..\src\Rask.Pdf\ChromiumStartFailure.cs" Link="ChromiumStartFailure.cs"/>
+    <Using Include="Rask.Printing"/>
     <Using Include="Rask.TestFiles"/>
     <!-- The linked files above declare namespace Rask.Cli.Tests; the tests here are Rask.Cli.E2E.Tests. -->
     <Using Include="Rask.Cli.Tests"/>

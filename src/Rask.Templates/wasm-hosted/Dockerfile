@@ -43,6 +43,10 @@ RUN if [ -f /opt/rask/chrome/chrome-headless-shell ]; then \
            libxkbcommon0 libasound2t64 fonts-dejavu-core fonts-liberation \
       && rm -rf /var/lib/apt/lists/*; \
     fi
+# Chromium's sandbox needs user namespaces, which a host on Ubuntu 24.04 or later refuses a container (AppArmor), so
+# the browser runs without it here. It only ever prints the app's own pages, its network held to the app's origin and
+# its scripts off. On a host without that restriction you may delete this line; `rask dev` keeps the sandbox on.
+ENV Rask__Pdf__NoSandbox=true
 USER $APP_UID
 
 EXPOSE 8080

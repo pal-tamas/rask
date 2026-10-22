@@ -6,17 +6,35 @@ using System.Xml.Linq;
 namespace Rask.Cli.E2E.Tests;
 
 /// <summary>
-///     Does Rask.Pdf's pinned browser start inside the image a template's Dockerfile builds?
+///     Does Rask.Pdf's pinned browser start inside the image a template's Dockerfile builds, on a host like production?
 /// </summary>
 /// <remarks>
 ///     Each template's runtime stage is built as written, its build stage swapped for one that hands over the pinned
 ///     headless shell, for the Docker daemon's own architecture. Then the shell must link against nothing missing and
-///     print a page. The x64 shell needs <c>libatk-bridge-2.0.so.0</c> and the arm64 one does not, so the image went
-///     out without it and printed nothing in production, where it was the first to say so.
+///     print a page, started as the image starts it, on a host that refuses a container user namespaces (Ubuntu 24.04
+///     and later do, through AppArmor; a seccomp profile stands in for that, so every runner is such a host). Started
+///     sandboxed there, it must fail with the cause Rask.Pdf names. The x64 shell needs <c>libatk-bridge-2.0.so.0</c>
+///     and the arm64 one does not, so the image went out without it and printed nothing in production.
 /// </remarks>
 public sealed partial class TemplateImagePdfShellE2ETests
 {
     private const string Shell = "/opt/rask/chrome/chrome-headless-shell";
+
+    // Rask.Pdf's own flags, less the DevTools pipe it drives the browser over.
+    private const string Flags = "--headless --disable-gpu --disable-dev-shm-usage --no-first-run --disable-extensions --hide-scrollbars";
+
+    // A host that refuses unprivileged user namespaces: unshare and clone(CLONE_NEWUSER) fail, clone3 falls back to clone.
+    private const string RestrictedHost = """
+        {
+          "defaultAction": "SCMP_ACT_ALLOW",
+          "syscalls": [
+            { "names": ["unshare"], "action": "SCMP_ACT_ERRNO", "errnoRet": 1 },
+            { "names": ["clone3"], "action": "SCMP_ACT_ERRNO", "errnoRet": 38 },
+            { "names": ["clone"], "action": "SCMP_ACT_ERRNO", "errnoRet": 1,
+              "args": [{ "index": 0, "value": 268435456, "valueTwo": 268435456, "op": "SCMP_CMP_MASKED_EQ" }] }
+          ]
+        }
+        """;
 
     [Fact]
     public async Task Every_template_image_starts_the_pinned_pdf_shell()
@@ -27,18 +45,19 @@ public sealed partial class TemplateImagePdfShellE2ETests
         await StageShell(platform, Path.Combine(context, "chrome-shell"));
         Directory.CreateDirectory(Path.Combine(context, "app"));
         File.WriteAllText(Path.Combine(context, "app", ".keep"), "");
+        var seccomp = await RestrictedHostProfile();
 
         var failures = new List<string>();
         foreach (var template in TemplatesWithTheShell())
         {
-            failures.AddRange(await Probe(template, context));
+            failures.AddRange(await Probe(template, context, seccomp));
         }
 
         CliBuildE2E.TryDeleteDirectory(context);
         Assert.True(failures.Count == 0, string.Join("\n\n", failures));
     }
 
-    private static async Task<IEnumerable<string>> Probe(string template, string context)
+    private static async Task<IEnumerable<string>> Probe(string template, string context, RestrictedProfile seccomp)
     {
         var tag = $"rask-pdf-image-{Path.GetFileName(Path.GetDirectoryName(template))}:probe";
         File.WriteAllText(Path.Combine(context, "Dockerfile"), WithStagedShell(File.ReadAllText(template)));
@@ -50,9 +69,10 @@ public sealed partial class TemplateImagePdfShellE2ETests
             return [$"{name}: the runtime stage did not build.\n{Tail(buildLog)}"];
         }
 
-        var (_, linked) = await Docker(tag, $"ldd {Shell}");
-        var (printed, output) = await Docker(tag,
-            $"{Shell} --headless --disable-gpu --no-pdf-header-footer --print-to-pdf=/tmp/probe.pdf 'data:text/html,<h1>Rask</h1>' && head -c 5 /tmp/probe.pdf");
+        var (_, linked) = await Docker(tag, seccomp, $"ldd {Shell}");
+        var (printed, output) = await Docker(tag, seccomp,
+            $"{Shell} $([ \"$Rask__Pdf__NoSandbox\" = true ] && echo --no-sandbox) {Flags} --print-to-pdf=/tmp/probe.pdf 'data:text/html,<h1>Rask</h1>' && head -c 5 /tmp/probe.pdf");
+        var (_, sandboxed) = await Docker(tag, seccomp, $"{Shell} {Flags} --dump-dom about:blank");
         await DeployE2E.RunAsync("docker", ["image", "rm", "-f", tag]);
 
         var failures = new List<string>();
@@ -63,15 +83,38 @@ public sealed partial class TemplateImagePdfShellE2ETests
 
         if (printed != 0 || !output.Contains("%PDF-", StringComparison.Ordinal))
         {
-            failures.Add($"{name}: the shell did not print a page (exit {printed}).\n{Tail(output)}");
+            failures.Add($"{name}: the shell did not print a page as the image starts it (exit {printed}).\n{Tail(output)}");
+        }
+
+        if (ChromiumStartFailure.Explain(sandboxed.Split('\n')) is not { } cause
+            || !cause.Contains("Rask:Pdf:NoSandbox=true", StringComparison.Ordinal))
+        {
+            failures.Add($"{name}: started sandboxed on a host that refuses user namespaces, the shell did not fail with the cause Rask.Pdf names.\n{Tail(sandboxed)}");
         }
 
         return failures;
     }
 
-    /// <summary>The image's own user and flags as Rask.Pdf starts them: sandboxed, as in production.</summary>
-    private static Task<(int Exit, string Output)> Docker(string tag, string script) =>
-        DeployE2E.RunAsync("docker", ["run", "--rm", "--entrypoint", "sh", tag, "-c", script]);
+    /// <summary>A script in the image, as its own user with its own environment, on the restricted host.</summary>
+    private static Task<(int Exit, string Output)> Docker(string tag, RestrictedProfile seccomp, string script) =>
+        DeployE2E.RunAsync(seccomp.Cli, ["run", "--rm", "--security-opt", $"seccomp={seccomp.Path}", "--entrypoint", "sh", tag, "-c", script]);
+
+    /// <summary>
+    ///     The restricted host's profile on disk. Docker's CLI sends a profile's contents and Podman's API wants a path,
+    ///     so under Podman the profile goes through its own CLI, from the home folder its machine VM can see.
+    /// </summary>
+    private static async Task<RestrictedProfile> RestrictedHostProfile()
+    {
+        var (_, engine) = await DeployE2E.RunAsync("docker", ["version", "--format", "{{range .Server.Components}}{{.Name}} {{end}}"]);
+        var podman = engine.Contains("Podman", StringComparison.Ordinal);
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".cache", "rask-pdf-image");
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "restricted-host.seccomp.json");
+        File.WriteAllText(path, RestrictedHost);
+        return new RestrictedProfile(podman ? "podman" : "docker", path);
+    }
+
+    private sealed record RestrictedProfile(string Cli, string Path);
 
     /// <summary>The template's runtime stage verbatim, after a build stage holding only the shell and an empty app.</summary>
     private static string WithStagedShell(string dockerfile)
