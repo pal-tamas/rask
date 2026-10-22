@@ -121,6 +121,16 @@ them until tagged releases begin.
   out. The previous version keeps serving either way, the app's lock is released, and a cancelled call now kills
   its `docker` client (and the ssh session under it), which a captured or teed call used to leave running.
 
+- **A table of hundreds of pages prints, in a third of the memory.** Chromium's print layout of one table pays for
+  every row on every page it runs to, so its memory grew with the square of the rows: a 10,000-row kit `Ui.Table` on
+  the kit's sheet (590 A4 pages) ran the renderer past 13 GB and `Pdf.From` failed with Chromium's bare "Chromium
+  refused Page.printToPDF: Printing failed"; a plain 10,000-row table printed, at 10.6 GB. Not the PDF's size (under
+  3 MB; streaming it out with `ReturnAsStream` failed the same) and not a page range (printing page 1 alone failed
+  the same). Now a table longer than ten pages is cut into a table per page where Chromium breaks the pages anyway —
+  same column widths, heading, footing and odd/even rows, the same rows on the same pages — so that table prints, in
+  9 s at about 4.5 GB, and the plain one peaks at about 3 GB. A "Printing failed" that is left (a table with a
+  `rowspan` or its own `<colgroup>`, which stays whole) now says what it means and what to do: print it in parts,
+  split the table, or print it smaller. See [PDF](docs/pdf.md#long-documents).
 - **A long table prints in seconds, not minutes.** Chromium drew a printed page while it was still parsing it, and
   every frame restyled and laid out the whole table grown so far, so loading cost the square of the rows: a
   10,000-row `Ui.Table` took 15 s to load on a laptop and 190 s on a small server, past the 30 s

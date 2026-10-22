@@ -9,6 +9,7 @@ internal static class PrintLayout
 {
     // The foot is drawn inside the bottom margin, so a margin too thin for a line of 8pt text is widened to fit it.
     private const double FootMillimetres = 12;
+    private const double CssPixelsPerInch = 96;
 
     /// <summary>Writes paper, margins, foot, tagging and the page range.</summary>
     /// <param name="json">The command's parameters being written.</param>
@@ -26,7 +27,7 @@ internal static class PrintLayout
         json.WriteNumber("paperHeight", page.HeightInches);
         json.WriteNumber("marginTop", PdfMargins.Inches(margins.Top));
         json.WriteNumber("marginRight", PdfMargins.Inches(margins.Right));
-        json.WriteNumber("marginBottom", PdfMargins.Inches(options.HasFoot ? Math.Max(margins.Bottom, FootMillimetres) : margins.Bottom));
+        json.WriteNumber("marginBottom", PdfMargins.Inches(Bottom(options)));
         json.WriteNumber("marginLeft", PdfMargins.Inches(margins.Left));
         json.WriteString("pageRanges", string.Create(CultureInfo.InvariantCulture, $"1-{lastPage}"));
         json.WriteBoolean("displayHeaderFooter", options.HasFoot);
@@ -36,6 +37,20 @@ internal static class PrintLayout
             json.WriteString("footerTemplate", Foot(options, pageNumbers));
         }
     }
+
+    /// <summary>The part of a page the document is laid out in, inside the margins, in CSS pixels.</summary>
+    public static (double Width, double Height) Content(PdfOptions options)
+    {
+        var page = options.Page;
+        var margins = options.Margins;
+        var (width, height) = page.IsLandscape ? (page.HeightInches, page.WidthInches) : (page.WidthInches, page.HeightInches);
+        return (
+            (width - PdfMargins.Inches(margins.Left + margins.Right)) * CssPixelsPerInch,
+            (height - PdfMargins.Inches(margins.Top + Bottom(options))) * CssPixelsPerInch);
+    }
+
+    private static double Bottom(PdfOptions options) =>
+        options.HasFoot ? Math.Max(options.Margins.Bottom, FootMillimetres) : options.Margins.Bottom;
 
     // Chromium fills the pageNumber and totalPages spans itself. The template has no stylesheet of the page's and a
     // zero default font size, so it carries its own.

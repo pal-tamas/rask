@@ -164,9 +164,22 @@ hold is what keeps a long table linear: 10,000 kit table rows (14 columns, 250 p
 laptop, where they took 22. What is left grows with the rows: the HTML the page renders (every class on every cell
 is sent and parsed once per cell) and Chromium paginating the table.
 
-A document in the hundreds of pages on a small server can still need more than the 30-second `Timeout`: raise it in
-`Rask:Pdf` for that app (`"Timeout": "00:03:00"`). Splitting one table into a table per few hundred rows saves about
-a fifth of the print, and is only worth it past that.
+A table longer than ten pages is **cut into a table per page** before it prints, where Chromium breaks the pages
+anyway: each piece keeps the table's column widths, its heading and footing, and the rows' `:first-child`/odd/even
+places, so the PDF comes out with the same rows on the same pages. Chromium's print layout of one table pays for every
+row on every page the table runs to — a plain 10,000-row table (455 pages) peaked its renderer at 10.6 GB, and a kit
+`Ui.Table` on the kit's sheet (590 pages) passed 13 GB and failed with Chromium's bare "Printing failed". Cut, they
+peak at about 3 and 4.5 GB, and the kit table prints in 9 seconds. A table with a `rowspan`, its own `<colgroup>`, or a
+row taller than a page is left whole, as is every table of a page with an `@page` rule.
+
+If Chromium still answers "Printing failed", `Pdf.From` throws an `InvalidOperationException` that says so and what
+to do: print the document in parts (a PDF per month), split the table, or print it smaller so it takes fewer pages.
+Streaming the PDF out of Chromium (`transferMode: ReturnAsStream`) or printing a page range does not help: the PDF
+of 590 pages is under 3 MB, and Chromium lays the whole document out to print even one page of it.
+
+A document in the hundreds of pages on a small server can still need more than the 30-second `Timeout`, and about
+3 GB for its browser per 10,000 rows: raise `Timeout` in `Rask:Pdf` for that app (`"Timeout": "00:03:00"`), and keep
+`MaxConcurrentPrints` within the memory the container has.
 
 To measure it on your machine — a 14-column table at 1,000, 5,000 and 10,000 rows, plain, as a kit `Ui.Table`, on the
 kit's sheet and with a 7pt print stylesheet, each with its HTML size, pages and where the time went — run the opt-in

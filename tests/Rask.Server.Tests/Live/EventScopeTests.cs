@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Core.Authentication;
@@ -18,10 +19,11 @@ namespace Rask.Server.Tests.Live;
 /// </summary>
 public class EventScopeTests
 {
-    [Fact]
-    public async Task Two_clicks_get_two_different_instances_of_a_scoped_service()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task Two_clicks_get_two_different_instances_of_a_scoped_service(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
+        await using var page = await OpenAsync(transport);
 
         await page.ClickAsync();
         await page.ClickAsync();
@@ -30,11 +32,11 @@ public class EventScopeTests
         Assert.NotSame(page.Log.Seen[0].Probe, page.Log.Seen[1].Probe);
     }
 
-    [Fact]
-    public async Task A_scoped_service_sees_the_user_the_session_revalidated_for_that_event()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_scoped_service_sees_the_user_the_session_revalidated_for_that_event(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
-        page.Session.Users.Set(Person("alice"));
+        await using var page = await OpenAsync(transport, signedIn: "alice");
 
         await page.ClickAsync();
         page.Revalidator.Role = "editor";
@@ -43,10 +45,11 @@ public class EventScopeTests
         Assert.Equal(["alice", "alice editor"], page.Log.Seen.Select(s => s.User));
     }
 
-    [Fact]
-    public async Task The_event_s_scope_is_disposed_once_the_event_has_rendered()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task The_event_s_scope_is_disposed_once_the_event_has_rendered(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
+        await using var page = await OpenAsync(transport);
 
         await page.ClickAsync();
 
@@ -54,10 +57,11 @@ public class EventScopeTests
         Assert.Null(page.Session.OpenedEventScope);
     }
 
-    [Fact]
-    public async Task An_event_that_resolves_nothing_of_the_app_s_opens_no_scope()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task An_event_that_resolves_nothing_of_the_app_s_opens_no_scope(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
+        await using var page = await OpenAsync(transport);
 
         await page.ClickAsync("nothing");
 
@@ -65,10 +69,13 @@ public class EventScopeTests
         Assert.Equal(0, page.Log.Created);
     }
 
-    [Fact]
-    public async Task A_scoped_service_made_for_an_event_is_handed_the_session_s_own_user_toaster_and_route()
+    // Over the HTTP stream each event arrives in a POST, an HTTP request whose own services the request ambient
+    // would hand out — anonymous, and not the session's — were the event's scope not the one asked first.
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_scoped_service_made_for_an_event_is_handed_the_session_s_own_user_toaster_and_route(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
+        await using var page = await OpenAsync(transport);
 
         await page.ClickAsync();
 
@@ -78,10 +85,11 @@ public class EventScopeTests
         Assert.Same(page.Session.Services.GetRequiredService<RouteState>(), seen.Route);
     }
 
-    [Fact]
-    public async Task The_session_s_connection_outlives_the_event_that_was_handed_it()
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task The_session_s_connection_outlives_the_event_that_was_handed_it(LiveTransportKind transport)
     {
-        await using var page = await OpenAsync();
+        await using var page = await OpenAsync(transport);
 
         await page.ClickAsync();
         await page.ClickAsync();
@@ -94,32 +102,47 @@ public class EventScopeTests
     private static ClaimsPrincipal Person(string name) =>
         new(new ClaimsIdentity([new Claim(ClaimTypes.Name, name), new Claim(ClaimTypes.NameIdentifier, name)], "Test"));
 
-    private static async Task<OpenPage> OpenAsync()
+    // Every request the tab makes — the page, the socket or stream, each post — carries the browser's credential for
+    // signedIn, as a cookie would. Over the stream an event's post is itself a request, signed in without the role
+    // the revalidator adds: only the session's answer has it.
+    private static async Task<OpenPage> OpenAsync(LiveTransportKind transport, string? signedIn = null)
     {
         var revalidator = new RoleRevalidator();
-        var host = RaskTestHost.Create<EventScopeApp>(services =>
-        {
-            services.AddSingleton<EventScopeLog>();
-            services.AddScoped<EventScopeProbe>();
-            services.AddSingleton<ISessionRevalidator>(revalidator);
-        });
+        var host = RaskTestHost.Create<EventScopeApp>(
+            services =>
+            {
+                services.AddSingleton<EventScopeLog>();
+                services.AddScoped<EventScopeProbe>();
+                services.AddSingleton<ISessionRevalidator>(revalidator);
+            },
+            app => app.Use((ctx, next) =>
+            {
+                if (signedIn is not null)
+                {
+                    ctx.User = Person(signedIn);
+                }
+
+                return next(ctx);
+            }));
         var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
-        var sessionId = MarkupAssert.SessionId(html);
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId }, ct: TestContext.Current.CancellationToken);
-        await ws.AttachedAsync(host, sessionId);
-        var session = host.Store.Get(sessionId)!;
+        var session = host.Store.Peek(MarkupAssert.SessionId(html))!;
+        var settled = session.AttachesSettled;
+        var connection = await LiveTestConnection.OpenAsync(host, transport, session.Id);
+
+        // Attached is not settled: the attach still asks about the user its connection carries and adopts the
+        // answer, and a test that changes that answer before then is raced by it.
+        await WaitFor.True(() => session.AttachesSettled > settled, "the attach has adopted its connection's user");
         await session.LastHandlerTask;
         var log = host.Server.Services.GetRequiredService<EventScopeLog>();
 
         // What the GET's render opened (nothing) is not a click's.
         log.Reset();
-        return new OpenPage(host, ws, session, log, revalidator, html);
+        return new OpenPage(host, connection, session, log, revalidator, html);
     }
 
     private sealed class OpenPage(
         RaskTestHost host,
-        System.Net.WebSockets.WebSocket ws,
+        ILiveTestConnection connection,
         LiveSession session,
         EventScopeLog log,
         RoleRevalidator revalidator,
@@ -134,14 +157,14 @@ public class EventScopeTests
         public async Task ClickAsync(string button = "use")
         {
             var id = Regex.Match(html, "<button[^>]*data-rask-on-click=\"(h\\d+)\"[^>]*>" + button).Groups[1].Value;
-            await ws.SendJsonAsync(new { id }, ct: TestContext.Current.CancellationToken);
-            await ws.SettledAsync();
+            await connection.SendJsonAsync(new { id });
+            await connection.SettledAsync();
             await session.LastHandlerTask;
         }
 
         public async ValueTask DisposeAsync()
         {
-            ws.Dispose();
+            await connection.DisposeAsync();
             await host.StopAsync();
             host.Dispose();
         }
