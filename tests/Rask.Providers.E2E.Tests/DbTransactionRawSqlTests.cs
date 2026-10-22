@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,6 +62,61 @@ internal static class RawSqlRun
     }
 }
 
+/// <summary>
+///     The app's own context from its host's factory, made before <c>Db.Transaction</c> and used with plain EF Core at
+///     serializable isolation — a LINQ read, a change, a read face, <c>SaveChangesAsync</c>, no <c>db:</c>: it joins the
+///     transaction at its first command, so the save does not wait on the transaction's locks, and a throw after it
+///     takes the update back.
+/// </summary>
+internal static class OwnContextRun
+{
+    /// <summary>What the read face counted inside, and the members left after a committed and a rolled-back block.</summary>
+    internal static async Task<(int Counted, List<string> Left)> Run(Action<DbContextOptionsBuilder> provider)
+    {
+        var services = new ServiceCollection();
+        services.AddRaskData<TenancyDbContext>();
+        services.AddDbContextFactory<TenancyDbContext>((sp, o) =>
+        {
+            provider(o);
+            o.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
+        });
+        services.AddDbContextFactory<RaskReadDbContext>(provider);
+        await using var app = services.BuildServiceProvider(validateScopes: true);
+        Db.Configure(app);
+
+        try
+        {
+            var factory = app.GetRequiredService<IDbContextFactory<TenancyDbContext>>();
+            await GeneratedModelWrites.Create(Member.For("ada@example.com", owner: null), cancellationToken: TestContext.Current.CancellationToken);
+            await using var db = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+            var counted = -1;
+
+            await Db.Transaction(async () =>
+            {
+                var ada = await db.Members.SingleAsync(m => m.Email == "ada@example.com", TestContext.Current.CancellationToken);
+                db.Entry(ada).Property(m => m.Email).CurrentValue = "ada@renamed.example";
+                counted = await Member.Count(m => m.Owner == null, TestContext.Current.CancellationToken);
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }, IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+            {
+                var ada = await db.Members.SingleAsync(m => m.Email == "ada@renamed.example", TestContext.Current.CancellationToken);
+                db.Entry(ada).Property(m => m.Email).CurrentValue = "ada@rolled-back.example";
+                await Member.Count(m => m.Owner == null, TestContext.Current.CancellationToken);
+                await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+                throw new InvalidOperationException("roll back");
+            }, IsolationLevel.Serializable, TestContext.Current.CancellationToken));
+
+            await using var check = await factory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+            return (counted, await check.Members.Select(m => m.Email).ToListAsync(TestContext.Current.CancellationToken));
+        }
+        finally
+        {
+            Db.Reset();
+        }
+    }
+}
+
 [Collection(PostgresCollection.Name)]
 public sealed class PostgresDbTransactionRawSqlTests
 {
@@ -78,6 +134,22 @@ public sealed class PostgresDbTransactionRawSqlTests
 
         Assert.Equal(2, seen);
         Assert.Equal(["ada@renamed.example", "bob@example.com", "cy@example.com"], left);
+    }
+
+    [Fact]
+    public async Task The_apps_context_made_before_the_block_reads_and_saves_inside_it_at_serializable()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        await using (var reset = new TenancyDbContext(
+            new DbContextOptionsBuilder<TenancyDbContext>().UseRaskPostgresAt(Postgres.Required).Options))
+        {
+            await Postgres.ResetSchemaAsync(reset, "tenancy");
+        }
+
+        var (counted, left) = await OwnContextRun.Run(o => o.UseRaskPostgresAt(Postgres.Required));
+
+        Assert.Equal(1, counted);
+        Assert.Equal(["ada@renamed.example"], left);
     }
 }
 
@@ -114,6 +186,17 @@ public sealed class SqlServerDbTransactionRawSqlTests : IAsyncLifetime
 
         Assert.Equal(2, seen);
         Assert.Equal(["ada@renamed.example", "bob@example.com", "cy@example.com"], left);
+    }
+
+    [Fact]
+    public async Task The_apps_context_made_before_the_block_reads_and_saves_inside_it_at_serializable()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+
+        var (counted, left) = await OwnContextRun.Run(o => o.UseRaskSqlServerAt(SqlServer.Database(DatabaseName)));
+
+        Assert.Equal(1, counted);
+        Assert.Equal(["ada@renamed.example"], left);
     }
 
     private static TenancyDbContext Open() =>

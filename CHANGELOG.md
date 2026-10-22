@@ -1227,16 +1227,18 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
-- **Raw SQL on an app's own context inside `Db.Transaction` runs inside the transaction.** Before: inside
-  `await Db.Transaction(async () => { ... })`, `db.Database.ExecuteSqlRawAsync(...)`, `SqlQueryRaw` or `FromSqlRaw`
-  on the app's context opened a connection of its own — outside the transaction, so a rollback kept the raw write
-  (on SQLite it waited on the transaction's lock and failed "database is locked") — and a later `Refund.Remove(id,
-  db: db)` could be refused; the workaround was a `db.Database.BeginTransactionAsync()` by hand. After: a context
-  carrying Rask's interceptors on the same database is enlisted before its first command, so the raw SQL and the
-  `db:` call share the transaction, a rollback undoes both, and the context is handed back on its own connection.
-  No call site changes; drop the hand-made `BeginTransactionAsync` inside the block (EF Core now refuses it, as the
-  context is already in a transaction). A context on another database still runs outside, and its `db:` call is
-  still refused.
+- **An app's own context used inside `Db.Transaction` runs inside the transaction — plain EF Core and raw SQL alike.**
+  Before: a context from the app's factory (`AddRaskData<T>(o => …)`, or any carrying Rask's interceptors), used
+  inside `await Db.Transaction(async () => { ... })` without `db:` — a LINQ read, `SaveChangesAsync`,
+  `ExecuteSqlRawAsync`, `SqlQueryRaw`, `FromSqlRaw` — opened a connection of its own, outside the transaction. On SQL
+  Server at serializable its UPDATE waited on the locks the block's own read face held (LCK_M_X) until the 30 s
+  timeout; on SQLite it failed "database is locked"; a rollback kept what it wrote; and a later `Refund.Remove(id,
+  db: db)` could be refused. The workaround was a `db.Database.BeginTransactionAsync()` by hand. After: the context is
+  enlisted before its first command — even one created before the block — so its reads, its save, its raw SQL and
+  any `db:` call share the transaction, a rollback undoes them all, and the context is handed back on its own
+  connection. No call site changes; drop the hand-made `BeginTransactionAsync` inside the block (EF Core now refuses
+  it, as the context is already in a transaction). A context on another database still runs outside, and its `db:`
+  call is still refused.
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.

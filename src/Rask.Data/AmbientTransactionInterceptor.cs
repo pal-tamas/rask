@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace Rask.Data;
 
 /// <summary>
-///     Joins an app's own context to the <c>Db.Transaction</c> in progress before its first command — so raw
-///     SQL it runs inside the block (<c>ExecuteSqlRaw</c>, <c>SqlQueryRaw</c>, <c>FromSqlRaw</c>) runs inside the
-///     transaction, and a later <c>db:</c> call with it finds it joined already.
+///     Joins an app's own context to the <c>Db.Transaction</c> in progress before its first command, even one
+///     created before the block — so what it runs inside (a LINQ read, <c>SaveChanges</c>, <c>ExecuteSqlRaw</c>,
+///     <c>SqlQueryRaw</c>) runs inside the transaction, and a later <c>db:</c> call with it finds it joined already.
 /// </summary>
 /// <remarks>
 ///     Both hooks are needed: EF Core creates a non-query's command before it opens the connection, and a query's after.

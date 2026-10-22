@@ -826,23 +826,29 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`. It stays yours:
   when the transaction ends — committed, rolled back or retried — it is out of it and back on its own connection,
   so the same `db` can go into the next `Db.Transaction` or save on its own.
-- **Raw SQL on your own context joins too.** `db.Database.ExecuteSqlRawAsync(...)`, `db.Database.SqlQueryRaw<T>(...)`
-  and `FromSqlRaw` on a context whose options carry Rask's interceptors (`AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())`,
-  which a `RaskApp` and every documented hand-wired host already add) run inside the transaction: the context is
-  enlisted before its first command, a rollback takes the raw write back, and a later `db: db` call finds it joined.
-  It is handed back on its own connection like any `db:`. No `db.Database.BeginTransactionAsync()` inside the block
-  — the context is already in one, and EF Core refuses a second:
+- **Your own context joins at its first command.** A context of the app's own — from the factory `AddRaskData<T>(o => …)`
+  registers or any whose options carry Rask's interceptors (`AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())`,
+  which a `RaskApp` and every documented hand-wired host already add) — is enlisted before the first thing it runs
+  inside the block, even when it was created before it: a LINQ read, `SaveChangesAsync`, `ExecuteSqlRawAsync`,
+  `SqlQueryRaw`, `FromSqlRaw`. So its save does not wait on the locks the transaction's own reads took, a rollback
+  takes its writes back, and a later `db: db` call finds it joined. It is handed back on its own connection like
+  any `db:`. No `db.Database.BeginTransactionAsync()` inside the block — the context is already in one, and EF Core
+  refuses a second:
 
   ```csharp
+  await using var db = await contexts.CreateDbContextAsync();
   await Db.Transaction(async () =>
   {
-      await db.Database.ExecuteSqlRawAsync("UPDATE Refunds SET Locked = 1 WHERE OrderId = {0}", orderId);
-      await Refund.Remove(id, db: db);                                       // same transaction
-  });
+      var fueling = await db.Set<Fueling>().SingleAsync(f => f.Id == id);  // joins here
+      fueling.Annotate(note);
+      if (await Fueling.Count(f => f.CardId == fueling.CardId) > 1) return; // read face, same transaction
+      await db.Database.ExecuteSqlRawAsync("UPDATE Cards SET Touched = 1 WHERE Id = {0}", fueling.CardId);
+      await db.SaveChangesAsync();                                          // same transaction
+  }, isolation: IsolationLevel.Serializable);
   ```
 
   A context on another database, already in a transaction of its own, or whose connection you opened before the
-  block runs its raw SQL as it always did, outside — and a `db:` call with it is refused as above.
+  block runs as it always did, outside — and a `db:` call with it is refused as above.
 - **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
   `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
   and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the
