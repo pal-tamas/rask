@@ -406,6 +406,10 @@ them until tagged releases begin.
   dates) whatever the publishing machine's locale; the process is pinned to that culture too, so a timer formats as
   the page does. Naming only English no longer warns about missing culture data.
 
+- **A WebAssembly app reads the culture cookie and `?culture=` key it configured.** Before: the browser read
+  `.AspNetCore.Culture` and `culture` whatever `CookieName`/`QueryKey` said. After: it reads the configured names,
+  as the server does.
+
 - **A `Ui.DatePicker` reopens on the month it was left on, as Flux's does,** where it went back to the chosen
   day's month or today: paged with the arrows or chosen from `.SelectableHeader()`'s lists, closed and opened again,
   it shows that month. A date typed or written since shows its own month.

@@ -37,7 +37,7 @@ internal static class WasmCultureSeeder
             return;
         }
 
-        var negotiation = Negotiate(JSInterop.GetCultureSignals(), options);
+        var negotiation = Negotiate(JSInterop.GetCultureSignals(options.CookieName, options.QueryKey), options);
 
         if (services.GetService(typeof(IRaskCulture)) is SessionCulture culture)
         {
