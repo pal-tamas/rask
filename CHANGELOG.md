@@ -343,12 +343,11 @@ them until tagged releases begin.
 
 ### Changed
 
-- **An open panel keeps the side it opened on (a departure from Flux UI).** A date picker low on a form opened its
-  calendar under the field on a five-week month and jumped over it on a six-week one, so the arrow being pressed
-  ran away from the pointer — Flux does the same. Now a dropdown, popover, select list, time, colour or date picker
-  that grows or shrinks while open stays on its side and scrolls in the room there; opening it again, scrolling
-  and resizing the window choose the side afresh. The date picker also reopens on the month it was left on, as
-  Flux's does.
+- **A `Ui.DatePicker` reopens on the month it was left on, as Flux's does,** where it went back to the chosen
+  day's month or today: paged with the arrows or chosen from `.SelectableHeader()`'s lists, closed and opened again,
+  it shows that month. A date typed or written since shows its own month.
+- **A two-month calendar with `.SelectableHeader()` titles its second month.** The header's lists name the first
+  month; the months after it had no title at all and now keep theirs, as they do without the lists.
 - **A typed `Ui.DatePicker` that is not `.Live()` opens its calendar on the date typed in it.** The calendar read the
   value the server held, which a bound picker hears only with the next action, so it opened on today with nothing
   marked. It now reads the field's parts when it opens (half filled: today, nothing marked), and a day picked in it

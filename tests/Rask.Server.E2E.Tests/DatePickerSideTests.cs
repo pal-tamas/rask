@@ -9,12 +9,13 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     An open panel keeps the side it opened on while it changes size — a departure from Flux, which flips it
-///     (<c>scripts/flux/date-flip.mjs</c>). Reported from a form: a <c>Ui.DatePicker</c> whose trigger ends 616 px
-///     down a 1440 × 950 window opens under it on October, and paged to August, a month of six weeks, it jumped
-///     over the trigger, so the arrow being pressed ran away from the pointer.
+///     An open date picker's calendar is on the side Flux's is, month by month. Reported from a form: a
+///     <c>Ui.DatePicker</c> whose trigger ends 616 px down a 1440 × 950 window opens under it on October, and paged
+///     to August, a month of six weeks, goes over it. Flux's live picker, held at the same place, does exactly that
+///     (<c>scripts/flux/date-flip.mjs</c>, 2026-10-21): under it at 621 on the months of five weeks, over it at 213 on
+///     August — the owner chose Flux's behaviour over keeping the side.
 /// </summary>
-public sealed class DatePickerKeepsItsSideTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
+public sealed class DatePickerSideTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
     private const string Popup = "[data-ui-date-picker] [popover]";
 
@@ -61,7 +62,7 @@ public sealed class DatePickerKeepsItsSideTests(PlaywrightFixture playwright) : 
     }
 
     [Fact]
-    public async Task Paged_from_october_to_august_and_back_the_open_calendar_stays_under_its_trigger_and_its_arrow_under_the_pointer()
+    public async Task Paged_from_october_to_july_the_calendar_is_on_the_side_flux_puts_it_each_month()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
@@ -69,25 +70,17 @@ public sealed class DatePickerKeepsItsSideTests(PlaywrightFixture playwright) : 
         var october = await OpenedAsync(page);
         var september = await PagedAsync(page, "2026-09-15");
         var august = await PagedAsync(page, "2026-08-15");
-        // Scrolled to its end, the last of August is inside the window.
-        var lastDay = await page.EvaluateAsync<int>("s => { const p = document.querySelector(s); p.scrollTop = p.scrollHeight; return Math.round(p.querySelector('td[data-date=\"2026-08-31\"]').getBoundingClientRect().bottom); }", Popup);
         var july = await PagedAsync(page, "2026-07-15");
 
+        // Five weeks fit under the trigger (576..616); six do not, and go over it, 5 px clear of it, as Flux's.
         Assert.StartsWith("621,", october, StringComparison.Ordinal);
-        var arrow = october.Split(',')[2..];
-        Assert.All(new[] { september, august, july }, at =>
-        {
-            Assert.StartsWith("621,", at, StringComparison.Ordinal);
-            Assert.Equal(arrow, at.Split(',')[2..]);
-        });
-
-        // Six weeks are taller than the room under the trigger: held to it, inside the window, and scrolled.
-        Assert.InRange(int.Parse(august.Split(',')[1], System.Globalization.CultureInfo.InvariantCulture), 940, 950);
-        Assert.InRange(lastDay, 621, 950);
+        Assert.StartsWith("621,", september, StringComparison.Ordinal);
+        Assert.Equal("571", august.Split(',')[1]);
+        Assert.StartsWith("621,", july, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_scroll_chooses_the_side_again_and_the_calendar_reopens_on_the_month_it_was_left_on()
+    public async Task The_calendar_reopens_on_the_month_it_was_left_on_as_fluxs_does()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
@@ -95,8 +88,6 @@ public sealed class DatePickerKeepsItsSideTests(PlaywrightFixture playwright) : 
         await PagedAsync(page, "2026-09-15");
         await PagedAsync(page, "2026-08-15");
 
-        await page.EvaluateAsync("() => window.scrollBy(0, 1)");
-        await page.WaitForFunctionAsync("() => document.querySelector('[data-ui-date-picker] [popover]').getBoundingClientRect().bottom <= document.querySelector('[data-ui-date-picker-button]').getBoundingClientRect().top");
         await page.Keyboard.PressAsync("Escape");
         await Expect(page.Locator(Popup)).ToBeHiddenAsync();
         await OpenedAsync(page);

@@ -11,8 +11,8 @@ namespace Rask.Server.E2E.Tests;
 /// <summary>
 ///     The date picker both apps put on every form: typed into by hand, with the month and the year chosen from the
 ///     header's lists — <c>.SelectableHeader().Trigger(Ui.DatePickerInput)</c>, bound and not live — low in a
-///     1280 × 800 window. A month chosen from a list is a page like the arrows': it keeps the open calendar's side
-///     and sends nothing; the calendar reopens on it; a date typed while it is shut is the one it opens on.
+///     1280 × 800 window. A month chosen from a list is a page like the arrows': the calendar goes to the side Flux's
+///     goes to and nothing is sent; it reopens on that month; a date typed while it is shut is the one it opens on.
 /// </summary>
 public sealed class TypedHeaderDatePickerTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -64,7 +64,7 @@ public sealed class TypedHeaderDatePickerTests(PlaywrightFixture playwright) : I
     }
 
     [Fact]
-    public async Task A_month_and_a_year_chosen_from_the_header_keep_the_side_send_nothing_and_are_where_it_reopens()
+    public async Task A_month_and_a_year_chosen_from_the_header_send_nothing_and_are_where_it_reopens()
     {
         var (session, frames) = await OpenAsync();
         await using var _ = session;
@@ -75,19 +75,15 @@ public sealed class TypedHeaderDatePickerTests(PlaywrightFixture playwright) : I
         var sentBefore = frames.Sent;
 
         await ChooseAsync(page, "month", "8", "2026-08-15");
-        var august = await page.EvaluateAsync<int>(Top, Popup);
         await ChooseAsync(page, "year", "2027", "2027-08-15");
-        var nextAugust = await page.EvaluateAsync<int>(Top, Popup);
         var sentByChoosing = frames.Sent - sentBefore;
         await page.Keyboard.PressAsync("Escape");
         await Expect(page.Locator(Popup)).ToBeHiddenAsync();
         await OpenCalendarAsync(page);
         var reopened = await page.EvaluateAsync<string>(Month, Popup);
 
-        // October has five weeks and fits under the field; August, six, would not, and stays there all the same.
+        // October has five weeks and fits under the field.
         Assert.Equal(471, opened);
-        Assert.Equal(opened, august);
-        Assert.Equal(opened, nextAugust);
         Assert.Equal(0, sentByChoosing);
         Assert.Equal("2027-08-15", reopened);
     }

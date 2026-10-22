@@ -9,9 +9,7 @@
 //   node scripts/flux/date-flip.mjs [--rask <url> [--picker <css>]] [--view 1440x950] [--bottom 616]
 //
 // `--rask` measures a running Rask page the same way (its first `[data-ui-date-picker]`, or `--picker`) beside
-// Flux's button picker, and compares the side of every step. The steps that page the OPEN calendar are DEPARTED
-// (flux-component SKILL.md, 2026-10-21): the kit keeps the side it opened on where Flux turns it over, so there
-// Rask must be on the side it opened on. Every other step must be on Flux's side. Exits 1 on a difference.
+// Flux's button picker, and compares the side of every step: each must be Flux's. Exits 1 on a difference.
 
 import { chromium } from './lib.mjs';
 
@@ -38,8 +36,8 @@ for (const side of sides) {
     await page.evaluate(() => document.fonts.ready);
     console.log(`\n${side.name} at ${width}x${height}, the trigger's bottom at ${bottom}`);
     const rows = sidesOf[`${side.name} ${width}x${height}`] = [];
-    const note = async (step, paged = false) => {
-      const at = { ...await page.evaluate(read, side), step, paged };
+    const note = async step => {
+      const at = { ...await page.evaluate(read, side), step };
       rows.push(at);
       console.log(`  ${step.padEnd(34)} ${at.month.padEnd(16)} ${at.weeks} weeks  trigger ${at.trigger}  popup ${at.open ? `${at.side} top ${at.top} bottom ${at.bottom}` : 'closed'}`);
     };
@@ -55,7 +53,7 @@ for (const side of sides) {
     for (const step of ['previous', 'previous', 'previous', 'next', 'next', 'next']) {
       await pager(page, step).click();
       await settle(page);
-      await note(`${step} month`, true);
+      await note(`${step} month`);
     }
 
     // Back on a six-week month: what makes it choose again.
@@ -64,7 +62,7 @@ for (const side of sides) {
       await settle(page);
     }
 
-    await note('previous ×2 (back to six weeks)', true);
+    await note('previous ×2 (back to six weeks)');
     await page.evaluate(() => window.scrollBy(0, 1));
     await settle(page);
     await note('scrolled the page by 1 px');
@@ -95,11 +93,9 @@ if (option('rask')) {
     const rask = sidesOf[`rask ${width}x${height}`];
     flux.forEach((theirs, i) => {
       const mine = rask[i];
-      // Paged while open: the side it opened on (DEPARTED); anything else chooses afresh, as Flux's does.
-      const wanted = theirs.paged ? rask[0].side : theirs.side;
-      const ok = mine?.side === wanted;
+      const ok = mine?.side === theirs.side;
       failed += ok ? 0 : 1;
-      const tag = !ok ? 'FAIL' : theirs.paged && wanted !== theirs.side ? 'DEPARTED' : 'ok';
+      const tag = ok ? 'ok' : 'FAIL';
       console.log(`  ${tag.padEnd(8)} ${width}x${height} ${theirs.step.padEnd(34)} flux ${theirs.side ?? 'closed'}, rask ${mine?.side ?? 'closed'}`);
     });
   }

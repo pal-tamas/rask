@@ -280,6 +280,17 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task Under_a_selectable_header_the_second_month_keeps_its_title_and_only_the_first_gives_way()
+    {
+        var page = Page.Render(() => Ranged().Months(2).SelectableHeader());
+
+        var html = page.Render();
+
+        Assert.Equal(1, Regex.Count(html, "class=\"flex items-center h-8 max-sm:h-10 px-2 mb-2 opacity-0\""));
+        Assert.Equal(1, Regex.Count(html, "class=\"flex items-center h-8 max-sm:h-10 px-2 mb-2\""));
+    }
+
+    [Fact]
     public void Week_numbers_are_the_iso_week_of_each_rows_thursday()
     {
         var calendar = Single().WeekNumbers();

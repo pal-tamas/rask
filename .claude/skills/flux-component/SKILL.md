@@ -65,13 +65,6 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
-- **2026-10-21 — an open anchored panel keeps the side it opened on.** Flux chooses the side again whenever the panel
-  changes size (measured, `scripts/flux/date-flip.mjs`): a date picker 616 px down a 1440 × 950 window opens under
-  its trigger on October and jumps over it on August, a month of six weeks, so the arrow being pressed runs away
-  from the pointer. The kit keeps the side, as CSS anchor positioning keeps its last successful position option, and
-  holds the panel to the room there (it scrolls); a fresh open, a scroll and a window resize choose again, and so
-  does a kept side that would hold less of the panel than it did. Every family (`rask-place.ts`). `date-flip.mjs
-  --rask` marks the steps after the open DEPARTED; `DatePickerKeepsItsSideTests`, `RuntimeHookPlaceTests`.
 - **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
   scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets

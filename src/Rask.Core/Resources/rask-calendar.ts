@@ -445,7 +445,8 @@ function monthGrid(root: Element, state: State, month: number, folded: boolean, 
     const grid = el("div", folded ? look.folded : undefined);
     grid.setAttribute("role", "grid");
     grid.setAttribute("data-month", "");
-    const heading = el("div", c.selectableHeader ? look.headingHidden : look.heading);
+    // The header's lists name the first month; every month after it keeps its title.
+    const heading = el("div", c.selectableHeader && !folded ? look.headingHidden : look.heading);
     const text = el("div", look.headingText);
     text.textContent = formatDay(month, c.culture.yearMonth, c.culture);
     heading.appendChild(text);
