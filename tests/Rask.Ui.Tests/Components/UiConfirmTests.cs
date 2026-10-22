@@ -34,7 +34,10 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         var leave = Ui.ConfirmLeave.Heading("Sure?").ToHtml();
 
         var withoutTheField = Regex.Replace(confirm, "<div hidden data-rask-confirm-dialog=\"field\">.*?</div></div>", string.Empty);
-        var asLeave = withoutTheField
+        // The title a question may bring of its own is Ui.Confirm's alone.
+        var withoutItsTitle = Regex.Replace(
+            withoutTheField, " data-rask-confirm-dialog=\"heading\" data-rask-confirm-default=\"[^\"]*\" data-rask-opaque", string.Empty);
+        var asLeave = withoutItsTitle
             .Replace(" id=\"ui-confirm-message\"", string.Empty, StringComparison.Ordinal)
             .Replace("ui-confirm", "ui-confirm-leave", StringComparison.Ordinal)
             .Replace("data-rask-confirm-dialog", "data-rask-leave", StringComparison.Ordinal);
@@ -52,6 +55,18 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         Assert.Contains(title + "Megerősítés</div>", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-heading", title, StringComparison.Ordinal);
         Assert.Matches("<p[^>]*id=\"ui-confirm-message\"[^>]*data-rask-confirm-dialog=\"message\"[^>]*data-rask-opaque[^>]*></p>", html);
+    }
+
+    [Fact]
+    public void The_title_is_the_runtimes_to_write_and_keeps_the_layouts_for_a_question_with_none_of_its_own()
+    {
+        var html = Ui.Confirm.Heading("Megerősítés").ToHtml().AsText();
+
+        var title = Tag(html, "<div class=\"font-medium");
+
+        Assert.Contains("data-rask-confirm-dialog=\"heading\"", title, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-default=\"Megerősítés\"", title, StringComparison.Ordinal);
+        Assert.Contains("data-rask-opaque", title, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -36,8 +36,21 @@ internal static class UiConfirmation
     internal static Component Titled(string heading, string part, string? messageId = null) =>
         Div[
             Ui.Heading.Lg[heading],
-            Ui.Text.Id(messageId).Class("mt-2").Data(part, "message").Attributes(("data-rask-opaque", null))
+            Message(part, messageId)
         ];
+
+    /// <summary>
+    ///     As <see cref="Titled" />, with a title the runtime writes too: the question's own where it brought one, else
+    ///     <paramref name="heading" />, which the render keeps in <c>data-rask-confirm-default</c>.
+    /// </summary>
+    internal static Component Retitled(string heading, string part, string messageId) =>
+        Div[
+            Ui.Heading.Lg.Data(part, "heading").Attributes(("data-rask-confirm-default", heading), ("data-rask-opaque", null))[heading],
+            Message(part, messageId)
+        ];
+
+    private static UiText Message(string part, string? messageId) =>
+        Ui.Text.Id(messageId).Class("mt-2").Data(part, "message").Attributes(("data-rask-opaque", null));
 
     // Flux's heading keeps no room for the close button, because its examples keep a heading short: a whole
     // question may run under it, so this one keeps the room itself (measured by parity-modal.mjs).
