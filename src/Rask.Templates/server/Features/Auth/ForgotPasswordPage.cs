@@ -24,26 +24,23 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
 
     private Component Sent =>
         [
-            H1.Class("text-2xl font-bold")["Check your email"],
+            Title("Check your email"),
             Ok("forgot-sent", "If an account exists for that address, a link to choose a new password is on its way."),
-            P.Class("text-sm opacity-70")[
-                "The link works once, and expires. ",
-                NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Back to sign in"], "."]
+            Ui.Text["The link works once, and expires. ", Ui.Link.Href(Routes.LoginPage())["Back to sign in"], "."]
         ];
 
     private Component Ask =>
         [
-            H1.Class("text-2xl font-bold")["Reset your password"],
-            _error is AuthError.None ? null : Error("forgot-error", AuthMessages.For(_error)),
-            P.Class("text-sm opacity-70")["Tell us the address you signed up with and we will send you a link."],
-            Form.Model(_model).OnSubmit(Submit)[
-                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
-                Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Submit).Id("forgot-submit").Class("btn btn-primary btn-block")["Send the link"]
-                ]
+            Div.Class("space-y-2")[
+                Title("Reset your password"),
+                Ui.Text["Tell us the address you signed up with and we will send you a link."]
             ],
-            P.Class("text-sm opacity-70")[
-                "Remembered it? ", NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"], "."]
+            _error is AuthError.None ? null : Error("forgot-error", AuthMessages.For(_error)),
+            Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-6")[
+                Ui.Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Label("Email"),
+                Ui.Button.Primary.Type(Ui.ButtonType.Submit).Id("forgot-submit").Class("w-full")["Send the link"]
+            ],
+            Ui.Text.Class("text-center")["Remembered it? ", Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
     private async Task Submit(ForgotPasswordModel model)

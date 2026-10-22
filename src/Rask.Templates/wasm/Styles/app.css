@@ -2,8 +2,8 @@
   Tailwind and the Rask UI kit, compiled into ONE stylesheet by this project's own build.
 
   The line below is the whole setup: the layer order, Tailwind, the kit's theme and `dark` variant,
-  daisyUI, and the classes the kit's components write — compiled beside the classes this project
-  writes, so every utility exists once and Tailwind ranks them, not the order of two <link>s.
+  and the classes the kit's components write — compiled beside the classes this project writes,
+  so every utility exists once and Tailwind ranks them, not the order of two <link>s.
 
   Styles/vendor/ is written by the build (no npm, no node_modules) and is not yours to edit or commit.
 */

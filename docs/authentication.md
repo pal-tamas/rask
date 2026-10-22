@@ -9,9 +9,9 @@ Core Identity underneath: Rask.Auth hashes passwords, issues links, throttles gu
 itself, on standard .NET pieces (PBKDF2 or bcrypt, Data Protection, cookie authentication).
 
 **The sign-in pages are yours.** `rask new` writes them into `Features/Auth` — `/login`, `/register`,
-`/logout`, `/forgot-password`, `/reset-password`, `/confirm-email` and `/devices` — drawn with
-[daisyUI](ui-kit.md) and compiled by the app's own Tailwind like every other page, so restyling them is
-editing them. They are ordinary components written against `IAuth`, so the flows themselves keep coming
+`/logout`, `/forgot-password`, `/reset-password`, `/confirm-email` and `/devices` — drawn with the
+[UI kit](ui-kit.md)'s components and compiled by the app's own Tailwind like every other page, so
+restyling them is editing them. They are ordinary components written against `IAuth`, so the flows themselves keep coming
 from `Rask.Auth`.
 
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and

@@ -84,6 +84,16 @@ them until tagged releases begin.
   stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
+### Changed
+
+- **`rask new` draws its pages with the UI kit's Flux components, not daisyUI.** Before: the starter page and the
+  sign-in pages were daisyUI class names — `Div.Class("card bg-base-100")`, `Button.Class("btn btn-primary btn-block")`,
+  `Div.Class("alert alert-error")`. After: `Ui.Header` with `Ui.Brand`, `Ui.Card`, `Ui.Heading`, `Ui.Text`,
+  `Ui.Input.Bind(() => m.Email).Label("Email")`, `Ui.Checkbox`, `Ui.Button.Primary.Class("w-full")`, `Ui.Link`,
+  `Ui.Separator` and a `Ui.Callout.Danger` / `.Success` for what happened, in plain zinc Tailwind around them. Every
+  id, route, binding and message is the same; a guard test keeps daisyUI's classes and theme colours out of every
+  template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
+
 ### Fixed
 
 - **A prerendered WebAssembly app with no ICU bakes the dates and numbers its browser shows.** An English-only app

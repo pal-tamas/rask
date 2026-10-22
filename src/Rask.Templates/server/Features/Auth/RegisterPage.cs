@@ -32,29 +32,24 @@ public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : A
 
     protected override Component? Content =>
         [
-            H1.Class("text-2xl font-bold")[firstRun.IsPending ? "Claim this app" : "Create an account"],
+            Title(firstRun.IsPending ? "Claim this app" : "Create an account"),
             _error is AuthError.None ? null : Error("register-error", _detail ?? AuthMessages.For(_error)),
             firstRun.IsPending
-                ? Div.Class("alert alert-info").Role("status").Id("register-first-run")[
-                    Span["This app has no accounts yet, so this one becomes the administrator. "
-                         + "The one-time token is in the startup log."]]
+                ? Ui.Callout.Secondary.Icon(Ui.IconName.InformationCircle).Role("status").Id("register-first-run")[
+                    Ui.CalloutText["This app has no accounts yet, so this one becomes the administrator. "
+                                   + "The one-time token is in the startup log."]]
                 : null,
-            Form.Model(_model).OnSubmit(Submit)[
-                Field("display-name", "Name", Input.Bind(() => _model.DisplayName).Id("display-name").Class("input w-full")),
-                Field("email", "Email", Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Class("input w-full")),
-                Field("password", "Password", Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Class("input w-full")),
+            Form.Model(_model).OnSubmit(Submit).Class("flex flex-col gap-6")[
+                Ui.Input.Bind(() => _model.DisplayName).Id("display-name").Label("Name"),
+                Ui.Input.Bind(() => _model.Email).Id("email").Type(InputType.Email).Label("Email"),
+                Ui.Input.Bind(() => _model.Password).Id("password").Type(InputType.Password).Label("Password"),
                 firstRun.IsPending
-                    ? Field("first-run-token", "First-run token", Input.Bind(() => _model.FirstRunToken).Id("first-run-token").Class("input w-full"))
+                    ? Ui.Input.Bind(() => _model.FirstRunToken).Id("first-run-token").Label("First-run token")
                     : null,
-                Div.Class("card-actions mt-2")[
-                    Button.Type(ButtonType.Submit).Id("register-submit").Class("btn btn-primary btn-block")[
-                        firstRun.IsPending ? "Claim it" : "Create account"]
-                ]
+                Ui.Button.Primary.Type(Ui.ButtonType.Submit).Id("register-submit").Class("w-full")[
+                    firstRun.IsPending ? "Claim it" : "Create account"]
             ],
-            P.Class("text-sm opacity-70")[
-                "Already have an account? ",
-                NavLink.Href(Routes.LoginPage()).Class("link link-primary")["Sign in"],
-                "."]
+            Ui.Text.Class("text-center")["Already have an account? ", Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
     private async Task Submit(RegisterModel model)
