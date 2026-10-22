@@ -16,8 +16,11 @@ internal sealed partial class UiDocsExample : Component
     /// <summary>The example itself.</summary>
     public required Component Demo { get; set; }
 
-    /// <summary>A line on what it shows.</summary>
+    /// <summary>A line on what it shows. A span between backticks is code.</summary>
     public string? Blurb { get; set; }
+
+    /// <summary>What the docs say after the result, where Flux's say more under the demo. A span between backticks is code.</summary>
+    public IReadOnlyList<string>? After { get; set; }
 
     /// <summary>A name the browser tests find the result by, on a box around the result alone.</summary>
     public string? Testid { get; set; }
@@ -29,7 +32,8 @@ internal sealed partial class UiDocsExample : Component
     protected override Component? Render() =>
         Section.Class("mt-10 space-y-3")[
             Ui.Heading.Level(Nested == true ? 3 : 2).Lg[Heading],
-            Blurb is null ? null : Ui.Text[Blurb],
-            CodeSample.Files([File]).Result(Testid is null ? Demo : Div.Data("testid", Testid)[Demo])
+            Blurb is null ? null : Ui.Text[UiDocsProse.Of(Blurb)],
+            CodeSample.Files([File]).Result(Testid is null ? Demo : Div.Data("testid", Testid)[Demo]),
+            After?.Select((paragraph, index) => Ui.Text.Key(index)[UiDocsProse.Of(paragraph)])
         ];
 }

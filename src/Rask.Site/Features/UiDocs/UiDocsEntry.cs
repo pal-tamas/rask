@@ -18,7 +18,12 @@ internal sealed record UiDocsEntry(
     string? Flux = null)
 {
     /// <summary>The fluxui.dev page this one mirrors, or null for a page of Rask's own.</summary>
-    public string? FluxUrl => Flux is null ? null : "https://fluxui.dev/components/" + Flux;
+    public string? FluxUrl => Flux is null ? null : FluxSection + Flux;
+
+    // Flux files its two layouts apart from its components.
+    private string FluxSection => string.Equals(Group, UiDocsCatalog.Layouts, StringComparison.Ordinal)
+        ? "https://fluxui.dev/layouts/"
+        : "https://fluxui.dev/components/";
 
     /// <summary>The page's head: title, description, canonical, social card and structured data.</summary>
     public Component Meta() => PageMeta.For(SearchTitle + PageMeta.TitleSuffix, Description, Path);

@@ -4,37 +4,32 @@ using Rask.Site.Features.UiDocs;
 namespace Rask.Site.Features.UiKit;
 
 /// <summary>
-///     The kit's Layout components, live.
+///     Where the kit's Layout page was: the layouts and its other components each have a page in the UI tab now, so
+///     this sends the reader on to the first of them.
 /// </summary>
+/// <remarks>
+///     The static host cannot answer with a 301, so the old URL keeps a page of its own: it names the header layout's
+///     page canonical, which also keeps it out of the sitemap, goes there as it mounts, and links to every page that
+///     took a component, for a reader whose browser runs no script.
+/// </remarks>
 [Route("ui/layout")]
 [ParentRoute(typeof(ShowcaseLayout))]
 public sealed partial class UiKitLayoutPage : Component
 {
     /// <inheritdoc />
-    protected override Component? HeadAssets =>
-        PageMeta.For(
-            "Header and sidebar layouts and flyouts in C# — Rask",
-            "Flux UI's header and sidebar layouts in C#, with a collapsible sidebar that needs no script, plus a "
-            + "flyout panel and an avatar.",
-            Routes.UiKitLayoutPage());
+    protected override Component? HeadAssets => UiDocsCatalog.Header.Meta();
+
+    /// <inheritdoc />
+    protected override async Task OnFirstRender() => Go.To(PageMeta.LinkTo(UiDocsCatalog.Header.Path)).Replacing();
 
     /// <inheritdoc />
     protected override Component? Render() =>
     [
-        H1.Class("text-3xl font-bold mb-1")["Layout & flyouts"],
-        P.Class("text-ui-muted")[
-            "The application layout is Flux UI's: ", Code["Ui.Header"], ", ", Code["Ui.Sidebar"], " and ",
-            Code["Ui.Main"], " side by side, and whatever holds them is the grid. The sidebar's two states — slid ",
-            "over the page on a phone, narrowed to a rail on a desktop — are checkboxes, so they work before ",
-            "anything has loaded; the runtime puts the sidebar away when a navigation completes and remembers ",
-            "the rail across visits, as Flux's script does.",
-            " A panel that slides in from an edge is a flyout: ", Code["Ui.Modal.Flyout().Left"],
-            ", Flux UI's modal anchored to a side of the viewport, whose ", Code["Open"], " the page owns and whose ",
-            Code["OnClose"], " reports the reader closing it."
-        ],
-        UiKitMovedPages.Pages([UiDocsCatalog.Separator, UiDocsCatalog.Heading, UiDocsCatalog.Text]),
-        CodeSample
-            .Files(["UiKitLayoutDemo.cs"])
-            .Result(UiKitLayoutDemo)
+        Ui.Heading.Level(1).Xl["Layout & flyouts"],
+        Ui.Text.Class("mt-2")["The layouts, the flyout and the rest of this page each have a page of their own in the UI tab now."],
+        UiKitMovedPages.Pages([
+            UiDocsCatalog.Header, UiDocsCatalog.Sidebar, UiDocsCatalog.Modal, UiDocsCatalog.Avatar,
+            UiDocsCatalog.Separator, UiDocsCatalog.Heading, UiDocsCatalog.Text,
+        ])
     ];
 }

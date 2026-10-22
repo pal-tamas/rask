@@ -21,7 +21,8 @@ using Rask;
 Ui.Button.Primary["Save"]
 ```
 
-**Every component, live, with a reference of its steps: [the UI tab on rask.sh](https://rask.sh/ui/)** — so far
+**Every component, live, with a reference of its steps: [the UI tab on rask.sh](https://rask.sh/ui/)** — the
+[Header](https://rask.sh/ui/header/) and [Sidebar](https://rask.sh/ui/sidebar/) layouts, then
 [Button](https://rask.sh/ui/button/), [Badge](https://rask.sh/ui/badge/), [Callout](https://rask.sh/ui/callout/),
 [Card](https://rask.sh/ui/card/), [Heading](https://rask.sh/ui/heading/), [Text & link](https://rask.sh/ui/text/),
 [Separator](https://rask.sh/ui/separator/), [Icon](https://rask.sh/ui/icon/), [Dropdown](https://rask.sh/ui/dropdown/),
@@ -43,8 +44,7 @@ Ui.Button.Primary["Save"]
 [File upload](https://rask.sh/ui/file-upload/), [Phone](https://rask.sh/ui/phone/),
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), with
-[theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
-category page [Layout & flyouts](https://rask.sh/docs/ui/layout).
+[theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
 
@@ -789,104 +789,35 @@ and a link takes the accent with an underline at a fifth of it that fills in und
 ## Application layout
 
 [Flux UI's two layouts](https://fluxui.dev/layouts/sidebar), part for part: `Ui.Header`, `Ui.Sidebar` and
-`Ui.Main`, written as **siblings**. Whatever holds the `Ui.Main` — the `<body>`, or a wrapper — becomes the
-layout grid: the header across the top, the sidebar down the side, the main in what is left. A header written
-*before* the sidebar runs the full width above it; written *after*, it sits beside it. Both are live at
-[/demo/sidebar](https://rask.sh/demo/sidebar) and [/demo/header](https://rask.sh/demo/header).
+`Ui.Main`, written as **siblings**. Whatever holds the `Ui.Main` (the `<body>`, or a wrapper) becomes the layout
+grid: the header across the top, the sidebar down the side, the main in what is left. Both states of the sidebar,
+slid over a phone and narrowed to a rail, are checkboxes, so they work before anything has loaded; the runtime puts
+the sidebar away when the app navigates and remembers the rail under Flux's own key. Every demo on Flux's two
+layout pages, framed live with its code and a Fullscreen page of its own, what the runtime keeps, the rail's
+tooltips and menus, and the reference of every part: **[rask.sh/ui/header](https://rask.sh/ui/header/)** and
+**[rask.sh/ui/sidebar](https://rask.sh/ui/sidebar/)**.
 
 ```csharp
 protected override Component? Render() =>
 [
-    Ui.Sidebar.Sticky().Collapsible(Ui.SidebarCollapsible.Always)
-        .Class("bg-zinc-50 dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-700")[
-        Ui.SidebarHeader[
-            Ui.SidebarBrand.Href(Routes.HomePage()).Logo("/logo.png").LogoDark("/logo-dark.png").Name("Acme Inc."),
-            Ui.SidebarCollapse
-        ],
-        Ui.SidebarSearch.Placeholder("Search..."),
-        Ui.SidebarNav[
-            Ui.SidebarItem.Icon(Ui.IconName.Home).Href(Routes.HomePage())["Home"],
-            Ui.SidebarItem.Icon(Ui.IconName.Inbox).Badge("12").Href(Routes.InboxPage())["Inbox"],
-            Ui.SidebarGroup.Expandable().Icon(Ui.IconName.Star).Heading("Favorites")[
-                Ui.SidebarItem.Href(Routes.MarketingPage())["Marketing site"]
-            ]
-        ],
+    Ui.Sidebar.Sticky(true).Collapsible(Ui.SidebarCollapsible.Always)[
+        Ui.SidebarHeader[Ui.SidebarBrand.Href(Routes.HomePage()).Logo("/logo.png").Name("Acme Inc."), Ui.SidebarCollapse],
+        Ui.SidebarNav[Ui.SidebarItem.Icon(Ui.IconName.Home).Href(Routes.HomePage())["Home"]],
         Ui.SidebarSpacer,
-        Ui.SidebarNav[Ui.SidebarItem.Icon(Ui.IconName.Cog6Tooth).Href(Routes.SettingsPage())["Settings"]],
-        Ui.SidebarProfile.Avatar("/me.png").Name("Olivia Martin")
+        Ui.SidebarProfile.Avatar("/me.png").Name("Mara Lind")
     ],
-    Ui.Header.Class("lg:hidden")[
-        Ui.SidebarToggle.Inset(Ui.Position.Left),
-        Ui.Spacer
-    ],
+    Ui.Header.Class("lg:hidden")[Ui.SidebarToggle.Inset(Ui.Position.Left), Ui.Spacer],
     Ui.Main[Main[Outlet]]
 ];
 ```
 
-| Flux | Rask | |
-| --- | --- | --- |
-| `flux:header` | `Ui.Header` | `Sticky`, `Container` (content held to the container width, ground edge to edge) |
-| `flux:main` | `Ui.Main` | `Container`; `Inset` — a bordered, rounded panel that fills the viewport and scrolls inside from `lg` up |
-| `flux:sidebar` | `Ui.Sidebar` | `Sticky`, `Collapsible` (`Never` · `Mobile` · `Always`), `Breakpoint` (`Lg` by default) |
-| `flux:sidebar.header` · `.brand` · `.collapse` | `Ui.SidebarHeader` · `Ui.SidebarBrand` · `Ui.SidebarCollapse` | `Href`, `Logo`, `LogoDark`, `Name` · `Inset`, `Tooltip` |
-| `flux:sidebar.search` | `Ui.SidebarSearch` | `Placeholder`; a button as Flux draws it, Flux's filled `Ui.Input` with a lens once given `OnInput` |
-| `flux:sidebar.nav` · `.item` · `.group` | `Ui.SidebarNav` · `Ui.SidebarItem` · `Ui.SidebarGroup` | `Href`, `Icon`, `Badge`, `Current`, `Tooltip` · `Heading`, `Expandable`, `Expanded`, `Icon` |
-| `flux:sidebar.spacer` · `.profile` · `.toggle` | `Ui.SidebarSpacer` · `Ui.SidebarProfile` · `Ui.SidebarToggle` | `Avatar`, `Name` · `Icon`, `Inset` |
-
-Inside a sidebar the list is the sidebar's own (`Ui.SidebarNav`); anywhere else:
-
-- **`Ui.Navlist`** ([rask.sh/ui/navlist](https://rask.sh/ui/navlist/)) and **`Ui.Navbar`**
-  ([rask.sh/ui/navbar](https://rask.sh/ui/navbar/)) are Flux's navigation lists, in a column and in a row: the current
-  item is worked out from the route, and a navlist group folds as a `<details>`. **`Ui.Brand`**
-  ([rask.sh/ui/brand](https://rask.sh/ui/brand/)), **`Ui.Breadcrumbs`**
-  ([rask.sh/ui/breadcrumbs](https://rask.sh/ui/breadcrumbs/)) and **`Ui.Profile`**
-  ([rask.sh/ui/profile](https://rask.sh/ui/profile/)) each have a page with every example and the reference of
-  their steps.
-
-- **Nothing is painted that Flux does not paint.** The sidebar's and the header's ground and border are your
-  classes, exactly as in Flux's examples. (A kit-only document gets them from `UiStylesheet.DocumentAttribute`.)
-- **No script.** Flux drives the sidebar with JavaScript; here each state is a checkbox inside the sidebar and
-  each control a `<label>` for it, so both work on a prerendered page before anything has loaded. Below
-  `Breakpoint` the sidebar is off-screen, `Ui.SidebarToggle` slides it over the page and a click on the backdrop
-  slides it back; from `Breakpoint` up it is docked, the toggle is not shown, and with `Collapsible.Always`
-  `Ui.SidebarCollapse` — or a click anywhere on the rail — narrows it to a 56px rail of icons and widens it
-  again. The labels carry `role="button"` and a tab stop, and the runtime presses them on Enter and Space.
-- **`Ui.SidebarItem` is a `NavLink` underneath**, so the current page is worked out from the route
-  (`aria-current="page"`) unless `Current` states it. Its children are its label, and `Badge` is the count Flux's
-  navlist draws at its end. In the rail it is its icon: the label stays for a screen reader, the count is dropped,
-  and the item's **tooltip** — a real `Ui.Tooltip`, to the right of the icon — says the label (or `Tooltip`). Every
-  item sits in that tooltip, as Flux's does, and it is drawn only while the sidebar is a rail. `Ui.SidebarCollapse`
-  is named by its tooltip at every width ("Toggle sidebar" unless `Tooltip` says otherwise), and
-  `Ui.SidebarSearch` shows its placeholder the same way in the rail.
-- **`Ui.SidebarGroup`** is a heading over its items, or with `Expandable` a native `<details>` — it folds with no
-  round trip and says whether it is open; `Expanded`/`OnToggle` hand that to C#. Flux neither animates nor
-  remembers a fold, and neither does the kit. In the rail a group is its `Icon`, and its items are a **menu
-  beside it** — Flux's `flux:dropdown position="right" align="start" hover`: it opens while the pointer is on the
-  icon or the menu (only while the sidebar IS a rail), on a press, and from the keyboard (Enter, Space or
-  ArrowDown on the icon, the arrows through the rows, Escape back to the icon, Tab onwards). The rows are the
-  group's own items, so they are written once. A group without an icon is not shown in the rail.
-- **`Ui.Main` is a `<div>`, as Flux writes it.** Put a `<main>` inside it (`Ui.Main[Main[Outlet]]`) for the
-  landmark a screen reader jumps to and where Rask puts focus after a navigation.
-- **One sidebar a page.** The controls find it by fixed ids (`sidebar-open`, `sidebar-rail`), as Flux's find it
-  by a page-wide event.
-- **The two states are the reader's, and the runtime keeps them as Flux's script does.** Neither is a prop,
-  as neither is in Flux. A sidebar slid over the page is put away when the app navigates, or when the row of
-  the page already open is pressed (`data-rask-uncheck-on-navigate` on its checkbox), and the rail is remembered across visits in `localStorage`
-  under Flux's own key, `flux-sidebar-collapsed-desktop` (`data-rask-persist`); `Persist(false)` is Flux's
-  `persist="false"`. A Server page restores the rail before its first paint. A WebAssembly app's runtime loads
-  after the prerendered page is on screen, so it adds **`Ui.SidebarScript`** to its `HeadAssets`, beside
-  `Ui.AppearanceScript`: a few lines that check the box as the parser reaches it, so a narrow sidebar never
-  opens wide and snaps shut. The same script records a press on the collapse control made before the hooks have
-  loaded, so that press is kept too.
-- **`Ui.SidebarProfile`** draws the kit's avatar (`Ui.Avatar.Sm`: the picture, or the initials of `Name`), and a
-  dropdown makes it the trigger of the account menu: `Ui.Dropdown.Top.Start[Ui.SidebarProfile.Name("Ada"), Ui.Menu[…]]`.
-- **`Ui.Spacer`** is `flex: 1`: it pushes what follows it to the far end of a row or a column.
-- **`Ui.Separator`** is Flux's separator, prop for prop: `Vertical()` (or `Orientation(Ui.SeparatorOrientation.Vertical)`),
-  `Text("or")` for a word in the middle of the line, and `.Subtle` (`Variant(Ui.SeparatorVariant.Subtle)`) for a
-  line that blends into the background. It is decoration to assistive tech (`role="none"`) and carries **no
-  margin** — the page spaces it; a vertical one is as tall as its row, and `.Class("my-2")` shortens it.
-- **`Ui.Heading`**, **`Ui.Text`** and **`Ui.Link`** are Flux's own — see [Heading, text and link](#heading-text-and-link).
-  `Ui.Header` takes a `TitleLevel` instead of a fixed `<h1>`.
+A WebAssembly app adds `Ui.SidebarScript` to its `HeadAssets` beside `Ui.AppearanceScript`, so a remembered rail is
+drawn narrow from the first paint. One sidebar a page: its controls find it by fixed ids. Inside a sidebar the list
+is the sidebar's own (`Ui.SidebarNav`); anywhere else it is **`Ui.Navlist`**
+([rask.sh/ui/navlist](https://rask.sh/ui/navlist/)) or, in a row, **`Ui.Navbar`**
+([rask.sh/ui/navbar](https://rask.sh/ui/navbar/)). **`Ui.Brand`**, **`Ui.Breadcrumbs`**, **`Ui.Profile`**,
+**`Ui.Separator`** and **`Ui.Heading`** have pages of their own too; **`Ui.Spacer`** is `flex: 1`, pushing what
+follows it to the far end of a row or a column.
 
 ### Card
 

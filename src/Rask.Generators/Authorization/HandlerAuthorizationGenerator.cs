@@ -36,7 +36,8 @@ public sealed class HandlerAuthorizationGenerator : IIncrementalGenerator
         "A component method with [Authorize] is checked wherever it is called: a method group handed to a callback "
         + "at run time, and every direct call — including one inside a lambda — by an interceptor the build writes. "
         + "An interceptor cannot be written for a generic method, a call through base, a method whose signature names "
-        + "a private type, or a call inside an expression tree, so such a call runs the method unchecked.",
+        + "a private type, a nullable parameter of a type another generator makes, or a call inside an expression "
+        + "tree, so such a call runs the method unchecked.",
         DiagnosticHelp.Link("RASK109"));
 
     /// <inheritdoc />

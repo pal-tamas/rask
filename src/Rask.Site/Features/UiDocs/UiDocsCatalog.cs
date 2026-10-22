@@ -12,6 +12,8 @@ internal static class UiDocsCatalog
 {
     public const string GettingStarted = "Getting started";
 
+    public const string Layouts = "Layouts";
+
     public const string Components = "Components";
 
     public static UiDocsEntry Introduction { get; } = new(
@@ -31,6 +33,20 @@ internal static class UiDocsCatalog
         "Dark mode in Rask.Ui: light, dark or system",
         "Rask.Ui's dark mode is a dark class on html, set before the first paint from the reader's choice or their "
         + "system, and switched with no C# handler.");
+
+    public static UiDocsEntry Header { get; } = new(
+        Routes.UiHeaderPage(), "Header", Layouts,
+        "Header layout in C#: Ui.Header and Ui.Main",
+        "Flux UI's header layout in C#: a full-width bar with the brand, a navbar and the account over the main, and a "
+        + "sidebar that takes the links on a phone.",
+        "header");
+
+    public static UiDocsEntry Sidebar { get; } = new(
+        Routes.UiSidebarPage(), "Sidebar", Layouts,
+        "Sidebar layout in C#: Ui.Sidebar and Ui.Main",
+        "Flux UI's sidebar layout in C#: navigation down the side that slides over the page on a phone and narrows to a "
+        + "rail of icons, with no script.",
+        "sidebar");
 
     public static UiDocsEntry Accordion { get; } = new(
         Routes.UiAccordionPage(), "Accordion", Components,
@@ -406,6 +422,7 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
+        Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
         ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
         Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, Select,
