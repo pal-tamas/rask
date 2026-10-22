@@ -419,7 +419,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
 
         ReleaseFileStores();
-        EndEvent();
+        EndEvents();
         Scope.Dispose();
     }
 
@@ -447,7 +447,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
 
         ReleaseFileStores();
-        EndEvent();
+        EndEvents();
         Scope.Dispose();
     }
 

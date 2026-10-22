@@ -249,7 +249,16 @@ Two rules follow:
   scoped "unit of work" collecting changes over several clicks) now gets a fresh one per event — keep such state
   on the component, or in a singleton keyed by the user.
 
-A read the page went out without (its budget ran out) keeps the event's scope until it is back.
+**An event's scope lives as long as the work the event started.** A lifecycle hook — `OnMount`, `OnUpdated`,
+`OnRendered` — belongs to the event whose render started it, and so does every `Current.Service<T>()` it makes,
+before an await or after one, itself or through a helper it calls. A navigation is sent at once and its pages'
+hooks load on behind it; their reads keep that event's scope (one `DbContext`, the same instance throughout) while
+other events come and go, and it is disposed when the event has ended **and** the last hook it started — and the
+last read its page went out without — is done. Two navigations in a row each keep their own. Two limits keep this
+from leaking: when a hook's component leaves the page, its token (`Current.Cancellation`) is cancelled and the hook
+keeps the scope for **ten seconds** more at most — a loop over a stream that never ends does not keep its
+`DbContext` for the rest of the session — and when the session ends, every scope is disposed, whatever is still
+running.
 
 ### `Current.Service<T>()` — the event's own, with nothing injected
 

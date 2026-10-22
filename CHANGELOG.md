@@ -111,6 +111,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
+  sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
+  helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
+  end — a click, a published event, even the repaint the hook's own await asked for — disposed it mid-read: "The
+  connection is closed", "Cannot access a disposed context", or a read that came back null. Each event now has a life
+  of its own that every hook its renders start holds: what a hook resolves, before an await or after, is its own
+  event's one instance, disposed when the event has ended and the last of its hooks and unfinished reads is done. Two
+  navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
+  most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
+  an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
 - **A table of hundreds of pages prints, in a third of the memory.** Chromium's print layout of one table pays for
   every row on every page it runs to, so its memory grew with the square of the rows: a 10,000-row kit `Ui.Table` on
   the kit's sheet (590 A4 pages) ran the renderer past 13 GB and `Pdf.From` failed with Chromium's bare "Chromium
