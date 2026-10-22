@@ -25,7 +25,6 @@ namespace Rask.Server.Tests.WebSockets;
 public sealed class HttpTransportTests
 {
     private const string UserHeader = "X-Test-User";
-    private static readonly TimeSpan Deadline = LiveFrames.HangCeiling;
 
     private static void StampUser(IApplicationBuilder app) =>
         app.Use(async (ctx, next) =>
@@ -77,9 +76,6 @@ public sealed class HttpTransportTests
         return response.StatusCode;
     }
 
-    private static string GenerationOf(string openingFrame) =>
-        openingFrame.Split("\"generation\":")[1].TrimEnd('}', ' ');
-
     /// <summary>
     ///     A tab that closed is not coming back — a reload or a navigation makes a new session — so its session is
     ///     freed when it says so, not after the grace period a dropped connection gets.
@@ -94,7 +90,7 @@ public sealed class HttpTransportTests
         using (response)
         using (reader)
         {
-            var generation = GenerationOf(await ReadEventAsync(reader));
+            var generation = await EventStream.GenerationAsync(reader);
 
             Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
 
@@ -114,7 +110,7 @@ public sealed class HttpTransportTests
         var sessionId = await StartSessionAsync(host);
 
         var (response, reader) = await OpenStreamAsync(host, sessionId);
-        var generation = GenerationOf(await ReadEventAsync(reader));
+        var generation = await EventStream.GenerationAsync(reader);
         reader.Dispose();
         response.Dispose();
 
@@ -144,7 +140,7 @@ public sealed class HttpTransportTests
         using var host = NewHost(gracePeriod: TimeSpan.FromMinutes(5));
         var sessionId = await StartSessionAsync(host);
         var (response, reader) = await OpenStreamAsync(host, sessionId);
-        var generation = GenerationOf(await ReadEventAsync(reader));
+        var generation = await EventStream.GenerationAsync(reader);
         reader.Dispose();
         response.Dispose();
         await WaitFor.True(
@@ -186,27 +182,6 @@ public sealed class HttpTransportTests
         return (response, new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8));
     }
 
-    /// <summary>Reads one non-empty line, or fails rather than waiting for ever.</summary>
-    private static async Task<string> ReadLineAsync(StreamReader reader)
-    {
-        using var cts = new CancellationTokenSource(Deadline);
-        var line = await reader.ReadLineAsync(cts.Token);
-        Assert.NotNull(line);
-        return line!;
-    }
-
-    private static async Task<string> ReadEventAsync(StreamReader reader)
-    {
-        while (true)
-        {
-            var line = await ReadLineAsync(reader);
-            if (line.Length > 0)
-            {
-                return line;
-            }
-        }
-    }
-
     [Fact]
     public async Task The_stream_names_its_generation_and_carries_the_sessions_frames()
     {
@@ -220,10 +195,9 @@ public sealed class HttpTransportTests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
 
-            // The stream names itself first, so a POST can say which one it is talking to.
-            var first = await ReadEventAsync(reader);
-            Assert.StartsWith("data: ", first, StringComparison.Ordinal);
-            Assert.Contains("\"type\":\"stream\"", first, StringComparison.Ordinal);
+            // The stream names itself, so a POST can say which one it is talking to.
+            var opening = await EventStream.OpeningFrameAsync(reader);
+            Assert.Contains("\"generation\":", opening, StringComparison.Ordinal);
 
             // …and the session is attached, which is what makes this a live page rather than a download.
             for (var i = 0; i < 100 && host.Store.ConnectedCount == 0; i++)
@@ -247,7 +221,7 @@ public sealed class HttpTransportTests
             var frames = new List<string>();
             for (var i = 0; i < 4; i++)
             {
-                var line = await ReadEventAsync(reader);
+                var line = await EventStream.NextAsync(reader);
                 frames.Add(line);
                 if (line.Contains("session-unknown", StringComparison.Ordinal))
                 {
@@ -306,8 +280,7 @@ public sealed class HttpTransportTests
         using (response)
         using (reader)
         {
-            var hello = await ReadEventAsync(reader);
-            var generation = hello.Split("\"generation\":")[1].TrimEnd('}', ' ');
+            var generation = await EventStream.GenerationAsync(reader);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
             {
@@ -331,8 +304,7 @@ public sealed class HttpTransportTests
         using (response)
         using (reader)
         {
-            var hello = await ReadEventAsync(reader);
-            var generation = hello.Split("\"generation\":")[1].TrimEnd('}', ' ');
+            var generation = await EventStream.GenerationAsync(reader);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/leave/{sessionId}");
             request.Headers.Add("Rask-Stream", generation);
@@ -343,7 +315,7 @@ public sealed class HttpTransportTests
 
             // The stream says why it is ending before the body stops: an HTTP response that simply ends is
             // indistinguishable from a dropped link.
-            var closing = await ReadEventAsync(reader);
+            var closing = await EventStream.NextAsync(reader);
             Assert.Contains("close", closing, StringComparison.Ordinal);
         }
     }

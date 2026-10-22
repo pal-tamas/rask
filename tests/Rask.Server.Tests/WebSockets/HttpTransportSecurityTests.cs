@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.WebSockets;
@@ -15,8 +16,6 @@ namespace Rask.Server.Tests.WebSockets;
 /// </remarks>
 public sealed class HttpTransportSecurityTests
 {
-    private static readonly TimeSpan Deadline = LiveFrames.HangCeiling;
-
     private static async Task<string> StartSessionAsync(RaskTestHost host)
     {
         using var response = await host.Http.GetAsync("/");
@@ -30,25 +29,7 @@ public sealed class HttpTransportSecurityTests
             new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{Uri.EscapeDataString(sessionId)}"),
             HttpCompletionOption.ResponseHeadersRead);
         var reader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8);
-        var first = await ReadEventAsync(reader);
-        var generation = first.Contains("\"generation\":", StringComparison.Ordinal)
-            ? first.Split("\"generation\":")[1].TrimEnd('}', ' ')
-            : string.Empty;
-        return (response, reader, generation);
-    }
-
-    private static async Task<string> ReadEventAsync(StreamReader reader)
-    {
-        using var cts = new CancellationTokenSource(Deadline);
-        while (true)
-        {
-            var line = await reader.ReadLineAsync(cts.Token);
-            Assert.NotNull(line);
-            if (line!.Length > 0 && !line.StartsWith(':'))
-            {
-                return line;
-            }
-        }
+        return (response, reader, await EventStream.GenerationAsync(reader));
     }
 
     private static async Task<List<string>> ReadUntilAsync(StreamReader reader, string needle, int max = 12)
@@ -56,7 +37,7 @@ public sealed class HttpTransportSecurityTests
         var lines = new List<string>();
         for (var i = 0; i < max; i++)
         {
-            var line = await ReadEventAsync(reader);
+            var line = await EventStream.NextAsync(reader);
             lines.Add(line);
             if (line.Contains(needle, StringComparison.Ordinal))
             {
@@ -126,18 +107,49 @@ public sealed class HttpTransportSecurityTests
         using (response)
         using (reader)
         {
-            var big = Encoding.UTF8.GetBytes("[" + string.Join(",", Enumerable.Repeat("{\"type\":\"noop\"}", 20)) + "]");
-            var content = new StreamContent(new UnknownLengthStream(big));
-            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+            var refused = await PostPastTheCapAsync(host, sessionId, generation);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}") { Content = content };
-            request.Headers.Add("Rask-Stream", generation);
-            request.Headers.TransferEncodingChunked = true;
-
-            using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
-
-            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused.StatusCode);
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused);
         }
+    }
+
+    /// <summary>
+    ///     A page repainted while no connection was attached is sent that repaint as the stream opens, ahead of the
+    ///     frame that names the stream. The name still comes, and a POST under it is held to the cap like any other.
+    /// </summary>
+    [Fact]
+    public async Task A_body_past_the_frame_cap_is_refused_on_a_stream_that_opened_with_a_repaint_owed()
+    {
+        using var host = RaskTestHost.Create<ShownCountApp>(
+            configureServices: s => s.AddSingleton<ShownCount>(),
+            configureServer: o => o.MaxInboundFrameBytes = 64);
+        var sessionId = await StartSessionAsync(host);
+        host.Server.Services.GetRequiredService<ShownCount>().Value = 1;
+        await host.Store.Peek(sessionId)!.View.StateHasChangedAsync();
+
+        var (response, reader, generation) = await OpenStreamAsync(host, sessionId);
+        using (response)
+        using (reader)
+        {
+            var refused = await PostPastTheCapAsync(host, sessionId, generation);
+
+            Assert.Equal(HttpStatusCode.RequestEntityTooLarge, refused);
+        }
+    }
+
+    // Twenty frames in a body that never states its length, under a 64-byte cap.
+    private static async Task<HttpStatusCode> PostPastTheCapAsync(RaskTestHost host, string sessionId, string generation)
+    {
+        var big = Encoding.UTF8.GetBytes("[" + string.Join(",", Enumerable.Repeat("{\"type\":\"noop\"}", 20)) + "]");
+        var content = new StreamContent(new UnknownLengthStream(big));
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}") { Content = content };
+        request.Headers.Add("Rask-Stream", generation);
+        request.Headers.TransferEncodingChunked = true;
+
+        using var answer = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
+        return answer.StatusCode;
     }
 
     /// <summary>
