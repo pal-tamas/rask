@@ -40,7 +40,9 @@ public static partial class Db
     ///     </para>
     ///     <para>
     ///         A context handed in as <c>db:</c> joins the work and stays the caller's: once the transaction ends,
-    ///         however it ends, the context is out of it and on its own connection again. Domain events, the outbox's wake-up and the data-changed notices go out after the commit, and not at
+    ///         however it ends, the context is out of it and on its own connection again. So does the app's own context
+    ///         on the same database when it runs raw SQL inside the block (<c>ExecuteSqlRaw</c>, <c>SqlQueryRaw</c>): it
+    ///         is enlisted before its first command and handed back the same way. Domain events, the outbox's wake-up and the data-changed notices go out after the commit, and not at
     ///         all after a rollback. The work shares one connection, so its reads and writes run one at a time
     ///         (no <c>Task.WhenAll</c> over them). On a context whose execution strategy retries, a transient
     ///         failure runs the whole work again from the top.

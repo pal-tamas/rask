@@ -826,6 +826,23 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`. It stays yours:
   when the transaction ends — committed, rolled back or retried — it is out of it and back on its own connection,
   so the same `db` can go into the next `Db.Transaction` or save on its own.
+- **Raw SQL on your own context joins too.** `db.Database.ExecuteSqlRawAsync(...)`, `db.Database.SqlQueryRaw<T>(...)`
+  and `FromSqlRaw` on a context whose options carry Rask's interceptors (`AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())`,
+  which a `RaskApp` and every documented hand-wired host already add) run inside the transaction: the context is
+  enlisted before its first command, a rollback takes the raw write back, and a later `db: db` call finds it joined.
+  It is handed back on its own connection like any `db:`. No `db.Database.BeginTransactionAsync()` inside the block
+  — the context is already in one, and EF Core refuses a second:
+
+  ```csharp
+  await Db.Transaction(async () =>
+  {
+      await db.Database.ExecuteSqlRawAsync("UPDATE Refunds SET Locked = 1 WHERE OrderId = {0}", orderId);
+      await Refund.Remove(id, db: db);                                       // same transaction
+  });
+  ```
+
+  A context on another database, already in a transaction of its own, or whose connection you opened before the
+  block runs its raw SQL as it always did, outside — and a `db:` call with it is refused as above.
 - **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
   `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
   and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the
@@ -848,7 +865,7 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
 - **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
 - **What does not join:** the cache does not take part — `Cache.Remember` and `Cache.Forget` act at once and
-  are not undone by a rollback. Nor does a context you build yourself and never hand to a Rask call.
+  are not undone by a rollback. Nor does a context built without Rask's interceptors and never handed to a Rask call.
 
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.
