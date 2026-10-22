@@ -38,6 +38,22 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         Assert.Null(session.OpenedEventScope);
     }
 
+    [Fact]
+    public async Task Current_Service_hands_a_handler_its_event_s_instance_across_an_await()
+    {
+        var (session, services) = NewScopedSession();
+        var html = Html(await session.InitialRenderAsync());
+
+        await Click(session, html, "current");
+        await Click(session, html, "current");
+
+        var seen = services.GetRequiredService<WasmScopeLog>().Seen;
+        Assert.Equal(4, seen.Count);
+        Assert.Same(seen[0], seen[1]);
+        Assert.NotSame(seen[1], seen[2]);
+        Assert.All(seen, probe => Assert.True(probe.Disposed));
+    }
+
     private static (WasmLiveSession Session, IServiceProvider Services) NewScopedSession() =>
         NewSession<WasmScopeApp>(configure: s =>
         {
@@ -78,6 +94,12 @@ public sealed partial class WasmScopeApp : Component
 {
     protected override Component? Render() =>
         Div[
-            Button.Id("use").OnClick(static () => Ambient.Services!.GetRequiredService<WasmScopeProbe>().Use())["use"]
+            Button.Id("use").OnClick(static () => Ambient.Services!.GetRequiredService<WasmScopeProbe>().Use())["use"],
+            Button.Id("current").OnClick(static async () =>
+            {
+                Current.Service<WasmScopeProbe>().Use();
+                await Task.Yield();
+                Current.Service<WasmScopeProbe>().Use();
+            })["current"]
         ];
 }

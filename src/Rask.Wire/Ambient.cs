@@ -35,14 +35,34 @@ public static class Ambient
     /// </summary>
     public static Func<CancellationToken>? FallbackToken { get; set; }
 
+    /// <summary>
+    ///     Where to look last: the HTTP request in progress, which the server host registers — so a minimal-API
+    ///     endpoint or a controller of a hand-wired host has its request's services as an event has its own.
+    /// </summary>
+    internal static Func<IServiceProvider?>? RequestServices { get; set; }
+
     /// <summary>The services of the work in progress, or null outside any.</summary>
-    /// <remarks>A test's own app that has not started yet is not one: a lookup never boots it.</remarks>
-    public static IServiceProvider? Services => Pushed ?? FallbackServices?.Invoke();
+    /// <remarks>
+    ///     What was pushed — an event's own scope, a job's, a request's — then the render in progress, then the
+    ///     request in progress. A test's own app that has not started yet is not one: a lookup never boots it.
+    /// </remarks>
+    public static IServiceProvider? Services => Pushed ?? FallbackServices?.Invoke() ?? RequestServices?.Invoke();
 
     /// <summary>
     ///     <see cref="Services" />, or — for a call with nothing else to go on — the test's own app, started now.
     /// </summary>
     internal static IServiceProvider? Needed => Services ?? (PushedServices.Value as OnDemandServices)?.Start();
+
+    /// <summary>
+    ///     <see cref="Needed" />, or the one error every call that cannot go on without the work's services gives.
+    /// </summary>
+    /// <param name="call">What the app called: <c>Toast</c>, <c>Current.Service&lt;ShopDb&gt;()</c>.</param>
+    /// <param name="instead">What to do there instead: <c>Inject IAuth there instead.</c></param>
+    /// <exception cref="InvalidOperationException">No work is in progress.</exception>
+    internal static IServiceProvider Require(string call, string instead) =>
+        Needed ?? throw new InvalidOperationException(
+            $"{call} was called outside any work in progress — an event handler, a render, a request or a job — so "
+            + $"there is no app to reach. {instead}");
 
     // What was pushed, unless it is a test's app still waiting to be needed.
     private static IServiceProvider? Pushed =>
@@ -67,9 +87,7 @@ public static class Ambient
     public static T Reach<T>(string facade, string unless, string wiring)
         where T : class
     {
-        var services = Needed ?? throw new InvalidOperationException(
-            $"{facade} was called outside any work in progress — a handler, a render, a request or a job — so "
-            + $"there is no app to reach. Inject {typeof(T).Name} in the constructor there instead.");
+        var services = Require(facade, $"Inject {typeof(T).Name} in the constructor there instead.");
 
         return services.GetService(typeof(T)) as T ?? throw new InvalidOperationException(
             $"{facade} is not running in this app. A RaskApp has it on unless {unless}; a hand-wired host calls "

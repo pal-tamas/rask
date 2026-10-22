@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Current.Service<T>()` — the work's own service, with nothing injected.** Before: a component's constructor is the
+  session's, so a handler that needed the event's `DbContext` opened a scope of its own per call
+  (`await _work.Run(async (ShopDb db) => …)`). After: `var db = Current.Service<ShopDb>();` inside the handler is the
+  event's own — the same across awaits, disposed when the event ends — on both hosts; an endpoint gets its request's,
+  a job its scope's, and a call outside all work throws and names what to inject. A hand-wired `AddRask()` host now
+  makes each HTTP request's services ambient too, so `Cache`, `Jobs`, `Toast` and the other facades reach them from a
+  minimal-API endpoint as they already did in a `RaskApp`.
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
   `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row

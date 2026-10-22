@@ -241,14 +241,39 @@ when something asks for a per-event service, so an event that asks for none cost
 Two rules follow:
 
 - **A component's constructor is the session's.** A component outlives every event, so what it takes in its
-  constructor comes from the session, as before. Reach per-event work through the calls that take no service —
-  `await Product.Create(model)`, `await Dispatcher.Send(command)`, `Cache.Remember(…)` — or a handler they reach.
+  constructor comes from the session, as before. Reach the event's own with `Current.Service<T>()` inside the
+  handler — or through the calls that take no service, `await Dispatcher.Send(command)`, `Cache.Remember(…)`, and the
+  handler they reach.
 - **Do not keep a scoped service past its event.** A field that holds a `DbContext` it was handed in one event
   finds it disposed in the next. This is a behaviour change: an app that kept scoped state across events (a
   scoped "unit of work" collecting changes over several clicks) now gets a fresh one per event — keep such state
   on the component, or in a singleton keyed by the user.
 
 A read the page went out without (its budget ran out) keeps the event's scope until it is back.
+
+### `Current.Service<T>()` — the event's own, with nothing injected
+
+```csharp
+Button.OnClick(async () =>
+{
+    var db = Current.Service<ShopDb>();   // this event's ShopDb
+    db.Orders.Add(order);
+    await db.SaveChangesAsync();          // still the same instance after the await
+})
+```
+
+It answers from whatever work is in flight, as its constructor would have been handed it:
+
+| Where it is called | What it returns |
+| --- | --- |
+| A live event (handler, navigation, pushed render, the hooks they run) — both hosts | The event's own scoped instance: one per event, the same across `await`s, disposed when the event ends. The session's services (route, navigator, `IJSRuntime`, `IUserProvider`, toaster, language, query cache, tenant) are the session's. |
+| An HTTP request (minimal API, controller) | The request's `RequestServices`. |
+| A background job, a CQRS handler's scope | That scope. |
+| Nowhere — a constructor, a hosted service's own loop | An `InvalidOperationException` naming what to inject instead. Never the root provider. |
+
+An unregistered `T` throws the standard "No service for type" error. Keep what it hands you in a local: a field
+that holds it finds it disposed in the next event. The scope is opened on first use, so an event that never asks
+costs nothing.
 
 ## Asking another component to render, from a hook
 
