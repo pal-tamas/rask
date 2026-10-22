@@ -23,6 +23,10 @@ internal static class TypedParserRegistry
 {
     private static readonly ConcurrentDictionary<Type, Func<string, (bool ok, object? value)>> Map = new();
 
+    // What a [QueryParam] list of the type is read into: a T[] made without MakeArrayType, which a
+    // full-AOT build cannot do for a type it did not see.
+    private static readonly ConcurrentDictionary<Type, Func<int, Array>> Arrays = new();
+
     static TypedParserRegistry()
     {
         // Integers (incl. native-sized and 128-bit) and arbitrary-precision.
@@ -48,6 +52,8 @@ internal static class TypedParserRegistry
 
         // Other scalars.
         Map[typeof(bool)] = static raw => RouteBool.TryParse(raw, out var parsed) ? (true, (object?)parsed) : (false, null);
+        Arrays[typeof(bool)] = static length => new bool[length];
+        Arrays[typeof(string)] = static length => new string[length];
         Register<char>();
         Register<Guid>();
 
@@ -64,13 +70,20 @@ internal static class TypedParserRegistry
     ///     given type wins. Called from the routes generator's module initializer and from
     ///     <see cref="Forms.RaskBinding.RegisterParsable{T}" />.
     /// </summary>
-    internal static void Register<T>() where T : IParsable<T> =>
+    internal static void Register<T>() where T : IParsable<T>
+    {
         Map[typeof(T)] = static raw =>
             T.TryParse(raw, CultureInfo.InvariantCulture, out var parsed)
                 ? (true, (object?)parsed)
                 : (false, null);
+        Arrays[typeof(T)] = static length => new T[length];
+    }
 
     /// <summary>Looks up the parser for <paramref name="type" /> (already unwrapped of nullability).</summary>
     internal static bool TryGet(Type type, [NotNullWhen(true)] out Func<string, (bool ok, object? value)>? parser) =>
         Map.TryGetValue(type, out parser);
+
+    /// <summary>What makes a <c>T[]</c> of a given length for a registered <paramref name="type" />.</summary>
+    internal static bool TryGetArray(Type type, [NotNullWhen(true)] out Func<int, Array>? array) =>
+        Arrays.TryGetValue(type, out array);
 }

@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **A `[QueryParam]` can be a list, written and read as Laravel and Rails do: the key repeated with `[]`.**
+  `[QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];` is `["ada", "theo"]` at
+  `?drivers[]=ada&drivers[]=theo`, at Laravel's indexed `?drivers[0]=ada&drivers[1]=theo`, and `["ada"]` at a plain
+  `?drivers=ada`; `T[]`, `IReadOnlyCollection<T>` and `IEnumerable<T>` bind the same way, of any `T` a single query
+  value can be (`string`, `bool`, any `IParsable<T>`). An element that cannot be read is left out, never an error; a
+  key with nothing left, or no key at all, keeps the initializer. `Routes.X(…)`, `X.Url(…)`/`X.Go(…)` and an island's
+  TypeScript `Routes` write one `Drivers%5B%5D=` pair per element and no key for a null or empty list, and the new
+  `Go.With("drivers", drivers)` sets a list from a handler, replacing the key in every form it had. See
+  [routing](docs/routing.md#a-list-is-the-key-repeated-with-).
 - **`Ui.Table.Loading(bool)` — the loading skeleton for rows a page loads itself.** Before: only `Ui.Table.Of(query)`
   drew skeleton rows, so a page filling a field of its own (`_rows = await Load()`) wrote its own placeholder rows.
   After: `Ui.Table.Loading(_rows is null)[…]` draws a skeleton row per row the pager says the page holds (15 with no

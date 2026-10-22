@@ -70,6 +70,11 @@ public sealed partial class RoutesGenerator
           /** A query parameter: left out when no value was given, so the page shows what it shows without it. */
           given: <T>(key: string, value: T | null | undefined, write: Format<T>) =>
             value == null ? null : `${key}=${write(value)}`,
+          /** A query list: its key repeated with brackets, one pair per element, as Laravel and Rails write it; left out when none has anything to write. */
+          list<T>(key: string, values: readonly T[] | null | undefined, write: Format<T>) {
+            const texts = (values ?? []).filter(value => value != null).map(write).filter(text => text !== '')
+            return texts.length ? texts.map(text => `${key}=${text}`).join('&') : null
+          },
         }
 
         // The app's path base, as the hosts read it: the directory of <base href>, or none.

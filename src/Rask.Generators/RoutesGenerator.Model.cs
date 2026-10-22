@@ -189,9 +189,14 @@ public sealed partial class RoutesGenerator
                                           | SymbolDisplayMiscellaneousOptions.UseSpecialTypes),
             compilation);
 
+        // A [QueryParam] list (`IReadOnlyList<string> Drivers`) is its key repeated with brackets, each element
+        // read as a single value is; a path segment is never a list.
         var isParsable = IsBindableType(prop.Type);
+        var listElement = isParsable || hasRouteParam ? null : QueryListElement(prop.Type);
+        var isList = listElement is not null;
+        isParsable |= isList;
 
-        var underlyingSymbol = GetUnderlying(prop.Type);
+        var underlyingSymbol = listElement ?? GetUnderlying(prop.Type);
         var underlyingTypeFqn = Shared.GeneratedModelShape.DisplayName(
             underlyingSymbol, SymbolDisplayFormat.FullyQualifiedFormat, compilation);
 
@@ -218,7 +223,8 @@ public sealed partial class RoutesGenerator
             isParsable,
             underlyingTypeFqn,
             needsAotRegistration,
-            new LocationInfo(loc));
+            new LocationInfo(loc),
+            isList);
     }
 
     // A property's [QueryParam] / [RouteParam], each with the explicit name it gives, if any.
@@ -348,6 +354,31 @@ public sealed partial class RoutesGenerator
     private static string GetUnderlyingTypeName(ITypeSymbol type) =>
         GetUnderlying(type).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat
             .WithMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.UseSpecialTypes));
+
+    // The element of a list a [QueryParam] can bind — T[], IReadOnlyList<T>, IReadOnlyCollection<T> or
+    // IEnumerable<T> of a non-nullable bindable T — or null. Matches QueryList.ElementOf at run time.
+    private static ITypeSymbol? QueryListElement(ITypeSymbol type)
+    {
+        ITypeSymbol? element = null;
+        if (type is IArrayTypeSymbol { Rank: 1 } array)
+        {
+            element = array.ElementType;
+        }
+        else if (type is INamedTypeSymbol { IsGenericType: true, TypeArguments.Length: 1 } named
+                 && named.OriginalDefinition.SpecialType is SpecialType.System_Collections_Generic_IReadOnlyList_T
+                     or SpecialType.System_Collections_Generic_IReadOnlyCollection_T
+                     or SpecialType.System_Collections_Generic_IEnumerable_T)
+        {
+            element = named.TypeArguments[0];
+        }
+
+        if (element is null || element.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
+            return null;
+        }
+
+        return IsBindableType(element) ? element : null;
+    }
 
     private static bool IsBindableType(ITypeSymbol type)
     {

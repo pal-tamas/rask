@@ -122,6 +122,11 @@ public sealed partial class OrdersPage : Component
 // OrdersPage.Url(Sort: "")               → /orders?Sort=           (an empty string is a value)
 ```
 
+A [list](#a-list-is-the-key-repeated-with-) is its key repeated with brackets, one pair per element, and an
+empty one is left out like an ungiven argument: `FleetPage.Url(Drivers: ["ada", "theo"])` →
+`/fleet?Drivers%5B%5D=ada&Drivers%5B%5D=theo` (`Drivers[]=ada&Drivers[]=theo`), `FleetPage.Url(Drivers: [])` →
+`/fleet`.
+
 A key left out lands on [the property's initializer](#route-and-query-parameters), so the link to a list is
 its clean address and only a link that says a page carries one. `Routes.OrdersPage(…)`, `Url(…)` and `Go(…)`
 are one formatter and agree, and so does the TypeScript `Routes` an island imports.
@@ -233,7 +238,8 @@ Both attributes take an optional name to bind a segment/key whose name differs f
 
 **Supported types.** A bound property must be `string` or implement `IParsable<T>` (covers `int`, `long`, `double`,
 `bool`, `Guid`, `DateOnly`, `DateTime`, and your own `IParsable<T>` types). An enum is not `IParsable<T>`: bind
-it as a `string` and convert inside the page. A non-parsable type raises
+it as a `string` and convert inside the page. A `[QueryParam]` may also be a
+[list](#a-list-is-the-key-repeated-with-) of such a type. A non-parsable type raises
 [RASK011](diagnostics.md#rask011). When a route template constrains a segment (`{id:int}`), the bound property's CLR
 type must match the constraint, or you get [RASK005](diagnostics.md#rask005).
 
@@ -280,6 +286,42 @@ above: the property's initializer, or its type's default when it has none. The r
 repeated key (`?page=two&page=2`) is read from its first value only, and the address stays as the visitor
 wrote it. In Development the ignored parameter is named once on the `Rask.Routing` log category, without its
 value. (A path *segment* the page cannot read is different: it [does not match](#registering-routes).)
+
+### A list is the key repeated with `[]`
+
+A `[QueryParam]` of type `T[]`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>` or `IEnumerable<T>` is written and
+read as Laravel and Rails do it — the key repeated with empty brackets, one pair per element — `T` being any type a
+single query value can be (`string`, `bool`, any `IParsable<T>`):
+
+```csharp
+[Route("/fleet")]
+public sealed partial class FleetPage : Component
+{
+    [QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];  // ?drivers[]=ada&drivers[]=theo → ["ada", "theo"]
+    [QueryParam("tank")] public int[] Tanks { get; set; } = [];            // ?tank[]=3&tank[]=abc&tank[]=2 → [3, 2]
+}
+// FleetPage.Url(Drivers: ["ada", "theo"])  → /fleet?Drivers%5B%5D=ada&Drivers%5B%5D=theo
+// FleetPage.Url(Drivers: [])               → /fleet        (nothing to write: the key is left out)
+```
+
+- **Read:** `drivers[]=ada&drivers[]=theo` (Rails' `to_query`, PHP's form arrays), Laravel's indexed
+  `drivers[0]=ada&drivers[1]=theo` (what `http_build_query` writes — read in the order of the indexes), and,
+  leniently, a plain `drivers=ada` as a list of one. The key matches without regard to case, as a single query
+  parameter's does, and a comma is part of its element (`drivers[]=Lovelace%2C%20Ada` is one driver).
+- **Each element is read as a single value is**, and one that cannot be read is left out —
+  `?tank[]=3&tank[]=abc&tank[]=2` is `[3, 2]`, never an error or a not-found. An empty element (`tank[]=`) is
+  left out too. In Development the left-out elements are named once on the `Rask.Routing` log category, without
+  their value.
+- **A key with no element left keeps the initializer**, as an absent one does, and going back to an address
+  without the key puts the initializer back.
+- **Write:** `Routes.FleetPage(…)`, `FleetPage.Url(…)`/`.Go(…)` and the TypeScript `Routes` of an island
+  (`Routes.FleetPage({ Drivers: ['ada', 'theo'] })`) write the same bytes: the elements in order, invariant
+  culture, each under `Drivers%5B%5D`. A `null` or empty list, or one whose every element writes as nothing,
+  leaves the key out. From a handler, `Go.With("drivers", drivers)` sets the list — like Laravel's
+  `route(…, ['drivers' => [...]])` or Rails' `url_for(drivers: [...])` — replacing the key in every form it had
+  (`drivers`, `drivers[]`, `drivers[0]`); an empty list removes it, as `Go.Without("drivers[]")` would.
+- A list whose binding reads the same elements again is no change: the page keeps the list it holds and
+  `OnUpdated` does not fire for it. A path segment is never a list ([RASK011](diagnostics.md#rask011)).
 
 Other binding-related analyzers worth knowing:
 
