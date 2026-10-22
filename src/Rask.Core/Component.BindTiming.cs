@@ -14,16 +14,16 @@ public abstract partial class Component
     // message is about a value already being corrected.
     private protected static void WriteTypedBind(
         StringBuilder sb, LiveRenderContext ctx, BindTiming timing, ExpressionAccessor.Accessor acc,
-        EditContext? bindCtx, Func<Task>? afterBind, bool text)
+        EditContext? bindCtx, Func<Task>? afterBind, bool text, MoneyMarks? money = null)
     {
         if (timing.AtEveryKey && text)
         {
-            WriteKeystrokeBind(sb, ctx, acc, bindCtx, afterBind);
+            WriteKeystrokeBind(sb, ctx, acc, bindCtx, afterBind, money);
             return;
         }
 
         var commit = ctx.RegisterHandler(
-            BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind));
+            BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind, money));
         if (timing.Pause > 0)
         {
             AppendAttr(sb, "data-rask-on-input", commit);
@@ -49,12 +49,12 @@ public abstract partial class Component
     // touched and its rules run on `change`, as it is left. Once touched, each key runs them again.
     private protected static void WriteKeystrokeBind(
         StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx,
-        Func<Task>? afterBind)
+        Func<Task>? afterBind, MoneyMarks? money = null)
     {
         AppendAttr(sb, "data-rask-on-input",
-            ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, acc.Field, false, afterBind)));
+            ctx.RegisterHandler(BindingHelpers.StringSetHandler(acc, bindCtx, acc.Field, false, afterBind, money)));
         AppendAttr(sb, "data-rask-on-change",
-            ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, false)));
+            ctx.RegisterHandler(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, false, null, money)));
     }
 
     // A bound control that is CHOSEN rather than typed into — a checkbox, a radio, a select, a range: one

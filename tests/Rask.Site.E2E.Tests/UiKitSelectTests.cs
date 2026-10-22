@@ -26,7 +26,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                      "ui-select", "ui-select-sm", "ui-select-groups", "ui-listbox", "ui-select-button", "ui-select-clearable",
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
                      "ui-select-width", "ui-select-search", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
-                     "ui-select-suffix", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
+                     "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
                      "ui-select-store", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",
                  })
@@ -194,6 +194,24 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(scope.Locator("[role='listbox']")).ToHaveAttributeAsync("aria-multiselectable", "true");
         await Expect(box).ToContainTextAsync("2 selected");
         await Expect(Page.Locator("[data-testid='ui-multiselect-state']")).ToContainTextAsync("Design services, Other");
+    });
+
+    [Fact]
+    public Task The_checkbox_listbox_ticks_the_box_of_every_answer() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var scope = Page.Locator("[data-testid='ui-select-checkbox']");
+
+        await Page.Locator("#ui-select-checkbox").ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Photography" }).ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Legal services" }).ClickAsync();
+
+        var ticked = scope.Locator("[data-ui-option][data-selected]");
+        await Expect(ticked).ToHaveCountAsync(2);
+        await Expect(ticked.Nth(0).Locator("svg")).ToBeVisibleAsync();
+        await Expect(ticked.Nth(1).Locator("svg")).ToBeVisibleAsync();
+        await Expect(scope.Locator("[data-ui-option]:not([data-selected]) svg").First).ToBeHiddenAsync();
+        await Expect(Page.Locator("[data-testid='ui-select-checkbox-state']")).ToContainTextAsync("Photography, Legal services");
     });
 
     [Fact]

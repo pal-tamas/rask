@@ -133,6 +133,19 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
     });
 
     [Fact]
+    public Task An_amount_is_shown_grouped_and_grouped_again_as_it_is_typed() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("input", "Input");
+        var amount = Page.Locator("[data-testid='ui-input-mask']").GetByLabel("Amount");
+        await Expect(amount).ToHaveValueAsync("1,234.56");
+
+        await amount.FillAsync("");
+        await amount.PressSequentiallyAsync("1234567.891");
+
+        await Expect(amount).ToHaveValueAsync("1,234,567.89");
+    });
+
+    [Fact]
     public Task The_reveal_button_shows_the_password_and_hides_it_again() => RunAsync(async () =>
     {
         await OpenUiPageAsync("input", "Input");
@@ -462,6 +475,18 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
         await Page.Locator("[data-testid='ui-otp-resend']").ClickAsync();
         await Expect(form.Nth(0)).ToHaveValueAsync(string.Empty);
         await Expect(form.Nth(3)).ToHaveValueAsync(string.Empty);
+    });
+
+    [Fact]
+    public Task The_otp_forms_label_names_the_cells_and_is_not_shown() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("otp-input", "OTP input");
+        var form = Page.Locator("[data-testid='ui-otp-form']");
+
+        var label = form.Locator("label", new LocatorLocatorOptions { HasTextString = "OTP Code" });
+
+        await Expect(label).ToHaveClassAsync(new System.Text.RegularExpressions.Regex("\\bsr-only\\b"));
+        await Expect(form.GetByRole(AriaRole.Group, new LocatorGetByRoleOptions { Name = "OTP Code" })).ToBeVisibleAsync();
     });
 
     [Fact]

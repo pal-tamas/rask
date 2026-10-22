@@ -1211,7 +1211,7 @@ them. Every example and the reference of its steps: **[rask.sh/ui/avatar](https:
 [textarea](https://fluxui.dev/components/textarea)), over Rask's binding: `Bind` writes with the next action as
 `wire:model` does, `.Live()`, `.Debounce(300.Milliseconds)` and `.Blur()` sooner, and a bound `int` is a number field
 with nothing said at the call site. The icons, shortcut and the clear, copy and reveal buttons are steps, `Mask` holds
-each keystroke to a pattern, and the runtime does by attribute what Flux does in Alpine. `Ui.InputGroup` joins a
+each keystroke to a pattern, `Money()` groups an amount ([rask.sh/ui/input](https://rask.sh/ui/input/)), and the runtime does by attribute what Flux does in Alpine. `Ui.InputGroup` joins a
 prefix, a suffix or a button to the input; in a field, label the group. Every example and the reference:
 **[rask.sh/ui/input](https://rask.sh/ui/input/)** and **[rask.sh/ui/textarea](https://rask.sh/ui/textarea/)**.
 

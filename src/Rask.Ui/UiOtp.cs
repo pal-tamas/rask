@@ -38,6 +38,15 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     /// <inheritdoc cref="IUiFormControl.DescriptionTrailing" />
     public string? DescriptionTrailing { get; set; }
 
+    /// <summary>Keeps the label for screen readers only. Flux's <c>label:sr-only</c>.</summary>
+    public bool? LabelSrOnly { get; set; }
+
+    /// <summary>False for the message under the cells without its icon. Flux's <c>:error:icon="false"</c>.</summary>
+    public bool? ErrorIcon { get; set; }
+
+    /// <summary>Classes for the message under the cells: <c>text-center</c>. Flux's <c>error:class</c>.</summary>
+    public string? ErrorClass { get; set; }
+
     /// <summary>How many cells to draw. Ignored when the cells are placed as children.</summary>
     public int? Length { get; set; }
 
@@ -104,6 +113,11 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
 
     bool IUiFieldControl.TakesAriaRequired => false;
 
+    // What was typed (_typed) and a code held for the next action are state the render cache cannot see: a page
+    // that empties its bound code after that action would otherwise be served the cells as they were typed.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => true;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -138,7 +152,10 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
                     .Name(Name)
                     .Disabled(Disabled == true),
                 Context.Provide(scope)[cells]
-            ]);
+            ],
+            labelSrOnly: LabelSrOnly == true,
+            errorIcon: ErrorIcon != false,
+            errorClass: ErrorClass);
     }
 
     private static string Accepts(Ui.OtpMode mode) => mode switch

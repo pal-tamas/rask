@@ -61,11 +61,9 @@ public sealed partial class InputParity : FluxParity
 
         yield return ("invalid", Div.Style(Column)[Ui.Input.Of<string>().Invalid()]);
 
-        // The second is mask:dynamic="$money($input)", an Alpine expression: it has no Rask.Ui twin, and an
-        // input holding the same value takes the same room.
         yield return ("input-masking", Div.Style(Grid)[
             Ui.Input.Value("7161234567").Mask("(999) 999-9999"),
-            Ui.Input.Value("1234.56")
+            Ui.Input.Value(1234.56m).Money()
         ]);
 
         yield return ("icons", Div.Style(Grid)[
