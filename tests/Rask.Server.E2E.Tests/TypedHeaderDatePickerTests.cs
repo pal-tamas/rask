@@ -128,6 +128,50 @@ public sealed class TypedHeaderDatePickerTests(PlaywrightFixture playwright) : I
         await Expect(range.Locator("[popover] td[data-in-range]:not([data-outside])")).ToHaveCountAsync(5);
         await Expect(range.Locator("[popover] td[data-start]")).ToHaveAttributeAsync("data-date", "2026-08-03");
     }
+
+    [Fact]
+    public async Task A_range_years_long_is_picked_by_paging_the_header_between_its_two_days()
+    {
+        var (session, _) = await OpenAsync();
+        await using var __ = session;
+        var page = session.Page;
+        var range = page.Locator("[data-ui-date-picker]").First;
+        var popup = range.Locator("[popover]");
+        await range.Locator("[data-rask-toggle] > svg").Last.ClickAsync();
+        await Expect(popup).ToBeVisibleAsync();
+
+        await popup.Locator("[data-rask-calendar-part=year]").SelectOptionAsync("2021");
+        await popup.Locator("[data-rask-calendar-part=month]").SelectOptionAsync("3");
+        await popup.Locator("td[data-date=\"2021-03-10\"]:not([data-outside]) button").ClickAsync();
+        await popup.Locator("[data-rask-calendar-part=year]").SelectOptionAsync("2025");
+        await popup.Locator("[data-rask-calendar-part=month]").SelectOptionAsync("11");
+        await popup.Locator("td[data-date=\"2025-11-20\"]:not([data-outside]) button").ClickAsync();
+
+        var years = range.Locator("[data-rask-segment=\"year\"]");
+        await Expect(years.First).ToHaveValueAsync("2021");
+        await Expect(range.Locator("[data-rask-segment=\"month\"]").First).ToHaveValueAsync("03");
+        await Expect(years.Nth(1)).ToHaveValueAsync("2025");
+        await Expect(range.Locator("[data-rask-segment=\"day\"]").Nth(1)).ToHaveValueAsync("20");
+    }
+
+    [Fact]
+    public async Task A_range_typed_years_apart_opens_on_its_first_day_and_marks_the_months_between()
+    {
+        var (session, _) = await OpenAsync();
+        await using var __ = session;
+        var page = session.Page;
+        var range = page.Locator("[data-ui-date-picker]").First;
+
+        await range.Locator("[data-rask-segment=\"year\"]").First.ClickAsync();
+        await page.Keyboard.TypeAsync("20190101");
+        await range.Locator("[data-rask-segment=\"year\"]").Nth(1).ClickAsync();
+        await page.Keyboard.TypeAsync("20251231");
+        await range.Locator("[data-rask-toggle] > svg").Last.ClickAsync();
+        await Expect(range.Locator("[popover]")).ToBeVisibleAsync();
+
+        await Expect(range.Locator("[popover] td[data-start]")).ToHaveAttributeAsync("data-date", "2019-01-01");
+        await Expect(range.Locator("[popover] td[data-date=\"2019-02-14\"]:not([data-outside])")).ToHaveAttributeAsync("data-in-range", "");
+    }
 }
 
 /// <summary>A form with the apps' date pickers: one low in the window, and a range typed into two fields above it.</summary>
