@@ -1852,6 +1852,8 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 One an abstract base declares is mapped the same way, at any depth, on every aggregate deriving from it: each
 concrete aggregate is its own table holding the base's columns, and its read face and form model carry them too.
+A generic base (`Filing<TSelf> where TSelf : Filing<TSelf>`) is no different: `VatReturn : Filing<VatReturn>` holds
+the base's children and collections of values behind its private fields as its own.
 The base itself is never an entity of the model.
 
 It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a
