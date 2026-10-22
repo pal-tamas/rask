@@ -58,19 +58,15 @@ public class ConfigurableLimitsTests
     public void A_negative_HandlerTimeout_is_rejected() =>
         AssertRejected(o => o.HandlerTimeout = TimeSpan.FromSeconds(-1));
 
+    // The setting was removed: a navigation sends its page at once. An app that still names it starts as before.
     [Fact]
-    public void A_negative_NavigationQuiescenceTimeout_is_rejected() =>
-        AssertRejected(o => o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(-1));
-
-    [Fact]
-    public void A_page_reached_in_place_is_waited_for_150_milliseconds_unless_the_host_says_otherwise()
+    public void A_NavigationQuiescenceTimeout_left_in_the_Rask_Server_section_is_ignored()
     {
-        using var provider = new ServiceCollection().AddRask().BuildServiceProvider();
+        using var provider = Provider(new() { ["Rask:Server:NavigationQuiescenceTimeout"] = "00:00:00.250" });
 
         var limits = provider.GetRequiredService<RaskServerLimits>();
 
-        Assert.Equal(TimeSpan.FromMilliseconds(150), new RaskServerOptions().NavigationQuiescenceTimeout);
-        Assert.Equal(TimeSpan.FromMilliseconds(150), limits.NavigationQuiescenceTimeout);
+        Assert.Equal(TimeSpan.FromMilliseconds(150), limits.HandlerQuiescenceTimeout);
     }
 
     [Fact]
@@ -183,7 +179,6 @@ public class ConfigurableLimitsTests
             ["Rask:Server:MaxPendingHandlers"] = "64",
             ["Rask:Server:SessionGracePeriod"] = "00:00:15",
             ["Rask:Server:QuiescenceTimeout"] = "00:00:02",
-            ["Rask:Server:NavigationQuiescenceTimeout"] = "00:00:00.250",
             ["Rask:Server:HandlerQuiescenceTimeout"] = "00:00:00.300",
         });
 
@@ -193,7 +188,6 @@ public class ConfigurableLimitsTests
         Assert.Equal(64, limits.MaxPendingHandlers);
         Assert.Equal(TimeSpan.FromSeconds(15), limits.SessionGracePeriod);
         Assert.Equal(TimeSpan.FromSeconds(2), limits.InitialRenderQuiescenceTimeout);
-        Assert.Equal(TimeSpan.FromMilliseconds(250), limits.NavigationQuiescenceTimeout);
         Assert.Equal(TimeSpan.FromMilliseconds(300), limits.HandlerQuiescenceTimeout);
     }
 

@@ -696,7 +696,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     internal void ForgetUnsettledReads() => Volatile.Write(ref _unsettledReads, null);
 
     /// <summary>Whether the page just rendered has sent the reader on, so it is neither waited for nor rendered again.</summary>
-    protected virtual bool LeavingThePage(bool arriving) => false;
+    protected virtual bool LeavingThePage() => false;
 
     /// <summary>
     ///     Renders, and renders again as the lifecycle work and the queries that render started come back, until
@@ -713,10 +713,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     /// </remarks>
     /// <param name="publishOnly">Whether the first render is a publish render. Every later one is.</param>
     /// <param name="budget">One deadline for all the waves.</param>
-    /// <param name="arriving">Whether the render carries a navigation, for <see cref="LeavingThePage" />.</param>
     /// <param name="cancellationToken">Ends the wait with <see cref="OperationCanceledException" />.</param>
     protected ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)> RenderInWavesAsync(
-        bool publishOnly, TimeSpan budget, bool arriving, CancellationToken cancellationToken)
+        bool publishOnly, TimeSpan budget, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -728,7 +727,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         return _reads.Take() is { } started
-            ? FollowTheReadsAsync(started, html, frames, budget, arriving, cancellationToken)
+            ? FollowTheReadsAsync(started, html, frames, budget, cancellationToken)
             : new ValueTask<(ReadOnlyMemory<char>, FrameWriter?)>((html, frames));
     }
 
@@ -737,7 +736,6 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         ReadOnlyMemory<char> html,
         FrameWriter? frames,
         TimeSpan budget,
-        bool arriving,
         CancellationToken cancellationToken)
     {
         try
@@ -748,7 +746,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
                 _ =>
                 {
                     // A page that has sent the reader on is not rendered again: its destination is next.
-                    if (!LeavingThePage(arriving))
+                    if (!LeavingThePage())
                     {
                         using (QuiescenceScope.Enter(started))
                         {
@@ -761,7 +759,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
                 budget,
                 // Work waiting on the browser cannot finish before a frame reaches it, and a page that
                 // redirected is not waited for at all.
-                isBlocked: () => JsInvokes.HasPending || LeavingThePage(arriving),
+                isBlocked: () => JsInvokes.HasPending || LeavingThePage(),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch

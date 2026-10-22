@@ -43,19 +43,6 @@ public sealed class RaskWasmOptions
     public ToastOptions Toasts { get; } = new();
 
     /// <summary>
-    /// How long a page reached in place — a link, a handler's <c>Go()</c>, a redirect, the first page the app
-    /// renders — is waited for before it is shown. <see cref="TimeSpan.Zero"/> disables the wait. Default
-    /// 150&#160;milliseconds.
-    /// </summary>
-    /// <remarks>
-    /// The reader keeps the page they are on until the next one has the data its <c>OnMount</c> and
-    /// <c>OnUpdated</c> read, and gets it in one paint. Spending the budget cancels nothing: the page is shown as
-    /// it stands and the rest follows when it arrives. A page with nothing to wait for is shown at once. The
-    /// server host's twin is <c>Rask:Server:NavigationQuiescenceTimeout</c>.
-    /// </remarks>
-    public TimeSpan NavigationQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
-
-    /// <summary>
     /// How long a handler's work is waited for before the page is shown. <see cref="TimeSpan.Zero"/> disables the
     /// wait. Default 150&#160;milliseconds.
     /// </summary>

@@ -10,21 +10,15 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     A link to a list that reads before it can draw, in a real browser: the reader keeps the page they are on
-///     until the list has its rows, and gets it in one paint.
+///     A link to a list that reads before it can draw, in a real browser: the page switches at once — heading and
+///     address — and the table follows when its read is back.
 /// </summary>
-/// <remarks>
-///     The budget here is far longer than either read, so a page arrives because its read came back and never
-///     because time ran out — the journeys do not depend on how fast the machine is.
-/// </remarks>
-public sealed class ArrivalWaitsForItsPageTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
+public sealed class ArrivalShowsItsPageAtOnceTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
-    private static void LongerThanTheReads(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromSeconds(30);
-
     [Fact]
-    public async Task A_link_to_a_list_that_reads_first_never_shows_the_heading_without_the_table_and_Back_returns_once()
+    public async Task A_link_to_a_list_that_reads_first_shows_the_heading_at_once_then_the_table_and_Back_returns_once()
     {
-        await using var session = await HookSession.OpenAsync<ArrivalWaitPage>(playwright, server: LongerThanTheReads);
+        await using var session = await HookSession.OpenAsync<ArrivalWaitPage>(playwright);
         var page = session.Page;
         await page.EvaluateAsync(
             """
@@ -44,24 +38,23 @@ public sealed class ArrivalWaitsForItsPageTests(PlaywrightFixture playwright) : 
         await page.GoBackAsync();
 
         await Expect(page.Locator("#home")).ToHaveTextAsync("home");
-        Assert.False(headingAlone);
+        Assert.True(headingAlone);
         Assert.Equal(entriesBefore + 1, entriesAfter);
         Assert.EndsWith("/", page.Url, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task While_a_slow_page_is_awaited_the_reader_keeps_the_page_they_are_on_under_the_progress_bar()
+    public async Task A_link_to_a_slow_page_leaves_the_page_the_reader_was_on_at_once_and_its_table_follows()
     {
-        await using var session = await HookSession.OpenAsync<ArrivalWaitPage>(playwright, server: LongerThanTheReads);
+        await using var session = await HookSession.OpenAsync<ArrivalWaitPage>(playwright);
         var page = session.Page;
 
         await page.ClickAsync("#to-slow");
-        var keptUnderTheBar = await page.WaitForFunctionAsync(
-            "() => !!document.querySelector('.rask-pending[data-show]') && !!document.getElementById('home') && !document.getElementById('heading')");
+        var switchedBeforeTheRead = await page.WaitForFunctionAsync(
+            "() => !!document.getElementById('heading') && !document.getElementById('home') && !document.getElementById('table')");
         await Expect(page.Locator("#table")).ToHaveTextAsync("rows:3");
 
-        Assert.True(await keptUnderTheBar.JsonValueAsync<bool>());
-        await Expect(page.Locator(".rask-pending[data-show]")).ToHaveCountAsync(0);
+        Assert.True(await switchedBeforeTheRead.JsonValueAsync<bool>());
         Assert.EndsWith("/slow", page.Url, StringComparison.Ordinal);
     }
 }
@@ -91,7 +84,7 @@ public sealed partial class ArrivalWaitPage(RouteState route) : Component
         NavLink.Href("/slow").Id("to-slow")["slow list"],
         route.Path switch
         {
-            // Long enough that the progress bar, which appears after 300 ms, is up well before the page is.
+            // Long enough that the page is seen without its table before the read is back.
             "/slow" => ArrivalWaitList.Key("slow").ReadsFor(TimeSpan.FromMilliseconds(1500)),
             "/list" => ArrivalWaitList.Key("list").ReadsFor(TimeSpan.FromMilliseconds(50)),
             _ => P.Id("home")["home"],

@@ -22,7 +22,6 @@ internal static class WasmSessionHarness
         Func<IServiceProvider, TApp>? appFactory = null,
         Action<IServiceCollection>? configure = null,
         LiveDiffMode diffMode = LiveDiffMode.Auto,
-        TimeSpan navigationBudget = default,
         TimeSpan handlerBudget = default)
         where TApp : Component
     {
@@ -37,9 +36,8 @@ internal static class WasmSessionHarness
         // measure a bare fragment — no <head> to change, no <body> for data-rask-root to land on.
         var root = new RootErrorBoundary(app);
         // Per-session wire shape (was the process-global LiveOptions.DiffMode).
-        // navigationBudget: how long a page reached in place is waited for. Zero, the default here, sends at once.
         // handlerBudget: how long a handler's page is waited for. Zero, the default here, paints at every await.
-        var session = new WasmLiveSession(root, provider, diffMode, navigationBudget, handlerBudget);
+        var session = new WasmLiveSession(root, provider, diffMode, handlerBudget);
         JSInterop.Init(session);
         return (session, provider);
     }

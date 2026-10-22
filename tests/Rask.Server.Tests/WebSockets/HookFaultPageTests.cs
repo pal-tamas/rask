@@ -16,19 +16,11 @@ public sealed class HookFaultPageTests
     private const string Heading = "Something went wrong";
     private const string Sentence = "The problem has been recorded. If it keeps happening, quote this reference: ";
 
-    // Longer than any wait here may last: a page is sent because its hook ended, never because time ran out.
-    private static void Patient(RaskServerOptions o)
-    {
-        o.QuiescenceTimeout = TimeSpan.FromMinutes(5);
-        o.NavigationQuiescenceTimeout = TimeSpan.FromMinutes(5);
-    }
+    // Longer than any wait here may last: a first response is sent because its hook ended, never because time ran out.
+    private static void Patient(RaskServerOptions o) => o.QuiescenceTimeout = TimeSpan.FromMinutes(5);
 
     // Over while the test still holds the read.
-    private static void Brief(RaskServerOptions o)
-    {
-        o.QuiescenceTimeout = TimeSpan.FromMilliseconds(40);
-        o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
-    }
+    private static void Brief(RaskServerOptions o) => o.QuiescenceTimeout = TimeSpan.FromMilliseconds(40);
 
     [Theory]
     [InlineData("/hook/mount")]
@@ -126,7 +118,7 @@ public sealed class HookFaultPageTests
     [InlineData("/hook/deep", true)]
     [InlineData("/hook-layout/page", false)]
     [InlineData("/hook-layout/page", true)]
-    public async Task A_page_reached_in_place_whose_hook_faults_within_the_wait_arrives_as_the_error_page(string path, bool afterAnAwait)
+    public async Task A_page_reached_in_place_whose_hook_faults_ends_on_the_error_page(string path, bool afterAnAwait)
     {
         using var host = Host(Patient);
         using var ws = await Connect(host);
@@ -143,7 +135,8 @@ public sealed class HookFaultPageTests
             store.Release();
         }
 
-        var frames = await ws.SettledAsync();
+        // The page is sent at once, so a hook that faults after it is a frame of its own that follows.
+        var frames = await Through(ws, Heading);
 
         var last = frames[^1];
         Assert.Contains(Heading, last, StringComparison.Ordinal);
@@ -210,7 +203,7 @@ public sealed class HookFaultPageTests
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/mount", query = "" }, TestContext.Current.CancellationToken);
         await store.ReadStarted();
         store.Release();
-        var frame = (await ws.SettledAsync())[^1];
+        var frame = (await Through(ws, Heading))[^1];
 
         Assert.Contains(Heading, frame, StringComparison.Ordinal);
         Assert.Contains(nameof(HookFaultException), frame, StringComparison.Ordinal);
@@ -229,7 +222,7 @@ public sealed class HookFaultPageTests
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/guarded", query = "" }, TestContext.Current.CancellationToken);
         await store.ReadStarted();
         store.Release();
-        var frame = (await ws.SettledAsync())[^1];
+        var frame = (await Through(ws, "could not load the row"))[^1];
 
         Assert.Contains("could not load the row", frame, StringComparison.Ordinal);
         Assert.Contains("beside", frame, StringComparison.Ordinal);
@@ -242,10 +235,10 @@ public sealed class HookFaultPageTests
         using var host = Host(Patient);
         using var ws = await Connect(host);
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/mount", query = "" }, TestContext.Current.CancellationToken);
-        var faulted = (await ws.SettledAsync())[^1];
+        var faulted = (await Through(ws, Heading))[^1];
 
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/home", query = "" }, TestContext.Current.CancellationToken);
-        var home = (await ws.SettledAsync())[^1];
+        var home = (await Through(ws, ">home<"))[^1];
 
         Assert.Contains(Heading, faulted, StringComparison.Ordinal);
         Assert.Contains(">home<", home, StringComparison.Ordinal);
@@ -262,13 +255,14 @@ public sealed class HookFaultPageTests
         using var host = Host(Patient);
         using var ws = await Connect(host);
         await ws.SendJsonAsync(new { type = "navigate", path, query = "" }, TestContext.Current.CancellationToken);
-        var faulted = (await ws.SettledAsync())[^1];
+        var faulted = await ErrorPageSettled(ws);
         Store(host).Mended = true;
 
         await ws.SendJsonAsync(new { id = TryAgain(faulted) }, TestContext.Current.CancellationToken);
-        var again = (await ws.SettledAsync())[^1];
+        // A diff writes the text bare, a whole page between tags: either way, the row.
+        var again = (await Through(ws, "the row"))[^1];
 
-        Assert.Contains(">the row<", again, StringComparison.Ordinal);
+        Assert.Contains("the row", again, StringComparison.Ordinal);
         Assert.DoesNotContain(Heading, again, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", again, StringComparison.Ordinal);
     }
@@ -279,13 +273,32 @@ public sealed class HookFaultPageTests
         using var host = Host(Patient);
         using var ws = await Connect(host);
         await ws.SendJsonAsync(new { type = "navigate", path = "/hook/mount", query = "" }, TestContext.Current.CancellationToken);
-        var faulted = (await ws.SettledAsync())[^1];
+        var faulted = await ErrorPageSettled(ws);
 
         await ws.SendJsonAsync(new { id = TryAgain(faulted) }, TestContext.Current.CancellationToken);
         var again = (await ws.SettledAsync())[^1];
 
         Assert.Contains(Heading, again, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", again, StringComparison.Ordinal);
+    }
+
+    // The error page as it stands once the navigation has finished: its handlers are the ones a click reaches.
+    private static async Task<string> ErrorPageSettled(WebSocket ws)
+    {
+        var shown = (await Through(ws, Heading))[^1];
+        return (await ws.SettledAsync()).LastOrDefault(static f => f.Contains("Try again", StringComparison.Ordinal)) ?? shown;
+    }
+
+    // Every frame up to and with the first that shows the text.
+    private static async Task<List<string>> Through(WebSocket ws, string text)
+    {
+        var frames = new List<string>();
+        while (frames.Count == 0 || !frames[^1].Contains(text, StringComparison.Ordinal))
+        {
+            frames.Add(await ws.ReceiveTextAsync());
+        }
+
+        return frames;
     }
 
     private static string TryAgain(string frame)
