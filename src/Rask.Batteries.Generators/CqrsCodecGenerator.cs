@@ -326,7 +326,8 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
         {
             foreach (var type in SymbolWalk.AllTypes(assembly.GlobalNamespace))
             {
-                if (type.IsAbstract || type.TypeKind != TypeKind.Class)
+                // A component that handles an event is a page's listener, not the event's handler.
+                if (type.IsAbstract || type.TypeKind != TypeKind.Class || CqrsDispatchGenerator.IsComponent(type))
                 {
                     continue;
                 }

@@ -276,6 +276,32 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
     private void OnUserChanged(object? sender, EventArgs e) => _ = RequestRender();
 
+    // A published event a component of this page handles, as an event of the page's own: under the lock, rendered once.
+    protected override async Task RunAsEventAsync(Func<Task> work)
+    {
+        using var scope = EnterWorkScope();
+        if (!await EnterAsync().ConfigureAwait(false))
+        {
+            return;
+        }
+
+        try
+        {
+            await work().ConfigureAwait(false);
+            if (await BuildPayloadCoalescingRerendersAsync(null, false).ConfigureAwait(false)
+                && await TryEmitFrameAsync(false).ConfigureAwait(false))
+            {
+                _htmlBuffers.Commit();
+            }
+        }
+        finally
+        {
+            InHandlerScope = false;
+            _lock.Release();
+            _ = DrainRenderRequestedAfterScope();
+        }
+    }
+
     // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page
     // mounted in a render nothing dispatched. Made the way a link's is, replacing the address of the page that asked.
     protected override bool TryNavigateCore(Action navigate)
@@ -584,7 +610,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             using (navigator.EnterHandler())
             {
-                if (!await View.TryInvokeHandlerAsync(handlerId, root, Services, CancellationToken.None).ConfigureAwait(false))
+                if (!await View.TryInvokeHandlerAsync(handlerId, root, EventServices, CancellationToken.None).ConfigureAwait(false))
                 {
                     return Array.Empty<byte>();
                 }

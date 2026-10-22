@@ -16,5 +16,5 @@ namespace Rask.Core.Live;
 /// </remarks>
 internal static class AmbientServices
 {
-    public static IServiceProvider? Current => DispatchServicesScope.Current ?? LiveRenderContext.Current?.Services;
+    public static IServiceProvider? Current => DispatchServicesScope.Current ?? LiveRenderContext.Current?.AmbientServices;
 }

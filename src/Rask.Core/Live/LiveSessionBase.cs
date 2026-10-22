@@ -307,7 +307,106 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     ///     for a tenant filter means reading somebody else's rows. Nesting is fine — a dispatch renders, so
     ///     this is entered inside itself, and each disposal restores exactly what it replaced.
     /// </remarks>
-    internal IDisposable? EnterWorkScope() => _workScope?.Enter(Services);
+    internal IDisposable? EnterWorkScope() => _workScope?.Enter(EventServices);
+
+    // Null until something asks for the event's services, and for a host that registered no catalog (a bare test
+    // store), where the session's own services answer for every event, as they always did.
+    private EventServices? _eventServices;
+    private bool _eventServicesResolved;
+
+    /// <summary>
+    ///     The services of the event in progress: the app's scoped services fresh for each event, in a scope opened
+    ///     on first use and disposed as the event ends; the framework's from the session.
+    /// </summary>
+    /// <remarks>What is ambient while an event runs — a handler, a render, a navigation — and never what a component is built with: a component outlives every event.</remarks>
+    internal IServiceProvider EventServices
+    {
+        get
+        {
+            if (!_eventServicesResolved)
+            {
+                _eventServices = Services.GetService<EventScopeCatalog>() is { } catalog
+                                 && Services.GetService<IServiceScopeFactory>() is { } scopes
+                    ? new EventServices(this, catalog, scopes)
+                    : null;
+                _eventServicesResolved = true;
+            }
+
+            return (IServiceProvider?)_eventServices ?? Services;
+        }
+    }
+
+    /// <summary>The scope the event in progress has opened, or null — for tests.</summary>
+    internal IServiceProvider? OpenedEventScope => _eventServices?.Opened;
+
+    /// <summary>
+    ///     Makes a scope just opened for an event this session's: the services that are the session's
+    ///     (<see cref="SessionScoped" />) are answered there with its own instances — its user as revalidated for this
+    ///     event, its connection, its route.
+    /// </summary>
+    /// <param name="eventScope">The event's own services.</param>
+    internal void SeedEventScope(IServiceProvider eventScope)
+    {
+        if (eventScope.GetService<EventScopeLink>() is { } link)
+        {
+            link.Session = Services;
+        }
+    }
+
+    // The published events this session's components are still to handle, one after another (LiveListeners).
+    private Task _liveEvents = Task.CompletedTask;
+    private Lock? _liveEventsGate;
+
+    /// <summary>
+    ///     Hands <paramref name="e" /> to <paramref name="listener" />, mounted in this session, as an event of the
+    ///     session's own: in order behind what it is doing, under its lock, with the event's services, and rendered once.
+    /// </summary>
+    internal void DeliverLiveEvent(Component listener, Func<object, object, Task> handle, object e) =>
+        EnqueueLiveEvent(() => RunAsEventAsync(() => listener.HandleLiveEvent(handle, e, EventServices)));
+
+    /// <summary>Queues work behind this session's earlier work, in order. A host with its own chain uses that.</summary>
+    protected virtual void EnqueueLiveEvent(Func<Task> work)
+    {
+        var gate = LazyInitializer.EnsureInitialized(ref _liveEventsGate);
+        lock (gate)
+        {
+            _liveEvents = InOrderAsync(_liveEvents, work);
+        }
+    }
+
+    private static async Task InOrderAsync(Task previous, Func<Task> work)
+    {
+        await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        try
+        {
+            await work().ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // One page's delivery that fails must not stop the next one: reported.
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            RaskDiagnostics.Report(RaskLogLevel.Error, "Rask.Live", "Rask Live: delivering a published event threw", ex);
+        }
+    }
+
+    /// <summary>
+    ///     Runs <paramref name="work" /> as an event of this session — under its lock, then one render. A host without
+    ///     a lock of its own runs it and renders.
+    /// </summary>
+    protected virtual async Task RunAsEventAsync(Func<Task> work)
+    {
+        await work().ConfigureAwait(false);
+        await RequestRender().ConfigureAwait(false);
+    }
+
+    /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
+    internal void EndEvent()
+    {
+        if (_eventServices is { } events)
+        {
+            events.Close(Interlocked.Exchange(ref _readsStillRunning, null));
+        }
+    }
 
     // Pending IJSRuntime calls, drained into each frame's jsInvokes and dispatched client-side after
     // applyDiff (post-commit ordering). Shared queue type so both hosts order interop identically.
@@ -319,7 +418,17 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     public bool InHandlerScope
     {
         get => _inHandlerScope;
-        set => _inHandlerScope = value;
+        set
+        {
+            _inHandlerScope = value;
+
+            // Every host clears it as the event that set it ends, after its last render: that is where the
+            // event's scope goes.
+            if (!value)
+            {
+                EndEvent();
+            }
+        }
     }
 
     // Volatile for the handoff described at _pendingRenderInScope.
@@ -559,6 +668,10 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // taken by the dispatch that made the render.
     private Task? _unsettledReads;
 
+    // The same reads without the cap: what the event's scope waits for before it is disposed, since they may still be
+    // using what they resolved from it when the browser has long been told the event is done.
+    private Task? _readsStillRunning;
+
     /// <summary>
     ///     The reads the dispatch's page went out without, as one task that completes when they are all back —
     ///     or <see cref="ReadsCap" /> has passed — so whoever tells the browser the dispatch is done can say so
@@ -660,7 +773,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         if (started.Unsettled is { } left)
         {
             // The scope stays open until they are back: what their continuations start is theirs too.
-            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(SettledAsync(started, left), ReadsCap));
+            var settled = SettledAsync(started, left);
+            Volatile.Write(ref _readsStillRunning, settled);
+            Volatile.Write(ref _unsettledReads, WithinTheCapAsync(settled, ReadsCap));
         }
         else
         {

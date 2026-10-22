@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+
+- **A component that implements `IEventHandler<T>` handles a published event on every open page that shows it.**
+  `Dispatcher.Publish(e)` — from a singleton, a timer, a job or another page's handler — and a domain event an
+  aggregate raises reach each mounted listener in its own page's session: queued behind that page's events, as its
+  user, in a fresh per-event scope, and rendered once. A page between connections is sent the result when it
+  reconnects; a component that left the page hears nothing; a listener that throws shows the handler-fault toast on
+  its page only. Inside `Db.Transaction` delivery waits for the commit and a rollback delivers nothing. A service
+  handler still runs once per event; a component handler runs once per open page, and a component is never a DI
+  service. Registration is source-generated, so a component that handles nothing costs nothing. Both hosts; delivery
+  stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
+  reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
+
 ### Removed
 
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now
@@ -352,6 +365,19 @@ them until tagged releases begin.
   value the server held, which a bound picker hears only with the next action, so it opened on today with nothing
   marked. It now reads the field's parts when it opens (half filled: today, nothing marked), and a day picked in it
   shows in the parts at once. Nothing more is sent: the value still goes with the next action.
+- **BEHAVIOUR CHANGE: each live event gets its scoped services fresh, as a request would.** A click, a submit, a
+  navigation, a pushed render and the hooks they run now reach every scoped service — the app's `DbContext` and
+  repositories, the batteries' (Rask.Data, Rask.Auth), any package's — and every transient (the CQRS dispatcher
+  and its handlers, the query cache's fetches) from a scope of that event's own: signed in as the user the session
+  revalidated for it, in the tenant that user names, and disposed once it has rendered. They used to live as long
+  as the tab. An app that kept scoped state across events (a scoped unit of work collecting several clicks) now
+  gets a fresh one each time; keep that on the component instead. What stays the session's is what *is* the page —
+  route, navigator, connection, user, toaster, language, query cache, resolved tenant — and a per-event service that
+  injects one of those gets the session's own. A component's constructor stays the session's. An event that asks
+  for nothing per-event opens no scope (the live-update allocation gate is unchanged at 2,504 B). Both hosts; an app
+  needs nothing — the per-event helper Eszaf wrote can go. See
+  [lifecycle](docs/lifecycle.md#each-event-gets-its-own-scoped-services).
+
 - **A second `.Class(…)` now adds to the first instead of replacing it.** `Ui.Table.Class("w-full").Class("mb-8")`
   renders `w-full mb-8`; it used to render `mb-8` and drop `w-full` silently. The parts join as `Class("a", "b")`
   always did — one space, each trimmed, null and blank ones skipped, repeats kept — on every element and component,

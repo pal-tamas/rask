@@ -91,6 +91,22 @@ public sealed class IncrementCounterHandler(CqrsCounterStore store, IDispatcher 
 }
 ```
 
+### A page that handles an event
+
+A component can implement `IEventHandler<T>` too. **A service handler runs once per event; a component handler runs
+once per open page** that has the component mounted, in that page's own session — after what the page is doing, as its
+user, and rendered once:
+
+```csharp
+public sealed partial class OrdersPage : Component, IEventHandler<OrderPlaced>
+{
+    public async Task Handle(OrderPlaced e) => _orders = await Order.Where(o => o.Open).ToList();
+}
+```
+
+The same `Publish` reaches both, and so does a domain event an aggregate raises, after its commit. A component is
+never registered as a DI service. See [lifecycle](lifecycle.md#a-page-that-handles-an-event).
+
 ### Durable handlers
 
 A handler that must not be lost implements `IDurableHandler<T>` instead. It is written to the

@@ -102,8 +102,17 @@ public sealed partial class TerminalsApp(HandlerGate gate, Microsoft.JSInterop.I
         Button.OnClick(Load)["load"],
         Button.OnClick(AddWhenLetThrough)["add"],
         Button.OnClick(AddWhenThePageAnswers)["ask"],
-        Button.OnClick(Pair)["pair"]
+        Button.OnClick(Pair)["pair"],
+        Button.OnClick(Witness)["witness"]
     ];
+
+    // The app's own scoped service, made for this event, and a write beside it.
+    private static async Task Witness()
+    {
+        var witness = Ambient.Services!.GetRequiredService<EventWitness>();
+        var seen = witness.See();
+        await Terminal.Named($"Witness-{seen}").Save();
+    }
 
     // Two rows and a read between them, as one unit of work.
     private async Task Pair()
@@ -441,6 +450,8 @@ public sealed partial class HandWiredDataHostTests : IDisposable
                 services.AddRaskData<TerminalDomainContext>(o => o.UseSqlite(connection));
                 services.AddSingleton<ChosenPartner>();
                 services.AddSingleton<HandlerGate>();
+                services.AddSingleton<EventWitnessLog>();
+                services.AddScoped<EventWitness>();
                 services.AddSingleton<ISessionRevalidator, PartnerRevalidator>();
                 services.AddScoped<IQueryClient>(static _ => new SessionQueryClient(new NothingToAsk()));
                 if (log is not null)

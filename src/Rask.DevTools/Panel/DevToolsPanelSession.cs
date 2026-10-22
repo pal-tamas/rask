@@ -108,7 +108,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
         InHandlerScope = true;
         try
         {
-            if (!await View.TryInvokeHandlerAsync(handlerId, root, Services).ConfigureAwait(false))
+            if (!await View.TryInvokeHandlerAsync(handlerId, root, EventServices).ConfigureAwait(false))
             {
                 return;
             }

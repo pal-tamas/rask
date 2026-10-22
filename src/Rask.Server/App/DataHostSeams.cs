@@ -53,6 +53,10 @@ internal static class DataHostSeams
         // Rask.Query is always here with data — both need the mediator — and the scope is the same one
         // SessionDataScope makes ambient.
         services.AddScoped<IDataChanges, QueryDataChanges>();
+
+        // The tenant the resolver named is the session's answer, asked again as each event starts (LiveSession):
+        // an event's scope reads that answer rather than asking a resolver that may want the page's own request.
+        EventScopeCatalog.KeepForSession(services, typeof(ResolvedTenant));
     }
 
     /// <summary>

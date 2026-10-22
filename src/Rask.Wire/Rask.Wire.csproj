@@ -30,6 +30,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Testing"/>
+    <InternalsVisibleTo Include="Rask.Core"/>
+    <InternalsVisibleTo Include="Rask.Cqrs"/>
+    <InternalsVisibleTo Include="Rask.Data"/>
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
   </ItemGroup>
 

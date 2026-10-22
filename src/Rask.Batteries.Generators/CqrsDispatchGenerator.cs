@@ -81,10 +81,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         var subscription = GetSubscription(symbol, compilation);
 
         // Handlers must be concrete classes (record classes included). Interfaces, structs and
-        // record structs can't be DI-constructed handlers.
-        if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class)
+        // record structs can't be DI-constructed handlers, and a component never is one (ComponentCandidate).
+        if (symbol.IsAbstract || symbol.TypeKind != TypeKind.Class || IsComponent(symbol))
         {
-            return subscription is null ? null : new Candidate(NoHandlers, null, subscription, NoPolicies, NoIgnored);
+            return ComponentCandidate(symbol, compilation, subscription);
         }
 
         var policies = new List<PolicyModel>();
@@ -120,7 +120,55 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             LocationInfo.From(symbol),
             subscription,
             new EquatableArray<PolicyModel>(policies),
-            handlers.Count == 0 ? NoIgnored : new EquatableArray<IgnoredAuthorization>(Ignored(symbol, ct)));
+            handlers.Count == 0 ? NoIgnored : new EquatableArray<IgnoredAuthorization>(Ignored(symbol, ct)),
+            NoListeners);
+    }
+
+    // A component that implements IEventHandler<T> handles it once per open page that has it mounted, in that page's
+    // session — never as a DI service, and never as one of the handlers a publish runs. Anything else that is no
+    // handler is a candidate only for the subscription it declares.
+    private static Candidate? ComponentCandidate(INamedTypeSymbol symbol, Compilation compilation, SubscriptionModel? subscription)
+    {
+        var listeners = !symbol.IsAbstract && symbol.TypeKind == TypeKind.Class && IsComponent(symbol)
+            ? Listeners(symbol, compilation)
+            : [];
+        return listeners.Count == 0 && subscription is null
+            ? null
+            : new Candidate(NoHandlers, null, subscription, NoPolicies, NoIgnored, new EquatableArray<ListenerModel>(listeners));
+    }
+
+    internal static bool IsComponent(INamedTypeSymbol symbol)
+    {
+        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
+        {
+            if (current.ToDisplayString() is "Rask.Core.Component")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // The events a component handles. One the generated file cannot name — a generic or an inaccessible component —
+    // is left out: there is no instance type to register it by.
+    private static List<ListenerModel> Listeners(INamedTypeSymbol component, Compilation compilation)
+    {
+        var listeners = new List<ListenerModel>();
+        if (component.IsGenericType)
+        {
+            return listeners;
+        }
+
+        foreach (var iface in component.AllInterfaces.Where(iface =>
+                     iface.MetadataName is "IEventHandler`1"
+                     && iface.ContainingNamespace?.ToDisplayString() is Namespace
+                     && DescribeRegisterability(component, iface.TypeArguments, compilation) is null))
+        {
+            listeners.Add(new ListenerModel(Fqn(component, compilation), Fqn(iface.TypeArguments[0], compilation)));
+        }
+
+        return listeners;
     }
 
     // RASK101: every authorization attribute on this handler that Declared() below — and the codec, for the wire —
@@ -210,6 +258,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
     private static readonly EquatableArray<IgnoredAuthorization> NoIgnored = new(Array.Empty<IgnoredAuthorization>());
 
+    private static readonly EquatableArray<ListenerModel> NoListeners = new(Array.Empty<ListenerModel>());
+
     // The record's ISubscription<T>, when it declares one. A subscription is a message like any other, so it is
     // looked for on records and structs as well as classes — and skipped when the generated file could not name it.
     private static SubscriptionModel? GetSubscription(INamedTypeSymbol symbol, Compilation compilation)
@@ -285,8 +335,14 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         var seen = new HashSet<(string, string)>();
         var subscriptions = new Dictionary<string, SubscriptionModel>(StringComparer.Ordinal);
         var policies = new SortedSet<(string ServiceFqn, string ImplementationFqn)>();
+        var listeners = new SortedSet<(string ComponentFqn, string EventFqn)>();
         foreach (var candidate in candidates)
         {
+            foreach (var listener in candidate.PageListeners)
+            {
+                listeners.Add((listener.ComponentFqn, listener.EventFqn));
+            }
+
             models.AddRange(candidate.Handlers
                 .Where(handler => seen.Add((handler.HandlerTypeFqn, handler.ServiceInterfaceFqn)))
                 .Select(handler => (handler, candidate.Location)));
@@ -304,7 +360,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
 
         ReportIgnoredAuthorization(spc, candidates);
 
-        if (models.Count == 0 && subscriptions.Count == 0 && policies.Count == 0)
+        if (models.Count == 0 && subscriptions.Count == 0 && policies.Count == 0 && listeners.Count == 0)
         {
             return;
         }
@@ -323,7 +379,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
                 HandlerImplementations(registerable),
                 ImplementationTypes(registerable, policies),
                 subscriptions.Values.OrderBy(s => s.SubscriptionFqn, StringComparer.Ordinal).ToList(),
-                policies.ToList()),
+                policies.ToList(),
+                listeners.ToList()),
             Encoding.UTF8));
     }
 
@@ -435,7 +492,8 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         List<(string ServiceInterfaceFqn, string HandlerTypeFqn, bool IsEvent)> handlerImpls,
         List<string> distinctImplTypes,
         List<SubscriptionModel> subscriptions,
-        List<(string ServiceFqn, string ImplementationFqn)> policies)
+        List<(string ServiceFqn, string ImplementationFqn)> policies,
+        List<(string ComponentFqn, string EventFqn)> listeners)
     {
         var sb = new StringBuilder();
         sb.AppendLine("// <auto-generated />");
@@ -454,7 +512,7 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         AppendInit(sb, handlerImpls, policies);
-        AppendRefreshAll(sb, requests, eventTypes, durables, subscriptions);
+        AppendRefreshAll(sb, requests, eventTypes, durables, subscriptions, listeners);
 
         for (var i = 0; i < requests.Count; i++)
         {
@@ -522,10 +580,12 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
     }
 
     private static void AppendRefreshAll(
-        StringBuilder sb, List<HandlerModel> requests, List<string> eventTypes, List<(string EventFqn, string HandlerFqn)> durables, List<SubscriptionModel> subscriptions)
+        StringBuilder sb, List<HandlerModel> requests, List<string> eventTypes, List<(string EventFqn, string HandlerFqn)> durables, List<SubscriptionModel> subscriptions, List<(string ComponentFqn, string EventFqn)> listeners)
     {
         sb.AppendLine("    internal static void RefreshAll()");
         sb.AppendLine("    {");
+
+        AppendListeners(sb, listeners);
 
         // Before the invokers, so a request is never dispatchable ahead of what its handler asks of the caller.
         // Only when there is something to install, as with subscriptions below.
@@ -577,6 +637,27 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         }
 
         sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    // The components that handle an event: called through the interface, so an explicit Handle is reached too.
+    private static void AppendListeners(StringBuilder sb, List<(string ComponentFqn, string EventFqn)> listeners)
+    {
+        if (listeners.Count == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine("        global::Rask.Cqrs.CqrsRegistry.ReplaceListeners(typeof(__RaskCqrsRegistry), new (global::System.Type, global::System.Type, global::System.Func<object, global::Rask.Cqrs.IEvent, global::System.Threading.Tasks.Task>)[]");
+        sb.AppendLine("        {");
+        foreach (var (component, e) in listeners)
+        {
+            sb.Append("            (typeof(").Append(component).Append("), typeof(").Append(e)
+                .Append("), static (component, e) => ((global::Rask.Cqrs.IEventHandler<").Append(e)
+                .Append(">)component).Handle((").Append(e).AppendLine(")e)),");
+        }
+
+        sb.AppendLine("        });");
         sb.AppendLine();
     }
 
@@ -751,7 +832,10 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
         LocationInfo? Location,
         SubscriptionModel? Subscription,
         EquatableArray<PolicyModel> Policies,
-        EquatableArray<IgnoredAuthorization> IgnoredAuthorization);
+        EquatableArray<IgnoredAuthorization> IgnoredAuthorization,
+        EquatableArray<ListenerModel> PageListeners);
+
+    private sealed record ListenerModel(string ComponentFqn, string EventFqn);
 
     private sealed record IgnoredAuthorization(string Attribute, string On, string Why, LocationInfo? Location);
 

@@ -82,6 +82,7 @@ public abstract partial class Component
         if (firstRender)
         {
             Live.HasInitialized = true;
+            LiveListeners.Mounted(this);
             InvokeAsyncLifecycleWithRendering(OnMount, isLoad: true);
         }
 

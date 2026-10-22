@@ -60,8 +60,22 @@ internal sealed class AmbientTransaction
     /// <summary>Makes <paramref name="transaction" /> the one every context in this flow joins, until disposed.</summary>
     internal static Scope Enter(DbContext owner, IDbContextTransaction transaction, IsolationLevel? isolation)
     {
+        // An event published inside reaches the live pages that handle it once this commits, and not on a rollback.
+        LiveEvents.DeferUntilCommit ??= DeferUntilCommit;
+
         var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation);
         return new Scope(entered);
+    }
+
+    private static bool DeferUntilCommit(Action work)
+    {
+        if (Current is not { } open)
+        {
+            return false;
+        }
+
+        open.AfterCommit(work);
+        return true;
     }
 
     /// <summary>

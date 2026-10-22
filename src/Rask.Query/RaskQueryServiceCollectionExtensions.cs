@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Core.Live;
 
 namespace Rask.Querying;
 
@@ -24,7 +25,14 @@ public static class RaskQueryServiceCollectionExtensions
     public static IServiceCollection AddRaskQuery(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.TryAddScoped<IQueryClient, SessionQueryClient>();
+        if (!services.Any(static d => d.ServiceType == typeof(IQueryClient)))
+        {
+            // The session's cache, not an event's: an event's scope is handed this same client (SessionScoped).
+            services.TryAddScoped<SessionQueryClientOwner>();
+            services.AddScoped<IQueryClient>(static sp => sp.GetRequiredService<SessionQueryClientOwner>().Client);
+            SessionScoped.Mark(services, typeof(IQueryClient));
+        }
+
         return services;
     }
 }

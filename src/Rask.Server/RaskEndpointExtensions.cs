@@ -147,7 +147,10 @@ public static partial class RaskEndpointExtensions
     {
         AddOptionsAndKeyRing(services, configure, configureServer);
         AddSessionHosting(services);
+        // What the host registers for a session is the session's; every other scoped service is made per event.
+        var sessionServices = services.Count;
         AddSessionServices(services, configureCulture);
+        SessionScoped.Since(services, sessionServices, SessionForwards);
 
         // The app's compiled stylesheet, compressed and cacheable, ahead of the app's own static files — so a
         // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
@@ -296,9 +299,18 @@ public static partial class RaskEndpointExtensions
         Dev.IslandDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
     }
 
+    // The session's JS runtime is disposable, so an event's scope hands out a view of it that is not.
+    private static readonly Dictionary<Type, Func<object, object>> SessionForwards = new()
+    {
+        [typeof(IJSRuntime)] = static runtime => new ForwardedJSRuntime((IJSRuntime)runtime),
+    };
+
     private static void AddSessionServices(IServiceCollection services, Action<RaskCultureOptions>? configureCulture)
     {
         services.AddSingleton<RaskLiveMarker>();
+
+        // Each live event gets the app's scoped services fresh, as a request would (docs/composition-callbacks-context.md).
+        EventScopeCatalog.Add(services);
 
         // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
         // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
@@ -2767,7 +2779,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
             lockHeld: true,
@@ -2877,7 +2889,7 @@ public static partial class RaskEndpointExtensions
             session,
             "rask.handler.dispatch",
             handlerId,
-            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.Services, token),
+            token => session.View.TryInvokeHandlerAsync(handlerId, root, session.EventServices, token),
             metrics,
             handlerTimeout,
             lockHeld: false,
