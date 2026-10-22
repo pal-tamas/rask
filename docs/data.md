@@ -234,6 +234,9 @@ The child gets a table, a model so its parent's form can carry it, and a read fa
 another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot
 write is [RASK088](diagnostics.md#rask088).
 
+The field behind a read-only view can be named anything — `Notes => _items.AsReadOnly()` — and can live on an
+abstract base, generic or not: the collection is loaded into and saved from that field, not the view.
+
 **A child is written only through its aggregate.** A save that adds, changes or removes a child whose root the
 same context does not hold — a line found through `db.OrderLines` and edited, a `new OrderLine` attached on its
 own, a `BulkInsert` of lines — is refused with an `InvalidOperationException` naming the child and its root.

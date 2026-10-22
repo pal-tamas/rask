@@ -1273,6 +1273,12 @@ them until tagged releases begin.
   converter, comparer, length and unicode, and the column's name and type, so the values read are the values
   written and `Skid.Where(s => s.Handling.Contains(SkidHandling.Cold))` finds the row. A collection of value objects
   is still one JSON column on both sides, under the write side's column name.
+- **Children behind a field EF Core cannot pair with them by name are loaded and saved.** Before:
+  `private readonly List<CaseNote> _items = []; public IReadOnlyList<CaseNote> Notes => _items.AsReadOnly();`
+  failed the first `Find` and every form `Update` with "Collection is read-only", because EF Core finds a backing
+  field only when it is named `notes`, `_notes`, `_Notes`, `m_notes` or `m_Notes`. After: the generator names the
+  field it already writes the form through, and the navigation is mapped to it — on the aggregate itself or on an
+  abstract base, generic ones (`Casebook<TSelf>`) included. A field `Configure` set with `HasField` is kept.
 - **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
   at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
   transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).
