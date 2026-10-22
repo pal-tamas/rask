@@ -1248,6 +1248,20 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An app's own context used inside `Db.Transaction` runs inside the transaction — plain EF Core and raw SQL alike.**
+  Before: a context from the app's factory (`AddRaskData<T>(o => …)`, or any carrying Rask's interceptors), used
+  inside `await Db.Transaction(async () => { ... })` without `db:` — a LINQ read, `SaveChangesAsync`,
+  `ExecuteSqlRawAsync`, `SqlQueryRaw`, `FromSqlRaw` — opened a connection of its own, outside the transaction. On SQL
+  Server at serializable its UPDATE waited on the locks the block's own read face held (LCK_M_X) until the 30 s
+  timeout; on SQLite it failed "database is locked"; a rollback kept what it wrote; and a later `Refund.Remove(id,
+  db: db)` could be refused. The workaround was a `db.Database.BeginTransactionAsync()` by hand. After: the context is
+  enlisted before its first command — even one created before the block — so its reads, its save, its raw SQL and
+  any `db:` call share the transaction, a rollback undoes them all, and the context is handed back on its own
+  connection. No call site changes; drop the hand-made `BeginTransactionAsync` inside the block (EF Core now refuses
+  it, as the context is already in a transaction). A context on another database still runs outside, and its `db:`
+  call is still refused. Joining sends no session setup again: `UseRaskSqlServer`'s `SET XACT_ABORT`/`LOCK_TIMEOUT`
+  and `UseRaskSqlite`'s pragmas run when a connection really opens, not when a context joins the transaction's
+  connection (SqlClient refused that `SET`: "BeginExecuteNonQuery requires the command to have a transaction").
 - **Referencing `Rask.Testing` boots nothing a test did not ask for.** Before: on xUnit v3 the per-test app hook made
   ANY ambient lookup boot the app's `Program.cs` — so a project that took `Rask.Testing` for `Clock.Fake` alone saw
   its `TestDatabase.Start(…)` model tests boot the app at their first `Company.Where(…)`, fail on the app's missing

@@ -115,11 +115,35 @@ internal sealed class AmbientTransaction
     /// <exception cref="InvalidOperationException">
     ///     The context is on another database, is in a transaction of its own, or has its connection open already.
     /// </exception>
-    internal static void Admit(DbContext context)
+    internal static void Admit(DbContext context) => Current?.Admitted(context);
+
+    /// <summary>
+    ///     Joins <paramref name="context" /> — the app's own, about to run a command or open its connection — to the
+    ///     transaction in progress, so raw SQL it runs inside the block runs inside the transaction. Handed back as it came
+    ///     once the transaction ends, like a <c>db:</c> context. Left alone when it is on another database, in a
+    ///     transaction of its own or on a connection its owner opened: there it runs as it always did, and a <c>db:</c>
+    ///     call with it is still refused.
+    /// </summary>
+    /// <returns><see langword="true" /> when it joined just now, so the connection it was about to open stays closed.</returns>
+    internal static bool JoinBeforeUse(DbContext? context)
     {
-        if (Current is { } current && current.Enlist(context) is { } admitted)
+        if (context is null || Current is not { } current || context.Database.CurrentTransaction is not null ||
+            !string.Equals(context.Database.GetConnectionString(), current._connectionString, StringComparison.Ordinal) ||
+            context.Database.GetDbConnection().State != ConnectionState.Closed)
         {
-            current._admitted.Add(admitted);
+            return false;
+        }
+
+        current.Admitted(context);
+        return true;
+    }
+
+    // Enlists a context the caller still holds, and remembers it to hand back once this ends.
+    private void Admitted(DbContext context)
+    {
+        if (Enlist(context) is { } admitted)
+        {
+            _admitted.Add(admitted);
         }
     }
 
