@@ -123,7 +123,7 @@ public sealed partial class RoutesGenerator
                      + "anything else must implement System.IParsable<T> — which every built-in numeric, Guid, "
                      + "DateOnly/DateTime and bool already does. An enum does not: bind it as 'string'. A "
                      + "[QueryParam] may also be T[], IReadOnlyList<T>, IReadOnlyCollection<T> or IEnumerable<T> "
-                     + "of such a non-nullable T, read from one comma-separated key.",
+                     + "of such a non-nullable T, read from its key repeated with brackets (drivers[]=a&drivers[]=b).",
         helpLinkUri: DiagnosticHelp.Link("RASK011"));
 
     private static readonly DiagnosticDescriptor Rask012 = new(

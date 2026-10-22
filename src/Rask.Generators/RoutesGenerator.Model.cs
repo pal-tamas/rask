@@ -189,7 +189,7 @@ public sealed partial class RoutesGenerator
                                           | SymbolDisplayMiscellaneousOptions.UseSpecialTypes),
             compilation);
 
-        // A [QueryParam] list (`IReadOnlyList<string> Drivers`) is one key of comma-separated elements, each
+        // A [QueryParam] list (`IReadOnlyList<string> Drivers`) is its key repeated with brackets, each element
         // read as a single value is; a path segment is never a list.
         var isParsable = IsBindableType(prop.Type);
         var listElement = isParsable || hasRouteParam ? null : QueryListElement(prop.Type);

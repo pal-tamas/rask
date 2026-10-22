@@ -70,10 +70,10 @@ public sealed partial class RoutesGenerator
           /** A query parameter: left out when no value was given, so the page shows what it shows without it. */
           given: <T>(key: string, value: T | null | undefined, write: Format<T>) =>
             value == null ? null : `${key}=${write(value)}`,
-          /** A query list: ONE key, its elements joined by an encoded comma; left out when none has anything to write. */
+          /** A query list: its key repeated with brackets, one pair per element, as Laravel and Rails write it; left out when none has anything to write. */
           list<T>(key: string, values: readonly T[] | null | undefined, write: Format<T>) {
-            const written = (values ?? []).filter(value => value != null).map(write).filter(text => text !== '')
-            return written.length ? `${key}=${written.join('%2C')}` : null
+            const texts = (values ?? []).filter(value => value != null).map(write).filter(text => text !== '')
+            return texts.length ? texts.map(text => `${key}=${text}`).join('&') : null
           },
         }
 

@@ -5,8 +5,9 @@ using Rask.Core.Routing;
 
 namespace Rask.Generators.Tests;
 
-// A [QueryParam] list is ONE key in a generated URL: `Routes.FleetPage(Drivers: ["ada", "theo"])` links to
-// `/fleet?Drivers=ada%2Ctheo`, in the order given, and an empty list leaves the key out as an ungiven one does.
+// A [QueryParam] list in a generated URL is its key repeated with brackets, as Laravel and Rails write it:
+// `Routes.FleetPage(Drivers: ["ada", "theo"])` links to `/fleet?Drivers%5B%5D=ada&Drivers%5B%5D=theo`, in the
+// order given, and an empty list leaves the key out as an ungiven one does.
 public class RouteQueryListTests
 {
     private const string Fleet =
@@ -28,23 +29,23 @@ public class RouteQueryListTests
     private static readonly Lazy<Assembly> Built = new(() => Build(Fleet));
 
     [Fact]
-    public void A_list_is_written_as_one_key_with_its_elements_in_the_order_given()
+    public void A_list_is_written_as_its_key_repeated_with_brackets_in_the_order_given()
     {
         string[] drivers = ["theo", "ada"];
 
         var url = Route(drivers, [3, 1]);
 
-        Assert.Equal("/fleet?Drivers=theo%2Cada&tank=3%2C1", url);
+        Assert.Equal("/fleet?Drivers%5B%5D=theo&Drivers%5B%5D=ada&tank%5B%5D=3&tank%5B%5D=1", url);
     }
 
     [Fact]
-    public void An_element_with_a_comma_is_written_as_it_is_and_splits_when_read()
+    public void An_element_with_a_comma_is_one_encoded_value()
     {
         string[] drivers = ["Lovelace, Ada", "theo"];
 
         var url = Route(drivers, null);
 
-        Assert.Equal("/fleet?Drivers=Lovelace%2C%20Ada%2Ctheo", url);
+        Assert.Equal("/fleet?Drivers%5B%5D=Lovelace%2C%20Ada&Drivers%5B%5D=theo", url);
     }
 
     [Fact]
@@ -54,7 +55,7 @@ public class RouteQueryListTests
 
         var url = Route(drivers, [4]);
 
-        Assert.Equal("/fleet?tank=4", url);
+        Assert.Equal("/fleet?tank%5B%5D=4", url);
     }
 
     [Theory]
@@ -76,7 +77,7 @@ public class RouteQueryListTests
 
         var url = (RouteUrl)helper.Invoke(null, [new[] { "ada" }, new[] { 2 }])!;
 
-        Assert.Equal("/fleet?Drivers=ada&tank=2", url.Path + url.QueryString);
+        Assert.Equal("/fleet?Drivers%5B%5D=ada&tank%5B%5D=2", url.Path + url.QueryString);
     }
 
     [Fact]

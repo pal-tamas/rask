@@ -288,34 +288,52 @@ public sealed partial class RoutesGenerator
             // nothing and keeps an explicit [QueryParam("a b")] / a name with '&'/'=' from
             // emitting a malformed query string. Property-name-derived keys are valid
             // identifiers, so this is a no-op for them.
+            if (qp.IsList)
+            {
+                AppendQueryList(sb, ident, Uri.EscapeDataString(qpName + "[]"));
+                continue;
+            }
+
             var encodedKey = Uri.EscapeDataString(qpName);
 
             // Every query argument is nullable in the signature, whatever its property is, and null means
             // "not given": the key is left out, so the page shows what it shows without it — its
             // initializer. A value that IS given is written as it is, `Page: 1` and `Page: 0` included:
             // nothing here knows the initializer, and a link says what its caller said.
-            // A list is one key of comma-joined elements, and one with nothing to write is left out as an
-            // ungiven value is.
-            var value = EncodeExpr(ident);
-            if (qp.IsList)
-            {
-                sb.Append("        if (").Append(ident).Append(" is not null && ").Append(value)
-                    .Append(" is { Length: > 0 } __list_").Append(ident).AppendLine(")");
-                value = "__list_" + ident;
-            }
-            else
-            {
-                sb.Append("        if (").Append(ident).AppendLine(" is not null)");
-            }
-
+            sb.Append("        if (").Append(ident).AppendLine(" is not null)");
             sb.AppendLine("        {");
-            sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
-            sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
-            sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
-                .AppendLine("=\");");
-            sb.Append("            __qs.Append(").Append(value).AppendLine(");");
+            AppendPair(sb, "            ", encodedKey, EncodeExpr(ident));
             sb.AppendLine("        }");
         }
+    }
+
+    // A list is its key repeated with empty brackets, one pair per element, as Laravel's route() and Rails'
+    // to_query write it: `Drivers%5B%5D=ada&Drivers%5B%5D=theo`. An element that writes as nothing is left
+    // out, so a null or empty list writes no key, as an ungiven argument does.
+    private static void AppendQueryList(StringBuilder sb, string ident, string encodedKey)
+    {
+        sb.Append("        if (").Append(ident).AppendLine(" is not null)");
+        sb.AppendLine("        {");
+        sb.Append("            foreach (var __element_").Append(ident).Append(" in ").Append(ident).AppendLine(")");
+        sb.AppendLine("            {");
+        sb.Append("                var __text_").Append(ident).Append(" = ").Append(EncodeExpr("__element_" + ident))
+            .AppendLine(";");
+        sb.Append("                if (__text_").Append(ident).AppendLine(".Length == 0)");
+        sb.AppendLine("                {");
+        sb.AppendLine("                    continue;");
+        sb.AppendLine("                }");
+        sb.AppendLine();
+        AppendPair(sb, "                ", encodedKey, "__text_" + ident);
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
+    }
+
+    private static void AppendPair(StringBuilder sb, string indent, string encodedKey, string value)
+    {
+        sb.Append(indent).AppendLine("__qs ??= new global::System.Text.StringBuilder();");
+        sb.Append(indent).AppendLine("__qs.Append(__qs.Length == 0 ? '?' : '&');");
+        sb.Append(indent).Append("__qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey)).AppendLine("=\");");
+        sb.Append(indent).Append("__qs.Append(").Append(value).AppendLine(");");
     }
 
     /// <summary>

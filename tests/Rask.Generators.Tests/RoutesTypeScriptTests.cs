@@ -37,7 +37,7 @@ public class RoutesTypeScriptTests
     }
 
     [Fact]
-    public void A_query_list_is_an_array_of_its_element_written_as_one_key()
+    public void A_query_list_is_an_array_of_its_element_written_under_its_bracketed_key()
     {
         var typeScript = TypeScript(
             """
@@ -57,7 +57,7 @@ public class RoutesTypeScriptTests
             "FleetPage: (p: { Drivers?: readonly string[] | null; Tanks?: readonly number[] | null } = {}): Route =>",
             typeScript, StringComparison.Ordinal);
         Assert.Contains(
-            "route(`/fleet`, url.list('Drivers', p.Drivers, format.text), url.list('tank', p.Tanks, format.number)),",
+            "route(`/fleet`, url.list('Drivers%5B%5D', p.Drivers, format.text), url.list('tank%5B%5D', p.Tanks, format.number)),",
             typeScript, StringComparison.Ordinal);
     }
 

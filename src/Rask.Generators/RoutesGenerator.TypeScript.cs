@@ -103,7 +103,7 @@ public sealed partial class RoutesGenerator
         foreach (var prop in route.QueryProps)
         {
             var (type, format) = types.For(symbol, prop.Name, prop.IsList);
-            var key = TypeScriptString(Uri.EscapeDataString(prop.QueryParamName ?? prop.Name));
+            var key = TypeScriptString(Uri.EscapeDataString((prop.QueryParamName ?? prop.Name) + (prop.IsList ? "[]" : "")));
             if (prop.IsList)
             {
                 members.Add($"{prop.Name}?: readonly {type}[] | null");
