@@ -53,6 +53,16 @@ namespace Rask.External.Tests
         [QueryParam] public long? Count { get; set; }
     }
 
+    [Route("/fleet")]
+    public sealed partial class FleetPage : Component
+    {
+        [QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];
+
+        [QueryParam("tank")] public int[] Tanks { get; set; } = [];
+
+        [QueryParam] public IReadOnlyList<bool>? Flags { get; set; }
+    }
+
     // The front-end half of `@rask/routes`, run for real: IslandRoutesFixture.ts imports the module the BUILD
     // generated from the pages above and prints what it formats and what it asks the host to do. Each URL is
     // compared with the one the C# `Routes` class formats for the same page and the same values, because "the
@@ -88,6 +98,11 @@ namespace Rask.External.Tests
                 ["date and time"] = Routes.DayPage(new DateOnly(2026, 1, 9), Since: new DateTime(2026, 3, 4, 5, 6, 7)),
                 ["fraction"] = Routes.DayPage(new DateOnly(2026, 1, 9), Ratio: 0.25),
                 ["long"] = Routes.DayPage(new DateOnly(2026, 1, 9), Count: 9007199254740991),
+                ["list"] = Routes.FleetPage(Drivers: ["ada", "theo"], Tanks: [3, 1]),
+                ["list elements needing encoding"] = Routes.FleetPage(Drivers: ["a b", "x&y", "árvíz"]),
+                ["list of flags"] = Routes.FleetPage(Flags: [true, false]),
+                ["empty list left out"] = Routes.FleetPage(Drivers: [], Tanks: [2]),
+                ["list of nothing to write left out"] = Routes.FleetPage(Drivers: ["", ""]),
                 ["nested on a name clash"] = Routes.Admin.HomePage(),
                 ["nested on a name clash, the other"] = Routes.Shop.HomePage(),
             };

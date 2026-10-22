@@ -6,7 +6,7 @@ using Rask.Core.Routing;
 namespace Rask.Generators.Tests;
 
 // A [QueryParam] list is ONE key in a generated URL: `Routes.FleetPage(Drivers: ["ada", "theo"])` links to
-// `/fleet?Drivers=ada,theo`, in the order given, and an empty list leaves the key out as an ungiven one does.
+// `/fleet?Drivers=ada%2Ctheo`, in the order given, and an empty list leaves the key out as an ungiven one does.
 public class RouteQueryListTests
 {
     private const string Fleet =
@@ -34,17 +34,27 @@ public class RouteQueryListTests
 
         var url = Route(drivers, [3, 1]);
 
-        Assert.Equal("/fleet?Drivers=theo,ada&tank=3,1", url);
+        Assert.Equal("/fleet?Drivers=theo%2Cada&tank=3%2C1", url);
     }
 
     [Fact]
-    public void An_element_with_a_comma_is_encoded_inside_the_list()
+    public void An_element_with_a_comma_is_written_as_it_is_and_splits_when_read()
     {
         string[] drivers = ["Lovelace, Ada", "theo"];
 
         var url = Route(drivers, null);
 
-        Assert.Equal("/fleet?Drivers=Lovelace%252C%20Ada,theo", url);
+        Assert.Equal("/fleet?Drivers=Lovelace%2C%20Ada%2Ctheo", url);
+    }
+
+    [Fact]
+    public void A_list_of_nothing_to_write_writes_no_key()
+    {
+        string[] drivers = ["", ""];
+
+        var url = Route(drivers, [4]);
+
+        Assert.Equal("/fleet?tank=4", url);
     }
 
     [Theory]
@@ -111,6 +121,18 @@ public class RouteQueryListTests
     }
 
     [Fact]
+    public void A_list_registers_its_element_type_for_a_trimmed_build()
+    {
+        var source = Page("[QueryParam] public IReadOnlyList<Plate> Value { get; set; } = [];") + Plate;
+
+        var run = GeneratorDriverFixture.RunRoutes(source);
+
+        var generated = string.Concat(run.RunResult.Results.SelectMany(r => r.GeneratedSources)
+            .Select(s => s.SourceText.ToString()));
+        Assert.Contains("RegisterParsable<global::Demo.Plate>();", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_list_is_not_a_path_segment()
     {
         var source = Page("[RouteParam] public IReadOnlyList<int> Id { get; set; } = [];")
@@ -120,6 +142,20 @@ public class RouteQueryListTests
 
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK011");
     }
+
+    private const string Plate =
+        """
+
+        public readonly record struct Plate(string Value) : IParsable<Plate>
+        {
+            public static Plate Parse(string s, IFormatProvider? provider) => new(s);
+            public static bool TryParse(string? s, IFormatProvider? provider, out Plate result)
+            {
+                result = new(s ?? string.Empty);
+                return s is not null;
+            }
+        }
+        """;
 
     private static string Page(string property) =>
         $$"""
@@ -132,7 +168,7 @@ public class RouteQueryListTests
           public sealed class XPage : Component
           {
               {{property}}
-              public override Component? Render() => this;
+              protected override Component? Render() => this;
           }
           """;
 

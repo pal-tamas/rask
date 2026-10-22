@@ -294,13 +294,26 @@ public sealed partial class RoutesGenerator
             // "not given": the key is left out, so the page shows what it shows without it — its
             // initializer. A value that IS given is written as it is, `Page: 1` and `Page: 0` included:
             // nothing here knows the initializer, and a link says what its caller said.
-            sb.Append("        if (").Append(ident).AppendLine(" is not null)");
+            // A list is one key of comma-joined elements, and one with nothing to write is left out as an
+            // ungiven value is.
+            var value = EncodeExpr(ident);
+            if (qp.IsList)
+            {
+                sb.Append("        if (").Append(ident).Append(" is not null && ").Append(value)
+                    .Append(" is { Length: > 0 } __list_").Append(ident).AppendLine(")");
+                value = "__list_" + ident;
+            }
+            else
+            {
+                sb.Append("        if (").Append(ident).AppendLine(" is not null)");
+            }
+
             sb.AppendLine("        {");
             sb.AppendLine("            __qs ??= new global::System.Text.StringBuilder();");
             sb.AppendLine("            __qs.Append(__qs.Length == 0 ? '?' : '&');");
             sb.Append("            __qs.Append(\"").Append(EscapeForCSharpStringLiteral(encodedKey))
                 .AppendLine("=\");");
-            sb.Append("            __qs.Append(").Append(EncodeExpr(ident)).AppendLine(");");
+            sb.Append("            __qs.Append(").Append(value).AppendLine(");");
             sb.AppendLine("        }");
         }
     }

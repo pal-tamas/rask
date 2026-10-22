@@ -37,6 +37,31 @@ public class RoutesTypeScriptTests
     }
 
     [Fact]
+    public void A_query_list_is_an_array_of_its_element_written_as_one_key()
+    {
+        var typeScript = TypeScript(
+            """
+            using System.Collections.Generic;
+            using Rask.Core.Routing;
+            namespace App;
+
+            [Route("/fleet")]
+            public sealed partial class FleetPage : Rask.Core.Component
+            {
+                [QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];
+                [QueryParam("tank")] public int[] Tanks { get; set; } = [];
+            }
+            """);
+
+        Assert.Contains(
+            "FleetPage: (p: { Drivers?: readonly string[] | null; Tanks?: readonly number[] | null } = {}): Route =>",
+            typeScript, StringComparison.Ordinal);
+        Assert.Contains(
+            "route(`/fleet`, url.list('Drivers', p.Drivers, format.text), url.list('tank', p.Tanks, format.number)),",
+            typeScript, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_page_with_no_parameters_takes_no_argument()
     {
         var typeScript = TypeScript(

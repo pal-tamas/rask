@@ -90,7 +90,7 @@ public sealed partial class RoutesGenerator
             else if (part is ParamPart { Optional: var optional } named)
             {
                 var prop = route.PathParams.First(p => p.Part == named).Prop;
-                var (type, format) = types.For(symbol, prop.Name);
+                var (type, format) = types.For(symbol, prop.Name, list: false);
                 var nullable = optional || (named.Constraint is null && prop.IsNullable);
                 required |= !optional;
                 members.Add(prop.Name + (optional ? "?: " : ": ") + type + (nullable ? " | null" : string.Empty));
@@ -102,10 +102,18 @@ public sealed partial class RoutesGenerator
         var arguments = new List<string> { "`" + path + "`" };
         foreach (var prop in route.QueryProps)
         {
-            var (type, format) = types.For(symbol, prop.Name);
+            var (type, format) = types.For(symbol, prop.Name, prop.IsList);
             var key = TypeScriptString(Uri.EscapeDataString(prop.QueryParamName ?? prop.Name));
-            members.Add($"{prop.Name}?: {type} | null");
-            arguments.Add($"url.given({key}, p.{prop.Name}, format.{format})");
+            if (prop.IsList)
+            {
+                members.Add($"{prop.Name}?: readonly {type}[] | null");
+                arguments.Add($"url.list({key}, p.{prop.Name}, format.{format})");
+            }
+            else
+            {
+                members.Add($"{prop.Name}?: {type} | null");
+                arguments.Add($"url.given({key}, p.{prop.Name}, format.{format})");
+            }
         }
 
         // A page every parameter of which can be left out is called with no argument at all, as in C#.
@@ -142,9 +150,11 @@ public sealed partial class RoutesGenerator
                 ? string.Empty
                 : string.Concat(_aliases.Select(alias => $"export type {alias} = string\n")) + "\n";
 
-        public (string Type, string Format) For(INamedTypeSymbol page, string property)
+        public (string Type, string Format) For(INamedTypeSymbol page, string property, bool list)
         {
-            var type = GetUnderlying(page.GetMembers(property).OfType<IPropertySymbol>().First().Type);
+            // A query list is typed and written by its element: `Drivers?: readonly string[] | null`.
+            var declared = page.GetMembers(property).OfType<IPropertySymbol>().First().Type;
+            var type = list ? QueryListElement(declared)! : GetUnderlying(declared);
             var wire = WireShape.Classify(type, allowFile: false, compilation: compilation);
             var mapped = wire.Kind == WireKind.Scalar ? _emitter.Ensure(wire) : "string";
             if (Array.IndexOf(StringAliases, mapped) >= 0)
