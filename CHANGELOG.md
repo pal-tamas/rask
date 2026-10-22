@@ -121,6 +121,16 @@ them until tagged releases begin.
   navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
   most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
   an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
+- **`rask deploy` no longer waits forever on a stalled step.** A deploy sat 42 minutes in its build — the last
+  line apt's download of `libllvm20` inside the image build, then nothing — holding the app's lock the whole
+  time, because no docker call had a deadline. Now the build may run 45 minutes and go 15 minutes without a
+  line (`"buildTimeout"` / `"buildIdleTimeout"` in `.rask/deploy.json` raise them), says
+  `… still building — 12m in, nothing printed for 3m` while it is quiet, and is stopped past either with its
+  last line shown. Every other docker call has five minutes (the old colour's `docker stop` its `"stopTimeout"`
+  on top) and fails named — `` `docker inspect` did not finish within 5m `` — with a half-started colour taken back
+  out. The previous version keeps serving either way, the app's lock is released, and a cancelled call now kills
+  its `docker` client (and the ssh session under it), which a captured or teed call used to leave running.
+
 - **A table of hundreds of pages prints, in a third of the memory.** Chromium's print layout of one table pays for
   every row on every page it runs to, so its memory grew with the square of the rows: a 10,000-row kit `Ui.Table` on
   the kit's sheet (590 A4 pages) ran the renderer past 13 GB and `Pdf.From` failed with Chromium's bare "Chromium

@@ -205,12 +205,15 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Start(out _, out _);
         var take = ProxyCommands.BuildAppLockArguments(host.Host, "leasecheck", "e2e", leaseSeconds: 4);
 
-        var (taken, id) = await host.DockerAsync([.. take.Skip(2)]);
-        Assert.True(taken == 0, $"the lock was not taken: {id}");
+        var (taken, output) = await host.DockerAsync([.. take.Skip(2)]);
+        Assert.True(taken == 0, $"the lock was not taken: {output}");
+        // The id is the line of 64 hex digits: on a box without caddy:2 yet, docker's pull progress is in the merged output too.
+        var id = output.Split('\n').Select(line => line.Trim()).Single(line => line.Length == 64 && line.All(char.IsAsciiHexDigitLower));
         for (var beat = 0; beat < 4; beat++)
         {
             await Task.Delay(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken);
-            await host.DockerAsync([.. ProxyCommands.BuildLockHeartbeatArguments(host.Host, id.Trim()).Skip(2)]);
+            var (renewal, said) = await host.DockerAsync([.. ProxyCommands.BuildLockHeartbeatArguments(host.Host, id).Skip(2)]);
+            Assert.True(renewal == 0, $"renewing the lock failed: {said}");
         }
 
         var (_, renewed) = await host.DockerAsync("ps", "--format", "{{.Names}}");
@@ -265,6 +268,35 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         var (_, caddyfile) = await host.DockerAsync("exec", "rask-caddy", "cat", CaddySites.FragmentPath("healthapp"));
         Assert.Contains("healthapp-blue:8080", caddyfile, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A build that stops printing — a download stalled inside it — is stopped at its idle deadline instead of holding
+    /// the deploy and its lock open: the previous version keeps serving, and the app's lock is released.
+    /// </summary>
+    [Fact]
+    public async Task A_build_that_goes_quiet_is_stopped_and_the_previous_version_keeps_serving()
+    {
+        var project = Start(out var console, out var command);
+        string[] deploy = ["--host", host.Host, "--domain", "rask-stall.test", "--app", "stallapp"];
+        Assert.True(await command.ExecuteAsync(deploy, CancellationToken.None) == 0, $"baseline deploy failed.\n{console.ErrorText}");
+        File.WriteAllText(
+            Path.Combine(project, "Dockerfile"),
+            """
+            FROM docker.io/library/alpine:3.24
+            RUN sleep 600
+            """);
+        command.Deadlines = DeployDeadlines.Default with { BuildIdle = TimeSpan.FromSeconds(20), Progress = TimeSpan.FromSeconds(5) };
+
+        var exit = await command.ExecuteAsync(deploy, CancellationToken.None);
+
+        Assert.True(exit != 0, "a build that goes quiet must fail the deploy.");
+        Assert.Contains("The build printed nothing for", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("still building", console.OutText, StringComparison.Ordinal);
+        var (_, containers) = await host.DockerAsync("ps", "--format", "{{.Names}}");
+        Assert.Contains("stallapp-blue", containers, StringComparison.Ordinal);
+        Assert.DoesNotContain("stallapp-green", containers, StringComparison.Ordinal);
+        Assert.DoesNotContain(ProxyCommands.AppLockContainer("stallapp"), containers, StringComparison.Ordinal);
     }
 
     /// <summary>
