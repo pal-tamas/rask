@@ -6,15 +6,12 @@ public abstract partial class Element
 {
     // What `.Confirm(…)` asks (BuilderRuntime.Confirm): the question, and for the prompt form the answer it waits for.
     // Not a property: a chain step writes it, and the end-of-render reset drops it when a render stops naming it.
-    internal void Ask(string text, string? expect)
+    internal void Ask(ConfirmAsk ask)
     {
-        ArgumentNullException.ThrowIfNull(text);
         var globals = GlobalAttrsForWrite;
-        if (globals.Confirm is not { } current
-            || !string.Equals(current.Text, text, StringComparison.Ordinal)
-            || !string.Equals(current.Expect, expect, StringComparison.Ordinal))
+        if (globals.Confirm != ask)
         {
-            globals.Confirm = new ConfirmAsk(text, expect);
+            globals.Confirm = ask;
             MarkEntryPropsChangedInternal();
         }
 
@@ -38,8 +35,8 @@ public abstract partial class Element
         globals.ConfirmWritten = false;
     }
 
-    // data-rask-confirm, and data-rask-confirm-expect for the prompt form: read by rask-confirm.ts before the
-    // event leaves the browser.
+    // data-rask-confirm, data-rask-confirm-expect for the prompt form and data-rask-confirm-heading for Ui.Confirm's
+    // title: read by rask-confirm.ts before the event leaves the browser.
     private void WriteConfirm(StringBuilder sb)
     {
         if (GlobalAttrsInternal?.Confirm is not { } ask)
@@ -51,6 +48,11 @@ public abstract partial class Element
         if (ask.Expect is { } expect)
         {
             AppendAttr(sb, "data-", "rask-confirm-expect", expect);
+        }
+
+        if (ask.Heading is { } heading)
+        {
+            AppendAttr(sb, "data-", "rask-confirm-heading", heading);
         }
     }
 }

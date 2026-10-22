@@ -134,6 +134,7 @@ public sealed partial class ConfirmActions : Component
         Input.Bind(() => _draft.Item).Id("name"),
         Button.Id("delete").OnClick(() => _deleted++).Confirm("Delete it?")["delete"],
         Button.Id("wipe").OnClick(() => _wiped++).Confirm("Type DELETE to wipe it", expect: "DELETE")["wipe"],
+        Button.Id("remove").OnClick(() => _deleted++).Confirm("Biztosan törli a céget?", heading: "Cég törlése")["remove"],
         Form.Model(_order).OnSubmit(_ => _sent++).Confirm("Send the order?")[
             Button.Type(ButtonType.Submit).Id("send")["send"]
         ]

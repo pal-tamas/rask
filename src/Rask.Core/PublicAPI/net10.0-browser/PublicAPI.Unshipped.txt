@@ -4799,8 +4799,7 @@ static Rask.Core.Browser.WebRtcInterop.State(int id, string! state) -> System.Th
 static Rask.Core.Browser.WebRtcInterop.Track(int id, int streamId) -> System.Threading.Tasks.Task!
 static Rask.Core.BuilderRuntime.ClaimKey<T>(T! target, object? key) -> T!
 static Rask.Core.BuilderRuntime.ClearCallbacks(Rask.Core.Component! target) -> void
-static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text) -> T!
-static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text, string! expect) -> T!
+static Rask.Core.BuilderRuntime.Confirm<T>(this T! element, string! text, string? expect = null, string? heading = null) -> T!
 static Rask.Core.BuilderRuntime.HasCallbacks(Rask.Core.Component! target) -> bool
 static Rask.Core.BuilderRuntime.MarkCallbacks(Rask.Core.Component! target) -> void
 static Rask.Core.BuilderRuntime.MarkChanged(Rask.Core.Component! target) -> void
