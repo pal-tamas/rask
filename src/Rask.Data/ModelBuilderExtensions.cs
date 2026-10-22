@@ -91,6 +91,7 @@ public static class ModelBuilderExtensions
         }
 #pragma warning restore S3267
 
+        UseChildFields(entityTypes);
         IgnoreComputedProperties(modelBuilder, entityTypes);
         MapValueCollections(modelBuilder, entityTypes);
         ApplyTenancy(modelBuilder, entityTypes, context);
@@ -98,6 +99,29 @@ public static class ModelBuilderExtensions
         BindChildrenToTheirParents(modelBuilder);
 
         return modelBuilder;
+    }
+
+    // Children behind a field EF Core's convention cannot pair with the navigation by name — `_items` behind `Lines`,
+    // handed out as `_items.AsReadOnly()` — would be loaded into the read-only view, which fails. The generator found
+    // the field, on the entity or a base, so it is set here; a field the entity's own Configure chose stays.
+    private static void UseChildFields(List<IMutableEntityType> entityTypes)
+    {
+#pragma warning disable S3267 // ClrType's trimmer annotation survives a local, not a Select projection
+        foreach (var entityType in entityTypes)
+        {
+            var clrType = entityType.ClrType;
+
+            foreach (var child in ConventionRegistry.ChildFieldsFor(clrType))
+            {
+                if (entityType.FindNavigation(child.Navigation) is { } navigation &&
+                    ((IConventionNavigation)navigation).GetFieldInfoConfigurationSource() is not
+                        (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation))
+                {
+                    UseField(navigation, clrType, child.Field);
+                }
+            }
+        }
+#pragma warning restore S3267
     }
 
     // `public SupplyKind Kind => …;` is a value computed from other columns, not a column of its own. A scalar

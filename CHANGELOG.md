@@ -1297,6 +1297,19 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **The read face reads a collection of values through the converter the write side put on its element.** Before:
+  `builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>()` stored `["Fragile","Cold"]`,
+  and `Skid.Where(…).Select(s => s.Handling)` threw "Cannot get the value of a token type 'String' as a number"; an
+  app's own element converter (a sealed string) came back still sealed. After: the face mirrors the element's
+  converter, comparer, length and unicode, and the column's name and type, so the values read are the values
+  written and `Skid.Where(s => s.Handling.Contains(SkidHandling.Cold))` finds the row. A collection of value objects
+  is still one JSON column on both sides, under the write side's column name.
+- **Children behind a field EF Core cannot pair with them by name are loaded and saved.** Before:
+  `private readonly List<CaseNote> _items = []; public IReadOnlyList<CaseNote> Notes => _items.AsReadOnly();`
+  failed the first `Find` and every form `Update` with "Collection is read-only", because EF Core finds a backing
+  field only when it is named `notes`, `_notes`, `_Notes`, `m_notes` or `m_Notes`. After: the generator names the
+  field it already writes the form through, and the navigation is mapped to it — on the aggregate itself or on an
+  abstract base, generic ones (`Casebook<TSelf>`) included. A field `Configure` set with `HasField` is kept.
 - **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
   at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
   transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).

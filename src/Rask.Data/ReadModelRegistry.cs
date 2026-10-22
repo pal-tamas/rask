@@ -136,21 +136,73 @@ public static class ReadModelRegistry
             MapColumn(builder, column, write, store);
         }
 
-        // One column each, so they are mapped the same way the write side maps them rather than as a
-        // property per element. The kind is settled at compile time and carried here, for the same reason
-        // the write side carries it: whether an element is a value object is the generator's rule to apply.
         foreach (var collection in mapping.ValueCollections)
         {
-            if (collection.ValueObject is { } element)
-            {
-                builder.OwnsMany(element, collection.Member, owned => owned.ToJson());
-                continue;
-            }
-
-            builder.PrimitiveCollection(collection.Member);
+            MapValueCollection(builder, collection, write, store);
         }
 
         MapAnnotationsAndFilters(builder, mapping, write, context);
+    }
+
+    // One column each, so they are mapped the same way the write side maps them rather than as a property per element.
+    // The kind is settled at compile time and carried here — whether an element is a value object is the generator's
+    // rule to apply — unless the write side stores the column as plain values, which the face then reads element by
+    // element through whatever converter the write side put on the element: an enum by its name, a value sealed the
+    // app's way.
+    private static void MapValueCollection(
+        EntityTypeBuilder builder, ReadValueCollectionMapping collection, IEntityType? write, StoreObjectIdentifier? store)
+    {
+        var source = write?.FindProperty(collection.Member);
+
+        if (collection.ValueObject is { } element && source is null)
+        {
+            var json = write?.FindNavigation(collection.Member)?.TargetEntityType.GetContainerColumnName();
+            builder.OwnsMany(element, collection.Member, owned => owned.ToJson(json));
+            return;
+        }
+
+        var primitive = builder.PrimitiveCollection(collection.Member);
+        if (source is null)
+        {
+            return;
+        }
+
+        if ((store is { } table ? source.GetColumnName(table) : source.GetColumnName()) is { Length: > 0 } name)
+        {
+            primitive.HasColumnName(name);
+        }
+
+        if (source.GetColumnType() is { Length: > 0 } columnType)
+        {
+            primitive.HasColumnType(columnType);
+        }
+
+        if (source.GetElementType() is { } written)
+        {
+            MirrorElement(primitive.ElementType(), written);
+        }
+    }
+
+    // The element's converter — written out, or only the type it is stored as (HasConversion<string>()), which EF Core
+    // builds the converter from — and its facets, so the face reads each element the way the write side wrote it.
+    private static void MirrorElement(ElementTypeBuilder element, IElementType written)
+    {
+        var converter = written.GetValueConverter() ??
+                        (written.GetProviderClrType() is null ? null : written.FindTypeMapping()?.Converter);
+        if (converter is not null)
+        {
+            element.HasConversion(converter, written.GetValueComparer());
+        }
+
+        if (written.GetMaxLength() is { } maxLength)
+        {
+            element.HasMaxLength(maxLength);
+        }
+
+        if (written.IsUnicode() is { } unicode)
+        {
+            element.IsUnicode(unicode);
+        }
     }
 
     // The write model's key, member for member — Id, or the parts of a key of several columns. With no write model to

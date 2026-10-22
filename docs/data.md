@@ -234,6 +234,9 @@ The child gets a table, a model so its parent's form can carry it, and a read fa
 another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot
 write is [RASK088](diagnostics.md#rask088).
 
+The field behind a read-only view can be named anything — `Notes => _items.AsReadOnly()` — and can live on an
+abstract base, generic or not: the collection is loaded into and saved from that field, not the view.
+
 **A child is written only through its aggregate.** A save that adds, changes or removes a child whose root the
 same context does not hold — a line found through `db.OrderLines` and edited, a `new OrderLine` attached on its
 own, a `BulkInsert` of lines — is refused with an `InvalidOperationException` naming the child and its root.
@@ -416,6 +419,15 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `byte[]` is never a collection of bytes: it stays one BLOB column. Anything Rask has no column for — a
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
+
+A converter on the **element** is read back on the read face too — an enum list stored by name, or values the app
+stores its own way:
+
+```csharp
+builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>();   // ["Fragile","Cold"]
+
+await Skid.Where(s => s.Handling.Contains(SkidHandling.Cold));                         // the enum, not its name
+```
 
 Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
 searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
@@ -1870,6 +1882,8 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 One an abstract base declares is mapped the same way, at any depth, on every aggregate deriving from it: each
 concrete aggregate is its own table holding the base's columns, and its read face and form model carry them too.
+A generic base (`Filing<TSelf> where TSelf : Filing<TSelf>`) is no different: `VatReturn : Filing<VatReturn>` holds
+the base's children and collections of values behind its private fields as its own.
 The base itself is never an entity of the model.
 
 It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a
