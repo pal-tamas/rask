@@ -144,6 +144,7 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
         // panel's tree reachable and re-render it after it closed.
         DetachCulture();
         ComponentLifecycle.DisposeComponentTree(View);
+        EndEvents();
     }
 
     /// <inheritdoc />

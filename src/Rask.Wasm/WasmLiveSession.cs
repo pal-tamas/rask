@@ -111,6 +111,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
 
         ComponentLifecycle.DisposeComponentTree(View);
 
+        // With the page goes every event's scope, whatever its hooks are still doing.
+        EndEvents();
+
         // The arrays go back to the pool only when no dispatch holds the session. One that does may be at an
         // await with the page it rendered still in them, and the pool would hand them to someone else under
         // it: those are left to the collector.
