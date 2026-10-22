@@ -64,10 +64,8 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.PwaPage(), "PWA & device APIs", Ui.IconName.DevicePhoneMobile, "PWA"));
 // The islands showcase: .vue/.tsx/.svelte and Lit components, mounted client-side.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.IslandsPage(), "Islands", Ui.IconName.Squares2x2, "Islands"));
-// The UI kit. Its own docs are the UI tab (/ui), one page per Flux component; the docs keep a link to it, and the
-// category pages below until every component on them has moved there.
+// The UI kit. Its own docs are the UI tab (/ui), one page per Flux component; the docs keep a link to it.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiIntroductionPage(), "All UI components", Ui.IconName.Swatch, "UI kit"));
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiKitLayoutPage(), "Layout & flyouts", Ui.IconName.ComputerDesktop, "UI kit"));
 // The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.
 // Only the prerender publish sets this variable, and it is the one run with a publish directory to write
 // into — a browser boot never takes this branch.

@@ -5,7 +5,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     The kit's Layout and Mockup components, in a browser.
+///     The kit's layouts in a browser: the header and sidebar pages' framed demos, the demo pages themselves, and the
+///     docs' own sidebar, which is the kit's.
 /// </summary>
 [Collection(WasmExampleCollection.Name)]
 public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixture pw)
@@ -15,50 +16,81 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    [Fact]
-    public Task Every_layout_component_renders_with_a_real_size() => RunAsync(async () =>
+    [Theory]
+    [InlineData("header", "Header", "ui-header|ui-header-inset|ui-header-sidebar")]
+    [InlineData("sidebar", "Sidebar", "ui-sidebar|ui-sidebar-inset|ui-sidebar-header|ui-sidebar-collapsible")]
+    public Task Every_layout_example_frames_its_demo_drawn_whole(string slug, string heading, string testids) => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync(slug, heading);
 
-        foreach (var id in new[]
-                 {
-                     "ui-drawer", "ui-layout-rest",
-                 })
+        foreach (var id in testids.Split('|'))
         {
-            var node = Page.Locator($"[data-testid='{id}']");
-            await Expect(node).ToBeVisibleAsync(
-                new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+            var example = Page.Locator($"[data-testid='{id}']");
+            await example.ScrollIntoViewIfNeededAsync();
+            var frame = example.FrameLocator("iframe");
 
-            var box = await node.BoundingBoxAsync();
-            Assert.NotNull(box);
-            Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
+            // The demo's own page, laid out as a desktop scaled into the column: its main beside or under the bar.
+            await Expect(frame.Locator("[data-ui-main]")).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+            await Expect(frame.Locator("[data-ui-sidebar]")).ToHaveCountAsync(1);
+            var box = (await example.Locator("iframe").BoundingBoxAsync())!;
+            Assert.True(box.Height > 300, $"{id}'s frame is {box.Height}px tall.");
+            var width = await frame.Locator("html").EvaluateAsync<int>("() => window.innerWidth");
+            Assert.True(width >= 1280, $"{id}'s demo is laid out {width}px wide, narrower than a desktop.");
         }
     });
 
     [Fact]
-    public Task The_Flux_layout_pieces_work() => RunAsync(async () =>
+    public Task Fullscreen_opens_the_demo_as_a_page_of_its_own() => RunAsync(async () =>
     {
-        await OpenAsync();
+        await OpenUiPageAsync("header", "Header");
 
-        var scope = Page.Locator("[data-testid='ui-app-layout']");
-        // The sidebar in the box: the two buttons above it also say "layout".
-        var box = Page.Locator("[data-testid='ui-layout-box']");
+        await Page.Locator("[data-testid='ui-header']").GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Fullscreen" }).ClickAsync();
 
-        // The item for this page is current without being told, and says so to assistive tech.
-        await Expect(box.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Layout", Exact = true }))
-            .ToHaveAttributeAsync("aria-current", "page", new LocatorAssertionsToHaveAttributeOptions { Timeout = 15_000 });
-        await Expect(box.GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Actions 5" }))
-            .Not.ToHaveAttributeAsync("aria-current", "page");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/demo/header/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+        // The spacer pushes the account to the far end of the header.
+        var header = (await Page.Locator("[data-ui-header]").BoundingBoxAsync())!;
+        var account = (await Page.Locator("[data-ui-header] [data-ui-profile]").BoundingBoxAsync())!;
+        Assert.True(header.X + header.Width - (account.X + account.Width) < 48, "the spacer did not push the account to the end.");
+    });
 
-        // The spacer pushes "Sign in" to the far end of its row.
-        var row = await Page.Locator("[data-testid='ui-spacer-row']").BoundingBoxAsync();
-        var signIn = await Page.Locator("[data-testid='ui-spacer-row']")
-            .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Sign in" }).BoundingBoxAsync();
-        Assert.True(row!.X + row.Width - (signIn!.X + signIn.Width) < 16, "the spacer did not push the last button to the end.");
+    [Fact]
+    public Task The_old_layout_page_sends_the_reader_on_to_the_header_page() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{Docs}/ui/layout/");
 
-        // The separator has no margin of its own: the page spaces it.
-        var margin = await scope.Locator("[data-ui-separator]").Last.EvaluateAsync<string>("d => getComputedStyle(d).marginTop");
-        Assert.Equal("0px", margin);
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/ui/header/$"),
+            new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("main h1")).ToContainTextAsync("Header",
+            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task On_a_phone_the_demo_header_slides_the_sidebar_in_and_its_close_control_puts_it_away() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            await Page.GotoAsync($"{BaseUrl}/demo/sidebar/");
+            await WaitForInteractiveAsync();
+            var open = Page.Locator("#sidebar-open");
+            var sidebar = Page.Locator("[data-ui-sidebar]");
+            await Expect(sidebar).Not.ToBeInViewportAsync(new LocatorAssertionsToBeInViewportOptions { Timeout = 15_000 });
+
+            await Page.Locator("[data-ui-sidebar-toggle]").ClickAsync();
+            await Expect(open).ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+            await Expect(sidebar).ToBeInViewportAsync();
+
+            // The close control from the keyboard: a label the runtime presses on Enter.
+            await Page.Locator("[data-ui-sidebar-collapse] label[for='sidebar-open']").FocusAsync();
+            await Page.Keyboard.PressAsync("Enter");
+            await Expect(open).Not.ToBeCheckedAsync(new LocatorAssertionsToBeCheckedOptions { Timeout = 15_000 });
+            Assert.Equal(390, await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth"));
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 
     [Fact]
@@ -120,10 +152,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     private async Task ReloadCollapsedAsync(TimeSpan holdHooksFor)
     {
         // Reached from a page of the running app, so the runtime that stores the choice is there to hear it.
-        await OpenAsync();
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Open the sidebar layout" }).ClickAsync();
-        await Expect(Page.Locator("[data-testid='sidebar-layout-demo']")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await OpenSidebarDemoAsync();
         var rail = Page.Locator("#sidebar-rail");
         var sidebar = Page.Locator("[data-ui-sidebar]");
         await Page.Locator("[data-ui-sidebar-collapse] label:visible").First.ClickAsync();
@@ -219,32 +248,6 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
-    public Task The_drawer_opens_and_the_page_is_told_about_it() => RunAsync(async () =>
-    {
-        await OpenAsync();
-
-        var scope = Page.Locator("[data-testid='ui-drawer']");
-        var state = Page.Locator("[data-testid='ui-drawer-state']");
-
-        await Expect(state).ToContainTextAsync("closed");
-
-        await scope.GetByText("Open the drawer").ClickAsync();
-
-        // Both halves: Ui.Modal's flyout is against the left edge, and the PAGE knows it is open.
-        var flyout = scope.Locator("dialog");
-        await Expect(state).ToContainTextAsync("open");
-        await Expect(scope.GetByText("Queues")).ToBeVisibleAsync();
-        await Page.WaitForTimeoutAsync(300);
-        Assert.True((await flyout.BoundingBoxAsync())!.X <= 2, "the flyout is not against the left edge.");
-
-        // And it hears the reader close it, which is how the page stops rendering it open.
-        await Page.Keyboard.PressAsync("Escape");
-        await Expect(state).ToContainTextAsync("closed");
-        await Expect(flyout).ToBeHiddenAsync();
-    });
-
-
-    [Fact]
     public Task A_checked_control_is_actually_checked_in_the_DOM() => RunAsync(async () =>
     {
         // The regression this guards is the one markup could not show: the kit wrote the checked state
@@ -275,7 +278,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await item.HoverAsync();
 
         await Expect(bubble).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Expect(bubble).ToHaveTextAsync("Header layout");
+        await Expect(bubble).ToHaveTextAsync("Inbox");
         await Expect(item).ToHaveAttributeAsync("aria-describedby", await bubble.GetAttributeAsync("id") ?? "");
         var (link, tip) = ((await item.BoundingBoxAsync())!, (await bubble.BoundingBoxAsync())!);
         Assert.Equal(link.X + link.Width + 5, tip.X, 1.0);
@@ -298,7 +301,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         var icon = (await button.BoundingBoxAsync())!;
         await Page.Mouse.MoveAsync(icon.X + (icon.Width / 2), icon.Y + (icon.Height / 2), new MouseMoveOptions { Steps = 4 });
         await Expect(menu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Expect(menu.GetByRole(AriaRole.Menuitem)).ToHaveTextAsync(["Actions", "Navigation"]);
+        await Expect(menu.GetByRole(AriaRole.Menuitem)).ToHaveTextAsync(["Marketing site", "Android app", "Brand guidelines"]);
         await Expect(menu.Locator("[data-ui-menu-heading]")).ToHaveTextAsync("Favorites");
         var panel = (await menu.BoundingBoxAsync())!;
         Assert.Equal(icon.X + icon.Width + 5, panel.X, 1.0);
@@ -315,17 +318,16 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Page.Keyboard.PressAsync("Enter");
         await Expect(menu).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await Page.Keyboard.PressAsync("ArrowDown");
-        await Expect(menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Actions" })).ToBeFocusedAsync(
+        await Expect(menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Marketing site" })).ToBeFocusedAsync(
             new LocatorAssertionsToBeFocusedOptions { Timeout = 15_000 });
         await Page.Keyboard.PressAsync("Escape");
         await Expect(menu).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 15_000 });
         await Expect(button).ToBeFocusedAsync();
 
-        // A row is the group's own link: picking it goes there.
+        // A row is the group's own link: picking it follows it.
         await Page.Keyboard.PressAsync("Enter");
-        await menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Navigation" }).ClickAsync();
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Navbar",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(menu.GetByRole(AriaRole.Menuitem, new LocatorGetByRoleOptions { Name = "Android app" }))
+            .ToHaveAttributeAsync("href", "#");
     });
 
     [Fact]
@@ -343,7 +345,7 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
             await route.ContinueAsync();
         });
         // The held script holds the load event too, so the navigation is over once the document is.
-        await Page.GotoAsync($"{BaseUrl}/demo/sidebar", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
+        await Page.GotoAsync($"{BaseUrl}/demo/sidebar-collapsible/", new PageGotoOptions { WaitUntil = WaitUntilState.Commit });
         var rail = Page.Locator("#sidebar-rail");
         var control = Page.Locator("[data-ui-sidebar-collapse] label:visible").First;
         await Expect(control).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
@@ -361,24 +363,24 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator("[data-ui-sidebar]")).ToHaveCSSAsync("width", "56px");
     });
 
-    // The sidebar layout as a page of its own, reached from the docs so the app is running when it opens.
+    // The collapsible sidebar's demo as a page of its own, reached from its Fullscreen on the sidebar page.
     private async Task OpenSidebarDemoAsync()
     {
-        await OpenAsync();
+        await OpenUiPageAsync("sidebar", "Sidebar");
         await Page.EvaluateAsync("() => localStorage.removeItem('flux-sidebar-collapsed-desktop')");
-        await Page.GetByRole(AriaRole.Link, new PageGetByRoleOptions { Name = "Open the sidebar layout" }).ClickAsync();
-        await Expect(Page.Locator("[data-testid='sidebar-layout-demo']")).ToBeVisibleAsync(
+        await Page.Locator("[data-testid='ui-sidebar-collapsible']")
+            .GetByRole(AriaRole.Link, new LocatorGetByRoleOptions { Name = "Fullscreen" }).ClickAsync();
+        await Expect(Page.Locator("[data-ui-sidebar]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
+        await WaitForInteractiveAsync();
     }
 
+    // The docs, whose own sidebar is the kit's: a page with it slid away on a phone.
     private async Task OpenAsync()
     {
-        await Page.GotoAsync(Docs);
+        await Page.GotoAsync($"{Docs}/");
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Layout & flyouts");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Layout",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await WaitForInteractiveAsync();
     }
 }

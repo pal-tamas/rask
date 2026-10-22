@@ -42,7 +42,7 @@ internal sealed partial class UiNavlistBehaviour : Component
                 ]),
                 Ui.Text.Class("mt-3")[
                     "The sidebar, its rail and how the reader's choice is remembered are the ",
-                    Ui.Link.Href(PageMeta.LinkTo(Routes.SidebarLayoutDemoPage()))["sidebar layout"],
+                    Ui.Link.Href(PageMeta.LinkTo(Routes.UiSidebarPage()))["sidebar layout"],
                     "'s."
                 ]
             ]

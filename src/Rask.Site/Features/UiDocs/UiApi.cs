@@ -834,14 +834,14 @@ internal static partial class UiApi
         ]),
     ];
 
-    /// <summary>Every page's parts, for the tests that hold them to the components.</summary>
+    /// <summary>Every page's parts, for the tests that hold them to the components: a part two pages share, once.</summary>
     public static IEnumerable<UiApiPart> All =>
         new[]
         {
-            Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
+            Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
             Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
-        }.SelectMany(parts => parts);
+        }.SelectMany(parts => parts).Distinct();
 }

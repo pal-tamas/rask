@@ -591,7 +591,12 @@ them until tagged releases begin.
   Behaviour sections carry the mode as the opening step and the range written whole, the popup, the phone's sheet,
   typed dates and times, presets, the colour picker's keys and what a typed colour becomes, the real file input,
   dragging and progress, the phone's E.164 value and engine, the editor's HTML, engine, items and extensions, the
-  composer's keys, and the toggle that sends nothing. The
+  composer's keys, and the toggle that sends nothing. Then Flux's two layouts, Header and Sidebar, under a Layouts
+  group: every demo on Flux's layout pages (the header, inset main and secondary sidebar; the sidebar, inset main,
+  secondary header and collapsible sidebar) with its code above it and the demo itself framed below, a 1280px
+  desktop scaled to the column or a phone's layout on a phone, and a Fullscreen button to the demo as a page of its
+  own under `/demo/<name>`, Flux's demo names; their Behaviour sections carry the layout grid, the inset main, the
+  checkboxes and what the runtime keeps, and the rail's tooltips and menus. The
   reference tables now list a component's steps from the kit's own bases too (a select's live on
   `UiSelectControl`). The Card page gained a Behaviour section of its own, from what
   `docs/ui-kit.md` still held. The examples' avatars are four small SVG portraits the site ships under
@@ -603,7 +608,8 @@ them until tagged releases begin.
   every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
   same, to `/ui/progress/`, and `/docs/ui/data-display` to `/ui/accordion/` — with the tree's old URL; the data grid's
   goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. `/docs/ui/data-input`, emptied in turn, goes on to
-  `/ui/date-picker/` and links all twenty pages that took its components. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  `/ui/date-picker/` and links all twenty pages that took its components. `/docs/ui/layout` goes on to `/ui/header/` the same way, linking
+  the header, sidebar, modal, avatar, separator, heading and text pages; its drawer demo is the modal page's flyout. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

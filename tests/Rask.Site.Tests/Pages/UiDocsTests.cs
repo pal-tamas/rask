@@ -139,6 +139,10 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/feedback", "/ui/tooltip/")]
     [InlineData("/docs/ui/feedback", "/ui/skeleton/")]
     [InlineData("/docs/ui/feedback", "/ui/toast/")]
+    [InlineData("/docs/ui/layout", "/ui/header/")]
+    [InlineData("/docs/ui/layout", "/ui/sidebar/")]
+    [InlineData("/docs/ui/layout", "/ui/modal/")]
+    [InlineData("/docs/ui/layout", "/ui/avatar/")]
     [InlineData("/docs/ui/layout", "/ui/separator/")]
     [InlineData("/docs/ui/layout", "/ui/heading/")]
     [InlineData("/docs/ui/layout", "/ui/text/")]
@@ -258,6 +262,8 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/editor", "RaskUiEditorEngine")]
     [InlineData("/ui/composer", "data-rask-submit-keys")]
     [InlineData("/ui/toggle", "data-rask-switch")]
+    [InlineData("/ui/header", "100dvh")]
+    [InlineData("/ui/sidebar", "flux-sidebar-collapsed-desktop")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);
@@ -290,6 +296,7 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/tree", "/ui/accordion/")]
     [InlineData("/docs/ui/data-grid", "/ui/table/")]
     [InlineData("/docs/ui/data-input", "/ui/date-picker/")]
+    [InlineData("/docs/ui/layout", "/ui/header/")]
     public async Task An_emptied_data_page_names_its_successor_canonical_and_leaves_the_docs_sidebar(string old, string successor)
     {
         var html = await SiteDocument.At(old);
@@ -324,6 +331,44 @@ public sealed partial class UiDocsTests
 
         Assert.Equal("2", section);
         Assert.Equal("3", example);
+    }
+
+    [Theory]
+    [InlineData("/ui/header", "/demo/header/", "HeaderLayoutExample.cs")]
+    [InlineData("/ui/header", "/demo/header-inset/", "HeaderInsetExample.cs")]
+    [InlineData("/ui/header", "/demo/header-with-sidebar/", "HeaderSecondarySidebarExample.cs")]
+    [InlineData("/ui/sidebar", "/demo/sidebar/", "SidebarLayoutExample.cs")]
+    [InlineData("/ui/sidebar", "/demo/sidebar-inset/", "SidebarInsetExample.cs")]
+    [InlineData("/ui/sidebar", "/demo/sidebar-with-header/", "SidebarSecondaryHeaderExample.cs")]
+    [InlineData("/ui/sidebar", "/demo/sidebar-collapsible/", "SidebarCollapsibleExample.cs")]
+    public async Task A_layout_example_frames_its_demo_page_under_its_code_and_opens_it_full_screen(string page, string demo, string file)
+    {
+        var html = await SiteDocument.At(page);
+
+        var code = html.IndexOf(file, StringComparison.Ordinal);
+        var frame = Regex.Match(html, $"<iframe[^>]*src=\"{Regex.Escape(demo)}\"[^>]*>");
+        var fullscreen = html.IndexOf($"href=\"{demo}\"", frame.Index, StringComparison.Ordinal);
+
+        Assert.True(code >= 0 && frame.Success && frame.Index > code, $"{file}'s frame is not under its code");
+        Assert.Contains("loading=\"lazy\"", frame.Value, StringComparison.Ordinal);
+        Assert.Contains("title=\"", frame.Value, StringComparison.Ordinal);
+        Assert.True(fullscreen > frame.Index, $"{demo} has no Fullscreen link under its frame");
+    }
+
+    [Theory]
+    [InlineData("/demo/header", "/ui/header/", "data-ui-header")]
+    [InlineData("/demo/sidebar-collapsible", "/ui/sidebar/", "sidebar-rail")]
+    public async Task A_layout_demo_is_the_whole_page_and_names_its_layouts_page_canonical(string demo, string page, string part)
+    {
+        var html = await SiteDocument.At(demo);
+
+        var link = Regex.Match(html, "<link[^>]*rel=\"canonical\"[^>]*>").Value;
+        var canonical = Regex.Match(link, "href=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Equal(PageMeta.Origin + page, canonical);
+        Assert.Contains(part, html, StringComparison.Ordinal);
+        Assert.Contains("data-ui-main", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui-docs-nav", html, StringComparison.Ordinal);
     }
 
     [Fact]
