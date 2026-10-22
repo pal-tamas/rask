@@ -62,6 +62,10 @@ public static class RaskPrerender
         var root = new RootErrorBoundary(app) { Defaults = (RaskDocumentDefaults?)services.GetService(typeof(RaskDocumentDefaults)) };
 
         Diagnostics.ErrorReference.RenderingForNobody();
+
+        // No session renders this page, so nothing hands the walk a culture: it is the app's, carried for the
+        // whole render — every wave, and the work they await.
+        using var culture = Globalization.RaskCultureScope.PushFrom(services);
         var render = await QuiescentRender.Run(
             publishOnly => root.RenderAsLiveRoot(services, publishOnly),
             budget,

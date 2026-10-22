@@ -32,5 +32,30 @@ public class BuildMachineLocaleTests
         }
     }
 
+    [Fact]
+    public async Task A_configured_culture_is_baked_in_that_language_whatever_the_build_machine_speaks()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "rask-prerender-" + Guid.NewGuid().ToString("N")[..8]);
+        using var buildMachine = ProcessCulture.Set("en-US");
+        RaskCulture.ResetForTests();
+        RouteRegistry.Replace(RouteGroup, [new RouteRegistration(typeof(MonthTitle), "/month", null)]);
+        Environment.SetEnvironmentVariable(WasmPrerender.OutputVariable, dir);
+
+        try
+        {
+            await WasmHostBuilder.CreateDefault().UseCulture(c => c.SupportedCultures.Add("hu")).Run<MonthTitle>();
+
+            var html = await File.ReadAllTextAsync(Path.Combine(dir, "month", "index.html"), TestContext.Current.CancellationToken);
+            Assert.Equal("2026. október", MonthTitle.In(html));
+            Assert.Contains("<html lang=\"hu\"", html, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(WasmPrerender.OutputVariable, null);
+            RaskCulture.ResetForTests();
+            try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+        }
+    }
+
     private const string RouteGroup = "BuildMachineLocale";
 }
