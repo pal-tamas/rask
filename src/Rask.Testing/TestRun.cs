@@ -19,13 +19,13 @@ public static class TestRun
 
     internal static Run? Current => Open.Value;
 
-    /// <summary>Opens this test's app — not booted until something uses it.</summary>
+    /// <summary>Opens this test's app — not booted until something needs it.</summary>
     public static void Begin()
     {
         var run = new Run();
         Open.Value = run;
 
-        // The test's static calls (Product.Create, Jobs.Enqueue) resolve through here, so the first one boots the app.
+        // The test's static calls (Product.Create, Jobs.Enqueue) resolve through here, so the first one that needs the app boots it.
         _ = Ambient.Enter(run);
     }
 
@@ -40,14 +40,19 @@ public static class TestRun
     }
 
     /// <summary>A test's app, booted on first use; its services are a scope of it, open for the whole test.</summary>
-    internal sealed class Run : IServiceProvider, IDisposable
+    /// <remarks>
+    ///     Ambient for the whole test, but booted only by a call with nothing else to go on — <c>Page.Visit</c>, a
+    ///     battery's static, a read with no database configured. A lookup with another answer never boots it, and a
+    ///     test that configures its own database (<c>TestDatabase.Start(…)</c>) keeps it from booting at all.
+    /// </remarks>
+    internal sealed class Run : OnDemandServices, IDisposable
     {
         private readonly Lock _gate = new();
         private TestApp.Booted? _booted;
         private IServiceScope? _scope;
         private bool _tried;
 
-        /// <summary>The app's scope, or <c>null</c> when the test project references no app.</summary>
+        /// <summary>The app's scope, booting the app if it has not; <c>null</c> when the test project references no app.</summary>
         public IServiceProvider? Services
         {
             get
@@ -58,7 +63,7 @@ public static class TestRun
                     {
                         _tried = true;
                         _booted = TestApp.Boot();
-                        _scope = _booted?.Services.CreateScope();
+                        Volatile.Write(ref _scope, _booted?.Services.CreateScope());
                     }
 
                     return _scope?.ServiceProvider;
@@ -66,12 +71,14 @@ public static class TestRun
             }
         }
 
-        public object? GetService(Type serviceType) => Services?.GetService(serviceType);
+        internal override IServiceProvider? Started => Volatile.Read(ref _scope)?.ServiceProvider;
 
         public void Dispose()
         {
             _scope?.Dispose();
             _booted?.Dispose();
         }
+
+        protected override IServiceProvider? StartNow() => Services;
     }
 }

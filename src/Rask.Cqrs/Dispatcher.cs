@@ -29,26 +29,26 @@ public static class Dispatcher
 
     /// <summary>Runs <paramref name="query" /> through its handler and hands back what it answers.</summary>
     public static Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default) =>
-        Ambient.Services is { } work
+        Ambient.Needed is { } work
             ? Of(work).Query(query, cancellationToken)
             : Alone(query, static (d, q, ct) => d.Query(q, ct), cancellationToken);
 
     /// <summary>Sends <paramref name="command" /> to its handler.</summary>
     public static Task Send(ICommand command, CancellationToken cancellationToken = default) =>
-        Ambient.Services is { } work
+        Ambient.Needed is { } work
             ? Of(work).Send(command, cancellationToken)
             : Alone(command, static (d, c, ct) => d.Send(c, ct), cancellationToken);
 
     /// <summary>Sends <paramref name="command" /> to its handler and hands back what it answers.</summary>
     public static Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default) =>
-        Ambient.Services is { } work
+        Ambient.Needed is { } work
             ? Of(work).Send(command, cancellationToken)
             : Alone(command, static (d, c, ct) => d.Send(c, ct), cancellationToken);
 
     /// <summary>Publishes <paramref name="e" />: every subscription watching it is told, and every handler of it runs.</summary>
     public static Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
         where TEvent : IEvent =>
-        Ambient.Services is { } work
+        Ambient.Needed is { } work
             ? Of(work).Publish(e, cancellationToken)
             : Alone(e, static (d, published, ct) => d.Publish(published, ct), cancellationToken);
 

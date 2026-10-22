@@ -39,7 +39,7 @@ public static class Pdf
     // job's in a job, the request's in an endpoint. Never a user the caller names.
     private static async Task<byte[]> Run(Func<PagePrinting, CancellationToken, Task<byte[]>> print)
     {
-        if (Ambient.Services is { } services)
+        if (Ambient.Needed is { } services)
         {
             var user = services.GetService<IUserProvider>()?.Current;
             return await print(Printing(services, user), Ambient.CancellationToken).ConfigureAwait(false);

@@ -9,6 +9,8 @@ internal sealed class UiCalendarRangePick(UiDateRange chosen) : UiCalendarPicks
 
     internal override string Mode => "range";
 
+    internal override IReadOnlyList<DateOnly?> Typed => chosen == default ? [null, null] : [chosen.Start, chosen.End];
+
     internal override UiCalendarMarks Marks(DateOnly day) =>
         chosen == default
             ? default

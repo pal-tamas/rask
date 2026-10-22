@@ -156,7 +156,8 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
         bool IsParsable,
         string UnderlyingTypeFqn,
         bool NeedsAotRegistration,
-        LocationInfo Location);
+        LocationInfo Location,
+        bool IsList = false);
 
     private sealed record OrphanCandidate(
         string ClassFqn,

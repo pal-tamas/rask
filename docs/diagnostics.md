@@ -242,7 +242,10 @@ As RASK009, for `[QueryParam]`. Query binding only applies to routed pages.
 
 A `[RouteParam]`/`[QueryParam]` property's type can't be parsed from a URL string. Bound types must
 be `string` or implement `System.IParsable<T>` (every built-in numeric, `Guid`, `DateOnly`, `DateTime` and
-`bool` qualify; an enum does not — bind it as a `string`).
+`bool` qualify; an enum does not — bind it as a `string`). A `[QueryParam]` may also be a list of such a type —
+`T[]`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>` or `IEnumerable<T>` with a non-nullable `T`, read from its
+key repeated with brackets, `drivers[]=a&drivers[]=b` ([routing](routing.md#a-list-is-the-key-repeated-with-)); any
+other collection, and a list bound to a path segment, raises it.
 
 **Fix:** use a parsable type, or accept the value as `string` and convert inside the page.
 

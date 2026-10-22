@@ -31,6 +31,20 @@ public static partial class Ui
         Xxl,
     }
 
+    /// <summary>
+    ///     How a typed date is drawn — <c>flux:date-picker.input</c>'s <c>variant</c> and the date picker's
+    ///     <c>with-inputs</c>. Custom unless set, the kit's choice: Flux's docs default to native and call custom
+    ///     the recommended and future default, and its own pages draw custom.
+    /// </summary>
+    public enum DatePickerInputVariant
+    {
+        /// <summary>Month, day and year typed as parts, in the locale's order.</summary>
+        Custom = 0,
+
+        /// <summary>The browser's own date field, <c>&lt;input type="date"&gt;</c>.</summary>
+        Native,
+    }
+
     /// <summary>How tall a date picker's typed field is — <c>flux:date-picker.input</c>'s <c>size</c>.</summary>
     public enum DatePickerInputSize
     {

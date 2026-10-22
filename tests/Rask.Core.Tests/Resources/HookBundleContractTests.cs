@@ -80,6 +80,7 @@ public partial class HookBundleContractTests
         ["data-rask-on-edit"] = "the runtime's own first-key mark (rask-input.ts); on a data-rask-segments here",
         ["data-rask-time-start"] = "inside a data-rask-time-list",
         ["data-rask-color-part"] = "inside a data-rask-color",
+        ["data-rask-date"] = "the browser's own date field, inside a data-rask-calendar",
         ["data-rask-color-says"] = "on a data-rask-color",
         ["data-rask-color-refuses"] = "on a data-rask-color",
         ["data-rask-calendar-part"] = "inside a data-rask-calendar",

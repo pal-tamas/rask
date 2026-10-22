@@ -9,6 +9,27 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
+  query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
+  `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
+  are `Listed`'s.
+
+- **The rest of Flux's date picker reference: `WithInputs()` and the native typed field.** Before: `with-inputs` and
+  `flux:date-picker.input`'s `variant` were not built. After: `Ui.DatePicker.WithInputs()` (and
+  `Ui.DatePicker.Range…`, `Ui.Calendar…`) draws a field over the months to type the day — or a range's start and
+  end — into: a whole date typed is chosen and its month shown at once, and a pick is written into it, all in the
+  browser. `WithInputs(Ui.DatePickerInputVariant.Native)` and `Ui.DatePickerInput.Native` use the browser's own
+  `<input type="date">` instead of the parts. Typed parts stay the default (Flux's `custom`).
+
+- **A `[QueryParam]` can be a list, written and read as Laravel and Rails do: the key repeated with `[]`.**
+  `[QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];` is `["ada", "theo"]` at
+  `?drivers[]=ada&drivers[]=theo`, at Laravel's indexed `?drivers[0]=ada&drivers[1]=theo`, and `["ada"]` at a plain
+  `?drivers=ada`; `T[]`, `IReadOnlyCollection<T>` and `IEnumerable<T>` bind the same way, of any `T` a single query
+  value can be (`string`, `bool`, any `IParsable<T>`). An element that cannot be read is left out, never an error; a
+  key with nothing left, or no key at all, keeps the initializer. `Routes.X(…)`, `X.Url(…)`/`X.Go(…)` and an island's
+  TypeScript `Routes` write one `Drivers%5B%5D=` pair per element and no key for a null or empty list, and the new
+  `Go.With("drivers", drivers)` sets a list from a handler, replacing the key in every form it had. See
+  [routing](docs/routing.md#a-list-is-the-key-repeated-with-).
 - **`Ui.Table.Loading(bool)` — the loading skeleton for rows a page loads itself.** Before: only `Ui.Table.Of(query)`
   drew skeleton rows, so a page filling a field of its own (`_rows = await Load()`) wrote its own placeholder rows.
   After: `Ui.Table.Loading(_rows is null)[…]` draws a skeleton row per row the pager says the page holds (15 with no
@@ -1227,6 +1248,14 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Referencing `Rask.Testing` boots nothing a test did not ask for.** Before: on xUnit v3 the per-test app hook made
+  ANY ambient lookup boot the app's `Program.cs` — so a project that took `Rask.Testing` for `Clock.Fake` alone saw
+  its `TestDatabase.Start(…)` model tests boot the app at their first `Company.Where(…)`, fail on the app's missing
+  settings, and an `Assert.ThrowsAsync<RaskValidationException>` around a delete check catch the boot's
+  `InvalidOperationException` instead. After: the test's app boots only for a call with nothing else to go on
+  (`Page.Visit`, a battery's static, a read with no database configured); a lookup with another answer
+  (`Ambient.Services`, an `IsOn`) never boots it, and a test that configures its own database (`TestDatabase.Start`,
+  any `Db.Configure`) keeps it from booting at all. See [testing](docs/testing.md#1-driving-the-app-the-way-a-person-does).
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.
