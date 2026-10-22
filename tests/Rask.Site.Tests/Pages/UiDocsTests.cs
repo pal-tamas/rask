@@ -142,6 +142,15 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/layout", "/ui/separator/")]
     [InlineData("/docs/ui/layout", "/ui/heading/")]
     [InlineData("/docs/ui/layout", "/ui/text/")]
+    [InlineData("/docs/ui/data-input", "/ui/field/")]
+    [InlineData("/docs/ui/data-input", "/ui/input/")]
+    [InlineData("/docs/ui/data-input", "/ui/textarea/")]
+    [InlineData("/docs/ui/data-input", "/ui/select/")]
+    [InlineData("/docs/ui/data-input", "/ui/checkbox/")]
+    [InlineData("/docs/ui/data-input", "/ui/radio/")]
+    [InlineData("/docs/ui/data-input", "/ui/switch/")]
+    [InlineData("/docs/ui/data-input", "/ui/slider/")]
+    [InlineData("/docs/ui/data-input", "/ui/otp-input/")]
     public async Task A_family_page_links_to_the_pages_that_took_its_components(string family, string moved)
     {
         var html = await SiteDocument.At(family);
@@ -214,6 +223,17 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/tabs", "data-rask-unguarded")]
     [InlineData("/ui/tabs", "until-found")]
     [InlineData("/ui/tabs", "Home and End are not handled")]
+    [InlineData("/ui/field", "live region")]
+    [InlineData("/ui/input", "data-rask-clear")]
+    [InlineData("/ui/input", "wire:model.blur")]
+    [InlineData("/ui/textarea", "field-sizing: content")]
+    [InlineData("/ui/select", "data-rask-list")]
+    [InlineData("/ui/select", "Filter(false)")]
+    [InlineData("/ui/checkbox", "data-indeterminate")]
+    [InlineData("/ui/radio", "wrapping from the last to the first")]
+    [InlineData("/ui/switch", "flips every")]
+    [InlineData("/ui/slider", "data-rask-big-step")]
+    [InlineData("/ui/otp-input", "data-rask-otp")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);

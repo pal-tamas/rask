@@ -9,7 +9,7 @@ namespace Rask.Site.Features.UiDocs;
 ///     Written from the components' own doc comments. <c>UiApiReferenceTests</c> fails when a component gains a step
 ///     that is not listed here, or loses one that is.
 /// </remarks>
-internal static class UiApi
+internal static partial class UiApi
 {
     private const string Hue = "Ui.Color: one of Tailwind's hues, each a step too (.Blue)";
 
@@ -835,8 +835,9 @@ internal static class UiApi
     public static IEnumerable<UiApiPart> All =>
         new[]
         {
-            Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
-            Filters, Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator,
-            Skeleton, Table, Tabs, Text, Timeline, Toast, Tooltip,
+            Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Checkbox, Command, Context,
+            Dropdown, Field, Filters, Flag, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Popover,
+            Profile, Progress, Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, Toast,
+            Tooltip,
         }.SelectMany(parts => parts);
 }

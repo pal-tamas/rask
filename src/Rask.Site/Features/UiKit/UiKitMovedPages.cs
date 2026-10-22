@@ -18,6 +18,11 @@ internal sealed partial class UiKitMovedPages : Component
                 .Icon(Ui.IconName.ArrowRightCircle)
                 .Heading("These have their own pages in the UI tab")
                 .Text("Each with every example and a reference of its steps.")
-                .Actions([.. Pages.Select(page => Ui.Button.Sm.Key(page.Title).Href(PageMeta.LinkTo(page.Path))[page.Title])])
+                // One wrapping row: nine pages are wider than a phone, and the callout's own actions row does not wrap.
+                .Actions([
+                    Div.Class("flex flex-wrap gap-2")[
+                        Pages.Select(page => Ui.Button.Sm.Key(page.Title).Href(PageMeta.LinkTo(page.Path))[page.Title])
+                    ],
+                ])
         ];
 }

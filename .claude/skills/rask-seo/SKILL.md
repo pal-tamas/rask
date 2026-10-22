@@ -30,6 +30,9 @@ own ("blazor", "react"). Map every new page to one:
 | kanban board, timeline, carousel, accordion, avatar or country flag component in C# | `/ui/kanban/`, `/ui/timeline/`, `/ui/carousel/`, `/ui/accordion/`, `/ui/avatar/`, `/ui/flag/` |
 | tabs component in C#, segmented control, pagination / pager for a list or table in ASP.NET Core, page number in the query string | `/ui/tabs/`, `/ui/pagination/` |
 | navbar, sidebar navigation list, breadcrumbs, brand logo or profile menu button in C# | `/ui/navbar/`, `/ui/navlist/`, `/ui/breadcrumbs/`, `/ui/brand/`, `/ui/profile/` |
+| select / dropdown list / combobox / searchable multi-select component in C#, server-side search with debounce for ASP.NET Core or WebAssembly | `/ui/select/` |
+| form field with label and validation message, text input with icon / clear / copy / mask, textarea that grows, in C# | `/ui/field/`, `/ui/input/`, `/ui/textarea/` |
+| checkbox group with select all, radio cards / segmented control, toggle switch, range slider, one-time code (OTP) input in C# | `/ui/checkbox/`, `/ui/radio/`, `/ui/switch/`, `/ui/slider/`, `/ui/otp-input/` |
 | color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `ui-kit` (#color-picker) |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
