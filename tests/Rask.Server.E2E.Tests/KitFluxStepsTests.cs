@@ -79,7 +79,9 @@ public sealed class KitFluxStepsTests(PlaywrightFixture playwright) : IClassFixt
 
         await cells.Nth(0).ClickAsync();
         await page.Keyboard.TypeAsync("4321");
-        await Expect(cells.Nth(3)).ToHaveValueAsync("1");
+        // The bound field, not the cell: the browser shows the last digit in its cell before the runtime has
+        // written the code into the field that goes with the click, and a click in between sends "432".
+        await Expect(page.Locator("#resend-otp input[type=hidden]")).ToHaveValueAsync("4321");
         await page.ClickAsync("#resend");
 
         await Expect(page.Locator("#resent")).ToHaveTextAsync("resent=4321");
