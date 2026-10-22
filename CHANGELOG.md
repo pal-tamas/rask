@@ -17,7 +17,10 @@ them until tagged releases begin.
   in the prerender; `UseCulture` still adds to it. The same read decides ICU (roughly a megabyte): on for a
   non-English language, off for English alone, and a build warning when `<RaskGlobalization>false` turns it off
   under a non-English list. The prerender and the hosted client build now also carry the app's
-  `Resources/Strings.*.json` catalogs.
+  `Resources/Strings.*.json` catalogs. `rask new --template wasm` now writes `wwwroot/appsettings.json` with
+  `"Cultures": [ "en" ]` and `Resources/Strings.en.json` (no commented `<RaskGlobalization>` any more), and
+  `--template wasm-hosted` lists `"Cultures": [ "en" ]` in the host's `appsettings.json` with its catalog moved to
+  `Client/Resources/`, where the browser half renders it.
 
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:

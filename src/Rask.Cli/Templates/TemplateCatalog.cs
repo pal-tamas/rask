@@ -41,24 +41,22 @@ internal static class TemplateCatalog
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "ops", "push", "tests"],
                 StringComparer.Ordinal),
-            // The server runtime carries ICU regardless, so scaffolding the registration costs nothing.
             ShipsLocalization: true),
-        // ShipsLocalization stays false here: naming a language in the browser means shipping ICU, which
-        // is roughly a megabyte, and it is the one part Program.cs cannot turn on by itself. The csproj
-        // carries <RaskGlobalization> commented with the reason beside it.
+        // Localized like the server, its list of languages in wwwroot/appsettings.json. English alone ships no ICU, and
+        // the build adds it when the list names another language.
         new("wasm", "Rask browser-WASM SPA",
-            new HashSet<string>([.. WebFlags, "tests"], StringComparer.Ordinal)),
+            new HashSet<string>([.. WebFlags, "tests"], StringComparer.Ordinal),
+            ShipsLocalization: true),
         // A C# front end on an ASP.NET host. It lives in Client/, the host serves it with MapRaskSpa, and
         // the two halves talk over remote CQRS. "ops": the host is RaskApp's Serve(), which mounts the console.
-        //
-        // ShipsLocalization stays false for the same reason as wasm above: the browser half is where a
-        // culture would have to resolve, and that means ICU on the wire.
+        // Localized like wasm, from the HOST's appsettings.json, which both halves read.
         new(
             "wasm-hosted",
             "Rask WebAssembly front end + ASP.NET host",
             new HashSet<string>(
                 [.. WebFlags, .. DatabaseFlags, "ops", "push"],
-                StringComparer.Ordinal)),
+                StringComparer.Ordinal),
+            ShipsLocalization: true),
         // The TypeScript front-end templates, one per framework: a client in client/ on the same Serve() host,
         // talking to it over generated TypeScript.
         .. SpaFrameworks(),

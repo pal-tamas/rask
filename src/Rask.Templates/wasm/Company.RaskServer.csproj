@@ -23,11 +23,8 @@
          module initialiser, which emits a [DynamicDependency] per registered page. -->
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
-    <!-- ICU is dropped by default. Uncomment to ship it, which you need as soon as the app formats
-         dates, numbers or currency per culture, or shows text in more than one language. One
-         property: it also clears PredefinedCulturesOnly, which otherwise defaults to true here and
-         makes CultureInfo.GetCultureInfo("hu-HU") throw rather than fall back. -->
-    <!-- <RaskGlobalization>true</RaskGlobalization> -->
+    <!-- The culture data (ICU, roughly a megabyte) ships when "Rask:Cultures" in wwwroot/appsettings.json
+         names a language other than English, and not otherwise. Set <RaskGlobalization> to decide yourself. -->
     <!-- IL2104 comes from Microsoft.JSInterop's reflection-driven [JSInvokable] scanner; apps
          that only INVOKE JS never hit it. If you mark methods [JSInvokable], add a
          [DynamicDependency] on them (standard Blazor WASM mitigation) instead of suppressing. -->

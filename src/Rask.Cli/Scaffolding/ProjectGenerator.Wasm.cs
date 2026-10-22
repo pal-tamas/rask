@@ -48,12 +48,12 @@ internal static partial class ProjectGenerator
 
         if (localization)
         {
-            // Said here rather than left to be discovered from a bundle report: this is the one battery on
-            // this template that costs download rather than only code, and the number is why it is opt-in.
+            // Said here rather than left to be discovered from a bundle report: a second language is the one
+            // edit on this template that costs download rather than only code.
             steps.Append(
-                "\nTranslations live in Resources/Strings.<culture>.json and compile to typed members.\n"
-                + "Naming a language ships ICU (<RaskGlobalization> in the csproj), which adds roughly a\n"
-                + "megabyte to the published bundle — drop the property to get it back. See docs/localization.md.\n");
+                "\nLanguages are listed in wwwroot/appsettings.json (\"Rask\": { \"Cultures\": [\"en\"] }), and\n"
+                + "translations live in Resources/Strings.<culture>.json. A language other than English ships ICU,\n"
+                + "which adds roughly a megabyte to the published bundle. See docs/localization.md.\n");
         }
 
         return steps.ToString();

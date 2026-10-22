@@ -12,6 +12,9 @@
     "Dockerfile": [
       "docker"
     ],
+    "Resources/Strings.en.json": [
+      "localization"
+    ],
     "nginx.conf": [
       "docker"
     ],
