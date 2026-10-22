@@ -9,14 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
-- **A `[QueryParam]` can be a list, read from ONE comma-separated key.** `[QueryParam] public IReadOnlyList<string>
-  Drivers { get; set; } = [];` is `["ada", "theo"]` at `?drivers=ada,theo` (or `ada%2Ctheo`); `T[]`,
-  `IReadOnlyCollection<T>` and `IEnumerable<T>` bind the same way, of any `T` a single query value can be (`string`,
-  `bool`, any `IParsable<T>`). An element that cannot be read is left out (`?tank=3,abc,2` → `[3, 2]`), never an
-  error; a key with nothing left, or no key at all, keeps the initializer. `Routes.X(…)`, `X.Url(…)`/`X.Go(…)` and an
-  island's TypeScript `Routes` write the list as one key joined by `%2C` and leave the key out for a null or empty
-  list. An element cannot carry a comma of its own. See [routing](docs/routing.md#a-list-is-one-key-comma-separated).
-
+- **A `[QueryParam]` can be a list, written and read as Laravel and Rails do: the key repeated with `[]`.**
+  `[QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];` is `["ada", "theo"]` at
+  `?drivers[]=ada&drivers[]=theo`, at Laravel's indexed `?drivers[0]=ada&drivers[1]=theo`, and `["ada"]` at a plain
+  `?drivers=ada`; `T[]`, `IReadOnlyCollection<T>` and `IEnumerable<T>` bind the same way, of any `T` a single query
+  value can be (`string`, `bool`, any `IParsable<T>`). An element that cannot be read is left out, never an error; a
+  key with nothing left, or no key at all, keeps the initializer. `Routes.X(…)`, `X.Url(…)`/`X.Go(…)` and an island's
+  TypeScript `Routes` write one `Drivers%5B%5D=` pair per element and no key for a null or empty list, and the new
+  `Go.With("drivers", drivers)` sets a list from a handler, replacing the key in every form it had. See
+  [routing](docs/routing.md#a-list-is-the-key-repeated-with-).
 - **A component that implements `IEventHandler<T>` handles a published event on every open page that shows it.**
   `Dispatcher.Publish(e)` — from a singleton, a timer, a job or another page's handler — and a domain event an
   aggregate raises reach each mounted listener in its own page's session: queued behind that page's events, as its
