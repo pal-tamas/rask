@@ -404,12 +404,30 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         await RequestRender().ConfigureAwait(false);
     }
 
-    /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
+    /// <summary>
+    ///     Ends the event in progress: the scope it opened is disposed once the hooks it started and the reads its page
+    ///     left behind are done.
+    /// </summary>
     internal void EndEvent()
     {
         if (_eventServices is { } events)
         {
             events.Close(Interlocked.Exchange(ref _readsStillRunning, null));
+        }
+    }
+
+    /// <summary>The session has ended: every event's scope is disposed, whatever its hooks are still doing.</summary>
+    protected void EndEvents() => _eventServices?.EndAll();
+
+    /// <summary>
+    ///     Keeps the event in progress, and the scope it has or will open, until <paramref name="hook" /> — started
+    ///     for <paramref name="owner" /> by <paramref name="render" /> — is done.
+    /// </summary>
+    internal void HoldEvent(Task hook, Component owner, LiveRenderContext render)
+    {
+        if (EventServices is EventServices events)
+        {
+            events.Hold(hook, owner, render);
         }
     }
 

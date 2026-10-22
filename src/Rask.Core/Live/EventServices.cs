@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Diagnostics;
 
@@ -5,21 +6,45 @@ namespace Rask.Core.Live;
 
 /// <summary>
 ///     The services of the live event in progress: the app's scoped services from a scope of the event's own, opened
-///     on first use and disposed when the event ends, and everything else from the session.
+///     on first use, and everything else from the session.
 /// </summary>
 /// <remarks>
-///     One per session, so making it ambient allocates nothing: an event that resolves nothing of the app's opens no
-///     scope. Holding it is safe — it answers for whichever event is in progress — while holding what it handed out
-///     past the event is not.
+///     <para>
+///         One per session, so making it ambient allocates nothing: an event that resolves nothing of the app's and
+///         leaves nothing running opens no scope and allocates nothing.
+///     </para>
+///     <para>
+///         An event's scope lives as long as the work the event started: the event itself, every lifecycle hook its
+///         renders started and every read its page went out without. A hook goes on long after a navigation has been
+///         sent — what it resolves after an await is still its own event's, found again by the render that started
+///         it, and is disposed when the last of that work is done. A hook whose component has left the page keeps it
+///         for <see cref="TeardownGrace" /> more at most; the session's end disposes every one.
+///     </para>
 /// </remarks>
 internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog catalog, IServiceScopeFactory scopes)
     : IKeyedServiceProvider
 {
-    private readonly Lock _gate = new();
-    private AsyncServiceScope? _scope;
+    /// <summary>How long a hook whose component has left the page keeps its event's services.</summary>
+    internal static readonly TimeSpan DefaultTeardownGrace = TimeSpan.FromSeconds(10);
 
-    // Whether a scope is open, read without the gate by the end of an event that opened none: every event's path.
+    private readonly Lock _gate = new();
+
+    // The event in progress, or null while it has resolved nothing and started nothing that runs on.
+    private EventLife? _current;
+
+    // Whether there is an event in progress to end, read without the gate by the end of every event: every event's path.
     private volatile bool _open;
+
+    // The render that started a hook still running, to the event it belongs to: what the hook's continuations carry
+    // in their flow, and so how one that resolves something after the event has ended reaches its own event's scope.
+    private ConditionalWeakTable<LiveRenderContext, EventLife>? _byRender;
+
+    // The events that have ended with work still running: what the session's end disposes.
+    private HashSet<EventLife>? _ended;
+    private bool _disposed;
+
+    /// <summary>How long a hook whose component has left the page keeps its event's services. Settable for tests.</summary>
+    internal TimeSpan TeardownGrace { get; set; } = DefaultTeardownGrace;
 
     /// <summary>The scope the event in progress has opened, or null when it has resolved nothing of the app's.</summary>
     internal IServiceProvider? Opened
@@ -28,7 +53,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         {
             lock (_gate)
             {
-                return _scope?.ServiceProvider;
+                return _current?.Scope?.ServiceProvider;
             }
         }
     }
@@ -51,11 +76,169 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
     public object GetRequiredKeyedService(Type serviceType, object? serviceKey) =>
         session.Services.GetRequiredKeyedService(serviceType, serviceKey);
 
+    /// <summary>
+    ///     Keeps the event in progress — its scope, open or still to be opened — until <paramref name="work" />, a hook
+    ///     <paramref name="render" /> started for <paramref name="owner" />, is done.
+    /// </summary>
+    internal void Hold(Task work, Component owner, LiveRenderContext render)
+    {
+        EventHold hold;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var life = Current();
+            life.Holds++;
+            (_byRender ??= new ConditionalWeakTable<LiveRenderContext, EventLife>()).AddOrUpdate(render, life);
+            hold = new EventHold(this, life);
+        }
+
+        hold.OrAfter(TeardownGrace, owner.CallbackLifetime);
+        hold.Until(work);
+    }
+
+    /// <summary>
+    ///     Ends the event in progress: its scope is disposed now, or once the hooks it started and
+    ///     <paramref name="stillReading" /> — the reads its page went out without — are done.
+    /// </summary>
+    internal void Close(Task? stillReading)
+    {
+        if (!_open)
+        {
+            return;
+        }
+
+        EventLife life;
+        AsyncServiceScope? done = null;
+        lock (_gate)
+        {
+            if (_current is not { } current)
+            {
+                return;
+            }
+
+            life = current;
+            _current = null;
+            _open = false;
+            life.Ended = true;
+            if (stillReading is { IsCompleted: false })
+            {
+                life.Holds++;
+            }
+            else
+            {
+                stillReading = null;
+            }
+
+            if (life.Done)
+            {
+                done = life.Scope;
+                life.Scope = null;
+            }
+            else
+            {
+                (_ended ??= []).Add(life);
+            }
+        }
+
+        if (done is { } scope)
+        {
+            _ = DisposeAsync(scope);
+        }
+
+        if (stillReading is not null)
+        {
+            new EventHold(this, life).Until(stillReading);
+        }
+    }
+
+    /// <summary>Lets go of one hold on <paramref name="life" />: its scope goes when it was the last of an ended event.</summary>
+    internal void Release(EventLife life)
+    {
+        AsyncServiceScope? done = null;
+        lock (_gate)
+        {
+            life.Holds--;
+            if (life.Done)
+            {
+                done = life.Scope;
+                life.Scope = null;
+                _ended?.Remove(life);
+            }
+        }
+
+        if (done is { } scope)
+        {
+            _ = DisposeAsync(scope);
+        }
+    }
+
+    /// <summary>The session has ended: every event's scope is disposed, whatever is still running.</summary>
+    internal void EndAll()
+    {
+        List<AsyncServiceScope> open = [];
+        lock (_gate)
+        {
+            _disposed = true;
+            _open = false;
+            Take(_current, open);
+            _current = null;
+            foreach (var life in _ended ?? [])
+            {
+                Take(life, open);
+            }
+
+            _ended = null;
+            _byRender = null;
+        }
+
+        foreach (var scope in open)
+        {
+            _ = DisposeAsync(scope);
+        }
+    }
+
+    private static void Take(EventLife? life, List<AsyncServiceScope> into)
+    {
+        if (life?.Scope is { } scope)
+        {
+            into.Add(scope);
+            life.Scope = null;
+        }
+    }
+
+    // Under the gate. The event the asking flow belongs to: the one a hook that is still running was started in,
+    // else the one in progress.
+    private EventLife Life()
+    {
+        if (_byRender is not null
+            && LiveRenderContext.Current is { } render
+            && _byRender.TryGetValue(render, out var started)
+            && !started.Done)
+        {
+            return started;
+        }
+
+        return Current();
+    }
+
+    // Under the gate.
+    private EventLife Current()
+    {
+        _open = true;
+        return _current ??= new EventLife();
+    }
+
     private IServiceProvider Open()
     {
         lock (_gate)
         {
-            if (_scope is { } open)
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var life = Life();
+            if (life.Scope is { } open)
             {
                 return open.ServiceProvider;
             }
@@ -71,43 +254,9 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
                 throw;
             }
 
-            _scope = scope;
-            _open = true;
+            life.Scope = scope;
             return scope.ServiceProvider;
         }
-    }
-
-    /// <summary>
-    ///     Ends the event's scope: disposed now, or when <paramref name="stillReading" /> — the reads the event's page
-    ///     went out without — are back, since they hold what they resolved from it.
-    /// </summary>
-    internal void Close(Task? stillReading)
-    {
-        if (!_open)
-        {
-            return;
-        }
-
-        AsyncServiceScope scope;
-        lock (_gate)
-        {
-            if (_scope is not { } open)
-            {
-                return;
-            }
-
-            scope = open;
-            _scope = null;
-            _open = false;
-        }
-
-        _ = stillReading is null ? DisposeAsync(scope) : DisposeAfterAsync(stillReading, scope);
-    }
-
-    private static async Task DisposeAfterAsync(Task reads, AsyncServiceScope scope)
-    {
-        await reads.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        await DisposeAsync(scope).ConfigureAwait(false);
     }
 
     private static async Task DisposeAsync(AsyncServiceScope scope)

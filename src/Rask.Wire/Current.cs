@@ -30,8 +30,8 @@ public static class Current
     ///     <para>
     ///         In a live event — a click, a submit, a navigation, a render the server pushes and the lifecycle hooks
     ///         they run — a scoped service is the event's own: the same instance for the whole event, awaits
-    ///         included, and disposed when the event ends. Keep it in a local, never a field: the next event finds
-    ///         it disposed. The session's own services (its route, navigator, <c>IJSRuntime</c>, user, toaster,
+    ///         included, and disposed when the event and the hooks it started are done. Keep it in a local, never a
+    ///         field: the next event finds it disposed. The session's own services (its route, navigator, <c>IJSRuntime</c>, user, toaster,
     ///         language, query cache, tenant) are the session's, as they are to a service the event makes.
     ///         <code>
     ///         Button.OnClick(async () =&gt;

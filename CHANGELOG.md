@@ -111,6 +111,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
+  sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
+  helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
+  end — a click, a published event, even the repaint the hook's own await asked for — disposed it mid-read: "The
+  connection is closed", "Cannot access a disposed context", or a read that came back null. Each event now has a life
+  of its own that every hook its renders start holds: what a hook resolves, before an await or after, is its own
+  event's one instance, disposed when the event has ended and the last of its hooks and unfinished reads is done. Two
+  navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
+  most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
+  an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
 - **`rask deploy` no longer waits forever on a stalled step.** A deploy sat 42 minutes in its build — the last
   line apt's download of `libllvm20` inside the image build, then nothing — holding the app's lock the whole
   time, because no docker call had a deadline. Now the build may run 45 minutes and go 15 minutes without a

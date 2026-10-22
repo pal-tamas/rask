@@ -292,6 +292,13 @@ public abstract partial class Component
         // above has already run inline and requested the render, so what gets registered is a
         // settled task and the loop simply takes one more wave over correct state.
         quiescence?.Track(painted, this);
+
+        // The hook is part of the event whose render started it, and that event's services stay its own until it is
+        // done — a navigation has long been sent by the time a slow read comes back.
+        if (LiveRenderContext.CurrentSync is { Handle: LiveSessionBase session } render)
+        {
+            session.HoldEvent(painted, this, render);
+        }
     }
 
     // LifecycleSyncContext renders after each in-method await. The terminal render
