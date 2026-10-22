@@ -55,14 +55,11 @@ public sealed partial class SidebarSecondaryHeaderExample : Component
                     Account()
                 ]
             ],
-            // Flux's navbar scrollable: a row that scrolls sideways rather than pushing a phone's page wider.
-            Div.Class("overflow-x-auto [scrollbar-width:none]")[
-                Ui.Navbar.Class("w-max")[
-                    Ui.NavbarItem.Href("#").Current(true)["Dashboard"],
-                    Ui.NavbarItem.Badge("32").Href("#")["Orders"],
-                    Ui.NavbarItem.Href("#")["Catalog"],
-                    Ui.NavbarItem.Href("#")["Configuration"]
-                ]
+            Ui.Navbar.Scrollable()[
+                Ui.NavbarItem.Href("#").Current(true)["Dashboard"],
+                Ui.NavbarItem.Badge("32").Href("#")["Orders"],
+                Ui.NavbarItem.Href("#")["Catalog"],
+                Ui.NavbarItem.Href("#")["Configuration"]
             ]
         ];
 

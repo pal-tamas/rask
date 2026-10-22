@@ -2055,6 +2055,8 @@ Rask.UiMenuSubmenu.KeepOpen.set -> void
 Rask.UiMenuSubmenu.UiMenuSubmenu() -> void
 Rask.UiModal.Lazy.get -> bool?
 Rask.UiModal.Lazy.set -> void
+Rask.UiNavbar.Scrollable.get -> bool?
+Rask.UiNavbar.Scrollable.set -> void
 Rask.UiNavbarItem
 Rask.UiNavbarItem.Accent.get -> bool?
 Rask.UiNavbarItem.Accent.set -> void
@@ -2074,6 +2076,8 @@ Rask.UiNavbarItem.Icon.get -> Rask.Ui.IconName?
 Rask.UiNavbarItem.Icon.set -> void
 Rask.UiNavbarItem.IconTrailing.get -> Rask.Ui.IconName?
 Rask.UiNavbarItem.IconTrailing.set -> void
+Rask.UiNavbarItem.Label.get -> string?
+Rask.UiNavbarItem.Label.set -> void
 Rask.UiNavbarItem.UiNavbarItem() -> void
 Rask.UiNavlist
 Rask.UiNavlist.Class.get -> string?
@@ -5229,9 +5233,12 @@ static RaskBuilderSettersRask_Ui.Header<T>(this Rask.UiComposer<T>! __b, Rask.Co
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
 static RaskBuilderSettersRask_Ui.Indicator<T>(this Rask.UiSelect<T>! __b, Rask.Ui.SelectIndicator? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Indicator<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Ui.SelectIndicator? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Label(this Rask.UiNavbarItem! __b, string? value) -> Rask.UiNavbarItem!
 static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b, bool? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.No(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Scrollable(this Rask.UiNavbar! __b) -> Rask.UiNavbar!
+static RaskBuilderSettersRask_Ui.Scrollable(this Rask.UiNavbar! __b, bool? value) -> Rask.UiNavbar!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiDatePickerInput! __b, Rask.Ui.DatePickerInputVariant? value) -> Rask.UiDatePickerInput!
 static RaskBuilderSettersRask_Ui.WithInputs(this Rask.UiCalendar! __b) -> Rask.UiCalendar!
 static RaskBuilderSettersRask_Ui.WithInputs(this Rask.UiCalendar! __b, bool? value) -> Rask.UiCalendar!

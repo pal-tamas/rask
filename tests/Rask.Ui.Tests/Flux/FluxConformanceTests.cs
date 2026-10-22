@@ -408,6 +408,9 @@ public sealed class FluxConformanceTests
         ["flux:chart.axis.mark/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:navbar.item/Accent"] = "`:accent=\"false\"`, as flux:link",
+        ["flux:navbar/Scrollable"] = "`scrollable`, which Flux's sidebar layout page writes on its header's row of tabs and the navbar reference omits",
+        ["flux:navbar.item/Label"] = "`label`, which Flux's header layout pages write on an icon-only item and its reference omits: an attribute "
+                                     + "Flux forwards onto the link as it is (measured: no aria-label, no tooltip, no hidden text), and so does the kit",
         ["flux:navlist.item/Accent"] = "`:accent=\"false\"`, as flux:link",
         ["flux:navlist.group/OnExpandedChange"] = "the `toggle` event of the disclosure the group is: how the page hears that the reader folded it",
         ["flux:brand/LogoClass"] = "the `class` of `<x-slot name=\"logo\" class=\"…\">`, as Flux's own examples write it",

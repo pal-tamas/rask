@@ -28,10 +28,11 @@ internal sealed partial class UiHeaderBehaviour : Component
                 + "`Ui.SidebarToggle` slides it over the page: a `<label>` for the sidebar's checkbox, with a button's "
                 + "role and a tab stop, which the runtime presses on Enter and Space. From the sidebar's breakpoint up "
                 + "there is nothing to slide and the toggle is not shown, so Flux's `lg:hidden` on it is not needed.",
-                "The icon-only items on the right of the header carry their name in a `sr-only` span: "
-                + "`Ui.NavbarItem` has no step for Flux's `label` yet. `Ui.Brand` has no dark logo of its own either, "
-                + "so where Flux writes a second brand for dark mode these examples write one, with a mark that reads "
-                + "on both grounds; `Ui.SidebarBrand.LogoDark` is Flux's `logo:dark`.",
+                "The icon-only items on the right of the header take Flux's `label`: `.Label(\"Search\")` writes it on "
+                + "the link exactly as Flux does, a `label` attribute and nothing else (no `aria-label`, no tooltip). "
+                + "Flux writes `logo:dark` on the sidebar's brand only (`Ui.SidebarBrand.LogoDark`); in the header it "
+                + "writes a second `flux:brand` for dark mode, and these examples write one, with a mark that reads on "
+                + "both grounds.",
             ]),
             UiDocsTopic.Key("demos").Heading("The demos").Paragraphs([
                 "A layout is a whole document, so each result above is its demo page in a frame: a desktop scaled to "

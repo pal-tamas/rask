@@ -34,6 +34,42 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_scrollable_navbar_scrolls_sideways_and_clips_nothing_else()
+    {
+        var plain = Ui.Navbar[Ui.NavbarItem.Href("/")["Home"]].ToHtml();
+
+        var scrollable = Ui.Navbar.Scrollable()[Ui.NavbarItem.Href("/")["Home"]].ToHtml();
+
+        Assert.DoesNotContain("overflow", plain, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "<nav class=\"flex items-center gap-[2px] py-3 overflow-x-auto overflow-y-hidden\" data-ui-navbar>", scrollable, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_items_label_is_written_onto_the_link_as_Flux_writes_it_and_nothing_more()
+    {
+        var item = Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search");
+
+        var html = item.ToHtml();
+
+        Assert.Contains("data-ui-navbar-items label=\"Search\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-label", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Search<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_item_that_is_only_an_icon_is_drawn_ten_pixels_either_side_of_it()
+    {
+        var iconOnly = Ui.NavbarItem.Icon(Ui.IconName.Cog6Tooth).Href("#").ToHtml();
+
+        var worded = Ui.NavbarItem.Icon(Ui.IconName.Cog6Tooth).Href("#")["Settings"].ToHtml();
+
+        Assert.Contains(" px-2.5 ", iconOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain(" px-3 ", iconOnly, StringComparison.Ordinal);
+        Assert.Contains(" px-3 ", worded, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_navlist_is_a_nav_landmark_too()
     {
         var html = Ui.Navlist[Ui.NavlistItem.Href("/")["Home"]].ToHtml();

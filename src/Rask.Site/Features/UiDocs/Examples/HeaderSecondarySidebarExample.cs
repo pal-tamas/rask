@@ -51,11 +51,10 @@ public sealed partial class HeaderSecondarySidebarExample : Component
                 ]
             ],
             Ui.Spacer,
-            // Flux's label="Search": the item's name, for an item that shows only its icon.
             Ui.Navbar.Class("me-4")[
-                Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#")[Span.Class("sr-only")["Search"]],
-                Ui.NavbarItem.Icon(Ui.IconName.Cog6Tooth).Href("#").Class("max-lg:hidden")[Span.Class("sr-only")["Settings"]],
-                Ui.NavbarItem.Icon(Ui.IconName.InformationCircle).Href("#").Class("max-lg:hidden")[Span.Class("sr-only")["Help"]]
+                Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search"),
+                Ui.NavbarItem.Icon(Ui.IconName.Cog6Tooth).Href("#").Class("max-lg:hidden").Label("Settings"),
+                Ui.NavbarItem.Icon(Ui.IconName.InformationCircle).Href("#").Class("max-lg:hidden").Label("Help")
             ],
             Ui.Dropdown.Position(Ui.DropdownPosition.Top).Align(Ui.DropdownAlign.Start)[
                 Ui.Profile.Avatar("/img/avatars/amber.svg"),
