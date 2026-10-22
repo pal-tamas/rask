@@ -43,27 +43,6 @@ public sealed partial class HomePage : Component
     private const string Badge =
         "rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 px-3 py-1 text-xs text-zinc-500 dark:text-white/70";
 
-    // Btn, not Button: a constant named Button would shadow the Button chain entry inside this markup
-    // host, and every <button> on the page would then need qualifying.
-    //
-    // These are anchors, not UiButtons. The kit's button is a <button> with an OnClick — the right shape
-    // for an action, and the wrong one for "go to the docs", which has to be a real link a browser can
-    // open in a new tab and a crawler can follow.
-    private const string Btn =
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold "
-        + "no-underline transition-colors";
-
-    // `text-white!` — important, and not a shortcut. These are ANCHORS, and Tailwind's preflight sets
-    // `a { color: inherit }` in its base layer; in this document that rule outranks the text-* utilities,
-    // so the primary button took its colour from the hero instead of from its own class. It rendered
-    // ink-on-ink at a contrast ratio of 1:1 with its own text colour sitting right there in the markup, which
-    // is a defect Lighthouse found and no reviewer would. The important modifier is what says "this
-    // element's own colour, not the one it inherits".
-    private const string BtnPrimary = Btn + " bg-zinc-800 dark:bg-white text-white! dark:text-zinc-800! hover:bg-zinc-800/90 dark:hover:bg-white/90";
-
-    private const string BtnGhost =
-        Btn + " border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 text-zinc-800! dark:text-white! hover:border-accent hover:text-accent-content";
-
     private const string SectionPad = "py-16 sm:py-24";
 
     private const string H2Class = "mt-2 text-3xl font-semibold tracking-tight text-zinc-800 dark:text-white sm:text-4xl";
@@ -123,16 +102,9 @@ public sealed partial class HomePage : Component
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
                         P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — with React, Vue or Angular components inside them as islands."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
-                            NavLink
-                                .Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))
-                                .Id("cta-docs")
-                                .ActiveClass("")
-                                .Class(BtnPrimary)["Docs"],
-                            A
-                                .Class(BtnGhost)
-                                .Href("https://github.com/pal-tamas/rask")
-                                .Target("_blank")
-                                .Rel("noopener")["GitHub"]
+                            Ui.Button.Primary.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).Id("cta-docs")["Docs"],
+                            Ui.Button.Href("https://github.com/pal-tamas/rask")
+                                .Attributes(("target", "_blank"), ("rel", "noopener"))["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
                             Span.Class(Badge)[B[".NET 10"]],
@@ -383,14 +355,9 @@ public sealed partial class HomePage : Component
                         // "Docs", not "Open the live demo". The hero's CTA was renamed when calling the
                         // docs "the live demo" left the docs themselves with no name; this one was
                         // missed, so the same page called the same destination two different things.
-                        NavLink.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).ActiveClass("").Class(BtnPrimary)["Docs"],
-                        A
-                            .Class(BtnGhost)
-                            .Href("https://github.com/pal-tamas/rask")
-                            .Target("_blank")
-                            .Rel("noopener")[
-                            Ui.Icon.Name(Ui.IconName.Star).Class("size-4 shrink-0"), "Star on GitHub"
-                        ]
+                        Ui.Button.Primary.Href(PageMeta.LinkTo(Routes.GuidesIndexPage()))["Docs"],
+                        Ui.Button.Icon(Ui.IconName.Star).Href("https://github.com/pal-tamas/rask")
+                            .Attributes(("target", "_blank"), ("rel", "noopener"))["Star on GitHub"]
                     ],
                     // min-h-11 and gap-6 on the links, not just on the row. A 14px line of text is a
                     // 20px tap target, under the 24px WCAG 2.2 minimum and well under the 44px a thumb

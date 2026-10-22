@@ -13,7 +13,7 @@ public sealed partial class HomePage : Component
                 Ui.Navbar[Ui.NavbarItem.Href("https://rask.sh/docs")["Docs"]]
                 // rask:end
                 // rask:if cqrs data
-                Ui.Button.Primary.Sm.Href("/login")["Sign in"]
+                Ui.Button.Primary.Sm.Href(Routes.LoginPage())["Sign in"]
                 // rask:end
             ],
             Main.Class("flex grow flex-col items-center px-4 py-16 text-center")[

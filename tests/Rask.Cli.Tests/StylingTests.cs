@@ -128,8 +128,8 @@ public sealed class StylingTests
         var withAccounts = Generate(new ServerBatteries { Data = true })["Features/Home/HomePage.cs"];
         var without = Generate(new ServerBatteries { Data = false })["Features/Home/HomePage.cs"];
 
-        Assert.Contains("\"/login\"", withAccounts, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"/login\"", without, StringComparison.Ordinal);
+        Assert.Contains("Routes.LoginPage()", withAccounts, StringComparison.Ordinal);
+        Assert.DoesNotContain("LoginPage", without, StringComparison.Ordinal);
     }
 
     // Built in means built IN: the Tailwind compiler ships inside the host package, so a scaffolded
