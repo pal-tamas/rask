@@ -1237,6 +1237,13 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **The read face reads a collection of values through the converter the write side put on its element.** Before:
+  `builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>()` stored `["Fragile","Cold"]`,
+  and `Skid.Where(…).Select(s => s.Handling)` threw "Cannot get the value of a token type 'String' as a number"; an
+  app's own element converter (a sealed string) came back still sealed. After: the face mirrors the element's
+  converter, comparer, length and unicode, and the column's name and type, so the values read are the values
+  written and `Skid.Where(s => s.Handling.Contains(SkidHandling.Cold))` finds the row. A collection of value objects
+  is still one JSON column on both sides, under the write side's column name.
 - **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
   at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
   transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).

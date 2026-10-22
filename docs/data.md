@@ -417,6 +417,15 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
 
+A converter on the **element** is read back on the read face too — an enum list stored by name, or values the app
+stores its own way:
+
+```csharp
+builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>();   // ["Fragile","Cold"]
+
+await Skid.Where(s => s.Handling.Contains(SkidHandling.Cold));                         // the enum, not its name
+```
+
 Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
 searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
 
