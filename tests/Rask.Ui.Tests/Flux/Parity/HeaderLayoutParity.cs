@@ -5,7 +5,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// <summary><c>fluxui.dev/layouts/header</c>, demo for demo.</summary>
 /// <remarks>
 ///     What a header holds — the brand, the navbars, the profile — is other pages' to draw, so each is a
-///     box of the size Flux gave it. What is compared is the header, the phone's sidebar and the main.
+///     box of the size Flux gave it; the icon navbar is the real one, since its items' <c>label</c> is only
+///     written on these pages. What is compared is the header, the phone's sidebar and the main.
 /// </remarks>
 public sealed partial class HeaderLayoutParity : FluxLayoutParity
 {
@@ -44,7 +45,8 @@ public sealed partial class HeaderLayoutParity : FluxLayoutParity
         ]));
     }
 
-    // The toggle, the brand, the navbar, a spacer, the icon navbar and the account.
+    // The toggle, the brand, the navbar, a spacer, the icon navbar and the account. Flux's inset demo writes
+    // `mr-4` on the icon navbar where the others write `me-4`: the same margin on a left-to-right page.
     private static Component[] Contents(bool inset) =>
     [
         inset
@@ -53,7 +55,11 @@ public sealed partial class HeaderLayoutParity : FluxLayoutParity
         Div.Class("slot-brand max-lg:hidden"),
         Div.Class("slot-navbar max-lg:hidden"),
         Ui.Spacer,
-        Div.Class("slot-actions"),
+        Ui.Navbar.Class("me-4")[
+            Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search"),
+            Ui.NavbarItem.Class("max-lg:hidden").Icon(Ui.IconName.Cog6Tooth).Href("#").Label("Settings"),
+            Ui.NavbarItem.Class("max-lg:hidden").Icon(Ui.IconName.InformationCircle).Href("#").Label("Help")
+        ],
         Div.Class("flex").Data("ui-seam", "dropdown")[Div.Class("slot-profile")]
     ];
 

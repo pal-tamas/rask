@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Navbar.Scrollable()` and `Ui.NavbarItem.Label("Search")` — Flux's `scrollable` and `label`, which its layout
+  pages write.** Measured on Flux's demos: a scrollable navbar is `overflow-x: auto; overflow-y: hidden` and nothing
+  else (its items keep their width, no fade, no hidden scrollbar), so at 390 px the secondary header's tabs scroll
+  inside a 342 px row instead of widening the page. `label` is written on the link as Flux writes it — a `label`
+  attribute, with no `aria-label`, tooltip or hidden text. Before: `Div.Class("overflow-x-auto [scrollbar-width:none]")[Ui.Navbar.Class("w-max")[…]]`
+  and `Ui.NavbarItem.Icon(…)[Span.Class("sr-only")["Search"]]`. After: `Ui.Navbar.Scrollable()[…]` and
+  `Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search")`. An item that is only an icon is now
+  10 px either side of it (40 px wide), as Flux draws one; it was 12 px.
+
 - **`Current.Service<T>()` — the work's own service, with nothing injected.** Before: a component's constructor is the
   session's, so a handler that needed the event's `DbContext` opened a scope of its own per call
   (`await _work.Run(async (ShopDb db) => …)`). After: `var db = Current.Service<ShopDb>();` inside the handler is the
@@ -93,6 +102,13 @@ them until tagged releases begin.
   straight in print media: that table prints in 5.6 s instead of 22 s here (load 15 s → 0.4 s), a plain 5,000-row
   table in 1.5 s. Web fonts and CSS backgrounds the layout asks for are still waited for. See
   [PDF](docs/pdf.md#long-documents).
+- **An `[Authorize]` method that takes a read face compiles again.** `() => Remove(company)` with
+  `Remove(CompanyRead company)` wrote an interceptor naming the bare `CompanyRead` in Rask's own namespace — CS0246,
+  because no generator sees another's output. A Rask.Data read face is now named by its full name everywhere a
+  generated model already was — the interceptor, chain setters, routes, CQRS and API clients — and any other
+  generator's type is named inside the method's own lookup (its namespaces and using directives), so it resolves as
+  it does where it is written. A nullable parameter of such a type, which cannot be told from a nullable struct,
+  is RASK109 instead of uncompilable code.
 - **A prerendered WebAssembly app with no ICU bakes the dates and numbers its browser shows.** An English-only app
   ships no culture data, so the browser formats `"en"` with the invariant culture's (`03/14/2026`, `2026 March`),
   while the prerender used the publishing machine's real English (`3/14/2026`, `March 2026`) and the page changed

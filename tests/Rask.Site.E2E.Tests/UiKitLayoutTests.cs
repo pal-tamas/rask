@@ -94,6 +94,40 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task On_a_phone_the_secondary_headers_tabs_scroll_inside_their_row_and_the_page_stays_put() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            await Page.GotoAsync($"{BaseUrl}/demo/sidebar-with-header/");
+            await WaitForInteractiveAsync();
+
+            var tabs = Page.Locator("[data-ui-navbar]").Last;
+            await Expect(tabs).ToHaveCSSAsync("overflow-x", "auto", new LocatorAssertionsToHaveCSSOptions { Timeout = 15_000 });
+
+            var row = await tabs.EvaluateAsync<int[]>("n => [n.scrollWidth, n.clientWidth]");
+            Assert.True(row[0] > row[1], $"the tabs are {row[0]}px in a {row[1]}px row, so there was nothing to scroll.");
+            Assert.Equal(390, await Page.EvaluateAsync<int>("() => document.documentElement.scrollWidth"));
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Fact]
+    public Task The_headers_icon_only_items_carry_Fluxs_label_and_are_forty_pixels_wide() => RunAsync(async () =>
+    {
+        await Page.GotoAsync($"{BaseUrl}/demo/header/");
+        await WaitForInteractiveAsync();
+
+        var search = Page.Locator("[data-ui-navbar-items][label='Search']");
+
+        await Expect(search).ToHaveCountAsync(1, new LocatorAssertionsToHaveCountOptions { Timeout = 15_000 });
+        Assert.Equal(40, (int)Math.Round((await search.BoundingBoxAsync())!.Width));
+    });
+
+    [Fact]
     public Task The_sidebar_slid_over_a_phone_is_put_away_when_the_reader_goes_somewhere() => RunAsync(async () =>
     {
         // Opened at a desktop width, where the sidebar is docked and its links can be pressed; then a phone's.

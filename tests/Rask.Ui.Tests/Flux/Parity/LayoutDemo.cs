@@ -35,13 +35,12 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
         // Flux: in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2
         + "[data-ui-sidebar]:not(:has(> [data-ui-sidebar-rail]:checked)) .docked\\:-mr-2{margin-right:-.5rem}}"
         + "@media (max-width:63.99rem){.max-lg\\:hidden{display:none!important}}"
-        // Slots: a brand, the two navbars of the header demos, a profile, the greeting.
+        // Slots: a brand, the header demos' main navbar, a profile, the greeting.
         + ".slot-brand{width:98.9px;height:40px;margin-right:16px;flex-shrink:0}"
         + ".slot-navbar{width:585.9px;height:56px;margin-bottom:-1px;flex-shrink:0}"
-        + ".slot-actions{width:40px;height:56px;margin-right:16px;flex-shrink:0}"
-        + "@media (min-width:64rem){.slot-actions{width:124px}}"
+        + ".me-4{margin-inline-end:1rem}"
         + ".slot-profile{width:72px;height:40px}.slot-heading{height:32px}.slot-text{height:24px;margin:8px 0 24px}"
-        + ".slot-separator{height:1px;width:100%}.slot-tabs{height:56px}.slot-bar{height:64px;width:100%}"
+        + ".slot-separator{height:1px;width:100%}.slot-bar{height:64px;width:100%}"
         + ".slot-navlist{height:336px}@media (min-width:64rem){.slot-navlist{height:272px}}"
         // The secondary sidebar's own row, written by the demo beside its navlist.
         + ".demo-row{display:flex;align-items:flex-start}.demo-side{width:100%;padding-bottom:16px;margin-inline-end:40px}"

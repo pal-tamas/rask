@@ -733,13 +733,17 @@ internal static partial class UiApi
 
     public static IReadOnlyList<UiApiPart> Navbar { get; } =
     [
-        new("Ui.Navbar", typeof(UiNavbar), "flux:navbar", "A <nav> of links in a row, across a header.", []),
+        new("Ui.Navbar", typeof(UiNavbar), "flux:navbar", "A <nav> of links in a row, across a header.",
+        [
+            new("Scrollable", typeof(bool?), "Scrolls the row sideways when its items are wider than it, instead of pushing the page wider."),
+        ]),
         new("Ui.NavbarItem", typeof(UiNavbarItem), "flux:navbar.item", "One link. Its children are its words.",
         [
             new("Href", typeof(RouteUrl?), "Where it goes. Without one it is the <button> that opens a menu.", "a route, or a URL string"),
             new("Current", typeof(bool?), "Whether it is the page being shown. Worked out from a generated route when unset."),
             new("Icon", typeof(Ui.IconName?), "An icon before the words."),
             new("IconTrailing", typeof(Ui.IconName?), "An icon after the words: the chevron of an item that opens a menu."),
+            new("Label", typeof(string), "A word for an item that is only an icon. Written on the link as Flux writes it: a label attribute, no aria-label."),
             new("Badge", typeof(Component), "A count or a word after the words: \"12\", \"Pro\".", "a string, or a component"),
             new("BadgeColor", typeof(Ui.Color?), "The badge's colour. Zinc when unset.", Hue),
             new("BadgeVariant", typeof(Ui.NavBadgeVariant?), "How the badge is drawn."),
