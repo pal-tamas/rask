@@ -33,6 +33,7 @@ public partial class HookBundleContractTests
         ["data-rask-open-mark"] = "on a popover, which is what loads the hooks",
         ["data-rask-place"] = "on a popover, which is what loads the hooks",
         ["data-rask-placed"] = "written by the place hook",
+        ["data-rask-modal-shown"] = "a field inside a lazy data-rask-modal dialog, which is what loads the hooks",
         ["data-rask-contextmenu"] = "the runtime's own right-click opener (rask-dom.ts); the place hook reads where it was pressed",
         ["data-rask-segment"] = "inside a data-rask-segments",
         ["data-rask-plot-area"] = "inside a data-rask-plot",
@@ -81,6 +82,7 @@ public partial class HookBundleContractTests
         ["data-rask-color-refuses"] = "on a data-rask-color",
         ["data-rask-calendar-part"] = "inside a data-rask-calendar",
         ["data-rask-calendar-range"] = "on a preset row inside a data-rask-calendar",
+        ["data-rask-loading"] = "the runtime's own loading mark (rask-loading.ts); the skeleton hook reads it on a control by a data-rask-skeleton",
     };
 
     [Fact]

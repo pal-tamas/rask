@@ -29,6 +29,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Query.Tests"/>
+    <!-- Ui.Table.Of(query) reads a query's progress whatever its result type (IQueryState). -->
+    <InternalsVisibleTo Include="Rask.Ui"/>
+    <InternalsVisibleTo Include="Rask.Ui.Tests"/>
     <!-- The server host drops a session's cached reads when its user or tenant changes (SessionQueryClient.Forget). -->
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>

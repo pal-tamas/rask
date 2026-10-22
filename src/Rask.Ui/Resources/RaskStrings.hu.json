@@ -114,7 +114,6 @@
 
   "CommandEmpty": "Nincs találat",
 
-
   "FileItemRemove": "Fájl eltávolítása",
 
   "ColorPickerOpen": "Színválasztó megnyitása",
@@ -203,5 +202,14 @@
 
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",
-  "ConfirmNo": "Nem"
+  "ConfirmNo": "Nem",
+  "PdfPageNumber": "{0} / {1} oldal",
+
+  "TableEmpty": "Nincs találat.",
+
+  "Filters": "Szűrők",
+  "FiltersClear": "Szűrők törlése",
+  "FiltersClearAll": "Összes törlése",
+  "FiltersClose": "Bezárás",
+  "FilterRemove": "{0} szűrő törlése"
 }

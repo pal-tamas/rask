@@ -742,13 +742,47 @@
     - the pager right after something that holds the table: the scroll area (`Ui.Table.Paginate(…)`) or the
       table's box (a `Ui.Pagination` placed after the table);
     - the table itself, for a page that knows better than the kit when its rows are stale: `.Data("loading", "")`.
+
+  A table drawn from a query (`Ui.Table.Of(query)`, `data-rask-skeleton` on its box) does not dim: it shows skeleton
+  rows instead, below.
 */
 @layer rask {
-  [data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],
-  :is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows] {
+  :is([data-ui-table]:is([data-loading], :has([data-ui-column][data-loading])) [data-ui-rows],
+  :is(:has(> [data-ui-table]), :has(> * > [data-ui-table])):has(+ [data-ui-pagination][data-loading]) [data-ui-rows]):not([data-rask-skeleton] *) {
     opacity: 0.5;
     transition: opacity var(--default-transition-duration, 150ms)
       var(--default-transition-timing-function, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+}
+
+/*
+  A TABLE DRAWN FROM A QUERY SHOWS SKELETON ROWS WHILE THE NEXT ONES LOAD (Ui.Table.Of(query); owner, 2026-10-21).
+
+  Not Flux's: Flux documents no loading treatment for a table. The owner's rule is that the headings stay and a
+  skeleton of exactly the size of what was there appears at once, so nothing under the table moves.
+
+  The rows stay where they are and draw a bar in place of what each cell holds: the same row count and the same
+  heights, because they ARE the rows. The bar is the kit's skeleton line (`Ui.SkeletonLine`: 14px, bg-zinc-400/20)
+  across the cell's content box, so a cell's own padding is kept. Two marks ask for it:
+    - `data-skeleton`, written by the runtime (rask-skeleton.ts) at the press that asks for other rows, until the
+      render answering it is on the page;
+    - `data-rask-skeleton="loading"`, written by the render while the query has no rows of its own on screen (its
+      previous page, kept with KeepPreviousData).
+  A cell that is a skeleton already — the first load's rows — is left as it is.
+*/
+@layer rask {
+  [data-rask-skeleton]:is([data-skeleton], [data-rask-skeleton="loading"]) [data-ui-rows] > tr > td:not(:has([data-ui-skeleton-line])) {
+    color: transparent;
+    background-image: linear-gradient(color-mix(in oklab, var(--color-zinc-400) 20%, transparent) 0 0);
+    background-origin: content-box;
+    background-clip: content-box;
+    background-position: center;
+    background-size: 100% 0.875rem;
+    background-repeat: no-repeat;
+
+    & > * {
+      visibility: hidden;
+    }
   }
 }
 
@@ -2073,6 +2107,97 @@
   @media (width < 40rem) {
     :root:has([data-ui-color-picker] > dialog[open]) {
       overflow: hidden;
+    }
+  }
+}
+
+/*
+  ON PAPER — a departure from Flux, which prints its screen (owner, 2026-10-21; flux-component's list).
+
+  A printed page is read, not used: the controls and the app's chrome print as nothing, the main area loses its
+  screen padding, a table runs on across pages whole, and an accordion prints open. Rask.Pdf prints with these, and
+  so does a reader's own Ctrl+P. An app hides its own parts with Tailwind's `print:hidden`.
+
+  EVERY RULE IS INSIDE `@media print`, so none of it reaches a screen (UiPrintTests reads the compiled sheet for it).
+  In `rask-ui-corrections` because what they undo is mostly utilities — a button's `inline-flex`, a cell's
+  `whitespace-nowrap`, the inset panel's `lg:overflow-y-auto` — and only the last layer outranks `utilities`. An
+  app that wants a kit control on paper says so with an important utility: `print:inline-flex!`.
+*/
+@layer rask-ui-corrections {
+  @media print {
+    [data-ui-button],
+    [data-ui-badge-close],
+    [data-ui-pagination],
+    [data-ui-sidebar],
+    [data-ui-sidebar-toggle],
+    [data-ui-sidebar-backdrop],
+    [data-ui-header],
+    [data-ui-toast],
+    [data-ui-toast-group],
+    [data-ui-tooltip-content],
+    [data-ui-menu],
+    [data-ui-popover],
+    [data-ui-accordion-heading] > [data-ui-icon] {
+      display: none;
+    }
+
+    [data-ui-modal]::backdrop {
+      background: none;
+    }
+
+    /* The layout grid stops at the page: no viewport height to hold the inset panel to, no panel to scroll. */
+    :has(> [data-ui-main]) {
+      display: block;
+      height: auto;
+    }
+
+    [data-ui-main] {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    /* A table runs on: its frame scrolls nothing, its text wraps, its heading opens every page, no row is cut. */
+    :has(> [data-ui-table]) {
+      overflow: visible;
+    }
+
+    [data-ui-table],
+    [data-ui-table] :is(th, td, .truncate) {
+      white-space: normal;
+      overflow-wrap: break-word;
+    }
+
+    /* Columns sized by what they hold, so a short amount is not wrapped to fit an equal share of the page. */
+    [data-ui-table] {
+      table-layout: auto;
+    }
+
+    [data-ui-table] .truncate {
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    [data-ui-table] > thead {
+      display: table-header-group;
+    }
+
+    [data-ui-table] tr {
+      break-inside: avoid;
+    }
+
+    /* An accordion prints open: a closed item's content is in the document, held out of rendering by its box. */
+    [data-ui-accordion-item]::details-content {
+      height: auto;
+      overflow: visible;
+      content-visibility: visible;
+    }
+
+    [data-ui-accordion-content] {
+      overflow: visible;
     }
   }
 }

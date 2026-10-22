@@ -581,4 +581,28 @@ public enum RaskString
 
     /// <summary>The button of the confirm dialog that calls the action off.</summary>
     ConfirmNo,
+
+    /// <summary>
+    ///     A printed PDF's page number, at the foot of every page: <c>{0}</c> is the page, <c>{1}</c> how many
+    ///     there are.
+    /// </summary>
+    PdfPageNumber,
+
+    /// <summary>What a table drawn from a query (<c>Ui.Table.Of(query)</c>) says in its one row when the query found nothing.</summary>
+    TableEmpty,
+
+    /// <summary>The button that opens a filter set's panel, and the panel's heading.</summary>
+    Filters,
+
+    /// <summary>The filter panel's button that takes every filter off.</summary>
+    FiltersClear,
+
+    /// <summary>The button beside a filter set's badges that takes every filter off.</summary>
+    FiltersClearAll,
+
+    /// <summary>The filter panel's button that closes it.</summary>
+    FiltersClose,
+
+    /// <summary>The accessible name of a filter badge's remove button. <c>{0}</c> is the filter's label.</summary>
+    FilterRemove,
 }

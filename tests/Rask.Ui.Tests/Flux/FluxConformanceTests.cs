@@ -233,6 +233,17 @@ public sealed class FluxConformanceTests
     {
         [typeof(UiConfirmLeave)] = "the owner, 2026-10-13",
         [typeof(UiConfirm)] = "the owner, 2026-10-21",
+        [typeof(UiFilters)] = "the owner, 2026-10-21: a list's filters kept in the address, in a lazy flyout, with badges (TA gap B6)",
+        [typeof(UiFilter)] = "the owner, 2026-10-21: the filter a UiFilters cannot read from a control by itself",
+    };
+
+    /// <summary>
+    ///     <c>part/Member</c>: what a Flux part carries that Flux does not, kept because the owner said so, with the day
+    ///     they did. A method, which <see cref="A_built_component_carries_nothing_Flux_does_not_document" /> does not see.
+    /// </summary>
+    private static readonly Dictionary<string, string> ApprovedMembers = new(StringComparer.Ordinal)
+    {
+        ["flux:table/Of"] = "the owner, 2026-10-21: a table drawn from a Rask.Query query, skeleton rows of the rows' own size while it loads",
     };
 
     /// <summary>
@@ -413,6 +424,8 @@ public sealed class FluxConformanceTests
         ["flux:modal/Open"] = "`wire:model`: the page's own bool, which the runtime shows and closes the dialog by (data-rask-modal-open)",
         ["flux:modal/OnClose"] = "the `close` event (`@close`)",
         ["flux:modal/OnCancel"] = "the `cancel` event (`@cancel`)",
+        ["flux:modal/Lazy"] = "nothing of Flux's: an owner-approved departure (2026-10-21) — what it holds travels only while it is open, "
+                              + "where Flux renders it always; off unless asked, and always on for Ui.Filters' flyout",
         ["flux:chart.axis.grid/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.grid/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.zero-line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
@@ -686,6 +699,16 @@ public sealed class FluxConformanceTests
             "Rask.Ui holds only Flux UI's components. Map these in `Built`, or delete them:\n  " + string.Join("\n  ", unnamed));
         Assert.True(twice.Count == 0, "Named in more than one list:\n  " + string.Join("\n  ", twice));
         Assert.True(NotFluxYet.Count <= NotFluxYetCeiling, $"`NotFluxYet` only shrinks: {NotFluxYet.Count} entries over a ceiling of {NotFluxYetCeiling}.");
+    }
+
+    [Fact]
+    public void Every_member_the_owner_approved_is_one_its_part_carries()
+    {
+        var gone = ApprovedMembers.Keys
+            .Where(entry => entry.Split('/') is [var part, var member] && Built[part].GetMember(member, Public).Length == 0)
+            .ToList();
+
+        Assert.True(gone.Count == 0, "`ApprovedMembers` names these, and the part no longer carries them. Delete the row:\n  " + string.Join("\n  ", gone));
     }
 
     [Fact]

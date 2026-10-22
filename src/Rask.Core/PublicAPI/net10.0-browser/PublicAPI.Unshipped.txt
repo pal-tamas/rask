@@ -3927,6 +3927,13 @@ Rask.Core.Globalization.RaskString.PageForbidden = 179 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.ConfirmHeading = 180 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmYes = 181 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmNo = 182 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.PdfPageNumber = 183 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.TableEmpty = 184 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.Filters = 185 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FiltersClear = 186 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FiltersClearAll = 187 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FiltersClose = 188 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRemove = 189 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionStillTrying = 170 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConnectionUpdating = 173 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatePickerCancel = 19 -> Rask.Core.Globalization.RaskString
@@ -17411,6 +17418,8 @@ Rask.Core.Callback<T>.Callback(System.Func<T, System.Threading.Tasks.ValueTask>!
 static Rask.Core.AutoCallback.Wrap(System.Func<System.Threading.Tasks.ValueTask>? d) -> System.Func<System.Threading.Tasks.ValueTask>?
 static Rask.Core.AutoCallback.Wrap<T1, T2>(System.Func<T1, T2, System.Threading.Tasks.ValueTask>? d) -> System.Func<T1, T2, System.Threading.Tasks.ValueTask>?
 static Rask.Core.AutoCallback.Wrap<T>(System.Func<T, System.Threading.Tasks.ValueTask>? d) -> System.Func<T, System.Threading.Tasks.ValueTask>?
+static Rask.Core.BuilderRuntime.CopyClass(Rask.Core.Component! from, Rask.Core.Component! to, ulong bit, string? before, string? value) -> string?
+static Rask.Core.BuilderRuntime.JoinClass(Rask.Core.Component! target, ulong bit, string? current, string? value) -> string?
 static Rask.Core.BuilderRuntime.JoinClasses(System.ReadOnlySpan<string?> parts) -> string?
 static RaskBuilderSettersRask_Core.AfterBind<T>(this Rask.Core.HTMLInputElement<T>! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.AfterBind<T>(this Rask.Core.HTMLInputElement<T>! __b, System.Func<T, System.Threading.Tasks.ValueTask>? value) -> Rask.Core.HTMLInputElement<T>!

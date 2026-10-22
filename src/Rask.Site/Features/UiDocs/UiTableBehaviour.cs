@@ -10,6 +10,7 @@ internal sealed partial class UiTableBehaviour : Component
     protected override Component? Render() =>
         UiDocsBehaviour[
             Sorting(),
+            Skeleton(),
             Waiting(),
             Steady(),
             Sticky(),
@@ -25,6 +26,22 @@ internal sealed partial class UiTableBehaviour : Component
             + "page sets in answer.",
             "`Strong` and `Desc` are also HTML tags, and a tag's entry hides a step of the same name: those two values "
             + "are passed as `Variant(Ui.TableCellVariant.Strong)` and `Direction(Ui.TableColumnDirection.Desc)`.",
+        ]);
+
+    private static UiDocsTopic Skeleton() =>
+        UiDocsTopic.Key("skeleton").Heading("A table drawn from a query shows skeleton rows").Paragraphs([
+            "`Ui.Table.Of(orders)` draws the table from a `Rask.Query` query, and the rows stay yours, built from "
+            + "`orders.Data`. While it first loads, the headings are there and a skeleton row stands for every row the "
+            + "pager says the page holds, each a real row's height. When it found nothing, one row says so "
+            + "(`TableEmpty` in the catalog: \"No results.\").",
+            "Every later load (a page, a sort, a filter, a tab) shows the skeleton at the press, in the browser, with "
+            + "no round trip and no wait: the rows on screen keep their places and their heights and draw a bar in "
+            + "place of what they hold, so nothing under the table moves. The new rows take the skeleton's place in "
+            + "one step once the page has answered. A pager link and a pager button do the same.",
+            "What asks for it: the pager and a sortable heading, a tab above the table, and any control that names the "
+            + "table, `.Aria(\"controls\", \"orders\")` beside `Ui.Table.Id(\"orders\")`: a filter field, a Reload "
+            + "button. A button inside a row never does. Not Flux's: an addition the owner approved, 2026-10-21. A "
+            + "table without `Of` keeps the dimming below.",
         ]);
 
     private static Component Waiting() =>

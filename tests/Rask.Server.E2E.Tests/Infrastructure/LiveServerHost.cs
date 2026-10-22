@@ -47,7 +47,8 @@ internal sealed class LiveServerHost : IAsyncDisposable
         bool blockWebSockets, bool staticFiles = false, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
         string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
-        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null)
+        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null,
+        Action<IServiceCollection>? services = null)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -65,6 +66,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
             o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
             server?.Invoke(o);
         }, cultures);
+        services?.Invoke(builder.Services);
 
         if (cookieSignIn)
         {

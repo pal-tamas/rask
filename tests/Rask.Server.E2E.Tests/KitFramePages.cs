@@ -187,6 +187,11 @@ public sealed partial class KitOverlayFramePage : KitFramePage
             Part("modal-flyout",
                 Ui.ModalTrigger.Name("fly")[Ui.Button.Id("flyout-open")["Open flyout"]],
                 Ui.Modal.Key("fly").Name("fly").Flyout()[Ui.Heading["Filters"], Ui.Button["Apply"]]),
+            Part("modal-lazy",
+                Ui.ModalTrigger.Name("lazy")[Ui.Button.Id("lazy-open")["Edit later"]],
+                Ui.Modal.Key("lazy").Name("lazy").Lazy()[
+                    Ui.Heading["Update profile"], Ui.Input.Value("Ada").Id("lazy-name"), Ui.ModalClose[Ui.Button.Id("lazy-cancel")["Cancel"]]
+                ]),
             Part("modal-state",
                 Ui.Button.Id("state-open").OnClick(() => { _confirming = true; })["Delete order"],
                 Ui.Modal.Key("state").Open(_confirming).OnClose(() => { _confirming = false; })[

@@ -34,7 +34,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [InlineData("context", "Context menu", "ui-context-menu")]
     [InlineData("command", "Command palette", "ui-command|ui-command-modal")]
     [InlineData("popover", "Popover", "ui-popover-intro|ui-popover-hover|ui-popover-position|ui-popover-gap|ui-popover-categories|ui-popover-feedback|ui-popover-event")]
-    [InlineData("modal", "Modal", "ui-modal|ui-modal-state|ui-modal-dismissible|ui-modal-escapable|ui-modal-scroll|ui-modal-confirm|ui-modal-flyout|ui-modal-flyout-position|ui-modal-floating")]
+    [InlineData("modal", "Modal", "ui-modal|ui-modal-state|ui-modal-dismissible|ui-modal-escapable|ui-modal-scroll|ui-modal-confirm|ui-modal-flyout|ui-modal-flyout-position|ui-modal-floating|ui-modal-lazy")]
     public Task Every_action_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
         await OpenUiPageAsync(slug, heading);

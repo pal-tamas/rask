@@ -44,6 +44,10 @@ interface Seam {
     told?: WeakMap<Element, string>;
     /** Ends the pause a field is counting: its handler hears the field now (`now`), or nothing. Set by rask-input.ts. */
     hear?: (el: Element, now: boolean) => void;
+    /** How many events and navigations the page is waiting on the answer of (`awaiting`). */
+    waits?: number;
+    /** What runs each time the last of them is answered (`whenQuiet`). */
+    quiet?: (() => void)[];
 }
 
 /**
@@ -77,6 +81,7 @@ seam.said ||= new WeakMap<Element, Word>();
 seam.waiting ||= new Set<Element>();
 seam.ours ||= new WeakMap<Element, Ours>();
 seam.told ||= new WeakMap<Element, string>();
+seam.quiet ||= [];
 
 const owned = seam.owned;
 
@@ -178,6 +183,37 @@ export function tell<T>(el: Element, name: string, send: () => T): T {
     let answer: T;
     unasked(function () { answer = send(); });
     return answer!;
+}
+
+// ----- What the page is waiting on --------------------------------------------------------------------
+//
+// A hook that shows something the moment the reader asks — a table's skeleton rows (rask-skeleton.ts) — takes
+// it away when the page has answered, and only the hosts know when that is: the Server host when the render
+// acking a seq, or the navigation's, is on the page; the WASM host when a dispatch's promise and its reads have
+// settled. Each host says so here, the same way, for every handler event and every navigation it sends.
+
+/** The page now waits on one more answer. Call what this returns once the render that answers it is on the page. */
+export function awaiting(): () => void {
+    seam.waits = (seam.waits || 0) + 1;
+    let done = false;
+    return function () {
+        if (done) return;
+        done = true;
+        seam.waits = Math.max(0, (seam.waits || 1) - 1);
+        if (seam.waits === 0) {
+            for (const heard of seam.quiet!) heard();
+        }
+    };
+}
+
+/** Whether an event or a navigation the page sent is still unanswered. */
+export function isAwaiting(): boolean {
+    return !!seam.waits;
+}
+
+/** Runs `heard` every time the page stops waiting on anything. */
+export function whenQuiet(heard: () => void): void {
+    seam.quiet!.push(heard);
 }
 
 // ----- Shared helpers ---------------------------------------------------------------------------------

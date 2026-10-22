@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Rask.UiTests.Components;
 
 /// <summary><c>UiDateRange</c> — Flux UI's <c>DateRange</c>: what a range holds and what each preset means.</summary>
@@ -74,5 +76,52 @@ public class UiDateRangeTests
         Assert.Equal(Jan(11), sunday.Start);
         Assert.Equal(Jan(12), monday.Start);
         Assert.Equal(Jan(18), monday.End);
+    }
+
+    [Fact]
+    public void A_range_is_written_for_an_address_as_its_two_days()
+    {
+        var range = new UiDateRange(Jan(10), Jan(13));
+
+        var written = range.ToString();
+
+        Assert.Equal("2026-01-10..2026-01-13", written);
+        Assert.Equal(string.Empty, default(UiDateRange).ToString());
+    }
+
+    [Fact]
+    public void A_range_read_back_from_what_it_wrote_is_the_same_range_preset_and_all()
+    {
+        var picked = new UiDateRange(Jan(10), Jan(13));
+        var preset = UiDateRange.Of(Ui.DateRangePreset.Last7Days, Today);
+
+        var read = (UiDateRange.Parse(picked.ToString(), null), UiDateRange.Parse(preset.ToString(), null));
+
+        Assert.Equal((picked, preset), read);
+        Assert.Equal("2026-01-09..2026-01-15~last7Days", preset.ToString());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("2026-01-10")]
+    [InlineData("2026-01-10..")]
+    [InlineData("2026-13-10..2026-01-13")]
+    [InlineData("2026-01-10..2026-01-13~nextCentury")]
+    [InlineData("tomorrow")]
+    public void Text_that_is_no_range_reads_as_none(string text)
+    {
+        var read = UiDateRange.TryParse(text, null, out var range);
+
+        Assert.False(read);
+        Assert.Equal(default, range);
+        Assert.Throws<FormatException>(() => UiDateRange.Parse(text, null));
+    }
+
+    [Fact]
+    public void Two_days_written_backwards_read_as_the_range_between_them()
+    {
+        var read = UiDateRange.Parse("2026-01-13..2026-01-10", CultureInfo.InvariantCulture);
+
+        Assert.Equal(new UiDateRange(Jan(10), Jan(13)), read);
     }
 }

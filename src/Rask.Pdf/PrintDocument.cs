@@ -7,6 +7,9 @@ namespace Rask.Printing;
 /// <param name="Assets">The app's static files; null serves nothing but the document.</param>
 internal sealed record PrintDocument(string Html, string Path, PdfOptions Options, IPrintAssets? Assets = null)
 {
+    /// <summary>The foot's page numbers as HTML, in the caller's language; the English unless set.</summary>
+    public string PageNumbers { get; init; } = PageNumberFoot.EnglishHtml;
+
     /// <summary>A bare HTML document with nothing to load beside it.</summary>
     public static PrintDocument Of(string html, PdfOptions? options = null) => new(html, "/", options ?? new PdfOptions());
 }

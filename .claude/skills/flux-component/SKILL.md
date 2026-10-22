@@ -76,6 +76,18 @@ departure in behaviour carries none.
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
   scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets
   `position` go on that node only (`DEPARTED`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
+- **2026-10-21 — `Ui.Modal.Lazy()`.** Flux renders a modal's content always. A lazy modal sends it only while it is
+  open: closed, the dialog, its id, marks, focus placeholder and close button; the trigger opens it in the browser,
+  `rask-overlay.ts` reports the opening through the shell's `data-rask-modal-shown` field, and one frame brings the
+  content. Off unless asked (ConfirmLeave and ⌘K must open with no server); always on for `Ui.Filters`' flyout. Look
+  unchanged. `FluxConformanceTests.Translations` row `flux:modal/Lazy`, `LazyModalFramesTests`, the `modal-lazy` frame
+  rows. `Ui.Filters` / `Ui.Filter` themselves are owner-approved non-Flux components (`FluxConformanceTests.Approved`).
+- **2026-10-21 — print defaults (`@media print` in `Styles/ui.css`, the last block).** Flux prints its screen. The
+  kit leaves off `Ui.Button` (every variant), a badge's ×, `Ui.Pagination`, `Ui.Sidebar` (+ toggle, backdrop),
+  `Ui.Header`, toasts, tooltips, menu/popover panels and a modal's backdrop; `Ui.Main` loses its padding and scroll;
+  `Ui.Table` wraps its cells, lets its frame run on, repeats `thead` and keeps a row on one page; `Ui.Accordion`
+  prints open with no chevron. Reason: Rask.Pdf (Eszaf's reports) prints app pages. Print media only, so parity
+  (screen) is untouched; an app hides its own parts with `print:hidden`. `UiPrintTests` holds every rule to print.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

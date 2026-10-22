@@ -22,6 +22,10 @@ namespace Rask;
 ///     What Flux does in script the dialog asks the runtime for: <c>data-rask-modal</c> says which of Escape
 ///     and a press outside dismiss it, and <c>data-rask-lock="scroll"</c> holds the page still behind it.
 ///     </para>
+///     <para>
+///     <see cref="Lazy" /> is not Flux's: the content travels only while the modal is open. The browser still opens
+///     it, and a field of its own tells the page so (<c>data-rask-modal-shown</c>).
+///     </para>
 /// </remarks>
 public sealed partial class UiModal : Component
 {
@@ -52,6 +56,12 @@ public sealed partial class UiModal : Component
     private const string Bare = "m-auto border-0 bg-transparent p-0 text-inherit";
 
     private readonly int _instance = UiInstanceCounter.Next();
+
+    // Whether the browser has a lazy modal open, as its field last said.
+    private bool _shown;
+
+    // Who hears a lazy modal open: a filter set's OnOpen, provided under the modal's name.
+    private UiModalOpening? _opening;
 
     /// <summary>What a <see cref="UiModalTrigger" /> opens it by. Unique on the page: it is the dialog's id.</summary>
     public string? Name { get; set; }
@@ -86,6 +96,17 @@ public sealed partial class UiModal : Component
     /// </summary>
     public bool? Open { get; set; }
 
+    /// <summary>
+    ///     Sends what it holds only while it is open. Closed, it is the dialog alone; its trigger opens it in the
+    ///     browser as ever, and what it holds arrives in the one frame that answers the opening. Not Flux's: the owner's
+    ///     choice (2026-10-21), for a panel of fields a page should not send to every reader who never opens it.
+    /// </summary>
+    /// <remarks>
+    ///     Off by default, because a modal that opens with no server at all — <c>Ui.ConfirmLeave</c>, a ⌘K palette —
+    ///     has to hold its content before anyone asks. With <see cref="Open" /> set, it holds it exactly while Open is true.
+    /// </remarks>
+    public bool? Lazy { get; set; }
+
     /// <summary>Runs when it closes, by any means. On the state-driven path this is where the page stops rendering it open.</summary>
     public Callback OnClose { get; set; }
 
@@ -100,6 +121,7 @@ public sealed partial class UiModal : Component
     {
         // The dialog's id: what its own buttons, and a trigger, name in their commands.
         var id = Name ?? "ui-modal-" + _instance.ToString(CultureInfo.InvariantCulture);
+        _opening = Lazy == true ? Context.Get<UiModalOpening>(id) : null;
         var dialog = Dialog.Id(id).Class(UiClass.Compose(Motion, Shape(), ScrollsBody ? null : Class)).Data(Marks(id));
 
         if (OnClose.HasValue)
@@ -113,7 +135,42 @@ public sealed partial class UiModal : Component
             dialog = dialog.OnCancel(OnCancel);
         }
 
-        return Div.Class("inline").Data(Marker.With(null))[dialog[Body(id)]];
+        return Div.Class("inline").Data(Marker.With(null))[dialog[Shown(), Body(id)]];
+    }
+
+    // What it holds is a field the render cache cannot see, for a lazy one.
+    /// <inheritdoc />
+    protected override bool BypassRenderCache => Lazy == true;
+
+    // Lazy, it holds its content while it is open: as the page says, or as the browser last told it.
+    private bool Holds => Lazy != true || (Open ?? (Name is null || _shown));
+
+    // A lazy modal its triggers open: the field the browser says it opened or closed through (rask-overlay.ts).
+    private HTMLInputElement<string>? Shown()
+    {
+        if (Lazy != true || Open is not null || Name is null)
+        {
+            return null;
+        }
+
+        return Input.Value(_shown ? "true" : "false").Type(InputType.Hidden).Data("rask-modal-shown", "").OnChange(ToggledAsync);
+    }
+
+    private async Task ToggledAsync(string value)
+    {
+        var shown = string.Equals(value, "true", StringComparison.Ordinal);
+        if (shown == _shown)
+        {
+            return;
+        }
+
+        _shown = shown;
+        if (shown && _opening is { } opening)
+        {
+            await opening.Opened.Invoke().ConfigureAwait(false);
+        }
+
+        await StateHasChangedAsync().ConfigureAwait(false);
     }
 
     private bool IsFlyout => Flyout == true || Variant == Ui.ModalVariant.Flyout;
@@ -155,7 +212,7 @@ public sealed partial class UiModal : Component
     // Flux's order: the focus placeholder, the content, the close button in the corner.
     private Component Body(string id)
     {
-        Component content = Context.Provide(new UiModalScope(id))[Children ?? []];
+        Component? content = Holds ? Context.Provide(new UiModalScope(id))[Children ?? []] : null;
 
         if (IsBare)
         {

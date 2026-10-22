@@ -8,7 +8,10 @@
 //
 //   node scripts/flux/date-flip.mjs [--rask <url> [--picker <css>]] [--view 1440x950] [--bottom 616]
 //
-// `--rask` measures a running Rask page the same way (its first `[data-ui-date-picker]`, or `--picker`).
+// `--rask` measures a running Rask page the same way (its first `[data-ui-date-picker]`, or `--picker`) beside
+// Flux's button picker, and compares the side of every step. The steps that page the OPEN calendar are DEPARTED
+// (flux-component SKILL.md, 2026-10-21): the kit keeps the side it opened on where Flux turns it over, so there
+// Rask must be on the side it opened on. Every other step must be on Flux's side. Exits 1 on a difference.
 
 import { chromium } from './lib.mjs';
 
@@ -17,13 +20,12 @@ const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name
 const views = option('view') ? [option('view').split('x').map(Number)] : [[1440, 950], [1400, 900]];
 const bottom = Number(option('bottom') ?? 616);
 
+// The first picker of the page whose trigger is a button, opened on no value, and the typed one.
+const fluxButton = { name: 'flux button', url: 'https://fluxui.dev/components/date-picker', picker: '[data-preview-wrapper] [data-flux-date-picker]', index: 9 };
 const sides = option('rask')
-  ? [{ name: 'rask', url: option('rask'), picker: option('picker') ?? '[data-ui-date-picker]', index: 0 }]
-  : [
-    // The first picker of the page whose trigger is a button, opened on no value, and the typed one.
-    { name: 'flux button', url: 'https://fluxui.dev/components/date-picker', picker: '[data-preview-wrapper] [data-flux-date-picker]', index: 9 },
-    { name: 'flux input', url: 'https://fluxui.dev/components/date-picker', picker: '[data-preview-wrapper] [data-flux-date-picker]', index: 1 },
-  ];
+  ? [fluxButton, { name: 'rask', url: option('rask'), picker: option('picker') ?? '[data-ui-date-picker]', index: 0 }]
+  : [fluxButton, { name: 'flux input', url: 'https://fluxui.dev/components/date-picker', picker: '[data-preview-wrapper] [data-flux-date-picker]', index: 1 }];
+const sidesOf = {};
 
 const browser = await chromium().launch();
 for (const side of sides) {
@@ -35,9 +37,9 @@ for (const side of sides) {
     await page.goto(side.url, { waitUntil: 'networkidle', timeout: 120000 });
     await page.evaluate(() => document.fonts.ready);
     console.log(`\n${side.name} at ${width}x${height}, the trigger's bottom at ${bottom}`);
-    const rows = [];
-    const note = async step => {
-      const at = await page.evaluate(read, side);
+    const rows = sidesOf[`${side.name} ${width}x${height}`] = [];
+    const note = async (step, paged = false) => {
+      const at = { ...await page.evaluate(read, side), step, paged };
       rows.push(at);
       console.log(`  ${step.padEnd(34)} ${at.month.padEnd(16)} ${at.weeks} weeks  trigger ${at.trigger}  popup ${at.open ? `${at.side} top ${at.top} bottom ${at.bottom}` : 'closed'}`);
     };
@@ -53,7 +55,7 @@ for (const side of sides) {
     for (const step of ['previous', 'previous', 'previous', 'next', 'next', 'next']) {
       await pager(page, step).click();
       await settle(page);
-      await note(`${step} month`);
+      await note(`${step} month`, true);
     }
 
     // Back on a six-week month: what makes it choose again.
@@ -62,11 +64,11 @@ for (const side of sides) {
       await settle(page);
     }
 
-    await note('previous ×2 (back to six weeks)');
-    await page.mouse.wheel(0, 1);
+    await note('previous ×2 (back to six weeks)', true);
+    await page.evaluate(() => window.scrollBy(0, 1));
     await settle(page);
     await note('scrolled the page by 1 px');
-    await page.mouse.wheel(0, -1);
+    await page.evaluate(() => window.scrollBy(0, -1));
     await settle(page);
     await note('scrolled back');
     await page.setViewportSize({ width, height: height + 1 });
@@ -84,6 +86,25 @@ for (const side of sides) {
 }
 
 await browser.close();
+
+if (option('rask')) {
+  let failed = 0;
+  console.log('\nrask against flux');
+  for (const [width, height] of views) {
+    const flux = sidesOf[`flux button ${width}x${height}`];
+    const rask = sidesOf[`rask ${width}x${height}`];
+    flux.forEach((theirs, i) => {
+      const mine = rask[i];
+      // Paged while open: the side it opened on (DEPARTED); anything else chooses afresh, as Flux's does.
+      const wanted = theirs.paged ? rask[0].side : theirs.side;
+      const ok = mine?.side === wanted;
+      failed += ok ? 0 : 1;
+      const tag = !ok ? 'FAIL' : theirs.paged && wanted !== theirs.side ? 'DEPARTED' : 'ok';
+      console.log(`  ${tag.padEnd(8)} ${width}x${height} ${theirs.step.padEnd(34)} flux ${theirs.side ?? 'closed'}, rask ${mine?.side ?? 'closed'}`);
+    });
+  }
+  process.exit(failed ? 1 : 0);
+}
 
 function opener(page, side) {
   // The button that opens it: the trigger itself, or the one beside a typed field (Flux's is the chevron).

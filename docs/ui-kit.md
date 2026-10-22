@@ -475,6 +475,8 @@ native `<details>` whose heading opens it with a click, Enter or Space and no ha
 Every example, what the browser owns and the reference of its steps:
 **[rask.sh/ui/accordion](https://rask.sh/ui/accordion/)**.
 
+On paper it prints open: every item's content, closed ones included, with no chevron ([printing](#printing)).
+
 ## Icons
 
 `Ui.Icon` is [Flux's icon](https://fluxui.dev/components/icon): every [Heroicon](https://heroicons.com), under
@@ -541,6 +543,46 @@ page keeps the sorted column, its direction and the page number (`Sortable()`, `
 (`ContainerClass("min-w-0")` inside a grid or a flex row). Every example, the dimming marks, the steady-columns recipe,
 sticky parts, bleed, whose class wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
+
+**`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:
+an addition the owner approved, 2026-10-21). The headings never leave. The first load shows a skeleton row per row
+the pager says the page holds; every later one (a page, by button or by link, a sort, a filter, a tab) turns the rows
+on screen into skeleton rows AT THE PRESS, in the browser, at their own count and heights, and the new rows replace
+them in one step, so nothing under the table moves. A query that found nothing shows one row saying so (`TableEmpty`).
+
+```csharp
+var drivers = QueryClient.Query(QueryKey.Of("drivers"), () => (_page, _fuel), (asked, ct) => Drivers.Page(asked, ct));
+
+Ui.Table.Id("drivers").Of(drivers).Paginate(Ui.Pagination.Paginator(pager).OnPage(page => _page = page))[
+    Ui.TableColumns[Ui.TableColumn["Name"], Ui.TableColumn["Fuel"]],
+    Ui.TableRows[(drivers.Data ?? []).Select(d => Ui.TableRow.Key(d.Id)[Ui.TableCell[d.Name], Ui.TableCell[d.Fuel]])]
+]
+
+Button.Aria("controls", "drivers").OnClick(Reload)["Reload"]   // a control outside the table names it
+```
+
+The pager, a sortable heading, a tab above the table and a [`Ui.Filters`](#filters) before it ask for the skeleton by
+themselves — the filter set names the first `Ui.Table.Of(…)` after it, giving it an id if it has none. Any other control
+elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
+instead.
+
+## Printing
+
+The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.
+Inside `@media print` only, so nothing changes on screen, and the same for [Rask.Pdf](pdf.md) and a reader's own
+Ctrl+P:
+
+- **Left off:** every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` with its toggle and backdrop,
+  `Ui.Header`, toasts, tooltips, open dropdown and popover panels, and a modal's backdrop. `Ui.Main` drops its screen
+  padding, border and inner scroll.
+- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
+  run on, the heading repeats at the top of every page, and no row is split across two.
+- **`Ui.Accordion` prints open,** closed items included, with no chevron.
+
+```csharp
+Div.Class("print:hidden")[Ui.Callout["Only on screen."]]   // your own parts: Tailwind's print: variants
+Ui.Button.Class("print:inline-flex!")["Kept on paper"]      // a kit control you want printed: an important utility
+```
 
 ## Callouts
 
@@ -1087,7 +1129,7 @@ Grouped as daisyUI groups them, so its documentation reads straight across.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` `Ui.Filters` `Ui.Filter` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
@@ -1138,6 +1180,52 @@ button, Escape and a press outside mean no. A leave dialog's heading may be a wh
 so it carries `pe-8` to keep clear of the close button; `Heading("…")` gives it the shape `Ui.Confirm` always
 has, Flux's: a short title, the question under it. Both are held to Flux's open confirmation by
 `scripts/flux/parity-modal.mjs`; the answer field, and a Yes that is no submit button, are the two departures.
+
+`Lazy()` is the one modal step that is not Flux's (the owner's, 2026-10-21): the modal sends what it holds only
+while it is open. Closed, the page carries the dialog alone — its id, its close button, its focus placeholder — and
+the trigger still opens it in the browser; the runtime tells the page it opened, and one frame brings the content.
+Closing takes it away again. With `Open(_field)` it holds its content exactly while the field is true. It is off by
+default, because a modal that must open with no server at all (`Ui.ConfirmLeave`, a ⌘K palette) has to hold its
+content before anyone asks.
+
+### Filters
+
+`Ui.Filters` is the kit's own — not a Flux component, the owner's (2026-10-21) — and is built from Flux's select,
+date picker, modal and badge: a list's filters, each kept in the page's address.
+
+```csharp
+[QueryParam("driver")] public string? Driver { get; set; }
+[QueryParam("period")] public UiDateRange? Period { get; set; }
+
+var filters = Ui.Filters[
+    Ui.Select.Bind(() => Driver).Label("Driver").Listbox.Searchable().Clearable()[…],
+    Ui.DatePicker.Range.Bind(() => Period).Label("Period").WithPresets().Clearable(),
+];
+
+Ui.Card[                                                   // Flux's full-bleed table, with the button on the right
+    Div.Class("flex items-center justify-between gap-4")[
+        Div[Ui.Heading["Recent orders"], Ui.Text.Class("mt-1")["What each driver delivered."]],
+        filters
+    ],
+    Div.Class("mt-4")[filters.Badges],                     // filters.Active counts the filters in force
+    Ui.Table.Bleed().ContainerClass("mt-6").Of(orders)[…]
+]
+```
+
+Placed, it draws a small Filters button (a funnel, and the count once a filter is in force) that opens a lazy flyout
+of the fields, with Clear filters and Close under them. It drives the first `Ui.Table.Of(…)` built after it: every
+field, badge cross, Clear all and Clear filters names that table in `aria-controls` (giving it an id when it has
+none), so the table's rows turn into skeleton rows at the press, as for its own pager. Each control is bound to a `[QueryParam]` member and the set
+binds it to the address instead, so the router stays the only writer of the member and the page hears `OnUpdated`:
+a pick moves the query (replacing the history entry), a text field once typing pauses for 150 ms, and a call site's
+own `Debounce` wins. A member without `[QueryParam]` fails as the page renders, naming the declaration to write.
+`filters.Badges` is a badge for each filter in force in its control's own words — "Driver: Ada Lovelace", a range
+as its picker writes it or the preset that made it, a checkbox's label alone — each with a cross that takes that key
+out, and Clear all from two on, which takes every filter's key out in one move and leaves the sort alone.
+`Ui.Filters.OnOpen(…)` runs as the panel opens. A filter no control can say — a select of several answers, until a
+collection `[QueryParam]` exists — goes in `Ui.Filter.Label("Labels").Shown(…).OnRemove(…)[control]`. A range is one
+query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
+it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 

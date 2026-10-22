@@ -688,9 +688,22 @@ public sealed partial class ComponentFactoryGenerator
                 var escaped = EscapeIdentifier(name);
                 sb.Append("        if ((__w & ").Append(MaskLiteral(new[] { bit })).AppendLine(") != 0UL)");
                 sb.AppendLine("        {");
-                sb.Append("            global::Rask.Core.BuilderRuntime.Track<").Append(typeFqn).Append(">(__t, __t.")
-                    .Append(escaped).Append(", __f.").Append(escaped).AppendLine(");");
-                sb.Append("            __t.").Append(escaped).Append(" = __f.").Append(escaped).AppendLine(";");
+                if (JoinsClasses(name, typeFqn))
+                {
+                    // A joined class reports its change when the pass settles, so its pending report moves to the
+                    // kept instance instead of being folded here against a list the chain may still extend.
+                    sb.Append("            __t.").Append(escaped)
+                        .Append(" = global::Rask.Core.BuilderRuntime.CopyClass(__f, __t, ")
+                        .Append(MaskLiteral(new[] { bit })).Append(", __t.").Append(escaped).Append(", __f.")
+                        .Append(escaped).AppendLine(");");
+                }
+                else
+                {
+                    sb.Append("            global::Rask.Core.BuilderRuntime.Track<").Append(typeFqn).Append(">(__t, __t.")
+                        .Append(escaped).Append(", __f.").Append(escaped).AppendLine(");");
+                    sb.Append("            __t.").Append(escaped).Append(" = __f.").Append(escaped).AppendLine(";");
+                }
+
                 sb.AppendLine("        }");
             }
 

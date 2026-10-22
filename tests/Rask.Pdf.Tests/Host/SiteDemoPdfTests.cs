@@ -51,7 +51,7 @@ public sealed partial class SiteDemoPdfTests
         }
     }
 
-    private static Dictionary<string, byte[]> Fonts() => new(StringComparer.Ordinal)
+    internal static Dictionary<string, byte[]> Fonts() => new(StringComparer.Ordinal)
     {
         ["/fonts/inter-latin.woff2"] = File.ReadAllBytes(Path.Combine(Repo(), "src", "Rask.Ui", "Fonts", "inter-latin.woff2")),
         ["/fonts/inter-latin-ext.woff2"] = File.ReadAllBytes(Path.Combine(Repo(), "src", "Rask.Ui", "Fonts", "inter-latin-ext.woff2")),

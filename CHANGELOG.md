@@ -35,6 +35,45 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Filters`: a list's filters kept in the address, with a lazy flyout and a badge per filter in force.**
+  Before: a page wrote a `Go.With` per control, a badge row by hand and its own "clear all", and sent every field to
+  every reader. Now: `var filters = Ui.Filters[Ui.Select.Bind(() => Driver).Label("Driver")…, Ui.DatePicker.Range
+  .Bind(() => Period).Label("Period")…]`, then `Div[filters, filters.Badges, table]` — each control bound to a
+  `[QueryParam]` member moves the address as it is chosen (a text field at its 150 ms pause), the router writes the
+  member, the first `Ui.Table.Of(…)` after the set shows its skeleton rows at the press (its fields, badge crosses and
+  clear buttons name it in `aria-controls`; a table with no id is given one), `filters.Badges` says "Driver: Ada Lovelace" with a cross per filter and Clear all from two (the sort
+  survives), `filters.Active` counts them, `.OnOpen(…)` loads on opening, and `Ui.Filter.Label(…).Shown(…)
+  .OnRemove(…)` carries what no control can say. Not a Flux component: the owner's (2026-10-21). New texts:
+  `Filters`, `FiltersClear`, `FiltersClearAll`, `FiltersClose`, `FilterRemove` (with formal Hungarian).
+- **`Ui.Modal.Lazy()`: a modal that sends what it holds only while it is open.** Closed it is the dialog alone; the
+  trigger still opens it in the browser, the runtime reports the opening (`rask-overlay.ts`), and one frame brings
+  the content. Off by default, so `Ui.ConfirmLeave` and a ⌘K palette still open with no server.
+- **`UiDateRange` is `IParsable`: `[QueryParam("period")] public UiDateRange? Period` binds `?period=2026-10-01..2026-10-09`**
+  (`~last7Days` after it when a preset made it; text that is no range leaves it unset), and `ToString()` writes it.
+- **`Ui.Table.Of(query)`: a table drawn from a Rask.Query query, with skeleton rows the moment it loads.** Before:
+  every table flashed on paging, sorting and a tab switch — 15 rows, then an empty or shorter table, then 15 new rows,
+  with everything under it jumping twice. Now: `Ui.Table.Of(drivers)[Ui.TableColumns[…], Ui.TableRows[(drivers.Data
+  ?? []).Select(…)]]` keeps the headings, shows a skeleton row per row of the pager's page on the first load, and on
+  every later load (a pager button or link, a sortable heading, a tab above the table, any control naming the table
+  with `aria-controls`) turns the rows on screen into skeleton rows of their own count and heights AT THE PRESS, in the
+  browser, with no round trip and no wait; the new rows replace them in one step. A query that found nothing shows
+  one row saying so (`RaskString.TableEmpty`, "No results." / "Nincs találat."). Not Flux's: an addition the owner
+  approved. The runtime's new `rask-skeleton` hook does the browser half; both hosts now tell the hooks when the page
+  has answered what it sent. A table without `Of` dims its rows as before.
+- **Rask.Ui prints what a page says and leaves off what it does** — a recorded departure from Flux, inside
+  `@media print` only, so the screen is unchanged. Every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar`,
+  `Ui.Header`, toasts, tooltips, open menus and popovers and a modal's backdrop print as nothing, and `Ui.Main` drops
+  its padding; `Ui.Table` wraps its cells, runs on past its scroll frame, repeats its heading on every page and never
+  splits a row; `Ui.Accordion` prints every item open with no chevron. Before: a report page put `print:hidden` on
+  each control and a PDF of a table was cut at the frame. Now: `await Pdf.From(Routes.RefundReport(id))` prints the
+  page as paper; hide your own parts with `print:hidden`. +958 B on the kit's sheet (+285 B gzipped).
+  ([ui-kit](docs/ui-kit.md#printing), [pdf](docs/pdf.md#write-the-report-with-flux-pieces))
+- **Rask.Pdf numbers the pages in the caller's language, from the catalog.** The new `RaskString.PdfPageNumber`
+  (`{0} / {1}`; the kit's Hungarian `{0} / {1} oldal`) is read in the caller's language and translated or reworded in
+  an app's `Resources/RaskStrings.{culture}.json` like any framework text; the page itself is now rendered in the
+  caller's language too when the app ships it (it was the app's default). Before: `1 / 3` whatever the language.
+  Now: `1 / 3 oldal` for a Hungarian caller. ([pdf](docs/pdf.md#options))
+
 - **`Ui.Confirm`: an action's `.Confirm("…")` asks in the kit's own dialog.** Placed once in the layout, every
   `.Confirm` asks in a Flux confirmation modal instead of the browser's `confirm()` / `prompt()`; the call sites do
   not change. Not a Flux component — approved by the owner like `Ui.ConfirmLeave`.
@@ -314,6 +353,13 @@ them until tagged releases begin.
   value the server held, which a bound picker hears only with the next action, so it opened on today with nothing
   marked. It now reads the field's parts when it opens (half filled: today, nothing marked), and a day picked in it
   shows in the parts at once. Nothing more is sent: the value still goes with the next action.
+- **A second `.Class(…)` now adds to the first instead of replacing it.** `Ui.Table.Class("w-full").Class("mb-8")`
+  renders `w-full mb-8`; it used to render `mb-8` and drop `w-full` silently. The parts join as `Class("a", "b")`
+  always did — one space, each trimmed, null and blank ones skipped, repeats kept — on every element and component,
+  and on every class-carrying kit step (`ContainerClass`, `InputClass`, `TrackClass`, `ThumbClass`, `ArrowsClass`,
+  `LogoClass`, `OptionsClass`, `IconClass`) and `NavLink.ActiveClass`. Each render starts the list afresh, so it
+  never grows, and a component counts as changed only when the finished list differs from last render's, so its
+  update hook and the render cache behave as with one `.Class`; a lone `.Class(…)` costs nothing extra ([building components](docs/building-components.md)).
 - **A page the signed-in user may not open says so inside the app's layout, instead of sending them to `/forbidden`.**
   The address stays, the layouts above the page render, and its outlet reads the catalog's `PageForbidden` sentence
   (*You do not have permission to view this page.*); the first request answers 403. A layout's own buttons keep
@@ -1151,6 +1197,13 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
+  at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
+  transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).
+  After: however the transaction ends — commit, rollback, a throw, a retry — the context is out of it and on its
+  own connection again: the one the caller gave it, still the caller's and still open if it was, or a fresh one of
+  its own from its connection string. Admitting it twice in one transaction is fine. The contexts `Jobs.Enqueue`,
+  `Mail.Send` and the files store open and dispose themselves need nothing handed back.
 - **A row moved and then moved straight back moves back.** A keyed row moved down and then up again stayed down,
   and the next click acted on the page as it wrongly stood (Eszaf #16). Swapping two neighbours and swapping them
   back are the same ops, byte for byte, and the session dropped the second diff as a repeat of the frame it had

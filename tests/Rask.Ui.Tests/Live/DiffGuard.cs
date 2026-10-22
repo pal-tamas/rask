@@ -32,6 +32,8 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
 
     private static readonly ConcurrentDictionary<string, ConcurrentQueue<MorphedParent>> Morphed = new(StringComparer.Ordinal);
 
+    private static readonly ConcurrentDictionary<string, ConcurrentQueue<string>> Sent = new(StringComparer.Ordinal);
+
     /// <summary>
     ///     What still drives a change the differ answers with a morph of a parent — a test class, or one test of
     ///     one — and where. A WHOLE PAGE is forgiven nowhere. Nothing here is forgiven quietly either:
@@ -57,6 +59,13 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
     internal static IReadOnlyCollection<string> FullPages() =>
         TestContext.Current.Test?.UniqueID is { } id && Refused.TryGetValue(id, out var refused) ? refused : [];
 
+    /// <summary>
+    ///     What each render after the first sent, in order: the text of every op of it — markup, a text, an attribute's
+    ///     value. A render that changed nothing sends nothing and is not here.
+    /// </summary>
+    internal static IReadOnlyList<string> Frames() =>
+        TestContext.Current.Test?.UniqueID is { } id && Sent.TryGetValue(id, out var sent) ? [.. sent] : [];
+
     /// <summary>The parents whose children the running test's changes sent again as markup, in the order they went.</summary>
     internal static IReadOnlyCollection<MorphedParent> Morphs() =>
         TestContext.Current.Test?.UniqueID is { } id && Morphed.TryGetValue(id, out var morphed) ? morphed : [];
@@ -64,6 +73,7 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
     public override void After(MethodInfo methodUnderTest, IXunitTest test)
     {
         var type = methodUnderTest.DeclaringType!.Name;
+        Sent.TryRemove(test.UniqueID, out _);
         var wholePages = Refused.TryRemove(test.UniqueID, out var refused);
         var morphs = Morphed.TryRemove(test.UniqueID, out var morphed)
                      && !KnownMorphs.ContainsKey(type) && !KnownMorphs.ContainsKey(type + "." + methodUnderTest.Name);
@@ -115,6 +125,12 @@ internal sealed class DiffGuardAttribute : BeforeAfterTestAttribute
             if (!_cache.TryComputeDiff(_ops, html) || test is null)
             {
                 return;
+            }
+
+            if (_ops.Count > 0)
+            {
+                Sent.GetOrAdd(test, static _ => new ConcurrentQueue<string>())
+                    .Enqueue(string.Concat(_ops.Select(op => op.HtmlStart >= 0 ? html[op.HtmlStart..op.HtmlEnd] : op.Value)));
             }
 
             foreach (var op in _ops.Where(op => !LiveDiffGate.DiffOpsAreClientSupported([op])))

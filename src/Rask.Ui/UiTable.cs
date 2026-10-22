@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Querying;
 
 namespace Rask;
 
@@ -47,6 +48,8 @@ public sealed partial class UiTable : UiElement, IUiHost
 
     private static readonly UiPartMarker Marker = new("ui-table");
 
+    private IQueryState? _query;
+
     /// <summary>
     ///     Runs the row dividers through the horizontal padding of the box the table sits in, while the first
     ///     and last columns stay in line with that box's content.
@@ -64,6 +67,33 @@ public sealed partial class UiTable : UiElement, IUiHost
     /// <summary>Classes for the box around the table — a height to scroll within, such as <c>max-h-80</c>.</summary>
     public string? ContainerClass { get; set; }
 
+    /// <summary>
+    ///     Draws the table from <paramref name="query" />: skeleton rows while it loads, and a row saying there is
+    ///     nothing when it found nothing. The headings stay throughout.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Not Flux's: an addition the owner approved (2026-10-21). The first load draws a skeleton row per row
+    ///         the pager says the page holds. Every later one — a page, a sort, a filter, a tab — turns the rows on
+    ///         screen into skeleton rows at the press, in the browser, at their own heights, and the new rows take
+    ///         their place in one step when they are there: nothing under the table moves.
+    ///     </para>
+    ///     <para>
+    ///         The rows are still yours, built from <c>query.Data</c>. A control elsewhere on the page that loads
+    ///         other rows names the table: <c>.Aria("controls", "orders")</c> beside <c>Ui.Table.Id("orders")</c>.
+    ///     </para>
+    /// </remarks>
+    /// <param name="query">The query whose result the rows are drawn from.</param>
+    /// <typeparam name="TResult">What the query returns.</typeparam>
+    /// <returns>This table.</returns>
+    public UiTable Of<TResult>(Query<TResult> query)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        _query = query;
+        UiFilterTables.Built(this);
+        return this;
+    }
+
     /// <inheritdoc />
     /// <remarks>None: the table renders as its box, with the <c>&lt;table&gt;</c> inside.</remarks>
     protected override string? TagName => null;
@@ -76,9 +106,27 @@ public sealed partial class UiTable : UiElement, IUiHost
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var box = Div.Class(UiClass.Compose(Container, Bleed is true ? Bleeding : "", ContainerClass));
+        // Both marks in one step: a second Data step replaces the first, and a bleeding table drawn from a query lost
+        // the mark its cells pad against.
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (Bleed is true)
+        {
+            marks["ui-table-bleed"] = "";
+        }
 
-        return (Bleed is true ? box.Data("ui-table-bleed", "") : box)[
+        if (_query is { } query)
+        {
+            UiTableSkeleton.Fill(query, Children, Paginate);
+            marks["rask-skeleton"] = UiTableSkeleton.Word(query);
+        }
+
+        var box = Div.Class(UiClass.Compose(Container, Bleed is true ? Bleeding : "", ContainerClass));
+        if (marks.Count > 0)
+        {
+            box = box.Data(marks);
+        }
+
+        return box[
             Div.Class(ScrollArea)[
                 HostedElement.Tag("table").Owner(this)[Children ?? []]
             ],

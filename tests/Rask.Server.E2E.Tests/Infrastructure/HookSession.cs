@@ -52,17 +52,19 @@ internal sealed class HookSession : IAsyncDisposable
     /// <param name="endpointRouting">True to map the app through the endpoint-routing overload, as a host that composes its own pipeline does.</param>
     /// <param name="cultures">The languages the app ships; none when null.</param>
     /// <param name="server">The host's server options: a suite that needs its own navigation budget says so here.</param>
+    /// <param name="services">What the app registers besides Rask: a query cache, a dispatcher.</param>
     public static async Task<HookSession> OpenAsync<TPage>(
         PlaywrightFixture playwright, BrowserNewContextOptions? options = null, Func<IPage, Task>? beforeLoad = null,
         string path = "/", IBrowser? browser = null, Action<Rask.Core.Live.RaskLiveOptions>? live = null,
         bool cookieSignIn = false, string pathBase = "", Action<Microsoft.AspNetCore.Builder.WebApplication>? beside = null,
         string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
-        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null)
+        Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null,
+        Action<Microsoft.Extensions.DependencyInjection.IServiceCollection>? services = null)
         where TPage : Component
     {
         var host = await LiveServerHost.StartAsync<TPage>(
             blockWebSockets: false, live: live, cookieSignIn: cookieSignIn, pathBase: pathBase, beside: beside,
-            environment: environment, endpointRouting: endpointRouting, server: server, cultures: cultures);
+            environment: environment, endpointRouting: endpointRouting, server: server, cultures: cultures, services: services);
         var context = await (browser ?? playwright.Browser).NewContextAsync(options ?? new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
         var pageErrors = new ConcurrentQueue<string>();

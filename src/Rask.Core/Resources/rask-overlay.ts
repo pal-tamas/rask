@@ -17,6 +17,8 @@
 //     yes, Escape no — it cannot say at all. data-rask-modal="any | press | escape | none" says all four.
 //   * data-open, on the dialog while it is shown, so a stylesheet can animate it in and lock the page behind
 //     it (`html:has(dialog[data-open])`) without knowing how it was opened.
+//   * A LAZY DIALOG (a field of its own with data-rask-modal-shown). The page sends what it holds only while it is
+//     open, so the field says "true" or "false" each time data-open comes or goes, and the page hears it change.
 //   * INVOKER COMMANDS where the engine has none: command="show-modal | close | request-close" with commandfor.
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
@@ -27,6 +29,7 @@ type Dialog = HTMLDialogElement & { requestClose?: (value?: string) => void; clo
 
 const MODAL = "data-rask-modal";
 const MODAL_OPEN = "data-rask-modal-open";
+const SHOWN = "data-rask-modal-shown";
 
 // ----- Popover focus ---------------------------------------------------------------------------------
 
@@ -92,11 +95,24 @@ function installPopoverFocus(doc: Document): void {
 // Only on a dialog that asked: one carrying either attribute. Any other dialog on the page is left as it is.
 function mark(dialog: Element, open: boolean): void {
     if (open && (dialog.hasAttribute(MODAL) || dialog.hasAttribute(MODAL_OPEN))) {
+        const was = dialog.hasAttribute("data-open");
         own(dialog, "data-open");
         dialog.setAttribute("data-open", "");
+        if (!was) report(dialog, true);
     } else if (!open && dialog.hasAttribute("data-open")) {
         dialog.removeAttribute("data-open");
         disown(dialog, "data-open");
+        report(dialog, false);
+    }
+}
+
+// A lazy dialog's own field: the page hears it opened or closed, and sends what it holds or takes it away.
+function report(dialog: Element, open: boolean): void {
+    const field = dialog.querySelector(":scope > input[" + SHOWN + "]");
+    const value = open ? "true" : "false";
+    if (field instanceof HTMLInputElement && field.value !== value) {
+        field.value = value;
+        field.dispatchEvent(new Event("change", {bubbles: true}));
     }
 }
 

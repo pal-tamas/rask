@@ -24,6 +24,21 @@ public partial class UiAccordionTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_closed_item_keeps_its_content_and_chevrons_in_the_document_for_print_to_open()
+    {
+        var render = () => Ui.Accordion[
+            Ui.AccordionItem.Heading("Shipping")["Two days."],
+            Ui.AccordionItem.Heading("Payment").Disabled()["Card."]
+        ];
+
+        var page = Page.Render(render);
+
+        Assert.All(page.FindAll("details[data-ui-accordion-item]"), item => Assert.Null(item.Attribute("open")));
+        Assert.Equal(["Two days.", "Card."], page.FindAll("details > div[data-ui-accordion-content] > div").Select(content => content.TextContent.Trim()));
+        Assert.Equal(4, page.FindAll("summary[data-ui-accordion-heading] > [data-ui-icon]").Count);
+    }
+
+    [Fact]
     public void The_heading_shorthand_writes_the_same_markup_as_the_two_parts()
     {
         var parts = Ui.Accordion[Ui.AccordionItem[Ui.AccordionHeading["Shipping"], Ui.AccordionContent["Two days."]]].ToHtml();

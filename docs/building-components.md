@@ -23,7 +23,13 @@ Button.Disabled()["Save"]                                 // Disabled(true)
 Button.Disabled(_saving)["Save"]                          // decided at run time
 Div.Class("p-4 rounded", _wide ? "w-full" : "w-1/2")      // "p-4 rounded w-full"
 Li.Class("item", _active ? "active" : null)
+Ui.Table.Class("w-full").Class("mb-8")                    // "w-full mb-8" — a second Class adds
 ```
+
+A second `.Class(…)` adds to the first by the same rules rather than replacing it, and so does every other
+class-carrying step — a kit component's `ContainerClass`, `InputClass`, `TrackClass` and the rest. The join starts
+afresh on every render, so re-rendering never grows the list. Repeated names are kept as written; nothing removes
+them.
 
 ## Components that need something first
 
