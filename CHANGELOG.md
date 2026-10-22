@@ -1215,6 +1215,11 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **A hand-wired host prints with Rask.Pdf as soon as it references the package.** Before: only a `RaskApp` found
+  Rask.Pdf by name; a `builder.Services.AddRask()` + `app.MapRask<App>()` host had no printer, and the first
+  `Pdf.From(…)` threw "Pdf.From is not running in this app" until it also called `AddRaskPdf()`. After: `AddRask()`
+  itself registers the printer whenever Rask.Pdf is referenced, on both hosts; an explicit `AddRaskPdf()` stays
+  harmless (it registers once), so an app that added one may delete it. See [PDF](docs/pdf.md).
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.

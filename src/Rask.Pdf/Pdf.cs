@@ -61,8 +61,8 @@ public static class Pdf
             "Pdf.From renders the app's pages on the server, and this app has no Rask server host. Print from a "
             + "Rask.Server app (RaskApp, or builder.Services.AddRask()).");
         var printer = services.GetService<ChromiumPrinter>() ?? throw new InvalidOperationException(
-            "Pdf.From is not running in this app: a hand-wired host calls builder.Services.AddRaskPdf() (a RaskApp "
-            + "has it whenever the app references Rask.Pdf).");
+            "Pdf.From is not running in this app: builder.Services.AddRask() registers the printer whenever the app "
+            + "references Rask.Pdf; a host that does not call AddRask() calls builder.Services.AddRaskPdf().");
         return new PagePrinting(pages, printer, PrintCaller.Of(caller ?? new ClaimsPrincipal(new ClaimsIdentity())));
     }
 }

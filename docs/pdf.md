@@ -9,8 +9,10 @@ page numbers.
 dotnet add package Rask.Pdf
 ```
 
-A `RaskApp` turns it on when the app references the package. A hand-wired host calls
-`builder.Services.AddRaskPdf()`.
+Referencing the package turns it on, with no code of your own, on both kinds of host: a `RaskApp`, and a
+hand-wired one (`builder.Services.AddRask()` + `app.MapRask<App>()`) — `AddRask()` finds Rask.Pdf beside it and
+registers the printer. An explicit `builder.Services.AddRaskPdf()` is harmless (it registers once), and is only
+needed on a host that does not call `AddRask()` at all.
 
 ## Print a page
 

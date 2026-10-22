@@ -11,7 +11,7 @@ using Rask.Server.Authentication;
 namespace Rask.Printing.Tests.Host;
 
 /// <summary>
-/// A hand-wired Rask server — AddRask, AddRaskPdf, MapRask — with its own web root, and a way to call
+/// A hand-wired Rask server — AddRask, MapRask, and Rask.Pdf found by AddRask itself — with its own web root, and a way to call
 /// <c>Pdf.From</c> as a given user would from a handler of theirs.
 /// </summary>
 internal sealed class PrintHost : IAsyncDisposable
@@ -49,7 +49,6 @@ internal sealed class PrintHost : IAsyncDisposable
         builder.Configuration["Rask:Pdf:NoSandbox"] = TestChromium.NoSandbox.ToString(CultureInfo.InvariantCulture);
         builder.Services.AddAuthorization();
         builder.Services.AddRask();
-        builder.Services.AddRaskPdf();
 
         var app = builder.Build();
 
