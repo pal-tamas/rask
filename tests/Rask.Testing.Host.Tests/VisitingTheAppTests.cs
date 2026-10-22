@@ -85,8 +85,7 @@ public sealed class VisitingTheAppTests
         Assert.Contains("Page.Visit", error.Message, StringComparison.Ordinal);
     }
 
-    // What a battery's static call does before any page is open: reach the services of the test's app.
+    // What a battery's static call does before any page is open: reach the services of the test's app, booting it.
     private static Guestbook Guestbook() =>
-        (Guestbook)(Ambient.Services?.GetService(typeof(Guestbook))
-                    ?? throw new InvalidOperationException("No app is open for this test."));
+        Ambient.Reach<Guestbook>("Guestbook", "the app registers none", "AddSingleton<Guestbook>()");
 }

@@ -95,6 +95,46 @@ public sealed partial class UiTable : UiElement, IUiHost
     }
 
     /// <summary>
+    ///     As <see cref="Of{TResult}(Query{TResult})" />, waiting for <paramref name="also" /> too: skeleton rows while
+    ///     either loads — a query that says which columns to show, say — and the rows, their count and the empty row
+    ///     from <paramref name="rows" />.
+    /// </summary>
+    /// <param name="rows">The query whose result the rows are drawn from.</param>
+    /// <param name="also">A query the rows wait for.</param>
+    /// <typeparam name="TRows">What the rows' query returns.</typeparam>
+    /// <typeparam name="TAlso">What the other query returns.</typeparam>
+    /// <returns>This table.</returns>
+    public UiTable Of<TRows, TAlso>(Query<TRows> rows, Query<TAlso> also)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(also);
+        return Waiting(new UiTableQueries(rows, also));
+    }
+
+    /// <summary>As <see cref="Of{TRows, TAlso}(Query{TRows}, Query{TAlso})" />, waiting for two other queries.</summary>
+    /// <param name="rows">The query whose result the rows are drawn from.</param>
+    /// <param name="also">A query the rows wait for.</param>
+    /// <param name="andAlso">Another query the rows wait for.</param>
+    /// <typeparam name="TRows">What the rows' query returns.</typeparam>
+    /// <typeparam name="TAlso">What the second query returns.</typeparam>
+    /// <typeparam name="TAndAlso">What the third query returns.</typeparam>
+    /// <returns>This table.</returns>
+    public UiTable Of<TRows, TAlso, TAndAlso>(Query<TRows> rows, Query<TAlso> also, Query<TAndAlso> andAlso)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(also);
+        ArgumentNullException.ThrowIfNull(andAlso);
+        return Waiting(new UiTableQueries(rows, also, andAlso));
+    }
+
+    private UiTable Waiting(UiTableQueries queries)
+    {
+        _query = queries;
+        UiFilterTables.Built(this);
+        return this;
+    }
+
+    /// <summary>
     ///     Draws the table from rows the page loads itself, as <see cref="Of{TResult}" /> draws it from a query:
     ///     skeleton rows while <paramref name="loading" />, and a row saying there is nothing when it holds none.
     /// </summary>

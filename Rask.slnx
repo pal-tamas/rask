@@ -125,6 +125,8 @@
         <Project Path="tests/Rask.Testing.Tests/Rask.Testing.Tests.csproj" />
         <Project Path="tests/Rask.Testing.Host.Tests/Rask.Testing.Host.Tests.csproj" />
         <Project Path="tests/Rask.Testing.Fixture.App/Rask.Testing.Fixture.App.csproj" />
+        <Project Path="tests/Rask.Testing.Database.Tests/Rask.Testing.Database.Tests.csproj" />
+        <Project Path="tests/Rask.Testing.Fixture.UnsetApp/Rask.Testing.Fixture.UnsetApp.csproj" />
         <Project Path="tests/Rask.Web.Tests/Rask.Web.Tests.csproj" />
         <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj" />
         <Project Path="tests/Rask.Xlsx.Tests/Rask.Xlsx.Tests.csproj" />

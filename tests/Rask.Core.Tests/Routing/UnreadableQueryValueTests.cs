@@ -147,6 +147,25 @@ public partial class UnreadableQueryValueTests : global::Rask.Core.RaskMarkup
         Assert.Null(said.Exception);
     }
 
+    [Fact]
+    public void In_development_a_list_element_left_out_is_said_once_without_its_value()
+    {
+        RaskDiagnostics.ResetReportOnceForTests();
+        var page = new LoggedListPage();
+
+        var reported = Reported(true, () =>
+        {
+            PageBinder.Bind(page, NoSegments, Query(("tanks[0]", "3"), ("tanks[1]", "s3cret-abc")));
+            PageBinder.Bind(page, NoSegments, Query(("tanks[0]", "s3cret-abc"), ("tanks[1]", "2")));
+        });
+
+        var said = Assert.Single(reported, e => string.Equals(e.Category, "Rask.Routing", StringComparison.Ordinal));
+        Assert.Contains("'Tanks'", said.Message, StringComparison.Ordinal);
+        Assert.Contains("Int32", said.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("s3cret-abc", said.Message, StringComparison.Ordinal);
+        Assert.Equal([2], page.Tanks);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(null)]
@@ -229,6 +248,13 @@ public partial class UnreadableQueryValueTests : global::Rask.Core.RaskMarkup
     private sealed class LoggedPage : Component
     {
         [QueryParam("weightFrom")] public int? WeightFrom { get; set; }
+        protected override Component? Render() => Span;
+    }
+
+    [SkipFactory]
+    private sealed class LoggedListPage : Component
+    {
+        [QueryParam] public IReadOnlyList<int> Tanks { get; set; } = [];
         protected override Component? Render() => Span;
     }
 

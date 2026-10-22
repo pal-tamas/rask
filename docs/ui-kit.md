@@ -566,6 +566,10 @@ themselves — the filter set names the first `Ui.Table.Of(…)` after it, givin
 elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
 instead.
 
+**A table that waits for more than its rows' query** names the others after it: `Ui.Table.Of(listed, columns)` (up
+to three). The skeleton shows while any of them loads — a query that says which columns to draw, say, so the columns
+never jump in after the rows — and the rows, their count and the empty row are the first query's.
+
 **`Ui.Table.Loading(…)` does the same for rows the page loads into a field of its own**, with no query: skeleton rows
 while they are on their way (a row per row the pager says the page holds, 15 with no pager), and the empty row when
 there are none.
@@ -2147,6 +2151,7 @@ and `Between(a, b)` read it, and `default(UiDateRange)` is nothing chosen.
 | `Navigation(false)` `Static()` | `navigation` `static` | no month steps; a calendar to look at, with no buttons |
 | `WeekNumbers()` `FixedWeeks()` | `week-numbers` `fixed-weeks` | the ISO week of each row; always six rows |
 | `SelectableHeader()` `WithToday()` | `selectable-header` `with-today` | month and year selects; a shortcut that comes back to this month, then picks today |
+| `WithInputs()` | `with-inputs` | a field over the months to type the day into — a range's start and end; none for several days. A whole date typed is chosen at once; a pick is written into it |
 | `Locale("ja-JP")` | `locale` | month, weekday and day names, and the first day of the week; the app's culture ([localization](localization.md)) unless set |
 
 **Keyboard.** One day is in the Tab order — the chosen one, else today, else the 1st. The arrows walk days and
@@ -2184,7 +2189,15 @@ Ui.DatePicker.Range.Bind(() => report.Range)
 Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
     Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
 Ui.DatePicker.Bind(() => booking.Departure).Clearable()                            // DateOnly? — the ✕ makes it null again
+Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs()                          // start and end typed over the months
+Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs(Ui.DatePickerInputVariant.Native) // the browser's date fields there
+Ui.DatePicker.Bind(() => booking.Arrival).Trigger(Ui.DatePickerInput.Native)       // the browser's date field as the trigger
 ```
+
+**Typed dates are parts unless you ask for the browser's.** `Ui.DatePickerInput` and `WithInputs()` draw month, day
+and year as parts in the locale's order (Flux's `custom`); `.Native` / `Ui.DatePickerInputVariant.Native` draws the
+browser's own `<input type="date">` in the same box (Flux's `native`). Flux's docs default to native and call custom
+the recommended and future default; its own pages draw custom, and so does the kit unless told.
 
 It takes the calendar's steps (`Min`, `Max`, `Unavailable`, `MinRange`, `MaxRange`, `Months`, `OpenTo`,
 `ForceOpenTo`, `StartDay`, `WeekNumbers`, `SelectableHeader`, `WithToday`, `FixedWeeks`, `Locale`), a field's

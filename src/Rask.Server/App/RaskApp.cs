@@ -238,8 +238,6 @@ public sealed partial class RaskApp
         // idempotent, so an app that called one directly has already won.
         RaskBatteryWiring.Apply(_builder, _options);
 
-        // PDF printing, when the app references Rask.Pdf: found by name, since Rask.Server cannot reference it.
-        Core.Printing.PdfLoader.TryAttach(_builder.Services);
         hostServices(_builder.Services);
 
         var app = _builder.Build();

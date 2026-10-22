@@ -75,6 +75,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         return calendar[
             hook?.Field,
             aside,
+            options.WithInputs is { } variant && !string.Equals(picks.Mode, "multiple", StringComparison.Ordinal) ? Inputs(options, picks, variant) : null,
             HostedElement.Tag("div").Opaque(true).Class(UiCalendarLook.HeaderHost).Attributes(UiCalendarHook.Named("header"))[
                 Div.Class(UiCalendarLook.HeaderBar)[
                     Header.Class(UiCalendarLook.Header)[
@@ -109,6 +110,30 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var own = months.FindIndex(month => month.Year == stop.Year && month.Month == stop.Month);
         var drawn = own >= 0 ? own : months.FindIndex(month => Weeks(options, month).Exists(week => week.Contains(stop)));
         return months[Math.Max(drawn, 0)];
+    }
+
+    // ---- inputs -----------------------------------------------------------------------------------
+
+    // Flux's `with-inputs`: a field to type the day into, or a range's start and end, over the months. They are the
+    // browser's once drawn (rask-calendar.ts reads what is typed and fills in what is picked), so they sit in a
+    // host no render reaches into, and send nothing of their own.
+    private static global::Rask.Core.Component Inputs(UiCalendarOptions options, UiCalendarPicks picks, Ui.DatePickerInputVariant variant) =>
+        HostedElement.Tag("div").Opaque(true).Class(UiCalendarLook.Inputs).Attributes(UiCalendarHook.Named("inputs"))[
+            picks.Typed.Select((day, at) => Div.Key(at).Class(UiCalendarLook.Input)[
+                TypedDay(options, day, variant)
+            ])
+        ];
+
+    private static global::Rask.Core.Component TypedDay(UiCalendarOptions options, DateOnly? day, Ui.DatePickerInputVariant variant)
+    {
+        var iso = day?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty;
+        return variant == Ui.DatePickerInputVariant.Native
+            ? Input.Value(iso).Type(InputType.Date).Class(UiDatePickerLook.Native).Data("rask-date", string.Empty)
+                .Attributes(UiRuntimeMarks.NotFormData, ("dir", "ltr"))
+            : Div.Class(UiDatePickerLook.Segments).Data("rask-segments", string.Empty).Attributes(("dir", "ltr"))[
+                UiDateParts.Of(options.Culture, disabled: false),
+                Input.Value(iso).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData)
+            ];
     }
 
     // ---- header -----------------------------------------------------------------------------------

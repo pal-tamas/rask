@@ -118,6 +118,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Always draws six weeks, so paging never changes the height.</summary>
     public bool? FixedWeeks { get; set; }
 
+    /// <summary>
+    ///     Inputs over the months to type the date into — a range's start and end — drawn as parts (custom) or as
+    ///     the browser's date fields (native): <c>.WithInputs()</c>, <c>.WithInputs(Ui.DatePickerInputVariant.Native)</c>.
+    /// </summary>
+    public Ui.DatePickerInputVariant? WithInputs { get; set; }
+
     /// <summary>Holds the choice until the reader confirms it with the popup's button.</summary>
     public bool? WithConfirmation { get; set; }
 
@@ -398,6 +404,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             ForceOpenTo = ForceOpenTo == true,
             WeekNumbers = WeekNumbers == true,
             SelectableHeader = SelectableHeader == true,
+            WithInputs = WithInputs,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
         };

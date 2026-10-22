@@ -29,8 +29,8 @@ app.MapGet("/refunds/{id}.pdf", async (Guid id) =>
     Results.File(await Pdf.From(Routes.RefundReport(id)), Pdf.ContentType));
 ```
 
-A `RaskApp` turns it on when the app references the package; a hand-wired host calls
-`builder.Services.AddRaskPdf()`. Settings live under `Rask:Pdf`: `ChromiumPath`, `NoSandbox`,
+Referencing the package turns it on: a `RaskApp` and a hand-wired `builder.Services.AddRask()` host both
+register the printer by themselves (an extra `AddRaskPdf()` is harmless). Settings live under `Rask:Pdf`: `ChromiumPath`, `NoSandbox`,
 `MaxConcurrentPrints`, `Timeout`, `MaxPages`. Linux and macOS.
 
 Full guide: [rask.sh/docs/pdf](https://rask.sh/docs/pdf/). Part of [Rask](https://rask.sh).

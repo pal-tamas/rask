@@ -94,7 +94,7 @@ public static class Toast
             return fake;
         }
 
-        var toaster = (Ambient.Services ?? throw new InvalidOperationException(
+        var toaster = (Ambient.Needed ?? throw new InvalidOperationException(
                 "Toast was called outside any work in progress — an event handler, a render or a request — so there "
                 + "is no session to show it in."))
             .GetRequiredService<IToaster>();
