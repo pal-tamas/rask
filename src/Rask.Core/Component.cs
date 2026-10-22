@@ -325,7 +325,7 @@ public abstract partial class Component : RaskMarkup
     ///     <c>lang="en-US"</c> on any US-locale machine and change the HTML of every app that never
     ///     asked for localization.
     /// </remarks>
-    protected virtual string? HtmlLang => Globalization.RaskCulture.HtmlLang ?? "en";
+    protected virtual string? HtmlLang => Globalization.RaskCulture.HtmlLang ?? Globalization.RaskCulture.UnconfiguredLanguage;
 
     /// <summary>
     ///     The <c>dir</c> attribute for the document's <c>&lt;html&gt;</c> element. Defaults to

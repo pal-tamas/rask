@@ -1266,6 +1266,13 @@ them until tagged releases begin.
   `Pdf.From(…)` threw "Pdf.From is not running in this app" until it also called `AddRaskPdf()`. After: `AddRask()`
   itself registers the printer whenever Rask.Pdf is referenced, on both hosts; an explicit `AddRaskPdf()` stays
   harmless (it registers once), so an app that added one may delete it. See [PDF](docs/pdf.md).
+- **A browser app with no configured culture formats in its page's language, not the browser's.** Before: a
+  WebAssembly app that never called `UseCulture` started in the browser's locale, so on a Hungarian browser
+  rask.sh's range picker titled its months "2026. október" under `<html lang="en">`, English weekdays and English
+  placeholders, and the prerendered pages formatted in whatever locale the publishing machine had. After: with
+  culture support off, the WASM host and the prerender both pin `CurrentCulture`, `CurrentUICulture` and the
+  thread defaults to `en`, the language `<html lang>` already names (the invariant culture without ICU). With
+  languages configured nothing changes. See [localization](docs/localization.md#when-no-culture-is-configured).
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.

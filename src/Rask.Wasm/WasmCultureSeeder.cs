@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Text.Json;
 using Rask.Core.Diagnostics;
 using Rask.Core.Globalization;
@@ -23,12 +25,15 @@ namespace Rask.Wasm;
 /// </remarks>
 internal static class WasmCultureSeeder
 {
-    /// <summary>Negotiates from the browser and seeds the app's culture. A no-op when no languages are configured.</summary>
+    /// <summary>
+    ///     Negotiates from the browser and seeds the app's culture, or — when no languages are configured —
+    ///     pins the document's own (see <see cref="PinWhenUnconfigured" />).
+    /// </summary>
     public static void Seed(IServiceProvider services)
     {
-        if (services.GetService(typeof(RaskCultureOptions)) is not RaskCultureOptions options
-            || options.SupportedCultures.Count == 0)
+        if (!IsConfigured(services, out var options))
         {
+            PinDocumentLanguage();
             return;
         }
 
@@ -38,6 +43,40 @@ internal static class WasmCultureSeeder
         {
             culture.Seed(negotiation);
         }
+    }
+
+    /// <summary>
+    ///     Pins the process to the document's language when the app configured none; otherwise leaves it,
+    ///     because every render walk then pins the session's culture itself.
+    /// </summary>
+    /// <remarks>
+    ///     dotnet-wasm starts in the BROWSER's locale, and a prerender in the BUILD MACHINE's. Neither is the
+    ///     language of a page whose <c>&lt;html lang&gt;</c> is fixed at <c>"en"</c>, so left alone a Hungarian
+    ///     browser titled an English page's calendar "2026. október", and the baked HTML depended on who ran
+    ///     the publish. All four values, because a thread the runtime starts later reads the defaults.
+    /// </remarks>
+    public static void PinWhenUnconfigured(IServiceProvider services)
+    {
+        if (!IsConfigured(services, out _))
+        {
+            PinDocumentLanguage();
+        }
+    }
+
+    private static bool IsConfigured(IServiceProvider services, [NotNullWhen(true)] out RaskCultureOptions? options)
+    {
+        options = services.GetService(typeof(RaskCultureOptions)) as RaskCultureOptions;
+        return options is { SupportedCultures.Count: > 0 };
+    }
+
+    // The invariant culture when the runtime ships no culture data, which is what such an app formats in anyway.
+    private static void PinDocumentLanguage()
+    {
+        _ = RaskCultureResolver.TryResolve(RaskCulture.UnconfiguredLanguage, out var culture);
+        CultureInfo.DefaultThreadCurrentCulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
     }
 
     /// <summary>
