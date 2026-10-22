@@ -31,9 +31,9 @@ public sealed partial class BroadcastChannelDemo : Component
     protected override Component? Render() =>
         Ui.Card[
                 Ui.Button.Primary.Class("mb-2").Id("bc-send").OnClick(Send)["Broadcast a message"],
-                Div.Class("text-sm text-ui-muted mb-1")["Received (from other connections/tabs):"],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")["Received (from other connections/tabs):"],
                 _received.Count == 0
-                    ? Div.Class("text-sm text-ui-muted italic").Id("bc-log")["(none yet)"]
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70 italic").Id("bc-log")["(none yet)"]
                     : Ul.Class("text-sm mb-0").Id("bc-log")[
                         _received.Select(m => Li.Key(m)[m])
                     ]

@@ -18,7 +18,7 @@ public sealed partial class RatingStars : Component
             // theme, so the filled star stayed amber on a palette with no amber in it and the empty one was
             // invisible on anything dark.
             Enumerable.Range(1, 5).Select(i => Ui.Button.Subtle.Key(i)
-                .Class("text-2xl leading-none " + (i <= Value ? "text-ui-warn-ink" : "text-ui-muted"))
+                .Class("text-2xl leading-none " + (i <= Value ? "text-amber-700 dark:text-amber-400" : "text-zinc-500 dark:text-white/70"))
                 .OnClick(() => OnRate.Invoke(i))[i <= Value ? "★" : "☆"])
         ];
 }

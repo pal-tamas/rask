@@ -17,8 +17,8 @@ public sealed partial class CryptoDemo : Component
                     Ui.Button.Id("crypto-uuid").OnClick(Uuid)["Random UUID"],
                     Ui.Button.Id("crypto-bytes").OnClick(Bytes)["Random bytes"]
                 ],
-                Div.Class("text-sm text-ui-muted")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
-                Div.Class("text-sm text-ui-muted mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["UUID: ", Code.Id("crypto-uuid-value")[_uuid ?? "(none)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")["Bytes: ", Code.Id("crypto-bytes-value")[_bytes ?? "(none)"]],
                 Ui.Input
                     .Value(_text)
                     .Label("Text to hash")
@@ -26,8 +26,8 @@ public sealed partial class CryptoDemo : Component
                     .Class("mb-2")
                     .OnInput(v => _text = v),
                 Ui.Button.Primary.Class("mb-2").Id("crypto-hash").OnClick(Hash)["SHA-256"],
-                Div.Class("text-sm text-ui-muted text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 text-break")["Hash: ", Code.Id("crypto-hash-value")[_hash ?? "(none)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("crypto-status")[_status ?? "(idle)"]]
             ];
 
     // crypto.randomUUID()

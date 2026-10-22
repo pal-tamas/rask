@@ -40,7 +40,7 @@ public sealed partial class PictureInPictureDemo : Component
                     Ui.Button.Primary.Id("pip-enter").OnClick(Enter)["Open miniplayer"],
                     Ui.Button.Red.Id("pip-exit").OnClick(Exit)["Exit"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pip-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("pip-status")[_status]]
             ];
 
     // requestPictureInPicture() rejects without a user gesture, so it runs in the click.

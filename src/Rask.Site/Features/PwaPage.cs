@@ -66,7 +66,7 @@ public sealed partial class PwaPage : Component
         return
         [
             H1.Class("text-3xl font-bold mb-1")["PWA & device APIs"],
-            P.Class("text-ui-muted max-w-3xl")[
+            P.Class("text-zinc-500 dark:text-white/70 max-w-3xl")[
                 "The browser's device and app capabilities called from C#, live — MDN's own APIs, through ",
                 Code["Rask.Web"],
                 ". Nearly all are ",
@@ -77,7 +77,7 @@ public sealed partial class PwaPage : Component
                 "app. This site is itself an installable, offline PWA: install it from your address bar and ",
                 "the same code runs as an app."
             ],
-            P.Class("text-ui-muted max-w-3xl mt-2")[
+            P.Class("text-zinc-500 dark:text-white/70 max-w-3xl mt-2")[
                 "Every one follows the same shape. Ask whether the capability exists before you offer it ",
                 "(",
                 Code["IsSupported"],
@@ -99,15 +99,15 @@ public sealed partial class PwaPage : Component
     /// <summary>The on-this-page rail, generated from the section list.</summary>
     private static Component Rail(IReadOnlyList<Section> sections) =>
         Nav
-            .Class("mt-6 mb-8 rounded-xl bg-ui-bg ring-1 ring-ui-line p-4")
+            .Class("mt-6 mb-8 rounded-xl bg-white dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-white/10 p-4")
             .Aria("label", "On this page")[
-                Div.Class("text-xs font-semibold uppercase tracking-widest text-ui-muted mb-2")["On this page"],
+                Div.Class("text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/70 mb-2")["On this page"],
                 Ul.Class("grid gap-1 sm:grid-cols-2 lg:grid-cols-3")[
                     sections.Select(section =>
                         Li.Key(section.Slug)[
                             A
                                 .Href("#" + section.Slug)
-                                .Class("text-sm text-ui-brand-ink underline-offset-2 hover:underline")[
+                                .Class("text-sm text-fx-accent-content underline-offset-2 hover:underline")[
                                     section.Title
                                 ]
                         ])
@@ -151,7 +151,7 @@ public sealed partial class PwaPage : Component
     private static Section NotificationsTopic() =>
         new("notifications", "Notifications, push & badge", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Local notifications, Web Push readiness and the installed-app badge — the three that make an ",
                 "installed app feel like one."
             ],
@@ -165,7 +165,7 @@ public sealed partial class PwaPage : Component
     private static Section InstallPromptTopic() =>
         new("install", "Install prompt", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Show your own \"Install app\" button with MDN's beforeinstallprompt from Rask.Web. The browser ",
                 "fires it once, as the page loads, before any component listens — so Rask.Web keeps it from boot ",
                 "and hands it to Window.OnBeforeInstallPrompt; the button's click calls Prompt() on it. ",
@@ -183,7 +183,7 @@ public sealed partial class PwaPage : Component
     private static Section WakeLockTopic() =>
         new("wake-lock", "Wake lock", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Keep the screen from dimming or locking with MDN's Screen Wake Lock API from Rask.Web — for ",
                 "timers, reading, or media. Every browser lets go of the lock when the page is hidden; Rask.Web asks ",
                 "for it again when the page is visible, so the sentinel holds until you release it."
@@ -199,7 +199,7 @@ public sealed partial class PwaPage : Component
     private static Section OrientationTopic() =>
         new("orientation", "Orientation", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Read the screen orientation via Screen.Orientation and, for an installed or fullscreen app, ",
                 "lock it. Locking is usually rejected outside fullscreen and is often unsupported on desktop."
             ],
@@ -213,7 +213,7 @@ public sealed partial class PwaPage : Component
     private static Section FullscreenTopic() =>
         new("fullscreen", "Fullscreen", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Present an element fullscreen with MDN's Fullscreen API: RequestFullscreen() on its ElementRef, ",
                 "Document.ExitFullscreen() to leave. WASM-only: requestFullscreen needs a live user ",
                 "gesture. Pairs with Orientation — locking the orientation generally requires fullscreen first."
@@ -228,7 +228,7 @@ public sealed partial class PwaPage : Component
     private static Section PictureInPictureTopic() =>
         new("picture-in-picture", "Picture-in-Picture", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Float a video into an always-on-top miniplayer the user keeps visible while they scroll or ",
                 "switch tabs, via RequestPictureInPicture() on the video's ElementRef (MDN's Picture-in-Picture API). WASM-only: ",
                 "requestPictureInPicture needs a live user gesture. This demo synthesizes its video from an ",
@@ -245,7 +245,7 @@ public sealed partial class PwaPage : Component
     private static Section EyeDropperTopic() =>
         new("eye-dropper", "EyeDropper", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Let the user pick a color from anywhere on screen with the system magnifier loupe, via ",
                 "EyeDropper (the EyeDropper API) — handy for a design tool or theme editor. WASM-only: ",
                 "open() needs a live user gesture, and it's Chromium-family only at the time of writing."
@@ -260,7 +260,7 @@ public sealed partial class PwaPage : Component
     private static Section IdleDetectionTopic() =>
         new("idle", "Idle detection", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Be notified when the user goes idle (no input for a threshold) or the screen locks, via ",
                 "IdleDetector (the Idle Detection API) — e.g. to auto-lock a session, pause a sync, or update ",
                 "presence in a collaborative app. WASM-only: the idle-detection permission needs a live gesture ",
@@ -277,7 +277,7 @@ public sealed partial class PwaPage : Component
     private static Section MediaDevicesTopic() =>
         new("media-devices", "Camera & microphone", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Capture the camera, microphone, or screen and show it in a <video> via MDN's MediaDevices in ",
                 "Rask.Web (getUserMedia / getDisplayMedia) — for photo capture, video calls, or screen recording. ",
                 "WASM-only: capture needs a live user gesture and a secure context. Stop each track to release ",
@@ -295,7 +295,7 @@ public sealed partial class PwaPage : Component
     private static Section WebSerialTopic() =>
         new("serial", "Web Serial", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Talk to a serial device — an Arduino or microcontroller, a GPS, a USB-to-serial adapter — ",
                 "straight from C# via MDN's Web Serial API in Rask.Web: pick a port, write a line, and watch inbound ",
                 "bytes stream into the log. WASM-only: requestPort() needs a live user gesture, and it's ",
@@ -314,7 +314,7 @@ public sealed partial class PwaPage : Component
     private static Section WebUsbTopic() =>
         new("usb", "WebUSB", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Pair with and drive a USB device — custom hardware, a dev board, an instrument — straight from C# ",
                 "via MDN's WebUSB API in Rask.Web: show its descriptor, open it, claim an interface, and run ",
                 "bulk / interrupt / control transfers. WASM-only: requestDevice() needs a live user gesture, and ",
@@ -332,7 +332,7 @@ public sealed partial class PwaPage : Component
     private static Section WebHidTopic() =>
         new("hid", "WebHID", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Talk to a human-interface device that no higher-level API covers — a gamepad with custom reports, ",
                 "a keyboard with extra keys, simulation controls, point-of-sale hardware — via MDN's WebHID API in ",
                 "Rask.Web: open it, send output / feature reports, and subscribe to its live input-report stream. ",
@@ -351,7 +351,7 @@ public sealed partial class PwaPage : Component
     private static Section WebBluetoothTopic() =>
         new("bluetooth", "Web Bluetooth", () =>
         [
-            P.Class("text-ui-muted")[
+            P.Class("text-zinc-500 dark:text-white/70")[
                 "Pair with a Bluetooth Low Energy device and talk to its GATT services from C# — connect, read / ",
                 "write characteristics, and subscribe to notifications (heart-rate monitors, thermometers, fitness ",
                 "sensors, custom hardware) — via MDN's Web Bluetooth API in Rask.Web. WASM-only: requestDevice() ",

@@ -31,9 +31,9 @@ public sealed partial class HeroCode : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("hero-code overflow-hidden rounded-2xl border border-ui-line bg-ui-bg")[
+        Div.Class("hero-code overflow-hidden rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800")[
             Div
-                .Class("flex items-center gap-2 border-b border-ui-line bg-ui-well px-4 py-2")
+                .Class("flex items-center gap-2 border-b border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 px-4 py-2")
                 .Role("tablist")
                 .Aria("label", "Source file")[
                 Dot("#ff5f57"), Dot("#febc2e"), Dot("#28c840"),
@@ -53,8 +53,8 @@ public sealed partial class HeroCode : Component
             // min-h-9: a mono label is a small target, and these sit where a thumb reaches first.
             .Class("hero-code-tab inline-flex min-h-9 items-center rounded-md px-2 font-mono text-xs "
                    + (index == _active
-                       ? "bg-ui-bg text-ui-ink"
-                       : "text-ui-muted hover:text-ui-ink"))
+                       ? "bg-white dark:bg-zinc-800 text-zinc-800 dark:text-white"
+                       : "text-zinc-500 dark:text-white/70 hover:text-zinc-800 dark:hover:text-white"))
             .OnClick(() => _active = index)[file];
 
     // A window-chrome dot. The colour is an inline style because these three are macOS's traffic lights,
@@ -145,7 +145,7 @@ public sealed partial class HeroCode : Component
             {
                 var end = source.IndexOf('\n', i);
                 end = end < 0 ? source.Length : end;
-                Token(html, "text-ui-muted", source[i..end]);
+                Token(html, "text-zinc-500 dark:text-white/70", source[i..end]);
                 i = end;
             }
             else if (c == '"' || (c == '$' && i + 1 < source.Length && source[i + 1] == '"'))
@@ -167,11 +167,11 @@ public sealed partial class HeroCode : Component
                 var word = source[start..i];
                 if (Keywords.Contains(word))
                 {
-                    Token(html, "text-ui-brand-ink", word);
+                    Token(html, "text-fx-accent-content", word);
                 }
                 else if (Types.Contains(word))
                 {
-                    Token(html, "text-ui-ok-ink", word);
+                    Token(html, "text-green-700 dark:text-green-400", word);
                 }
                 else
                 {

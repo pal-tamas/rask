@@ -13,7 +13,7 @@ public sealed partial class BoomHandlerDemo : Component
         ErrorBoundary
             .Fallback((_, recover) => BoundaryFallback(recover))[
             Div.Class("p-3 border rounded bg-white").Id("boom-handler-host")[
-                P.Class("text-ui-muted text-sm mb-2")["Healthy subtree — click to throw."],
+                P.Class("text-zinc-500 dark:text-white/70 text-sm mb-2")["Healthy subtree — click to throw."],
                 Ui.Button.Danger.Icon(Ui.IconName.ExclamationTriangle).Id("boom-throw").OnClick(ThrowFromHandler)["Throw a handler exception"]
             ]
         ];

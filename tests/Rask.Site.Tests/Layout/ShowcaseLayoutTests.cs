@@ -22,10 +22,10 @@ public sealed class ShowcaseLayoutTests
         // The colour assertion is on the kit's token, not a Tailwind hue. It used to pin bg-slate-900 —
         // "what makes it the dark bar now that no framework decides that for us" — and the bar is drawn
         // from Rask.Ui's palette now, light, so a hue would only ever pin whichever one happened to be
-        // chosen. bg-ui-bg says the thing that must stay true: this chrome takes its surface from the
+        // chosen. bg-white dark:bg-zinc-800 says the thing that must stay true: this chrome takes its surface from the
         // shared palette rather than inventing one.
         Assert.Contains("app-navbar", html);
-        Assert.Contains("bg-ui-bg", html);
+        Assert.Contains("bg-white dark:bg-zinc-800", html);
         Assert.Contains("app-brand", html);
         Assert.Contains("hamburger-btn", html);
 

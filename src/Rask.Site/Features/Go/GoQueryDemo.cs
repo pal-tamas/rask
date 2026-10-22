@@ -12,11 +12,11 @@ public sealed partial class GoQueryDemo(RouteState route) : Component
             Ui.Card.Class("mb-3")[
                     Div.Class("grid grid-cols-12 gap-4")[
                         Div.Class("col-span-12 md:col-span-6")[
-                            Span.Class("text-ui-muted text-sm uppercase")["Path"],
+                            Span.Class("text-zinc-500 dark:text-white/70 text-sm uppercase")["Path"],
                             Div[Code.Class("text-base").Id("nav-path")[route.Path]]
                         ],
                         Div.Class("col-span-12 md:col-span-6")[
-                            Span.Class("text-ui-muted text-sm uppercase")["Query"],
+                            Span.Class("text-zinc-500 dark:text-white/70 text-sm uppercase")["Query"],
                             Div[
                                 Code.Class("text-base").Id("nav-query")[
                                     route.Query.Count == 0 ? "(empty)" : BuildQuery(route)

@@ -46,8 +46,8 @@ public sealed partial class MasterDetailDemo : Component
         var orders = SortOrders(_orders, _orderSort);
 
         return Ui.Card[Ui.CardBleed[
-            Ui.Table.Id("md-orders").Class("w-full min-w-190 [&_tbody_tr:hover]:bg-ui-well")[
-                Ui.TableColumns.Class("bg-ui-well")[
+            Ui.Table.Id("md-orders").Class("w-full min-w-190 [&_tbody_tr:hover]:bg-zinc-50 dark:bg-zinc-900")[
+                Ui.TableColumns.Class("bg-zinc-50 dark:bg-zinc-900")[
                     _orderColumns.Select(c =>
                         c.Sortable
                             ? SortHeader(c.Id, c.Header, c.Width, _orderSort, ToggleOrderSort)
@@ -74,9 +74,9 @@ public sealed partial class MasterDetailDemo : Component
                         .OnClick(() => Toggle(order.Id))
                 ],
                 Ui.TableCell.Class("truncate font-semibold").Title(order.Customer)[order.Customer],
-                Ui.TableCell.Class("text-ui-muted text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
+                Ui.TableCell.Class("text-zinc-500 dark:text-white/70 text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
                 Ui.TableCell[Ui.Badge.Color(StatusColor(order.Status))[order.Status]],
-                Ui.TableCell.Class("text-ui-muted")[order.Items.Count],
+                Ui.TableCell.Class("text-zinc-500 dark:text-white/70")[order.Items.Count],
                 Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
                 ]
@@ -85,7 +85,7 @@ public sealed partial class MasterDetailDemo : Component
             if (open)
             {
                 rows.Add(Ui.TableRow.Key($"detail-{order.Id}").Class("md-detail")[
-                    Ui.TableCell.Attributes(("colspan", _orderColumns.Length.ToString(CultureInfo.InvariantCulture))).Class("p-0 bg-ui-well")[
+                    Ui.TableCell.Attributes(("colspan", _orderColumns.Length.ToString(CultureInfo.InvariantCulture))).Class("p-0 bg-zinc-50 dark:bg-zinc-900")[
                         Div
                             .Class("p-3")
                             .Data("testid", $"inner-{order.Id}")[
@@ -104,7 +104,7 @@ public sealed partial class MasterDetailDemo : Component
         var sort = _itemSort.GetValueOrDefault(order.Id, ("", true));
         var items = SortItems(order.Items, sort);
 
-        return Ui.Table.Class("w-full min-w-168 [&_tbody_tr:nth-child(odd)]:bg-ui-well bg-ui-bg")[
+        return Ui.Table.Class("w-full min-w-168 [&_tbody_tr:nth-child(odd)]:bg-zinc-50 dark:bg-zinc-900 bg-white dark:bg-zinc-800")[
             Ui.TableColumns[
                 _itemColumns.Select(c => SortHeader(c.Id, c.Header, c.Width, sort, col => ToggleItemSort(order.Id, col)))
             ],
@@ -113,7 +113,7 @@ public sealed partial class MasterDetailDemo : Component
                     Ui.TableRow.Key(it.Id)[
                         Ui.TableCell[Code[it.Sku]],
                         Ui.TableCell.Class("truncate").Title(it.Product)[it.Product],
-                        Ui.TableCell.Class("text-ui-muted")[it.Qty],
+                        Ui.TableCell.Class("text-zinc-500 dark:text-white/70")[it.Qty],
                         Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
                         ],

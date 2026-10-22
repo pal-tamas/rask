@@ -16,8 +16,8 @@ namespace Rask.Site.Tests.Layout;
 ///     </para>
 ///     <para>
 ///     It is not a hypothetical. <c>.app-navbar { background: rgba(20, 16, 31, .82) }</c> survived the
-///     showcase's move to the kit's light palette and beat the <c>bg-ui-bg</c> on the same element: the
-///     top bar rendered near-black while its own text stayed <c>text-ui-ink</c> (base-content, near-black
+///     showcase's move to the kit's light palette and beat the <c>bg-white dark:bg-zinc-800</c> on the same element: the
+///     top bar rendered near-black while its own text stayed <c>text-zinc-800 dark:text-white</c> (near-black
 ///     in this theme), putting the wordmark, the "showcase" pill and the route readout at roughly 1.4:1.
 ///     Every class name in the markup was correct, so the unit suite, the browser suite and the build all
 ///     stayed green. Same shape as #1033, one cascade layer up.

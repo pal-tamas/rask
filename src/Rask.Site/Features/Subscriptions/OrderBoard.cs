@@ -15,7 +15,7 @@ public sealed partial class OrderBoard : Component
         return Ui.Card.Class("subscription-board")[
             H3.Class("text-sm font-semibold")[Title],
             orders.Items.Count == 0
-                ? P.Class("text-sm text-ui-muted")["No orders yet."]
+                ? P.Class("text-sm text-zinc-500 dark:text-white/70")["No orders yet."]
                 : Ul.Class("text-sm")[orders.Items.Reverse().Select(order => Li.Key(order.Number)[$"#{order.Number} {order.Item}"])]
         ];
     }

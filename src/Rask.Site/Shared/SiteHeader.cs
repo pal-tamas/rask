@@ -51,7 +51,7 @@ internal sealed partial class SiteHeader : Component
     // row below stays 4rem either way, which is what --nav-h (global.css) tells the docs sidebar to
     // clear.
     private const string Bar =
-        "app-navbar sticky top-0 z-50 border-b border-ui-line bg-ui-bg/85 text-ui-ink backdrop-blur "
+        "app-navbar sticky top-0 z-50 border-b border-zinc-200 dark:border-white/10 bg-white/85 dark:bg-zinc-800/85 text-zinc-800 dark:text-white backdrop-blur "
         + "pt-[env(safe-area-inset-top)]";
 
     // The row, joined to each container at COMPILE time — constant + constant is folded by the compiler,

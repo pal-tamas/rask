@@ -17,7 +17,7 @@ public sealed partial class BindingClearDefaultDemo : Component
                 .Id("bind-clear-optage")
                 .Description("Leave it empty for null.")
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-zinc-50 dark:bg-zinc-900 border rounded")[
             Code.Id("bind-clear-echo")[
                 $"Age         = {_model.Age}\n" +
                 $"OptionalAge = {_model.OptionalAge?.ToString(CultureInfo.InvariantCulture) ?? "null"}"

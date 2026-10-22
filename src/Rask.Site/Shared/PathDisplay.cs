@@ -17,7 +17,7 @@ public sealed partial class PathDisplay(RouteState route) : Component
     protected override async Task OnUnmount() => route.Changed -= StateHasChanged;
 
     protected override Component? Render() =>
-        Span.Class("text-ui-muted text-sm hidden md:inline")[
+        Span.Class("text-zinc-500 dark:text-white/70 text-sm hidden md:inline")[
             "path: ",
             Code.Class("text-info")[route.Path]
         ];

@@ -19,11 +19,11 @@ public sealed partial class GeolocationWatchDemo : Component
                         ? Ui.Button.Primary.Id("geowatch-start").OnClick(Start)["Start watching"]
                         : Ui.Button.Red.Id("geowatch-stop").OnClick(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-ui-muted")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "Position: ", Code.Id("geowatch-value")[_location ?? "(not watching)"],
                     Span.Class("ms-2").Id("geowatch-fixes")[$"({_fixes} fix(es))"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("geowatch-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Start()

@@ -5,8 +5,7 @@
 @import "./vendor/rask-ui.css";
 
 /*
-  That one line is Tailwind AND the kit: the layer order, the kit's theme (the ui-* tokens Tw.cs writes
-  utilities against, Flux's accent), its `dark` variant — the `dark` class Ui.AppearanceScript puts on
+  That one line is Tailwind AND the kit: the layer order, the kit's theme (Flux's accent), its `dark` variant — the `dark` class Ui.AppearanceScript puts on
   <html> — and the classes the kit's components write, compiled here beside this project's own. ONE
   sheet, so a kit `dark:bg-white/4` and this app's `bg-white` are ranked by Tailwind, not by which
   <link> came last.
@@ -33,54 +32,33 @@
 */
 @source "../Features/Islands";
 
-/*
-  The showcase's older design tokens — var(--accent), var(--ink), var(--panel) and friends, which
-  global.css, GuideChrome.css and a number of demo stylesheets still reference.
-
-  These used to be dark-first, with a light deviation under a media query and two [data-theme] blocks
-  for the navbar toggle to win over. The toggle is gone and the showcase is light, drawn from the same
-  palette as the operator console and the landing site, so there is ONE set of values now and they are
-  defined in terms of the kit's tokens rather than repeating hexes that would drift from it.
-
-  They remain as an alias layer rather than being deleted: ~100 demo files still name them, and
-  re-pointing them here is what let the whole showcase change palette without editing those files.
-  Each per-area PR retires the ones its pages use.
-*/
-:root {
-  --ground: var(--color-ui-well);
-  --panel: var(--color-ui-bg);
-  --panel-2: var(--color-ui-panel);
-  --line: var(--color-ui-line);
-  --grid: color-mix(in oklab, var(--color-ui-line) 40%, transparent);
-  --ink: var(--color-ui-ink);
-  --ink-soft: var(--color-ui-ink);
-  --muted: var(--color-ui-muted);
-  --accent: var(--color-ui-brand);
-  --accent-2: var(--color-ui-brand-ink);
-  --accent-ink: var(--color-ui-brand-ink);
-}
-
 @layer base {
   /*
     The page's ground. The kit deliberately ships no html/body rules — an application owns its own
-    document — so the one place that decides what colour this site is, is this file. The well rather
-    than the panel white: cards sit ON something.
+    document — so the one place that decides what colour this site is, is this file. Flux's zinc-50
+    (zinc-900 in the dark) rather than white: cards sit ON something.
 
     It arrives with the landing page, which set it here because it is a full-bleed marketing document.
-    The showcase leaned on App's BodyClass="bg-ui-well" instead, which colours <body> but leaves the
+    The showcase leaned on App's BodyClass instead, which colours <body> but leaves the
     html element behind it unpainted — visible as a flash of white on overscroll.
   */
   html,
   body {
-    background-color: var(--color-ui-well);
-    color: var(--color-ui-ink);
+    background-color: var(--color-zinc-50);
+    color: var(--color-zinc-800);
+  }
+
+  .dark,
+  .dark body {
+    background-color: var(--color-zinc-900);
+    color: var(--color-white);
   }
 }
 
 /*
-  `prose` on the kit's palette. The plugin colours everything from its own gray scale by default — a
+  `prose` on Flux's palette. The plugin colours everything from its own gray scale by default — a
   fixed light-theme ink that would sit at a few percent contrast in dark mode —
-  so each of its variables is pointed at the ui-* token the rest of the site reads. Unlayered, so it wins
+  so each of its variables is pointed at the zinc step the rest of the site reads, light and dark. Unlayered, so it wins
   over the plugin's utility-layer defaults whatever order the sheets land in.
 
   Below the variables, the few things `prose` does not do the way these guides need, each a behaviour a
@@ -94,23 +72,23 @@
   Code blocks keep the site's dark ink, because the syntax colours in wwwroot/global.css are tuned for it.
 */
 .markdown-body.prose {
-  --tw-prose-body: var(--color-ui-ink);
-  --tw-prose-headings: var(--color-ui-ink);
-  --tw-prose-lead: var(--color-ui-muted);
-  --tw-prose-links: var(--color-ui-brand-ink);
-  --tw-prose-bold: var(--color-ui-ink);
-  --tw-prose-counters: var(--color-ui-muted);
-  --tw-prose-bullets: var(--color-ui-line);
-  --tw-prose-hr: var(--color-ui-line);
-  --tw-prose-quotes: var(--color-ui-ink);
-  --tw-prose-quote-borders: var(--color-ui-brand);
-  --tw-prose-captions: var(--color-ui-muted);
-  --tw-prose-kbd: var(--color-ui-ink);
-  --tw-prose-code: var(--color-ui-brand-ink);
+  --tw-prose-body: light-dark(var(--color-zinc-800), var(--color-white));
+  --tw-prose-headings: light-dark(var(--color-zinc-800), var(--color-white));
+  --tw-prose-lead: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
+  --tw-prose-links: var(--color-fx-accent-content);
+  --tw-prose-bold: light-dark(var(--color-zinc-800), var(--color-white));
+  --tw-prose-counters: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
+  --tw-prose-bullets: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
+  --tw-prose-hr: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
+  --tw-prose-quotes: light-dark(var(--color-zinc-800), var(--color-white));
+  --tw-prose-quote-borders: var(--color-fx-accent);
+  --tw-prose-captions: light-dark(var(--color-zinc-500), rgb(255 255 255 / 70%));
+  --tw-prose-kbd: light-dark(var(--color-zinc-800), var(--color-white));
+  --tw-prose-code: var(--color-fx-accent-content);
   --tw-prose-pre-code: var(--rask-code-ink);
   --tw-prose-pre-bg: var(--rask-ink);
-  --tw-prose-th-borders: var(--color-ui-line);
-  --tw-prose-td-borders: var(--color-ui-line);
+  --tw-prose-th-borders: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
+  --tw-prose-td-borders: light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
 
   max-width: 52rem;
 
@@ -119,7 +97,7 @@
   }
 
   & :where(h2) {
-    border-bottom: 1px solid var(--color-ui-line);
+    border-bottom: 1px solid light-dark(var(--color-zinc-200), rgb(255 255 255 / 10%));
     padding-bottom: 0.3rem;
   }
 
@@ -128,7 +106,7 @@
   }
 
   & :where(:not(pre) > code) {
-    background: var(--color-ui-brand-surface);
+    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
     border-radius: 4px;
     padding: 0.08rem 0.34rem;
     font-weight: 500;
@@ -154,7 +132,7 @@
   }
 
   & :where(blockquote) {
-    background: var(--color-ui-brand-surface);
+    background: color-mix(in oklab, var(--color-fx-accent) 8%, transparent);
     border-radius: 0 0.4rem 0.4rem 0;
     padding: 0.6rem 1rem;
     font-style: normal;

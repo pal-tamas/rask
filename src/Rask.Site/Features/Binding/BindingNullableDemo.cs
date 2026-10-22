@@ -36,7 +36,7 @@ public sealed partial class BindingNullableDemo : Component
                 .Id("bind-null-nick")
                 .Description("Clear it for null.")
         ],
-        Pre.Class("text-sm mb-0 p-3 bg-ui-well border rounded")[
+        Pre.Class("text-sm mb-0 p-3 bg-zinc-50 dark:bg-zinc-900 border rounded")[
             Code[
                 $"OptionalAge = {_model.OptionalAge?.ToString(CultureInfo.InvariantCulture) ?? "null"}\n" +
                 $"StartDate   = {_model.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "null"}\n" +

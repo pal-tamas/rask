@@ -27,16 +27,16 @@ public sealed partial class PwaDemo(HttpClient http) : Component
     [
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.BellAlert).Class("size-5 me-2"), "Local notification (Notification)"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "Requests permission, then shows a notification straight from C# — no server."
                 ],
                 Ui.Button.Primary.Class("mb-2").Id("pwa-notify").OnClick(ShowNotification)["Show a notification"],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("pwa-notify-status")[_notifyStatus ?? "(idle)"]]
             ],
 
         Ui.Card.Class("mb-3")[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Signal).Class("size-5 me-2"), "Web Push (PushManager)"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "Subscribes, then hands the subscription to a ", Code["RaskApp"],
                     " host's Web Push battery at ", Code["/_rask/push/subscribe"],
                     ". The host sends with ", Code["Push.Send(…)"],
@@ -50,12 +50,12 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                         .Disabled(!_subscribed)
                         .OnClick(SendTestPush)["Send a test push"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("pwa-push-status")[_pushStatus ?? "(idle)"]]
             ],
 
         Ui.Card[
                 H6.Class("font-bold")[Ui.Icon.Name(Ui.IconName.Squares2x2).Class("size-5 me-2"), "App badge (Navigator.SetAppBadge)"],
-                P.Class("text-sm text-ui-muted")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "Sets a count on the installed app's icon — install the PWA first, then watch the icon. ",
                     "A silent no-op in a normal browser tab."
                 ],
@@ -63,7 +63,7 @@ public sealed partial class PwaDemo(HttpClient http) : Component
                     Ui.Button.Id("pwa-badge-inc").OnClick(BumpBadge)["Increment badge"],
                     Ui.Button.Red.Id("pwa-badge-clear").OnClick(ClearBadge)["Clear badge"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("pwa-badge-status")[_badgeStatus ?? "(idle)"]]
             ]
     ];
 

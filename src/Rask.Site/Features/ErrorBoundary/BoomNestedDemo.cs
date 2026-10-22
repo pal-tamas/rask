@@ -10,12 +10,12 @@ public sealed partial class BoomNestedDemo : Component
         ErrorBoundary.Fallback((_, _) => OuterFallback())[
             Div.Class("p-3 border rounded bg-white").Id("boom-nested-host")[
                 P
-                    .Class("mb-2 text-sm text-ui-muted")
+                    .Class("mb-2 text-sm text-zinc-500 dark:text-white/70")
                     .Id("boom-nested-outer-healthy")[
                     "Outer healthy region — stays mounted while the inner boundary trips."],
                 ErrorBoundary.Fallback((_, recover) => InnerFallback(recover))[
-                    Div.Class("p-3 border rounded bg-ui-well")[
-                        P.Class("text-sm text-ui-muted mb-2")["Inner boundary subtree."],
+                    Div.Class("p-3 border rounded bg-zinc-50 dark:bg-zinc-900")[
+                        P.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")["Inner boundary subtree."],
                         Ui.Button.Danger.Icon(Ui.IconName.ExclamationTriangle)
                             .Id("boom-nested-throw")
                             .OnClick(ThrowFromInnerHandler)["Throw inside inner boundary"]

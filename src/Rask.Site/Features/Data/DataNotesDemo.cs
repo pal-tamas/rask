@@ -21,7 +21,7 @@ public sealed partial class DataNotesDemo : Component
     protected override Component? Render() =>
         Div.Class("flex flex-col gap-2")[
             Iframe.Src(Src).Title(FrameTitle).Loading(Loading.Lazy).Height("640")
-                .Class("block w-full rounded-xl border border-base-300 bg-base-100"),
+                .Class("block w-full rounded-xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-800"),
             A.Href(Src).Class("self-start text-sm font-medium underline underline-offset-4")["Open full screen"]
         ];
 }

@@ -29,7 +29,7 @@ public sealed partial class GuideCards : Component
             // whichever Tailwind emits later rather than to the markup. It is a section label above a
             // grid of cards, so it is small and quiet and the cards carry the weight.
             yield return H2
-                .Class("mt-8 mb-3 text-xs font-semibold uppercase tracking-widest text-ui-muted")[group];
+                .Class("mt-8 mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/70")[group];
             yield return Div.Class("grid grid-cols-12 gap-4")[cards.Select(Card)];
         }
     }
@@ -52,14 +52,14 @@ public sealed partial class GuideCards : Component
                 .ActiveClass("")
                 .Class("block h-full no-underline")[
                 // A card is a link, so it needs a hover and a focus state. It had neither.
-                Ui.Card.Class("h-full transition-colors hover:border-ui-brand focus-within:border-ui-brand")[
+                Ui.Card.Class("h-full transition-colors hover:border-fx-accent focus-within:border-fx-accent")[
                     Div.Class("flex items-start gap-3")[
-                        Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-ui-muted"),
+                        Ui.Icon.Name(g.Icon).Class("mt-0.5 size-5 shrink-0 text-zinc-500 dark:text-white/70"),
                         // min-w-0: without it this flex item cannot shrink below the longest
                         // unbreakable word in the title, and the card widens its grid column.
                         Div.Class("min-w-0")[
-                            H3.Class("text-base font-semibold text-ui-ink")[g.Title],
-                            P.Class("mt-1 text-sm leading-relaxed text-ui-muted")[g.Blurb]
+                            H3.Class("text-base font-semibold text-zinc-800 dark:text-white")[g.Title],
+                            P.Class("mt-1 text-sm leading-relaxed text-zinc-500 dark:text-white/70")[g.Blurb]
                         ]
                     ]
                 ]

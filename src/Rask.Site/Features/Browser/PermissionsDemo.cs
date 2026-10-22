@@ -21,9 +21,9 @@ public sealed partial class PermissionsDemo : Component
                         .Id("perm-clip")
                         .OnClick(QueryClipboard)["Query clipboard-read"]
                 ],
-                Div.Class("text-sm text-ui-muted")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
-                Div.Class("text-sm text-ui-muted")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["geolocation: ", Code.Id("perm-geo-value")[_geo ?? "(unknown)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["clipboard-read: ", Code.Id("perm-clip-value")[_clip ?? "(unknown)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("perm-status")[_status ?? "(idle)"]]
             ];
 
     private async Task QueryGeo()

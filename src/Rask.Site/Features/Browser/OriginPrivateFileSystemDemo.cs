@@ -30,9 +30,9 @@ public sealed partial class OriginPrivateFileSystemDemo : Component
                         .Id("opfs-persist")
                         .OnClick(Persist)["Request persistence"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
-                Div.Class("text-sm text-ui-muted")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Content: ", Code.Id("opfs-content")[_content ?? "(not read)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["File size: ", Code.Id("opfs-size")[_size ?? "(unknown)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("opfs-status")[_status ?? "(idle)"]]
             ];
 
     // Writing at an offset leaves everything outside the range intact and zero-fills the gap up to it, so

@@ -30,12 +30,12 @@ public sealed partial class SpeechRecognitionDemo : Component
                         .Disabled(!Listening)
                         .OnClick(Stop)["Stop"]
                 ],
-                Div.Class("text-sm text-ui-muted mb-1")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Transcript: ",
                     Code.Id("speech-recognize-transcript")[_transcript.Length == 0 ? "(none)" : _transcript],
-                    _interim.Length == 0 ? (Component?)null : Span.Class("text-ui-muted italic")[" ", _interim]
+                    _interim.Length == 0 ? (Component?)null : Span.Class("text-zinc-500 dark:text-white/70 italic")[" ", _interim]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("speech-recognize-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("speech-recognize-status")[_status]]
             ];
 
     private async Task Start()

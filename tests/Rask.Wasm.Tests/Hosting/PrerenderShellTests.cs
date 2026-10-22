@@ -185,7 +185,7 @@ public class PrerenderShellTests
 
     // Regression: the published page's <body> was the SHELL's, so a BodyClass — the app's ground and text
     // colour — was missing until the runtime's first frame morphed it on, and the page restyled at hydration.
-    // rask.sh's `bg-ui-well` hid it only because that class happens to match the page ground.
+    // rask.sh's `bg-zinc-50 dark:bg-zinc-900` hid it only because that class happens to match the page ground.
     [Fact]
     public void The_documents_body_attributes_survive_the_merge_and_the_shell_still_wins_a_conflict()
     {

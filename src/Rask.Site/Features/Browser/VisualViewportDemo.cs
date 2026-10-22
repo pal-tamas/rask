@@ -12,8 +12,8 @@ public sealed partial class VisualViewportDemo : Component
                 Ui.Button.Class("mb-2")
                     .Id("vv-read")
                     .OnClick(Read)["Read visual viewport"],
-                Div.Class("text-sm text-ui-muted")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Viewport: ", Code.Id("vv-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("vv-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

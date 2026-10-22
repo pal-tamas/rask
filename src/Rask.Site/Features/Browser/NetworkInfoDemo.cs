@@ -15,8 +15,8 @@ public sealed partial class NetworkInfoDemo : Component
                 Ui.Button.Class("mb-2")
                     .Id("net-read")
                     .OnClick(Read)["Read network status"],
-                Div.Class("text-sm text-ui-muted")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("net-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Connection: ", Code.Id("net-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("net-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

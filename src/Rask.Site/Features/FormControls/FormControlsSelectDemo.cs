@@ -25,7 +25,7 @@ public sealed partial class FormControlsSelectDemo : Component
                     .Class("mb-2")[
                     Frameworks.Select(framework => Ui.SelectOption.Key("controlled-" + framework.Value).Value(framework.Value)[framework.Text])
                 ],
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-select-controlled-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-select-controlled-out")[
                     "Picked: ", Strong[_controlled]
                 ]
             ],
@@ -35,7 +35,7 @@ public sealed partial class FormControlsSelectDemo : Component
                         Frameworks.Select(framework => Ui.SelectOption.Key("bound-" + framework.Value).Value(framework.Value)[framework.Text])
                     ]
                 ],
-                P.Class("text-sm text-ui-muted mb-0").Id("fc-select-bound-out")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-0").Id("fc-select-bound-out")[
                     "Picked: ", Strong[_model.Framework]
                 ]
             ]

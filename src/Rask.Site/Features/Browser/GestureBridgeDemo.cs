@@ -23,7 +23,7 @@ public sealed partial class GestureBridgeDemo : Component
                 DisplayTriggers(),
                 EyeDropperRow(),
                 CameraRow(),
-                Div.Class("text-sm text-ui-muted mt-3")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mt-3")[
                     "Every button runs inside its own click gesture, so they all work on the Server too. ",
                     "Camera + picture-in-picture need HTTPS and a real device; install needs an installable PWA ",
                     "(", Code["AddRaskPwa"], "); orientation lock only takes effect while fullscreen (pair it ",
@@ -57,7 +57,7 @@ public sealed partial class GestureBridgeDemo : Component
                     return Task.CompletedTask;
                 }),
             _install is null
-                ? Span.Class("text-sm text-ui-muted")["not prompted"]
+                ? Span.Class("text-sm text-zinc-500 dark:text-white/70")["not prompted"]
                 : Span.Class("text-sm")["install: ", Code.Id("install-outcome")[_install]]
         ];
 
@@ -74,7 +74,7 @@ public sealed partial class GestureBridgeDemo : Component
                     return Task.CompletedTask;
                 }),
             _color is null
-                ? Span.Class("text-sm text-ui-muted")["no colour picked"]
+                ? Span.Class("text-sm text-zinc-500 dark:text-white/70")["no colour picked"]
                 : Span.Class("inline-flex items-center gap-2 text-sm")[
                     Span
                         .Id("eyedropper-swatch")

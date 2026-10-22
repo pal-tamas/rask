@@ -5,7 +5,7 @@ public sealed partial class ElementsTablesDemo : Component
 {
     protected override Component? Render() => Table.Class("w-full border-collapse text-left text-sm [&_td]:border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:px-3 [&_th]:py-2")[
         Caption.Class("caption-top")["Quarterly results"],
-        Colgroup[Col.Span(1).Class("bg-ui-well"), Col.Span(2)],
+        Colgroup[Col.Span(1).Class("bg-zinc-50 dark:bg-zinc-900"), Col.Span(2)],
         Thead[
             Tr[Th.Scope(ThScope.Col)["Region"], Th.Scope(ThScope.Col)["Q1"], Th.Scope(ThScope.Col)["Q2"]]
         ],

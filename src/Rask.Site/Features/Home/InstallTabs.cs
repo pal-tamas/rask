@@ -32,18 +32,18 @@ public sealed partial class InstallTabs : Component
             // the Windows one-liner out of them, and a locator that resolves to nothing fails by timing
             // out rather than by naming what moved.
             Terminal(),
-            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
+            P.Class("install-foot mt-4 text-center text-xs text-zinc-500 dark:text-white/70")[
                 "Nothing preinstalled — it adds the .NET SDK too, under ", Code["$HOME"],
                 ", no ", Code["sudo"], ". Windows: ", Code[WindowsInstallCommand], "."
             ],
-            P.Class("install-foot mt-4 text-center text-xs text-ui-muted")[
+            P.Class("install-foot mt-4 text-center text-xs text-zinc-500 dark:text-white/70")[
                 "Accounts and cookie sign-in are already on · full path in the ",
                 // The on-site guide, through the typed route like every other card on the page: it
                 // navigates inside the app instead of leaving for GitHub's raw markdown in a new tab.
                 NavLink
                     .Href(PageMeta.LinkTo(Routes.GuidePage("getting-started")))
                     .ActiveClass("")
-                    .Class("text-ui-brand-ink no-underline hover:underline")["getting-started guide"], "."
+                    .Class("text-fx-accent-content no-underline hover:underline")["getting-started guide"], "."
             ]
         ];
 

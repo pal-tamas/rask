@@ -25,8 +25,8 @@ public sealed partial class CookiesDemo : Component
                     Ui.Button.Id("cookie-get").OnClick(Get)["Get"],
                     Ui.Button.Red.Id("cookie-delete").OnClick(Delete)["Delete"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Value: ", Code.Id("cookie-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("cookie-status")[_status ?? "(idle)"]]
             ];
 
     // document.cookie = "name=value; …": one cookie per write, its value URI-encoded as MDN recommends.

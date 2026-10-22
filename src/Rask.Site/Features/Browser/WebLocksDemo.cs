@@ -25,9 +25,9 @@ public sealed partial class WebLocksDemo : Component
                         .Id("locks-query")
                         .OnClick(Query)["Query held locks"]
                 ],
-                Div.Class("text-sm text-ui-muted mb-1")["Status: ", Code.Id("locks-status")[_status]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")["Status: ", Code.Id("locks-status")[_status]],
                 _snapshot.Length == 0
-                    ? Div.Class("text-sm text-ui-muted italic").Id("locks-snapshot")["(query to see held locks)"]
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70 italic").Id("locks-snapshot")["(query to see held locks)"]
                     : Ul.Class("text-sm mb-0").Id("locks-snapshot")[
                         _snapshot.Select((l, i) => Li.Key($"{i}:{l.Lock.Name}")[$"{l.Lock.Name} — {l.Lock.Mode} — {l.State}"])
                     ]

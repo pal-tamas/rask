@@ -50,8 +50,8 @@ public sealed partial class WebAuthnDemo(IWebAuthn webAuthn) : Component
                         .Disabled(_credentialId is null)
                         .OnClick(Authenticate)["Authenticate"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Support: ", Code.Id("webauthn-support")[_support]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("webauthn-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Support: ", Code.Id("webauthn-support")[_support]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("webauthn-status")[_status]]
             ];
 
     private async Task Create()

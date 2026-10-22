@@ -32,20 +32,20 @@ public sealed partial class UsbDemo : Component
                         .OnClick(Release)["Release"]
                 ],
                 _info is null
-                    ? Div.Class("text-sm text-ui-muted")["No device paired."]
+                    ? Div.Class("text-sm text-zinc-500 dark:text-white/70")["No device paired."]
                     : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-2").Id("usb-info")[
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Vendor ID"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Vendor ID"],
                         Dd.Class("col-span-7 sm:col-span-8")[Code[Hex(_info.VendorId)]],
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Product ID"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Product ID"],
                         Dd.Class("col-span-7 sm:col-span-8")[Code[Hex(_info.ProductId)]],
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Manufacturer"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Manufacturer"],
                         Dd.Class("col-span-7 sm:col-span-8")[_info.ManufacturerName ?? "—"],
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Product"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Product"],
                         Dd.Class("col-span-7 sm:col-span-8")[_info.ProductName ?? "—"],
-                        Dt.Class("col-span-5 sm:col-span-4 text-ui-muted")["Serial"],
+                        Dt.Class("col-span-5 sm:col-span-4 text-zinc-500 dark:text-white/70")["Serial"],
                         Dd.Class("col-span-7 sm:col-span-8")[_info.SerialNumber ?? "—"]
                     ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("usb-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("usb-status")[_status]]
             ];
 
     private static string Hex(int value) => "0x" + value.ToString("x4", CultureInfo.InvariantCulture);

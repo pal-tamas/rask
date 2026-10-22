@@ -21,8 +21,8 @@ public sealed partial class StorageDemo : Component
                     Ui.Button.Id("storage-read").OnClick(Read)["Read"],
                     Ui.Button.Red.Id("storage-remove").OnClick(Remove)["Remove"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Last read: ", Code.Id("storage-read-value")[_read ?? "(null)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("storage-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Set()

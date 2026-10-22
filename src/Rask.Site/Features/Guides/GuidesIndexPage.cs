@@ -49,30 +49,30 @@ public sealed partial class GuidesIndexPage : Component
     /// </para>
     /// </remarks>
     private static Component Install() =>
-        Div.Class("install-block mb-6 rounded-xl border border-ui-line bg-ui-panel p-4 sm:p-5")[
+        Div.Class("install-block mb-6 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 p-4 sm:p-5")[
             Div.Class("flex items-center gap-2")[
-                Ui.Icon.Name(Ui.IconName.CommandLine).Class("size-5 shrink-0 text-ui-brand-ink"),
-                H2.Class("text-base font-semibold tracking-tight text-ui-ink sm:text-lg")["Start a project"]
+                Ui.Icon.Name(Ui.IconName.CommandLine).Class("size-5 shrink-0 text-fx-accent-content"),
+                H2.Class("text-base font-semibold tracking-tight text-zinc-800 dark:text-white sm:text-lg")["Start a project"]
             ],
-            P.Class("mt-1 text-sm text-ui-muted")[
+            P.Class("mt-1 text-sm text-zinc-500 dark:text-white/70")[
                 "Nothing preinstalled — the installer brings the .NET SDK with it, under ",
                 Code["$HOME"], ", with no ", Code["sudo"], "."
             ],
             Pre.Class(
-                "mt-3 overflow-x-auto rounded-lg border border-ui-line bg-ui-well p-4 font-mono text-xs "
-                + "leading-relaxed text-ui-ink")[
+                "mt-3 overflow-x-auto rounded-lg border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900 p-4 font-mono text-xs "
+                + "leading-relaxed text-zinc-800 dark:text-white")[
                 Code[
                     Prompt(), " curl -sSL https://rask.sh/rask.sh | sh\n",
                     Prompt(), " rask new MyApp\n",
                     Prompt(), " cd MyApp && rask dev"
                 ]
             ],
-            P.Class("mt-3 text-xs text-ui-muted")[
+            P.Class("mt-3 text-xs text-zinc-500 dark:text-white/70")[
                 "Windows: ", Code["irm https://rask.sh/rask.ps1 | iex"], ". Add ",
                 Code["--template wasm"], " for a standalone browser app. Accounts and cookie ",
                 "sign-in are already on."
             ]
         ];
 
-    private static Component Prompt() => Span.Class("select-none text-ui-brand-ink")["$"];
+    private static Component Prompt() => Span.Class("select-none text-fx-accent-content")["$"];
 }

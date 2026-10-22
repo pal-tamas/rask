@@ -53,11 +53,11 @@ public sealed partial class MediaSessionDemo : Component
                         .OnClick(() => SetState(Types.MediaSessionPlaybackState.Paused, "paused"))["Mark paused"],
                     Ui.Button.Red.Id("ms-clear").OnClick(Clear)["Clear"]
                 ],
-                P.Class("text-sm text-ui-muted mb-2")[
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")[
                     "After publishing, use your keyboard's media keys (or the OS media controls) — the action "
                     + "shows below. Lock-screen integration activates fully while audio is playing."],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("ms-status")[_status]],
-                Div.Class("text-sm text-ui-muted")["Last action: ", Code.Id("ms-last")[_last]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("ms-status")[_status]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Last action: ", Code.Id("ms-last")[_last]]
             ];
 
     // navigator.mediaSession.metadata = new MediaMetadata({ … }): the new object is kept, set by its handle, then let go.

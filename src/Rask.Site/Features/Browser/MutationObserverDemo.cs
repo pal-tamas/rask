@@ -65,10 +65,10 @@ public sealed partial class MutationObserverDemo : Component
                         Enumerable.Range(1, _items).Select(i => Li.Key(i.ToString(CultureInfo.InvariantCulture))[$"item {i}"])
                     ]
                 ],
-                Div.Class("text-sm text-ui-muted")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")[
                     "childList changes: ", Code.Id("mo-child")[$"{_childChanges}"],
                     " · attribute changes: ", Code.Id("mo-attr")[$"{_attrChanges}"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Last: ", Code.Id("mo-last")[_last]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Last: ", Code.Id("mo-last")[_last]]
             ];
 }

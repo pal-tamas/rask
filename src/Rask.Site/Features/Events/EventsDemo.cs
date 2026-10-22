@@ -31,7 +31,7 @@ public sealed partial class EventsDemo : Component
                     .OnMouseLeave(_ => _hovering = false)
                     .OnWheel(e => _wheel += (int)e.DeltaY)[
                     Strong["Move / scroll here"],
-                    Div.Class("text-ui-muted mt-2")[
+                    Div.Class("text-zinc-500 dark:text-white/70 mt-2")[
                         $"x: {Fmt(_x)}, y: {Fmt(_y)} · {(_hovering ? "inside" : "outside")} · wheel Σ {_wheel}"]
                 ]
             ],
@@ -40,7 +40,7 @@ public sealed partial class EventsDemo : Component
                 Ui.Button.Class("w-full py-4")
                     .OnDblClick(_ => _doubleClicks++)
                     .OnContextMenu(_ => _contextMenu = !_contextMenu)["Double-click or right-click me"],
-                Div.Class("text-ui-muted mt-2")[
+                Div.Class("text-zinc-500 dark:text-white/70 mt-2")[
                     $"double-clicks: {_doubleClicks} · context-menu toggled: {_contextMenu}"]
             ],
             // Focus / blur + keyboard on a focusable div. Keys.Escape clears it: Keys and Codes
@@ -54,7 +54,7 @@ public sealed partial class EventsDemo : Component
                     .OnBlur(() => _focused = false)
                     .OnKeyDown(e => (_lastKey, _lastCode) = e.Key is Keys.Escape ? ("—", "—") : (e.Key, e.Code))[
                     Strong["Click to focus, then type (Escape clears)"],
-                    Div.Class("text-ui-muted mt-2")[
+                    Div.Class("text-zinc-500 dark:text-white/70 mt-2")[
                         $"{(_focused ? "focused" : "blurred")} · last key: {_lastKey} · code: {_lastCode}"]
                 ]
             ],
@@ -64,7 +64,7 @@ public sealed partial class EventsDemo : Component
                     .Class("border rounded p-4")
                     .OnPaste(e => _pasted = e.ClipboardData?.GetData("text/plain") ?? "")[
                     Strong["Paste text here"],
-                    Div.Class("text-ui-muted mt-2")[$"pasted: {_pasted}"]
+                    Div.Class("text-zinc-500 dark:text-white/70 mt-2")[$"pasted: {_pasted}"]
                 ]
             ]
         ];

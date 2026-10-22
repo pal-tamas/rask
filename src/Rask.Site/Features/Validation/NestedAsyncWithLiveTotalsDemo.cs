@@ -159,7 +159,7 @@ public sealed partial class NestedAsyncWithLiveTotalsDemo : Component
         ];
 
     private static Component Totals(decimal subtotal, decimal discountPct, decimal discount, decimal tax, decimal total) =>
-        Div.Id("v-nlive-totals").Class("bg-ui-well rounded p-3 text-sm")[
+        Div.Id("v-nlive-totals").Class("bg-zinc-50 dark:bg-zinc-900 rounded p-3 text-sm")[
             Div.Class("flex justify-between flex-wrap items-center")[
                 Span["Subtotal"],
                 Span.Id("v-nlive-subtotal")[$"${subtotal.ToString("F2", CultureInfo.InvariantCulture)}"]

@@ -23,7 +23,7 @@ public sealed partial class ComponentTiersDemo : Component
         Div.Class("col-span-12 md:col-span-4")[
             Ui.Card.Class("h-full")[
                     H6.Class("font-semibold mb-1")[title],
-                    P.Class("text-sm text-ui-muted")[blurb],
+                    P.Class("text-sm text-zinc-500 dark:text-white/70")[blurb],
                     body
                 ]
         ];

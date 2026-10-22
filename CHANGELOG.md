@@ -95,6 +95,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **rask.sh is drawn in Flux's own colours.** The site and the notes demo wrote the kit's transitional `ui-*` tokens
+  (`text-ui-muted`, `bg-ui-well`, `border-ui-line`), which were daisyUI's palette under another name. They write
+  Flux's zinc scale and accent now, light and dark: `text-ui-muted` → `text-zinc-500 dark:text-white/70`,
+  `bg-ui-well` → `bg-zinc-50 dark:bg-zinc-900`, `border-ui-line` → `border-zinc-200 dark:border-white/10`,
+  `text-ui-brand-ink` → `text-fx-accent-content`; the raw form elements on the Elements page carry the utilities
+  Flux's input and button are drawn with.
 - **`rask new` draws its pages with the UI kit's Flux components, not daisyUI.** Before: the starter page and the
   sign-in pages were daisyUI class names — `Div.Class("card bg-base-100")`, `Button.Class("btn btn-primary btn-block")`,
   `Div.Class("alert alert-error")`. After: `Ui.Header` with `Ui.Brand`, `Ui.Card`, `Ui.Heading`, `Ui.Text`,

@@ -79,7 +79,7 @@ public partial class App : Component
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-ui-well";
+    protected override string? BodyClass => "bg-zinc-50 dark:bg-zinc-900";
 
     /// <summary>
     ///     Turns the kit's theme on for the whole document.

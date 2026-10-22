@@ -24,9 +24,9 @@ public sealed partial class OrientationDemo : Component
                         .OnClick(() => Lock(OrientationLockType.Landscape))["Lock landscape"],
                     Ui.Button.Red.Id("orientation-unlock").OnClick(Unlock)["Unlock"]
                 ],
-                Div.Class("text-sm text-ui-muted mb-1")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Current: ", Code.Id("orientation-current")[_current ?? "(read to see)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("orientation-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

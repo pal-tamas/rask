@@ -93,9 +93,7 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
         Assert.True(overflow <= 0, $"The demo scrolls sideways by {overflow}px at 390px wide.");
         await Expect(page.Locator("#add-note")).ToBeInViewportAsync();
 
-        // The kit's theme scope survives the first render's morph of <html>: without it every kit colour is absent,
-        // which leaves the layout intact and so is invisible to every other assertion here.
-        await Expect(page.Locator("html")).ToHaveAttributeAsync("data-rask-ui", "");
+        // The kit's colours reach the page: without them the layout is intact, which every other assertion here sees.
         var primary = await page.EvaluateAsync<string>("() => getComputedStyle(document.querySelector('#add-note')).backgroundColor");
         Assert.NotEqual("rgba(0, 0, 0, 0)", primary);
 
@@ -113,7 +111,8 @@ public sealed class NotesJourneyTests(PlaywrightFixture playwright, DataDemoHost
         await OpenAsync(page);
 
         await Expect(page.Locator("html")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"(^|\s)dark(\s|$)"));
-        await Expect(page.Locator("html")).ToHaveAttributeAsync("data-theme", "dark");
+        var ground = await page.EvaluateAsync<string>("() => getComputedStyle(document.body).backgroundColor");
+        Assert.Equal("rgb(39, 39, 42)", ground);
         await context.CloseAsync();
     }
 

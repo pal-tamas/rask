@@ -20,7 +20,7 @@ public sealed class AppTests
         // data-rask-ui turns the kit's theme on for the document; the kit scopes daisyUI's palette to
         // it so that referencing the package cannot repaint an app that only wanted a button.
         Assert.Contains("<html lang=\"en\" data-rask-ui=\"\">", html);
-        Assert.Contains("<body class=\"bg-ui-well\">", html);
+        Assert.Contains("<body class=\"bg-zinc-50 dark:bg-zinc-900\">", html);
     }
 
     [Fact]

@@ -15,7 +15,7 @@ public sealed partial class EyeDropperDemo : Component
                 Div.Class("flex items-center gap-3 mb-2")[
                     Ui.Button.Primary.Icon(Ui.IconName.EyeDropper).Id("eyedropper-pick").OnClick(Pick)["Pick a color"],
                     _hex is null
-                        ? Span.Class("text-ui-muted text-sm")["No color picked yet"]
+                        ? Span.Class("text-zinc-500 dark:text-white/70 text-sm")["No color picked yet"]
                         : Div.Class("flex items-center gap-2")[
                             Span
                                 .Id("eyedropper-swatch")
@@ -24,7 +24,7 @@ public sealed partial class EyeDropperDemo : Component
                             Code.Id("eyedropper-hex")[_hex]
                         ]
                 ],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("eyedropper-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("eyedropper-status")[_status]]
             ];
 
     // new EyeDropper().open(): rejects when the browser has no EyeDropper, or when the user presses Escape.

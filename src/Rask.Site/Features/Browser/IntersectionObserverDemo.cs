@@ -37,15 +37,15 @@ public sealed partial class IntersectionObserverDemo : Component
                     Ui.Badge
                         .Color(_visible ? Ui.Color.Green : null)
                         .Id("io-status")[_visible ? "in view" : "out of view"],
-                    Span.Class("text-sm text-ui-muted").Id("io-changes")[$"{_changes} change(s)"]
+                    Span.Class("text-sm text-zinc-500 dark:text-white/70").Id("io-changes")[$"{_changes} change(s)"]
                 ],
-                P.Class("text-sm text-ui-muted mb-2")["Scroll down — the target reports when it enters the viewport."],
+                P.Class("text-sm text-zinc-500 dark:text-white/70 mb-2")["Scroll down — the target reports when it enters the viewport."],
                 // A tall spacer so the target starts below the fold, then the observed target.
                 Div.Style("height: 130vh"),
                 Div
                     .Ref(_target)
                     .Id("io-target")
-                    .Class("p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-ui-well"))[
+                    .Class("p-4 rounded text-center " + (_visible ? "bg-success-subtle" : "bg-zinc-50 dark:bg-zinc-900"))[
                     "🎯 observed target"
                 ]
             ];

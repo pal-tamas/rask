@@ -36,16 +36,16 @@ public sealed partial class UploadDemo : Component
                 .Class("mb-3")
                 .OnFiles(OnFiles),
             _name is null
-                ? Div.Class("text-ui-muted text-sm")["No file selected yet."]
+                ? Div.Class("text-zinc-500 dark:text-white/70 text-sm")["No file selected yet."]
                 : Dl.Class("grid grid-cols-12 gap-4 text-sm mb-0")[
-                    Dt.Class("col-span-4 text-ui-muted")["Name"],
+                    Dt.Class("col-span-4 text-zinc-500 dark:text-white/70")["Name"],
                     Dd.Class("col-span-8 text-break").Data(Meta("name"))[_name],
-                    Dt.Class("col-span-4 text-ui-muted")["Size"],
+                    Dt.Class("col-span-4 text-zinc-500 dark:text-white/70")["Size"],
                     Dd.Class("col-span-8").Data(Meta("size"))[_size.ToString("N0", CultureInfo.InvariantCulture),
                         " bytes"],
-                    Dt.Class("col-span-4 text-ui-muted")["Type"],
+                    Dt.Class("col-span-4 text-zinc-500 dark:text-white/70")["Type"],
                     Dd.Class("col-span-8").Data(Meta("type"))[_contentType ?? string.Empty],
-                    Dt.Class("col-span-4 text-ui-muted")["Modified"],
+                    Dt.Class("col-span-4 text-zinc-500 dark:text-white/70")["Modified"],
                     Dd.Class("col-span-8 mb-0").Data(Meta("modified"))[
                         _modified.ToString("u", CultureInfo.InvariantCulture)]
                 ]

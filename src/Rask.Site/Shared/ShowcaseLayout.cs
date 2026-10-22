@@ -79,7 +79,7 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                 .Sticky(true)
                 .Collapsible(Ui.SidebarCollapsible.Mobile)
                 .Breakpoint(Ui.Breakpoint.Md)
-                .Class("side-nav w-72! gap-2! overflow-hidden! border-e border-ui-line bg-ui-bg px-3! "
+                .Class("side-nav w-72! gap-2! overflow-hidden! border-e border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 px-3! "
                        + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))]! md:top-(--nav-h)! "
                        + "md:h-[calc(100dvh-var(--nav-h))] md:max-h-[calc(100dvh-var(--nav-h))]! md:w-[280px]! md:pt-4!")[
                 // The filter holds its place and the list below it scrolls: the sidebar itself does not.

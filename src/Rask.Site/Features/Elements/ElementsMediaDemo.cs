@@ -27,12 +27,12 @@ public sealed partial class ElementsMediaDemo : Component
                         .Height(96)
                         .Class("rounded border")
                 ],
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["picture / source / img"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["picture / source / img"]
             ],
             Figure.Class("m-0")[
                 // <canvas> is a JS drawing surface; shown here as the (empty) element.
                 Canvas.Width(96).Height(96).Class("border rounded"),
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["canvas"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["canvas"]
             ],
             Figure.Class("m-0")[
                 Iframe
@@ -40,7 +40,7 @@ public sealed partial class ElementsMediaDemo : Component
                     .Width("180")
                     .Height("96")
                     .Class("border rounded"),
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["iframe (srcdoc)"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["iframe (srcdoc)"]
             ]
         ];
 
@@ -48,11 +48,11 @@ public sealed partial class ElementsMediaDemo : Component
         Div.Class("flex gap-3 items-start flex-wrap items-center")[
             Figure.Class("m-0")[
                 Embed.Src(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width("96").Height("96"),
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["embed"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["embed"]
             ],
             Figure.Class("m-0")[
                 HtmlObject.DataUrl(Asset("rask-placeholder.svg")).Type("image/svg+xml").Width("96").Height("96"),
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["object"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["object"]
             ],
             Figure.Class("m-0")[
                 // <img usemap> + <map>/<area>: a clickable region.
@@ -64,18 +64,18 @@ public sealed partial class ElementsMediaDemo : Component
                     .UseMap("#regions")
                     .Class("border rounded"),
                 Map.Name("regions")[Area.Shape(AreaShape.Rect).Coords("0,0,48,96").Href("#").Alt("left half")],
-                Figcaption.Class("mt-2 text-sm text-ui-muted")["img usemap / map / area"]
+                Figcaption.Class("mt-2 text-sm text-zinc-500 dark:text-white/70")["img usemap / map / area"]
             ]
         ];
 
     private static Component AudioVideo() =>
         Div.Class("grid grid-cols-12 gap-4")[
             Div.Class("col-span-12 md:col-span-6")[
-                P.Class("text-sm mb-1 text-ui-muted")["audio (controls)"],
+                P.Class("text-sm mb-1 text-zinc-500 dark:text-white/70")["audio (controls)"],
                 Audio.Controls().Preload(Preload.None).Class("w-full")
             ],
             Div.Class("col-span-12 md:col-span-6")[
-                P.Class("text-sm mb-1 text-ui-muted")["video (poster + track)"],
+                P.Class("text-sm mb-1 text-zinc-500 dark:text-white/70")["video (poster + track)"],
                 Video
                     .Controls()
                     .Width(240)

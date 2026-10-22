@@ -39,13 +39,13 @@ public sealed partial class BatteryDemo : Component
                 Div.Class("flex gap-2 flex-wrap items-center mb-2")[
                     Ui.Button.Primary.Id("battery-read").OnClick(Read)["Read now"]
                 ],
-                Div.Class("text-sm text-ui-muted mb-1")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Level: ", Code.Id("battery-level")[_level is { } l ? $"{l * 100:0}%" : "(none)"]],
-                Div.Class("text-sm text-ui-muted mb-1")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Charging: ", Code.Id("battery-charging")[_charging switch { null => "(none)", true => "yes", _ => "no" }]],
-                Div.Class("text-sm text-ui-muted mb-1")[
+                Div.Class("text-sm text-zinc-500 dark:text-white/70 mb-1")[
                     "Watch: ", Code.Id("battery-watch")[_watchState]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("battery-status")[_readState]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("battery-status")[_readState]]
             ];
 
     private async Task Refresh()

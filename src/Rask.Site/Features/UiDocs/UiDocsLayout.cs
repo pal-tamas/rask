@@ -27,7 +27,7 @@ public sealed partial class UiDocsLayout : Component
                 .Sticky(true)
                 .Collapsible(Ui.SidebarCollapsible.Mobile)
                 .Breakpoint(Ui.Breakpoint.Md)
-                .Class("ui-docs-nav w-72! gap-2! overflow-hidden! border-e border-ui-line bg-ui-bg px-3! "
+                .Class("ui-docs-nav w-72! gap-2! overflow-hidden! border-e border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-800 px-3! "
                        + "pt-[calc(var(--nav-h)+env(safe-area-inset-top))]! md:top-(--nav-h)! "
                        + "md:h-[calc(100dvh-var(--nav-h))] md:max-h-[calc(100dvh-var(--nav-h))]! md:w-[260px]! md:pt-6!")[
                 Ui.Navlist.Class("min-h-0 flex-1 gap-6 overflow-y-auto overscroll-contain pb-8")[Groups()]

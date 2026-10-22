@@ -15,8 +15,8 @@ public sealed partial class ClipboardDemo : Component
                     Ui.Button.Primary.Id("clipboard-copy").OnClick(Copy)["Copy"],
                     Ui.Button.Id("clipboard-paste").OnClick(Paste)["Paste"]
                 ],
-                Div.Class("text-sm text-ui-muted")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Pasted: ", Code.Id("clipboard-read-value")[_read ?? "(nothing yet)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("clipboard-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Copy()

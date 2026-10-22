@@ -12,8 +12,8 @@ public sealed partial class NavigatorInfoDemo : Component
                 Ui.Button.Class("mb-2")
                     .Id("nav-read")
                     .OnClick(Read)["Read navigator info"],
-                Div.Class("text-sm text-ui-muted")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Info: ", Code.Id("nav-value")[_value ?? "(not requested)"]],
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("nav-status")[_status ?? "(idle)"]]
             ];
 
     private async Task Read()

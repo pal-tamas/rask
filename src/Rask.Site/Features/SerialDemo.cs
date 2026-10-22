@@ -54,7 +54,7 @@ public sealed partial class SerialDemo : Component
                     .Id("serial-log")
                     .Style("min-height: 6rem; max-height: 12rem; overflow: auto")[
                     _log.Count == 0 ? "(no data yet)" : string.Join("\n", _log)],
-                Div.Class("text-sm text-ui-muted")["Status: ", Code.Id("serial-status")[_status]]
+                Div.Class("text-sm text-zinc-500 dark:text-white/70")["Status: ", Code.Id("serial-status")[_status]]
             ];
 
     // navigator.serial.requestPort() shows the chooser (dismissing it rejects), then port.open({ baudRate }).
