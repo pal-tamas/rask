@@ -361,14 +361,13 @@ it server-side into the first response, so a Blazor-only island project gets no 
 never probes for Node.
 
 ² Languages are configured, never chosen on the command line — there is no `--culture` and no
-`--no-localization`. On `server` a scaffolded app already lists English in `Rask:Cultures`,
-because ICU is in the runtime regardless and it costs nothing.
+`--no-localization`. Every C# template starts with English in `Rask:Cultures` — `appsettings.json` on
+`server` and `wasm-hosted` (the host's file, which the browser half's build reads too), `wwwroot/appsettings.json`
+on `wasm` — and an English `Resources/Strings.en.json` (`Client/Resources/` on `wasm-hosted`).
 
-A browser-WASM app scaffolds no registration, because there it is not free: culture data is roughly **a
-megabyte of extra download** — on the WASM showcase a published trimmed bundle goes from 3.28 MB to
-4.33 MB brotli (+32%). It is also the one part `Program.cs` cannot switch on by itself, since
-`RaskGlobalization` is an MSBuild property. It is scaffolded **commented out** with the reason beside
-it, so shipping a language there is two deliberate edits: uncomment the property, add the languages.
+In the browser a language other than English is not free: culture data is roughly **a megabyte of extra
+download** — on the WASM showcase a published trimmed bundle goes from 3.28 MB to 4.33 MB brotli (+32%). So
+the build ships it only when the list names one, and adding `"hu"` is the whole edit.
 See [localization](localization.md#wasm-and-icu).
 
 The wizard only offers what the chosen template supports, so an interactive run cannot assemble a
