@@ -9,6 +9,16 @@ them until tagged releases begin.
 
 ### Added
 
+- **A WebAssembly app names its languages in `Rask:Cultures`, as a server app does, and ships ICU only when one
+  isn't English.** Before: a browser app named languages in code only (`host.UseCulture(…)`), and shipping the
+  culture data was a commented `<RaskGlobalization>` line to find and uncomment. After: `"Rask": { "Cultures":
+  ["en", "hu"] }` in `wwwroot/appsettings.json` — or, for a hosted client, in the host's own `appsettings.json`, the
+  one list both halves use — is read by the build, baked into the bundle and in force before the first render and
+  in the prerender; `UseCulture` still adds to it. The same read decides ICU (roughly a megabyte): on for a
+  non-English language, off for English alone, and a build warning when `<RaskGlobalization>false` turns it off
+  under a non-English list. The prerender and the hosted client build now also carry the app's
+  `Resources/Strings.*.json` catalogs.
+
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
   `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
