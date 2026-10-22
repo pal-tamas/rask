@@ -33,7 +33,10 @@ Ui.Button.Primary["Save"]
 [Carousel](https://rask.sh/ui/carousel/), [Flag](https://rask.sh/ui/flag/), [Brand](https://rask.sh/ui/brand/),
 [Breadcrumbs](https://rask.sh/ui/breadcrumbs/), [Navbar](https://rask.sh/ui/navbar/),
 [Navlist](https://rask.sh/ui/navlist/), [Pagination](https://rask.sh/ui/pagination/),
-[Profile](https://rask.sh/ui/profile/) and [Tabs](https://rask.sh/ui/tabs/), with
+[Profile](https://rask.sh/ui/profile/), [Tabs](https://rask.sh/ui/tabs/), [Field](https://rask.sh/ui/field/),
+[Input](https://rask.sh/ui/input/), [Textarea](https://rask.sh/ui/textarea/), [Select](https://rask.sh/ui/select/),
+[Checkbox](https://rask.sh/ui/checkbox/), [Radio](https://rask.sh/ui/radio/), [Switch](https://rask.sh/ui/switch/),
+[Slider](https://rask.sh/ui/slider/) and [OTP input](https://rask.sh/ui/otp-input/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
 category pages: [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
@@ -1307,315 +1310,22 @@ trip and the page hears no toggle.
 ## Fields: label, description, error
 
 `Ui.Field`, `Ui.Label`, `Ui.Description`, `Ui.Error`, `Ui.Fieldset` and `Ui.Legend` are
-[Flux UI's field](https://fluxui.dev/components/field), part for part. A field stacks a label, a control,
-its validation message and help text, and tells the parts which control they belong to:
-
-```csharp
-Form.Model(_signUp)[
-    Ui.Field[
-        Ui.Label.Badge("Required")["Email"],
-        Ui.Input.Bind(() => _signUp.Email).ShowValidation(false),
-        Ui.Error,                                          // the first message of the bound control
-        Ui.Description["We only write about your order."]  // after the control: under it
-    ]
-]
-```
-
-| Part | What it takes |
-| --- | --- |
-| `Ui.Field` | `Variant` — `Ui.Field.Inline` puts the label beside the control (a checkbox, a switch); `Block` is the default. |
-| `Ui.Label` | `Badge("Required")`, a `Trailing(…)` slot at the far end, and `For(id)` when it sits outside a field. |
-| `Ui.Description` | Help text. Before the control it sits under the label; after it, under the control. |
-| `Ui.Error` | `For(() => model.Email)`, `Name(nameof(model.Email))` or `Message("…")`; `Icon(Ui.IconName.InformationCircle)`, `Icon(false)`. |
-| `Ui.Fieldset` | `Legend("Shipping address")`, `Description("…")` — or place a `Ui.Legend` yourself. |
-
-**The label is a real `<label for>`.** Inside a field it points at the field's control — a kit control by
-the id it derives, a plain element by its `Id` — so a click on the label focuses the control with no script.
-Flux draws the same parts as custom elements wired by its JavaScript; the kit ships none, so each is the
-native element that already behaves that way: `<label>`, `<fieldset>`, `<legend>`.
-
-**`Ui.Error` reads the form.** Where Flux's `name` looks a key up in Laravel's error bag, a Rask field is a
-member of a model, so the error shows the first message the form holds for that member: bare inside a field
-(the control's own `Bind`), `For(() => model.Email)` anywhere, or `Name("Email")` for a member of the form's
-model. `Message` shows your own text whatever the form says. It is always in the page — hidden while there
-is nothing to say — because it is a `role="alert"` live region, and a screen reader only announces a
-message that arrives in one it already knows. Flux's `bag` and `deep` have no counterpart: a form has one
-edit context, and a nested member is named by its expression rather than by a dotted path.
-
-Markers mirror Flux's: `data-ui-field`, `data-ui-label`, `data-ui-description`, `data-ui-error`,
-`data-ui-fieldset`, `data-ui-legend`. The controls not yet rebuilt on Flux keep drawing their own label,
-`Hint` and message from `Label(…)`; as each is rebuilt its `Label` and `Description` draw this field around
-it instead.
+[Flux UI's field](https://fluxui.dev/components/field), part for part: a field stacks a label, a control, help text
+and the message the form holds for the control, and tells each part which control it belongs to. The label is a real
+`<label for>`, and `Ui.Error` reads the form (bare inside a field, `For(() => m.Email)` anywhere, `Message("…")` for
+your own words) from a live region that is always in the page. Every control's `Label` and `Description` draw the same
+field around it. Every example, the error's rules and the reference: **[rask.sh/ui/field](https://rask.sh/ui/field/)**.
 
 ## Select
 
 `Ui.Select` is [Flux UI's select](https://fluxui.dev/components/select), part for part, over Rask's binding:
-`Bind` or `Value` where Flux says `wire:model`. **Options are children**, as in Flux, typed by the select's
-own value type; an option with no `Value` stands for its own text.
-
-```csharp
-Ui.Select.Bind(() => model.Country).Label("Country").Placeholder("Choose…")[
-    countries.Select(c => Ui.SelectOption.Key(c.Code).Value(c.Code)[c.Name])   // made from a list: give it a Key
-]
-Ui.Select.Value(_pick).OnChange(v => _pick = v)[
-    Ui.SelectOption["Photography"],
-    Ui.SelectOption["Design services"]
-]
-Ui.Select.Of<string>().Sm.Placeholder("Choose industry...")[ … ]              // no binding, no value yet
-```
-
-| Part | What it is |
-| --- | --- |
-| `Ui.Select` | The select. `Variant` (`Ui.SelectVariant`): `Default` — the browser's own `<select>` — `.Listbox`, `.Combobox`. `Size` (`Ui.SelectSize`): 40px, `.Sm` 32px, `.Xs` 24px with smaller text. |
-| `Ui.SelectOption` | One answer: `Value`, and its words as children or `Label`. `SelectedLabel`, `Keywords`, `Icon` (`IconVariant`, `IconClass`), `Avatar`, `Description`, `Disabled()`. |
-| `Ui.SelectGroup` | Options under one `Label`: an `<optgroup>` in the native variant, a headed run of rows otherwise. |
-| `Ui.SelectOptionCreate` | The row that makes a new option of what was typed: `MinLength`, and `OnClick` handed the search. |
-| `Ui.SelectOptionEmpty` | What a search that matches nothing says, and `WhenLoading` while results are on their way. |
-| `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` | Flux's `button`, `input` and `search` slots, written as children to set what the select's own props do not reach. |
-
-`Label`, `Description`, `DescriptionTrailing` and `Badge` draw the [field](#fields-label-description-error)
-around the select, with the bound member's message under it; `ShowValidation(false)` leaves that message to
-a `Ui.Error` placed elsewhere. `Invalid()` is error styling the form did not ask for, `Disabled()` a select
-that cannot be opened or changed, and `Name` what the answer is posted under.
-
-**Native, small, grouped.** The default variant is the browser's `<select>` in the input's box: it needs no
-runtime, renders complete on a prerendered page and gets a phone's own picker. `Placeholder` is shown while
-nothing is picked, and a native `<option>` holds text and nothing else.
-
-```csharp
-Ui.Select.Bind(() => m.Industry).Placeholder("Choose an industry...")[
-    Ui.SelectGroup.Label("Creative")[
-        Ui.SelectOption.Value("photography")["Photography"],
-        Ui.SelectOption.Value("design")["Design services"]
-    ],
-    Ui.SelectGroup.Label("Technology")[
-        Ui.SelectOption.Value("web-development")["Web development"]
-    ]
-]
-```
-
-**Listbox: a button over a drawn list.** For options that carry more than words — a `Prefix` that stays in
-the button, icons, descriptions, avatars, content of your own:
-
-```csharp
-Ui.Select.Bind(() => m.Range).Listbox.Prefix("Compare to")[
-    Ui.SelectOption.Value("last-month")["Last month"],
-    Ui.SelectOption.Value("last-year")["Last year"]
-]
-Ui.Select.Bind(() => m.Method).Listbox.Clearable().Placeholder("Choose method...")[
-    Ui.SelectOption.Value("card").Label("Credit card").Icon(Ui.IconName.CreditCard),
-    Ui.SelectOption.Value("bank").Label("Bank transfer").Icon(Ui.IconName.BuildingLibrary)
-        .Description("Two working days")
-]
-Ui.Select.Bind(() => m.Owner).Listbox[
-    people.Select(p => Ui.SelectOption.Key(p.Id).Value(p.Id).Label(p.Name).Avatar(p.PhotoUrl))
-]
-Ui.Select.Bind(() => m.Colour).Listbox[
-    Ui.SelectOption.Value("red")[
-        Div.Class("flex items-center gap-2")[Div.Class("size-4 rounded-full bg-red-500"), "Red"]
-    ]
-]
-```
-
-A `Description` is the list's only: the button does not repeat it once the option is picked, and
-`SelectedLabel` is what the button shows when that should not be the option's own words. An `Avatar` wins
-over an `Icon`. `Clearable()` adds a button that puts the select back to nothing chosen, shown while there is
-an answer. The list is as wide as its button; `OptionsClass` widens it, and `Position` and `Align` (the kit's
-`Ui.Position` and `Ui.Align`) say which side it opens on and which edge it lines up with:
-
-```csharp
-Ui.Select.Bind(() => m.Visibility).Listbox.Class("max-w-32").OptionsClass("min-w-72")[ … ]
-```
-
-`Ui.SelectButton` is Flux's button slot, for what the select's props do not reach — its own `Placeholder`,
-`Invalid`, `Size`, `Disabled`, `Clearable` and `Class`:
-`Ui.Select.Bind(() => m.Plan).Listbox[Ui.SelectButton.Class("rounded-full!"), …]`.
-
-**Searchable, and keywords.** `Searchable()` puts a search field at the top of the listbox's options.
-Opening focuses it; typing filters case- and accent-insensitively over each option's text and its
-`Keywords` — more words to find it by, never shown — and puts the cursor on the first match. "No results
-found" shows when nothing matches; `Empty("…")` says it in your own words. The filtering is done in the
-browser, as Flux's is: a key typed sends the page nothing. `Filter(false)` hands the search to the page
-instead — its `Ui.SelectSearch.OnInput` hears what is typed, at every key or at the pause `Debounce` names,
-and renders the rows that match.
-
-```csharp
-Ui.Select.Bind(() => m.Category).Listbox.Searchable().Placeholder("Choose category...")[
-    Ui.SelectSearch.Placeholder("Search categories..."),
-    Ui.SelectOption.Value("fruit").Keywords("apple orange pear")["Fruit"],
-    Ui.SelectOption.Value("drinks").Keywords("coffee tea juice")["Drinks"]
-]
-```
-
-`Ui.SelectSearch` is Flux's search slot: `Placeholder` ("Search..." when unset), `Icon` (a magnifying glass
-when unset), `Clearable(false)` to leave out the button that empties the field, and `Value` with `OnInput`
-for a page that holds the search itself. `Debounce(250.Milliseconds)` calls `OnInput` once typing has paused
-that long, with the text the field then holds, instead of at every keystroke — Flux's
-`wire:model.live.debounce.250ms`.
-
-**Search from the database.** `Filter(false)` leaves the rows to the page, `OnInput` is the query, and
-`Debounce` keeps it to one query for a word instead of one for a letter:
-
-```csharp
-private IReadOnlyList<Customer> _found = [];
-
-Ui.Select.Bind(() => m.CustomerId).Listbox.Searchable().Filter(false).Placeholder("Choose a customer...")[
-    Ui.SelectSearch.Placeholder("Search customers...").OnInput(Search).Debounce(250.Milliseconds),
-    _found.Select(c => Ui.SelectOption.Key(c.Id).Value(c.Id)[c.Name])
-]
-
-// The rows drawn stay the ones before until the new ones are here: nothing empties while the store answers.
-private async Task Search(string text) =>
-    _found = await Customer.Where(c => c.Name.Contains(text)).OrderBy(c => c.Name).Take(20).ToList();
-```
-
-The browser counts the pause, so nothing is sent while the reader types. A row pressed, or Enter, during
-the pause picks from the list as it is drawn, and the text typed since is dropped with the list — it is
-never searched for. The arrows walk the list as drawn and the search arrives at its pause. A pause that
-ends on the text the page last heard asks nothing again; the field's clear button tells the page at once.
-Without `Filter(false)` the select goes on hiding rows at every keystroke and only `OnInput` waits.
-`Debounce(TimeSpan.Zero)` is every keystroke, as on `Ui.Input`.
-
-**The page's search follows the field.** When the select itself rewrites the field — the list shuts and the
-field is emptied, a pick among several empties it — `OnInput` hears that text too, once, and only when the
-page thinks otherwise: after a search for "ber" and a pick it is called with `""`, so the page goes back to
-the rows it starts from. Measured on Flux's backend-search examples, where the `search` model is written
-`""` on Escape and on a click elsewhere. A list opened and shut with nothing typed tells the page nothing.
-
-**The answer stays in the button when the rows change.** A search the page answers may bring rows that no
-longer include the option picked. The select goes on saying it, as Flux's does: the button (and a combobox's
-input, and the hidden input of a named select) keep the picked option's words, icon and avatar for as long
-as the value is that one, and several answers are counted from the value — "3 selected" — whatever rows are
-drawn. No row is marked picked while the answer is not among them. Content that is more than words (a
-swatch beside a name) is kept as its words. A value the page sets itself to something no render ever drew
-an option for has nothing to say and shows the placeholder — keep that row among the options when you load
-a form with a stored answer:
-
-```csharp
-_found = await Customer.Where(c => c.Id == m.CustomerId || c.Name.Contains(text)).Take(20).ToList();
-```
-
-**Multiple.** Open the select on a collection — `Bind` over a `List<T>`, a `T[]` or a `HashSet<T>`, or
-`Values(tags)` with `OnChange` — and `.Listbox.Multiple()` picks several. Picking a row switches it and
-leaves the list open; the button names the one picked option, or counts them:
-
-```csharp
-Ui.Select.Bind(() => m.Industries).Listbox.Multiple().Searchable()
-    .SelectedSuffix("industries selected")          // "3 industries selected"; "3 selected" when unset
-    .Clear(Ui.SelectClear.Close)[                   // the search survives each pick and empties when the list closes
-    industries.Select(name => Ui.SelectOption.Key(name)[name])
-]
-```
-
-A bound list, array or set each gets its own kind back. `Multiple()` on a select that holds one answer
-throws and says to open it on a collection, and so does a select over a collection left on the native
-variant: several answers are the listbox's, as on Flux.
-
-**Combobox: a text input that filters.** A click or typing opens the list, typing filters it, Enter picks
-and the input shows the answer. `Ui.SelectInput` is Flux's input slot (`Placeholder`, `Invalid`, `Size`,
-`Value`, `OnInput`):
-
-```csharp
-Ui.Select.Bind(() => m.Industry).Combobox.Placeholder("Choose industry...")[
-    industries.Select(name => Ui.SelectOption.Key(name)[name])
-]
-```
-
-**Backend search, and a create row.** `Filter(false)` leaves every option in the list whatever is typed:
-the page filters, answering `OnInput` by rendering the options that match from wherever it keeps them.
-`Ui.SelectOptionEmpty` is what the list says when there are none, and while results are on their way.
-`Ui.SelectOptionCreate` offers to make an option of what was typed once the search is `MinLength` long and
-names none that exists; its `OnClick` is a `Callback<string>` handed the search as typed, and the page adds
-the option and selects it.
-
-```csharp
-Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
-    Ui.SelectInput.OnInput(text => _users = Users.Named(text)),
-    _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name]),
-    Ui.SelectOptionCreate.MinLength(2).OnClick(name => Create(name))["Create new"],
-    Ui.SelectOptionEmpty.WhenLoading("Loading users...")["No users found."]
-]
-```
-
-In a listbox with no search the create row is always shown and `OnClick` is handed an empty string — the
-case where the page opens a form of its own.
-
-**Search from the database.** `Debounce` on `Ui.SelectInput` is the same step as on `Ui.SelectSearch`: one
-query for a word.
-
-```csharp
-Ui.Select.Bind(() => m.UserId).Combobox.Filter(false)[
-    Ui.SelectInput.OnInput(Search).Debounce(250.Milliseconds),
-    _users.Select(u => Ui.SelectOption.Key(u.Id).Value(u.Id)[u.Name])
-]
-
-private async Task Search(string text) =>
-    _users = await User.Where(u => u.Name.Contains(text)).OrderBy(u => u.Name).Take(20).ToList();
-```
-
-Nothing is sent while the reader types into the open list; the first key in a closed one opens it, and asks
-the page nothing. A row pressed, or Enter, during the pause picks from the list as drawn and the text typed
-since is dropped. The input then says the answer, and `OnInput` hears those words — Flux's `search` model is
-its input's text, so after a pick of "Analytics" the page is asked for "Analytics", and for `""` when Escape
-empties a closed combobox. The create row offers itself from the text the page last heard, and its `OnClick`
-is handed what the input holds when it is pressed, typed-since included (Flux sends the two together).
-
-**No script.** The drawn list is a native `popover` placed by CSS anchor positioning: as wide as its
-trigger, 5px under it, at most 20rem tall (with a search field: the list is, and the field sits over it), and
-kept inside the viewport as every panel is. The browser opens it on a
-click and closes it on Escape or a click elsewhere, returning focus to the button; the keyboard and the pointer
-below are the runtime's (`data-rask-list`, [the runtime reference](js-interop-runtime.md#behaviour-hooks-data-rask-)),
-recorded on fluxui.dev and matched — and, as there, **an open list sends the page nothing** until a row is
-picked. Measured on a live Server page over one journey — open, the pointer over every row, eight keys,
-type-ahead or a search, Escape, open again, Tab — a listbox sent 33 frames, a pillbox 34 and an autocomplete
-28; each now sends 0.
-
-| Key | Listbox |
-| --- | --- |
-| Click, Space, ArrowDown, ArrowUp | Open, with the cursor on the picked option — the first when there is none. |
-| ArrowDown / ArrowUp | Move the cursor, skipping a disabled option. They stop at either end; there is no wrap. With no row lit, ArrowDown lands on the first and ArrowUp on the last. |
-| Home, End, PageUp, PageDown | Nothing, as on Flux. |
-| Enter | Picks the lit row and closes; with no row lit, nothing. With `Multiple()` it switches the row and the list stays open. |
-| Space | On the open listbox's button, closes it. |
-| Escape, a click elsewhere | Close; focus returns to the button. |
-| Tab | Closes, picks nothing, and moves on. |
-| A letter | On the **closed** button it picks the next option starting with it; on the open list it moves the cursor. Letters within half a second are one prefix. |
-| The pointer | Lights the row it **enters** — not one that slid under a pointer at rest — and the arrows go on from there. A row the pointer lit goes dark when the pointer leaves the list; one the keys lit stays. |
-
-**What a pick sends.** The press on the row — the pointer's, or Enter's — is the one thing the page hears, and
-it names its own row: no cursor of the page's picks for it. A bound select then writes its member with the
-next action (`.Live()`: at once), as every control does.
-
-In a combobox, Escape closes the list and a second Escape empties the text but keeps the answer; leaving
-the input with words that name nothing puts the answer's text back.
-
-**ARIA.** The trigger — the listbox's `<button>`, the combobox's `<input>` — carries `role="combobox"`,
-`aria-haspopup="listbox"`, `aria-expanded`, `aria-controls` and, while open, `aria-activedescendant` naming
-the row the cursor is on. The list is `role="listbox"`, with `aria-multiselectable` only when it takes
-several; each row is `role="option"` with `aria-selected`, and a disabled one adds `aria-disabled="true"`.
-A drawn select posts nothing by itself, so one with a `Name` carries its answer in hidden inputs.
-
-Markers follow Flux's: `data-ui-select` on a drawn select's root, `data-ui-select-button`,
-`data-ui-select-native`, `data-ui-options`, `data-ui-option`, and on a row `data-selected` and `data-active`
-(the cursor); `data-open` while the list is. `data-active`, `data-open`, an open `aria-expanded`,
-`aria-activedescendant` and — on a list the browser filters — `data-hidden` are written by the runtime and are
-in no render: a test that reads them drives a browser.
-
-Two things Flux does in script are the runtime's here, by attribute: the closed listbox button ignores Enter
-and its arrows do not scroll the page (`data-rask-listbox-button`), and while a list is open the page behind
-it neither scrolls nor takes the pointer (`data-rask-lock` on the popover). Every list says
-`aria-multiselectable="true"`, one answer or several, as Flux's does; the "no results" row and the create row
-carry no role, as Flux's do not. The listbox's search field is Flux's `role="combobox"` and nothing more; it
-keeps the list's keys through `data-rask-contain-keys`, so Enter picks instead of submitting a form around the
-select and the arrows walk the rows instead of the caret.
-
-**Gone with daisyUI's select:** `Options(list)` (options are children), `Native()` / `Native(false)` (now
-the variant: `.Listbox`), `OptionGroup` (now `Ui.SelectGroup`), `OptionDisabled` (now
-`Ui.SelectOption.Disabled()`), `OptionTemplate` (now the option's children, `Icon`, `Avatar`,
-`Description`), `Filter((value, text) => …)`, `OnSearch` and `Loading` (now `Filter(false)` and the page
-filters), `EmptyText` / `LoadingText` (now `Empty("…")` and `Ui.SelectOptionEmpty`), `SelectAll()`,
-`Chips(n)`, floating labels (`Floating`), `Tone`, daisyUI's `Variant` and `Size(Ui.Size)`, `Hint` (now
-`Description`), `AccessibleLabel` (now `Label`) and `Ui.MultiSelect` as a name.
+`Bind` or `Value` where Flux says `wire:model`, and the options as children typed by the select's own value. The
+default variant is the browser's `<select>`; `.Listbox` draws the list (icons, descriptions, avatars, content of your
+own, a prefix, `Clearable()`), `Searchable()` filters it in the browser by text and `Keywords`, `.Listbox.Multiple()`
+over a collection picks several, and `.Combobox` is an input that filters. `Filter(false)` hands the search to the
+page, with `Debounce` on `Ui.SelectSearch` or `Ui.SelectInput` for one query a word, and `Ui.SelectOptionCreate`
+offers to make what was typed. An open list sends the page nothing until a row is picked. Every example, the
+keyboard, searching on the server and the reference: **[rask.sh/ui/select](https://rask.sh/ui/select/)**.
 
 ## Autocomplete
 
@@ -1832,193 +1542,27 @@ announcing the value and maximum as given and moving to a new one over 300ms. Ev
 out the initials, the picture's alternative text and, with `ColorAuto()`, a colour of its own; `Ui.AvatarGroup` stacks
 them. Every example and the reference of its steps: **[rask.sh/ui/avatar](https://rask.sh/ui/avatar/)**.
 
-**`Ui.Input` and `Ui.Textarea` are Flux UI's.** Same props, same look, same markers
-([fluxui.dev/components/input](https://fluxui.dev/components/input), [textarea](https://fluxui.dev/components/textarea)),
-over Rask's binding: `Bind` or `Value` where Flux says `wire:model`.
-
-```csharp
-Ui.Input.Bind(() => m.Email).Label("Email").Description("We never share it.")     // a field: label, help, error
-Ui.Input.Bind(() => m.Query).Icon(Ui.IconName.MagnifyingGlass).Kbd("⌘K").Clearable().Placeholder("Search...")
-Ui.Input.Bind(() => m.Password).Type(InputType.Password).Viewable()                // reveal button
-Ui.Input.Value(key).ReadOnly().Filled                                              // variant="filled"
-Ui.Input.Bind(() => m.Phone).Mask("(999) 999-9999")                                // 9 digit, a letter, * either
-Ui.Input.Bind(() => m.Name)                                                        // wire:model: travels with the next action
-Ui.Input.Bind(() => m.Query).Live()                                                // wire:model.live: as typed, 150 ms pause
-Ui.Input.Bind(() => m.Name).Debounce(300.Milliseconds)                             // wire:model.live.debounce.300ms
-Ui.Input.Bind(() => m.Name).Blur()                                                 // wire:model.live.blur: on leaving the field
-Ui.Select.Bind(() => m.Plan).Listbox[…]                                            // wire:model on any chosen control: shown at once, written with the next action
-Ui.Select.Bind(() => m.Country).Live()[…]                                          // wire:model.live: written on pick — also Ui.Checkbox, Ui.Switch, the groups, the pickers, Ui.Slider, Ui.Tabs
-Ui.Input.Value(key).Icon(Ui.IconName.Key).ReadOnly().Copyable()                    // copy button, a tick for 2 s
-Ui.Input.Of<string>().Type(InputType.File).Multiple().OnFiles(Save)                // "Choose files" + the chosen name
-Ui.Input.Of<string>().As(Ui.InputAs.Button).Placeholder("Search...").OnClick(Open) // a button drawn as the input
-Ui.InputGroup[Ui.InputGroupPrefix["https://"], Ui.Input.Bind(() => m.Site)]        // fused borders
-Ui.Textarea.Bind(() => m.Notes).Label("Notes").Rows(UiTextareaRows.Auto).None      // grows by CSS; resize="none"
-```
-
-- **Props.** `Label`, `Description`, `DescriptionTrailing` (and `Badge` on a textarea) wrap the control in a
-  [`Ui.Field`](#fields-label-description-error) with its `Ui.Error`; without them it is the control alone. `Size`
-  (`Sm`, `Xs`), `Variant` (`Filled`), `Disabled`, `ReadOnly`, `Invalid`, `Icon` / `IconTrailing` (a `Ui.IconName`, or
-  content of your own such as a button), `Kbd`, `Clearable`, `Copyable`, `Viewable`, `Mask`, `As`, `Multiple`, and
-  `Class` for the wrapper with `InputClass` for the `<input>`; `Attributes(("aria-label", "Search keys"))` forwards
-  an attribute to the `<input>` as Flux does — the way to name an input that has no label. A textarea takes `Rows` (4 unless set) and `Resize`
-  (`Vertical`, `Horizontal`, `Both`, `None`).
-- **A bound control is invalid on its own** while its form holds a message for the member: `aria-invalid`,
-  `data-invalid` and the red border, with `aria-describedby` naming the field's error and description.
-  `ShowValidation(false)` leaves the message to a `Ui.Error` you place yourself. A control with no label draws no
-  field, so its message is yours to place too: `Ui.Field[Ui.Input.Bind(…), Ui.Error]`.
-- **No script of the kit's.** What Flux does in Alpine is the runtime's, by attribute: the clear button
-  (`data-rask-clear`, hidden by CSS while the input is empty) empties the field in the click and leaves the focus
-  in it; the copy button (`data-rask-copy`) writes the clipboard in the click and shows a tick for two seconds;
-  `Mask` holds each keystroke to its pattern (`data-rask-mask`) and is applied to the value drawn and committed
-  as well. The reveal button is a handler; `Rows(UiTextareaRows.Auto)` is `field-sizing: content`; a file input
-  is a `<label>` around the real input. Flux's `mask:dynamic` (an Alpine expression) is not built.
-- **In a group, label the group.** `Ui.Field[Ui.Label["Website"], Ui.InputGroup[…], Ui.Error]` — the group stands
-  for its input, so the field's label and error reach it. A neighbour that is not an input (a button, a select)
-  joins the outline by carrying `data-ui-group-target`.
-- **Gone with daisyUI's input:** floating labels (`Floating`), `Hint` (now `Description`), `Tone`, `Error("…")`
-  (now `Invalid()` beside a `Ui.Error.Message("…")`), `AccessibleLabel`, `ShowValidating`, `AutoSize` (now
-  `Rows(UiTextareaRows.Auto)`), `Ui.Resize` (now `Ui.TextareaResize`) and `Ui.Search` (now
-  `Ui.Input.Icon(Ui.IconName.MagnifyingGlass)`).
+**`Ui.Input` and `Ui.Textarea` are Flux UI's** ([input](https://fluxui.dev/components/input),
+[textarea](https://fluxui.dev/components/textarea)), over Rask's binding: `Bind` writes with the next action as
+`wire:model` does, `.Live()`, `.Debounce(300.Milliseconds)` and `.Blur()` sooner, and a bound `int` is a number field
+with nothing said at the call site. The icons, shortcut and the clear, copy and reveal buttons are steps, `Mask` holds
+each keystroke to a pattern, and the runtime does by attribute what Flux does in Alpine. `Ui.InputGroup` joins a
+prefix, a suffix or a button to the input; in a field, label the group. Every example and the reference:
+**[rask.sh/ui/input](https://rask.sh/ui/input/)** and **[rask.sh/ui/textarea](https://rask.sh/ui/textarea/)**.
 
 ### Checkbox, radio and switch
 
-**`Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux UI's.** Same parts, props, look and markers
-([checkbox](https://fluxui.dev/components/checkbox), [radio](https://fluxui.dev/components/radio),
-[switch](https://fluxui.dev/components/switch)), over Rask's binding.
+**`Ui.Checkbox`, `Ui.Radio` and `Ui.Switch` are Flux UI's**: a checkbox or a switch binds a `bool`, a
+`Ui.CheckboxGroup` binds a collection of what is ticked (with `Ui.CheckboxAll`), and a `Ui.RadioGroup` binds one value
+of any type. Cards, pills, buttons and a segmented row draw the same real inputs, so the space bar, the arrow keys and
+the form post are the browser's. Every example and the reference: **[rask.sh/ui/checkbox](https://rask.sh/ui/checkbox/)**,
+**[rask.sh/ui/radio](https://rask.sh/ui/radio/)** and **[rask.sh/ui/switch](https://rask.sh/ui/switch/)**.
 
-```csharp
-Ui.Checkbox.Bind(() => m.Agreed).Label("I agree to the terms")                  // a bool, or a bool?
-Ui.Checkbox.Checked(on).OnChange(v => on = v).Label("Remember me")              // the parent owns the state
-Ui.Switch.Bind(() => m.Alerts).Label("Email alerts").Description("At most once a day.")
-Ui.Switch.Value(on).OnChange(v => on = v).Label("Compact rows").Left            // align="left"
-
-Ui.CheckboxGroup.Bind(() => m.Topics).Label("Email me about")[                  // a List<T>, a HashSet<T>, an array
-    Ui.CheckboxAll.Label("Everything"),
-    Ui.Checkbox.Value("news").Label("News").Description("Once a month."),
-    Ui.Checkbox.Value("jobs").Label("Jobs")
-]
-
-Ui.RadioGroup.Bind(() => m.Plan).Label("Plan").Cards[                           // one value, of any type
-    Ui.Radio.Value(Plan.Free).Label("Free").Description("For trying it out."),
-    Ui.Radio.Value(Plan.Pro).Label("Pro").Icon(Ui.IconName.Bolt)
-]
-Ui.RadioGroup.Value(role).OnChange(v => role = v).Segmented.Sm[ … ]             // variant="segmented" size="sm"
-```
-
-- **The group is the field; the choices are its children.** A `Ui.Radio` or a `Ui.Checkbox` inside a group binds
-  nothing itself: its `Value` is what the group's member becomes (radio) or what its collection holds while the
-  box is ticked (checkbox). A checkbox group writes the collection in the order the checkboxes are written, and
-  its controlled opening is `Values`. `Ui.Radio.Checked()` chooses a radio only while the group holds no value.
-- **Variants draw the same inputs.** `Variant` on a checkbox group is `Cards`, `Pills` or `Buttons`; a radio group
-  adds `Segmented`, with `Size` (`Sm`) and, for cards, `Indicator(false)`. A choice's `Label`, `Description` and
-  `Icon` are drawn on the card, the pill, the segment or the button. A card's children replace them:
-  `Ui.Radio.Value(x)[Ui.RadioIndicator, Div[…]]` (and `Ui.CheckboxIndicator`). `Class("flex-col")` on a cards
-  group stacks it; `max-sm:flex-col` only on a phone.
-- **`Ui.CheckboxAll`** sits among a group's checkboxes, anywhere in its markup: ticked when all are, a dash
-  (`data-indeterminate`, as Flux marks it) while some are, and pressing it ticks them all unless they all are already. Disabled
-  checkboxes keep what they have. `Ui.Checkbox.Indeterminate()` draws the same dash on a checkbox of your own, and
-  a bound `bool?` that is `null` draws it too.
-- **No script, and real inputs.** Each root (`data-ui-checkbox`, `data-ui-radio`, `data-ui-switch`, and
-  `…-cards` / `-pills` / `-buttons` / `-segmented`) is a `<label>` around an `<input>` that is out of sight, never
-  `hidden`: the tick, the dot and the thumb's 150ms travel read the input's own `:checked`. So the space bar,
-  a click on the label, a radio group's arrow keys (they move AND choose, wrapping at the ends; Tab enters at the
-  chosen radio) and the form post (`name` + `value`) are the browser's. A switch is
-  `<input type="checkbox" role="switch">`, which the runtime flips on Enter as well as Space, as Flux's does.
-- **What Flux forwards to the control** lands on the `<input>`. `name` has a typed step on all three and on the
-  radio group — `Ui.Checkbox.Value("push").Name("notify")`, `Ui.Switch.Bind(() => m.Alerts).Name("alerts")`,
-  `Ui.RadioGroup.Bind(() => m.Role).Name("role")[…]` — and anything else goes through `Attributes`:
-  `Ui.Checkbox.Attributes(("aria-label", "Select row"))`. A radio group names its radios after its own id
-  unless `Name` says otherwise; a `Name` on one radio replaces the group's for that radio.
-- **Validation.** A bound checkbox, switch or group is invalid on its own while its form holds a message for
-  the member: `aria-invalid`, `data-invalid`, `aria-describedby` naming the field's `Ui.Error`, which `Label`
-  draws with it. `Invalid()` says so by hand. Flux's pages show no invalid checkbox to measure; the unticked box
-  takes the red-500 border Flux's input has.
-- **Gone with daisyUI's controls:** the daisy `Ui.Toggle` (that control is `Ui.Switch`; today's `Ui.Toggle` is Flux's toggle, above), `Tone` and `Size` on all three, children as
-  the label (now `Label`), `Ui.Radio.Text` / `.Group` and a radio bound to its own `bool`, and the groups'
-  `Options`, `OptionDescription`, `OptionDisabled`, `Layout` (`Ui.ChoiceLayout`), `CheckAll` / `CheckAllLabel`,
-  `Hint`, `Error`, `Badge` and `AccessibleLabel`.
-
-**`Ui.Slider` is Flux UI's slider.** Same props, same look, same markers
-([fluxui.dev/components/slider](https://fluxui.dev/components/slider)), over Rask's binding:
-
-```csharp
-Ui.Slider.Bind(() => m.Amount).Min(0).Max(100).Step(10)                  // int, long, float, double or decimal
-Ui.Slider.Bind(() => m.Amount).Max(1000).Step(1).BigStep(100)            // Shift+Arrow and Page Up / Down move by 100
-Ui.Field[Ui.Label["Corner radius"], Ui.Slider.Bind(() => m.Radius)]      // a label is the field's, as in Flux
-Ui.Slider.Bind(() => m.Price).Range().Max(990).Step(10).MinStepsBetween(10)       // two thumbs: int[] Price = [200, 800]
-Ui.Slider.Value(level).Min(1).Max(5).OnChange(v => { level = v; })[
-    Ui.SliderTick.Value(1)["Low"], Ui.SliderTick.Value(3)["Mid"], Ui.SliderTick.Value(5)["High"]
-]
-Ui.Slider.Value(level).Min(1).Max(5).Inside.TrackClass("h-5").ThumbClass("size-6")[   // dots on the track
-    Ui.SliderTick.Value(1).Dot, Ui.SliderTick.Value(2).Dot, Ui.SliderTick.Value(3).Dot
-]
-```
-
-- **The value follows the thumb.** The bound member (or `OnChange`) gets every step while the thumb is dragged,
-  which is what lets a label beside it show the number; a controlled slider draws the `Value` it was given, so
-  keep it in state.
-- **A range is the same slider over an array of two** — `int[]`, `double[]`, `decimal[]` — and every change
-  writes a NEW array. The thumbs do not cross, `MinStepsBetween` keeps them that many steps apart, and a press
-  on the track moves the nearer one.
-- **The browser does the moving.** Each thumb holds a real `<input type="range">`, invisible and laid over the
-  stretch of track that thumb can reach: dragging, a press on the track, the arrow keys, Page Up / Page Down (a
-  tenth of the track) and Home / End are native. A range's two inputs say `aria-valuetext="200 start range"` /
-  `"800 end range"` and carry their neighbour as their own `max` / `min`.
-- **`BigStep`** is Flux's `big-step`: how far Shift with an arrow key moves the thumb, and Page Up / Page Down
-  with it. It is the one thing a range input cannot do alone, so the input carries `data-rask-big-step` and
-  the [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) steps it. Unset, Shift changes nothing and
-  the Page keys stay the browser's — which is what Flux's slider does too.
-- **A label is the field's.** Flux's slider takes no `label` of its own, and neither does this one: put it in a
-  `Ui.Field` with a `Ui.Label` (and a `Ui.Description`), and every thumb is named by that label
-  (`aria-labelledby`) and described by the rest. A bound slider outside a field still shows its own message.
-- **Ticks** are `Ui.SliderTick.Value(n)` children: a line, a `.Dot`, or whatever you put inside. They sit under
-  the track, or on it with `.Inside` (`TickPosition`). Each carries `data-active` while the fill reaches it and
-  `data-current` while a thumb is on it, and pressing one moves the thumb there.
-- **`TrackClass` and `ThumbClass`** style the two parts. A `size-6` or `size-[22px]` in `ThumbClass` is also
-  where the fill and the ticks learn the thumb's size (`--ui-slider-thumb`, 1rem unless set).
-- **Gone with daisyUI's range:** `Ui.Range` itself, `Tone`, `Size`, `Vertical` and `Label`.
-
-**`Ui.Otp` is Flux UI's OTP input.** One real text input per character
-([fluxui.dev/components/otp-input](https://fluxui.dev/components/otp-input)), and the code they spell bound as one
-`string`:
-
-```csharp
-Ui.Otp.Bind(() => m.Code).Length(6).Label("OTP Code")
-Ui.Otp.Bind(() => m.Code).Length(6).OnComplete(code => Verify(code))      // where Flux's submit="auto" submits
-Ui.Otp.Bind(() => m.Key).Length(10).Alphanumeric.Autocomplete("off").Label("License key")
-Ui.Otp.Bind(() => m.Pin).Length(4).Private().Label("PIN Code")
-Ui.Otp.Bind(() => m.Code)[
-    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput],
-    Ui.OtpSeparator,
-    Ui.OtpGroup[Ui.OtpInput, Ui.OtpInput, Ui.OtpInput]
-]
-```
-
-- **`Length` draws the cells**, or place `Ui.OtpInput`, `Ui.OtpSeparator` and `Ui.OtpGroup` yourself and they are
-  counted (`Length` is then ignored). A group joins its cells into one box.
-- **The keys are Flux's, key for key.** A character moves on to the next cell and typing over a filled cell
-  replaces it; Backspace deletes and steps back, Delete closes the row up from where it is; the arrow keys
-  walk the cells and stop at the first empty one, and a press past it lands on it; a pasted code — or the one
-  the phone offers — fills the cells from the first, keeping only what the `Mode` takes. Typing as fast as a
-  keyboard allows loses nothing: no key waits for a round trip.
-- **How.** The cells are the browser's while they are typed into. The group carries `data-rask-otp` and the
-  [runtime](js-interop-runtime.md#behaviour-hooks-data-rask-) moves between them inside the key's own event; the
-  cells are rendered with no `value` and no handler, and ONE `<input type="hidden">` inside the group carries
-  the code. That field is what `Bind` / `Value` + `OnChange` see, and `Name` is its `name`, so a plain form
-  posts the code once. Set the bound string yourself — clear a wrong code — and the cells follow.
-- **The code has no gaps** and holds only what the `Mode` takes — digits, or `.Alphanumeric` / `.Alpha` with
-  letters upper-cased in the value, as Flux's are. (A cell goes on showing a letter in the case it was typed
-  in, where Flux's shows the capital: the runtime's hook does not change case yet.)
-- **`OnComplete`** runs with the code each time its last cell is filled, bound or controlled. It stands where
-  Flux's `submit="auto"` submits the form: submit, verify or navigate from it. The form itself is not
-  submitted for you.
-- **Markup is Flux's:** a `role="group"` named by the field's label, each cell named "Character 2 of 6", one tab
-  stop (the first empty cell), `autocomplete="one-time-code"` on the first cell (`Autocomplete("off")` to stop
-  the browser offering a code), `inputmode="numeric"` for digits, `type="password"` with `Private()`.
-  `Label` and `DescriptionTrailing` are the ones Flux's examples set; an invalid code is the bound member's
-  message (every cell is marked), and `Disabled()` disables every cell.
-- **Gone with daisyUI's `otp`:** the single input drawn as several, `Joined` (now `Ui.OtpGroup`), `Tone`, `Size`,
-  `Hint` (now `DescriptionTrailing`), `Badge` and `AccessibleLabel`; `Length` is no longer required.
+**`Ui.Slider` is Flux UI's slider**: a number, or a range over an array of two, on real range inputs, with `BigStep`
+for Shift and ticks as children; a label is the field's. **`Ui.Otp` is Flux UI's OTP input**: a cell per character
+and the code they spell bound as one string, Flux's keys key for key, and `OnComplete` where Flux's `submit="auto"`
+submits. Every example and the reference: **[rask.sh/ui/slider](https://rask.sh/ui/slider/)** and
+**[rask.sh/ui/otp-input](https://rask.sh/ui/otp-input/)**.
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
 `Value` a controlled one; they are mutually exclusive because a control with both would have two

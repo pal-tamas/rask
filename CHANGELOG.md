@@ -523,7 +523,17 @@ them until tagged releases begin.
   sidebar's rail, the pager's numbering, buttons against links and the page in the query string, paging on the server
   and under a table, the 15-a-page default, the page size composed by the page and what a screen reader hears, and the
   tabs' value, panels, browser switching, keyboard, Flux's attributes as steps, and that a tab switch never counts as
-  an unsaved change in a `ConfirmLeave` form. The Card page gained a Behaviour section of its own, from what
+  an unsaved change in a `ConfirmLeave` form — and the basic form controls: Field, Input, Textarea, Select,
+  Checkbox, Radio, Switch, Slider and OTP input, every example on Flux's pages in Flux's order (Select's 27 among
+  them, from the browser's own select through the listbox, search, several picks and the combobox to options found
+  on the server, a create row, a loading message, validation and a modal), whose Behaviour sections carry the real
+  label and the error read from the form, when a bound value is written (`Live`, `Debounce`, `Blur`), the runtime
+  hooks that stand in for Flux's script (clear, copy, mask, big steps, the OTP cells, the list's keys and lock),
+  searching in the browser and on the server, the check-all, the radios' and the slider's keys, and Flux's
+  attributes as steps. Flux's checkbox indicator for a multiple select, the input's `mask:dynamic` and the OTP
+  input's `label:sr-only`, `error:icon` and `error:class` have no step yet, so those examples are left out. The
+  reference tables now list a component's steps from the kit's own bases too (a select's live on
+  `UiSelectControl`). The Card page gained a Behaviour section of its own, from what
   `docs/ui-kit.md` still held. The examples' avatars are four small SVG portraits the site ships under
   `/img/avatars/`, so no third-party host is asked for a picture, and the people in every example have made-up
   names (Mara Lind, Theo Brandt, Nia Okafor, Rosa Vidal) rather than real ones. Their examples moved
@@ -532,7 +542,8 @@ them until tagged releases begin.
   forwarding page: it names `/ui/dropdown/` canonical (so it leaves the sitemap), goes there once it renders, and links
   every page that took one of its components; the docs sidebar no longer lists it. `/docs/ui/feedback` does the
   same, to `/ui/progress/`, and `/docs/ui/data-display` to `/ui/accordion/` — with the tree's old URL; the data grid's
-  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
+  goes to `/ui/table/`, and `/docs/ui/navigation` to `/ui/tabs/`. `/docs/ui/data-input` keeps the pickers and rich
+  inputs that have no page yet and links the nine that moved. The bar marks **Docs** current on every `/docs` page, as it marks **UI** under
   `/ui`. `llms.txt` lists the new pages.
 - **`StoredFile.TenantId`'s column follows the app's tenants.** Before: always a `Guid` column, holding a numbered
   tenant as the `Guid` that carries it (`00000000-…-00000000002a` for tenant 42). After: when every tenant-scoped

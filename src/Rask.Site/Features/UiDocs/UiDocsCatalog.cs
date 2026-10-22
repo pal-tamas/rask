@@ -262,12 +262,75 @@ internal static class UiDocsCatalog
         + "stays in the app for a route or leaves it for a URL.",
         "text");
 
+    public static UiDocsEntry Checkbox { get; } = new(
+        Routes.UiCheckboxPage(), "Checkbox", Components,
+        "Checkbox and checkbox group in C#: Ui.Checkbox",
+        "Flux UI's checkbox in C#: one bound to a bool, a group bound to a collection with a check-all, drawn as "
+        + "cards, pills or buttons.",
+        "checkbox");
+
+    public static UiDocsEntry Field { get; } = new(
+        Routes.UiFieldPage(), "Field", Components,
+        "Form field in C#: Ui.Field, Ui.Label, Ui.Error",
+        "Flux UI's field in C#: a label, a control, help text and the message the form holds for it, with badges, "
+        + "split rows and fieldsets.",
+        "field");
+
+    public static UiDocsEntry Input { get; } = new(
+        Routes.UiInputPage(), "Input", Components,
+        "Text input in C#: Ui.Input and Ui.InputGroup",
+        "Flux UI's input in C#: every input type, icons, a keyboard hint, clear, copy and reveal buttons, masks, "
+        + "and prefixes and buttons joined to it.",
+        "input");
+
+    public static UiDocsEntry Otp { get; } = new(
+        Routes.UiOtpPage(), "OTP input", Components,
+        "One-time code input in C#: Ui.Otp",
+        "Flux UI's OTP input in C#: a cell per character bound as one string, pasted codes, letters or digits, "
+        + "private cells, groups and separators.",
+        "otp-input");
+
+    public static UiDocsEntry Radio { get; } = new(
+        Routes.UiRadioPage(), "Radio", Components,
+        "Radio group in C#: Ui.RadioGroup and Ui.Radio",
+        "Flux UI's radio in C#: a group bound to one value of any type, drawn as a list, a segmented control, "
+        + "cards, pills or buttons.",
+        "radio");
+
+    public static UiDocsEntry Select { get; } = new(
+        Routes.UiSelectPage(), "Select", Components,
+        "Select, listbox and combobox in C#: Ui.Select",
+        "Flux UI's select in C#: the browser's own, a listbox with icons and avatars, search, several picks, a "
+        + "combobox and options found on the server.",
+        "select");
+
+    public static UiDocsEntry Slider { get; } = new(
+        Routes.UiSliderPage(), "Slider", Components,
+        "Slider and range slider in C#: Ui.Slider",
+        "Flux UI's slider in C#: a value or a range between two thumbs, steps, big steps on Shift, and ticks, dots "
+        + "or labels under the track.",
+        "slider");
+
+    public static UiDocsEntry Switch { get; } = new(
+        Routes.UiSwitchPage(), "Switch", Components,
+        "Toggle switch in C#: Ui.Switch",
+        "Flux UI's switch in C#: a setting turned on or off at once, bound to a bool, with a label and a "
+        + "description, after its words or before them.",
+        "switch");
+
+    public static UiDocsEntry Textarea { get; } = new(
+        Routes.UiTextareaPage(), "Textarea", Components,
+        "Textarea in C#: Ui.Textarea",
+        "Flux UI's textarea in C#: several lines of text with a label, a set number of rows or a height that grows "
+        + "with what is typed, and a resize handle.",
+        "textarea");
+
     /// <summary>Every page, in sidebar order.</summary>
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Command, Context, Dropdown,
-        Filters, Flag, Heading, Icon, Kanban, Modal, Navbar, Navlist, Pagination, Popover, Profile, Progress, Separator, Skeleton,
-        Table, Tabs, Text, Timeline, Toast, Tooltip,
+        Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Checkbox, Command, Context,
+        Dropdown, Field, Filters, Flag, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Popover, Profile,
+        Progress, Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, Toast, Tooltip,
     ];
 }

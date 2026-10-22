@@ -250,16 +250,11 @@ public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixtur
         // The regression this guards is the one markup could not show: the kit wrote the checked state
         // into the VALUE attribute, so a control the page said was on arrived off. Asserted through the
         // DOM's own property rather than the attribute, which is what a reader actually sees.
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        await ClickSidebar("Data input");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        var enabled = Page.Locator("[data-testid='ui-checkbox'] #cb-checked");
+        await OpenUiPageAsync("checkbox", "Checkbox");
+        var enabled = Page.Locator("[data-testid='ui-checkbox-checked'] input[type='checkbox']");
         await Expect(enabled).ToBeCheckedAsync();
 
+        await OpenUiPageAsync("switch", "Switch");
         var notify = Page.Locator("[data-testid='ui-switch'] #sw-notify");
         await Expect(notify).Not.ToBeCheckedAsync();
     });

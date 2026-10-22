@@ -29,14 +29,23 @@ public sealed class UiApiReferenceTests
     {
         var part = UiApi.All.Single(candidate => candidate.Entry == entry);
 
-        var steps = part.Component
-            .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+        var steps = KitTypes(part.Component)
+            .SelectMany(type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             .Where(property => property.SetMethod is { IsPublic: true } && !Common.Contains(property.Name))
             .ToDictionary(property => property.Name, property => property.PropertyType, StringComparer.Ordinal);
         var rows = part.Steps.ToDictionary(step => step.Name, step => step.Takes, StringComparer.Ordinal);
 
         Assert.Equal(steps.Keys.Order(StringComparer.Ordinal), rows.Keys.Order(StringComparer.Ordinal));
         Assert.All(rows, row => Assert.Equal(steps[row.Key], row.Value));
+    }
+
+    // The component and the kit's own bases under it (a select's steps live on UiSelectControl), down to Rask's Component.
+    private static IEnumerable<Type> KitTypes(Type component)
+    {
+        for (var type = component; type is not null && type.Assembly != typeof(Component).Assembly; type = type.BaseType)
+        {
+            yield return type;
+        }
     }
 
     [Fact]

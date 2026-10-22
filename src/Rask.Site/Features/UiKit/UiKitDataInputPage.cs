@@ -1,4 +1,5 @@
 using Rask.Core.Routing;
+using Rask.Site.Features.UiDocs;
 
 namespace Rask.Site.Features.UiKit;
 
@@ -12,9 +13,9 @@ public sealed partial class UiKitDataInputPage : Component
     /// <inheritdoc />
     protected override Component? HeadAssets =>
         PageMeta.For(
-            "daisyUI form inputs as typed C# components — Rask",
-            "daisyUI data input components in C#, each with a required label: input, textarea, select, "
-            + "checkbox, radio, switch, range, one-time code and calendar.",
+            "Flux UI pickers and rich inputs in C# — Rask",
+            "Flux UI's composer, autocomplete, pillbox, toggle, phone, calendar, date, time and color pickers and file "
+            + "upload as typed C# components.",
             Routes.UiKitDataInputPage());
 
     /// <inheritdoc />
@@ -22,18 +23,17 @@ public sealed partial class UiKitDataInputPage : Component
     [
         H1.Class("text-3xl font-bold mb-1")["Data input"],
         P.Class("text-ui-muted")[
-            "Every control takes a required label, and it becomes the accessible name rather than a ",
-            "placeholder — a placeholder disappears the moment typing starts, so the one thing saying ",
-            "what a field is for vanishes exactly when a reader might check it, and it is invisible to ",
-            "anybody reviewing a filled-in form. The whole daisyUI class API is here: every tone, every ",
-            "size, and ", Code["ghost"], " on the three controls daisyUI defines it for."
+            "The kit's pickers and richer inputs, until each has a page of its own in the UI tab. The basic form ",
+            "controls already do."
         ],
+        UiKitMovedPages.Pages([
+            UiDocsCatalog.Field, UiDocsCatalog.Input, UiDocsCatalog.Textarea, UiDocsCatalog.Select, UiDocsCatalog.Checkbox,
+            UiDocsCatalog.Radio, UiDocsCatalog.Switch, UiDocsCatalog.Slider, UiDocsCatalog.Otp,
+        ]),
         CodeSample
-            .Files(["UiKitDataInputDemo.cs", "UiKitDataInputDemo.Composer.cs", "UiKitDataInputDemo.Choices.cs", "UiKitColorPickerDemo.cs", "UiKitToggleDemo.cs"])
-            .Notes("The one-time code is a single input drawn as several — per-digit boxes need script "
-                + "to move focus, defeat SMS autofill and drop a pasted code into the first box. The "
-                + "calendar is a C# month grid, because the element daisyUI styles for it is a "
-                + "JavaScript web component the kit does not ship.")
+            .Files(["UiKitDataInputDemo.cs", "UiKitDataInputDemo.Composer.cs", "UiKitColorPickerDemo.cs", "UiKitToggleDemo.cs"])
+            .Notes("The calendar is a C# month grid, because the element daisyUI styles for it is a JavaScript web "
+                + "component the kit does not ship.")
             .Result(UiKitDataInputDemo),
         H2.Class("text-xl font-semibold mt-10 mb-1")["Rich text editor"],
         P.Class("text-ui-muted")[

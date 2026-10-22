@@ -13,6 +13,13 @@ public sealed partial class UiKitDataInputDemo
         "Wisconsin", "Wyoming",
     ];
 
+    // What a store would hold: more rows than a list shows, so the page answers a search with the first few.
+    private static readonly string[] Cities =
+    [
+        "Amsterdam", "Athens", "Berlin", "Bern", "Brussels", "Budapest", "Copenhagen", "Dublin", "Helsinki", "Lisbon",
+        "Ljubljana", "Madrid", "Oslo", "Paris", "Prague", "Riga", "Rome", "Stockholm", "Vienna", "Warsaw",
+    ];
+
     private string _state = "";
     private string _cityTyped = "";
     private string[] _citiesSuggested = [.. Cities.Take(6)];
