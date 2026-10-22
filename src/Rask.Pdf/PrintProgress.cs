@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Rask.Printing;
 
@@ -9,10 +10,22 @@ namespace Rask.Printing;
 internal sealed class PrintProgress
 {
     private readonly ConcurrentDictionary<string, string> _unanswered = new(StringComparer.Ordinal);
+    private readonly ConcurrentQueue<(string Step, TimeSpan At)> _steps = new();
+    private readonly long _started = Stopwatch.GetTimestamp();
     private volatile string _step = "waiting for its turn";
 
+    /// <summary>The steps taken so far, each with when it began, from the print's start.</summary>
+    public IReadOnlyCollection<(string Step, TimeSpan At)> Steps => _steps;
+
+    /// <summary>How long the print has run.</summary>
+    public TimeSpan Elapsed => Stopwatch.GetElapsedTime(_started);
+
     /// <summary>Records the step the print now waits on, worded to follow "while …".</summary>
-    public void Now(string step) => _step = step;
+    public void Now(string step)
+    {
+        _step = step;
+        _steps.Enqueue((step, Elapsed));
+    }
 
     /// <summary>A request the page made that has not been answered yet.</summary>
     public void Asked(string requestId, string url) => _unanswered[requestId] = url;

@@ -95,6 +95,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A long table prints in seconds, not minutes.** Chromium drew a printed page while it was still parsing it, and
+  every frame restyled and laid out the whole table grown so far, so loading cost the square of the rows: a
+  10,000-row `Ui.Table` took 15 s to load on a laptop and 190 s on a small server, past the 30 s
+  `Rask:Pdf:Timeout`. `Pdf.From` now holds the document out of rendering until it has loaded, then lays it out once,
+  straight in print media: that table prints in 5.6 s instead of 22 s here (load 15 s → 0.4 s), a plain 5,000-row
+  table in 1.5 s. Web fonts and CSS backgrounds the layout asks for are still waited for. See
+  [PDF](docs/pdf.md#long-documents).
 - **An `[Authorize]` method that takes a read face compiles again.** `() => Remove(company)` with
   `Remove(CompanyRead company)` wrote an interceptor naming the bare `CompanyRead` in Rask's own namespace — CS0246,
   because no generator sees another's output. A Rask.Data read face is now named by its full name everywhere a

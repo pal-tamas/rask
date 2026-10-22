@@ -6,8 +6,8 @@ namespace Rask.Printing;
 
 /// <summary>
 /// Prints one document in a browser context of its own — no cookie, storage or cache shared with any other
-/// document — and closes the context after. The page reaches nothing but the <see cref="DocumentServer"/>, and its
-/// scripts do not run.
+/// document — and closes the context after. The page reaches nothing but the <see cref="DocumentServer"/>, its
+/// scripts do not run, and it is drawn once, after it has loaded (<see cref="PrintHold"/>).
 /// </summary>
 internal static class HtmlPrint
 {
@@ -47,8 +47,8 @@ internal static class HtmlPrint
                 progress.Now("loading the document (its load event)");
                 await Load(devTools, session, new DocumentServer(devTools, session, document, progress, cancellation), cancellation)
                     .ConfigureAwait(false);
-                progress.Now("waiting for its web fonts");
-                await FontsReady(devTools, session, cancellation).ConfigureAwait(false);
+                progress.Now("drawing it and waiting for its web fonts");
+                await Drawn(devTools, session, cancellation).ConfigureAwait(false);
                 progress.Now("printing it");
                 return await PrintToPdf(devTools, session, document, maxPages, cancellation).ConfigureAwait(false);
             }
@@ -108,18 +108,25 @@ internal static class HtmlPrint
     private static TaskCompletionSource Loaded(ConcurrentDictionary<string, TaskCompletionSource> loads, string loaderId) =>
         loads.GetOrAdd(loaderId, static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
 
-    // The load event does not wait for a web font the layout asks for late. The page's own scripts stay off; this
-    // expression is the protocol's, evaluated in the page, and only waits.
-    private static Task<JsonElement> FontsReady(DevToolsConnection devTools, string session, CancellationToken cancellation) => devTools.Send(
-        "Runtime.evaluate",
-        json =>
-        {
-            json.WriteString("expression", "document.fonts.ready.then(() => true)");
-            json.WriteBoolean("awaitPromise", true);
-            json.WriteBoolean("returnByValue", true);
-        },
-        session,
-        cancellation);
+    // The document loaded held out of rendering (PrintHold). It is drawn once, in the print media printToPDF lays it
+    // out in — a screen layout first would be thrown away — and the web fonts that drawing asked for are waited for:
+    // the load event does not wait for a font the layout asks for late. The page's own scripts stay off; the release is
+    // the protocol's, evaluated in the page.
+    private static async Task Drawn(DevToolsConnection devTools, string session, CancellationToken cancellation)
+    {
+        await devTools.Send("Emulation.setEmulatedMedia", json => json.WriteString("media", "print"), session, cancellation)
+            .ConfigureAwait(false);
+        await devTools.Send(
+            "Runtime.evaluate",
+            json =>
+            {
+                json.WriteString("expression", PrintHold.Release);
+                json.WriteBoolean("awaitPromise", true);
+                json.WriteBoolean("returnByValue", true);
+            },
+            session,
+            cancellation).ConfigureAwait(false);
+    }
 
     private static async Task<byte[]> PrintToPdf(
         DevToolsConnection devTools, string session, PrintDocument document, int maxPages, CancellationToken cancellation)

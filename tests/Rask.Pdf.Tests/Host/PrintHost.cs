@@ -33,7 +33,7 @@ internal sealed class PrintHost : IAsyncDisposable
     public HttpClient Http => _app.GetTestClient();
 
     /// <summary>Starts the host; <paramref name="files"/> are written into its web root first.</summary>
-    public static async Task<PrintHost> Start(IReadOnlyDictionary<string, byte[]>? files = null, string? chromium = null)
+    public static async Task<PrintHost> Start(IReadOnlyDictionary<string, byte[]>? files = null, string? chromium = null, TimeSpan? timeout = null)
     {
         var webRoot = Directory.CreateTempSubdirectory("rask-pdf-webroot-");
         foreach (var (path, body) in files ?? new Dictionary<string, byte[]>(StringComparer.Ordinal))
@@ -47,6 +47,11 @@ internal sealed class PrintHost : IAsyncDisposable
         builder.WebHost.UseTestServer();
         builder.Configuration["Rask:Pdf:ChromiumPath"] = chromium ?? TestChromium.Installed ?? "/nowhere/chromium";
         builder.Configuration["Rask:Pdf:NoSandbox"] = TestChromium.NoSandbox.ToString(CultureInfo.InvariantCulture);
+        if (timeout is { } limit)
+        {
+            builder.Configuration["Rask:Pdf:Timeout"] = limit.ToString("c", CultureInfo.InvariantCulture);
+        }
+
         builder.Services.AddAuthorization();
         builder.Services.AddRask();
 
