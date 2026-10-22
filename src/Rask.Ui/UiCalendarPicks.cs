@@ -14,4 +14,7 @@ internal abstract class UiCalendarPicks
     internal abstract string Mode { get; }
 
     internal abstract UiCalendarMarks Marks(DateOnly day);
+
+    /// <summary>What the calendar's own inputs show (<c>with-inputs</c>): the day, or a range's start and end.</summary>
+    internal virtual IReadOnlyList<DateOnly?> Typed => [First];
 }

@@ -102,6 +102,7 @@ public static class WasmPrerender
         where TApp : Component
     {
         ApplyPathBase();
+        WasmCultureSeeder.PinWhenUnconfigured(services);
 
         var plan = RaskPrerender.PlanRoutes();
 

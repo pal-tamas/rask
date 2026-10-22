@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Core.Printing;
 
-/// <summary>What Rask.Pdf registers when a RaskApp finds it (<see cref="PdfLoader"/>).</summary>
+/// <summary>What Rask.Pdf registers when the server host's <c>AddRask()</c> finds it (<see cref="PdfLoader"/>).</summary>
 internal interface IPdfBootstrap
 {
     /// <summary>Registers the printer, as <c>AddRaskPdf()</c> does.</summary>

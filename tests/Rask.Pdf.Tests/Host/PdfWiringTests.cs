@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Server;
@@ -57,5 +58,29 @@ public sealed class PdfWiringTests
 
         Assert.NotNull(printer);
         Assert.Equal("/opt/chromium/chrome", app.Services.GetRequiredService<ChromiumSettings>().ChromiumPath);
+    }
+
+    [Fact]
+    public async Task A_hand_wired_host_that_references_rask_pdf_has_the_printer_without_asking()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration["Rask:Pdf:ChromiumPath"] = "/opt/chromium/chrome";
+
+        builder.Services.AddRask();
+        await using var app = builder.Build();
+
+        Assert.NotNull(app.Services.GetService<ChromiumPrinter>());
+        Assert.Equal("/opt/chromium/chrome", app.Services.GetRequiredService<ChromiumSettings>().ChromiumPath);
+    }
+
+    [Fact]
+    public void A_hand_wired_host_that_also_adds_pdf_itself_registers_one_printer()
+    {
+        var services = new ServiceCollection();
+
+        services.AddRask();
+        services.AddRaskPdf();
+
+        Assert.Single(services, service => service.ServiceType == typeof(ChromiumPrinter));
     }
 }

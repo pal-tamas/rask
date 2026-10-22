@@ -36,7 +36,17 @@ public static class Ambient
     public static Func<CancellationToken>? FallbackToken { get; set; }
 
     /// <summary>The services of the work in progress, or null outside any.</summary>
-    public static IServiceProvider? Services => PushedServices.Value ?? FallbackServices?.Invoke();
+    /// <remarks>A test's own app that has not started yet is not one: a lookup never boots it.</remarks>
+    public static IServiceProvider? Services => Pushed ?? FallbackServices?.Invoke();
+
+    /// <summary>
+    ///     <see cref="Services" />, or — for a call with nothing else to go on — the test's own app, started now.
+    /// </summary>
+    internal static IServiceProvider? Needed => Services ?? (PushedServices.Value as OnDemandServices)?.Start();
+
+    // What was pushed, unless it is a test's app still waiting to be needed.
+    private static IServiceProvider? Pushed =>
+        PushedServices.Value is OnDemandServices onDemand ? onDemand.Started : PushedServices.Value;
 
     /// <summary>The cancellation of the work in progress, or <see cref="CancellationToken.None" /> outside any.</summary>
     public static CancellationToken CancellationToken =>
@@ -57,7 +67,7 @@ public static class Ambient
     public static T Reach<T>(string facade, string unless, string wiring)
         where T : class
     {
-        var services = Services ?? throw new InvalidOperationException(
+        var services = Needed ?? throw new InvalidOperationException(
             $"{facade} was called outside any work in progress — a handler, a render, a request or a job — so "
             + $"there is no app to reach. Inject {typeof(T).Name} in the constructor there instead.");
 
@@ -84,6 +94,18 @@ public static class Ambient
         var previous = PushedToken.Value;
         Push(previous, token);
         return new TokenScope(previous);
+    }
+
+    /// <summary>
+    ///     The test set up its own database: its app, if Rask.Testing opened one that has not started, now never
+    ///     starts on its behalf.
+    /// </summary>
+    internal static void DeclineTestApp()
+    {
+        if (PushedServices.Value is OnDemandServices onDemand)
+        {
+            onDemand.Decline();
+        }
     }
 
     // The flow stores the token boxed, so writing the value it already holds would allocate for nothing —

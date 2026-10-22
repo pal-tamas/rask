@@ -2,7 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Core.Printing;
 
-/// <summary>Turns PDF printing on in a RaskApp whose app references Rask.Pdf — with no code in the app.</summary>
+/// <summary>Turns PDF printing on in a server app (RaskApp or a hand-wired <c>AddRask()</c>) that references Rask.Pdf — with no code in the app.</summary>
 /// <remarks>
 /// Rask.Server cannot reference Rask.Pdf: every server app would then carry it and fetch its browser at build.
 /// So, as with <see cref="Diagnostics.DevTools.RaskDevToolsLoader"/>, the host asks for the bootstrap BY NAME; an

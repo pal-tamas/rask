@@ -39,7 +39,7 @@ public static class Pdf
     // job's in a job, the request's in an endpoint. Never a user the caller names.
     private static async Task<byte[]> Run(Func<PagePrinting, CancellationToken, Task<byte[]>> print)
     {
-        if (Ambient.Services is { } services)
+        if (Ambient.Needed is { } services)
         {
             var user = services.GetService<IUserProvider>()?.Current;
             return await print(Printing(services, user), Ambient.CancellationToken).ConfigureAwait(false);
@@ -61,8 +61,8 @@ public static class Pdf
             "Pdf.From renders the app's pages on the server, and this app has no Rask server host. Print from a "
             + "Rask.Server app (RaskApp, or builder.Services.AddRask()).");
         var printer = services.GetService<ChromiumPrinter>() ?? throw new InvalidOperationException(
-            "Pdf.From is not running in this app: a hand-wired host calls builder.Services.AddRaskPdf() (a RaskApp "
-            + "has it whenever the app references Rask.Pdf).");
+            "Pdf.From is not running in this app: builder.Services.AddRask() registers the printer whenever the app "
+            + "references Rask.Pdf; a host that does not call AddRask() calls builder.Services.AddRaskPdf().");
         return new PagePrinting(pages, printer, PrintCaller.Of(caller ?? new ClaimsPrincipal(new ClaimsIdentity())));
     }
 }

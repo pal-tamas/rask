@@ -9,6 +9,18 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
+  query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
+  `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
+  are `Listed`'s.
+
+- **The rest of Flux's date picker reference: `WithInputs()` and the native typed field.** Before: `with-inputs` and
+  `flux:date-picker.input`'s `variant` were not built. After: `Ui.DatePicker.WithInputs()` (and
+  `Ui.DatePicker.Range…`, `Ui.Calendar…`) draws a field over the months to type the day — or a range's start and
+  end — into: a whole date typed is chosen and its month shown at once, and a pick is written into it, all in the
+  browser. `WithInputs(Ui.DatePickerInputVariant.Native)` and `Ui.DatePickerInput.Native` use the browser's own
+  `<input type="date">` instead of the parts. Typed parts stay the default (Flux's `custom`).
+
 - **A `[QueryParam]` can be a list, written and read as Laravel and Rails do: the key repeated with `[]`.**
   `[QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];` is `["ada", "theo"]` at
   `?drivers[]=ada&drivers[]=theo`, at Laravel's indexed `?drivers[0]=ada&drivers[1]=theo`, and `["ada"]` at a plain
@@ -1236,6 +1248,31 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Referencing `Rask.Testing` boots nothing a test did not ask for.** Before: on xUnit v3 the per-test app hook made
+  ANY ambient lookup boot the app's `Program.cs` — so a project that took `Rask.Testing` for `Clock.Fake` alone saw
+  its `TestDatabase.Start(…)` model tests boot the app at their first `Company.Where(…)`, fail on the app's missing
+  settings, and an `Assert.ThrowsAsync<RaskValidationException>` around a delete check catch the boot's
+  `InvalidOperationException` instead. After: the test's app boots only for a call with nothing else to go on
+  (`Page.Visit`, a battery's static, a read with no database configured); a lookup with another answer
+  (`Ambient.Services`, an `IsOn`) never boots it, and a test that configures its own database (`TestDatabase.Start`,
+  any `Db.Configure`) keeps it from booting at all. See [testing](docs/testing.md#1-driving-the-app-the-way-a-person-does).
+- **A stalled thread no longer breaks a component library for the rest of the process.** Before: the patterns that
+  wrap a component's scoped script ran with a one-second wall-clock timeout inside the library's module initializer,
+  so a busy machine that paused the thread past it failed the initializer — permanently, and every `Ui.*` type then
+  threw `TypeInitializationException` until restart (seen in CI on a 1.6 KB script). After: they read only the
+  component's own compiled script, never a visitor's input, and run without a timeout.
+- **A hand-wired host prints with Rask.Pdf as soon as it references the package.** Before: only a `RaskApp` found
+  Rask.Pdf by name; a `builder.Services.AddRask()` + `app.MapRask<App>()` host had no printer, and the first
+  `Pdf.From(…)` threw "Pdf.From is not running in this app" until it also called `AddRaskPdf()`. After: `AddRask()`
+  itself registers the printer whenever Rask.Pdf is referenced, on both hosts; an explicit `AddRaskPdf()` stays
+  harmless (it registers once), so an app that added one may delete it. See [PDF](docs/pdf.md).
+- **A browser app with no configured culture formats in its page's language, not the browser's.** Before: a
+  WebAssembly app that never called `UseCulture` started in the browser's locale, so on a Hungarian browser
+  rask.sh's range picker titled its months "2026. október" under `<html lang="en">`, English weekdays and English
+  placeholders, and the prerendered pages formatted in whatever locale the publishing machine had. After: with
+  culture support off, the WASM host and the prerender both pin `CurrentCulture`, `CurrentUICulture` and the
+  thread defaults to `en`, the language `<html lang>` already names (the invariant culture without ICU). With
+  languages configured nothing changes. See [localization](docs/localization.md#when-no-culture-is-configured).
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.

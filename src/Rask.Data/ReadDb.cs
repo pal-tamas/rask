@@ -64,6 +64,7 @@ public static class ReadDb
     {
         ArgumentNullException.ThrowIfNull(createContext);
         _factory = createContext;
+        Ambient.DeclineTestApp();
     }
 
     /// <summary>Forgets the configured factory. Test seam, like <see cref="Db.Reset" />.</summary>
@@ -94,7 +95,7 @@ public static class ReadDb
     {
         // The work in progress's own app first — as the write side does — so two apps side by side (two tests, each
         // with its own database) never read each other's rows through the one process-wide factory.
-        if ((Db.ScopeServices ?? Ambient.Services)?.GetService<IDbContextFactory<RaskReadDbContext>>() is { } scoped)
+        if ((Db.ScopeServices ?? Ambient.Needed)?.GetService<IDbContextFactory<RaskReadDbContext>>() is { } scoped)
         {
             return scoped.CreateDbContext();
         }
