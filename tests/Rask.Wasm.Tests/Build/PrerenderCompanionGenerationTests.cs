@@ -271,6 +271,36 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
+    public async Task An_app_shipped_without_culture_data_is_prerendered_without_it()
+    {
+        // An English-only app ships no ICU, so the browser formats "en" with the invariant culture's data
+        // (03/14/2026). The build machine has real en-US data (3/14/2026), and a companion that used it baked
+        // a page the booted app then contradicted. The companion runs under the browser's globalization.
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<RaskPrerender>true</RaskPrerender>",
+            "<RaskPrerender>true</RaskPrerender><InvariantGlobalization>true</InvariantGlobalization>",
+            StringComparison.Ordinal));
+
+        Assert.Contains("<InvariantGlobalization>true</InvariantGlobalization>", await Generate(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_app_shipping_culture_data_is_prerendered_with_it()
+    {
+        var csproj = Path.Combine(_dir, "App.csproj");
+        File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
+            "<RaskPrerender>true</RaskPrerender>",
+            "<RaskPrerender>true</RaskPrerender><InvariantGlobalization>false</InvariantGlobalization><PredefinedCulturesOnly>false</PredefinedCulturesOnly>",
+            StringComparison.Ordinal));
+
+        var project = await Generate();
+
+        Assert.DoesNotContain("<InvariantGlobalization>true", project, StringComparison.Ordinal);
+        Assert.Contains("<PredefinedCulturesOnly>false</PredefinedCulturesOnly>", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Each_resource_is_emitted_exactly_once()
     {
         // Two emission lines partition the set on whether the item names itself. A condition wrong the
