@@ -2760,6 +2760,8 @@ Rask.UiTab.Size.get -> Rask.Ui.TabsSize?
 Rask.UiTab.Size.set -> void
 Rask.UiTabGroup.Findable.get -> bool?
 Rask.UiTabGroup.Findable.set -> void
+Rask.UiTable.Of<TRows, TAlso, TAndAlso>(Rask.Querying.Query<TRows>! rows, Rask.Querying.Query<TAlso>! also, Rask.Querying.Query<TAndAlso>! andAlso) -> Rask.UiTable!
+Rask.UiTable.Of<TRows, TAlso>(Rask.Querying.Query<TRows>! rows, Rask.Querying.Query<TAlso>! also) -> Rask.UiTable!
 Rask.UiTabPanel.Selected.get -> bool?
 Rask.UiTabPanel.Selected.set -> void
 Rask.UiTabs.Bind.get -> System.Linq.Expressions.Expression<System.Func<string!>!>?

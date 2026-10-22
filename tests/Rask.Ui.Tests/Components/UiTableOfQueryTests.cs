@@ -129,6 +129,48 @@ public sealed partial class UiTableOfQueryTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task Rows_that_came_wait_as_skeleton_rows_for_the_other_query_the_table_waits_for()
+    {
+        var (rows, answer) = Pending();
+        answer.SetResult(Names);
+        await Settle(rows);
+        var columns = new TaskCompletionSource<string[]>();
+        using var shown = Client().Query(QueryKey.Of("columns"), _ => columns.Task);
+        _ = shown.Data;
+
+        var html = Ui.Table.Of(rows, shown)[Ui.TableColumns[Ui.TableColumn["Customer"]], Ui.TableRows[Cells(rows)]].ToHtml();
+
+        Assert.Contains("data-rask-skeleton=\"loading\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Hanna</td>", html, StringComparison.Ordinal);
+        Assert.Equal(15, Rows(html));
+    }
+
+    [Fact]
+    public async Task With_every_query_in_the_rows_are_the_first_ones()
+    {
+        var (rows, answer) = Pending();
+        answer.SetResult(Names);
+        var columns = new TaskCompletionSource<string[]>();
+        using var shown = Client().Query(QueryKey.Of("columns"), _ => columns.Task);
+        var fuel = new TaskCompletionSource<string[]>();
+        using var more = Client().Query(QueryKey.Of("fuel"), _ => fuel.Task);
+        columns.SetResult(["Customer"]);
+        fuel.SetResult([]);
+        await Settle(rows);
+        await Settle(shown);
+        await Settle(more);
+
+        var html = Ui.Table.Of(rows, shown, more)[Ui.TableColumns[Ui.TableColumn["Customer"]], Ui.TableRows[Cells(rows)]].ToHtml();
+
+        Assert.Contains("data-rask-skeleton=\"\"", html, StringComparison.Ordinal);
+        Assert.Equal(3, Rows(html));
+        Assert.Contains(">Hanna</td>", html, StringComparison.Ordinal);
+    }
+
+    private static IEnumerable<global::Rask.Core.Component> Cells(Query<string[]> query) =>
+        (query.Data ?? []).Select(name => Ui.TableRow.Key(name)[Ui.TableCell[name]]);
+
+    [Fact]
     public void A_table_without_a_query_carries_no_skeleton_mark()
     {
         var html = Ui.Table[Ui.TableRows[Ui.TableRow[Ui.TableCell["Lindsey"]]]].ToHtml();

@@ -9,6 +9,11 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
+  query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
+  `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
+  are `Listed`'s.
+
 - **The rest of Flux's date picker reference: `WithInputs()` and the native typed field.** Before: `with-inputs` and
   `flux:date-picker.input`'s `variant` were not built. After: `Ui.DatePicker.WithInputs()` (and
   `Ui.DatePicker.Range…`, `Ui.Calendar…`) draws a field over the months to type the day — or a range's start and

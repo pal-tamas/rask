@@ -566,6 +566,10 @@ themselves — the filter set names the first `Ui.Table.Of(…)` after it, givin
 elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
 instead.
 
+**A table that waits for more than its rows' query** names the others after it: `Ui.Table.Of(listed, columns)` (up
+to three). The skeleton shows while any of them loads — a query that says which columns to draw, say, so the columns
+never jump in after the rows — and the rows, their count and the empty row are the first query's.
+
 **`Ui.Table.Loading(…)` does the same for rows the page loads into a field of its own**, with no query: skeleton rows
 while they are on their way (a row per row the pager says the page holds, 15 with no pager), and the empty row when
 there are none.

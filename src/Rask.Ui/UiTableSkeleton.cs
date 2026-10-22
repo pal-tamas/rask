@@ -53,7 +53,8 @@ internal static class UiTableSkeleton
             return;
         }
 
-        var shown = Shown.GetOrCreateValue(query);
+        // Counted against the rows' own query: a table waiting for several is handed a new view of them each render.
+        var shown = Shown.GetOrCreateValue(query is UiTableQueries all ? all.Rows : query);
         // A query holding the previous key's rows says it is loading too: those rows stay, and the sheet draws them.
         if (query.IsLoading && !query.IsPlaceholderData)
         {
