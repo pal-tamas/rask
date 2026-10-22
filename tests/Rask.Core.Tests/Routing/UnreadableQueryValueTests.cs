@@ -155,8 +155,8 @@ public partial class UnreadableQueryValueTests : global::Rask.Core.RaskMarkup
 
         var reported = Reported(true, () =>
         {
-            PageBinder.Bind(page, NoSegments, Query(("tanks", "3,s3cret-abc")));
-            PageBinder.Bind(page, NoSegments, Query(("tanks", "s3cret-abc,2")));
+            PageBinder.Bind(page, NoSegments, Query(("tanks[0]", "3"), ("tanks[1]", "s3cret-abc")));
+            PageBinder.Bind(page, NoSegments, Query(("tanks[0]", "s3cret-abc"), ("tanks[1]", "2")));
         });
 
         var said = Assert.Single(reported, e => string.Equals(e.Category, "Rask.Routing", StringComparison.Ordinal));

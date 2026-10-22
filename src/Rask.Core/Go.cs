@@ -80,6 +80,29 @@ public static class Go
         return new GoTo(navigator);
     }
 
+    /// <summary>
+    ///     Stays on this page with <paramref name="key" /> set to a list, as Laravel and Rails write one — the key
+    ///     repeated with brackets: <c>Go.With("drivers", ["ada", "theo"])</c> is <c>?drivers[]=ada&amp;drivers[]=theo</c>,
+    ///     what a <c>[QueryParam] IReadOnlyList&lt;string&gt; Drivers</c> reads. A list with nothing to write removes
+    ///     the key.
+    /// </summary>
+    /// <remarks>
+    ///     Replaces the key in every form it had (<c>drivers</c>, <c>drivers[]</c>, <c>drivers[0]</c>), and the current
+    ///     history entry; <c>.Pushing()</c> adds one instead.
+    /// </remarks>
+    /// <typeparam name="T">The element type.</typeparam>
+    /// <param name="key">The query parameter, matched without regard to case.</param>
+    /// <param name="values">Its elements, in order; a null one, or one that writes as nothing, is left out.</param>
+    /// <returns>The step that makes it add a history entry.</returns>
+    /// <exception cref="InvalidOperationException">Called with no session handling an event or mounting a page.</exception>
+    public static GoTo With<T>(string key, IEnumerable<T> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        var navigator = Navigator.RequireCurrent();
+        navigator.SetQueryList(key, QueryList.Texts(values));
+        return new GoTo(navigator);
+    }
+
     /// <summary>Stays on this page with each of <paramref name="values" /> set in its query, in one step.</summary>
     /// <remarks>Replaces the current history entry; <c>.Pushing()</c> adds one instead.</remarks>
     /// <param name="values">The parameters; one whose value is <c>null</c> is removed.</param>

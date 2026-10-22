@@ -203,8 +203,8 @@ internal static class PageBinder
     }
 
     /// <summary>
-    ///     The same rule for a list, element by element: <c>?tanks=3,abc,2</c> for an <c>IReadOnlyList&lt;int&gt;</c>
-    ///     reads <c>[3, 2]</c>, and a key none of whose elements can be read is absent.
+    ///     The same rule for a list, element by element: <c>?tanks[]=3&amp;tanks[]=abc&amp;tanks[]=2</c> for an
+    ///     <c>IReadOnlyList&lt;int&gt;</c> reads <c>[3, 2]</c>, and a key none of whose elements can be read is absent.
     /// </summary>
     private static bool ReadQueryListOrAbsent(Component page, BindablePropertyInfo property, StringValues found,
         Type element, out object? read)
@@ -270,7 +270,15 @@ internal static class PageBinder
     private static bool TryGetQueryValues(BindablePropertyInfo info, IQueryCollection query, out StringValues found)
     {
         found = StringValues.Empty;
-        return info.IsQueryParam && TryFind(query, info.BindingName, out found);
+        if (!info.IsQueryParam)
+        {
+            return false;
+        }
+
+        // A list is its key repeated with brackets, as Laravel and Rails write it: drivers[]=a&drivers[]=b.
+        return info.ElementType is null
+            ? TryFind(query, info.BindingName, out found)
+            : QueryList.TryFind(query, info.BindingName, out found);
     }
 
     // By name, whatever its case, and without allocating on the way — this runs for every query property

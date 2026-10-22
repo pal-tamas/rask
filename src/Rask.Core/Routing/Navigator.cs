@@ -256,6 +256,32 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         }
     }
 
+    /// <summary>
+    ///     Sets a list on the current path as <c>key[]</c> pairs, replacing the key in any form it had
+    ///     (<c>key</c>, <c>key[]</c>, <c>key[n]</c>); no value removes it.
+    /// </summary>
+    /// <param name="key">Query parameter name (case-insensitive).</param>
+    /// <param name="values">The elements, as their URL writes them before encoding.</param>
+    /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>
+    public void SetQueryList(string key, string[] values)
+    {
+        if (HandedToTheSession(() => SetQueryList(key, values)))
+        {
+            return;
+        }
+
+        lock (Moving)
+        {
+            BeforeNavigating();
+            ArgumentNullException.ThrowIfNull(key);
+            var dict = ToDictionary(routeState.Query);
+            QueryList.Set(dict, key, values);
+            routeState.Query = new QueryCollection(dict);
+            MovedTheQuery();
+            Navigated();
+        }
+    }
+
     /// <summary>Removes a single query parameter from the current path. Missing keys are a no-op.</summary>
     /// <param name="key">Query parameter name (case-insensitive).</param>
     /// <exception cref="InvalidOperationException">Called outside an event handler.</exception>

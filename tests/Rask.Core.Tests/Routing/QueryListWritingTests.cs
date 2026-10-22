@@ -1,106 +1,129 @@
+using Microsoft.Extensions.Primitives;
 using Rask.Core.Routing;
 
 #pragma warning disable RASK014 // test-defined Component subclass has no generated factory
 
 namespace Rask.Core.Tests.Routing;
 
-// A list is written as ONE value with its elements joined by commas, in the order given, and the whole of it
-// encoded — the commas as %2C; a list with nothing to write is written as nothing, which leaves its key out.
+// `Go.With("drivers", ["ada", "theo"])` writes a list as Laravel's route() and Rails' to_query do — the key repeated
+// with empty brackets, one pair per element, in order — and replaces the key in every form the address had it.
 public class QueryListWritingTests
 {
     [Fact]
-    public void A_list_is_written_with_its_elements_joined_by_encoded_commas_in_order()
+    public void Go_With_a_list_writes_the_key_repeated_with_brackets_in_order()
     {
-        IReadOnlyList<string> drivers = ["theo", "ada", "a b"];
+        string[] drivers = ["theo", "ada", "a b"];
+        var nav = new Navigator(new RouteState { Path = "/fleet" });
 
-        var text = RouteValueFormatter.Format(drivers);
+        using (nav.EnterHandler())
+        {
+            Go.With("drivers", drivers);
+        }
 
-        Assert.Equal("theo%2Cada%2Ca%20b", text);
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        Assert.Equal("/fleet?drivers%5B%5D=theo&drivers%5B%5D=ada&drivers%5B%5D=a%20b", url);
+        Assert.Equal(drivers, ReadBack(url));
     }
 
     [Fact]
-    public void A_written_list_reads_back_as_the_same_elements()
+    public void An_element_with_a_comma_is_written_and_read_back_whole()
     {
-        IReadOnlyList<string> drivers = ["ada", "100%", "x&y=z", "árvíz"];
+        string[] drivers = ["Lovelace, Ada", "theo"];
+        var nav = new Navigator(new RouteState { Path = "/fleet" });
 
-        var text = RouteValueFormatter.Format(drivers);
+        using (nav.EnterHandler())
+        {
+            Go.With("drivers", drivers);
+        }
 
-        Assert.Equal(drivers, ReadBack(text));
-    }
-
-    [Fact]
-    public void An_element_written_with_a_comma_reads_back_as_two_elements()
-    {
-        IReadOnlyList<string> drivers = ["Lovelace, Ada", "theo"];
-
-        var text = RouteValueFormatter.Format(drivers);
-
-        Assert.Equal("Lovelace%2C%20Ada%2Ctheo", text);
-        Assert.Equal(["Lovelace", " Ada", "theo"], ReadBack(text));
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        Assert.Equal("/fleet?drivers%5B%5D=Lovelace%2C%20Ada&drivers%5B%5D=theo", url);
+        Assert.Equal(drivers, ReadBack(url));
     }
 
     [Fact]
     public void Numbers_and_flags_are_written_with_the_invariant_culture()
     {
-        IReadOnlyList<double> ratios = [0.5, 2];
-        bool[] flags = [true, false];
+        var nav = new Navigator(new RouteState { Path = "/fleet" });
 
-        var written = (RouteValueFormatter.Format(ratios), RouteValueFormatter.Format(flags));
+        using (nav.EnterHandler())
+        {
+            Go.With("ratios", [0.5, 2.0]);
+            Go.With("flags", [true, false]);
+        }
 
-        Assert.Equal(("0.5%2C2", "true%2Cfalse"), written);
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        Assert.Contains("ratios%5B%5D=0.5&ratios%5B%5D=2", url, StringComparison.Ordinal);
+        Assert.Contains("flags%5B%5D=true&flags%5B%5D=false", url, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Empty_and_null_elements_are_not_written()
     {
-        IReadOnlyList<string?> drivers = ["", null, "ada", ""];
-
-        var text = RouteValueFormatter.Format(drivers);
-
-        Assert.Equal("ada", text);
-    }
-
-    [Fact]
-    public void An_empty_list_writes_nothing()
-    {
-        IReadOnlyList<int> none = [];
-
-        var text = RouteValueFormatter.Format(none);
-
-        Assert.Equal(string.Empty, text);
-    }
-
-    [Fact]
-    public void A_string_is_still_one_value_and_not_a_list_of_characters()
-    {
-        const string text = "a,b";
-
-        var written = RouteValueFormatter.Format(text);
-
-        Assert.Equal("a%2Cb", written);
-    }
-
-    [Fact]
-    public void Go_With_a_comma_joined_value_is_read_back_as_the_list()
-    {
-        string[] drivers = ["ada", "theo"];
+        string?[] drivers = ["", null, "ada", ""];
         var nav = new Navigator(new RouteState { Path = "/fleet" });
 
         using (nav.EnterHandler())
         {
-            Go.With("drivers", string.Join(',', drivers));
+            Go.With("drivers", drivers);
         }
 
         Assert.True(nav.TryConsumeHistory(out var url, out _));
-        Assert.Equal("/fleet?drivers=ada%2Ctheo", url);
-        Assert.Equal(drivers, ReadBack(url["/fleet?drivers=".Length..]));
+        Assert.Equal("/fleet?drivers%5B%5D=ada", url);
     }
 
+    [Fact]
+    public void Go_With_a_list_replaces_the_key_in_every_form_and_keeps_the_others()
+    {
+        var nav = new Navigator(new RouteState { Path = "/fleet", Query = Query("drivers", "Drivers[]", "drivers[0]", "page") });
+
+        using (nav.EnterHandler())
+        {
+            Go.With("DRIVERS", ["ada"]);
+        }
+
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        var keys = QueryString.Parse(url[url.IndexOf('?', StringComparison.Ordinal)..]).Keys;
+        Assert.Equal(["DRIVERS[]", "page"], keys.Order(StringComparer.Ordinal));
+        Assert.Equal(["ada"], ReadBack(url));
+    }
+
+    [Fact]
+    public void Go_With_an_empty_list_removes_the_key()
+    {
+        var nav = new Navigator(new RouteState { Path = "/fleet", Query = Query("drivers[]", "page") });
+
+        using (nav.EnterHandler())
+        {
+            Go.With("drivers", Array.Empty<int>());
+        }
+
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        Assert.Equal("/fleet?page=x", url);
+    }
+
+    [Fact]
+    public void Go_With_a_string_still_sets_one_value_and_not_a_list_of_characters()
+    {
+        var nav = new Navigator(new RouteState { Path = "/fleet" });
+
+        using (nav.EnterHandler())
+        {
+            Go.With("page", "22");
+        }
+
+        Assert.True(nav.TryConsumeHistory(out var url, out _));
+        Assert.Equal("/fleet?page=22", url);
+    }
+
+    private static QueryCollection Query(params string[] keys) =>
+        new(keys.ToDictionary(key => key, _ => new StringValues("x"), StringComparer.OrdinalIgnoreCase));
+
     // Through the same reader an address goes through: parsed, then bound.
-    private static IReadOnlyList<string> ReadBack(string written)
+    private static IReadOnlyList<string> ReadBack(string url)
     {
         var page = new ReadBackPage();
-        PageBinder.Bind(page, new Dictionary<string, string?>(), QueryString.Parse("?drivers=" + written));
+        PageBinder.Bind(page, new Dictionary<string, string?>(), QueryString.Parse(url[url.IndexOf('?', StringComparison.Ordinal)..]));
         return page.Drivers;
     }
 

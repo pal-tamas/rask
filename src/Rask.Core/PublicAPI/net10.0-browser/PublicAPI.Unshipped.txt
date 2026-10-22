@@ -7261,6 +7261,7 @@ static Rask.Core.Globalization.RaskStrings.UseLibrarySource(Rask.Core.Globalizat
 static Rask.Core.Globalization.RaskStrings.UseSource(Rask.Core.Globalization.IRaskStringSource! source) -> void
 static Rask.Core.Go.With(params System.Collections.Generic.KeyValuePair<string!, string?>[]! values) -> Rask.Core.GoTo!
 static Rask.Core.Go.With(string! key, string? value) -> Rask.Core.GoTo!
+static Rask.Core.Go.With<T>(string! key, System.Collections.Generic.IEnumerable<T>! values) -> Rask.Core.GoTo!
 static Rask.Core.Go.Without() -> Rask.Core.GoTo!
 static Rask.Core.Go.Without(string! key) -> Rask.Core.GoTo!
 static Rask.Core.InputTypeExtensions.ToHtml(this Rask.Core.InputType type) -> string!
