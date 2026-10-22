@@ -33,7 +33,7 @@ Ui.Button.OnClick(async () =>
    afterwards. No live connection, no runtime script. A page that redirects, or answers 404 or 500, is not printed.
 3. **Prints it** in a browser context of its own, with the app's stylesheet, the kit's sheet and the fonts served
    from the app's web root. Nothing else is reachable — another host, an API, a file the app does not serve — and
-   no script on the page runs.
+   no script on the page runs. The page is laid out once, after it has loaded ([long documents](#long-documents)).
 
 ### A page's data is read before its first render is printed
 
@@ -142,5 +142,17 @@ One headless Chromium per app, started at the first print and kept: a browser th
 print, and stopping the host closes it. Rask drives it over its own DevTools pipe (`--remote-debugging-pipe`) —
 no Puppeteer, no Playwright, no NuGet dependency. A 5,000-row table (139 A4 landscape pages, heading on every page)
 prints in under a second on Linux.
+
+### Long documents
+
+The page is loaded **held out of rendering**, then styled and laid out once, in print media. A browser drawing a page
+as it parses restyles the table grown so far at every frame — a cost that grows with the square of the rows — so the
+hold is what keeps a long table linear: 10,000 kit table rows (14 columns, 250 pages) print in about 6 seconds on a
+laptop, where they took 22. What is left grows with the rows: the HTML the page renders (every class on every cell
+is sent and parsed once per cell) and Chromium paginating the table.
+
+A document in the hundreds of pages on a small server can still need more than the 30-second `Timeout`: raise it in
+`Rask:Pdf` for that app (`"Timeout": "00:03:00"`). Splitting one table into a table per few hundred rows saves about
+a fifth of the print, and is only worth it past that.
 
 Linux and macOS for now.

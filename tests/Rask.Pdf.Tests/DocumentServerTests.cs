@@ -57,20 +57,57 @@ public sealed class DocumentServerTests(SharedPrinter shared) : IClassFixture<Sh
         Assert.DoesNotContain(assets.Asked, path => path.Contains("app.css", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task A_web_font_only_the_print_stylesheet_names_is_waited_for()
+    {
+        var (file, name) = InstalledMonospace();
+        Assert.SkipWhen(file is null, "No monospaced TrueType font is installed here to serve as the web font.");
+        var assets = new Assets(new()
+        {
+            ["/fonts/riport.ttf"] = new(await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken), "font/ttf"),
+        });
+        var html = PrintedPdf.Html(
+            "<style>@font-face { font-family: Riport; src: url(/fonts/riport.ttf); } @media print { p { font-family: Riport; } }</style>"
+            + "<p>Csak papíron</p>");
+
+        var pdf = await shared.Printer.Print(new PrintDocument(html, "/", new PdfOptions { PageNumbers = false }, assets), TestContext.Current.CancellationToken);
+
+        Assert.Contains(PrintedPdf.Fonts(pdf), font => font.Contains(name, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_background_image_that_arrives_late_is_printed()
+    {
+        var assets = new Assets(new() { ["/logo.png"] = new(RedSquare, "image/png") }, delay: TimeSpan.FromMilliseconds(500));
+        var html = PrintedPdf.Html(
+            "<style>@media print { .logo { width: 200px; height: 100px; background: url(/logo.png); } }</style>"
+            + "<div class=\"logo\"></div>" + HtmlPrintTests.Table(rows: 300));
+
+        var pdf = await shared.Printer.Print(new PrintDocument(html, "/", new PdfOptions(), assets), TestContext.Current.CancellationToken);
+
+        Assert.Contains("/logo.png", assets.Asked);
+        Assert.Equal(1, PrintedPdf.Images(pdf));
+    }
+
+    // An 8×8 red PNG.
+    private static byte[] RedSquare { get; } =
+        Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEklEQVR4nGP4z8CAFWEXHbQSACj/P8Fu7N9hAAAAAElFTkSuQmCC");
+
     /// <summary>A monospaced TrueType font installed here and the name it is embedded under, or nulls.</summary>
     internal static (string? File, string Name) InstalledMonospace() =>
         Fonts.FirstOrDefault(font => File.Exists(font.File));
 
-    private sealed class Assets(Dictionary<string, PrintAsset> files) : IPrintAssets
+    private sealed class Assets(Dictionary<string, PrintAsset> files, TimeSpan delay = default) : IPrintAssets
     {
         private readonly ConcurrentQueue<string> _asked = new();
 
         public IReadOnlyCollection<string> Asked => _asked;
 
-        public ValueTask<PrintAsset?> Find(string path, CancellationToken cancellation)
+        public async ValueTask<PrintAsset?> Find(string path, CancellationToken cancellation)
         {
             _asked.Enqueue(path);
-            return ValueTask.FromResult(files.GetValueOrDefault(path));
+            await Task.Delay(delay, cancellation);
+            return files.GetValueOrDefault(path);
         }
     }
 }

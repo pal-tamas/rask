@@ -80,6 +80,27 @@ public sealed class HtmlPrintTests(SharedPrinter shared) : IClassFixture<SharedP
         Assert.DoesNotContain("Átírva", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_page_that_insists_on_being_shown_is_still_held_until_it_has_loaded()
+    {
+        var html = Encoding.UTF8.GetString(PrintHold.Utf8(PrintedPdf.Html("<style>:root { display: block !important; }</style><p>Visszatartva</p>")))
+            .Replace(PrintHold.Id, "never-released", StringComparison.Ordinal);
+
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("Visszatartva", Assert.Single(PrintedPdf.Pages(pdf)).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_page_that_insists_on_being_shown_prints_once_it_has_loaded()
+    {
+        var html = PrintedPdf.Html("<style>:root { display: block !important; }</style><p>Kiadva</p>");
+
+        var pdf = await shared.Printer.Print(PrintDocument.Of(html), TestContext.Current.CancellationToken);
+
+        Assert.Contains("Kiadva", Assert.Single(PrintedPdf.Pages(pdf)).Text, StringComparison.Ordinal);
+    }
+
     internal static string Table(int rows)
     {
         var html = new StringBuilder("<table><thead><tr><th>Számlaszám</th><th>Rendszám</th><th>Összeg</th></tr></thead><tbody>");

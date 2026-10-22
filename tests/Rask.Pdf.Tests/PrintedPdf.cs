@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
 
@@ -30,6 +32,9 @@ internal static class PrintedPdf
         using var document = PdfDocument.Open(pdf);
         return document.GetPage(1).Letters.Select(letter => letter.FontName ?? string.Empty).ToHashSet(StringComparer.Ordinal);
     }
+
+    /// <summary>How many images the PDF holds — a CSS background is drawn as a pattern, so counted in the file, not on a page.</summary>
+    public static int Images(byte[] pdf) => Regex.Count(Encoding.Latin1.GetString(pdf), "/Subtype\\s*/Image");
 
     private static string Words(Page page) => string.Join(' ', page.GetWords().Select(word => word.Text));
 }

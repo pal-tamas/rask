@@ -16,7 +16,7 @@ internal sealed class DocumentServer(
     internal const string Origin = "https://print.rask.invalid";
 #pragma warning restore S1075
 
-    private readonly byte[] _html = Encoding.UTF8.GetBytes(document.Html);
+    private readonly byte[] _html = PrintHold.Utf8(document.Html);
 
     /// <summary>Where the document answers: the origin plus its own path.</summary>
     public string DocumentUrl { get; } = Origin + (document.Path.StartsWith('/') ? document.Path : "/" + document.Path);
