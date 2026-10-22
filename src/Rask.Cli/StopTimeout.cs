@@ -13,21 +13,24 @@ internal static partial class StopTimeout
     internal const string Key = "stopTimeout";
 
     /// <summary>Read <paramref name="text"/>; <paramref name="error"/> says how to write one when it isn't.</summary>
-    internal static bool TryParse(string text, out TimeSpan value, out string? error)
+    internal static bool TryParse(string text, out TimeSpan value, out string? error) =>
+        TryParse(Key, text, ShutdownBudget.MinimumStopTimeout, ShutdownBudget.MaximumStopTimeout, out value, out error);
+
+    /// <summary>Read <paramref name="text"/>, the value of <paramref name="key"/>, as a duration from <paramref name="minimum"/> to <paramref name="maximum"/>.</summary>
+    internal static bool TryParse(string key, string text, TimeSpan minimum, TimeSpan maximum, out TimeSpan value, out string? error)
     {
         value = TimeSpan.Zero;
         var match = Duration().Match(text.Trim());
         if (!match.Success || match.Length == 0)
         {
-            error = $"\"{Key}\": \"{text}\" isn't a duration — write it like \"30m\", \"90s\" or \"1h30m\".";
+            error = $"\"{key}\": \"{text}\" isn't a duration — write it like \"30m\", \"90s\" or \"1h30m\".";
             return false;
         }
 
         value = TimeSpan.FromHours(Part(match, "h")) + TimeSpan.FromMinutes(Part(match, "m")) + TimeSpan.FromSeconds(Part(match, "s"));
-        if (value < ShutdownBudget.MinimumStopTimeout || value > ShutdownBudget.MaximumStopTimeout)
+        if (value < minimum || value > maximum)
         {
-            error = $"\"{Key}\": \"{text}\" is out of range — between {Format(ShutdownBudget.MinimumStopTimeout)} and "
-                + $"{Format(ShutdownBudget.MaximumStopTimeout)}, written like \"30m\".";
+            error = $"\"{key}\": \"{text}\" is out of range — between {Format(minimum)} and {Format(maximum)}, written like \"30m\".";
             return false;
         }
 

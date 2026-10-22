@@ -19,7 +19,12 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         IReadOnlyDictionary<string, string>? environment = null)
     {
         using var process = Start(fileName, arguments, workingDirectory, redirect: false, environment);
+        await WaitOrKillAsync(process, cancellationToken).ConfigureAwait(false);
+        return process.ExitCode;
+    }
 
+    private static async Task WaitOrKillAsync(Process process, CancellationToken cancellationToken)
+    {
         try
         {
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
@@ -28,13 +33,10 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         {
             // Waiting stopped; the child did not. Disposing a Process does not end it either, so without
             // this a cancelled run leaks the whole tree — a bundler still holding its port, a watcher still
-            // rebuilding. The next session then finds the port taken and serves the previous run's output,
-            // which reads as a bug in whatever it was serving.
+            // rebuilding, a `docker -H ssh://` past its deadline still holding its ssh session open.
             TryKillTree(process);
             throw;
         }
-
-        return process.ExitCode;
     }
 
     private static void TryKillTree(Process process)
@@ -71,7 +73,7 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         using var process = Start(fileName, arguments, workingDirectory, redirect: true, environment);
         var stdout = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var stderr = process.StandardError.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        await WaitOrKillAsync(process, cancellationToken).ConfigureAwait(false);
         return new ProcessResult(process.ExitCode, await stdout.ConfigureAwait(false), await stderr.ConfigureAwait(false));
     }
 
@@ -90,7 +92,7 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         var stdout = PumpAsync(process.StandardOutput, output ?? Console.Out, onLine, cancellationToken);
         var stderr = PumpAsync(process.StandardError, error ?? Console.Error, onLine, cancellationToken);
 
-        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        await WaitOrKillAsync(process, cancellationToken).ConfigureAwait(false);
         await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
         return process.ExitCode;
     }
