@@ -566,6 +566,17 @@ themselves — the filter set names the first `Ui.Table.Of(…)` after it, givin
 elsewhere names the table with `aria-controls`. A button inside a row never does. A table without `Of` dims its rows
 instead.
 
+**`Ui.Table.Loading(…)` does the same for rows the page loads into a field of its own**, with no query: skeleton rows
+while they are on their way (a row per row the pager says the page holds, 15 with no pager), and the empty row when
+there are none.
+
+```csharp
+Ui.Table.Loading(_rows is null)[
+    Ui.TableColumns[Ui.TableColumn["Name"], Ui.TableColumn["Fuel"]],
+    Ui.TableRows[(_rows ?? []).Select(d => Ui.TableRow.Key(d.Id)[Ui.TableCell[d.Name], Ui.TableCell[d.Fuel]])]
+]
+```
+
 ## Printing
 
 The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.
@@ -1164,6 +1175,7 @@ the very press or submit go. Opening, typing and closing send nothing.
 ```csharp
 Ui.Confirm                                                // "Confirm", "No" and "Yes"
 Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // your own words
+Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a title of its own
 ```
 
 `Ui.ConfirmLeave` is where a form's [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks, in

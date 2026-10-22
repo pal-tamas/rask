@@ -72,6 +72,7 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Page.ClickAsync("#ui-confirm-delete");
         await Expect(Page.Locator(Dialog)).ToBeVisibleAsync();
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Delete project?");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
         await Expect(state).ToHaveTextAsync("The Rask project is still there.");

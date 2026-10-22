@@ -8,6 +8,7 @@ namespace Rask;
 ///     <code>
 ///     Ui.Confirm                                          // "Confirm", "No" and "Yes"
 ///     Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")
+///     Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // its own title
 ///     </code>
 ///     <para>
 ///     Not a Flux component: a <see cref="UiModal" /> composed as Flux's confirmation, drawn as
@@ -31,7 +32,7 @@ public sealed partial class UiConfirm : Component
 
     private const string MessageId = DialogId + "-message";
 
-    /// <summary>The short title above the question. "Confirm" when unset.</summary>
+    /// <summary>The short title above the question. "Confirm" when unset; a question's own <c>heading:</c> replaces it.</summary>
     public string? Heading { get; set; }
 
     /// <summary>The label of the button that calls the action off. "No" when unset.</summary>
@@ -45,7 +46,7 @@ public sealed partial class UiConfirm : Component
         UiConfirmation.Dialog(
             DialogId,
             Part,
-            UiConfirmation.Titled(Heading ?? RaskStrings.Get(RaskString.ConfirmHeading, "Confirm"), Part, MessageId),
+            UiConfirmation.Retitled(Heading ?? RaskStrings.Get(RaskString.ConfirmHeading, "Confirm"), Part, MessageId),
             Answer(),
             no: No ?? RaskStrings.Get(RaskString.ConfirmNo, "No"),
             yes: Yes ?? RaskStrings.Get(RaskString.ConfirmYes, "Yes"));

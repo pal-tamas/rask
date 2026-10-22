@@ -1,7 +1,7 @@
 namespace Rask.Site.Features.UiDocs.Examples;
 
 // The layout places the dialog once — Ui.Confirm, or Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen") —
-// and every .Confirm("…") on every page asks in it.
+// and every .Confirm("…") on every page asks in it, under the layout's title or, with heading:, one of its own.
 public sealed partial class ModalConfirmActionExample : Component
 {
     private string _project = "Rask";
@@ -10,7 +10,7 @@ public sealed partial class ModalConfirmActionExample : Component
         Div.Class("flex flex-wrap items-center gap-4")[
             Ui.Button.Danger.Id("ui-confirm-delete")
                 .OnClick(() => _project = "")
-                .Confirm("You're about to delete this project. This action cannot be reversed.")["Delete"],
+                .Confirm("You're about to delete this project. This action cannot be reversed.", heading: "Delete project?")["Delete"],
             Ui.Button.Id("ui-confirm-delete-by-name")
                 .OnClick(() => _project = "")
                 .Confirm("Type the project's name, Rask, to delete it.", expect: "Rask")["Delete by name"],

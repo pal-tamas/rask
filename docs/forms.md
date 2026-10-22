@@ -521,8 +521,14 @@ The call sites do not change. No, the close button, Escape and a press outside c
 lets it go — the same press, or the same submit by the same button, and a form is held only then. With
 `expect:` the dialog shows a field, and Yes waits until the answer is typed exactly, case and all; Enter in the
 field is Yes once it matches. It all happens in the browser: opening the dialog, typing in it and closing it
-send the server nothing, and focus goes back to the control that was pressed. Without `Ui.Confirm` the browser
-asks, as before. The words default from the [string catalog](localization.md) (`ConfirmHeading`, `ConfirmNo`,
+send the server nothing, and focus goes back to the control that was pressed. A question can bring its own title,
+which replaces the layout's for that question alone:
+
+```csharp
+Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Biztosan törli a céget?", heading: "Cég törlése")["Törlés"]
+```
+
+Without `Ui.Confirm` the browser asks, as before, and `heading:` is not shown. The words default from the [string catalog](localization.md) (`ConfirmHeading`, `ConfirmNo`,
 `ConfirmYes`).
 
 ### Ask before leaving unsaved changes

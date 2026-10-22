@@ -45,6 +45,28 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
         Assert.Empty(session.BrowserDialogs);
     }
 
+    [Fact]
+    public async Task A_question_with_its_own_heading_shows_it_and_the_next_one_shows_the_layouts_again()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var heading = page.Locator(Dialog + " [data-rask-confirm-dialog=heading]");
+        session.Sent.Clear();
+
+        await page.ClickAsync("#remove");
+        await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
+        var own = await heading.TextContentAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await Expect(page.Locator(Dialog)).ToBeHiddenAsync();
+        await page.ClickAsync("#delete");
+        await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
+
+        Assert.Equal("Cég törlése", own);
+        await Expect(heading).ToHaveTextAsync("Megerősítés");
+        await Expect(page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("Delete it?");
+        Assert.Empty(session.Sent);
+    }
+
     [Theory]
     [InlineData("no")]
     [InlineData("x")]

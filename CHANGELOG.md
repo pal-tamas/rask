@@ -18,6 +18,18 @@ them until tagged releases begin.
   TypeScript `Routes` write one `Drivers%5B%5D=` pair per element and no key for a null or empty list, and the new
   `Go.With("drivers", drivers)` sets a list from a handler, replacing the key in every form it had. See
   [routing](docs/routing.md#a-list-is-the-key-repeated-with-).
+- **`Ui.Table.Loading(bool)` — the loading skeleton for rows a page loads itself.** Before: only `Ui.Table.Of(query)`
+  drew skeleton rows, so a page filling a field of its own (`_rows = await Load()`) wrote its own placeholder rows.
+  After: `Ui.Table.Loading(_rows is null)[…]` draws a skeleton row per row the pager says the page holds (15 with no
+  pager) while it is true, and the "No results." row when it is false and there are no rows — as `Of(query)` does.
+
+- **`.Confirm("…", heading: "…")` — a question with a title of its own in `Ui.Confirm`.** Before: the layout's
+  `Ui.Confirm.Heading(…)` titled every question, so 49 removals in one app all read "Megerősítés". After:
+  `Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")` shows "Cég törlése"
+  over its question, and a question without one keeps the layout's. Rendered as `data-rask-confirm-heading`; the
+  browser's own dialog, where no `Ui.Confirm` is placed, shows no title. The two `Confirm` overloads are one method,
+  `Confirm(text, expect: null, heading: null)`; every call written before compiles and reads as it did.
+
 - **A component that implements `IEventHandler<T>` handles a published event on every open page that shows it.**
   `Dispatcher.Publish(e)` — from a singleton, a timer, a job or another page's handler — and a domain event an
   aggregate raises reach each mounted listener in its own page's session: queued behind that page's events, as its
