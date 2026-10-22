@@ -33,6 +33,18 @@ public partial class ConfirmAttributeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_heading_of_its_own_is_written_beside_the_question()
+    {
+        var button = Button.Confirm("Delete the partner?", heading: "Delete partner")["Delete"];
+
+        var html = button.ToHtml();
+
+        Assert.Equal(
+            "<button data-rask-confirm=\"Delete the partner?\" data-rask-confirm-heading=\"Delete partner\">Delete</button>",
+            html);
+    }
+
+    [Fact]
     public void A_form_asks_before_its_submit()
     {
         var html = Page.Render(() => Form.Model(new ConfirmOrder()).OnSubmit(() => { }).Confirm("Send the order?")).Html;

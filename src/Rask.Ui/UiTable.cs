@@ -94,6 +94,25 @@ public sealed partial class UiTable : UiElement, IUiHost
         return this;
     }
 
+    /// <summary>
+    ///     Draws the table from rows the page loads itself, as <see cref="Of{TResult}" /> draws it from a query:
+    ///     skeleton rows while <paramref name="loading" />, and a row saying there is nothing when it holds none.
+    /// </summary>
+    /// <remarks>
+    ///     Not Flux's, as <see cref="Of{TResult}" /> is not: <c>Ui.Table.Loading(_rows is null)[…]</c>. A skeleton row per
+    ///     row the pager says the page holds (15 with no pager), a bar per heading.
+    /// </remarks>
+    /// <param name="loading">Whether the rows are still on their way.</param>
+    /// <returns>This table.</returns>
+    public UiTable Loading(bool loading)
+    {
+        var load = _query as UiTableLoad ?? new UiTableLoad();
+        load.IsLoading = loading;
+        _query = load;
+        UiFilterTables.Built(this);
+        return this;
+    }
+
     /// <inheritdoc />
     /// <remarks>None: the table renders as its box, with the <c>&lt;table&gt;</c> inside.</remarks>
     protected override string? TagName => null;

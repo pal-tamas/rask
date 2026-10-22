@@ -2,11 +2,11 @@
 // `seam.confirm`, which is answered here. Without the dialog it stays the browser's confirm() and prompt().
 //
 // The dialog is a Ui.Modal (rask-ask.ts opens it and hears how it closed). Its parts carry data-rask-confirm-dialog:
-// `message` the question, `field` the box `expect:` is typed into, `go` the button that says yes. Nothing of it is
-// the page's to hear: opening, typing and closing send nothing, and only a yes lets the action go — made again by
-// the press or the submit that asked, which the runtime then lets through.
+// `message` the question, `heading` its title (`heading:`, else the layout's), `field` the box `expect:` is typed into,
+// `go` the button that says yes. Nothing of it is the page's to hear: opening, typing and closing send nothing, and
+// only a yes lets the action go — made again by the press or the submit that asked, which the runtime then lets through.
 //
-// What the render cannot know is held against it: whether the field shows, and whether yes may be pressed yet.
+// What the render cannot know is held against it: the title, whether the field shows, and whether yes may be pressed.
 
 import {dialogAsking} from "./rask-ask.js";
 import {listen, near, own, page, seam} from "./rask-owned.js";
@@ -21,16 +21,20 @@ if (page) {
     let passed: Element[] = [];
     // The answer `expect:` wants while the dialog asks for one.
     let expected: string | null = null;
+    // The question's own title (`heading:`), or null for the layout's.
+    let heading: string | null = null;
 
     const part = function <T extends HTMLElement>(dialog: Element, name: string): T | null {
         return dialog.querySelector<T>("[" + PART + "=" + name + "]");
     };
 
-    // Before it opens: the field shown, empty, only when an answer is wanted, and yes held until it is typed.
+    // Before it opens: the question's title, the field shown, empty, only when an answer is wanted, and yes held until it is typed.
     const settle = function (dialog: Element): void {
         const field = part(dialog, "field");
         const input = field ? field.querySelector("input") : null;
         const go = part<HTMLButtonElement>(dialog, "go");
+        const title = part(dialog, "heading");
+        if (title) title.textContent = heading ?? title.getAttribute("data-rask-confirm-default") ?? "";
         if (field) {
             own(field, "hidden");
             field.hidden = expected === null;
@@ -60,6 +64,7 @@ if (page) {
             if (back instanceof HTMLElement && back.isConnected) back.focus({preventScroll: true});
         };
         expected = expect;
+        heading = el.getAttribute("data-rask-confirm-heading");
         const dialog = ask(question, yes, done, settle);
         if (!dialog) {
             expected = null;
