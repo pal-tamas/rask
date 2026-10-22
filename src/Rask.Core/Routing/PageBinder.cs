@@ -54,12 +54,18 @@ internal static class PageBinder
             var converted = TryRead(page, property, values, query, out var read) ? read : builtWith[i];
 
             var previous = property.Property.GetValue(page);
-            if (!Equals(previous, converted))
+            if (property.ElementType is null)
             {
-                anyChanged = true;
+                anyChanged |= !Equals(previous, converted);
+                property.Property.SetValue(page, converted);
             }
-
-            property.Property.SetValue(page, converted);
+            else if (!QueryList.SameElements(previous, converted))
+            {
+                // A list read anew is another object each time: the elements say whether it changed, and
+                // the same elements keep the list the page already holds.
+                anyChanged = true;
+                property.Property.SetValue(page, converted);
+            }
         }
 
         return anyChanged;
@@ -135,7 +141,8 @@ internal static class PageBinder
                 p,
                 routeParam is not null,
                 queryParam is not null,
-                routeParam?.Name ?? queryParam?.Name ?? p.Name));
+                routeParam?.Name ?? queryParam?.Name ?? p.Name,
+                routeParam is null ? QueryList.ElementOf(p.PropertyType) : null));
         }
 
         return result.ToArray();
@@ -151,9 +158,14 @@ internal static class PageBinder
             return true;
         }
 
-        if (TryGetQueryValue(property, query, out var text))
+        if (TryGetQueryValues(property, query, out var found))
         {
-            return ReadQueryValueOrAbsent(page, property, text, out read);
+            if (property.ElementType is { } element)
+            {
+                return ReadQueryListOrAbsent(page, property, found, element, out read);
+            }
+
+            return ReadQueryValueOrAbsent(page, property, found.Count == 0 ? null : found[0], out read);
         }
 
         read = null;
@@ -190,6 +202,22 @@ internal static class PageBinder
         return false;
     }
 
+    /// <summary>
+    ///     The same rule for a list, element by element: <c>?tanks=3,abc,2</c> for an <c>IReadOnlyList&lt;int&gt;</c>
+    ///     reads <c>[3, 2]</c>, and a key none of whose elements can be read is absent.
+    /// </summary>
+    private static bool ReadQueryListOrAbsent(Component page, BindablePropertyInfo property, StringValues found,
+        Type element, out object? read)
+    {
+        read = QueryList.Read(found, element, out var leftOut);
+        if (leftOut && HostMode.IsDevelopmentInScope)
+        {
+            SayIgnored(page.GetType(), property);
+        }
+
+        return read is not null;
+    }
+
     // Once for a page's parameter, and without the value: that is a visitor's input.
     private static void SayIgnored(Type page, BindablePropertyInfo property)
     {
@@ -197,7 +225,10 @@ internal static class PageBinder
         RaskDiagnostics.ReportOnce(
             $"query-ignored:{page.FullName}:{property.BindingName}",
             RaskLogLevel.Information, "Rask.Routing",
-            () => $"Rask routing: {page.Name} ignored the query parameter '{property.BindingName}' — its value " +
+            () => property.ElementType is { } element
+                ? $"Rask routing: {page.Name} left out what it could not read of the query parameter " +
+                  $"'{property.BindingName}' — an element that cannot be read as {element.Name} is not in {property.Property.Name}."
+                : $"Rask routing: {page.Name} ignored the query parameter '{property.BindingName}' — its value " +
                   $"cannot be read as {type.Name}, so {property.Property.Name} is bound as if it were absent.");
     }
 
@@ -236,16 +267,10 @@ internal static class PageBinder
         return false;
     }
 
-    private static bool TryGetQueryValue(BindablePropertyInfo info, IQueryCollection query, out string? text)
+    private static bool TryGetQueryValues(BindablePropertyInfo info, IQueryCollection query, out StringValues found)
     {
-        text = null;
-        if (!info.IsQueryParam || !TryFind(query, info.BindingName, out var found))
-        {
-            return false;
-        }
-
-        text = found.Count == 0 ? null : found[0];
-        return true;
+        found = StringValues.Empty;
+        return info.IsQueryParam && TryFind(query, info.BindingName, out found);
     }
 
     // By name, whatever its case, and without allocating on the way — this runs for every query property
@@ -329,5 +354,6 @@ internal static class PageBinder
         PropertyInfo Property,
         bool IsRouteParam,
         bool IsQueryParam,
-        string BindingName);
+        string BindingName,
+        Type? ElementType);
 }
