@@ -99,6 +99,22 @@ internal sealed class ChromiumProcess : IAsyncDisposable
                     $"Chromium started but did not answer within {limit.TotalSeconds:0.#} seconds: the machine is too busy to bring it up, or it cannot run here.{Log()}"),
                 e);
         }
+        catch (IOException e)
+        {
+            // It exited before answering. Its stderr is read on another thread, so wait for the last line to arrive:
+            // that line is usually the cause (a missing library, a sandbox the host forbids).
+            using var draining = new CancellationTokenSource(CloseWait);
+            try
+            {
+                await _process.WaitForExitAsync(draining.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Still running with its pipe gone: say what is known.
+            }
+
+            throw new IOException($"Chromium did not start.{Log()}", e);
+        }
     }
 
     /// <summary>Ends the browser now, without asking it — for one that stopped answering.</summary>
@@ -188,7 +204,13 @@ internal sealed class ChromiumProcess : IAsyncDisposable
     {
         lock (_log)
         {
-            return _log.Count == 0 ? string.Empty : " Chromium's last words: " + string.Join(" | ", _log);
+            if (_log.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var cause = ChromiumStartFailure.Explain(_log);
+            return (cause is null ? string.Empty : " " + cause) + " Chromium's last words: " + string.Join(" | ", _log);
         }
     }
 
