@@ -83,9 +83,11 @@ public sealed class LiveRenderContext : IDisposable
         _current.Value = this;
         InstallSync(this);
 
-        Culture = _handle?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
-        UICulture = _handle?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
-        HasCulture = _handle?.HasCulture ?? false;
+        // A render with no session — a build-time prerender — takes the culture its caller pushed for it.
+        var pushed = _handle is null ? Globalization.RaskCultureScope.Current : null;
+        Culture = _handle?.Culture ?? pushed?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+        UICulture = _handle?.UICulture ?? pushed?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
+        HasCulture = _handle?.HasCulture ?? pushed is not null;
 
         // Pin the ambient culture for the walk, so code that formats through CultureInfo.CurrentCulture
         // — including code Rask does not own, and BsDataGrid's linguistic string sort, which reaches

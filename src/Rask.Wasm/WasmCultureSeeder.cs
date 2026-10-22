@@ -37,11 +37,26 @@ internal static class WasmCultureSeeder
             return;
         }
 
-        var negotiation = Negotiate(JSInterop.GetCultureSignals(), options);
+        var negotiation = Negotiate(JSInterop.GetCultureSignals(options.CookieName, options.QueryKey), options);
 
         if (services.GetService(typeof(IRaskCulture)) is SessionCulture culture)
         {
             culture.Seed(negotiation);
+        }
+
+        PinSessionCulture(services);
+    }
+
+    /// <summary>
+    ///     Pins the process to the app's culture when it configured languages, so work outside a render or a
+    ///     handler — a timer, a hosted service, a prerender's awaited load — formats as the page does.
+    /// </summary>
+    /// <remarks>The whole app is one visitor, so its culture is the process's.</remarks>
+    public static void PinSessionCulture(IServiceProvider services)
+    {
+        if (IsConfigured(services, out _) && services.GetService(typeof(IRaskCulture)) is IRaskCulture { Supported.Count: > 0 } culture)
+        {
+            Pin(culture.Culture, culture.UICulture);
         }
     }
 
@@ -73,10 +88,15 @@ internal static class WasmCultureSeeder
     private static void PinDocumentLanguage()
     {
         _ = RaskCultureResolver.TryResolve(RaskCulture.UnconfiguredLanguage, out var culture);
+        Pin(culture, culture);
+    }
+
+    private static void Pin(CultureInfo culture, CultureInfo uiCulture)
+    {
         CultureInfo.DefaultThreadCurrentCulture = culture;
-        CultureInfo.DefaultThreadCurrentUICulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
         CultureInfo.CurrentCulture = culture;
-        CultureInfo.CurrentUICulture = culture;
+        CultureInfo.CurrentUICulture = uiCulture;
     }
 
     /// <summary>

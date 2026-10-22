@@ -27,11 +27,18 @@ public sealed class SessionCulture : IRaskCulture
         _persistence = persistence;
 
         var supported = new List<CultureInfo>(options.SupportedCultures.Count);
+        var missing = false;
         foreach (var name in options.SupportedCultures)
         {
             if (RaskCultureResolver.TryResolve(name, out var culture))
             {
                 supported.Add(culture);
+            }
+            else
+            {
+                // English is what a runtime without culture data formats in anyway, which is why a WASM app
+                // that names only English ships no ICU — so its absence is nothing to report.
+                missing |= !IsEnglish(name);
             }
         }
 
@@ -40,7 +47,7 @@ public sealed class SessionCulture : IRaskCulture
         // One report, once per process, rather than one per failed lookup: an app that asked for
         // languages this runtime cannot produce has a build-configuration problem, and the actionable
         // part is the MSBuild property, not the individual culture.
-        if (supported.Count < options.SupportedCultures.Count && !RaskCultureResolver.IsGlobalizationSupported)
+        if (missing && !RaskCultureResolver.IsGlobalizationSupported)
         {
             RaskDiagnostics.ReportOnce(
                 "rask.globalization:no-culture-data",
@@ -50,7 +57,8 @@ public sealed class SessionCulture : IRaskCulture
                     "This app configures cultures, but the runtime was built without culture data, so "
                     + "every culture formats identically and only the invariant culture resolves. Set "
                     + "<RaskGlobalization>true</RaskGlobalization> in the app's project file to ship ICU "
-                    + "(roughly 2.6 MB in a WASM bundle), or configure a single culture.");
+                    + "(roughly a megabyte in a WASM bundle), or name the language in Rask:Cultures, which ships "
+                    + "it for you.");
         }
 
         var initial = RaskCultureNegotiator.Negotiate(null, null, null, options);
@@ -122,4 +130,9 @@ public sealed class SessionCulture : IRaskCulture
         Changed?.Invoke(this, EventArgs.Empty);
         return true;
     }
+
+    private static bool IsEnglish(string name) =>
+        name.Trim() is var tag
+        && tag.StartsWith("en", StringComparison.OrdinalIgnoreCase)
+        && (tag.Length == 2 || tag[2] is '-' or '_');
 }

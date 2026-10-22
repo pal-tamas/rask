@@ -103,6 +103,7 @@ public static class WasmPrerender
     {
         ApplyPathBase();
         WasmCultureSeeder.PinWhenUnconfigured(services);
+        WasmCultureSeeder.PinSessionCulture(services);
 
         var plan = RaskPrerender.PlanRoutes();
 

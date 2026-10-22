@@ -53,12 +53,14 @@ public sealed class WasmHostBuilder
 
         // Singleton, unlike the server's scoped registration: the whole WASM app is one visitor, so
         // there is exactly one culture for its lifetime.
-        // Deferred to a factory so UseCulture can still be called after the builder is constructed —
-        // the ctor runs before the app's own configuration does.
+        // The options are a factory, registered before AddRaskCulture so its own TryAdd of them is a no-op:
+        // AddRaskCulture runs its callback at once, and this constructor runs before Program.cs calls
+        // UseCulture — a callback handed to it here configured nothing.
         // Before AddRaskCulture, whose remember-nothing fallback is a TryAdd: the cookie is written through
         // Rask.Web, which Core cannot see.
         Services.TryAddSingleton<IRaskCulturePersistence, Rask.Web.CookieCulturePersistence>();
-        Services.AddRaskCulture(o => _configureCulture?.Invoke(o), ServiceLifetime.Singleton);
+        Services.AddSingleton(_ => CultureOptions());
+        Services.AddRaskCulture(configure: null, ServiceLifetime.Singleton);
         // Typed browser/device API wrappers, Singleton (one per app instance). Registered via the shared
         // helpers (RaskBrowserApis / RaskWasmBrowserApis) so the interface → impl list lives in one place
         // instead of duplicated across hosts. TryAdd inside the helpers means an app can pre-register a
@@ -91,6 +93,7 @@ public sealed class WasmHostBuilder
 
     private WebAppManifest? _manifest;
     private Action<RaskCultureOptions>? _configureCulture;
+    private System.Reflection.Assembly? _app;
 
     // The wire-payload shape this app renders with, snapshotted from RaskLiveOptions in CreateDefault
     // and handed to the WasmLiveSession — a per-session value instead of the former process-global
@@ -119,26 +122,36 @@ public sealed class WasmHostBuilder
     }
 
     /// <summary>
-    ///     The languages this app ships, and how a visitor's is chosen.
+    ///     The languages this app ships, and how a visitor's is chosen — on top of what <c>Rask:Cultures</c>
+    ///     in <c>wwwroot/appsettings.json</c> names (the host's <c>appsettings.json</c> for a hosted client).
     /// </summary>
     /// <remarks>
-    ///     Leaving this uncalled keeps culture support off, and the app renders exactly as it did before:
+    ///     With neither, culture support stays off and the app renders exactly as it did before:
     ///     <c>&lt;html lang="en"&gt;</c> with no <c>dir</c>.
     ///     <para>
-    ///         <b>A WASM app also needs ICU</b>, which Rask does not ship by default because it is roughly
-    ///         2.6 MB. Add <c>&lt;RaskGlobalization&gt;true&lt;/RaskGlobalization&gt;</c> to the project
-    ///         file. Without it every culture formats identically and only the invariant culture
-    ///         resolves — the app still runs, and says so once at startup rather than once per render.
+    ///         <b>A WASM app needs ICU to format another language</b>, roughly a megabyte. The build ships it
+    ///         when <c>Rask:Cultures</c> names a language that is not English; a language added only here needs
+    ///         <c>&lt;RaskGlobalization&gt;true&lt;/RaskGlobalization&gt;</c> in the project file. Without it every
+    ///         culture formats identically — the app still runs, and says so once at startup.
     ///     </para>
     ///     <code>
-    ///     host.UseCulture(c => { c.SupportedCultures.Add("en"); c.SupportedCultures.Add("hu"); });
+    ///     host.UseCulture(c => c.DefaultCulture = "hu");
     ///     </code>
     /// </remarks>
     public WasmHostBuilder UseCulture(Action<RaskCultureOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
-        _configureCulture = configure;
+        _configureCulture += configure;
         return this;
+    }
+
+    // Rask:Cultures as the build baked it, then what Program.cs said — code has the last word, as on the server.
+    private RaskCultureOptions CultureOptions()
+    {
+        var options = new RaskCultureOptions();
+        ConfiguredCultures.AddTo(options, _app);
+        _configureCulture?.Invoke(options);
+        return options;
     }
 
     /// <summary>
@@ -195,6 +208,9 @@ public sealed class WasmHostBuilder
     public async Task Run<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>()
         where TApp : Component
     {
+        // Whose assembly the build baked Rask:Cultures into.
+        _app ??= typeof(TApp).Assembly;
+
         // The head every page starts with and the kit's theme scope, so App.cs is a title and a router.
         // Registered before either path below builds the container, so the boot and the baked pages agree.
         Services.TryAddSingleton(RaskDocument.For(typeof(TApp).Assembly, WasmHostBuilderExtensions.UiEnabled(this), WasmHostBuilderExtensions.Toasts(this)));
@@ -249,7 +265,16 @@ public sealed class WasmHostBuilder
     internal ServiceProvider BuildServices()
     {
         BrowserConsoleLoggerProvider.AddIfNoneRegistered(Services);
-        return Services.BuildServiceProvider();
+        var provider = Services.BuildServiceProvider();
+
+        // The render path looks for a culture only once some host has named one. The options exist only
+        // now, so this is the first point it can be told — before the first render either path makes.
+        if (provider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
+        {
+            RaskCulture.IsEnabled = true;
+        }
+
+        return provider;
     }
 
     /// <summary>The boot sequence proper. See <see cref="Run{TApp}" />, which reports its failures.</summary>

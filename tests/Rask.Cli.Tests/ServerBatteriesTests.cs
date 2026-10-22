@@ -146,8 +146,8 @@ public sealed class ServerBatteriesTests
         Assert.False(batteries.Cqrs);
         Assert.False(batteries.Ops);
 
-        // Accepted-and-ignored for two releases: neither WASM generator reads Localization or Cultures.
-        Assert.False(batteries.Localization);
+        // Not a flag: a browser app ships the English string catalog, as a server app does.
+        Assert.True(batteries.Localization);
     }
 
 

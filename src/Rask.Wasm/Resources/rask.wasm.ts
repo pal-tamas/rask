@@ -330,11 +330,12 @@ export function getLocation() {
 // No regex literals in here on purpose: this file is spliced and minified by RaskMinifyJs, whose
 // tokenizer does not reliably distinguish a regex literal from division. Plain string work is not
 // worth a mis-parse that would only show up in a published bundle.
-export function getCultureSignals() {
+// The cookie and the query key are the app's RaskCultureOptions.CookieName and QueryKey.
+export function getCultureSignals(cookieName: string, queryKey: string) {
     let cookie = null;
     try {
         const parts = document.cookie ? document.cookie.split("; ") : [];
-        const prefix = ".AspNetCore.Culture=";
+        const prefix = cookieName + "=";
         for (let i = 0; i < parts.length; i++) {
             if (parts[i].indexOf(prefix) === 0) {
                 cookie = decodeURIComponent(parts[i].slice(prefix.length));
@@ -346,7 +347,7 @@ export function getCultureSignals() {
     }
     let query = null;
     try {
-        query = new URLSearchParams(location.search).get("culture");
+        query = new URLSearchParams(location.search).get(queryKey);
     } catch (e) {
     }
     return JSON.stringify({

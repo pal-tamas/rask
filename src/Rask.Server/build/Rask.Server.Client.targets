@@ -236,6 +236,12 @@
       -->
       <_RaskClientLine Include="    &lt;RaskApiClientBaked&gt;true&lt;/RaskApiClientBaked&gt;"/>
       <!--
+        The languages are the HOST's: Rask:Cultures in this app's appsettings.json, the one place a hosted app names
+        them. The browser half's build reads them from there (Rask.Wasm.targets) to bake them into the bundle and to
+        decide whether it ships ICU, so the two halves cannot list different languages.
+      -->
+      <_RaskClientLine Include="    &lt;RaskAppSettings&gt;$(_RaskClientApp)\appsettings.json&lt;/RaskAppSettings&gt;"/>
+      <!--
         The kit's editor engine (wwwroot/js/rask-ui-editor.js) is written by THIS half and by no other: the
         server's build leaves it alone (Rask.Ui.targets), or the publish would find it twice. So the app's one
         switch for an editor it never draws has to cross, or it would turn nothing off. Only a Web SDK
@@ -282,6 +288,8 @@
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.props.json&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Shared\%2A%2A\%2A.props.json&quot; /&gt;"/>
+      <!-- The browser app's translation catalogs, Client/Resources/Strings.{culture}.json, for the same reason. -->
+      <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\Resources\%2A%2A\%2A.json&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.ts&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.d.ts&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;_RaskScopedTs Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>

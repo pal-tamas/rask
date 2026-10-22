@@ -16,6 +16,19 @@ them until tagged releases begin.
   a job its scope's, and a call outside all work throws and names what to inject. A hand-wired `AddRask()` host now
   makes each HTTP request's services ambient too, so `Cache`, `Jobs`, `Toast` and the other facades reach them from a
   minimal-API endpoint as they already did in a `RaskApp`.
+- **A WebAssembly app names its languages in `Rask:Cultures`, as a server app does, and ships ICU only when one
+  isn't English.** Before: a browser app named languages in code only (`host.UseCulture(…)`), and shipping the
+  culture data was a commented `<RaskGlobalization>` line to find and uncomment. After: `"Rask": { "Cultures":
+  ["en", "hu"] }` in `wwwroot/appsettings.json` — or, for a hosted client, in the host's own `appsettings.json`, the
+  one list both halves use — is read by the build, baked into the bundle and in force before the first render and
+  in the prerender; `UseCulture` still adds to it. The same read decides ICU (roughly a megabyte): on for a
+  non-English language, off for English alone, and a build warning when `<RaskGlobalization>false` turns it off
+  under a non-English list. The prerender and the hosted client build now also carry the app's
+  `Resources/Strings.*.json` catalogs. `rask new --template wasm` now writes `wwwroot/appsettings.json` with
+  `"Cultures": [ "en" ]` and `Resources/Strings.en.json` (no commented `<RaskGlobalization>` any more), and
+  `--template wasm-hosted` lists `"Cultures": [ "en" ]` in the host's `appsettings.json` with its catalog moved to
+  `Client/Resources/`, where the browser half renders it.
+
 - **`Ui.Table.Of(rows, also[, andAlso])` — a table that waits for more than its rows' query.** Before: `Of` took one
   query, so a list whose columns come from a second query drew its rows first and the columns jumped in after. After:
   `Ui.Table.Of(Listed, Recorded)[…]` shows skeleton rows while either loads; the rows, their count and the empty row
@@ -395,6 +408,17 @@ them until tagged releases begin.
   See `docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant`.
 
 ### Changed
+
+- **`host.UseCulture(…)` on a WebAssembly app configures its languages.** Before: the builder registered the
+  culture services in its constructor and ran the callback there, before `Program.cs` could call `UseCulture`, so
+  every language named in it was dropped and the app ran unlocalized. After: the options are built when the app
+  starts, from `UseCulture`, and a prerendered page is baked in the app's language (`<html lang="hu">`, Hungarian
+  dates) whatever the publishing machine's locale; the process is pinned to that culture too, so a timer formats as
+  the page does. Naming only English no longer warns about missing culture data.
+
+- **A WebAssembly app reads the culture cookie and `?culture=` key it configured.** Before: the browser read
+  `.AspNetCore.Culture` and `culture` whatever `CookieName`/`QueryKey` said. After: it reads the configured names,
+  as the server does.
 
 - **A `Ui.DatePicker` reopens on the month it was left on, as Flux's does,** where it went back to the chosen
   day's month or today: paged with the arrows or chosen from `.SelectableHeader()`'s lists, closed and opened again,

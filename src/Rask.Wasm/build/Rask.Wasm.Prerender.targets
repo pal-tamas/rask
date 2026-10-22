@@ -202,6 +202,12 @@
       <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\node_modules\%2A%2A&quot; /&gt;"/>
       <_RaskPrerenderLine Include="    &lt;AdditionalFiles Remove=&quot;$(MSBuildProjectDirectory)\wwwroot\%2A%2A&quot; /&gt;"/>
       <!--
+        The app's translation catalogs (Resources/Strings.{culture}.json), for the props snapshot's reason: the
+        catalog generator writes the typed members the app's pages call, and Rask.Core.targets globs Resources\
+        from the companion's own directory, where none lives.
+      -->
+      <_RaskPrerenderLine Include="    &lt;AdditionalFiles Include=&quot;$(MSBuildProjectDirectory)\Resources\%2A%2A\%2A.json&quot; /&gt;"/>
+      <!--
         THE APP'S SCOPED CSS AND TYPESCRIPT — the fifth item type found missing here, and the one that shows
         on screen. The generators register a component's scoped assets from these files, and the prerender
         renders through that registry: it stamps each element's data-r-* scope attribute and writes the

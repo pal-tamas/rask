@@ -197,7 +197,7 @@ internal static partial class JSInterop
     ///     Server host is a socket round trip.
     /// </remarks>
     [JSImport("getCultureSignals", ModuleName)]
-    public static partial string GetCultureSignals();
+    public static partial string GetCultureSignals(string cookieName, string queryKey);
 
     /// <summary>
     ///     Browser sub-path prefix derived from <c>&lt;base href&gt;</c>. Returns the
@@ -287,7 +287,7 @@ internal static partial class JSInterop
     public static string GetBaseAddress() => "/";
 
     /// <summary>No browser, so no signals — the app falls back to its configured default culture.</summary>
-    public static string GetCultureSignals() => "{}";
+    public static string GetCultureSignals(string cookieName, string queryKey) => "{}";
 
     public static string GetBasePath() => "/";
 #pragma warning restore S3400

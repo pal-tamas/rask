@@ -198,10 +198,9 @@ internal static class TemplateMaterializer
         Add(batteries.Ops, "ops");
         Add(batteries.Tests, "tests");
 
-        // Not a `rask new` flag — it is whether the template ships the language registration at all
-        // (TemplateInfo.ShipsLocalization, true for the server template and false in the browser, where
-        // naming a culture costs about a megabyte of ICU). It is still a CONDITION, because a caller
-        // that turns it off must not be handed a string catalog it never asked for.
+        // Not a `rask new` flag — it is whether the template ships the string catalog at all
+        // (TemplateInfo.ShipsLocalization). It is still a CONDITION, because a caller that turns it off must
+        // not be handed a string catalog it never asked for.
         Add(batteries.Localization, "localization");
         return on.ToFrozenSet(StringComparer.Ordinal);
 

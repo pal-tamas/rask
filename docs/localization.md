@@ -3,18 +3,19 @@
 Ship your app in more than one language: dates and numbers in the visitor's format, text in their
 language, and `<html lang>` that tells the truth.
 
-Every scaffolded server app already ships one language, English, listed in `appsettings.json`. Adding a
-second is an entry in the list that is already there:
+Every scaffolded app already ships one language, English, listed in `appsettings.json` under
+`Rask:Cultures`. Adding a second is an entry in the list that is already there:
 
 ```jsonc
 {
   "Rask": {
-    "Culture": {
-      "SupportedCultures": [ "en", "hu" ]   // the first is the default; add one to ship another
-    }
+    "Cultures": [ "en", "hu" ]   // the first is the default; add one to ship another
   }
 }
 ```
+
+The object form takes the other settings beside the list:
+`"Cultures": { "SupportedCultures": [ "en", "hu" ], "DefaultCulture": "hu" }`.
 
 The first entry is the default a visitor falls back to. **That list is where languages are configured** —
 there is no CLI flag for it, because the file is where the answer lives and stays
@@ -28,7 +29,8 @@ rather than replaced, so a language added in code joins the configured ones:
 builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("hu"));
 ```
 
-A browser (WebAssembly) app has no `appsettings.json`, so it names its languages in code.
+A browser (WebAssembly) app lists them in the same section, read by its **build** — see
+[WebAssembly apps](#webassembly-apps).
 
 Until you add a second, **nothing changes**: `<html lang="en">`, no `dir` attribute, and no cost on
 the render path.
@@ -244,8 +246,10 @@ and every date and number formatted in `en`. Both hosts keep that promise to the
   rather than "2026. október" under English labels. Without ICU (`RaskGlobalization` off) the pin is the
   invariant culture, which is what such an app formats in anyway.
 
-To format in the visitor's language, configure it — `host.UseCulture(c => …)` — and the session's culture
-takes over.
+To format in the visitor's language, configure it — `Rask:Cultures`, or `host.UseCulture(c => …)` — and the
+session's culture takes over: the browser is pinned to the negotiated culture before the first render, and the
+prerender bakes every page in the app's default culture, `<html lang>` included, whatever the publishing
+machine's locale.
 
 ## Right-to-left
 
@@ -253,22 +257,47 @@ A right-to-left culture emits `dir="rtl"` on `<html>`; everything else emits no 
 left-to-right is HTML's default. Use logical CSS properties (`margin-inline-start`, not `margin-left`)
 and the layout follows.
 
+## WebAssembly apps
+
+A browser app has no configuration at run time, so its **build** reads `Rask:Cultures` instead, from:
+
+| App | File |
+| --- | --- |
+| `wasm` (standalone) | `wwwroot/appsettings.json` |
+| `wasm-hosted` | the host's `appsettings.json` — the ONE list both halves use |
+
+```jsonc
+// wwwroot/appsettings.json — published with the app, so anyone can read it: no secrets here
+{
+  "Rask": {
+    "Cultures": [ "en", "hu" ]
+  }
+}
+```
+
+The list is baked into the bundle and in force before the first render and in the prerender, and
+`host.UseCulture(c => …)` in `Program.cs` still adds to it, or sets the rest of the options. Because the build
+reads it, a change needs a rebuild, and an environment variable on a hosted app's server
+(`Rask__Cultures__1=hu`) reaches the server half only. Another file is named with
+`<RaskAppSettings>path/to/appsettings.json</RaskAppSettings>`.
+
+The cookie and the query key are the ones the options name (`CookieName`, `QueryKey`), on both hosts.
+
 ## WASM and ICU
 
-A WASM app needs culture data, and Rask does **not** ship it by default, because it is the one part of
-this feature you can measure on the download — and the one part `Program.cs` cannot switch on by
-itself, since it is an MSBuild property. `rask new --template wasm` scaffolds it **commented out**,
-with the reason beside it, so an app that grows a second language later uncomments one line:
+A WASM app needs culture data (ICU) to format a language, and it is the one part of this feature you can
+measure on the download. So **the build ships it when `Rask:Cultures` names a language other than English, and
+not otherwise**: English is what a runtime without culture data formats in anyway, so the `"en"` a new app
+starts with costs nothing, and adding `"hu"` turns ICU on with no other edit.
+
+To decide yourself — a language added only in code, with `UseCulture` — set the property:
 
 ```xml
 <RaskGlobalization>true</RaskGlobalization>
 ```
 
-That is also why a browser-WASM app scaffolds no language registration at all, where the server
-template scaffolds English: on the server the runtime carries ICU regardless and it costs nothing, and
-in the browser it is roughly a megabyte. Configure the languages in `Program.cs` **and** uncomment the
-property — catalogs without ICU are a no-op, because the resolver refuses to let a culture pose as
-supported when the data is not there, and the app boots with an empty supported list and one warning.
+`false` under a non-English list is obeyed, with a build warning, since every language would then format as
+English.
 
 Measured on the WASM showcase, publishing the same trimmed app with and without it:
 
@@ -284,8 +313,8 @@ below — which is what has shipped all along.
 
 Roughly a third of that is the `icudt*.dat` files themselves; the rest is a larger `dotnet.native.wasm`
 and `System.Private.CoreLib`, because turning globalization on brings back runtime code that invariant
-mode trims away. That is why localization is opt-in on the browser templates and standard on `server`,
-where the runtime already carries ICU and it costs nothing.
+mode trims away. That is why it follows the list rather than being on for every browser app; on `server`
+the runtime already carries ICU and it costs nothing.
 
 Without it every culture formats identically and only the invariant culture resolves — and because
 Rask's resolver refuses to let a culture *pose* as supported when the data isn't there, an app that

@@ -28,6 +28,12 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
+       read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Wasm\build\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <!--
       The task DLL is netstandard2.0; reference it as a real project so the test

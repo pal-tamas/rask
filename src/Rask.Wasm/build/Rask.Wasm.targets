@@ -265,10 +265,40 @@
   </Target>
 
   <!--
+    The app's languages: Rask:Cultures, read from the app's settings file — wwwroot/appsettings.json for a
+    standalone app, the host's appsettings.json for a hosted client (Rask.Server's companion points
+    RaskAppSettings at it) — the same section a server binds, and the ONE place they are named.
+
+    Read here, at evaluation, because it decides whether ICU ships, and InvariantGlobalization is a property
+    the SDK reads at evaluation too. The same read is baked into the app's assembly
+    ([assembly: AssemblyMetadata("Rask.Cultures", "en,hu")], below) for WasmHostBuilder, so the list the app
+    runs with and the culture data it carries come from one read and cannot disagree. Accepted shapes:
+    "Cultures": [ "en", "hu" ] and "Cultures": { "SupportedCultures": [ ... ] }. The file is JSON with
+    comments; only the list itself is matched, so neither comments nor other sections get in the way.
+  -->
+  <PropertyGroup Condition=" '$(RaskWasm)' == 'true' ">
+    <RaskAppSettings Condition=" '$(RaskAppSettings)' == '' ">$(MSBuildProjectDirectory)\wwwroot\appsettings.json</RaskAppSettings>
+    <_RaskAppSettingsText Condition=" Exists('$(RaskAppSettings)') ">$([System.IO.File]::ReadAllText('$(RaskAppSettings)'))</_RaskAppSettingsText>
+    <_RaskCulturesPattern>(?i)"Cultures"\s*:\s*(?:\{[^{}]*?"SupportedCultures"\s*:\s*)?\[([^\]]*)\]</_RaskCulturesPattern>
+    <_RaskCulturesList Condition=" '$(_RaskAppSettingsText)' != '' ">$([System.Text.RegularExpressions.Regex]::Match($(_RaskAppSettingsText), $(_RaskCulturesPattern)).Groups.get_Item(1).Value)</_RaskCulturesList>
+    <_RaskCultures>$([System.Text.RegularExpressions.Regex]::Replace($(_RaskCulturesList), '[\s"]', ''))</_RaskCultures>
+    <!-- English is what a runtime without culture data formats in anyway; any other language needs ICU. -->
+    <_RaskCulturesNeedIcu Condition=" $([System.Text.RegularExpressions.Regex]::IsMatch($(_RaskCultures), '(^|,)(?!en(-|_|,|$))[^,]+')) ">true</_RaskCulturesNeedIcu>
+  </PropertyGroup>
+
+  <Target Name="_RaskCulturesMetadata" BeforeTargets="GetAssemblyAttributes"
+          Condition=" '$(RaskWasm)' == 'true' AND '$(_RaskCultures)' != '' ">
+    <ItemGroup>
+      <AssemblyMetadata Include="Rask.Cultures" Value="$(_RaskCultures)"/>
+    </ItemGroup>
+  </Target>
+
+  <!--
     Globalization for a WASM app: RaskGlobalization decides whether ICU ships.
 
-    OFF by default, because ICU is roughly 2.6 MB of icudt*.dat and most apps format nothing
-    culture-sensitive. An app that does turns it on with one line:
+    By default it follows Rask:Cultures above: ON when a language other than English is listed, OFF
+    otherwise — ICU is roughly a megabyte of download, and an English-only app formats nothing it would
+    change. Set the property to decide yourself, e.g. for a language added only in code with UseCulture:
 
       <RaskGlobalization>true</RaskGlobalization>
 
@@ -285,6 +315,9 @@
     fast gate strictly happier, not less so.
   -->
   <PropertyGroup Condition=" '$(RaskWasm)' == 'true' ">
+    <!-- What the app SAID, before the defaults below fill it in: the warning target needs to know. -->
+    <_RaskAppGlobalization>$(RaskGlobalization)</_RaskAppGlobalization>
+    <RaskGlobalization Condition=" '$(RaskGlobalization)' == '' AND '$(_RaskCulturesNeedIcu)' == 'true' ">true</RaskGlobalization>
     <RaskGlobalization Condition=" '$(RaskGlobalization)' == '' ">false</RaskGlobalization>
     <!--
       Snapshot before the overwrite below, so the conflict check further down can still tell an app's
@@ -334,6 +367,11 @@
     would format identically, and the app would look like it had simply been given wrong translations.
     Fail the build instead of shipping that.
   -->
+  <Target Name="_RaskGlobalizationOffForALanguage" BeforeTargets="Build"
+          Condition=" '$(RaskWasm)' == 'true' AND '$(_RaskAppGlobalization)' == 'false' AND '$(_RaskCulturesNeedIcu)' == 'true' ">
+    <Warning Text="Rask: Rask:Cultures in $(RaskAppSettings) lists $(_RaskCultures), but RaskGlobalization is false, so the bundle ships no culture data and every language formats as English. Remove the property to ship ICU (roughly a megabyte), or list only English."/>
+  </Target>
+
   <Target Name="_RaskGlobalizationConflict" BeforeTargets="Build"
           Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' == 'true' AND '$(_RaskAppInvariantGlobalization)' == 'true' ">
     <Error Text="Rask: RaskGlobalization is true but InvariantGlobalization is also true, so the runtime would ship without culture data and every culture would format identically — CultureInfo.GetCultureInfo(&quot;hu-HU&quot;) would throw. Remove the InvariantGlobalization property; RaskGlobalization owns it."/>

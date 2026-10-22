@@ -534,6 +534,8 @@ public sealed class ProjectGeneratorTests
     [
         "App.csproj", "Program.cs", "GlobalUsings.cs", "Features/Shared/App.cs", "Features/Home/HomePage.cs",
         "wwwroot/index.html", "runtimeconfig.template.json",
+        // Rask:Cultures, which the build reads: the languages the app ships and whether ICU ships with them.
+        "wwwroot/appsettings.json",
         // For the editor, not the build — see AlwaysPresent.
         "Styles/app.css",
         "tsconfig.json",

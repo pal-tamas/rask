@@ -363,3 +363,12 @@ bundle,bytes
 rask.js,109015
 rask.wasm.js,95025
 rask-hooks.js,106504
+#
+# 2026-10-22, the WASM host reads the culture cookie and query key the app configured (getCultureSignals takes
+# RaskCultureOptions.CookieName and QueryKey instead of ASP.NET's names written into the script): rask.wasm.js -22,
+# rask.js unchanged. Measured from a Release build of the branch on main 871de3789; rask-hooks.js measures 107,507
+# there, where the block above says 106,504 — main's own drift, not this change's.
+bundle,bytes
+rask.js,109015
+rask.wasm.js,95003
+rask-hooks.js,107507

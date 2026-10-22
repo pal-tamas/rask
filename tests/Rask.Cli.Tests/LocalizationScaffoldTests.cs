@@ -76,71 +76,60 @@ public class LocalizationScaffoldTests
     }
 
     /// <summary>
-    ///     The server scaffolds the registration; browser-WASM does not, and the reason is measurable:
-    ///     ICU adds roughly a megabyte of brotli to a published bundle (+32% on the showcase). It is also
-    ///     the one part `Program.cs` cannot switch on by itself, since `RaskGlobalization` is an MSBuild
-    ///     property — which is why the csproj carries it commented rather than absent.
+    ///     Every C# template starts with English: the server, the browser app and the hosted one alike.
     /// </summary>
-    [Fact]
-    public void The_server_ships_it_and_browser_wasm_does_not()
+    [Theory]
+    [InlineData("server")]
+    [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
+    public void Every_csharp_template_ships_it(string key)
     {
-        Assert.True(TemplateCatalog.TryGet("server", out var server));
-        Assert.True(server!.ShipsLocalization);
-        Assert.True(BatterySelection.ToBatteries(server, []).Localization);
+        Assert.True(TemplateCatalog.TryGet(key, out var template));
 
-        Assert.True(TemplateCatalog.TryGet("wasm", out var wasm));
-        Assert.False(wasm!.ShipsLocalization);
-        Assert.False(BatterySelection.ToBatteries(wasm, []).Localization);
+        var batteries = BatterySelection.ToBatteries(template!, []);
+
+        Assert.True(template!.ShipsLocalization);
+        Assert.True(batteries.Localization);
     }
 
     /// <summary>
-    /// The trap that made this more than "emit the files". A browser runtime built without ICU also has
-    /// PredefinedCulturesOnly on, where GetCultureInfo cannot produce anything but the invariant culture —
-    /// so Rask's resolver rejects EVERY configured language and the app boots with an empty supported
-    /// list and a warning. Catalogs without this property would be the same no-op in a new costume.
+    ///     A browser app lists its languages where a server app does — <c>Rask:Cultures</c> — in the file its
+    ///     build reads, and starts with English, which ships no ICU. The csproj no longer carries the switch: the
+    ///     build turns ICU on when the list names another language.
     /// </summary>
     [Fact]
-    public void Naming_a_language_ships_the_ICU_that_makes_it_resolve()
-    {
-        Assert.Contains(
-            "<RaskGlobalization>true</RaskGlobalization>",
-            WasmCsprojOf(Batteries("en", "hu")),
-            StringComparison.Ordinal);
-
-        // And an app that named none keeps it commented out, so it costs nothing and is still findable.
-        var plain = WasmCsprojOf(BatterySelection.BatteriesOf([]).Normalized());
-        Assert.DoesNotContain("\n    <RaskGlobalization>true</RaskGlobalization>", plain, StringComparison.Ordinal);
-        Assert.Contains("<!-- <RaskGlobalization>true</RaskGlobalization> -->", plain, StringComparison.Ordinal);
-    }
-
-    private static string WasmProgramOf(ServerBatteries batteries) =>
-        FileOf(batteries, "/out/Program.cs");
-
-    private static string WasmCsprojOf(ServerBatteries batteries) =>
-        FileOf(batteries, "/out/Demo.csproj");
-
-    private static string FileOf(ServerBatteries batteries, string path)
+    public void A_browser_app_lists_english_in_its_settings_and_ships_its_catalog()
     {
         var result = ProjectGenerator.GenerateWasm(
-            "/out", "Demo", batteries.Pwa, batteries.Docker, "1.0.0", batteries);
+            "/out", "Demo", pwa: false, docker: false, "1.0.0", BatterySelection.ToBatteries(Wasm(), []));
 
-        return result.Files.Single(f => f.Path == path).Content;
+        Assert.Contains("\"Cultures\": [ \"en\" ]", File(result, "/out/wwwroot/appsettings.json"), StringComparison.Ordinal);
+        Assert.Contains("\"AppTitle\"", File(result, "/out/Resources/Strings.en.json"), StringComparison.Ordinal);
+        Assert.DoesNotContain("<RaskGlobalization>true", File(result, "/out/Demo.csproj"), StringComparison.Ordinal);
     }
 
-    private static string Program(ScaffoldResult result) => File(result, "/out/Program.cs");
+    /// <summary>
+    ///     A hosted app names its languages once, in the host's file, which the browser half's build reads — and
+    ///     its catalog sits in Client/, the half that renders the pages.
+    /// </summary>
+    [Fact]
+    public void A_hosted_app_lists_english_in_the_hosts_settings_and_ships_its_catalog_in_the_client()
+    {
+        Assert.True(TemplateCatalog.TryGet("wasm-hosted", out var hosted));
+
+        var result = ProjectGenerator.GenerateWasmHosted("/out", "Demo", BatterySelection.ToBatteries(hosted!, []), "1.0.0");
+
+        Assert.Contains("\"Cultures\": [ \"en\" ]", File(result, "/out/appsettings.json"), StringComparison.Ordinal);
+        Assert.Contains("\"AppTitle\"", File(result, "/out/Client/Resources/Strings.en.json"), StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Files, f => f.Path == "/out/Resources/Strings.en.json");
+    }
+
+    private static TemplateInfo Wasm()
+    {
+        Assert.True(TemplateCatalog.TryGet("wasm", out var wasm));
+        return wasm!;
+    }
 
     private static string File(ScaffoldResult result, string path) =>
         result.Files.Single(f => f.Path == path).Content;
-
-    private static int CountOf(string haystack, string needle)
-    {
-        var count = 0;
-        for (var i = haystack.IndexOf(needle, StringComparison.Ordinal); i >= 0;
-             i = haystack.IndexOf(needle, i + needle.Length, StringComparison.Ordinal))
-        {
-            count++;
-        }
-
-        return count;
-    }
 }
