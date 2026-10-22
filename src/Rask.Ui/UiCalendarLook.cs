@@ -7,6 +7,13 @@ internal static class UiCalendarLook
 
     internal const string HeaderHost = "relative";
 
+    // `with-inputs`: the fields over the months, a range's two side by side, in the input's own box at its small size.
+    internal const string Inputs = "flex gap-2 p-2 pb-0";
+
+    internal const string Input =
+        "flex-1 min-w-0 flex items-center h-8 px-2.5 rounded-md border border-zinc-200 border-b-zinc-300/80 bg-white "
+        + "shadow-xs text-sm text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300 dark:shadow-none";
+
     internal const string HeaderBar = "absolute z-10 top-0 inset-x-0 p-2";
 
     internal const string Header = "flex items-center justify-between";

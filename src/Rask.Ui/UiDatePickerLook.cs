@@ -33,6 +33,12 @@ internal static class UiDatePickerLook
 
     internal const string Spacer = "flex-1";
 
+    // The browser's date field in the input's box: no box of its own, and its own picker button hidden — the
+    // field's calendar is the picker's.
+    internal const string Native =
+        "min-w-0 flex-1 p-0 border-0 bg-transparent shadow-none focus:ring-0 focus:outline-hidden tabular-nums "
+        + "[&::-webkit-calendar-picker-indicator]:hidden";
+
     // From `sm` up the popup hangs under the trigger's start, five pixels away: CSS anchor positioning against the
     // picker, whose name the dialog's own style states, and the runtime keeps it inside the viewport from there
     // (data-rask-place). Under `sm` it is Flux's sheet — centred over a dimmed page, where the browser puts a

@@ -36,6 +36,9 @@ internal sealed record UiCalendarOptions(
 
     internal bool FixedWeeks { get; init; }
 
+    /// <summary>Inputs over the months to type the choice into (<c>with-inputs</c>); none when null.</summary>
+    internal Ui.DatePickerInputVariant? WithInputs { get; init; }
+
 
     internal string? Class { get; init; }
 

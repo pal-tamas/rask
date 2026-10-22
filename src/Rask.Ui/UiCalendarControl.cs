@@ -81,6 +81,9 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
     /// <summary>Adds the shortcut that comes back to this month, and picks today once there.</summary>
     public bool? WithToday { get; set; }
 
+    /// <summary>Inputs over the months to type the day into — a range's start and end. None for several days.</summary>
+    public bool? WithInputs { get; set; }
+
     /// <summary>Always draws six weeks, so paging never changes the height.</summary>
     public bool? FixedWeeks { get; set; }
 
@@ -206,6 +209,7 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
             Static = Static == true,
             WeekNumbers = WeekNumbers == true,
             SelectableHeader = SelectableHeader == true,
+            WithInputs = WithInputs == true ? Ui.DatePickerInputVariant.Custom : null,
             WithToday = WithToday == true,
             FixedWeeks = FixedWeeks == true,
             Class = Class,

@@ -2147,6 +2147,7 @@ and `Between(a, b)` read it, and `default(UiDateRange)` is nothing chosen.
 | `Navigation(false)` `Static()` | `navigation` `static` | no month steps; a calendar to look at, with no buttons |
 | `WeekNumbers()` `FixedWeeks()` | `week-numbers` `fixed-weeks` | the ISO week of each row; always six rows |
 | `SelectableHeader()` `WithToday()` | `selectable-header` `with-today` | month and year selects; a shortcut that comes back to this month, then picks today |
+| `WithInputs()` | `with-inputs` | a field over the months to type the day into — a range's start and end; none for several days. A whole date typed is chosen at once; a pick is written into it |
 | `Locale("ja-JP")` | `locale` | month, weekday and day names, and the first day of the week; the app's culture ([localization](localization.md)) unless set |
 
 **Keyboard.** One day is in the Tab order — the chosen one, else today, else the 1st. The arrows walk days and
@@ -2184,7 +2185,15 @@ Ui.DatePicker.Range.Bind(() => report.Range)
 Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
     Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
 Ui.DatePicker.Bind(() => booking.Departure).Clearable()                            // DateOnly? — the ✕ makes it null again
+Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs()                          // start and end typed over the months
+Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs(Ui.DatePickerInputVariant.Native) // the browser's date fields there
+Ui.DatePicker.Bind(() => booking.Arrival).Trigger(Ui.DatePickerInput.Native)       // the browser's date field as the trigger
 ```
+
+**Typed dates are parts unless you ask for the browser's.** `Ui.DatePickerInput` and `WithInputs()` draw month, day
+and year as parts in the locale's order (Flux's `custom`); `.Native` / `Ui.DatePickerInputVariant.Native` draws the
+browser's own `<input type="date">` in the same box (Flux's `native`). Flux's docs default to native and call custom
+the recommended and future default; its own pages draw custom, and so does the kit unless told.
 
 It takes the calendar's steps (`Min`, `Max`, `Unavailable`, `MinRange`, `MaxRange`, `Months`, `OpenTo`,
 `ForceOpenTo`, `StartDay`, `WeekNumbers`, `SelectableHeader`, `WithToday`, `FixedWeeks`, `Locale`), a field's

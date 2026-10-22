@@ -38,7 +38,10 @@ import {isShown, listen, near, own, page, setShown} from "./rask-owned.js";
 import {partsValue, refillParts} from "./rask-segments.js";
 
 const ROOT = "[data-rask-calendar]";
-const TYPED = "[data-rask-segments]";
+// A typed date: a group of parts (rask-segments.ts), or the browser's own date field.
+const TYPED = "[data-rask-segments], input[data-rask-date]";
+// The calendar's own inputs over its months (`with-inputs`), which the reader types the choice into.
+const INPUTS = "[data-rask-calendar-part=inputs]";
 const PART = "data-rask-calendar-part";
 const DAY_MS = 86400000;
 
@@ -256,14 +259,36 @@ function shown(state: State): Value {
 // A typed date picker's fields, the start before the end. What is typed in them is the picker's value as soon as
 // it is whole, though a bound picker sends it only with the next action: the calendar reads them, not the page.
 function typedFields(root: Element): Element[] {
+    return ownFields(root).filter(function (g) { return !g.closest(INPUTS); });
+}
+
+// The calendar's own inputs (`with-inputs`), the start before the end.
+function inputFields(root: Element): Element[] {
+    return ownFields(root).filter(function (g) { return !!g.closest(INPUTS); });
+}
+
+function ownFields(root: Element): Element[] {
     return Array.prototype.filter.call(root.querySelectorAll(TYPED), function (g: Element) { return g.closest(ROOT) === root; });
 }
 
+// What a typed field says: "yyyy-mm-dd", or "" while it holds no whole date.
+function typedText(field: Element): string {
+    return field instanceof HTMLInputElement ? field.value : partsValue(field);
+}
+
+// Shows `iso` in a typed field, telling no one.
+function retype(field: Element, iso: string): void {
+    if (!(field instanceof HTMLInputElement)) {
+        refillParts(field, iso);
+    } else if (field.value !== iso) {
+        field.value = iso;
+    }
+}
+
 // What the typed fields' parts say: their dates, or nothing for parts half filled or emptied; null with none.
-function typedValue(root: Element, state: State): Value | null {
-    const fields = typedFields(root);
+function typedValue(root: Element, state: State, fields: Element[] = typedFields(root)): Value | null {
     if (!fields.length) return null;
-    const days = fields.map(function (g) { return dayOf(partsValue(g)); });
+    const days = fields.map(function (g) { return dayOf(typedText(g)); });
     const range = state.config.mode === "range";
     if (days.some(isNaN) || (range && (days.length < 2 || days[0] > days[1]))) return {days: [], preset: ""};
     const same = writeValue(state.config, {days, preset: ""}) === writeValue(state.config, {days: state.value.days, preset: ""});
@@ -516,10 +541,20 @@ function draw(root: Element, focus: boolean = false): void {
         fresh.forEach(function (g) { grids.appendChild(g); });
     }
     drawHeader(root, state, months);
+    drawInputs(root, state);
     if (focus) {
         const button = grids.querySelector<HTMLElement>("button[tabindex='0']");
         if (button) button.focus();
     }
+}
+
+// The calendar's own inputs show what is chosen — but not the one being typed in, which is the reader's.
+function drawInputs(root: Element, state: State): void {
+    const days = shown(state).days;
+    inputFields(root).forEach(function (g, i) {
+        if (g.contains(root.ownerDocument.activeElement)) return;
+        retype(g, days.length > i ? isoOf(days[i]) : "");
+    });
 }
 
 // The grid of `month` as it is drawn: its first day of the month says which.
@@ -624,7 +659,7 @@ function commit(root: Element, state: State, value: Value): void {
     drawText(root, state);
     // A typed picker's fields show the choice at once, and carry it with the page's next action.
     typedFields(root).forEach(function (g, i) {
-        refillParts(g, value.days.length ? isoOf(value.days[Math.min(i, value.days.length - 1)]) : "");
+        retype(g, value.days.length ? isoOf(value.days[Math.min(i, value.days.length - 1)]) : "");
     });
 }
 
@@ -794,6 +829,23 @@ if (page) {
         state.cursor = null;
         draw(root);
     }, true);
+
+    // A whole date typed into the calendar's own inputs is a choice, as a pick is: its month shows, and the popup
+    // stays open. Half typed, or a range's end before its start, it chooses nothing yet.
+    const typedIn = function (e: Event): void {
+        const root = rootOf(e.target);
+        const state = root ? stateOf(root) : null;
+        if (!root || !state || !near(e.target, INPUTS)) return;
+        const typed = typedValue(root, state, inputFields(root));
+        if (!typed || !typed.days.length || writeValue(state.config, typed) === writeValue(state.config, shown(state))) return;
+        const bounds = limits(state.config);
+        if (typed.days.some(function (d) { return d < bounds.min || d > bounds.max || unavailable(state.config, d); })) return;
+        state.anchor = state.hover = state.cursor = null;
+        state.view = null;
+        choose(root, state, typed, false);
+    };
+    listen("input", typedIn, true);
+    listen("change", typedIn, true);
 
     listen("keydown", function (e) {
         const root = rootOf(e.target);

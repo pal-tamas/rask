@@ -9,6 +9,13 @@ them until tagged releases begin.
 
 ### Added
 
+- **The rest of Flux's date picker reference: `WithInputs()` and the native typed field.** Before: `with-inputs` and
+  `flux:date-picker.input`'s `variant` were not built. After: `Ui.DatePicker.WithInputs()` (and
+  `Ui.DatePicker.Range…`, `Ui.Calendar…`) draws a field over the months to type the day — or a range's start and
+  end — into: a whole date typed is chosen and its month shown at once, and a pick is written into it, all in the
+  browser. `WithInputs(Ui.DatePickerInputVariant.Native)` and `Ui.DatePickerInput.Native` use the browser's own
+  `<input type="date">` instead of the parts. Typed parts stay the default (Flux's `custom`).
+
 - **`Ui.Table.Loading(bool)` — the loading skeleton for rows a page loads itself.** Before: only `Ui.Table.Of(query)`
   drew skeleton rows, so a page filling a field of its own (`_rows = await Load()`) wrote its own placeholder rows.
   After: `Ui.Table.Loading(_rows is null)[…]` draws a skeleton row per row the pager says the page holds (15 with no
