@@ -73,6 +73,15 @@ them until tagged releases begin.
   stays inside the process. Replaces `source.Changed += StateHasChanged` plus a hand-made scope for anything that
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
+### Fixed
+
+- **A prerendered WebAssembly app with no ICU bakes the dates and numbers its browser shows.** An English-only app
+  ships no culture data, so the browser formats `"en"` with the invariant culture's (`03/14/2026`, `2026 March`),
+  while the prerender used the publishing machine's real English (`3/14/2026`, `March 2026`) and the page changed
+  when the app booted. The prerender now runs under the app's own `InvariantGlobalization`; `lang="en"` and the
+  English strings are unchanged, and an app that ships ICU still bakes with real culture data. See
+  [localization](docs/localization.md#wasm-and-icu).
+
 ### Removed
 
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now

@@ -324,6 +324,14 @@ startup rather than once per render.
 **Translated text works either way** — lookup is keyed on a language tag rather than a `CultureInfo`,
 so an app can ship three languages with no ICU at all. Only date/number *formatting* falls back.
 
+**The prerender bakes with the culture data the bundle ships.** An English-only app has no ICU, so in the
+browser `"en"` formats with the invariant culture's data — `03/14/2026`, `2026 March`, `¤1,234.50` — while the
+publishing machine has real English (`3/14/2026`, `March 2026`, `$1,234.50`). So the prerender of an app
+built with `InvariantGlobalization` runs without culture data too, and the baked page is the one the browser
+then renders: `<html lang="en">` and the English strings stay; only the formatting is the invariant
+culture's. Turn ICU on (`Rask:Cultures` with another language, or `RaskGlobalization`) and both bake and
+browser format with real culture data.
+
 One property covers all three halves of this, because each default is a trap on its own:
 
 - `PredefinedCulturesOnly` otherwise stays `true`, and `CultureInfo.GetCultureInfo("hu-HU")` **throws**
