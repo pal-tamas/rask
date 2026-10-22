@@ -1290,6 +1290,10 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Rask.Pdf prints inside the scaffolded x64 container image.** Before: every template Dockerfile installed the
+  headless shell's libraries without `libatk-bridge2.0-0t64`, so on `linux/amd64` the shell died at start
+  ("error while loading shared libraries: libatk-bridge-2.0.so.0") and `Pdf.From(…)` failed with "Chromium closed
+  its DevTools pipe"; the arm64 shell does not link it, which hid the gap. After: all nine images install it.
 - **An app's own context used inside `Db.Transaction` runs inside the transaction — plain EF Core and raw SQL alike.**
   Before: a context from the app's factory (`AddRaskData<T>(o => …)`, or any carrying Rask's interceptors), used
   inside `await Db.Transaction(async () => { ... })` without `db:` — a LINQ read, `SaveChangesAsync`,

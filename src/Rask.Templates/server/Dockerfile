@@ -38,7 +38,7 @@ RUN mkdir -p /data && chown $APP_UID:$APP_UID /data
 # most of it the GPU stack libgbm1 drags in; an app without Rask.Pdf skips the step.
 RUN if [ -f /opt/rask/chrome/chrome-headless-shell ]; then \
       apt-get update \
-      && apt-get install -y --no-install-recommends libglib2.0-0t64 libnspr4 libnss3 libatk1.0-0t64 libatspi2.0-0t64 \
+      && apt-get install -y --no-install-recommends libglib2.0-0t64 libnspr4 libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libatspi2.0-0t64 \
            libdbus-1-3 libx11-6 libxcb1 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 libgbm1 libexpat1 \
            libxkbcommon0 libasound2t64 fonts-dejavu-core fonts-liberation \
       && rm -rf /var/lib/apt/lists/*; \
