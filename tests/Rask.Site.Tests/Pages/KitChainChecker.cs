@@ -62,7 +62,7 @@ internal static class KitChainChecker
         while (receiver.Parent is MemberAccessExpressionSyntax step && step.Expression == receiver)
         {
             var call = step.Parent as InvocationExpressionSyntax;
-            if (StepProblem(entry, props, step.Name.Identifier.ValueText, call) is { } problem)
+            if (StepProblem(entry, component, props, step.Name.Identifier.ValueText, call) is { } problem)
             {
                 yield return problem;
             }
@@ -72,12 +72,13 @@ internal static class KitChainChecker
     }
 
     private static string? StepProblem(
-        MemberAccessExpressionSyntax entry, PropertyInfo[] props, string step, InvocationExpressionSyntax? call)
+        MemberAccessExpressionSyntax entry, Type component, PropertyInfo[] props, string step, InvocationExpressionSyntax? call)
     {
         var prop = Array.Find(props, p => p.Name == step);
         if (prop is null)
         {
-            return IsChainStep(props, step) || props.Any(p => EnumOf(p) is { } values && Enum.IsDefined(values, step))
+            return IsChainStep(props, step) || IsWrittenStep(component, step)
+                || props.Any(p => EnumOf(p) is { } values && Enum.IsDefined(values, step))
                 ? null
                 : $"{entry} has no step '{step}'";
         }
@@ -87,6 +88,15 @@ internal static class KitChainChecker
             ? $"{entry}.{step} takes {Display(taken)}, not {Display(passed)}"
             : null;
     }
+
+    // A step the kit writes by hand rather than the generator: a public method of the component (`Ui.Table.Of(query)`,
+    // `.Loading(…)`), or a public extension in the kit taking it (`Ui.DatePicker.WithInputs()`).
+    private static bool IsWrittenStep(Type component, string step) =>
+        component.GetMethods(BindingFlags.Instance | BindingFlags.Public).Any(m => m.Name == step && m.DeclaringType == component)
+        || component.Assembly.GetExportedTypes()
+            .Where(t => t is { IsAbstract: true, IsSealed: true } && t.Name.StartsWith("Ui", StringComparison.Ordinal))
+            .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public))
+            .Any(m => m.Name == step && m.GetParameters() is [var self, ..] && self.ParameterType.IsAssignableFrom(component));
 
     private static bool IsChainStep(PropertyInfo[] props, string step) =>
         ChainSteps.TryGetValue(step, out var needs) && (needs is null || Array.Exists(props, p => p.Name == needs));
