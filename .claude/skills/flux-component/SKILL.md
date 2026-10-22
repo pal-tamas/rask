@@ -583,7 +583,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   generator cannot hide one: to remove when it can. Since 2026-10-15 the whole calendar is `rask-calendar.ts` (hook table):
   the paragraphs below about C# handlers, `UiCalendarState`, `RenameAsync` and the probe's field describe what it
   replaced. Every hook is wired and was driven on the published site
-  against Flux's pages (`UiKitDataInputTests`): the grid's keys and focus, the typed segments (the whole
+  against Flux's pages (`UiKitPickersTests`): the grid's keys and focus, the typed segments (the whole
   trigger is the `data-rask-toggle`; the runtime leaves a press in a field to the field), the roving presets
   (tab stop = the checked preset, or the FIRST while Custom is the checked one, with `data-active`, as Flux
   marks it), `data-rask-lock` on both popups, `data-rask-listbox-button` on the time button, arrows opening the
@@ -949,7 +949,7 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   So the label stays the kit's `<label for>` and the input says `aria-labelledby`; the input keeps the keyboard
   where Flux's dropzone does, and the ring is drawn on the dropzone by one rule in `ui.css`. Pinned on the Server
   host by `tests/Rask.Server.E2E.Tests/UiFileUploadHookTests.cs` (the request slowed, so the bar is seen at
-  points between nothing and everything) and on WASM by the site's `UiKitDataInputTests`. Unmeasured, no example
+  points between nothing and everything) and on WASM by the site's `UiKitRichInputsTests`. Unmeasured, no example
   on Flux's page: an `invalid` file item (it takes the invalid input's border), sizes beyond KB (`UiFileSize`
   follows the reference's B / KB / MB / GB), the icon of a two-line item with no image. The site's demo reads a
   chosen picture for its preview, which Flux's page does on the server.

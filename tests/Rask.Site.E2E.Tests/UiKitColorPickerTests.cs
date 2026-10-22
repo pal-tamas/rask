@@ -17,7 +17,8 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    private ILocator Demo(string name) => Page.Locator($"[data-color-picker-example='{name}']");
+    // Each example's result, by the name the page gives it.
+    private ILocator Demo(string name) => Page.Locator($"[data-testid='ui-color-picker-{name}']");
 
     private ILocator State => Page.Locator("[data-testid='ui-color-picker-state']");
 
@@ -25,7 +26,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task The_swatch_button_opens_a_modal_popover_under_the_trigger_and_focuses_the_area() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var opener = intro.Locator("[data-ui-color-picker-swatch-button]");
         var dialog = intro.Locator("dialog");
 
@@ -47,7 +48,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task Escape_and_a_click_outside_close_the_popover_and_focus_returns_to_the_button() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var opener = intro.Locator("[data-ui-color-picker-swatch-button]");
         var dialog = intro.Locator("dialog");
 
@@ -69,7 +70,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task The_area_keys_change_the_colour_live_and_the_page_hears_it() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
 
         await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
         await Expect(intro.Locator("[data-ui-color-picker-area-thumb]")).ToBeFocusedAsync();
@@ -85,7 +86,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task A_typed_colour_is_normalised_on_Enter_and_the_input_is_left() => RunAsync(async () =>
     {
         await OpenAsync();
-        var input = Demo("intro").Locator("[data-ui-color-picker-input]");
+        var input = Page.Locator("[data-testid='ui-color-picker']").Locator("[data-ui-color-picker-input]");
 
         await input.FillAsync("rebeccapurple");
         await Page.Keyboard.PressAsync("Enter");
@@ -99,7 +100,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task A_wide_gamut_colour_becomes_what_fluxs_picker_makes_of_it() => RunAsync(async () =>
     {
         await OpenAsync();
-        var input = Demo("intro").Locator("[data-ui-color-picker-input]");
+        var input = Page.Locator("[data-testid='ui-color-picker']").Locator("[data-ui-color-picker-input]");
 
         await input.FillAsync("oklch(0.7 0.1 200)");
         await Page.Keyboard.PressAsync("Enter");
@@ -113,7 +114,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task Text_that_is_no_colour_is_put_back_when_the_input_is_left() => RunAsync(async () =>
     {
         await OpenAsync();
-        var input = Demo("intro").Locator("[data-ui-color-picker-input]");
+        var input = Page.Locator("[data-testid='ui-color-picker']").Locator("[data-ui-color-picker-input]");
 
         await input.FillAsync("not a colour");
         await Page.Keyboard.PressAsync("Tab");
@@ -126,7 +127,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task ArrowDown_in_the_input_opens_the_popover_and_Escape_returns_to_the_input() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var input = intro.Locator("[data-ui-color-picker-input]");
 
         await input.FocusAsync();
@@ -144,7 +145,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task Dragging_the_area_follows_the_pointer_and_stops_at_its_edge() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var thumb = intro.Locator("[data-ui-color-picker-area-thumb]");
 
         await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
@@ -165,7 +166,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task A_press_on_the_hue_track_moves_the_hue_and_the_arrows_step_it() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var hue = intro.Locator("[data-channel='hue'] input[type='range']");
 
         await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
@@ -185,19 +186,22 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task A_swatch_sets_the_colour_and_the_arrows_walk_the_palette() => RunAsync(async () =>
     {
         await OpenAsync();
-        var swatches = Demo("swatches");
+        var swatches = Demo("swatches").Locator("[data-ui-color-picker]").Last;
         var palette = swatches.Locator("[data-ui-color-picker-swatch]");
+        var input = swatches.Locator("[data-ui-color-picker-input]");
 
+        // The second of Flux's two palettes: three colours, each with a label.
         await swatches.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
-        await palette.Nth(5).ClickAsync();
-        await Expect(State).ToContainTextAsync("Palette: #3b82f6.");
-        await Expect(palette.Nth(5)).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(palette).ToHaveCountAsync(3);
+        await palette.Nth(2).ClickAsync();
+        await Expect(input).ToHaveValueAsync("#3b82f6");
+        await Expect(palette.Nth(2)).ToHaveAttributeAsync("aria-selected", "true");
         await Expect(swatches.Locator("[data-ui-color-picker-announce]")).ToHaveTextAsync("Blue selected");
-        await Page.Keyboard.PressAsync("ArrowRight");
-        await Expect(palette.Nth(6)).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("ArrowLeft");
+        await Expect(palette.Nth(1)).ToBeFocusedAsync();
         await Page.Keyboard.PressAsync("Enter");
 
-        await Expect(State).ToContainTextAsync("Palette: #a855f7.");
+        await Expect(input).ToHaveValueAsync("#22c55e");
         await Expect(swatches.Locator("dialog")).ToBeVisibleAsync();
     });
 
@@ -205,14 +209,14 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task The_alpha_slider_writes_the_opacity_into_the_value() => RunAsync(async () =>
     {
         await OpenAsync();
-        var format = Demo("format");
+        // The fourth of the six formats: rgba, which has an alpha slider.
+        var format = Demo("format").Locator("[data-ui-color-picker]").Nth(3);
 
         await format.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
         await format.Locator("[data-channel='alpha'] input[type='range']").FocusAsync();
         await Page.Keyboard.PressAsync("ArrowRight");
 
         await Expect(format.Locator("[data-ui-color-picker-input]")).ToHaveValueAsync("rgb(99 102 241 / 0.51)");
-        await Expect(State).ToContainTextAsync("Tint: rgb(99 102 241 / 0.51).");
     });
 
     [Fact]
@@ -253,7 +257,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
         var disabled = Demo("disabled");
 
         await clearable.Locator("[aria-label='Clear color']").ClickAsync();
-        await Expect(State).ToContainTextAsync("Clearable: none.");
+        await Expect(Page.Locator("[data-testid='ui-color-picker-cleared']")).ToHaveTextAsync("Color: none.");
         await Expect(clearable.Locator("[data-ui-color-picker-input]")).ToHaveValueAsync("");
         await disabled.Locator("[data-ui-color-picker-swatch-button]").ClickAsync(new LocatorClickOptions { Force = true });
 
@@ -265,7 +269,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task The_page_keys_on_the_area_and_the_arrows_on_a_swatch_do_not_scroll_the_page() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
 
         await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
         await Expect(intro.Locator("[data-ui-color-picker-area-thumb]")).ToBeFocusedAsync();
@@ -283,7 +287,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
     public Task A_press_on_the_area_leaves_focus_where_it_was() => RunAsync(async () =>
     {
         await OpenAsync();
-        var intro = Demo("intro");
+        var intro = Page.Locator("[data-testid='ui-color-picker']");
         var input = intro.Locator("[data-ui-color-picker-popover-input]");
 
         await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
@@ -330,8 +334,8 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
         await Page.SetViewportSizeAsync(390, 844);
         try
         {
-            await Demo("intro").ScrollIntoViewIfNeededAsync();
-            var intro = Demo("intro");
+            await Page.Locator("[data-testid='ui-color-picker']").ScrollIntoViewIfNeededAsync();
+            var intro = Page.Locator("[data-testid='ui-color-picker']");
             var opener = intro.Locator("[data-ui-color-picker-swatch-button]");
             var dialog = intro.Locator("dialog");
             var input = intro.Locator("[data-ui-color-picker-input]");
@@ -377,8 +381,8 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
         await Page.SetViewportSizeAsync(390, 844);
         try
         {
-            await Demo("intro").ScrollIntoViewIfNeededAsync();
-            var intro = Demo("intro");
+            await Page.Locator("[data-testid='ui-color-picker']").ScrollIntoViewIfNeededAsync();
+            var intro = Page.Locator("[data-testid='ui-color-picker']");
             var dialog = intro.Locator("dialog");
 
             await intro.Locator("[data-ui-color-picker-swatch-button]").ClickAsync();
@@ -419,13 +423,7 @@ public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightF
 
     private async Task OpenAsync()
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-
-        await ClickSidebar("Data input");
-        await Expect(Page.Locator("[data-testid='ui-color-picker']")).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
-        await Demo("intro").ScrollIntoViewIfNeededAsync();
+        await OpenUiPageAsync("color-picker", "Color picker");
+        await Page.Locator("[data-testid='ui-color-picker']").ScrollIntoViewIfNeededAsync();
     }
 }

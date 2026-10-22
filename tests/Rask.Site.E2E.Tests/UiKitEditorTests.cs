@@ -18,7 +18,7 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
     protected override string FixtureName => "Wasm";
     protected override string ServerLog => app.ServerLog;
 
-    private ILocator Editors => Page.Locator("[data-testid='ui-editor'] [data-ui-editor]");
+    private ILocator Editors => Page.Locator("main [data-ui-editor]");
 
     private ILocator Value => Page.Locator("[data-testid='ui-editor-value']");
 
@@ -38,12 +38,12 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
         var before = fetched.Count;
-        await OpenAsync(alreadyOnDocs: true);
+        await OpenAsync();
 
         Assert.Equal(0, before);
         Assert.Single(fetched);
         Assert.Contains("?v=", fetched[0], StringComparison.Ordinal);
-        await Expect(Editors).ToHaveCountAsync(6);
+        await Expect(Editors).ToHaveCountAsync(8);
     });
 
     [Fact]
@@ -104,7 +104,7 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task A_button_of_the_apps_own_runs_csharp_and_the_render_it_causes_leaves_the_typing_alone() => RunAsync(async () =>
     {
         await OpenAsync();
-        var composed = Page.Locator("[data-example='Customization'] [data-ui-editor]");
+        var composed = Page.Locator("[data-testid='ui-editor-custom'] [data-ui-editor]");
         var area = composed.Locator("[data-slot='content']");
 
         await area.ClickAsync();
@@ -115,7 +115,7 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(area).ToHaveTextAsync("Still here");
         await Expect(area).ToHaveAttributeAsync("contenteditable", "true");
         // The placeholder is the sheet's, drawn from the paragraph the engine marks: an untouched editor shows it.
-        var untouched = Page.Locator("[data-example='Configuring items'] [data-slot='content'] p");
+        var untouched = Page.Locator("[data-testid='ui-editor-toolbar'] [data-slot='content'] p");
         Assert.Equal(
             "\"Write something...\"",
             await untouched.EvaluateAsync<string>("p => getComputedStyle(p, '::before').content"));
@@ -125,7 +125,7 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task A_disabled_editor_cannot_be_typed_into_and_its_toolbar_is_off() => RunAsync(async () =>
     {
         await OpenAsync();
-        var disabled = Page.Locator("[data-example='Disabled'] [data-ui-editor]");
+        var disabled = Page.Locator("[data-testid='ui-editor-disabled'] [data-ui-editor]");
 
         var area = disabled.Locator("[data-slot='content']");
 
@@ -135,23 +135,14 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(disabled.Locator("[data-editor='heading'] button")).ToBeDisabledAsync();
     });
 
-    private async Task OpenAsync(bool alreadyOnDocs = false)
+    private async Task OpenAsync()
     {
-        if (!alreadyOnDocs)
-        {
-            await Page.GotoAsync(Docs);
-            await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-                new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        }
-
-        await ClickSidebar("Data input");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await OpenUiPageAsync("editor", "Rich text editor");
 
         // Mounted: the engine has replaced the first paint with its editable surface.
         await Expect(Editors.First.Locator("[data-slot='content'][contenteditable]")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
-        await Expect(Page.Locator("[data-testid='ui-editor'] [data-slot='content'][contenteditable]")).ToHaveCountAsync(
-            6, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
+        await Expect(Page.Locator("main [data-slot='content'][contenteditable]")).ToHaveCountAsync(
+            8, new LocatorAssertionsToHaveCountOptions { Timeout = 30_000 });
     }
 }

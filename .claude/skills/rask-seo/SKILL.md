@@ -33,7 +33,10 @@ own ("blazor", "react"). Map every new page to one:
 | select / dropdown list / combobox / searchable multi-select component in C#, server-side search with debounce for ASP.NET Core or WebAssembly | `/ui/select/` |
 | form field with label and validation message, text input with icon / clear / copy / mask, textarea that grows, in C# | `/ui/field/`, `/ui/input/`, `/ui/textarea/` |
 | checkbox group with select all, radio cards / segmented control, toggle switch, range slider, one-time code (OTP) input in C# | `/ui/checkbox/`, `/ui/radio/`, `/ui/switch/`, `/ui/slider/`, `/ui/otp-input/` |
-| color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `ui-kit` (#color-picker) |
+| color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `/ui/color-picker/` |
+| date picker / date range picker / calendar / time picker component in C# for ASP.NET Core or WebAssembly, booking calendar with presets | `/ui/date-picker/`, `/ui/calendar/`, `/ui/time-picker/` |
+| autocomplete input, multi-select tags / pillbox, international phone number input with country flags, in C# | `/ui/autocomplete/`, `/ui/pillbox/`, `/ui/phone/` |
+| file upload with drag and drop, rich text editor (Tiptap) bound to HTML, chat message composer / AI prompt box, toggle button, in C# | `/ui/file-upload/`, `/ui/editor/`, `/ui/composer/`, `/ui/toggle/` |
 | inspect a running C# web app, component tree / render counts / interaction timing / errors / network devtools for .NET | `devtools` |
 | Web Push from ASP.NET Core, VAPID | `webpush` |
 | HTML to PDF in ASP.NET Core / C#, print a page or report to PDF with headless Chrome, Puppeteer alternative for .NET | `pdf` |

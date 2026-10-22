@@ -151,6 +151,17 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/data-input", "/ui/switch/")]
     [InlineData("/docs/ui/data-input", "/ui/slider/")]
     [InlineData("/docs/ui/data-input", "/ui/otp-input/")]
+    [InlineData("/docs/ui/data-input", "/ui/composer/")]
+    [InlineData("/docs/ui/data-input", "/ui/autocomplete/")]
+    [InlineData("/docs/ui/data-input", "/ui/pillbox/")]
+    [InlineData("/docs/ui/data-input", "/ui/toggle/")]
+    [InlineData("/docs/ui/data-input", "/ui/phone/")]
+    [InlineData("/docs/ui/data-input", "/ui/calendar/")]
+    [InlineData("/docs/ui/data-input", "/ui/date-picker/")]
+    [InlineData("/docs/ui/data-input", "/ui/time-picker/")]
+    [InlineData("/docs/ui/data-input", "/ui/color-picker/")]
+    [InlineData("/docs/ui/data-input", "/ui/file-upload/")]
+    [InlineData("/docs/ui/data-input", "/ui/editor/")]
     public async Task A_family_page_links_to_the_pages_that_took_its_components(string family, string moved)
     {
         var html = await SiteDocument.At(family);
@@ -234,6 +245,19 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/switch", "flips every")]
     [InlineData("/ui/slider", "data-rask-big-step")]
     [InlineData("/ui/otp-input", "data-rask-otp")]
+    [InlineData("/ui/autocomplete", "Escape")]
+    [InlineData("/ui/autocomplete", "wire:model.live.debounce.250ms")]
+    [InlineData("/ui/pillbox", "The pills stay when the rows change")]
+    [InlineData("/ui/calendar", "data-rask-focus-follows")]
+    [InlineData("/ui/date-picker", "data-rask-segments")]
+    [InlineData("/ui/date-picker", "Select date")]
+    [InlineData("/ui/time-picker", "HH:mm")]
+    [InlineData("/ui/color-picker", "#0100c8")]
+    [InlineData("/ui/file-upload", "data-rask-dropzone")]
+    [InlineData("/ui/phone", "E.164")]
+    [InlineData("/ui/editor", "RaskUiEditorEngine")]
+    [InlineData("/ui/composer", "data-rask-submit-keys")]
+    [InlineData("/ui/toggle", "data-rask-switch")]
     public async Task An_action_page_explains_its_behaviour_between_its_examples_and_its_reference(string path, string fact)
     {
         var html = await SiteDocument.At(path);
@@ -265,6 +289,7 @@ public sealed partial class UiDocsTests
     [InlineData("/docs/ui/data-display", "/ui/accordion/")]
     [InlineData("/docs/ui/tree", "/ui/accordion/")]
     [InlineData("/docs/ui/data-grid", "/ui/table/")]
+    [InlineData("/docs/ui/data-input", "/ui/date-picker/")]
     public async Task An_emptied_data_page_names_its_successor_canonical_and_leaves_the_docs_sidebar(string old, string successor)
     {
         var html = await SiteDocument.At(old);

@@ -835,9 +835,10 @@ internal static partial class UiApi
     public static IEnumerable<UiApiPart> All =>
         new[]
         {
-            Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Checkbox, Command, Context,
-            Dropdown, Field, Filters, Flag, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Popover,
-            Profile, Progress, Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, Toast,
+            Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
+            Checkbox, ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
+            Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts);
 }
