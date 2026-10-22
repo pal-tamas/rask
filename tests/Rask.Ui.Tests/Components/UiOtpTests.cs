@@ -8,7 +8,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     What the keys do inside the cells is the runtime's (<c>data-rask-otp</c>; pinned key by key in
-///     <c>RuntimeHookFieldTests</c> and, on the running site, in <c>UiKitDataInputTests</c>). These hold the
+///     <c>RuntimeHookFieldTests</c> and, on the running site, in <c>UiKitFormControlsTests</c>). These hold the
 ///     contract the component owes that hook — cells with no value and no handler, one bound hidden field — and
 ///     what the server decides: which characters a code keeps, and when it is complete.
 /// </remarks>

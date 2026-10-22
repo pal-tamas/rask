@@ -8,7 +8,7 @@
 // ColorPickerOpenParity writes the Rask page of that name with the same mark, and parity.mjs compares the two
 // as it compares any page: the popover's box, look and contents, and where it sits against its trigger.
 //
-// `--live <url>` then walks a running site's showcase (the URL of /docs/ui/color-picker) beside Flux's page:
+// `--live <url>` then walks a running site's color picker page (the URL of /ui/color-picker/) beside Flux's page:
 // the same keys and the same presses on both, and after each step what it left behind — whether the popover
 // is open, the value, what the inputs say, the preview, where the thumbs stand, which swatch is picked and
 // which holds the tab stop, what was announced and where focus is. `--phone` walks the sheet at 390 px.
@@ -21,7 +21,7 @@
 //         node scripts/flux/parity-color-picker.mjs [--refresh] [--all]    # --refresh re-measures Flux
 //         node scripts/flux/parity-color-picker.mjs --section dropper
 //         node scripts/flux/parity-color-picker.mjs --sheet
-//         node scripts/flux/parity-color-picker.mjs --live <url of the showcase page> [--phone] [--wait 2200] [--walk <name>] [--all]
+//         node scripts/flux/parity-color-picker.mjs --live <url of /ui/color-picker/> [--phone] [--wait 2200] [--walk <name>] [--all]
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -179,7 +179,7 @@ function walks(phone) {
         'key:ArrowRight', 'key:Escape'],
     },
     {
-      name: 'alpha', flux: 1, rask: 'format',
+      name: 'alpha', flux: 1, rask: 'format', nth: 3,
       steps: ['press:opener', 'key:Tab', 'key:Tab', 'key:ArrowRight', 'key:Shift+ArrowLeft', 'key:Home', 'key:End', 'at:alpha:0.5:0.5', 'swatch:0', 'fill:popover-input:#ff000080', 'key:Enter', 'key:Escape'],
     },
     {
@@ -218,7 +218,9 @@ async function walkBoth(browser, liveUrl, phone, wait) {
       const prefix = side === 'flux' ? 'data-flux-' : 'data-ui-';
       const picker = side === 'flux'
         ? page.locator('ui-color-picker').nth(walk.flux)
-        : page.locator(`[data-color-picker-example="${walk.rask}"] [data-ui-color-picker]`).first();
+        // Each example's result carries its testid: ui-color-picker, then ui-color-picker-<name>; the alpha walk
+        // takes the rgba picker, the fourth of the format example's six.
+        : page.locator(`[data-testid="ui-color-picker${walk.rask === 'intro' ? '' : '-' + walk.rask}"] [data-ui-color-picker]`).nth(walk.nth ?? 0);
       // A WASM site boots after its document has loaded, and draws its page of demos a moment after that.
       await picker.waitFor({ state: 'attached', timeout: 90000 });
       if (side === 'rask') await page.waitForTimeout(wait * 2);

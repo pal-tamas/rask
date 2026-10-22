@@ -36,9 +36,15 @@ Ui.Button.Primary["Save"]
 [Profile](https://rask.sh/ui/profile/), [Tabs](https://rask.sh/ui/tabs/), [Field](https://rask.sh/ui/field/),
 [Input](https://rask.sh/ui/input/), [Textarea](https://rask.sh/ui/textarea/), [Select](https://rask.sh/ui/select/),
 [Checkbox](https://rask.sh/ui/checkbox/), [Radio](https://rask.sh/ui/radio/), [Switch](https://rask.sh/ui/switch/),
-[Slider](https://rask.sh/ui/slider/) and [OTP input](https://rask.sh/ui/otp-input/), with
+[Slider](https://rask.sh/ui/slider/), [OTP input](https://rask.sh/ui/otp-input/),
+[Autocomplete](https://rask.sh/ui/autocomplete/), [Pillbox](https://rask.sh/ui/pillbox/),
+[Calendar](https://rask.sh/ui/calendar/), [Date picker](https://rask.sh/ui/date-picker/),
+[Time picker](https://rask.sh/ui/time-picker/), [Color picker](https://rask.sh/ui/color-picker/),
+[File upload](https://rask.sh/ui/file-upload/), [Phone](https://rask.sh/ui/phone/),
+[Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
+[Toggle](https://rask.sh/ui/toggle/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/). The rest are still on the
-category pages: [Data input](https://rask.sh/docs/ui/data-input) · [Layout & flyouts](https://rask.sh/docs/ui/layout).
+category page [Layout & flyouts](https://rask.sh/docs/ui/layout).
 
 ## Principles
 
@@ -658,160 +664,31 @@ reader hears and the reference of its steps: **[rask.sh/ui/tooltip](https://rask
 
 ## Rich text editor
 
-`Ui.Editor` is [Flux's editor](https://fluxui.dev/components/editor): a toolbar over an editable area, and
-a value that is HTML. Its engine is [Tiptap](https://tiptap.dev) on [ProseMirror](https://prosemirror.net),
-as Flux's is.
-
-```csharp
-Ui.Editor.Bind(() => _post.Body).Label("Release notes").Description("Explain what's new in this release.")
-
-Ui.Editor.Value(_html).OnChange(html => _html = html)          // unbound: you keep the value
-Ui.Editor.Placeholder("Write something...")                    // shown while the document is empty
-Ui.Editor.Toolbar("heading | bold italic underline | align ~ undo redo")   // | separator, ~ spacer
-Ui.Editor.Disabled(locked)                                     // read-only, toolbar off
-Ui.Editor.Invalid(!ok)                                         // error styling
-Ui.Editor.Class("**:data-[slot=content]:min-h-[100px]!")       // the area is 200–500px tall unless you say
-```
-
-The value is the document as HTML — `<p>Hello <strong>world</strong></p>` — and an empty document is the
-empty string. `Bind` writes it to the model with the next action (`.Live()`: on every change) and validates
-the field then; `Value` with
-`OnChange` leaves it to you. A value the app changes afterwards is shown in the editor.
-
-**Nothing to configure.** The engine is 374 KB (117 KB gzipped), so it is in neither Rask's runtime nor
-the kit's assembly: it is a static file, `wwwroot/js/rask-ui-editor.js`, which the build of every app that
-references the kit writes — add it to `.gitignore` — and which the browser fetches the first time an
-editor mounts. A page without an editor never requests it, and nothing preloads or precaches it; an app
-that will never draw one can keep it out of its publish folder:
-
-```xml
-<PropertyGroup>
-  <RaskUiEditorEngine>false</RaskUiEditorEngine>
-</PropertyGroup>
-```
-
-The host has to serve its static files, as every Rask app does (`RaskApp`, `MapRaskSpa`, a static host for
-a browser-WASM publish). A host that is not a Web or WebAssembly SDK project sets the same property to
-`true`. In a wasm-hosted app — one project, a server and the browser app in `Client/` — the browser app's
-build writes the file and the server serves it from there, so the app's own `wwwroot` holds no copy.
-
-Until the script has loaded — and with scripting off — the editor shows its value as plain markup. A
-strict `Content-Security-Policy` needs nothing added: the file is same-origin script.
-
-**Third-party code.** The engine bundles Tiptap 3.32.0 and ProseMirror (39 packages, all MIT), and eleven
-of the toolbar's icons are drawn from [Lucide](https://lucide.dev) 0.300.0 path data (ISC), as Flux's are.
-Their notices are `rask-ui-editor.LICENSES.txt`: in the `Rask.Ui` package, and written beside the script
-in `wwwroot/js`, so they travel with the copy your app serves.
-
-**The value is the user's HTML.** The editor itself only produces the tags of its schema (paragraphs,
-headings, lists, quotes, code, links, marks), but what you bind may have come from anywhere — a database
-row, an import, a request made by hand. `Ui.Editor` writes its value into the page as it is, exactly as
-`Raw` does. So: sanitize HTML on the server before you store it or bind it, and never render a stored
-value with `Raw` without doing so. Showing it as text (`Pre[_post.Body]`) is always safe.
+`Ui.Editor` is [Flux's editor](https://fluxui.dev/components/editor): a toolbar over an editable area, whose value
+is HTML, on [Tiptap](https://tiptap.dev) as Flux's is. `Bind` writes the document with the next action (`.Live()`:
+at every change), `Toolbar("heading | bold italic ~ undo redo")` names the items, and its parts compose a toolbar of
+your own with `Ui.EditorButton`s that run C#. The engine is a static file every app's build writes and the browser
+fetches the first time an editor mounts (`<RaskUiEditorEngine>false</RaskUiEditorEngine>` keeps it out). The value
+is the reader's HTML: sanitize it before it is rendered as markup anywhere. Every example, the items and their keys,
+the extensions and the reference: **[rask.sh/ui/editor](https://rask.sh/ui/editor/)**.
 
 ### Toolbar
 
-The default is `heading | bold italic strike | bullet ordered blockquote | link | align`. Every item:
-
-| Item | Does | Shortcut |
-|---|---|---|
-| `heading` | text, or a heading of level 1–3, from a list | `Ctrl`+`Alt`+`0`…`3` |
-| `bold` `italic` `strike` `underline` | the mark | `Ctrl`+`B`, `I`, `Shift`+`S`, `U` |
-| `subscript` `superscript` `highlight` `code` | the mark | `Ctrl`+`,` `.` `Shift`+`H`, `E` |
-| `bullet` `ordered` `blockquote` | the block | `Ctrl`+`Shift`+`8`, `7`, `B` |
-| `link` | a panel with the address, a button to set it and one to remove it | `Ctrl`+`K` |
-| `align` | left, center or right, from a list | `Ctrl`+`Shift`+`L`, `E`, `R` |
-| `undo` `redo` | history | `Ctrl`+`Z`, `Ctrl`+`Shift`+`Z` |
-
-`Cmd` on a Mac. The toolbar is one tab stop; the arrow keys walk its controls. Markdown works while
-typing: `#`, `##`, `###`, `**bold**`, `*italic*`, `~~strike~~`, `-`, `1.`, `>`, `` `code` ``, three
-backticks for a code block and `---` for a rule.
-
-For anything the list cannot say, compose the editor from its parts — each item is a component
-(`Ui.EditorBold`, `Ui.EditorHeading`, `Ui.EditorLink`, `Ui.EditorSeparator`, `Ui.EditorSpacer`, …), and
-`Ui.EditorButton` is a button of your own:
-
-```csharp
-Ui.Editor.Bind(() => _post.Body)[
-    Ui.EditorToolbar[
-        Ui.EditorHeading, Ui.EditorSeparator,
-        Ui.EditorBold, Ui.EditorItalic, Ui.EditorSeparator,
-        Ui.EditorLink,
-        Ui.EditorSpacer,
-        Ui.EditorButton.Icon(Ui.IconName.Clipboard).Tooltip("Copy to clipboard").OnClick(Copy)
-    ],
-    Ui.EditorContent
-]
-```
-
-A button of your own runs C# and reads the document from what the editor is bound to. Flux resolves a
-custom item's *name* to a Blade file; here it is a child of the toolbar.
+Every item, its shortcut, Markdown while typing, and composing a toolbar from the parts:
+**[rask.sh/ui/editor](https://rask.sh/ui/editor/)**.
 
 ### Extensions
 
-Highlight, Link, Placeholder, StarterKit, Subscript, Superscript, TextAlign and Underline are on; Table,
-TableRow, TableCell and TableHeader are bundled and off. Before an editor is created it raises
-`ui:editor` on itself (it bubbles) — Flux's `flux:editor` event under the kit's name — and a script of the
-page can change the set or reach the Tiptap instance:
-
-```js
-document.addEventListener('ui:editor', e => {
-    e.detail.enableExtension('table');
-    e.detail.disableExtension('underline');
-    e.detail.registerExtensions([Youtube.configure({ nocookie: true })]);   // an extension of the same name is replaced
-    e.detail.init(({ editor }) => editor.on('update', () => { /* … */ }));
-});
-```
-
-The editor's root also has what Flux's has: `element.value` (get and set) and the `editor` instance, and
-it raises `input` and `change` for every change of the document.
-
-`code` is inline code, as it is on Flux's live editor: a control of that name wraps the selection in
-`<code>` and shows as pressed, and three backticks start a block. (Flux's reference calls the item "code
-block formatting"; its own element, its "Code" label and its `Ctrl`+`E` say otherwise, and the kit follows
-what the element does.) `subscript`, `superscript` and `highlight` are held to Flux the same way.
-
-Not measured, because no example on Flux's page shows these buttons: the icons of `subscript`,
-`superscript`, `highlight` and `code` (drawn from Lucide, as Flux draws its other non-Heroicon toolbar
-icons), their tooltips' shortcut hints, and the exact red of an `Invalid` editor.
+The extensions that are on and off, and the `ui:editor` event that changes them (Flux's `flux:editor` under the
+kit's name): **[rask.sh/ui/editor](https://rask.sh/ui/editor/)**.
 
 ## Composer
 
-`Ui.Composer` is Flux UI's composer ([fluxui.dev/components/composer](https://fluxui.dev/components/composer)):
-a message box with buttons around it, for a chat or a prompt. It sends the form it is in from the keyboard, and
-what was typed travels with that submit — typing sends nothing.
-
-```csharp
-Form.Model(chat).OnSubmit(Send)[
-    Ui.Composer.Bind(() => chat.Prompt).Label("Prompt").LabelSrOnly().Placeholder("How can I help you today?")
-        .ActionsLeading([Ui.Button.Sm.Subtle.Icon(Ui.IconName.PaperClip), Ui.Button.Sm.Subtle.Icon(Ui.IconName.Slash)])
-        .ActionsTrailing([
-            Ui.Button.Sm.Filled.Icon(Ui.IconName.Microphone),
-            Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane),
-        ])
-]
-
-Ui.Composer.Bind(() => chat.Prompt).Rows(1).Inline()                 // the buttons in one row with the box
-Ui.Composer.Bind(() => chat.Prompt).Enter                            // Enter sends, Shift+Enter is a new line
-Ui.Composer.Bind(() => chat.Prompt).Rows(4).MaxRows(8)               // starts at 4 lines, grows to 8, then scrolls
-Ui.Composer.Bind(() => chat.Prompt).Variant(Ui.ComposerVariant.Input) // the corners of the other inputs
-Ui.Composer.Bind(() => chat.Prompt).Input(Ui.Editor.Toolbar("bold italic bullet ordered | link | align"))
-```
-
-- **Keys.** Ctrl+Enter or Cmd+Enter sends the form (Flux's `cmd+enter`); `.Enter` makes Enter alone send it and
-  leaves Shift+Enter for a new line. The keys are the runtime's (`data-rask-submit-keys`), in the keydown itself:
-  no newline lands first, and the form is submitted as its submit button would submit it. Outside a form the
-  keys do nothing. Neither key empties the box, as on Flux's page.
-- **Height.** Two lines unless `Rows` says otherwise; the box grows a line at a time with its text up to
-  `MaxRows` (ten unless set) and scrolls from there (`data-rask-grow`). A box the page empties keeps its height,
-  as Flux's does.
-- **Slots.** `Header` (above the box: files about to be sent), `Footer`, `ActionsLeading` and `ActionsTrailing`
-  take any component; `Input` takes a `Ui.Editor`, which is then drawn without a box of its own, as tall as
-  `Rows` and `MaxRows` say, and bound to the composer's value (a `string` one).
-- **States.** `Disabled()` locks the box and every `Ui.Button` in its slots. `Invalid()` — or a bound member the
-  form calls invalid — draws the red border; the message is the field's `Ui.Error`.
-- **Field.** `Label` / `Description` wrap it in a `Ui.Field`; `LabelSrOnly()` / `DescriptionSrOnly()` keep them
-  for screen readers only. The composer is a `role="group"` named by its label and described by its description.
+`Ui.Composer` is Flux UI's composer: a message box with buttons around it, for a chat or a prompt. It sends the form
+it is in on Ctrl+Enter or Cmd+Enter (`.Enter`: on Enter, Shift+Enter for a new line) through the runtime's
+`data-rask-submit-keys`, grows a line at a time to `MaxRows`, and takes a `Ui.Editor` in its `Input` slot for rich
+text; typing sends nothing. Every example, its slots and states, and the reference:
+**[rask.sh/ui/composer](https://rask.sh/ui/composer/)**.
 
 ## Pagination
 
@@ -839,43 +716,10 @@ of the same `Name` elsewhere on the page, with nothing sent to the page. Every e
 
 ## Toggle
 
-`Ui.Toggle` is Flux UI's `flux:toggle`: a setting turned on or off from a compact, button-shaped control.
-Reach for it when the setting is icon-sized; one that needs its words beside it is a `Ui.Switch`.
-
-```csharp
-Ui.Toggle.Icon(Ui.IconName.Bolt).Tooltip("Fast mode")                          // turned in the browser
-Ui.Toggle.Icon(Ui.IconName.Heart).Color(Ui.Color.Red).Checked()                // starts on
-Ui.Toggle.Bind(() => settings.Sound).OnLabel("Sound on").OffLabel("Sound off") // two-way bound
-Ui.Toggle.Bind(() => project.Active).OnChange(Save).Icon(Ui.IconName.LightBulb) // written, then saved
-Ui.Toggle.Checked(muted).OnChange(on => muted = on)                            // the page keeps it
-```
-
-| | |
-| --- | --- |
-| `Icon` | A Heroicon — its outline when off, its solid drawing when on — or icons of your own (Flux's `icon` slot), each shown for its state with `group-data-checked:`. |
-| `OnIcon` / `OffIcon` | A different Heroicon for each state. |
-| `Label`, `OnLabel` / `OffLabel` | Short text beside the icon, or one per state. Children take their place. |
-| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
-| `Variant` | `Outline`, `Filled`, `Ghost`, `Subtle`. |
-| `Color` | The icon's colour when on; the accent when unset. Off, it stays neutral. |
-| `Tooltip` | A tooltip, and the accessible name of a toggle that shows only an icon. |
-| `Checked` | Whether it is on, for a toggle that is not bound. |
-| `Disabled()` | Dimmed, and out of the tab order. |
-
-It is a `<button role="switch">`: a press, Space and Enter turn it, and a screen reader says "on" or "off".
-
-**Whose state it is.** `Bind` two-way binds a `bool`: the member is written with the next action, as every
-kit control's is, and at once with `.Live()`. A bound toggle the page listens to with `OnChange` is written at
-once too, and `OnChange` runs after the write — Flux's `wire:model` beside `wire:change`, one round trip that
-saves. Unbound and listened to with `OnChange`, it reports each turn, and a page that hands it a different
-`Checked` has the last word. While its handler runs the runtime marks the button `data-loading`: what it shows
-gives way to a spinner and it takes no further press.
-
-**A toggle nobody listens to sends nothing.** With no `Bind` and no `OnChange` a press only changes what the
-toggle draws, so the browser does it (`data-rask-switch`): `aria-checked` and `data-checked` flip there, and
-not one frame goes to the server. `Checked` is then where it starts.
-
-`Ui.Swap`, the daisyUI control with two faces, is gone: `Ui.Toggle.OnIcon(…).OffIcon(…)` is that control.
+`Ui.Toggle` is Flux UI's `flux:toggle`: a setting turned on or off from a compact `<button role="switch">` whose
+icon fills in when it is on, with a tooltip that names it, labels per state, and a spinner while a bound toggle's
+`OnChange` saves. One that nobody listens to is turned in the browser and sends nothing (`data-rask-switch`). Every
+example and the reference: **[rask.sh/ui/toggle](https://rask.sh/ui/toggle/)**.
 
 ## Flag
 
@@ -887,53 +731,11 @@ where the build would not). Every example, where the drawings come from, and the
 
 ## Phone
 
-`Ui.Phone` is Flux UI's `flux:phone`: an international phone number, with the country picked from a searchable
-list of flags, formatted as it is typed and normalised to E.164.
-
-```csharp
-Ui.Phone.Bind(() => m.Mobile).Country("HU").Label("Telefonszám")        // +36301234567 once it is possible
-Ui.Phone.Bind(() => m.Office).Countries(["US", "CA", "GB", "AU"])       // only these in the list
-Ui.Phone.Bind(() => m.Mobile).CountryOrder(["US", "CA"]).Placeholder("(201) 555-0123")
-Ui.Phone.Bind(() => m.Mobile).Live()                                    // written as it changes, after a pause
-Ui.Phone.Value(number).OnChange(v => number = v).Sm.Filled              // the page keeps it
-```
-
-| | |
-| --- | --- |
-| `Country` | The country of an empty number, by its two-letter code. None when unset: a number then needs its calling code. |
-| `Countries` | The countries the list offers. It does not limit what can be typed — check that on the server. |
-| `CountryOrder` | The countries the list shows first; the rest follow alphabetically in the page's language. |
-| `Placeholder` | Shown while the number is empty. |
-| `Size` | `Base` (40px), `Sm` (32px), `Xs` (24px). |
-| `Variant` | `Outline` or `Filled`. |
-| `Label`, `Description`, `DescriptionTrailing` | The field around it. |
-| `Disabled()`, `ReadOnly()`, `Invalid()`, `Name` | As every kit input. A read-only field's list does not open. |
-
-**The value is what Flux's is.** The bound `string` is the number in E.164 (`+12015550123`) once it is a
-possible one, and the text as typed until then (`201`, `abc`) — so it is not always E.164, and a possible
-number is not a checked one: validate it on the server. An extension typed after the number is dropped from
-the value. A number typed with its code (`+44 7400 123456`) picks its country; picking a country keeps the
-number and reads it again for that country.
-
-**Everything is in the browser.** The field runs [intl-tel-input](https://github.com/jackocnr/intl-tel-input)
-29.2.3 — the release fluxui.dev runs, so a formatting quirk of Flux's is this field's too — with its utils, Google's
-libphonenumber compiled. Typing, formatting, opening, searching and walking the list send the server nothing; the
-number goes with the next action, as Flux's `wire:model` does, or as it changes with `.Live()` / `.Debounce(…)`.
-The list names the countries in the page's language (`Intl.DisplayNames`).
-
-**The engine is two files, not part of any page that draws no phone field.** The runtime fetches
-`wwwroot/js/rask-ui-phone.js` (61 KB, 21 KB gzipped) the first time a page carries a phone field, and that fetches
-`rask-ui-phone-utils.js` (263 KB, 61 KB gzipped) when the field mounts. Every app's build writes both, with
-their notices (`rask-ui-phone.LICENSES.txt`: intl-tel-input is MIT, the utils Apache-2.0), and the flag
-drawings the list shows ([Flag](#flag)). An app that will never draw one keeps its `wwwroot` clean:
-
-```xml
-<PropertyGroup>
-  <RaskUiPhoneEngine>false</RaskUiPhoneEngine>
-</PropertyGroup>
-```
-
-Without script the field is a plain tel input beside the starting country, and a form posts the bound value.
+`Ui.Phone` is Flux UI's `flux:phone`: an international number with a searchable list of flags, formatted as it is
+typed by intl-tel-input 29.2.3 (the release Flux runs) and bound as E.164 once it is a possible number, the text as
+typed until then. Everything runs in the browser from two lazily fetched files
+(`<RaskUiPhoneEngine>false</RaskUiPhoneEngine>` keeps them out). Every example and the reference:
+**[rask.sh/ui/phone](https://rask.sh/ui/phone/)**.
 
 ## Buttons and links that go somewhere
 
@@ -1329,156 +1131,19 @@ keyboard, searching on the server and the reference: **[rask.sh/ui/select](https
 
 ## Autocomplete
 
-`Ui.Autocomplete` is [Flux UI's autocomplete](https://fluxui.dev/components/autocomplete): Flux's input over a
-list of suggestions. What it holds is the **text** — an item has no value of its own, and what is typed need
-not be an item. To show a name and store an id, use `Ui.Select.Combobox`.
-
-```csharp
-Ui.Autocomplete.Bind(() => model.State).Label("State of residence")[
-    states.Select(state => Ui.AutocompleteItem[state])
-]
-```
-
-It takes what Flux documents for it, which is the input's own list: `Type`, `Label`, `Description`,
-`Placeholder`, `Size` (`Ui.AutocompleteSize`: `.Sm`, `.Xs`), `Variant` (`Ui.AutocompleteVariant`: `.Filled`),
-`Disabled()`, `ReadOnly()`, `Invalid()`, `Multiple()`, `Mask`, `Icon`, `IconTrailing`, `Kbd`, `Clearable()`,
-`Copyable()`, `Viewable()`, `As` (`Ui.AutocompleteAs`), `InputClass`, and `ContainerClass` for the open list (a height, such
-as `max-h-80`). `Ui.AutocompleteItem` takes `Disabled()`. The text reaches the page — the bound member, or
-`OnChange` — as an input's text does: a bound member with the next action (`.Live()`: as it is typed), and
-`OnChange` when an item is picked, when Escape empties the input, and when what was typed is left.
-
-**Suggestions from the database.** `Debounce(250.Milliseconds)` hands the page what was typed once typing has
-paused as well — Flux's `wire:model.live.debounce.250ms` — and the page answers it with the items:
-
-```csharp
-Ui.Autocomplete.Value(_city).OnChange(Search).Debounce(250.Milliseconds).Label("City")[
-    _found.Select(city => Ui.AutocompleteItem.Key(city)[city])
-]
-
-private async Task Search(string text)
-{
-    _city = text;
-    _found = await City.Where(c => c.Name.Contains(text)).OrderBy(c => c.Name).Take(20).Select(c => c.Name).ToList();
-}
-```
-
-The autocomplete has no search callback apart from its value: what is typed IS what it holds, so the pause
-is when the value arrives. The list still narrows at every keystroke — Flux's autocomplete has no
-`filter` to turn off — and only the page waits. An item pressed during the pause is the text, and what was
-typed before it is never handed over; Escape empties; the clear button tells the page at once. A bound
-autocomplete writes its member at the pause: `Debounce` is a way of being `Live()`, as on `Ui.Input`, so
-`Bind(() => m.City).Debounce(…)` needs no `.Live()` beside it, and `AfterBind` is where the search goes.
-Without the step nothing changes: `.Live()` alone writes a pick, a clear and a leave at once, and never what
-is being typed. The input's own `change` is not taken while the list is open — a press on an item leaves the
-input first — so a click elsewhere hands over what was typed as the list shuts.
-
-No script of its own: the list is a native `popover` placed by CSS anchor positioning, and the cursor, the
-filter, the open state and the pick that writes an item into the input are the runtime's (`data-rask-list`) —
-in the browser, with nothing sent to the page until the input's text is. As recorded on Flux's page:
-
-| | |
-| --- | --- |
-| A click, ArrowDown, ArrowUp | Open the list; the cursor starts on the item last picked, else the first. |
-| Typing | Opens the list on the items that hold the text anywhere, whatever the case or the accents. Nothing matches: nothing is drawn. |
-| ArrowDown, ArrowUp | Move the cursor and stop at either end. Home and End are the text's own. |
-| Enter | Writes the active item into the input and closes. With no active item it does nothing. |
-| Escape | Closes the list **and empties the input**, open or not. |
-| Tab, a click elsewhere | Close, and keep whatever was typed. |
-| The pointer | Lights the row it enters, and that row goes dark when the pointer leaves the list; a click picks it and focus stays in the input. |
-
-The input is `role="combobox"` with `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded`,
-`aria-controls` and, while open, `aria-activedescendant`. The list is `role="listbox"` and — as Flux writes it,
-though it holds one answer — `aria-multiselectable="true"`; the item last picked stays `aria-selected="true"`
-whatever is typed afterwards. Markers: `data-ui-autocomplete`, `data-ui-autocomplete-items`,
-`data-ui-autocomplete-item`. `Copyable()` is the input's copy button, and the page behind the open list is
-locked (`data-rask-lock`).
+`Ui.Autocomplete` is [Flux UI's autocomplete](https://fluxui.dev/components/autocomplete): an input over a list of
+suggestions that holds the **text**. To show a name and store an id, use `Ui.Select.Combobox`. `Debounce` hands the
+page what was typed once typing has paused, for suggestions from a database; the list, its keys and the pick are the
+runtime's (`data-rask-list`). Every example, the keyboard and the reference:
+**[rask.sh/ui/autocomplete](https://rask.sh/ui/autocomplete/)**.
 
 ## Pillbox
 
-`Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list,
-each shown as a pill that can be taken off again. It holds a **collection** — `Bind` over a `List<T>`, a
-`T[]`, a `HashSet<T>`, or `Values(…)` with `OnChange` — and its options are children.
-
-```csharp
-Ui.Pillbox.Bind(() => model.Tags).Label("Tags").Placeholder("Choose tags...")[
-    tags.Select(tag => Ui.PillboxOption.Value(tag.Id)[tag.Name])
-]
-
-Ui.Pillbox.Bind(() => model.Skills).Searchable().SearchPlaceholder("Filter skills...")[…]   // a search field over the list
-Ui.Pillbox.Bind(() => model.Skills).Combobox.Placeholder("Choose skills...")[…]             // an input among the pills
-```
-
-| | |
-| --- | --- |
-| `Ui.Pillbox` | `Placeholder`, `Label`, `Description`, `Size` (`Ui.PillboxSize`: `.Sm`), `Variant` (`Ui.PillboxVariant`: `.Combobox`), `Searchable()`, `SearchPlaceholder`, `Filter(false)`, `Disabled()`, `Invalid()`. |
-| `Ui.PillboxOption` | `Value`, `Label`, `SelectedLabel` (what its pill says), `Disabled()`, `Filterable(false)` (a search never hides it), or children of your own — an icon beside the words. The pill shows the words alone. |
-| `Ui.PillboxOptionCreate` | `MinLength`, `OnClick` handed the text as typed. Offered once that text is long enough and names no option; with nothing to type into it is always there, and opens a form of the page's own. Written before the options, it is drawn before them. |
-| `Ui.PillboxOptionEmpty` | What the list says when nothing matches; `WhenLoading` while the page answers. |
-| `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` | Flux's `search`, `trigger` and `input` slots, as children: the search field's `Placeholder` / `Icon` / `Clearable(false)` / `Value` / `OnInput` / `Debounce`; the trigger's `Placeholder` / `Invalid()` / `Size` / `Clearable()`; the input's `Placeholder` / `Value` / `OnInput` / `Debounce` / `Invalid()`. |
-
-Creating the option that is not there, with the page holding what was typed:
-
-```csharp
-Ui.Pillbox.Bind(() => model.TagIds).Combobox[
-    Ui.PillboxInput.Value(_search).OnInput(text => _search = text).Placeholder("Choose tags..."),
-    _tags.Select(tag => Ui.PillboxOption.Key(tag.Id).Value(tag.Id)[tag.Name]),
-    Ui.PillboxOptionCreate.MinLength(2).OnClick(CreateTag)[$"Create new \"{_search}\""]
-]
-```
-
-**Search from the database.** `Filter(false)` leaves the options to the page, and `Debounce` on the input
-among the pills — or on `Ui.PillboxSearch`, over the list — asks it once typing has paused, as
-`Ui.SelectSearch.Debounce` does:
-
-```csharp
-Ui.Pillbox.Bind(() => model.TagIds).Combobox.Filter(false)[
-    Ui.PillboxInput.OnInput(Search).Debounce(250.Milliseconds).Placeholder("Choose tags..."),
-    _found.Select(tag => Ui.PillboxOption.Key(tag.Id).Value(tag.Id)[tag.Name])
-]
-
-private async Task Search(string text) =>
-    _found = await Tag.Where(t => t.Name.Contains(text)).OrderBy(t => t.Name).Take(20).ToList();
-```
-
-Nothing is sent while the reader types into the open list. A row pressed, or Enter, during the pause adds
-the pill from the list as drawn, and the text typed since is dropped. A pick, a pill taken off and the list
-shutting each empty what was typed, and `OnInput` then hears `""` when the page had heard a search — as
-Flux's `search` model does. Backspace is heard only from an input that holds nothing, where it takes the last
-pill off.
-
-**The pills stay when the rows change.** A search the page answers may bring rows that no longer hold a
-picked option. The pillbox keeps what each answer showed when it was last drawn, for as long as the value
-holds it: the pills stand, in the order picked, the cross on one still takes it out of the value, and
-Backspace still takes the last. A select of several goes on counting and posting them the same way. A value
-that leaves takes what it showed with it, and a value no render ever drew an option for has no pill — render
-its option once, or keep it among the rows the search answers with. Measured on Flux's "With backend search".
-
-It is the list `Ui.Select` draws, under another trigger, so it ships no script either and its keys, pointer
-and search are the runtime's too: an open pillbox sends the page nothing until a row or a cross is pressed. As
-recorded on Flux's page, where it differs from the select's listbox:
-
-| | |
-| --- | --- |
-| A click, Space, ArrowDown, ArrowUp | Open the list. Enter on the closed trigger does nothing. |
-| Enter, a click on a row | Switch the row; the list stays open. Pills stand in the order they were picked. |
-| A letter on the closed trigger | Switches the next option that starts with it, without opening. |
-| The cross on a pill | Takes that option off; the list stays as it was, and what was typed among the pills is emptied. |
-| The pointer leaving the list | The row it lit goes dark; a row the keys lit stays, as in every list. |
-| A row pressed, then a key | Nothing: the press took focus to the list, as on Flux, and the keys are the trigger's. |
-| Searchable | The search field takes focus; a pick empties it and sends the cursor back to the top. |
-| Combobox | Typing opens and narrows the list; a pick empties the input; **Backspace in the empty input takes the last pill off**; Escape and Tab close and empty it. |
-
-The trigger is `role="combobox"` (with `aria-controls`, `aria-autocomplete="none"`) while there is nothing to
-type into, and `role="button"` over a search field or an input, which is then the combobox; the list is
-`role="listbox"` with `aria-multiselectable="true"`. Markers: `data-ui-pillbox`, `data-ui-pillbox-trigger`,
-`data-ui-pillbox-placeholder`, `data-ui-pillbox-input`, `data-ui-pillbox-search`, `data-ui-listbox-options`,
-`data-ui-listbox-option`, `data-ui-option-create`.
-
-The page behind an open list is locked (`data-rask-lock`), as on Flux, and the trigger keeps the keys Flux's
-keeps (`data-rask-contain-keys`): Enter, Space and the vertical arrows as a combobox, Space and the arrows as the
-button over a search field, so opening it from the keyboard does not scroll the page. The input among the pills
-keeps the list's keys while the list is open (the runtime's, with the rest of the list).
-`Ui.PillboxOptionCreate` has no `modal`: its `OnClick` is the page's to answer.
+`Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list, each a
+pill that can be taken off again, bound to a collection. `Searchable()`, `.Combobox`, `Ui.PillboxOptionCreate` and
+`Filter(false)` with `Debounce` for options found on the server; the pills stay when a search's rows no longer hold
+them. It is the select's list under another trigger, so its keys are the runtime's. Every example, the keyboard and
+the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
 
 ## Form controls
 
@@ -1592,61 +1257,10 @@ would have exactly one legal argument.
 | `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes |
 
 
-**File upload is Flux UI's** ([fluxui.dev/components/file-upload](https://fluxui.dev/components/file-upload)):
-`Ui.FileUpload` around a `Ui.FileUploadDropzone`, and a `Ui.FileItem` per file with a `Ui.FileItemRemove` in its
-`Actions`. Where Flux binds a Livewire property, the files come to the page through `OnFiles` — the same upload
-a plain file input uses — and the page draws the list from its own state:
-
-```csharp
-Ui.FileUpload.Label("Upload files").Multiple().OnFiles(Keep)[
-    Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")
-],
-Div.Class("mt-4 flex flex-col gap-2")[
-    _photos.Select((photo, index) =>
-        Ui.FileItem.Key(photo.Name).Heading(photo.Name).Size(photo.Size).Image(photo.Url)
-            .Actions(Ui.FileItemRemove.AriaLabel("Remove file: " + photo.Name).OnClick(() => _photos.RemoveAt(index))))
-]
-```
-
-Write the remove handler where the list is, as above: a handler re-renders the component it closes over, and
-one built in a static helper that closed over the list alone would remove the file and redraw nothing.
-
-| | Takes |
-|---|---|
-| `Ui.FileUpload` | `Name`, `Multiple()`, `Label`, `Description`, `Error` (a message, which also marks the input invalid), `Disabled()`, and Rask's `OnFiles`; `Accept` is the input's own attribute. Its children are the dropzone, or any markup of your own (an avatar to click). |
-| `Ui.FileUploadDropzone` | `Heading`, `Text`, `Icon` (`CloudArrowUp` by default), `Inline()` for the compact row, `WithProgress()` for a bar in place of `Text` while files upload. |
-| `Ui.FileItem` | `Heading`, `Text` (written from `Size` when unset: `162400` → `159 KB`), `Image` (a preview's address), `Size` in bytes, `Icon` (`Document` by default), `Invalid()`, and the `Actions` slot. |
-| `Ui.FileItemRemove` | `OnClick`, and `AriaLabel` ("Remove file" by default — name the file in a list of several). It removes nothing itself. |
-
-`Ui.FileUpload` is a `<label>` around a real `<input type="file">`, so a click anywhere opens the picker and the
-input keeps the keyboard (Space and Enter open it) with no script; the focus ring is drawn on the dropzone. While
-files are dragged over it the runtime writes `data-dragging` on it (the existing `data-rask-dropzone` hook) and the
-input is laid over the whole area, so the drop is the browser's own. From the moment files are chosen until
-`OnFiles` has rendered, the runtime writes `data-loading` on the upload (its `data-rask-loading` hook, which the
-upload asks for) and the dropzone shows a spinner — or, with `WithProgress()`, a bar as wide as
-`--ui-file-upload-progress` with `--ui-file-upload-progress-as-string` beside it: Flux's attribute, and its two
-variables under the kit's prefix, filled from the runtime's `--rask-progress` pair and `0%` at rest. On the
-Server host that is the upload request's own progress. In a WebAssembly app nothing is sent, so it is how much
-of the files your handler has read through `OpenReadStream`, and stays at `0%` for one that never opens them.
-In markup of your own, `in-data-dragging:` and `in-data-loading:` style the two states.
-
-A preview of a file that was only just chosen is the page's to make: read the picture in `OnFiles` and hand
-`Ui.FileItem.Image` a `data:` address (or the address it was stored under). Take the type from the browser only
-for the few an `<img>` draws, and cap the size:
-
-```csharp
-await using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
-using var bytes = new MemoryStream();
-await stream.CopyToAsync(bytes);
-var preview = $"data:{file.ContentType};base64,{Convert.ToBase64String(bytes.ToArray())}";
-```
-
-The field's label is a `<label for>` like every other field's, so a click on it opens the picker — as a click
-on Flux's label does — and the input is named by it through `aria-labelledby`, as Flux's is, so the words of
-the dropzone are not read out as part of its name.
-
-`Ui.FileInput` and its `Dropzone()` mode are gone. A plain file field is the input, as on Flux's page —
-`Ui.Input.Of<string>().Type(InputType.File).Label("Logo").OnFiles(…)`.
+**File upload is Flux UI's**: `Ui.FileUpload` around a `Ui.FileUploadDropzone`, a `<label>` around a real file input
+that takes files clicked, reached by keyboard or dropped, and a `Ui.FileItem` per file with a `Ui.FileItemRemove`.
+The files reach the page through `OnFiles`, and the page draws the list from its own state. Every example, dragging,
+progress, previews and the reference: **[rask.sh/ui/file-upload](https://rask.sh/ui/file-upload/)**.
 
 **A field with no value yet opens on its type alone**: `Ui.Input.Of<string>().Label("Search")`. A form
 control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without
@@ -1655,254 +1269,32 @@ controlled mode: the parent still owns whatever the field ends up with.
 
 ### Calendar
 
-`Ui.Calendar` is Flux UI's calendar: a month of day buttons in a grid, with the month steps over it.
-
-**A day, several days or a range is Flux's `mode`, taken as the step that opens the calendar.** No step is
-Flux's default, one day; `.Multiple` and `.Range` hand back the calendar that binds that mode's type, so a range
-bound to a single day does not compile:
-
-```csharp
-Ui.Calendar.Bind(() => model.Delivery)                     // single (Flux's default): DateOnly or DateOnly?
-Ui.Calendar.Multiple.Bind(() => model.DaysOff)             // mode="multiple": List<DateOnly>, HashSet<DateOnly>, …
-Ui.Calendar.Range.Bind(() => model.Stay)                   // mode="range": UiDateRange or UiDateRange?, two months
-Ui.Calendar.Value(day).OnChange(d => day = d)              // one day, controlled
-Ui.Calendar.Multiple.Values([monday, friday])              // several, controlled
-Ui.Calendar.Range.Value(new UiDateRange(from, to))         // a range, controlled
-Ui.Calendar.Value(default(DateOnly))                       // nothing chosen yet; it keeps the pick itself
-Ui.Calendar.Mode(mode).Bind(() => model.Stay)              // the mode as a value (Ui.CalendarMode)
-```
-
-`Ui.Calendar.Single` is `Ui.Calendar`. A mode given as a value — `Ui.Calendar.Mode(Ui.CalendarMode.Range)`, or
-`.Mode(…)` / Flux's bare `.Multiple()` on an opened calendar — has to agree with what is bound; when it does not,
-rendering throws an `InvalidOperationException` that names both ("Ui.Calendar is in Range mode but what it binds
-is Single's (a DateOnly). Open it with Ui.Calendar.Range and bind a UiDateRange.").
-
-A second click on the chosen day clears it (`default(DateOnly)`, or `null` through a nullable binding).
-`UiDateRange(Start, End)` is always whole: the first click is held by the calendar and drawn as the start, the
-stretch to the day under the pointer or the keyboard is drawn as it would be, and the second click — on that day
-or a later one — writes the range; a click before the start begins again from there. `Count`, `Contains(day)`
-and `Between(a, b)` read it, and `default(UiDateRange)` is nothing chosen.
-
-| Step | Flux | |
-|---|---|---|
-| `Min(day)` `Max(day)` | `min` `max` | days outside are disabled, and a month step is too once the whole month that way is out of reach (`min="today"` is `Min(DateOnly.FromDateTime(DateTime.Today))`) |
-| `Unavailable([..])` | `unavailable` | struck through and disabled |
-| `MinRange(3)` `MaxRange(10)` | `min-range` `max-range` | while a range waits for its end, the days that would make it too short or too long are disabled, and so is every day before the start |
-| `.Xs` `.Sm` `.Lg` `.Xl` `.Xxl` | `size` | 36, 40, 48, 56 and 64px cells; 44px unset |
-| `StartDay(DayOfWeek.Monday)` | `start-day` | the locale's own first day unless set |
-| `Months(2)` | `months` | side by side; one, or two for a range |
-| `OpenTo(day)` `ForceOpenTo()` | `open-to` `force-open-to` | the month shown while nothing is chosen — or whatever is chosen |
-| `Navigation(false)` `Static()` | `navigation` `static` | no month steps; a calendar to look at, with no buttons |
-| `WeekNumbers()` `FixedWeeks()` | `week-numbers` `fixed-weeks` | the ISO week of each row; always six rows |
-| `SelectableHeader()` `WithToday()` | `selectable-header` `with-today` | month and year selects; a shortcut that comes back to this month, then picks today |
-| `WithInputs()` | `with-inputs` | a field over the months to type the day into — a range's start and end; none for several days. A whole date typed is chosen at once; a pick is written into it |
-| `Locale("ja-JP")` | `locale` | month, weekday and day names, and the first day of the week; the app's culture ([localization](localization.md)) unless set |
-
-**Keyboard.** One day is in the Tab order — the chosen one, else today, else the 1st. The arrows walk days and
-weeks, stepping over disabled days and into the neighbouring month, and the browser's focus goes with the day;
-PageUp/PageDown and Home/End page a month and let the focus fall to the page, as Flux's do; Enter or Space picks.
-None of those keys scrolls the page behind the grid. Each
-cell is a `gridcell` with `aria-selected` and its button carries the full date as its name ("Thursday, January 15,
-2026"). The keys and the focus are the runtime's [behaviour hooks](js-interop-runtime.md#keys-and-focus):
-`data-rask-contain-keys` and `data-rask-focus-follows` on the grid, `data-rask-focus-target` on the tab stop.
+`Ui.Calendar` is Flux UI's calendar. Its mode is the step that opens it: `Ui.Calendar` binds a `DateOnly`,
+`Ui.Calendar.Multiple` a collection of days and `Ui.Calendar.Range` a `UiDateRange`, written only once it has both
+ends. Min and max, unavailable days, week numbers, inputs over the months, the keyboard and the reference:
+**[rask.sh/ui/calendar](https://rask.sh/ui/calendar/)**.
 
 ### Date picker
 
-`Ui.DatePicker` is Flux UI's date picker: a field-shaped button showing the choice ("Jan 20, 2026"), with the
-calendar in a popover — the browser's, so the top layer, Escape, a click outside and focus back on the button come
-with it. A day closes it on the pick, a range on its second click.
-
-**On a phone** — under 640 px — it is what Flux's is there, with nothing to write for it: the same popup is a
-sheet centred over a page dimmed 10%, one month whatever `Months` says, days 44px a thumb can press, the presets
-a native select under the days, and **Cancel** and **Select date** (**Select range** on a range) at its foot. A
-pick marks the day and writes nothing; the button writes it — through the same binding, so a plain `Bind` takes
-it with the reader's next action and `.Live()` at once — and Cancel, Escape and a press on the dimmed page leave
-the value as it was. The stylesheet decides which of the two it is (`sm:`), and the page hears it from the
-browser through a box only the stylesheet sizes (`data-rask-measure`), so a window dragged across 640 px changes
-with the next pick. A day marked on a sheet that was then closed is still marked when it opens again, and its
-button still writes it: that is Flux's own, measured. `Ui.Calendar` folds to one month and the larger days the
-same way.
-
-```csharp
-Ui.DatePicker.Bind(() => booking.Arrival).Label("Arrival")                         // DateOnly
-Ui.DatePicker.Range.Bind(() => booking.Stay).Label("Stay").Min(today).MinRange(3)  // mode="range": UiDateRange
-Ui.DatePicker.Bind(() => booking.Arrival).Type(Ui.DatePickerType.Input)            // month / day / year fields to type into
-Ui.DatePicker.Range.Bind(() => report.Range).WithPresets().Min(new DateOnly(2012, 1, 1)) // Today, Yesterday, This Week, …, All Time
-Ui.DatePicker.Range.Bind(() => report.Range)
-    .Presets([Ui.DateRangePreset.Today, Ui.DateRangePreset.Last30Days, Ui.DateRangePreset.Custom])
-Ui.DatePicker.Range.Bind(() => booking.Stay).Trigger(
-    Div.Class("flex gap-4")[Ui.DatePickerInput.Label("Start"), Ui.DatePickerInput.Label("End")])
-Ui.DatePicker.Bind(() => booking.Departure).Clearable()                            // DateOnly? — the ✕ makes it null again
-Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs()                          // start and end typed over the months
-Ui.DatePicker.Range.Bind(() => booking.Stay).WithInputs(Ui.DatePickerInputVariant.Native) // the browser's date fields there
-Ui.DatePicker.Bind(() => booking.Arrival).Trigger(Ui.DatePickerInput.Native)       // the browser's date field as the trigger
-```
-
-**Typed dates are parts unless you ask for the browser's.** `Ui.DatePickerInput` and `WithInputs()` draw month, day
-and year as parts in the locale's order (Flux's `custom`); `.Native` / `Ui.DatePickerInputVariant.Native` draws the
-browser's own `<input type="date">` in the same box (Flux's `native`). Flux's docs default to native and call custom
-the recommended and future default; its own pages draw custom, and so does the kit unless told.
-
-It takes the calendar's steps (`Min`, `Max`, `Unavailable`, `MinRange`, `MaxRange`, `Months`, `OpenTo`,
-`ForceOpenTo`, `StartDay`, `WeekNumbers`, `SelectableHeader`, `WithToday`, `FixedWeeks`, `Locale`), a field's
-(`Label`, `Description`, `DescriptionTrailing`, `Badge`, `Invalid()`, `Disabled()`, validation through the form), and
-its own: `Placeholder`, `Size` (the calendar's cells), `WithConfirmation()` (nothing is written until "Select
-date"), `WithPresets()` / `Presets([..])`, and `Trigger(…)` for a trigger of your own built from
-`Ui.DatePickerButton` or `Ui.DatePickerInput`. A preset writes `UiDateRange.Of(preset, today, startDay, Min)`,
-whose `Preset` names it, and the button then shows the preset's label. There is no multiple mode, as in Flux:
-several days are `Ui.Calendar`'s.
-
-`Clearable()` — on the picker, or on a `Ui.DatePickerButton` / `Ui.DatePickerInput` in its `Trigger` — puts a
-button in the trigger, before its chevron, while a date is chosen. A press empties the picker: a bound `DateOnly?`
-or `UiDateRange?` becomes `null`, one that cannot be null goes back to its unset value (`default`, which is also
-what `OnChange` hears on a picker the parent owns), the typed fields are emptied, and a choice still waiting for
-"Select date" is dropped. A range is emptied whole. A disabled picker shows no button. Flux documents the prop and
-draws it on none of its public pages, so the button is the time picker's: the same 32px ✕, 30px from the trigger's
-end. The pickers' and the listbox's ✕ stay inside the trigger wherever the control is laid out; a `Ui.Input` that a
-row or a grid cell stretches taller than its box centres its ✕, icons and buttons in that room, as Flux's own input does.
-
-**Keys and presses, as measured on Flux.** Enter, Space and either vertical arrow open the closed button. The
-open popup holds the page behind it still — no scroll, no pointer (`data-rask-lock`). The presets are a radio
-group one arrow walks, and the preset an arrow reaches is chosen, which closes the picker. The typed trigger is
-ONE field in three parts: digits only, a part that can take no more moves on (3 is March), the horizontal arrows
-walk the parts and the vertical ones step them, Backspace steps back, a pasted date is shared out. A whole date
-is written as soon as the year has four digits. Everything in the trigger but a part opens the calendar; a press
-in a part only puts the caret there. The parts are the runtime's
-[`data-rask-segments`](js-interop-runtime.md#fields): they are rendered with no value, and ONE hidden field
-beside them carries `yyyy-MM-dd` to the binding.
-
-**Where the typed trigger departs from Flux, on purpose (owner's decision, 2026-10-12).** Flux keeps the last
-whole date behind parts that no longer show it: erase the month, save the form, and the old date is stored.
-Here the parts say what they hold when the reader leaves them. Half filled — a day and no month, one end of a
-range — is no date: the field says "Enter a valid date." under it, the save is refused and the value the
-picker held is not saved in its place; the first key of a correction takes the sentence away. With every part
-emptied the picker is nothing chosen (`null` where the member is nullable, and a required one says so). The
-look and the keys are Flux's; only what reaches the binding differs
-([forms](forms-validation.md#what-a-number-field-says-when-it-cannot-read-what-was-typed)).
+`Ui.DatePicker` is Flux UI's date picker: a field-shaped button over the calendar in a popover, a day or a range
+(`Ui.DatePicker.Range`), typed in parts with `Type(Ui.DatePickerType.Input)`, `Ui.DatePickerInput` or
+`WithInputs()` (the browser's own date fields with `.Native` and `WithInputs(Ui.DatePickerInputVariant.Native)`),
+with presets, `Clearable()`, and Flux's sheet on a phone. A half-filled date is no date, by the owner's decision.
+Every example and the reference: **[rask.sh/ui/date-picker](https://rask.sh/ui/date-picker/)**.
 
 ### Time picker
 
-`Ui.TimePicker` is Flux UI's time picker: a button showing the chosen time (or, with `.Type(Ui.TimePickerType.Input)`,
-hour / minute / AM-PM fields to type into) over a list of times in a popover.
-
-```csharp
-Ui.TimePicker.Bind(() => model.StartsAt).Label("Starts at")              // TimeOnly? — one time or none
-Ui.TimePicker.Bind(() => model.Slots)                                     // List<TimeOnly> — several; the list stays open
-Ui.TimePicker.Value(time).OnChange(t => time = t).Interval(15).Min(new(9, 0)).Max(new(17, 0))
-Ui.TimePicker.Of<TimeOnly?>().Unavailable([new TimeOnly(12, 0), new UiTimeRange(new(13, 0), new(13, 59))])
-```
-
-The bound type says how many it picks: `TimeOnly?` one or none, `TimeOnly` always one, a collection of `TimeOnly`
-several (Flux's `multiple`). Steps: `Interval` (minutes, 30), `Min`/`Max`, `Unavailable` (times and `UiTimeRange`
-stretches, listed but disabled), `OpenTo`, `.TwelveHour`/`.TwentyFourHour` (the culture's own clock unless set),
-`Locale("ja-JP")`, `Placeholder`, `.Sm`/`.Xs`, `Clearable()`, `Disabled()`, `Invalid()`, `Dropdown(false)` (typed
-trigger without its list), and `Label`/`Description`/`DescriptionTrailing`/`Badge` for the field around it. The button
-is the combobox and keeps focus: Space or a vertical arrow opens it (Enter on the closed button does nothing, as on
-Flux), arrows move a cursor through the list — which scrolls to keep it in view while the page stays — Enter picks,
-Escape closes. The open list holds the page still (`data-rask-lock`). The typed trigger is one field in parts, as the
-date picker's is: 9 is nine o'clock and moves on, `a` and `p` set the half of the day, and a whole time reaches the
-binding through one hidden field as `HH:mm`.
-
-The same departure from Flux as the date picker's, by the same decision (2026-10-12): an hour with no minute is
-no time — "Enter a valid time." under the field, the save refused, the time the picker held not saved in its
-place — and every part emptied is no time chosen. A `TimeOnly` that cannot be unset says the sentence then too.
+`Ui.TimePicker` is Flux UI's time picker: a button over a list of times, or hour and minute typed in parts. A
+`TimeOnly?` picks one or none and a collection of `TimeOnly` several. Every example, the keyboard and the reference:
+**[rask.sh/ui/time-picker](https://rask.sh/ui/time-picker/)**.
 
 ### Color picker
 
-`Ui.ColorPicker` is [Flux UI's color picker](https://fluxui.dev/components/color-picker): a colour picked from a
-palette, dragged out of a saturation and brightness area, or typed in any CSS form.
-
-```csharp
-Ui.ColorPicker.Bind(() => settings.Theme).Label("Theme")            // two-way, a string member; written with the save
-Ui.ColorPicker.Bind(() => settings.Theme).Live()                    // written as it is chosen
-Ui.ColorPicker.Value(_theme).OnChange(color => _theme = color)      // controlled
-Ui.ColorPicker.Value("#bada55")                                     // keeps the colour itself
-
-Ui.ColorPicker.Value(_tint).OnChange(Tint).Format(Ui.ColorPickerFormat.Rgba)   // rgb(99 102 241 / 0.5), with an alpha slider
-Ui.ColorPicker.Value(_brand).OnChange(Brand).Type(Ui.ColorPickerType.Button).Sm
-Ui.ColorPicker.Value(_brand).OnChange(Brand).Swatches([("#ef4444", "Red"), ("#22c55e", "Green"), "#3b82f6"])
-Ui.ColorPicker.Value(_brand).OnChange(Brand).Swatches([]).Dropper().Clearable().Copyable()
-```
-
-| Prop | What it does |
-|---|---|
-| `Bind` / `Value` + `OnChange` | Flux's `wire:model` / `value`. The value is CSS text in `Format`, whatever CSS it was given in; no colour is the empty string. A bound colour is written with the reader's next action, `.Live()` writes it as it is chosen. |
-| `Format` | `Hex` (default), `Hexa`, `Rgb`, `Rgba`, `Hsl`, `Hsla`. An alpha format adds the opacity slider. |
-| `Type` | `Input` (default: a text input with a swatch button) or `Button` (one button showing the colour). |
-| `Size` | `.Sm`, `.Xs`; 40px unless one says smaller. |
-| `Swatches` | Your palette in place of the 24 Tailwind colours: strings or `(value, label)` pairs. An empty list hides it — Flux's `:swatches="false"`. |
-| `Dropper` | A button in the popover that picks a colour from the screen. It is there only in a browser that has an EyeDropper. |
-| `Clearable` | A clear button on the input trigger, while there is a colour. |
-| `Copyable` | A button on the input trigger that copies the colour, as it is written, to the clipboard. |
-| `Placeholder`, `Name`, `Label`, `Description`, `Disabled`, `Invalid` | As on every Flux form control; `Name` adds a hidden input for a plain form post. |
-
-**Children compose the popover**, in any order, from `Ui.ColorPickerArea`, `Ui.ColorPickerSlider`
-(`.Channel(Ui.ColorPickerChannel.Hue)` or `Alpha`), `Ui.ColorPickerInput`, `Ui.ColorPickerSwatches`
-(the picker's palette, or its own `Ui.ColorPickerSwatch.Value("#ef4444").Label("Red")` children) and
-`Ui.ColorPickerDropper`:
-
-```csharp
-Ui.ColorPicker.Bind(() => settings.Theme)[
-    Div.Class("flex flex-col gap-3")[
-        Ui.ColorPickerInput.Placeholder("#000000"),
-        Ui.Separator,
-        Ui.ColorPickerArea,
-        Ui.ColorPickerSlider.Channel(Ui.ColorPickerChannel.Hue)
-    ]
-]
-```
-
-**What it does, as Flux's does.** The swatch button (or the button trigger, or ArrowDown in the input) opens the
-popover and focuses the area; Escape and a press outside close it and focus returns. Under a pointer every change
-is the page's at once. The area's thumb moves by 2 with the arrows and by 10 with Shift, PageUp/PageDown go to
-full and no brightness, Home and End to no and full saturation; a slider steps by 1, by 10 with Shift, and by a
-tenth of its track with a page key. A typed colour is taken on Enter or on leaving the input. The palette is a listbox with one tab stop: the
-arrows walk it eight to a row, Enter or Space picks.
-
-**On a phone it is a sheet.** Below `sm` the popover is centred over the page, which does not scroll behind it,
-and it keeps what is chosen until **Select**: Cancel, Escape and a press outside leave the colour as it was. A
-swatch does not wait — it is taken, and the sheet closes.
-
-**What a typed colour becomes is what Flux makes of it — also where that is wrong.** Hex (with its `#` in every
-length, bare in three, six and eight digits), a CSS colour name, `rgb()`, `hsl()` and `hwb()` are read as CSS
-reads them. Flux hands every other form to the browser and reads the NUMBERS of the colour the browser writes
-back as red, green and blue, so the wide-gamut functions come out as something else, and the kit reproduces it
-digit for digit (the owner's decision, 2026-10-07; measured on fluxui.dev):
-
-| Typed | Flux and the kit write |
-|---|---|
-| `oklch(0.7 0.1 200)` | `#0100c8` — lightness, chroma and hue read as red, green, blue |
-| `oklch(0.7 0.1 -30)` | `#010014a` — the hue, brought to 330, is no two hex digits |
-| `oklch(0.7 none 200)` | `#NaNNaNNaN` |
-| `lab(50 -40 30)` | `#32281e` — the sign is not read |
-| `lch(50 150% 30)` | `#32e11e` |
-| `color(srgb 1 0 0)` | `#010000` |
-| `color(display-p3 1 0 0)` | `#030100` — the 3 of `p3` is the red |
-| `color(xyz 0.3 0.4 0.5)` | `#410000` — written back as `xyz-d65` |
-
-`color-mix()`, relative colours, `calc()`, `currentColor` and the system colours are not read: each needs the
-browser's own answer.
-
-**Text that is no colour is refused, not put back** — the one departure from Flux, and only in a form. Flux puts
-the last colour back and says nothing. A picker bound in a `Form` keeps `#12` in the field, says "Enter a valid
-color." under it with the next action and holds the save, as a half-typed date does; a colour typed after it
-takes the sentence away. A picker bound to nothing a form could show a message in puts the last colour back.
-
-**How.** The popover is a native modal `<dialog>` the button opens by `command="show-modal"`; the runtime shows
-and closes it when the page says so (`data-rask-modal-open`), dismisses it (`data-rask-modal="any"`) and is hung
-under the trigger by the CSS anchor rules the date picker's popup uses (near an edge it turns to the other side;
-the runtime's `data-rask-place`, which also slides a panel and holds its height, places popovers and is not
-asked here). The pointer is the runtime's:
-the area and each track are `data-rask-drag` surfaces, so a thumb is under the pointer every frame and the page
-hears one event a frame through one bound field a surface. The sliders hold native range inputs for the
-keyboard, and those, the area and the palette keep their keys from the page
-(`data-rask-contain-keys`), a press on the area leaves focus where it was (`data-rask-press-keeps-focus`), the
-dropper shows where the browser has one (`data-rask-requires`), the copy button writes the clipboard in the
-click (`data-rask-copy`), and a box only the stylesheet sizes tells the page whether the popover is the sheet
-(`data-rask-measure`). The colour maths and every key are C#; the kit ships no script.
-
-Markers: `data-ui-color-picker`, `-trigger`, `-button`, `-swatch-button`, `-preview`, `-input`, `-copy`, `-area`,
-`-area-thumb`, `-slider`, `-popover-input`, `-swatches`, `-swatch`, `-dropper`, `-announce`.
+`Ui.ColorPicker` is [Flux UI's color picker](https://fluxui.dev/components/color-picker): a colour from a palette,
+dragged out of a saturation and brightness area, or typed in any CSS form, written back in `Format`. Children
+compose the popover from its parts; on a phone it is a sheet. A typed wide-gamut colour becomes what Flux makes of
+it, digit for digit, and text that is no colour holds a form's save. Every example, the keys and the reference:
+**[rask.sh/ui/color-picker](https://rask.sh/ui/color-picker/)**.
 
 ## The rule the whole kit rests on
 

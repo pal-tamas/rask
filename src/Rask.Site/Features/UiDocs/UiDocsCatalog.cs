@@ -325,12 +325,90 @@ internal static class UiDocsCatalog
         + "with what is typed, and a resize handle.",
         "textarea");
 
+    public static UiDocsEntry Autocomplete { get; } = new(
+        Routes.UiAutocompletePage(), "Autocomplete", Components,
+        "Autocomplete input in C#: Ui.Autocomplete",
+        "Flux UI's autocomplete in C#: an input that suggests what to type, writes the picked text into itself, and asks "
+        + "the server once typing has paused.",
+        "autocomplete");
+
+    public static UiDocsEntry Calendar { get; } = new(
+        Routes.UiCalendarPage(), "Calendar", Components,
+        "Calendar component in C#: Ui.Calendar",
+        "Flux UI's calendar in C#: a day, several days or a range from a month grid, with limits, unavailable days, week "
+        + "numbers, inputs and the keyboard.",
+        "calendar");
+
+    public static UiDocsEntry ColorPicker { get; } = new(
+        Routes.UiColorPickerPage(), "Color picker", Components,
+        "Color picker in C#: Ui.ColorPicker",
+        "Flux UI's color picker in C#: swatches, a saturation area, hue and alpha sliders, hex, rgb or hsl typed in, a "
+        + "button trigger, a dropper and copy.",
+        "color-picker");
+
+    public static UiDocsEntry Composer { get; } = new(
+        Routes.UiComposerPage(), "Composer", Components,
+        "Chat message composer in C#: Ui.Composer",
+        "Flux UI's composer in C#: a message box with buttons around it for a chat or a prompt, sent on Cmd+Enter or "
+        + "Enter, growing a line at a time.",
+        "composer");
+
+    public static UiDocsEntry DatePicker { get; } = new(
+        Routes.UiDatePickerPage(), "Date picker", Components,
+        "Date picker and range picker in C#: Ui.DatePicker",
+        "Flux UI's date picker in C#: a day or a range from a calendar popup or typed in parts, with presets, limits, a "
+        + "clear button and a sheet on a phone.",
+        "date-picker");
+
+    public static UiDocsEntry Editor { get; } = new(
+        Routes.UiEditorPage(), "Rich text editor", Components,
+        "Rich text editor in C#: Ui.Editor",
+        "Flux UI's rich text editor in C#: Tiptap under a toolbar you name or compose, bound to HTML, with Markdown "
+        + "shortcuts and buttons of your own.",
+        "editor");
+
+    public static UiDocsEntry FileUpload { get; } = new(
+        Routes.UiFileUploadPage(), "File upload", Components,
+        "File upload with drag and drop in C#: Ui.FileUpload",
+        "Flux UI's file upload in C#: a dropzone that takes files clicked, dropped or reached by keyboard, file items, "
+        + "progress, and an uploader of your own.",
+        "file-upload");
+
+    public static UiDocsEntry Phone { get; } = new(
+        Routes.UiPhonePage(), "Phone", Components,
+        "Phone number input in C#: Ui.Phone",
+        "Flux UI's phone field in C#: an international number with a searchable list of flags, formatted as it is typed "
+        + "and bound as E.164.",
+        "phone");
+
+    public static UiDocsEntry Pillbox { get; } = new(
+        Routes.UiPillboxPage(), "Pillbox", Components,
+        "Pillbox multi-select in C#: Ui.Pillbox",
+        "Flux UI's pillbox in C#: several answers shown as pills to take off again, with search, an input among the "
+        + "pills, a create row and options from the server.",
+        "pillbox");
+
+    public static UiDocsEntry TimePicker { get; } = new(
+        Routes.UiTimePickerPage(), "Time picker", Components,
+        "Time picker in C#: Ui.TimePicker",
+        "Flux UI's time picker in C#: one time or several from a list or typed in parts, 12- or 24-hour, with intervals, "
+        + "limits and unavailable times.",
+        "time-picker");
+
+    public static UiDocsEntry Toggle { get; } = new(
+        Routes.UiTogglePage(), "Toggle", Components,
+        "Toggle button in C#: Ui.Toggle",
+        "Flux UI's toggle in C#: a setting turned on or off from a compact button whose icon fills in, with a tooltip, a "
+        + "label and a spinner while it saves.",
+        "toggle");
+
     /// <summary>Every page, in sidebar order.</summary>
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Accordion, Avatar, Badge, Brand, Button, Breadcrumbs, Callout, Card, Carousel, Chart, Checkbox, Command, Context,
-        Dropdown, Field, Filters, Flag, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Popover, Profile,
-        Progress, Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, Toast, Tooltip,
+        Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
+        ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
+        Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, Select,
+        Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

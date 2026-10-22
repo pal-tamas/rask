@@ -56,15 +56,9 @@ public sealed class UiKitPhoneTests(WasmExampleAppFixture app, PlaywrightFixture
 
     private async Task<ILocator> OpenAsync()
     {
-        await Page.GotoAsync(Docs);
-        await Expect(Page.Locator(".side-nav a.side-nav-link[aria-current='page']").First).ToBeVisibleAsync(
-            new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
+        await OpenUiPageAsync("phone", "Phone");
 
-        await ClickSidebar("Data input");
-        await Expect(Page.Locator("main h1")).ToContainTextAsync("Data input",
-            new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
-
-        var scope = Page.Locator("[data-testid='ui-phone']");
+        var scope = Page.Locator("[data-testid='ui-phone-bound']");
         await Expect(scope).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
         await scope.ScrollIntoViewIfNeededAsync();
         return scope;

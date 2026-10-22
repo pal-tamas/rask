@@ -24,7 +24,7 @@
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages          # writes the Rask pages
 //         node scripts/flux/parity-date.mjs date-picker [--refresh] [--all]  # --refresh re-measures Flux
 //         node scripts/flux/parity-date.mjs time-picker --section interval
-//         node scripts/flux/parity-date.mjs date-picker --live http://localhost:5210/docs/ui/data-input
+//         node scripts/flux/parity-date.mjs date-picker --live http://localhost:5210/ui/date-picker/
 
 import { spawnSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
