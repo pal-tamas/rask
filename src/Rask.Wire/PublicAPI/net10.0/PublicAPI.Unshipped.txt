@@ -488,6 +488,7 @@ static Rask.Clock.Now.get -> System.DateTimeOffset
 static Rask.Clock.TimeProvider.get -> System.TimeProvider!
 Rask.Current
 static Rask.Current.Cancellation.get -> System.Threading.CancellationToken
+static Rask.Current.Service<T>() -> T
 Rask.Wire.PushSubscription
 Rask.Wire.PushSubscription.<Clone>$() -> Rask.Wire.PushSubscription!
 Rask.Wire.PushSubscription.Auth.get -> string!

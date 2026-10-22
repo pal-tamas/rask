@@ -1,5 +1,7 @@
 namespace Rask.Wire.Tests;
 
+// The fallbacks are process-wide: a class that sets one runs apart from every class that reads it.
+[Collection(nameof(Ambient))]
 public sealed class OnDemandServicesTests
 {
     [Fact]
@@ -98,7 +100,7 @@ public sealed class OnDemandServicesTests
         Assert.Equal(0, app.Starts);
     }
 
-    private sealed class WaitingApp : OnDemandServices
+    internal sealed class WaitingApp : OnDemandServices
     {
         private IServiceProvider? _started;
 

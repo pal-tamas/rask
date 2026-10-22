@@ -36,6 +36,7 @@
     <InternalsVisibleTo Include="Rask.Core.Tests"/>
     <InternalsVisibleTo Include="Rask.Wire.Tests"/>
     <InternalsVisibleTo Include="Rask.Pdf"/>
+    <InternalsVisibleTo Include="Rask.Server"/>
   </ItemGroup>
 
 </Project>

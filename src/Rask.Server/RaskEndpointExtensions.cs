@@ -316,6 +316,9 @@ public static partial class RaskEndpointExtensions
         // Each live event gets the app's scoped services fresh, as a request would (docs/composition-callbacks-context.md).
         EventScopeCatalog.Add(services);
 
+        // Outside an event, a render and a job, a static call reaches the HTTP request in progress (Current.Service<T>()).
+        RequestAmbient.Register(services);
+
         // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
         // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));

@@ -94,10 +94,7 @@ public static class Toast
             return fake;
         }
 
-        var toaster = (Ambient.Needed ?? throw new InvalidOperationException(
-                "Toast was called outside any work in progress — an event handler, a render or a request — so there "
-                + "is no session to show it in."))
-            .GetRequiredService<IToaster>();
+        var toaster = Ambient.Require("Toast", "Inject IToaster there instead.").GetRequiredService<IToaster>();
 
         return toaster as IToastQueue ?? new AddOnly(toaster);
     }

@@ -39,16 +39,22 @@ public static class Pdf
     // job's in a job, the request's in an endpoint. Never a user the caller names.
     private static async Task<byte[]> Run(Func<PagePrinting, CancellationToken, Task<byte[]>> print)
     {
-        if (Ambient.Needed is { } services)
+        // A request's own services are ambient too, but its user is the request's principal, not a session's.
+        var request = new HttpContextAccessor().HttpContext;
+        if (Ambient.Needed is { } services && services != request?.RequestServices)
         {
             var user = services.GetService<IUserProvider>()?.Current;
             return await print(Printing(services, user), Ambient.CancellationToken).ConfigureAwait(false);
         }
 
         // A minimal-API endpoint has no work in progress of Rask's: the request is it, made ambient for this call.
-        var request = new HttpContextAccessor().HttpContext ?? throw new InvalidOperationException(
-            "Pdf.From was called outside any work in progress — a handler, a render, a job, a request — so there is "
-            + "no app and no user to print for.");
+        if (request is null)
+        {
+            throw new InvalidOperationException(
+                "Pdf.From was called outside any work in progress — a handler, a render, a job, a request — so there is "
+                + "no app and no user to print for.");
+        }
+
         using (Ambient.Enter(request.RequestServices))
         {
             return await print(Printing(request.RequestServices, request.User), request.RequestAborted).ConfigureAwait(false);
