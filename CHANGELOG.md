@@ -1358,6 +1358,22 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Rask.Pdf prints inside the scaffolded x64 container image.** Before: every template Dockerfile installed the
+  headless shell's libraries without `libatk-bridge2.0-0t64`, so on `linux/amd64` the shell died at start
+  ("error while loading shared libraries: libatk-bridge-2.0.so.0") and `Pdf.From(…)` failed with "Chromium closed
+  its DevTools pipe"; the arm64 shell does not link it, which hid the gap. After: all nine images install it, and
+  the CLI build gate builds each template's runtime stage with the pinned shell, for the daemon's own architecture,
+  and fails on any library `ldd` cannot find or a shell that cannot print a page.
+- **Rask.Pdf prints in the scaffolded image on a host that restricts user namespaces.** Before: on Ubuntu 24.04 and
+  later (AppArmor) the shell died with "No usable sandbox!". After: every template image sets
+  `ENV Rask__Pdf__NoSandbox=true` (the browser prints only the app's own pages, its requests answered from the app's
+  origin, scripts off; delete the line on a host without the restriction), and the image gate proves it on a host
+  whose seccomp profile refuses user namespaces.
+- **A browser that will not start says why.** Before: "Chromium closed its DevTools pipe: it exited or crashed." and
+  its last stderr lines. After: the exception, and an error logged under `Rask.Pdf`, name the cause first — a missing
+  library with the Ubuntu package that ships it (`libatk-bridge-2.0.so.0 is missing … apt-get install
+  libatk-bridge2.0-0t64`), a refused sandbox with `Rask:Pdf:NoSandbox=true` (`Rask__Pdf__NoSandbox`). A document that
+  runs out of time adds "A very long document can take longer: raise Rask:Pdf:Timeout."
 - **An app's own context used inside `Db.Transaction` runs inside the transaction — plain EF Core and raw SQL alike.**
   Before: a context from the app's factory (`AddRaskData<T>(o => …)`, or any carrying Rask's interceptors), used
   inside `await Db.Transaction(async () => { ... })` without `db:` — a LINQ read, `SaveChangesAsync`,

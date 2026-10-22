@@ -115,7 +115,7 @@ Rask.Pdf prints with the **Chrome for Testing headless shell**, at one pinned ve
 | Where | How the browser gets there |
 | --- | --- |
 | Your machine, `rask dev`, `dotnet test`, CI | Building an app that references Rask.Pdf fetches the pinned shell into the user cache — `~/Library/Caches/Rask`, `~/.cache/rask` (or `$XDG_CACHE_HOME/rask`), `%LOCALAPPDATA%\Rask\Cache` — once per version, after checking its SHA-256. |
-| The container image | The scaffolded Dockerfile has `dotnet publish` fetch it into the build stage, copies it to `/opt/rask/chrome`, and installs the libraries it links against plus fonts — only when the app references Rask.Pdf. About 510 MB more on `aspnet:10.0`. |
+| The container image | The scaffolded Dockerfile has `dotnet publish` fetch it into the build stage, copies it to `/opt/rask/chrome`, and installs the libraries it links against plus fonts — only when the app references Rask.Pdf. About 510 MB more on `aspnet:10.0`. It also sets `Rask__Pdf__NoSandbox=true` — see [In a container](#in-a-container). |
 | Anywhere else | Install Chromium or Google Chrome and set `Rask:Pdf:ChromiumPath`; the build's fetch is off with `<RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>`. |
 
 An app scaffolded before Rask.Pdf existed adds the same lines to its Dockerfile: copy them from any template's
@@ -124,6 +124,19 @@ release at least a week old.
 
 Without a browser, the first print fails with what to do — never a download.
 
+### In a container
+
+Chromium's sandbox needs unprivileged user namespaces, and a host on Ubuntu 24.04 or later refuses them to a
+container (AppArmor), so the browser dies at start with "No usable sandbox". The scaffolded Dockerfile therefore sets
+`ENV Rask__Pdf__NoSandbox=true`, as Browsershot, Grover and Puppeteer advise inside a container. What is given up is
+small: the browser only ever prints the app's own pages, every request it makes is answered by Rask from the app's
+origin, and scripts are off. On a host without that restriction you may delete the line; `rask dev` and `dotnet test`
+keep the sandbox on.
+
+A browser that will not start says why. A missing library is named with the Ubuntu package that ships it
+(`libatk-bridge-2.0.so.0 is missing … apt-get install libatk-bridge2.0-0t64`), a refused sandbox with the setting
+above — in the exception, and logged as an error under the `Rask.Pdf` category.
+
 ## Settings
 
 `Rask:Pdf` in `appsettings.json` (or `Rask__Pdf__…` in the environment):
@@ -131,7 +144,7 @@ Without a browser, the first print fails with what to do — never a download.
 | Setting | Default | |
 | --- | --- | --- |
 | `ChromiumPath` | the pinned shell, then the usual install folders and `PATH` | A browser of your own. |
-| `NoSandbox` | `false` | Starts Chromium with `--no-sandbox`. Only for a host whose kernel forbids the sandbox's user namespaces; the documents printed are always the app's own. |
+| `NoSandbox` | `false` (`true` in the scaffolded image) | Starts Chromium with `--no-sandbox`. For a container whose host forbids the sandbox's user namespaces; the documents printed are always the app's own. |
 | `MaxConcurrentPrints` | `2` | How many documents print at once; the rest wait. Memory is the bound: a 5,000-row table peaks its renderer at about 1.2 GB. |
 | `Timeout` | `00:00:30` | How long one document may take; longer is a `TimeoutException`. |
 | `MaxPages` | `1000` | The longest document that prints; a longer one fails rather than come out cut. |

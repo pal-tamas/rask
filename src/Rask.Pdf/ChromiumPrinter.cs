@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Logging;
 
 namespace Rask.Printing;
 
@@ -6,7 +7,7 @@ namespace Rask.Printing;
 /// The app's one Chromium, started at the first print and kept: a bounded number of documents print at once, a
 /// browser that crashed is replaced at the next print, and disposing (with the host) closes it.
 /// </summary>
-internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposable
+internal sealed partial class ChromiumPrinter(ChromiumSettings settings, ILogger? logger = null) : IAsyncDisposable
 {
     private static readonly TimeSpan ColdStart = TimeSpan.FromMinutes(2);
     private readonly SemaphoreSlim _turns = new(settings.MaxConcurrentPrints, settings.MaxConcurrentPrints);
@@ -51,7 +52,7 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
                 throw new TimeoutException(
                     string.Create(
                         CultureInfo.InvariantCulture,
-                        $"The PDF was not ready within {settings.Timeout.TotalSeconds:0.#} seconds (Rask:Pdf:Timeout), {progress.Describe()}."),
+                        $"The PDF was not ready within {settings.Timeout.TotalSeconds:0.#} seconds (Rask:Pdf:Timeout), {progress.Describe()}. A very long document can take longer: raise Rask:Pdf:Timeout."),
                     e);
             }
         }
@@ -111,8 +112,13 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             {
                 await fresh.Ready(StartupLimit(settings.Timeout), cancellation).ConfigureAwait(false);
             }
-            catch
+            catch (Exception e)
             {
+                if (logger is not null && e is not OperationCanceledException)
+                {
+                    CouldNotStart(logger, e.Message, e);
+                }
+
                 await fresh.DisposeAsync().ConfigureAwait(false);
                 _browser = null;
                 throw;
@@ -145,4 +151,7 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             most = seen;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Rask.Pdf could not start Chromium: {Reason}")]
+    private static partial void CouldNotStart(ILogger logger, string reason, Exception exception);
 }

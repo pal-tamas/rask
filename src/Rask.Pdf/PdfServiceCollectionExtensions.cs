@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Rask.Hosting.Shared;
 
 namespace Rask.Printing;
@@ -22,7 +23,8 @@ public static class PdfServiceCollectionExtensions
                 "Rask:Pdf", static (section, o) => section.Bind(o), configure: null, static o => o.Validate()))
         {
             // A singleton the container disposes when the host stops, which closes the browser.
-            services.TryAddSingleton(static sp => new ChromiumPrinter(sp.GetRequiredService<ChromiumSettings>()));
+            services.TryAddSingleton(static sp => new ChromiumPrinter(
+                sp.GetRequiredService<ChromiumSettings>(), sp.GetService<ILoggerFactory>()?.CreateLogger("Rask.Pdf")));
 
             // So Pdf.From in a minimal-API endpoint finds its request, and the request's user.
             services.AddHttpContextAccessor();
