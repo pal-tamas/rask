@@ -35,22 +35,66 @@ internal static class GuardedCallEmitter
         sb.AppendLine("{");
         sb.AppendLine("    // A call to a component method with [Authorize] checks the person first, wherever it is written:");
         sb.AppendLine("    // `.OnClick(() => Remove())` is held to Remove's rule exactly as `.OnClick(Remove)` is.");
-        sb.AppendLine("    file static class GuardedHandlers");
-        sb.AppendLine("    {");
-        sb.AppendLine("        private const global::System.Reflection.BindingFlags Declared =");
-        sb.AppendLine("            global::System.Reflection.BindingFlags.DeclaredOnly | global::System.Reflection.BindingFlags.Instance");
-        sb.AppendLine("            | global::System.Reflection.BindingFlags.Static | global::System.Reflection.BindingFlags.Public");
-        sb.AppendLine("            | global::System.Reflection.BindingFlags.NonPublic;");
 
         var index = 0;
+        var scopes = methods.GroupBy(method => method.First().Scope).ToList();
+        foreach (var plain in scopes.Where(scope => scope.Key is null))
+        {
+            Indent(sb, Class(plain, ref index), 1);
+        }
+
+        // A signature naming another generator's type is written inside the method's own lookup, rebuilt as nested
+        // blocks of using directives (DeclarationScope) — still inside this namespace, the one interceptors may use.
+        var scoped = 0;
+        foreach (var scope in scopes.Where(scope => scope.Key is not null))
+        {
+            var layers = scope.Key!.Value;
+            for (var depth = 0; depth < layers.Count; depth++)
+            {
+                var name = depth == 0 ? "__RaskScope" + scoped.ToString(CultureInfo.InvariantCulture) : "__RaskScope";
+                Indent(sb, "namespace " + name + "\n{", depth + 1);
+                Indent(sb, layers[depth], depth + 2);
+            }
+
+            Indent(sb, Class(scope, ref index), layers.Count + 1);
+            for (var depth = layers.Count; depth > 0; depth--)
+            {
+                Indent(sb, "}", depth);
+            }
+
+            scoped++;
+        }
+
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    private static string Class(IEnumerable<IGrouping<string, GuardedCall>> methods, ref int index)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("file static class GuardedHandlers");
+        sb.AppendLine("{");
+        sb.AppendLine("    private const global::System.Reflection.BindingFlags Declared =");
+        sb.AppendLine("        global::System.Reflection.BindingFlags.DeclaredOnly | global::System.Reflection.BindingFlags.Instance");
+        sb.AppendLine("        | global::System.Reflection.BindingFlags.Static | global::System.Reflection.BindingFlags.Public");
+        sb.AppendLine("        | global::System.Reflection.BindingFlags.NonPublic;");
         foreach (var method in methods)
         {
             EmitMethod(sb, method.First(), method.Select(call => call.Intercepts!), index++);
         }
 
-        sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();
+    }
+
+    // Appends each line of `text`, moved `depth` levels in; a blank line stays blank.
+    private static void Indent(StringBuilder sb, string text, int depth)
+    {
+        var prefix = new string(' ', depth * 4);
+        foreach (var line in text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n'))
+        {
+            sb.AppendLine(line.Length == 0 ? string.Empty : prefix + line);
+        }
     }
 
     private static void EmitMethod(StringBuilder sb, GuardedCall method, IEnumerable<string> intercepts, int index)
@@ -67,40 +111,40 @@ internal static class GuardedCallEmitter
         var types = string.Join(", ", parameters.Select(p => p.TypeOf));
 
         sb.AppendLine();
-        sb.Append("        private static global::System.Reflection.MethodInfo? __method").Append(n).AppendLine(";");
+        sb.Append("    private static global::System.Reflection.MethodInfo? __method").Append(n).AppendLine(";");
         sb.AppendLine();
-        sb.Append("        private static global::System.Reflection.MethodInfo Method").Append(n).Append(" => __method").Append(n)
+        sb.Append("    private static global::System.Reflection.MethodInfo Method").Append(n).Append(" => __method").Append(n)
             .Append(" ??= typeof(").Append(method.ContainingType.TrimEnd('?')).Append(").GetMethod(\"").Append(method.Name)
             .Append("\", Declared, null, new global::System.Type[] { ").Append(types).Append(" }, null)")
             .Append(" ?? throw new global::System.MissingMethodException(\"").Append(method.Method).AppendLine("\");");
         sb.AppendLine();
         foreach (var attribute in intercepts)
         {
-            sb.Append("        ").AppendLine(attribute);
+            sb.Append("    ").AppendLine(attribute);
         }
 
         var awaits = method.Awaits;
-        sb.Append("        internal static ").Append(awaits ? "async " : string.Empty).Append(method.ReturnType).Append(' ')
+        sb.Append("    internal static ").Append(awaits ? "async " : string.Empty).Append(method.ReturnType).Append(' ')
             .Append(method.Name).Append(n).Append('(').Append(signature).AppendLine(")");
-        sb.AppendLine("        {");
+        sb.AppendLine("    {");
         if (awaits)
         {
-            sb.Append("            await ").Append(Access).Append(".Demand(Method").Append(n).AppendLine(");");
+            sb.Append("        await ").Append(Access).Append(".Demand(Method").Append(n).AppendLine(");");
             var returns = method.ReturnType.Contains('<') ? "return await " : "await ";
-            sb.Append("            ").Append(returns).Append("Call").Append(n).Append('(').Append(arguments).AppendLine(");");
+            sb.Append("        ").Append(returns).Append("Call").Append(n).Append('(').Append(arguments).AppendLine(");");
         }
         else
         {
-            sb.Append("            ").Append(Access).Append(".DemandNow(Method").Append(n).AppendLine(");");
+            sb.Append("        ").Append(Access).Append(".DemandNow(Method").Append(n).AppendLine(");");
             var returns = method.Returns == GuardedReturn.Void ? string.Empty : "return ";
-            sb.Append("            ").Append(returns).Append("Call").Append(n).Append('(').Append(arguments).AppendLine(");");
+            sb.Append("        ").Append(returns).Append("Call").Append(n).Append('(').Append(arguments).AppendLine(");");
         }
 
-        sb.AppendLine("        }");
+        sb.AppendLine("    }");
         sb.AppendLine();
-        sb.Append("        [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.")
+        sb.Append("    [global::System.Runtime.CompilerServices.UnsafeAccessor(global::System.Runtime.CompilerServices.UnsafeAccessorKind.")
             .Append(method.IsStatic ? "StaticMethod" : "Method").Append(", Name = \"").Append(method.Name).AppendLine("\")]");
-        sb.Append("        private static extern ").Append(method.ReturnType).Append(" Call").Append(n).Append('(').Append(accessorSignature)
+        sb.Append("    private static extern ").Append(method.ReturnType).Append(" Call").Append(n).Append('(').Append(accessorSignature)
             .AppendLine(");");
     }
 

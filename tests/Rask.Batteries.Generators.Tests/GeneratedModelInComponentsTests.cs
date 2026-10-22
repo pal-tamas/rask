@@ -82,4 +82,48 @@ public class GeneratedModelInComponentsTests
             s => s.SourceText.ToString().Contains("<ProductModel", StringComparison.Ordinal)
                  || s.SourceText.ToString().Contains(" ProductModel", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void A_component_in_another_namespace_takes_read_face_props_by_their_full_name()
+    {
+        var run = GeneratorHarness.Run(
+            """
+            using System;
+            using System.Collections.Generic;
+            using Rask.Core;
+            using Rask.Data;
+            using Ta.Data;
+
+            namespace Ta.Data
+            {
+                public sealed class Company : Aggregate<Guid>
+                {
+                    private Company() { }
+                    public string Name { get; private set; } = "";
+                }
+            }
+
+            namespace Ta.Features.Companies
+            {
+                public partial class CompanyRow : Component
+                {
+                    public CompanyRead Company { get; set; }
+                    public CompanyRead? Previous { get; set; }
+                    public IReadOnlyList<CompanyRead>? Others { get; set; }
+                    public Callback<CompanyRead> OnRemove { get; set; }
+                }
+            }
+            """,
+            [new ReadModelGenerator(), new ComponentFactoryGenerator(), new RoutesGenerator()],
+            BuilderSurface,
+            "Rask.Data", "Rask.Core", "Microsoft.EntityFrameworkCore");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var setters = run.GeneratedSource("RaskBuilderSetters");
+        Assert.Contains("global::Ta.Data.CompanyRead value)", setters, StringComparison.Ordinal);
+        Assert.Contains("global::Ta.Data.CompanyRead? value)", setters, StringComparison.Ordinal);
+        Assert.Contains("global::System.Collections.Generic.IReadOnlyList<global::Ta.Data.CompanyRead>? value)", setters, StringComparison.Ordinal);
+        Assert.Contains("global::Rask.Core.Callback<global::Ta.Data.CompanyRead>", setters, StringComparison.Ordinal);
+    }
 }

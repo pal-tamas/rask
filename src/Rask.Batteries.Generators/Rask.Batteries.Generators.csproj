@@ -60,6 +60,7 @@
     <Compile Include="..\Rask.Generators.Shared\NestedShape.cs" Link="Shared\NestedShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ShapeDescriptor.cs" Link="Shared\ShapeDescriptor.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ReadFaceName.cs" Link="Shared\ReadFaceName.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelMemberRole.cs" Link="Shared\ModelMemberRole.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelValueObjectBuild.cs" Link="Shared\ModelValueObjectBuild.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelWriteKind.cs" Link="Shared\ModelWriteKind.cs"/>

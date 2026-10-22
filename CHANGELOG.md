@@ -86,6 +86,13 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An `[Authorize]` method that takes a read face compiles again.** `() => Remove(company)` with
+  `Remove(CompanyRead company)` wrote an interceptor naming the bare `CompanyRead` in Rask's own namespace — CS0246,
+  because no generator sees another's output. A Rask.Data read face is now named by its full name everywhere a
+  generated model already was — the interceptor, chain setters, routes, CQRS and API clients — and any other
+  generator's type is named inside the method's own lookup (its namespaces and using directives), so it resolves as
+  it does where it is written. A nullable parameter of such a type, which cannot be told from a nullable struct,
+  is RASK109 instead of uncompilable code.
 - **A prerendered WebAssembly app with no ICU bakes the dates and numbers its browser shows.** An English-only app
   ships no culture data, so the browser formats `"en"` with the invariant culture's (`03/14/2026`, `2026 March`),
   while the prerender used the publishing machine's real English (`3/14/2026`, `March 2026`) and the page changed

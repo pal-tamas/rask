@@ -165,8 +165,59 @@ internal static class GeneratedModelShape
     }
 
     /// <summary>
-    ///     <paramref name="type" /> displayed in <paramref name="format" />, with every unresolved generated
-    ///     model inside it — <c>ProductModel</c>, <c>List&lt;ProductModel&gt;</c> — written as its fully
+    ///     The entity whose generated read face <paramref name="type" /> is — an unresolved <c>ProductRead</c> —
+    ///     by the rules <see cref="EntityFor" /> holds a model to; null when it is not one.
+    /// </summary>
+    public static INamedTypeSymbol? ReadEntityFor(ITypeSymbol type, Compilation compilation)
+    {
+        if (type is not INamedTypeSymbol { TypeKind: TypeKind.Error, Arity: 0, ContainingType: null } named ||
+            named.Name.Length <= ReadFaceName.Suffix.Length ||
+            !named.Name.EndsWith(ReadFaceName.Suffix, StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var qualifier = named.ContainingNamespace is { IsGlobalNamespace: false } ns ? ns.ToDisplayString() : null;
+        var stem = named.Name.Substring(0, named.Name.Length - ReadFaceName.Suffix.Length);
+
+        // A nested entity's face carries its parents' names in front, so the entity's own name ends the stem.
+        var found = compilation
+            .GetSymbolsWithName(name => stem.EndsWith(name, StringComparison.Ordinal), SymbolFilter.Type)
+            .OfType<INamedTypeSymbol>()
+            .Where(candidate => AggregateShape.IsMappedEntity(candidate)
+                                && string.Equals(ReadFaceName.Of(candidate), named.Name, StringComparison.Ordinal)
+                                && (qualifier is null || string.Equals(
+                                    candidate.ContainingNamespace is { IsGlobalNamespace: false } cns ? cns.ToDisplayString() : null,
+                                    qualifier,
+                                    StringComparison.Ordinal)))
+            .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)
+            .Take(2)
+            .ToList();
+        return found.Count == 1 ? found[0] : null;
+    }
+
+    /// <summary>
+    ///     The full name of the type another Rask generator makes that the unresolved <paramref name="type" /> names —
+    ///     a model or a read face — or null when it names neither.
+    /// </summary>
+    public static string? GeneratedFqn(ITypeSymbol type, Compilation compilation)
+    {
+        if (type.TypeKind != TypeKind.Error)
+        {
+            return null;
+        }
+
+        if (EntityFor(type, compilation) is { } entity)
+        {
+            return ModelFqn(entity);
+        }
+
+        return ReadEntityFor(type, compilation) is { } read ? ReadFaceName.Fqn(read) : null;
+    }
+
+    /// <summary>
+    ///     <paramref name="type" /> displayed in <paramref name="format" />, with every unresolved type another Rask
+    ///     generator makes inside it — <c>ProductModel</c>, <c>List&lt;ProductRead&gt;</c> — written as its fully
     ///     qualified name.
     /// </summary>
     /// <remarks>
@@ -195,11 +246,19 @@ internal static class GeneratedModelShape
             ? nullable.TypeArguments[0]
             : null;
 
+    // A read face is a class too, so an unresolved `ProductRead?` is displayed as the nullable reference it is.
+    private static ITypeSymbol? NullableUnresolvedGenerated(ITypeSymbol type, Compilation compilation) =>
+        NullableUnresolvedModel(type, compilation) ??
+        (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T, TypeArguments.Length: 1 } nullable &&
+         ReadEntityFor(nullable.TypeArguments[0], compilation) is not null
+            ? nullable.TypeArguments[0]
+            : null);
+
     private static bool MentionsUnresolvedModel(ITypeSymbol type, Compilation compilation) =>
         type switch
         {
             IArrayTypeSymbol array => MentionsUnresolvedModel(array.ElementType, compilation),
-            INamedTypeSymbol { TypeKind: TypeKind.Error } error when EntityFor(error, compilation) is not null => true,
+            INamedTypeSymbol { TypeKind: TypeKind.Error } error when GeneratedFqn(error, compilation) is not null => true,
             INamedTypeSymbol named => named.TypeArguments.Any(t => MentionsUnresolvedModel(t, compilation)),
             _ => false,
         };
@@ -217,11 +276,11 @@ internal static class GeneratedModelShape
             case IArrayTypeSymbol array:
                 return Rebuild(array.ElementType, format, compilation) + "[" + new string(',', array.Rank - 1) + "]" + annotated;
 
-            case INamedTypeSymbol { TypeKind: TypeKind.Error } error when EntityFor(error, compilation) is { } entity:
-                return ModelFqn(entity) + annotated;
+            case INamedTypeSymbol { TypeKind: TypeKind.Error } error when GeneratedFqn(error, compilation) is { } generated:
+                return generated + annotated;
 
             // Displayed as the nullable reference it is, not as Nullable<T> around a class.
-            case INamedTypeSymbol nullable when NullableUnresolvedModel(nullable, compilation) is { } inner:
+            case INamedTypeSymbol nullable when NullableUnresolvedGenerated(nullable, compilation) is { } inner:
                 return Rebuild(inner, format, compilation) +
                        ((format.MiscellaneousOptions & SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier) != SymbolDisplayMiscellaneousOptions.None ? "?" : "");
 
