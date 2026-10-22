@@ -56,6 +56,12 @@ const cases = {
     'date and time': Routes.DayPage({ Day: '2026-01-09', Since: new Date(2026, 2, 4, 5, 6, 7) }),
     'fraction': Routes.DayPage({ Day: '2026-01-09', Ratio: 0.25 }),
     'long': Routes.DayPage({ Day: '2026-01-09', Count: 9007199254740991 }),
+    'list': Routes.FleetPage({ Drivers: ['ada', 'theo'], Tanks: [3, 1] }),
+    'list elements needing encoding': Routes.FleetPage({ Drivers: ['a b', 'x&y', 'árvíz'] }),
+    'list of flags': Routes.FleetPage({ Flags: [true, false] }),
+    'list element with a comma': Routes.FleetPage({ Drivers: ['Lovelace, Ada', 'theo'] }),
+    'empty list left out': Routes.FleetPage({ Drivers: [], Tanks: [2] }),
+    'list of nothing to write left out': Routes.FleetPage({ Drivers: ['', ''] }),
     'nested on a name clash': Routes.Admin.HomePage(),
     'nested on a name clash, the other': Routes.Shop.HomePage(),
 }
