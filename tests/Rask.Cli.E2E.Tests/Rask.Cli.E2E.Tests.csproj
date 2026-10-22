@@ -43,6 +43,12 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
   </ItemGroup>
 
+  <!-- Read from disk by TemplateImagePdfShellE2ETests: the template images and the browser they pin. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.Templates\**\Dockerfile" />
+    <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.ChromePin.props" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Source-linked rather than duplicated, and they stay OWNED by Rask.Cli.Tests because the unit
          tests are their main consumer: CliBuildE2E.FeedPackages/FindRepoRoot and DeployE2E.RunAsync
