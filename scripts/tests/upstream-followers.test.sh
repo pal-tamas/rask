@@ -52,12 +52,15 @@ fresh
 hub curlimages/curl latest 99.1.0 99.0.3 99.2.0-rc1 7.0.0
 hub library/alpine latest edge 99.30.1 99.30 99.31-rc 20990101
 hub library/postgres 99-alpine 99.2-alpine 100beta1-alpine 99 latest
+# However many images the E2E names — a new test adds one — every one of them moves.
+e2e_alpines="$(grep -cF "alpine:$alpine_was" "$tmp/tree/tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs" || true)"
 run images.py
 check "curl moves to the newest x.y.z, prerelease skipped" 1 "$(count 'CurlImage = "curlimages/curl:99.1.0"')"
 check "...and the tests that assert it move with it"   0 "$(count "curlimages/curl:$curl_was")"
 check "alpine keeps its x.y shape"                     1 "$(count 'SqliteImage = "alpine:99.30"')"
 check "...and no older alpine is left"                 0 "$(count "alpine:$alpine_was\"")"
-check "...in the E2E's images too, qualified or not"   2 "$(grep -cF 'alpine:99.30' "$tmp/tree/tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs")"
+check "...in the E2E's images too, qualified or not"   "$e2e_alpines" "$(grep -cF 'alpine:99.30' "$tmp/tree/tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs")"
+check "...of which the E2E names some"                yes "$([ "$e2e_alpines" -gt 0 ] && echo yes || echo no)"
 check "postgres takes the new major, still -alpine"    1 "$(count 'postgres:99-alpine')"
 check "an image the follower does not own is left"     "" "$(unchanged src/Rask.Templates/wasm/Dockerfile)"
 
