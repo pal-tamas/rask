@@ -120,6 +120,9 @@ internal static class TestApp
 
     private static void RunProgram(MethodInfo entry, string[] args, AppCapture.Capture capture)
     {
+        // The app is not the test's work in progress: its startup (Db.Configure among it) must not reach, or stand
+        // down, the test's own app that is booting it.
+        using var outsideTheTest = Ambient.Enter((IServiceProvider?)null);
         try
         {
             var result = entry.Invoke(null, entry.GetParameters().Length == 0 ? [] : [args]);

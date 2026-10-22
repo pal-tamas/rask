@@ -28,6 +28,11 @@ namespace Rask.Data;
 ///         enlists in it.
 ///     </para>
 ///     <para>
+///         <b>In a test, configuring it is the test's say.</b> A test that points it somewhere itself —
+///         <c>TestDatabase.Start(…)</c>, or any <c>Configure</c> overload — reads and writes there, and the app
+///         Rask.Testing would otherwise boot for it at its first read never starts.
+///     </para>
+///     <para>
 ///         <see cref="Configure(IServiceProvider)" /> supplies the factory. A Rask app never calls it — the
 ///         host does, from the same <c>IDbContextFactory&lt;T&gt;</c> registration the batteries already
 ///         read. Everything else needs one line at startup.
@@ -78,6 +83,7 @@ public static partial class Db
 
         _factory = binding.CreateContext;
         Interlocked.Increment(ref _generation);
+        Ambient.DeclineTestApp();
 
         // Both halves from one call. Forgetting the read side would not fail here — it would fail at the
         // first Product.Where(…) in some page, which is the worst place to learn about a line of startup you
@@ -97,6 +103,7 @@ public static partial class Db
         ArgumentNullException.ThrowIfNull(factory);
         _factory = factory.CreateDbContext;
         Interlocked.Increment(ref _generation);
+        Ambient.DeclineTestApp();
     }
 
     /// <summary>
@@ -112,6 +119,7 @@ public static partial class Db
         ArgumentNullException.ThrowIfNull(createContext);
         _factory = createContext;
         Interlocked.Increment(ref _generation);
+        Ambient.DeclineTestApp();
     }
 
     /// <summary>Forgets the configured factory, on both halves. Test seam.</summary>
@@ -219,7 +227,7 @@ public static partial class Db
     {
         // The ambient scope wins when one is open, because it is the only thing that can build a context
         // carrying the current user — and therefore the current tenant.
-        if ((AmbientScope.Value ?? Ambient.Services) is { } scope &&
+        if ((AmbientScope.Value ?? Ambient.Needed) is { } scope &&
             scope.GetService<AmbientContextBinding>() is { } scoped)
         {
             return scoped.CreateContext();

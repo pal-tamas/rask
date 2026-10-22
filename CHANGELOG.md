@@ -1227,6 +1227,14 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **Referencing `Rask.Testing` boots nothing a test did not ask for.** Before: on xUnit v3 the per-test app hook made
+  ANY ambient lookup boot the app's `Program.cs` — so a project that took `Rask.Testing` for `Clock.Fake` alone saw
+  its `TestDatabase.Start(…)` model tests boot the app at their first `Company.Where(…)`, fail on the app's missing
+  settings, and an `Assert.ThrowsAsync<RaskValidationException>` around a delete check catch the boot's
+  `InvalidOperationException` instead. After: the test's app boots only for a call with nothing else to go on
+  (`Page.Visit`, a battery's static, a read with no database configured); a lookup with another answer
+  (`Ambient.Services`, an `IsOn`) never boots it, and a test that configures its own database (`TestDatabase.Start`,
+  any `Db.Configure`) keeps it from booting at all. See [testing](docs/testing.md#1-driving-the-app-the-way-a-person-does).
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.
