@@ -28,10 +28,16 @@ public sealed partial class SidebarLayoutParity : FluxLayoutParity
 
         yield return ("secondary-header", Page1, Document([
             LayoutDemo.Sidebar(Ui.SidebarCollapsible.Mobile, Bordered, "lg:hidden", search: true, star: false, profile: true),
-            // Two navbars: the phone's bar, and the tabs. Each is the navbar page's to draw.
+            // Two navbars: the phone's bar, the navbar page's to draw, and the tabs, the real scrollable navbar,
+            // which only this demo writes.
             Ui.Header.Class("block! bg-white lg:bg-zinc-50 dark:bg-zinc-900 border-b " + LayoutDemo.Edge)[
                 Div.Class("slot-bar lg:hidden"),
-                Div.Class("slot-tabs")
+                Ui.Navbar.Scrollable()[
+                    Ui.NavbarItem.Href("#").Current(true)["Dashboard"],
+                    Ui.NavbarItem.Badge("32").Href("#")["Orders"],
+                    Ui.NavbarItem.Href("#")["Catalog"],
+                    Ui.NavbarItem.Href("#")["Configuration"]
+                ]
             ],
             Ui.Main[LayoutDemo.Greeting()]
         ]));

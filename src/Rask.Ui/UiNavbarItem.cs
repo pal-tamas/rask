@@ -20,7 +20,7 @@ namespace Rask;
 public sealed partial class UiNavbarItem : Component, IUiTrigger
 {
     private const string Base =
-        "relative flex h-8 items-center rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        "relative flex h-8 items-center rounded-lg text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
         + "dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white "
         + "aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-0 aria-[current=page]:after:-bottom-3 "
         + "aria-[current=page]:after:h-[2px] hover:aria-[current=page]:bg-zinc-800/10 "
@@ -46,6 +46,12 @@ public sealed partial class UiNavbarItem : Component, IUiTrigger
 
     /// <summary>An icon after the words — the chevron of an item that opens a menu.</summary>
     public Ui.IconName? IconTrailing { get; set; }
+
+    /// <summary>
+    ///     A word for an item that is only an icon — "Search". Flux's layout pages write it, and Flux puts it on the
+    ///     link as a <c>label</c> attribute and nothing more: no <c>aria-label</c>, no tooltip, no hidden text.
+    /// </summary>
+    public string? Label { get; set; }
 
     /// <summary>A count or a word after the label — "12", "Pro".</summary>
     public Component? Badge { get; set; }
@@ -83,19 +89,21 @@ public sealed partial class UiNavbarItem : Component, IUiTrigger
         Component?[] content =
         [
             Icon is { } icon ? Div.Class("relative")[Ui.Icon.Name(icon).Class("size-5")] : null,
-            Label(),
+            Words(),
             IconTrailing is { } trailing ? Ui.Icon.Name(trailing).Class("ms-1 size-5") : null,
             Badge is { } badge ? UiNavItemMarkup.Badge(badge, BadgeColor, BadgeVariant, "ms-2", marked: false) : null,
         ];
 
+        // An item that is only an icon is 10px either side of it (40px wide), as Flux draws one.
+        var padding = Icon is not null && Children is null ? "px-2.5" : "px-3";
         return UiNavItemMarkup.Element(
             Href, Current,
-            UiClass.Compose(Base, Accent == false ? PlainCurrent : AccentCurrent, Class),
-            "data-ui-navbar-items", content, _invoked);
+            UiClass.Compose(Base, padding, Accent == false ? PlainCurrent : AccentCurrent, Class),
+            "data-ui-navbar-items", content, _invoked, Label);
     }
 
     // An item that is only an icon has no words to hold a place for.
-    private Component? Label()
+    private Component? Words()
     {
         if (Children is null)
         {

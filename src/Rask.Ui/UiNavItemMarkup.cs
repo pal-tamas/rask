@@ -16,15 +16,20 @@ internal static class UiNavItemMarkup
 {
     private static readonly (string, string?) CurrentPage = ("aria-current", "page");
 
-    /// <summary>The item itself: a link when it has somewhere to go, a button when it only opens something.</summary>
+    /// <summary>
+    ///     The item itself: a link when it has somewhere to go, a button when it only opens something. A navbar
+    ///     item's <c>label</c> is written as the attribute Flux forwards onto it.
+    /// </summary>
     internal static Component Element(
-        RouteUrl? href, bool? current, string classes, string marker, Component?[] content, UiInvoked? invoked = null)
+        RouteUrl? href, bool? current, string classes, string marker, Component?[] content, UiInvoked? invoked = null,
+        string? label = null)
     {
+        (string, string?)[] marks = label is null ? [(marker, null)] : [(marker, null), ("label", label)];
+        (string, string?)[] stated = current == true ? [CurrentPage, .. marks] : marks;
         if (href is not { } url)
         {
             // The marker first: `Attributes` replaces the bag, and what makes the item a dropdown's trigger is in it.
-            var button = Markup.Button.Type(ButtonType.Button).Class(classes);
-            button = current == true ? button.Attributes(CurrentPage, (marker, null)) : button.Attributes((marker, null));
+            var button = Markup.Button.Type(ButtonType.Button).Class(classes).Attributes(stated);
             return (invoked is { } panel ? panel.On(button) : button)[content];
         }
 
@@ -32,20 +37,19 @@ internal static class UiNavItemMarkup
         // no route to compare it with: its current state can only be stated.
         if (url.PageType is null)
         {
-            var plain = Markup.A.Href(url.ToString()).Class(classes);
-            return (current == true ? plain.Attributes(CurrentPage, (marker, null)) : plain.Attributes((marker, null)))[content];
+            return Markup.A.Href(url.ToString()).Class(classes).Attributes(stated)[content];
         }
 
         // Stated: the call site owns it, so the route is not consulted (an empty ActiveClass is NavLink's opt-out).
-        if (current is { } stated)
+        if (current is { } isCurrent)
         {
-            var link = Markup.NavLink.Href(url).ActiveClass("").Class(classes).Attributes((marker, null));
-            return (stated ? link.Aria("current", "page") : link)[content];
+            var link = Markup.NavLink.Href(url).ActiveClass("").Class(classes).Attributes(marks);
+            return (isCurrent ? link.Aria("current", "page") : link)[content];
         }
 
         // Worked out: NavLink compares the route and writes aria-current itself. `ui-current` is a name for it
         // to add, not a style — the look hangs off the attribute.
-        return Markup.NavLink.Href(url).ActiveClass("ui-current").Class(classes).Attributes((marker, null))[content];
+        return Markup.NavLink.Href(url).ActiveClass("ui-current").Class(classes).Attributes(marks)[content];
     }
 
     /// <summary>The count or word at an item's end, in Flux's badge colours. Zinc when no colour is named.</summary>

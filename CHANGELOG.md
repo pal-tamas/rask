@@ -9,6 +9,15 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.Navbar.Scrollable()` and `Ui.NavbarItem.Label("Search")` — Flux's `scrollable` and `label`, which its layout
+  pages write.** Measured on Flux's demos: a scrollable navbar is `overflow-x: auto; overflow-y: hidden` and nothing
+  else (its items keep their width, no fade, no hidden scrollbar), so at 390 px the secondary header's tabs scroll
+  inside a 342 px row instead of widening the page. `label` is written on the link as Flux writes it — a `label`
+  attribute, with no `aria-label`, tooltip or hidden text. Before: `Div.Class("overflow-x-auto [scrollbar-width:none]")[Ui.Navbar.Class("w-max")[…]]`
+  and `Ui.NavbarItem.Icon(…)[Span.Class("sr-only")["Search"]]`. After: `Ui.Navbar.Scrollable()[…]` and
+  `Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search")`. An item that is only an icon is now
+  10 px either side of it (40 px wide), as Flux draws one; it was 12 px.
+
 - **`Current.Service<T>()` — the work's own service, with nothing injected.** Before: a component's constructor is the
   session's, so a handler that needed the event's `DbContext` opened a scope of its own per call
   (`await _work.Run(async (ShopDb db) => …)`). After: `var db = Current.Service<ShopDb>();` inside the handler is the
