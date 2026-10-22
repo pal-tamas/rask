@@ -1238,7 +1238,9 @@ them until tagged releases begin.
   any `db:` call share the transaction, a rollback undoes them all, and the context is handed back on its own
   connection. No call site changes; drop the hand-made `BeginTransactionAsync` inside the block (EF Core now refuses
   it, as the context is already in a transaction). A context on another database still runs outside, and its `db:`
-  call is still refused.
+  call is still refused. Joining sends no session setup again: `UseRaskSqlServer`'s `SET XACT_ABORT`/`LOCK_TIMEOUT`
+  and `UseRaskSqlite`'s pragmas run when a connection really opens, not when a context joins the transaction's
+  connection (SqlClient refused that `SET`: "BeginExecuteNonQuery requires the command to have a transaction").
 - **`Ui.DatePicker` opened from its typed input draws no focus ring around the calendar.** Before: after a press
   in a part, opening the calendar from the input trigger outlined the whole popup in the browser's blue; the button
   trigger drew none. After: no ring either way, as Flux.

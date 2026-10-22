@@ -849,6 +849,10 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 
   A context on another database, already in a transaction of its own, or whose connection you opened before the
   block runs as it always did, outside — and a `db:` call with it is refused as above.
+  A context that joins as it opens still has the open reported to its connection interceptors, on the transaction's
+  connection. Rask's SQL Server and SQLite interceptors send nothing then — that connection got its `SET`s and
+  pragmas when it opened. A `ConnectionOpened` interceptor of your own that sets a connection up should skip it the
+  same way: `if (eventData.Context?.Database.CurrentTransaction is not null) return;`.
 - **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
   `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
   and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the
