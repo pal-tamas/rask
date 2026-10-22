@@ -68,7 +68,8 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     internal const string PreviousTag = "previous";
 
     private readonly IFileSystem _fileSystem = fileSystem;
-    private readonly IProcessRunner _process = process;
+    // Every docker call a deploy makes is held to a deadline (DeployDeadlines), so a stalled one fails named.
+    private readonly DeadlineRunner _process = new(process);
     private readonly string _workingDirectory = workingDirectory;
 
     /// <summary>How long to wait between readiness polls, and how many — overridden to zero in tests.</summary>
@@ -85,6 +86,13 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
     /// <c>"stopTimeout"</c> from <c>.rask/deploy.json</c>, the top rung of <see cref="ShutdownBudget"/>.
     /// </summary>
     internal TimeSpan StopBudget { get; set; } = ShutdownBudget.DefaultStopTimeout;
+
+    /// <summary>How long each step may take — the build's two from <c>.rask/deploy.json</c>. Shortened in tests.</summary>
+    internal DeployDeadlines Deadlines
+    {
+        get => _process.Deadlines;
+        set => _process.Deadlines = value;
+    }
 
     public override string Name => "deploy";
 
@@ -196,9 +204,23 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             ?? await ResolveProjectAsync(plan).ConfigureAwait(false)
             ?? await ResolveEnvAsync(plan).ConfigureAwait(false)
             ?? ResolveHealthAndSetup(plan)
-            ?? ResolveStopBudget(plan);
+            ?? ResolveStopBudget(plan)
+            ?? ResolveBuildDeadlines(plan);
+        if (failure is not null)
+        {
+            return failure.Value;
+        }
 
-        return failure ?? await RunPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await RunPlanAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException stalled)
+        {
+            Console.WriteErrorLine($"{stalled.Message} on {plan.Host} — stopped the deploy there.", ConsoleStyle.Error);
+            await Console.Error.WriteLineAsync("Traffic moves to a new version only once it has passed its checks, so unless the switch above finished, the previous version keeps serving. See what runs: rask deploy status").ConfigureAwait(false);
+            return 1;
+        }
     }
 
     /// <summary>Everything a deploy resolved from its flags and <c>.rask/deploy.json</c>, before touching the host.</summary>
@@ -319,6 +341,9 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
             EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
             // Always written, default included: this is the knob an app with long jobs turns, so it is in plain sight.
             StopTimeout = Cli.StopTimeout.Format(StopBudget),
+            // Written only when turned: the defaults suit a build that prints as it goes.
+            BuildTimeout = Deadlines.Build == DeployDeadlines.DefaultBuild ? null : Cli.StopTimeout.Format(Deadlines.Build),
+            BuildIdleTimeout = Deadlines.BuildIdle == DeployDeadlines.DefaultBuildIdle ? null : Cli.StopTimeout.Format(Deadlines.BuildIdle),
         };
 
         // One domain stays "domain", as an older Rask wrote it; several become "domains".

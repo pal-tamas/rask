@@ -125,15 +125,39 @@ internal sealed partial class DeployCommand
         }
 
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
-        if (await Run(BuildBuildArguments(host, slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false) != 0)
+        if (!await BuildImageAsync(plan, cancellationToken).ConfigureAwait(false))
         {
-            Console.WriteErrorLine("Docker build failed — its output is above. Run `docker build .` locally to reproduce it, then deploy again.", ConsoleStyle.Error);
             return 1;
         }
 
         return plan.Domain is null
             ? await DeployPortAsync(host, slug, plan.Port, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken).ConfigureAwait(false)
             : await DeployWithProxyAsync(host, slug, plan.Domain, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken, redirects: plan.Redirects, dns: plan.Dns, dnsEnvFile: plan.DnsEnvFile).ConfigureAwait(false);
+    }
+
+    /// <summary>Build the image on the box, within the build's deadlines; when it doesn't build, say why. Nothing has moved yet.</summary>
+    private async Task<bool> BuildImageAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
+        var build = new ImageBuild(Console, _process, _workingDirectory, Deadlines);
+        var end = await build.RunAsync(BuildBuildArguments(plan.Host, plan.Slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false);
+        var config = Path.Combine(".rask", "deploy.json");
+        switch (end)
+        {
+            case BuildEnd.Built:
+                return true;
+            case BuildEnd.WentQuiet:
+                Console.WriteErrorLine($"The build printed nothing for {StopTimeout.Format(Deadlines.BuildIdle)} — stopped it. The previous version keeps serving.", ConsoleStyle.Error);
+                await Console.Error.WriteLineAsync($"  Its last line: {build.LastLine ?? "(none)"}").ConfigureAwait(false);
+                await Console.Error.WriteLineAsync($"  A download inside the build most likely stalled, or the connection to {plan.Host} did; deploy again. A step silent that long by design needs a higher \"{DeployDeadlines.BuildIdleKey}\" in {config}.").ConfigureAwait(false);
+                return false;
+            case BuildEnd.TimedOut:
+                Console.WriteErrorLine($"The build ran past {StopTimeout.Format(Deadlines.Build)} — stopped it. The previous version keeps serving.", ConsoleStyle.Error);
+                await Console.Error.WriteLineAsync($"  A build that needs longer needs a higher \"{DeployDeadlines.BuildKey}\" in {config}.").ConfigureAwait(false);
+                return false;
+            default:
+                Console.WriteErrorLine("Docker build failed — its output is above. Run `docker build .` locally to reproduce it, then deploy again.", ConsoleStyle.Error);
+                return false;
+        }
     }
 
     // ── The bare port path: stop-old-start-new (brief downtime — no proxy to swap behind). ──────────────
@@ -284,8 +308,7 @@ internal sealed partial class DeployCommand
         var newContainer = $"{slug}-{newColor}";
 
         if (!await EnsureNetworkAsync(host, slug, cancellationToken).ConfigureAwait(false)
-            || !await StartColorAsync(host, slug, domain, newColor, containerPort, env, tag, cancellationToken, redirects).ConfigureAwait(false)
-            || !await GateColorAsync(host, newContainer, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false))
+            || !await StartAndGateAsync(host, slug, domain, newColor, containerPort, env, tag, healthEnabled, healthPath, redirects, cancellationToken).ConfigureAwait(false))
         {
             return 1;
         }
@@ -388,6 +411,34 @@ internal sealed partial class DeployCommand
     /// credentials.
     /// </summary>
     private readonly record struct ProxyPlan(DnsProvider? Provider, string? CreateWithCredentials);
+
+    /// <summary>
+    /// Start the next colour and gate it. A step that stalls on the way takes the new colour back out (best effort) before
+    /// the deploy stops, so the box is left as it was: the old colour serving, no half-started one beside it.
+    /// </summary>
+    private async Task<bool> StartAndGateAsync(
+        string host, string slug, string domain, string newColor, int containerPort, IReadOnlyList<string> env, string tag, bool healthEnabled, string healthPath, string redirects, CancellationToken cancellationToken)
+    {
+        var newContainer = $"{slug}-{newColor}";
+        try
+        {
+            return await StartColorAsync(host, slug, domain, newColor, containerPort, env, tag, cancellationToken, redirects).ConfigureAwait(false)
+                && await GateColorAsync(host, newContainer, containerPort, env, healthEnabled, healthPath, cancellationToken).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            try
+            {
+                await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+                // The box does not answer at all; the next deploy frees the name before it starts this colour.
+            }
+
+            throw;
+        }
+    }
 
     /// <summary>Starts the next color's container beside the live one.</summary>
     private async Task<bool> StartColorAsync(

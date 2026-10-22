@@ -7,17 +7,14 @@ namespace Rask.Cli.Commands;
 /// </summary>
 internal sealed partial class DeployCommand
 {
-    /// <summary>How long a deploy waits for an app lock another deploy of the app holds, past that deploy's stop budget.</summary>
-    private static readonly TimeSpan _buildAllowance = TimeSpan.FromMinutes(45);
-
     /// <summary>
     /// How many attempts at an app lock another deploy of the app holds, or <c>null</c> for enough to wait out a long
-    /// build (45 minutes) plus the old colour's drain (<see cref="StopBudget"/>), which that deploy holds the lock across.
+    /// build (<see cref="DeployDeadlines.Build"/>) plus the old colour's drain (<see cref="StopBudget"/>), which that deploy holds the lock across.
     /// </summary>
     internal int? AppLockAttempts { get; set; }
 
     private int AppLockAttemptsOrDefault =>
-        AppLockAttempts ?? (int)((_buildAllowance + StopBudget).TotalSeconds / ProxyCommands.LockPollSeconds);
+        AppLockAttempts ?? (int)((Deadlines.Build + StopBudget).TotalSeconds / ProxyCommands.LockPollSeconds);
 
     /// <summary>How often a held app lock's lease is renewed. Zero turns the renewal off (tests).</summary>
     internal TimeSpan AppLockHeartbeat { get; set; } = TimeSpan.FromSeconds(ProxyCommands.AppLockHeartbeatSeconds);

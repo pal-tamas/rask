@@ -249,6 +249,22 @@ internal sealed partial class DeployCommand
         return null;
     }
 
+    /// <summary>The build's two deadlines, from <c>"buildTimeout"</c> and <c>"buildIdleTimeout"</c> when the app sets them.</summary>
+    private int? ResolveBuildDeadlines(DeployPlan plan)
+    {
+        var build = Deadlines.Build;
+        var idle = Deadlines.BuildIdle;
+        string? error = null;
+        if ((plan.Config.BuildTimeout is { } total && !Cli.StopTimeout.TryParse(DeployDeadlines.BuildKey, total, DeployDeadlines.MinimumBuild, DeployDeadlines.MaximumBuild, out build, out error))
+            || (plan.Config.BuildIdleTimeout is { } quiet && !Cli.StopTimeout.TryParse(DeployDeadlines.BuildIdleKey, quiet, DeployDeadlines.MinimumBuild, DeployDeadlines.MaximumBuild, out idle, out error)))
+        {
+            return Fail($"{Path.Combine(".rask", "deploy.json")}: {error}");
+        }
+
+        Deadlines = Deadlines with { Build = build, BuildIdle = idle };
+        return null;
+    }
+
     private void PersistPlan(DeployPlan plan) =>
         PersistConfig(plan.Host, plan.Domain, plan.PublishedPort, plan.Slug, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, plan.ContainerPort, plan.Env, plan.Redirects);
 
