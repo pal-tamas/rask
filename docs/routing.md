@@ -122,6 +122,10 @@ public sealed partial class OrdersPage : Component
 // OrdersPage.Url(Sort: "")               → /orders?Sort=           (an empty string is a value)
 ```
 
+A [list](#a-list-is-one-key-comma-separated) is one key with its elements joined by an encoded comma, and an
+empty one is left out like an ungiven argument: `FleetPage.Url(Drivers: ["ada", "theo"])` →
+`/fleet?Drivers=ada%2Ctheo`, `FleetPage.Url(Drivers: [])` → `/fleet`.
+
 A key left out lands on [the property's initializer](#route-and-query-parameters), so the link to a list is
 its clean address and only a link that says a page carries one. `Routes.OrdersPage(…)`, `Url(…)` and `Go(…)`
 are one formatter and agree, and so does the TypeScript `Routes` an island imports.
@@ -233,7 +237,8 @@ Both attributes take an optional name to bind a segment/key whose name differs f
 
 **Supported types.** A bound property must be `string` or implement `IParsable<T>` (covers `int`, `long`, `double`,
 `bool`, `Guid`, `DateOnly`, `DateTime`, and your own `IParsable<T>` types). An enum is not `IParsable<T>`: bind
-it as a `string` and convert inside the page. A non-parsable type raises
+it as a `string` and convert inside the page. A `[QueryParam]` may also be a
+[list](#a-list-is-one-key-comma-separated) of such a type. A non-parsable type raises
 [RASK011](diagnostics.md#rask011). When a route template constrains a segment (`{id:int}`), the bound property's CLR
 type must match the constraint, or you get [RASK005](diagnostics.md#rask005).
 
@@ -280,6 +285,40 @@ above: the property's initializer, or its type's default when it has none. The r
 repeated key (`?page=two&page=2`) is read from its first value only, and the address stays as the visitor
 wrote it. In Development the ignored parameter is named once on the `Rask.Routing` log category, without its
 value. (A path *segment* the page cannot read is different: it [does not match](#registering-routes).)
+
+### A list is one key, comma-separated
+
+A `[QueryParam]` of type `T[]`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>` or `IEnumerable<T>` reads ONE key
+whose elements are separated by commas, `T` being any type a single query value can be (`string`, `bool`, any
+`IParsable<T>`):
+
+```csharp
+[Route("/fleet")]
+public sealed partial class FleetPage : Component
+{
+    [QueryParam] public IReadOnlyList<string> Drivers { get; set; } = [];   // ?drivers=ada,theo → ["ada", "theo"]
+    [QueryParam("tank")] public int[] Tanks { get; set; } = [];             // ?tank=3,abc,2      → [3, 2]
+}
+// FleetPage.Url(Drivers: ["ada", "theo"])  → /fleet?Drivers=ada%2Ctheo
+// FleetPage.Url(Drivers: [])               → /fleet                    (nothing to write: the key is left out)
+```
+
+- **Each element is read as a single value is**, and one that cannot be read is left out — `?tank=3,abc,2`
+  is `[3, 2]`, never an error or a not-found. An empty element (`a,,b`, a trailing comma) is left out too. In
+  Development the left-out elements are named once on the `Rask.Routing` log category, without their value.
+- **A key with no element left keeps the initializer**, as an absent one does (`?tank=`, `?tank=abc`), and
+  going back to an address without the key puts the initializer back.
+- **The comma is read decoded**: `?drivers=ada,theo` and `?drivers=ada%2Ctheo` are the same two elements, and
+  the same key given twice (`?drivers=ada&drivers=theo`) contributes the elements of both.
+- **An element cannot hold a comma.** `["Lovelace, Ada"]` is written `Lovelace%2C%20Ada` and reads back as
+  `["Lovelace", " Ada"]` — keep commas out of list values (an id, a slug), or bind a `string` and split it
+  yourself.
+- **Writing** — `Routes.FleetPage(…)`, `FleetPage.Url(…)`/`.Go(…)` and the TypeScript `Routes` of an island
+  (`Routes.FleetPage({ Drivers: ['ada', 'theo'] })`) write the elements in order, invariant culture, joined by
+  `%2C`; a `null` or empty list, or one whose every element writes as nothing, leaves the key out. From a
+  handler, `Go.With("drivers", string.Join(',', drivers))` sets it.
+- A list whose binding reads the same elements again is no change: the page keeps the list it holds and
+  `OnUpdated` does not fire for it. A path segment is never a list ([RASK011](diagnostics.md#rask011)).
 
 Other binding-related analyzers worth knowing:
 

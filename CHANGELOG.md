@@ -9,6 +9,14 @@ them until tagged releases begin.
 
 ### Added
 
+- **A `[QueryParam]` can be a list, read from ONE comma-separated key.** `[QueryParam] public IReadOnlyList<string>
+  Drivers { get; set; } = [];` is `["ada", "theo"]` at `?drivers=ada,theo` (or `ada%2Ctheo`); `T[]`,
+  `IReadOnlyCollection<T>` and `IEnumerable<T>` bind the same way, of any `T` a single query value can be (`string`,
+  `bool`, any `IParsable<T>`). An element that cannot be read is left out (`?tank=3,abc,2` → `[3, 2]`), never an
+  error; a key with nothing left, or no key at all, keeps the initializer. `Routes.X(…)`, `X.Url(…)`/`X.Go(…)` and an
+  island's TypeScript `Routes` write the list as one key joined by `%2C` and leave the key out for a null or empty
+  list. An element cannot carry a comma of its own. See [routing](docs/routing.md#a-list-is-one-key-comma-separated).
+
 - **A component that implements `IEventHandler<T>` handles a published event on every open page that shows it.**
   `Dispatcher.Publish(e)` — from a singleton, a timer, a job or another page's handler — and a domain event an
   aggregate raises reach each mounted listener in its own page's session: queued behind that page's events, as its
