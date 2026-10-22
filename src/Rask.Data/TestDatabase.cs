@@ -83,6 +83,7 @@ public sealed class TestDatabase : IAsyncDisposable
             // The same order the container registers them in: soft delete rewrites Deleted -> Modified
             // first, so auditing then stamps and versions the update it produced.
             builder.AddInterceptors(
+                AmbientTransactionInterceptor.Instance,
                 WritableChildrenInterceptor.Instance,
                 new SoftDeleteInterceptor(clock),
                 new AuditingInterceptor(clock),

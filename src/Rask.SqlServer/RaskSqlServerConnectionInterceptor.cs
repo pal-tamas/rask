@@ -20,7 +20,7 @@ internal sealed class RaskSqlServerConnectionInterceptor : DbConnectionIntercept
 {
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
     {
-        if (connection is SqlConnection sqlServer && OptionsFor(eventData.Context) is { } options)
+        if (connection is SqlConnection sqlServer && !JoinedATransaction(eventData) && OptionsFor(eventData.Context) is { } options)
         {
             SqlServerSessionSettings.Apply(sqlServer, options);
         }
@@ -31,11 +31,18 @@ internal sealed class RaskSqlServerConnectionInterceptor : DbConnectionIntercept
         ConnectionEndEventData eventData,
         CancellationToken cancellationToken = default)
     {
-        if (connection is SqlConnection sqlServer && OptionsFor(eventData.Context) is { } options)
+        if (connection is SqlConnection sqlServer && !JoinedATransaction(eventData) && OptionsFor(eventData.Context) is { } options)
         {
             await SqlServerSessionSettings.ApplyAsync(sqlServer, options, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    // A context joining Db.Transaction as it opens is pointed at the transaction's connection instead, and EF still
+    // reports the open. That connection got its settings when it opened, and a SET sent now has no transaction on its
+    // command, which SqlClient refuses on a connection in a local transaction. A real open never has one: EF clears
+    // the context's transactions before opening.
+    internal static bool JoinedATransaction(ConnectionEndEventData eventData) =>
+        eventData.Context?.Database.CurrentTransaction is not null;
 
     /// <summary>The settings of the last <c>UseRaskSqlServer</c> call on <paramref name="context"/>'s configuration.</summary>
     internal static SqlServerOptions? OptionsFor(DbContext? context) =>

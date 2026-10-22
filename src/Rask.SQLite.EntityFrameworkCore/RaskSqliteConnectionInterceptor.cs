@@ -32,7 +32,7 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
     /// <inheritdoc/>
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
     {
-        if (connection is SqliteConnection sqlite)
+        if (connection is SqliteConnection sqlite && !JoinedATransaction(eventData))
         {
             SqlitePragmas.Apply(sqlite, _options);
             SqliteCollations.Apply(sqlite);
@@ -78,10 +78,16 @@ public sealed class RaskSqliteConnectionInterceptor : DbConnectionInterceptor
         ConnectionEndEventData eventData,
         CancellationToken cancellationToken = default)
     {
-        if (connection is SqliteConnection sqlite)
+        if (connection is SqliteConnection sqlite && !JoinedATransaction(eventData))
         {
             await SqlitePragmas.ApplyAsync(sqlite, _options, cancellationToken).ConfigureAwait(false);
             SqliteCollations.Apply(sqlite);
         }
     }
+
+    // A context joining Db.Transaction as it opens is pointed at the transaction's connection instead, and EF still
+    // reports the open. That connection got its pragmas when it opened, and journal_mode or synchronous may not
+    // change inside a transaction. A real open never has one: EF clears the context's transactions before opening.
+    private static bool JoinedATransaction(ConnectionEndEventData eventData) =>
+        eventData.Context?.Database.CurrentTransaction is not null;
 }

@@ -32,6 +32,10 @@ public static partial class RaskDataServiceCollectionExtensions
         // auditing then stamps + versions the resulting update.
         if (!services.Any(static d => d.ImplementationType == typeof(SoftDeleteInterceptor)))
         {
+            // Not a save interceptor at heart: it joins the app's own context to a Db.Transaction when it opens its
+            // connection, so raw SQL inside the block runs inside it. Registered here so every host's contexts carry it.
+            services.AddSingleton<ISaveChangesInterceptor>(AmbientTransactionInterceptor.Instance);
+
             // First, so a child collection declared `= []` is one the others, and EF Core, can write into.
             services.AddSingleton<ISaveChangesInterceptor>(WritableChildrenInterceptor.Instance);
             services.AddSingleton<ISaveChangesInterceptor, SoftDeleteInterceptor>();

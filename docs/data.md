@@ -234,6 +234,9 @@ The child gets a table, a model so its parent's form can carry it, and a read fa
 another **aggregate** is not a child at all ([RASK087](diagnostics.md#rask087)), and a collection Rask cannot
 write is [RASK088](diagnostics.md#rask088).
 
+The field behind a read-only view can be named anything — `Notes => _items.AsReadOnly()` — and can live on an
+abstract base, generic or not: the collection is loaded into and saved from that field, not the view.
+
 **A child is written only through its aggregate.** A save that adds, changes or removes a child whose root the
 same context does not hold — a line found through `db.OrderLines` and edited, a `new OrderLine` attached on its
 own, a `BulkInsert` of lines — is refused with an `InvalidOperationException` naming the child and its root.
@@ -416,6 +419,15 @@ filter over *any* element of the collection is a scan. If that filter is hot on 
 `byte[]` is never a collection of bytes: it stays one BLOB column. Anything Rask has no column for — a
 `Dictionary`, a collection of some framework type — is left alone for the entity's own `Configure` to map, and
 so is any collection that `Configure` already mapped.
+
+A converter on the **element** is read back on the read face too — an enum list stored by name, or values the app
+stores its own way:
+
+```csharp
+builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>();   // ["Fragile","Cold"]
+
+await Skid.Where(s => s.Handling.Contains(SkidHandling.Cold));                         // the enum, not its name
+```
 
 Here is a whole model running — a `Note` aggregate, queried with `Note.OrderByDescending(…)`, written with `Note.Create`, and
 searched with `Note.Search`, in a SQLite database that lives in this browser tab and survives a reload:
@@ -826,6 +838,33 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   open, the call throws `InvalidOperationException`. The same goes for `db.BulkInsert(...)`. It stays yours:
   when the transaction ends — committed, rolled back or retried — it is out of it and back on its own connection,
   so the same `db` can go into the next `Db.Transaction` or save on its own.
+- **Your own context joins at its first command.** A context of the app's own — from the factory `AddRaskData<T>(o => …)`
+  registers or any whose options carry Rask's interceptors (`AddInterceptors(sp.GetServices<ISaveChangesInterceptor>())`,
+  which a `RaskApp` and every documented hand-wired host already add) — is enlisted before the first thing it runs
+  inside the block, even when it was created before it: a LINQ read, `SaveChangesAsync`, `ExecuteSqlRawAsync`,
+  `SqlQueryRaw`, `FromSqlRaw`. So its save does not wait on the locks the transaction's own reads took, a rollback
+  takes its writes back, and a later `db: db` call finds it joined. It is handed back on its own connection like
+  any `db:`. No `db.Database.BeginTransactionAsync()` inside the block — the context is already in one, and EF Core
+  refuses a second:
+
+  ```csharp
+  await using var db = await contexts.CreateDbContextAsync();
+  await Db.Transaction(async () =>
+  {
+      var fueling = await db.Set<Fueling>().SingleAsync(f => f.Id == id);  // joins here
+      fueling.Annotate(note);
+      if (await Fueling.Count(f => f.CardId == fueling.CardId) > 1) return; // read face, same transaction
+      await db.Database.ExecuteSqlRawAsync("UPDATE Cards SET Touched = 1 WHERE Id = {0}", fueling.CardId);
+      await db.SaveChangesAsync();                                          // same transaction
+  }, isolation: IsolationLevel.Serializable);
+  ```
+
+  A context on another database, already in a transaction of its own, or whose connection you opened before the
+  block runs as it always did, outside — and a `db:` call with it is refused as above.
+  A context that joins as it opens still has the open reported to its connection interceptors, on the transaction's
+  connection. Rask's SQL Server and SQLite interceptors send nothing then — that connection got its `SET`s and
+  pragmas when it opened. A `ConnectionOpened` interceptor of your own that sets a connection up should skip it the
+  same way: `if (eventData.Context?.Database.CurrentTransaction is not null) return;`.
 - **A job or a mail queued inside is a row in the transaction.** `Jobs.Enqueue(...)` (with or without
   `.UnlessWaiting()`) and `Mail.Send(...)` write on its connection: no processor sees them before the commit,
   and a rollback leaves nothing to run or deliver. Their table must be in the same database; otherwise the
@@ -848,7 +887,7 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   outermost. It is not a savepoint, and asking for a different `isolation` inside throws.
 - **One connection, one thing at a time:** no `Task.WhenAll` over reads inside it.
 - **What does not join:** the cache does not take part — `Cache.Remember` and `Cache.Forget` act at once and
-  are not undone by a rollback. Nor does a context you build yourself and never hand to a Rask call.
+  are not undone by a rollback. Nor does a context built without Rask's interceptors and never handed to a Rask call.
 
 It works the same from a live event handler, an HTTP endpoint, a job and a test, on a `RaskApp` host and on
 one wired by hand with `AddRaskData<TContext>()`.
@@ -1843,6 +1882,8 @@ value's column, and one that holds several is an EF Core **complex type**.
 
 One an abstract base declares is mapped the same way, at any depth, on every aggregate deriving from it: each
 concrete aggregate is its own table holding the base's columns, and its read face and form model carry them too.
+A generic base (`Filing<TSelf> where TSelf : Filing<TSelf>`) is no different: `VatReturn : Filing<VatReturn>` holds
+the base's children and collections of values behind its private fields as its own.
 The base itself is never an entity of the model.
 
 It must compare by value, or the build says so ([RASK105](diagnostics.md#rask105)). A `record` or a

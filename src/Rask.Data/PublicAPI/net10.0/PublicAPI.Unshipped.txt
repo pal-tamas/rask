@@ -245,6 +245,7 @@ static Rask.Data.BulkInsertExtensions.BulkInsert<TEntity>(this Microsoft.EntityF
 static Rask.Data.BulkInsertExtensions.BulkInsert<TEntity>(this Microsoft.EntityFrameworkCore.DbSet<TEntity!>! set, System.Collections.Generic.IEnumerable<TEntity!>! entities, System.Action<Rask.Data.BulkInsertOptions!>? configure = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
 static Rask.Data.ConventionRegistry.Declare(System.Type! entity, Rask.Data.TraitSet traits) -> void
 static Rask.Data.ConventionRegistry.DeclareCollection(System.Type! entity, string! property, string? field, System.Type? element) -> void
+static Rask.Data.ConventionRegistry.DeclareChildField(System.Type! aggregate, string! navigation, string! field) -> void
 static Rask.Data.ConventionRegistry.DeclareTenantKey(System.Type! entity, System.Type! key) -> void
 static Rask.Data.Db.Configure(System.Func<Microsoft.EntityFrameworkCore.DbContext!>! createContext) -> void
 static Rask.Data.Db.Configure(System.IServiceProvider! services) -> void

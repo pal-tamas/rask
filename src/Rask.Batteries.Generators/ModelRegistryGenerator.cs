@@ -145,6 +145,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             AggregateShape.TenantKeyOf(symbol),
             ValueCollections(symbol),
             ChildTypeNamesOf(symbol),
+            ChildFieldsOf(symbol),
             AggregateShape.IsAggregate(symbol),
             unbuildable,
             referenceValues);
@@ -166,6 +167,27 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         }
 
         return new EquatableArray<string>([.. names]);
+    }
+
+    // The children held behind a field EF Core's convention cannot pair with the navigation by name — `_items` behind
+    // `Lines` — on the entity or on any base, generic ones included. A field it does pair (`lines`, `_lines`, `_Lines`,
+    // `m_lines`, `m_Lines`) is left to it.
+    private static EquatableArray<ChildFieldSpec> ChildFieldsOf(INamedTypeSymbol entity)
+    {
+        var fields = GeneratedModelShape.Properties(entity)
+            .Select(p => GeneratedModelShape.DescribeChild(entity, p))
+            .Where(static c => c is { Access: ModelChildAccess.Field, Field: { } field } && !PairedByName(c.Name, field.Name))
+            .Select(static c => new ChildFieldSpec(c!.Name, c.Field!.Name))
+            .ToArray();
+
+        return new EquatableArray<ChildFieldSpec>(fields);
+    }
+
+    private static bool PairedByName(string navigation, string field)
+    {
+        var camel = char.ToLowerInvariant(navigation[0]) + navigation.Substring(1);
+        string[] paired = [camel, "_" + camel, "_" + navigation, "m_" + camel, "m_" + navigation];
+        return paired.Contains(field, StringComparer.Ordinal);
     }
 
     // Every collection of values the entity holds, read here rather than at runtime: deciding whether an
@@ -576,7 +598,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
         var declared = distinct
             .Select(c => (Entity: c, Traits: c.Traits | (partitioned.Contains(c.FullyQualifiedName) ? AggregateShape.PerTenant : 0)))
-            .Where(static d => d.Traits != 0 || d.Entity.Collections.Count > 0)
+            .Where(static d => d.Traits != 0 || d.Entity.Collections.Count > 0 || d.Entity.ChildFields.Count > 0)
             .OrderBy(static d => d.Entity.FullyQualifiedName, StringComparer.Ordinal)
             .ToList();
 
@@ -673,6 +695,13 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
                 .Append(", ").Append(Literal(collection.Field)).Append(", ")
                 .Append(collection.ElementTypeName is { } element ? "typeof(" + element + ")" : "null")
                 .AppendLine(");");
+        }
+
+        foreach (var child in entity.ChildFields)
+        {
+            source.Append("        global::Rask.Data.ConventionRegistry.DeclareChildField(typeof(")
+                .Append(entity.FullyQualifiedName).Append("), ").Append(Literal(child.Navigation))
+                .Append(", ").Append(Literal(child.Field)).AppendLine(");");
         }
     }
 
@@ -852,6 +881,9 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
     // as its fully-qualified name, and null there means a primitive collection rather than a JSON one.
     private readonly record struct ValueCollectionSpec(string Property, string? Field, string? ElementTypeName);
 
+    // A child collection's navigation and the field behind it, for a field EF Core cannot find by name.
+    private readonly record struct ChildFieldSpec(string Navigation, string Field);
+
     // Segments and Types run in step, root first. SingleValue names the one stored property of a one-value type,
     // and ColumnPrefix is the owning path's column name once a path has been re-rooted under a nested builder.
     private readonly record struct ValueObjectPath(
@@ -921,6 +953,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         string? TenantKey,
         EquatableArray<ValueCollectionSpec> Collections,
         EquatableArray<string> ChildTypeNames,
+        EquatableArray<ChildFieldSpec> ChildFields,
         bool IsAggregate,
         EquatableArray<UnbuildableHolder> UnbuildableHolders,
         EquatableArray<ReferenceValue> ReferenceValues);
