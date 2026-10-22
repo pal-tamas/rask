@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Referencing Rask.Testing changes nothing a test did not ask for: this project is shaped like an app's tests that
+    reference Rask.Testing for Clock.Fake alone, beside the app (Rask.Testing.Fixture.UnsetApp, whose Program.cs
+    throws when booted here) — and its model tests set up their own database with TestDatabase.Start.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <!-- Security: the patched SQLitePCLRaw bundle over the one EF Core pins (see Directory.Packages.props). -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Data"/>
+    <Using Include="Rask.Testing"/>
+  </ItemGroup>
+
+  <!-- A package reference imports this itself; a project reference does not. -->
+  <Import Project="..\..\src\Rask.Testing\build\Rask.Testing.targets"/>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Testing\Rask.Testing.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Data\Rask.Data.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\Rask.Testing.Fixture.UnsetApp\Rask.Testing.Fixture.UnsetApp.csproj"/>
+  </ItemGroup>
+
+</Project>

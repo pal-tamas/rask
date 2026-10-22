@@ -73,7 +73,7 @@ public static class Auth
     public static Task<AuthResult> RemovePasskey(Guid id) => Resolve().RemovePasskey(id);
 
     private static IAuth Resolve() =>
-        (Ambient.Services ?? throw new InvalidOperationException(
+        (Ambient.Needed ?? throw new InvalidOperationException(
             "Auth was called outside any work in progress — an event handler, a render or a request — so there is "
             + "no session to sign in or out. Inject IAuth there instead."))
         .GetRequiredService<IAuth>();
