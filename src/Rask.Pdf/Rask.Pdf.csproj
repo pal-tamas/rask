@@ -29,6 +29,11 @@
     <InternalsVisibleTo Include="Rask.Pdf.Tests"/>
   </ItemGroup>
 
+  <!-- The script that cuts a long table at its pages, evaluated in the printed page (PrintTables). -->
+  <ItemGroup>
+    <EmbeddedResource Include="PrintTables.js" LogicalName="Rask.Printing.PrintTables.js"/>
+  </ItemGroup>
+
   <!-- Pdf.From takes a route or a component, and reaches the server host's render through Core's
        IPrintablePages; Rask.Server implements it. -->
   <ItemGroup>
