@@ -228,6 +228,25 @@ much like a switcher being present somewhere. `RaskCultureNegotiator.TrySelect` 
 `Negotiate` precisely so an explicit pick is honoured regardless of `UseQueryString`, which is what
 keeps the menu above at ten lines instead of a feature.
 
+## When no culture is configured
+
+Culture support is off until `SupportedCultures` has an entry, and "off" means **English**: `<html lang="en">`,
+and every date and number formatted in `en`. Both hosts keep that promise to the first HTML they send:
+
+- **Server**: the first response and every live render run in the server process's culture — the same one,
+  so a page never changes language once it is live. Set the process culture (or configure a language) if
+  that is not the one you want; `UseRequestLocalization()` reaches only the first response, never the
+  socket, so it is not a way to pick one.
+- **WebAssembly**: the .NET runtime starts in the *browser's* locale and the prerender in the *publishing
+  machine's*, neither of which is the page's. So the host pins `CultureInfo.CurrentCulture`,
+  `CurrentUICulture` and both thread defaults to `en` before the first render, and the prerender does the
+  same before the first page. A Hungarian browser therefore reads "October 2026", as the baked page did,
+  rather than "2026. október" under English labels. Without ICU (`RaskGlobalization` off) the pin is the
+  invariant culture, which is what such an app formats in anyway.
+
+To format in the visitor's language, configure it — `host.UseCulture(c => …)` — and the session's culture
+takes over.
+
 ## Right-to-left
 
 A right-to-left culture emits `dir="rtl"` on `<html>`; everything else emits no `dir` at all, because
