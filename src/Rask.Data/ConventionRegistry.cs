@@ -28,6 +28,7 @@ public static class ConventionRegistry
     private static readonly ConcurrentDictionary<Type, TraitSet> DeclaredTraits = new();
     private static readonly ConcurrentDictionary<Type, Type> DeclaredTenantKeys = new();
     private static readonly ConcurrentDictionary<Type, List<ValueCollection>> DeclaredCollections = new();
+    private static readonly ConcurrentDictionary<Type, List<ChildField>> DeclaredChildFields = new();
 
     /// <summary>Records the traits <paramref name="entity" /> named. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
@@ -78,6 +79,28 @@ public static class ConventionRegistry
         DeclaredCollections.GetOrAdd(entity, static _ => []).Add(new ValueCollection(property, field, element));
     }
 
+    /// <summary>
+    ///     Records the field behind a collection of children that EF Core's convention cannot pair with the
+    ///     navigation by name — <c>_items</c> behind <c>Lines</c> — on the aggregate or on one of its bases. Called by
+    ///     generated code.
+    /// </summary>
+    /// <param name="aggregate">The entity type holding the children.</param>
+    /// <param name="navigation">The navigation's name — <c>Lines</c>.</param>
+    /// <param name="field">The field it hands out — <c>_items</c>.</param>
+    /// <remarks>
+    ///     Without it a navigation that hands out a read-only view (<c>_items.AsReadOnly()</c>) has nothing EF Core
+    ///     can add a loaded row to, and the first load of the aggregate fails.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void DeclareChildField(Type aggregate, string navigation, string field)
+    {
+        ArgumentNullException.ThrowIfNull(aggregate);
+        ArgumentException.ThrowIfNullOrEmpty(navigation);
+        ArgumentException.ThrowIfNullOrEmpty(field);
+
+        DeclaredChildFields.GetOrAdd(aggregate, static _ => []).Add(new ChildField(navigation, field));
+    }
+
     /// <summary>Whether <paramref name="entity" /> named <paramref name="trait" />. Nothing is named unless it was.</summary>
     /// <param name="entity">The entity type.</param>
     /// <param name="trait">One trait.</param>
@@ -104,4 +127,9 @@ public static class ConventionRegistry
     /// <param name="entity">The entity type.</param>
     internal static IReadOnlyList<ValueCollection> CollectionsFor(Type entity) =>
         DeclaredCollections.TryGetValue(entity, out var collections) ? collections : [];
+
+    /// <summary>The fields behind <paramref name="entity" />'s children that EF Core cannot find by name, or none.</summary>
+    /// <param name="entity">The entity type.</param>
+    internal static IReadOnlyList<ChildField> ChildFieldsFor(Type entity) =>
+        DeclaredChildFields.TryGetValue(entity, out var fields) ? fields : [];
 }

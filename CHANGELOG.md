@@ -1255,6 +1255,20 @@ them until tagged releases begin.
   expected to be overwritten with the type's default — now sees the initializer.
 
 ### Fixed
+- **An app's own context used inside `Db.Transaction` runs inside the transaction — plain EF Core and raw SQL alike.**
+  Before: a context from the app's factory (`AddRaskData<T>(o => …)`, or any carrying Rask's interceptors), used
+  inside `await Db.Transaction(async () => { ... })` without `db:` — a LINQ read, `SaveChangesAsync`,
+  `ExecuteSqlRawAsync`, `SqlQueryRaw`, `FromSqlRaw` — opened a connection of its own, outside the transaction. On SQL
+  Server at serializable its UPDATE waited on the locks the block's own read face held (LCK_M_X) until the 30 s
+  timeout; on SQLite it failed "database is locked"; a rollback kept what it wrote; and a later `Refund.Remove(id,
+  db: db)` could be refused. The workaround was a `db.Database.BeginTransactionAsync()` by hand. After: the context is
+  enlisted before its first command — even one created before the block — so its reads, its save, its raw SQL and
+  any `db:` call share the transaction, a rollback undoes them all, and the context is handed back on its own
+  connection. No call site changes; drop the hand-made `BeginTransactionAsync` inside the block (EF Core now refuses
+  it, as the context is already in a transaction). A context on another database still runs outside, and its `db:`
+  call is still refused. Joining sends no session setup again: `UseRaskSqlServer`'s `SET XACT_ABORT`/`LOCK_TIMEOUT`
+  and `UseRaskSqlite`'s pragmas run when a connection really opens, not when a context joins the transaction's
+  connection (SqlClient refused that `SET`: "BeginExecuteNonQuery requires the command to have a transaction").
 - **Referencing `Rask.Testing` boots nothing a test did not ask for.** Before: on xUnit v3 the per-test app hook made
   ANY ambient lookup boot the app's `Program.cs` — so a project that took `Rask.Testing` for `Clock.Fake` alone saw
   its `TestDatabase.Start(…)` model tests boot the app at their first `Company.Where(…)`, fail on the app's missing
@@ -1290,6 +1304,19 @@ them until tagged releases begin.
   base's members — at any depth — get exactly what the aggregate's own get: the converted column, the complex
   value object, the value collection (through the base's field), the read face and the form model. Each concrete
   aggregate is still its own table; the abstract base is never an entity of the model.
+- **The read face reads a collection of values through the converter the write side put on its element.** Before:
+  `builder.PrimitiveCollection(s => s.Handling).ElementType().HasConversion<string>()` stored `["Fragile","Cold"]`,
+  and `Skid.Where(…).Select(s => s.Handling)` threw "Cannot get the value of a token type 'String' as a number"; an
+  app's own element converter (a sealed string) came back still sealed. After: the face mirrors the element's
+  converter, comparer, length and unicode, and the column's name and type, so the values read are the values
+  written and `Skid.Where(s => s.Handling.Contains(SkidHandling.Cold))` finds the row. A collection of value objects
+  is still one JSON column on both sides, under the write side's column name.
+- **Children behind a field EF Core cannot pair with them by name are loaded and saved.** Before:
+  `private readonly List<CaseNote> _items = []; public IReadOnlyList<CaseNote> Notes => _items.AsReadOnly();`
+  failed the first `Find` and every form `Update` with "Collection is read-only", because EF Core finds a backing
+  field only when it is named `notes`, `_notes`, `_Notes`, `m_notes` or `m_Notes`. After: the generator names the
+  field it already writes the form through, and the navigation is mapped to it — on the aggregate itself or on an
+  abstract base, generic ones (`Casebook<TSelf>`) included. A field `Configure` set with `HasField` is kept.
 - **A `db:` context handed into `Db.Transaction` is handed back as it came.** Before: the context stayed pointed
   at the finished transaction and its disposed connection, so the next `Db.Transaction` refused it ("in a
   transaction of its own") and a `db.SaveChangesAsync()` outside ran on the dead connection (TA, nightly .440).
