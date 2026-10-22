@@ -155,4 +155,14 @@ A document in the hundreds of pages on a small server can still need more than t
 `Rask:Pdf` for that app (`"Timeout": "00:03:00"`). Splitting one table into a table per few hundred rows saves about
 a fifth of the print, and is only worth it past that.
 
+To measure it on your machine — a 14-column table at 1,000, 5,000 and 10,000 rows, plain, as a kit `Ui.Table`, on the
+kit's sheet and with a 7pt print stylesheet, each with its HTML size, pages and where the time went — run the opt-in
+measurement from the repository root (it is skipped without the variable, so CI never runs it):
+
+```bash
+RASK_PDF_MEASURE=1 dotnet test tests/Rask.Pdf.Tests --filter "FullyQualifiedName~PrintMeasurements" --logger "console;verbosity=detailed"
+```
+
+`RASK_PDF_MEASURE_OUT=/tmp/pdf-measure.md` also writes the table to that file.
+
 Linux and macOS for now.

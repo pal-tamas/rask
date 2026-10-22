@@ -19,6 +19,9 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
     /// <summary>The most documents that were printing at the same moment.</summary>
     internal int MostAtOnce => Volatile.Read(ref _mostAtOnce);
 
+    /// <summary>Called with each document printed and its steps' timings, for a measurement; unset in an app.</summary>
+    internal Action<PrintDocument, PrintProgress>? Printed { get; set; }
+
     /// <summary>The browser printing now, if one has started.</summary>
     internal ChromiumProcess? Browser => _browser;
 
@@ -39,7 +42,9 @@ internal sealed class ChromiumPrinter(ChromiumSettings settings) : IAsyncDisposa
             var progress = new PrintProgress();
             try
             {
-                return await HtmlPrint.Run(browser, document, settings.MaxPages, progress, deadline.Token).ConfigureAwait(false);
+                var pdf = await HtmlPrint.Run(browser, document, settings.MaxPages, progress, deadline.Token).ConfigureAwait(false);
+                Printed?.Invoke(document, progress);
+                return pdf;
             }
             catch (OperationCanceledException e) when (!cancellation.IsCancellationRequested)
             {
