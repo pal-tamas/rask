@@ -4228,6 +4228,11 @@ Rask.Web.Types.RsaOtherPrimesInfo.RsaOtherPrimesInfo() -> void
 Rask.Web.Types.RsaOtherPrimesInfo.T.get -> string?
 Rask.Web.Types.RsaOtherPrimesInfo.T.init -> void
 Rask.Web.Types.Sanitizer.SetJavascriptURLs(bool allow) -> System.Threading.Tasks.ValueTask<bool>
+Rask.Web.Types.SpeechRecognitionAvailabilityStatus
+Rask.Web.Types.SpeechRecognitionAvailabilityStatus.Available = 1727918744 -> Rask.Web.Types.SpeechRecognitionAvailabilityStatus
+Rask.Web.Types.SpeechRecognitionAvailabilityStatus.Downloadable = 2058150121 -> Rask.Web.Types.SpeechRecognitionAvailabilityStatus
+Rask.Web.Types.SpeechRecognitionAvailabilityStatus.Downloading = 501987239 -> Rask.Web.Types.SpeechRecognitionAvailabilityStatus
+Rask.Web.Types.SpeechRecognitionAvailabilityStatus.Unavailable = -1898848503 -> Rask.Web.Types.SpeechRecognitionAvailabilityStatus
 Rask.Web.Types.SVGAngle
 Rask.Web.Types.SVGAngle.ConvertToSpecifiedUnits(int unitType) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.SVGAngle.NewValueSpecifiedUnits(int unitType, double valueInSpecifiedUnits) -> System.Threading.Tasks.ValueTask
@@ -4665,6 +4670,7 @@ Rask.Web.Types.TouchList.Length.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.TransferFunction
 Rask.Web.Types.TreeWalker
 Rask.Web.Types.TreeWalker.WhatToShow.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Web.Types.TrustedHTMLParserOptions
 Rask.Web.Types.TrustedTypePolicy
 Rask.Web.Types.TrustedTypePolicy.Name.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.TrustedTypePolicyFactory
@@ -4992,6 +4998,7 @@ Rask.Web.Types.VisualViewport.PageLeft.get -> System.Threading.Tasks.ValueTask<d
 Rask.Web.Types.VisualViewport.PageTop.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.VisualViewport.Scale.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.VisualViewport.Width.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.WebTransport.ResponseHeaders.get -> Rask.Web.Types.Headers!
 Rask.Web.Types.WGSLLanguageFeatures
 Rask.Web.Types.WakeLock
 Rask.Web.Types.WakeLock.Request() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WakeLockSentinel!>
@@ -5230,6 +5237,11 @@ Rask.Web.Types.XPathResult.ResultType.get -> System.Threading.Tasks.ValueTask<in
 Rask.Web.Types.XPathResult.SnapshotLength.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.XPathResult.StringValue.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.VisualViewport
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AfterHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AppendHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).BeforeHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).PrependHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReplaceWithHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Web.Window
 override Rask.Web.Types.AacEncoderConfig.Equals(object? obj) -> bool
 override Rask.Web.Types.AacEncoderConfig.GetHashCode() -> int
@@ -6051,6 +6063,7 @@ static Rask.Web.Document.IsSupported.get -> System.Threading.Tasks.ValueTask<boo
 static Rask.Web.Document.LastModified.get -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Web.Document.Links.get -> Rask.Web.Types.HTMLCollection!
 static Rask.Web.Document.Location.get -> Rask.Web.Types.Location!
+static Rask.Web.Document.ParseHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> Rask.Web.Types.Document!
 static Rask.Web.Document.PictureInPictureEnabled.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.Document.Plugins.get -> Rask.Web.Types.HTMLCollection!
 static Rask.Web.Document.QuerySelectorAll(string! selectors) -> Rask.Web.Types.NodeList!
@@ -6183,6 +6196,7 @@ static Rask.Web.SessionStorage.Key(int index) -> System.Threading.Tasks.ValueTas
 static Rask.Web.SessionStorage.Length.get -> System.Threading.Tasks.ValueTask<int>
 static Rask.Web.SessionStorage.RemoveItem(string! key) -> System.Threading.Tasks.ValueTask
 static Rask.Web.SessionStorage.SetItem(string! key, string! value) -> System.Threading.Tasks.ValueTask
+static Rask.Web.SpeechRecognition.Available(Rask.Web.Types.SpeechRecognitionOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechRecognitionAvailabilityStatus>
 static Rask.Web.SpeechSynthesis.Cancel() -> System.Threading.Tasks.ValueTask
 static Rask.Web.SpeechSynthesis.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.SpeechSynthesis.Pause() -> System.Threading.Tasks.ValueTask
@@ -6662,6 +6676,11 @@ static Rask.Web.VisualViewport.PageLeft.get -> System.Threading.Tasks.ValueTask<
 static Rask.Web.VisualViewport.PageTop.get -> System.Threading.Tasks.ValueTask<double>
 static Rask.Web.VisualViewport.Scale.get -> System.Threading.Tasks.ValueTask<double>
 static Rask.Web.VisualViewport.Width.get -> System.Threading.Tasks.ValueTask<double>
+static Rask.Web.WebElementRefMembers.AfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.AppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Web.WebElementRefMembers.ReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Web.Window.Alert() -> System.Threading.Tasks.ValueTask
 static Rask.Web.Window.Alert(string! message) -> System.Threading.Tasks.ValueTask
 static Rask.Web.Window.CancelAnimationFrame(int handle) -> System.Threading.Tasks.ValueTask
@@ -9310,7 +9329,6 @@ Rask.Web.Types.AudioTrackList.Length.get -> System.Threading.Tasks.ValueTask<int
 Rask.Web.Types.AutoplayPolicy
 Rask.Web.Types.AutoplayPolicyMediaType
 Rask.Web.Types.Availability
-Rask.Web.Types.AvailabilityStatus
 Rask.Web.Types.BackgroundFetchFailureReason
 Rask.Web.Types.BackgroundFetchManager
 Rask.Web.Types.BackgroundFetchManager.Get(string! id) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BackgroundFetchRegistration!>
@@ -10073,7 +10091,6 @@ Rask.Web.Types.Navigator.Bluetooth.get -> Rask.Web.Types.Bluetooth!
 Rask.Web.Types.Navigator.Connection.get -> Rask.Web.Types.NetworkInformation!
 Rask.Web.Types.Navigator.Contacts.get -> Rask.Web.Types.ContactsManager!
 Rask.Web.Types.Navigator.CpuPerformance.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.Navigator.DeviceMemory.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.Navigator.DevicePosture.get -> Rask.Web.Types.DevicePosture!
 Rask.Web.Types.Navigator.GetAutoplayPolicy(Rask.Web.Types.AutoplayPolicyMediaType type) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
 Rask.Web.Types.Navigator.GetBattery() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BatteryManager!>
@@ -10119,7 +10136,6 @@ Rask.Web.Types.Notification.Navigate.get -> System.Threading.Tasks.ValueTask<str
 Rask.Web.Types.Notification.Renotify.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.Notification.RequireInteraction.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.Notification.Timestamp.get -> System.Threading.Tasks.ValueTask<long>
-Rask.Web.Types.Notification.Vibrate.get -> System.Threading.Tasks.ValueTask<int[]!>
 Rask.Web.Types.OTPCredential
 Rask.Web.Types.OTPCredential.Code.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.Observable
@@ -11619,7 +11635,6 @@ static Rask.Web.Navigator.Bluetooth.get -> Rask.Web.Types.Bluetooth!
 static Rask.Web.Navigator.Connection.get -> Rask.Web.Types.NetworkInformation!
 static Rask.Web.Navigator.Contacts.get -> Rask.Web.Types.ContactsManager!
 static Rask.Web.Navigator.CpuPerformance.get -> System.Threading.Tasks.ValueTask<int>
-static Rask.Web.Navigator.DeviceMemory.get -> System.Threading.Tasks.ValueTask<double>
 static Rask.Web.Navigator.DevicePosture.get -> Rask.Web.Types.DevicePosture!
 static Rask.Web.Navigator.GetAutoplayPolicy(Rask.Web.Types.AutoplayPolicyMediaType type) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AutoplayPolicy>
 static Rask.Web.Navigator.GetBattery() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.BatteryManager!>
@@ -11662,7 +11677,6 @@ static Rask.Web.QuotaExceededError.Create(string! message, Rask.Web.Types.QuotaE
 static Rask.Web.RelativeOrientationSensor.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RelativeOrientationSensor!>
 static Rask.Web.RelativeOrientationSensor.Create(Rask.Web.Types.OrientationSensorOptions! sensorOptions) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RelativeOrientationSensor!>
 static Rask.Web.Screen.IsExtended.get -> System.Threading.Tasks.ValueTask<bool>
-static Rask.Web.SpeechRecognition.Available(Rask.Web.Types.SpeechRecognitionOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AvailabilityStatus>
 static Rask.Web.SpeechRecognition.Create() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechRecognition!>
 static Rask.Web.SpeechRecognition.Install(Rask.Web.Types.SpeechRecognitionOptions! options) -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.SpeechRecognitionPhrase.Create(string! phrase) -> System.Threading.Tasks.ValueTask<Rask.Web.Types.SpeechRecognitionPhrase!>
@@ -13245,8 +13259,6 @@ Rask.Web.Types.IntersectionObserverInit.Threshold.get -> double[]?
 Rask.Web.Types.IntersectionObserverInit.Threshold.init -> void
 Rask.Web.Types.MediaMetadata.ChapterInfo.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.ChapterInformation![]!>
 Rask.Web.Types.Navigator.DeprecatedReplaceInURN(string! urnOrConfig, System.Collections.Generic.Dictionary<string!, string!>! replacements) -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.NotificationOptions.Vibrate.get -> int[]?
-Rask.Web.Types.NotificationOptions.Vibrate.init -> void
 Rask.Web.Types.OptionalEffectTiming.Duration.get -> string?
 Rask.Web.Types.OptionalEffectTiming.Duration.init -> void
 Rask.Web.Types.PerformanceMeasureOptions.End.get -> string?
@@ -15842,10 +15854,6 @@ Rask.Web.Types.Availability.Available = 1727918744 -> Rask.Web.Types.Availabilit
 Rask.Web.Types.Availability.Downloadable = 2058150121 -> Rask.Web.Types.Availability
 Rask.Web.Types.Availability.Downloading = 501987239 -> Rask.Web.Types.Availability
 Rask.Web.Types.Availability.Unavailable = -1898848503 -> Rask.Web.Types.Availability
-Rask.Web.Types.AvailabilityStatus.Available = 1727918744 -> Rask.Web.Types.AvailabilityStatus
-Rask.Web.Types.AvailabilityStatus.Downloadable = 2058150121 -> Rask.Web.Types.AvailabilityStatus
-Rask.Web.Types.AvailabilityStatus.Downloading = 501987239 -> Rask.Web.Types.AvailabilityStatus
-Rask.Web.Types.AvailabilityStatus.Unavailable = -1898848503 -> Rask.Web.Types.AvailabilityStatus
 Rask.Web.Types.AvcBitstreamFormat.Annexb = 1567928797 -> Rask.Web.Types.AvcBitstreamFormat
 Rask.Web.Types.AvcBitstreamFormat.Avc = 577112759 -> Rask.Web.Types.AvcBitstreamFormat
 Rask.Web.Types.BackgroundFetchFailureReason.Aborted = -1229126960 -> Rask.Web.Types.BackgroundFetchFailureReason
