@@ -148,7 +148,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             WriteTypedBind(
                 sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
-                HeardValues.IsSecret(null, Autocomplete, Data));
+                secret: HeardValues.IsSecret(null, Autocomplete, Data));
             return;
         }
 
