@@ -1,4 +1,7 @@
 #nullable enable
+override Rask.Core.SetHTMLUnsafeOptions.Equals(object? obj) -> bool
+override Rask.Core.SetHTMLUnsafeOptions.GetHashCode() -> int
+override Rask.Core.SetHTMLUnsafeOptions.ToString() -> string!
 Rask.Core.Components.AppStylesheet
 Rask.Core.Components.AppStylesheet.AppStylesheet() -> void
 const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
@@ -842,6 +845,8 @@ Rask.Core.Css.AlignContentKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.AlignContentKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.AlignContentKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.SpaceAround.get -> Rask.Core.Css
 Rask.Core.Css.AlignContentKeywords.SpaceBetween.get -> Rask.Core.Css
@@ -855,6 +860,8 @@ Rask.Core.Css.AlignItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.AlignItemsKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.AlignItemsKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.SelfEnd.get -> Rask.Core.Css
 Rask.Core.Css.AlignItemsKeywords.SelfStart.get -> Rask.Core.Css
@@ -878,6 +885,8 @@ Rask.Core.Css.AlignSelfKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.AlignSelfKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.AlignSelfKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.SelfEnd.get -> Rask.Core.Css
 Rask.Core.Css.AlignSelfKeywords.SelfStart.get -> Rask.Core.Css
@@ -1690,14 +1699,19 @@ Rask.Core.Css.ContainKeywords.Size.get -> Rask.Core.Css
 Rask.Core.Css.ContainKeywords.Strict.get -> Rask.Core.Css
 Rask.Core.Css.ContainKeywords.Style.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords
+Rask.Core.Css.ContentKeywords.Circle.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.CloseQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.ContentKeywords() -> void
 Rask.Core.Css.ContentKeywords.Contents.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.Disc.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.DisclosureClosed.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.DisclosureOpen.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.NoCloseQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.NoOpenQuote.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.ContentKeywords.OpenQuote.get -> Rask.Core.Css
+Rask.Core.Css.ContentKeywords.Square.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords
 Rask.Core.Css.ContentVisibilityKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords.ContentVisibilityKeywords() -> void
@@ -2206,6 +2220,8 @@ Rask.Core.Css.JustifyContentKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.JustifyContentKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.JustifyContentKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.JustifyContentKeywords() -> void
 Rask.Core.Css.JustifyContentKeywords.Left.get -> Rask.Core.Css
 Rask.Core.Css.JustifyContentKeywords.Normal.get -> Rask.Core.Css
@@ -2221,6 +2237,8 @@ Rask.Core.Css.JustifyItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.JustifyItemsKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.JustifyItemsKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.JustifyItemsKeywords() -> void
 Rask.Core.Css.JustifyItemsKeywords.Left.get -> Rask.Core.Css
 Rask.Core.Css.JustifyItemsKeywords.Legacy.get -> Rask.Core.Css
@@ -2238,6 +2256,8 @@ Rask.Core.Css.JustifySelfKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.JustifySelfKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.JustifySelfKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.JustifySelfKeywords() -> void
 Rask.Core.Css.JustifySelfKeywords.Left.get -> Rask.Core.Css
 Rask.Core.Css.JustifySelfKeywords.Normal.get -> Rask.Core.Css
@@ -2749,6 +2769,8 @@ Rask.Core.Css.PlaceContentKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.PlaceContentKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.PlaceContentKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.PlaceContentKeywords.PlaceContentKeywords() -> void
 Rask.Core.Css.PlaceContentKeywords.SpaceAround.get -> Rask.Core.Css
@@ -2762,6 +2784,8 @@ Rask.Core.Css.PlaceItemsKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.PlaceItemsKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.PlaceItemsKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.PlaceItemsKeywords.PlaceItemsKeywords() -> void
 Rask.Core.Css.PlaceItemsKeywords.SelfEnd.get -> Rask.Core.Css
@@ -2776,6 +2800,8 @@ Rask.Core.Css.PlaceSelfKeywords.Center.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.End.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.FlexEnd.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.FlexStart.get -> Rask.Core.Css
+Rask.Core.Css.PlaceSelfKeywords.FlowEnd.get -> Rask.Core.Css
+Rask.Core.Css.PlaceSelfKeywords.FlowStart.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.PlaceSelfKeywords.PlaceSelfKeywords() -> void
 Rask.Core.Css.PlaceSelfKeywords.SelfEnd.get -> Rask.Core.Css
@@ -2986,6 +3012,8 @@ Rask.Core.Css.PositionTryOrderKeywords.Normal.get -> Rask.Core.Css
 Rask.Core.Css.PositionTryOrderKeywords.PositionTryOrderKeywords() -> void
 Rask.Core.Css.PositionVisibilityKeywords
 Rask.Core.Css.PositionVisibilityKeywords.Always.get -> Rask.Core.Css
+Rask.Core.Css.PositionVisibilityKeywords.AnchorValid.get -> Rask.Core.Css
+Rask.Core.Css.PositionVisibilityKeywords.AnchorVisible.get -> Rask.Core.Css
 Rask.Core.Css.PositionVisibilityKeywords.NoOverflow.get -> Rask.Core.Css
 Rask.Core.Css.PositionVisibilityKeywords.PositionVisibilityKeywords() -> void
 Rask.Core.Css.PrintColorAdjustKeywords
@@ -3221,6 +3249,9 @@ Rask.Core.Css.TextCombineUprightKeywords.All.get -> Rask.Core.Css
 Rask.Core.Css.TextCombineUprightKeywords.Digits.get -> Rask.Core.Css
 Rask.Core.Css.TextCombineUprightKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.TextCombineUprightKeywords.TextCombineUprightKeywords() -> void
+Rask.Core.Css.TextDecorationInsetKeywords
+Rask.Core.Css.TextDecorationInsetKeywords.Auto.get -> Rask.Core.Css
+Rask.Core.Css.TextDecorationInsetKeywords.TextDecorationInsetKeywords() -> void
 Rask.Core.Css.TextDecorationKeywords
 Rask.Core.Css.TextDecorationKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.TextDecorationKeywords.Dashed.get -> Rask.Core.Css
@@ -3359,6 +3390,7 @@ Rask.Core.Css.TextWrapStyleKeywords.Pretty.get -> Rask.Core.Css
 Rask.Core.Css.TextWrapStyleKeywords.Stable.get -> Rask.Core.Css
 Rask.Core.Css.TextWrapStyleKeywords.TextWrapStyleKeywords() -> void
 Rask.Core.Css.TimelineScopeKeywords
+Rask.Core.Css.TimelineScopeKeywords.All.get -> Rask.Core.Css
 Rask.Core.Css.TimelineScopeKeywords.None.get -> Rask.Core.Css
 Rask.Core.Css.TimelineScopeKeywords.TimelineScopeKeywords() -> void
 Rask.Core.Css.TopKeywords
@@ -3668,6 +3700,21 @@ Rask.Core.Element.Translate.get -> bool?
 Rask.Core.Element.Translate.set -> void
 Rask.Core.ElementRef
 Rask.Core.ElementRef.Id.get -> string!
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AfterHTML(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AfterHTMLUnsafe(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AfterHTMLUnsafe(string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AppendHTML(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AppendHTMLUnsafe(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AppendHTMLUnsafe(string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).BeforeHTML(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).BeforeHTMLUnsafe(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).BeforeHTMLUnsafe(string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).PrependHTML(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).PrependHTMLUnsafe(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).PrependHTMLUnsafe(string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReplaceWithHTML(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReplaceWithHTMLUnsafe(string! html) -> System.Threading.Tasks.ValueTask
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ReplaceWithHTMLUnsafe(string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).Scroll(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
@@ -4491,8 +4538,20 @@ Rask.Core.ScrollResult.Equals(Rask.Core.ScrollResult? other) -> bool
 Rask.Core.ScrollResult.Interrupted.get -> bool
 Rask.Core.ScrollResult.Interrupted.init -> void
 Rask.Core.ScrollResult.ScrollResult() -> void
+Rask.Core.SetHTMLUnsafeOptions
+Rask.Core.SetHTMLUnsafeOptions.<Clone>$() -> Rask.Core.SetHTMLUnsafeOptions!
+Rask.Core.SetHTMLUnsafeOptions.Equals(Rask.Core.SetHTMLUnsafeOptions? other) -> bool
+Rask.Core.SetHTMLUnsafeOptions.RunScripts.get -> bool?
+Rask.Core.SetHTMLUnsafeOptions.RunScripts.init -> void
+Rask.Core.SetHTMLUnsafeOptions.SetHTMLUnsafeOptions() -> void
 Rask.Core.SkipFactoryAttribute
 Rask.Core.SkipFactoryAttribute.SkipFactoryAttribute() -> void
+Rask.Core.SVGImageElement.ReferrerPolicy.get -> string?
+Rask.Core.SVGImageElement.ReferrerPolicy.set -> void
+Rask.Core.SVGScriptElement.ReferrerPolicy.get -> string?
+Rask.Core.SVGScriptElement.ReferrerPolicy.set -> void
+Rask.Core.SVGViewElement.SvgView.get -> string?
+Rask.Core.SVGViewElement.SvgView.set -> void
 Rask.Core.Validator<T>
 Rask.Core.Validator<T>.HasValue.get -> bool
 Rask.Core.Validator<T>.Invoke(T value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>
@@ -5874,6 +5933,10 @@ static Rask.Core.Css.TextDecoration(Rask.Length value) -> Rask.Core.Css
 static Rask.Core.Css.TextDecoration(Rask.Percentage value) -> Rask.Core.Css
 static Rask.Core.Css.TextDecoration(string? value) -> Rask.Core.Css
 static Rask.Core.Css.TextDecorationColor(string? value) -> Rask.Core.Css
+static Rask.Core.Css.TextDecorationInset() -> Rask.Core.Css.TextDecorationInsetKeywords
+static Rask.Core.Css.TextDecorationInset(Rask.Length value) -> Rask.Core.Css
+static Rask.Core.Css.TextDecorationInset(Rask.Percentage value) -> Rask.Core.Css
+static Rask.Core.Css.TextDecorationInset(string? value) -> Rask.Core.Css
 static Rask.Core.Css.TextDecorationLine() -> Rask.Core.Css.TextDecorationLineKeywords
 static Rask.Core.Css.TextDecorationLine(string? value) -> Rask.Core.Css
 static Rask.Core.Css.TextDecorationSkipInk() -> Rask.Core.Css.TextDecorationSkipInkKeywords
@@ -7045,6 +7108,10 @@ static Rask.Core.CssSteps.TextDecoration(this Rask.Core.Css css, Rask.Length val
 static Rask.Core.CssSteps.TextDecoration(this Rask.Core.Css css, Rask.Percentage value) -> Rask.Core.Css
 static Rask.Core.CssSteps.TextDecoration(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.TextDecorationColor(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.TextDecorationInset(this Rask.Core.Css css) -> Rask.Core.Css.TextDecorationInsetKeywords
+static Rask.Core.CssSteps.TextDecorationInset(this Rask.Core.Css css, Rask.Length value) -> Rask.Core.Css
+static Rask.Core.CssSteps.TextDecorationInset(this Rask.Core.Css css, Rask.Percentage value) -> Rask.Core.Css
+static Rask.Core.CssSteps.TextDecorationInset(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.TextDecorationLine(this Rask.Core.Css css) -> Rask.Core.Css.TextDecorationLineKeywords
 static Rask.Core.CssSteps.TextDecorationLine(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.TextDecorationSkipInk(this Rask.Core.Css css) -> Rask.Core.Css.TextDecorationSkipInkKeywords
@@ -7189,6 +7256,21 @@ static Rask.Core.Diagnostics.DevTools.PropsDescriber.Format(object? value) -> st
 static Rask.Core.DragAndDrop.DragDropMove.operator !=(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.DragAndDrop.DragDropMove.operator ==(Rask.Core.DragAndDrop.DragDropMove? left, Rask.Core.DragAndDrop.DragDropMove? right) -> bool
 static Rask.Core.ElementRef.New() -> Rask.Core.ElementRef!
+static Rask.Core.ElementRefMembers.AfterHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.AfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.AfterHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.AppendHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.AppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.AppendHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.BeforeHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.PrependHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.ReplaceWithHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.ReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.ReplaceWithHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 static Rask.Core.ElementRefMembers.Scroll(this Rask.Core.IElementRef<Rask.Core.Element!>! element, Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
@@ -7386,6 +7468,8 @@ static Rask.Core.ScopedAssets.ScopedAssetRegistry.UnregisterCss(System.Type! com
 static Rask.Core.ScopedAssets.ScopedAssetRegistry.UnregisterJs(System.Type! componentType) -> void
 static Rask.Core.ScrollResult.operator !=(Rask.Core.ScrollResult? left, Rask.Core.ScrollResult? right) -> bool
 static Rask.Core.ScrollResult.operator ==(Rask.Core.ScrollResult? left, Rask.Core.ScrollResult? right) -> bool
+static Rask.Core.SetHTMLUnsafeOptions.operator !=(Rask.Core.SetHTMLUnsafeOptions? left, Rask.Core.SetHTMLUnsafeOptions? right) -> bool
+static Rask.Core.SetHTMLUnsafeOptions.operator ==(Rask.Core.SetHTMLUnsafeOptions? left, Rask.Core.SetHTMLUnsafeOptions? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderRequest.operator !=(Rask.Core.Virtualization.ItemsProviderRequest? left, Rask.Core.Virtualization.ItemsProviderRequest? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderRequest.operator ==(Rask.Core.Virtualization.ItemsProviderRequest? left, Rask.Core.Virtualization.ItemsProviderRequest? right) -> bool
 static Rask.Core.Virtualization.ItemsProviderResult<T>.operator !=(Rask.Core.Virtualization.ItemsProviderResult<T>? left, Rask.Core.Virtualization.ItemsProviderResult<T>? right) -> bool
@@ -7518,11 +7602,14 @@ static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Components.ScreenO
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Components.Authorize! __b, string? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.Ref<T>(this T! __b, Rask.Core.ElementRef? value) -> T!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
+static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGScriptElement! __b, string? value) -> Rask.Core.SVGScriptElement!
 static RaskBuilderSettersRask_Core.Role<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Roles(this Rask.Core.Components.Authorize! __b, string![]? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.Routes(this Rask.Core.Routing.Router! __b, System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>? value) -> Rask.Core.Routing.Router!
 static RaskBuilderSettersRask_Core.Spellcheck<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.Style<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.SvgView(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
 static RaskBuilderSettersRask_Core.TabIndex<T>(this T! __b, int? value) -> T!
 static RaskBuilderSettersRask_Core.Template(this Rask.Core.Components.EyeDropperTrigger! __b, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>! value) -> Rask.Core.Components.EyeDropperTrigger!
 static RaskBuilderSettersRask_Core.Template(this Rask.Core.Components.FullscreenTrigger! __b, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string?>!, Rask.Core.Component!>! value) -> Rask.Core.Components.FullscreenTrigger!
