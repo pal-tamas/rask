@@ -44,10 +44,10 @@ public abstract partial class TimePickerExamples : FluxParity
 
     // What the docs page is to these examples. Its theme's monospace face is MonoLisa, a licensed webfont the
     // typed fields are set in and sized by (two of its `ch`): here a local monospace scaled to the same advance,
-    // 8.96px at 14px where a system face is 8.40px. And the width its "multiple" example hands the picker by class.
+    // 8.96px at 14px where a system face is 8.40px.
     private const string App =
         "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Courier New'),local('DejaVu Sans Mono');size-adjust:106.649%}"
-        + ":root{--font-mono:MonoLisa,monospace}.parity-w-60{max-width:240px}</style>";
+        + ":root{--font-mono:MonoLisa,monospace}</style>";
 
     /// <summary>What marks an example's pickers for the measurer to open, on the page that is measured open.</summary>
     protected abstract Component? Mark { get; }
@@ -61,7 +61,7 @@ public abstract partial class TimePickerExamples : FluxParity
 
         yield return ("without-dropdown", One(Ui.TimePicker.Of<TimeOnly?>().Type(Ui.TimePickerType.Input).Dropdown(false)));
 
-        yield return ("multiple-times", One(Ui.TimePicker.Of<List<TimeOnly>>().Class("parity-w-60"), row: true));
+        yield return ("multiple-times", One(Ui.TimePicker.Of<List<TimeOnly>>(), row: true));
 
         yield return ("time-format", Div.Style(Centre)[
             Div.Style("display:flex;gap:16px;padding:0 8px")[

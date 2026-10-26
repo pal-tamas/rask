@@ -3,8 +3,6 @@ namespace Rask;
 /// <summary>The date picker's class literals, written from Flux UI's measured looks.</summary>
 internal static class UiDatePickerLook
 {
-    internal const string Root = "min-w-[12rem] sm:min-w-[240px]";
-
     // The field-shaped box both triggers are drawn as.
     private const string Box =
         "flex items-center w-full px-3 py-2 rounded-lg overflow-hidden cursor-default "

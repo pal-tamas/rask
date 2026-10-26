@@ -8,11 +8,14 @@ namespace Rask;
 /// </summary>
 internal static class UiTimePickerLook
 {
-    /// <summary>The picker itself: as wide as it is given, and never under 240px.</summary>
-    internal const string Root = "block min-w-60";
+    /// <summary>The picker itself; how wide is <see cref="UiPickerWidth" />'s.</summary>
+    internal const string Root = "block";
 
     /// <summary>The room a clear button is placed in.</summary>
-    internal const string RootClearable = "relative block min-w-60";
+    internal const string RootClearable = "relative block";
+
+    /// <summary>A picker of several times grows no wider than its least width: the list of them is cut off.</summary>
+    internal const string RootSeveral = "[:where(&)]:max-w-[12rem] sm:[:where(&)]:max-w-[240px]";
 
     /// <summary>The button that shows the choice: white, zinc-200 with a darker bottom edge, <c>shadow-xs</c>.</summary>
     internal const string Button =

@@ -49,7 +49,10 @@ public abstract partial class DatetimePickerExamples : FluxParity
     /// </summary>
     private const string App =
         "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Menlo Regular'),local('Menlo-Regular'),local('DejaVu Sans Mono'),local('DejaVuSansMono');size-adjust:106.3%}"
-        + ":root{--font-mono:MonoLisa,monospace}.parity-flex-1{flex:1 1 0%}.parity-w-40{width:160px}</style>";
+        + ":root{--font-mono:MonoLisa,monospace}.parity-flex-1{flex:1 1 0%}"
+        + ".parity-separate{display:flex;gap:8px;width:100%;max-width:256px}"
+        + "@media (width < 40rem){.parity-separate{flex-direction:column}}"
+        + "@media (width >= 40rem){.parity-separate{max-width:384px}.parity-sm-w-40{width:160px}}</style>";
 
     /// <summary>What the page measured open adds to each example: room around it, and the mark the measurer presses.</summary>
     protected abstract string Extra { get; }
@@ -109,10 +112,10 @@ public abstract partial class DatetimePickerExamples : FluxParity
 
         yield return ("localization", One(At(now.AddDays(3), 14, 0)).Locale("fr-FR"));
 
-        // A date picker and a time picker side by side, as the docs page draws them.
-        yield return ("separate-date-and-time", Div.Style("display:flex;gap:8px;max-width:384px")[
+        // A date picker and a time picker side by side, as the docs page draws them: one above the other on a phone.
+        yield return ("separate-date-and-time", Div.Class("parity-separate")[
             Ui.DatePicker.Value(now.AddDays(5)).Locale("en-US").On(FluxClock.Today).Class("parity-flex-1"),
-            Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Locale("en-US").Class("parity-w-40")
+            Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Locale("en-US").Class("parity-sm-w-40")
         ]);
     }
 

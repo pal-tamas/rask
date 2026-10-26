@@ -157,7 +157,11 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         var clears = Clearable == true && Disabled != true && chosen.Count > 0 && UiTimePickerValue.Clears<T>();
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(clears ? UiTimePickerLook.RootClearable : UiTimePickerLook.Root, Class))
+            Div.Class(UiClass.Compose(
+                    clears ? UiTimePickerLook.RootClearable : UiTimePickerLook.Root,
+                    UiPickerWidth.For(Class),
+                    UiTimePickerValue.Several<T>() ? UiTimePickerLook.RootSeveral : null,
+                    Class))
                 .Data(UiTimePickerLook.RootMarks)[
                 // Keyed, so the clear button coming and going is an insert or a removal the live diff ships — and
                 // written after the list it is laid over, so the times keep the handlers they had.
@@ -194,7 +198,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
                 chosen.Count == 0
                     // One or the other, each under its key: a span against a div is no change the live diff can patch.
                     ? Span.Key("placeholder").Class(UiTimePickerLook.Placeholder).Data("ui-time-picker-placeholder", null)[Placeholder ?? RaskStrings.Get(RaskString.TimePickerPlaceholder, "Select a time")]
-                    : Div.Key("chosen").Attributes(("dir", "auto"))[string.Join(", ", chosen.Select(Written))]
+                    : Div.Key("chosen").Class("overflow-hidden").Attributes(("dir", "auto"))[string.Join(", ", chosen.Select(Written))]
             ],
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.ButtonChevron)
         ];

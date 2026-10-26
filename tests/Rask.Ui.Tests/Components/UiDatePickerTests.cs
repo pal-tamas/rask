@@ -422,6 +422,22 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("value=\"2026-", page.Html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_picker_is_never_narrower_than_Fluxs_until_a_class_of_the_call_site_sizes_it()
+    {
+        var unsized = Single(Jan(4));
+        var grown = Single(Jan(4)).Class("flex-1");
+
+        var least = RootClass(unsized.ToHtml(), "date-picker");
+        var sized = RootClass(grown.ToHtml(), "date-picker");
+
+        Assert.Equal("min-w-[12rem] sm:min-w-[240px]", least);
+        Assert.Equal("[:where(&)]:min-w-0 flex-1", sized);
+    }
+
+    internal static string RootClass(string html, string part) =>
+        System.Net.WebUtility.HtmlDecode(Regex.Match(html, "<div class=\"([^\"]*)\"[^>]*\\bdata-ui-" + part + "(?=[ >=])").Groups[1].Value);
+
     private static string[] Segments(string html) =>
         [.. Regex.Matches(html, "<input[^>]*aria-label=\"(Month|Day|Year)\"").Select(m => m.Groups[1].Value)];
 

@@ -385,8 +385,32 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
 
         var html = picker.ToHtml();
 
-        Assert.Contains("class=\"relative block min-w-60\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"relative block min-w-[12rem] sm:min-w-[240px]\"", html, StringComparison.Ordinal);
         Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-8\" data-rask-key=\"clear\"><button class=\"relative ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_picker_is_never_narrower_than_Fluxs_until_a_class_of_the_call_site_sizes_it()
+    {
+        var unsized = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30));
+        var narrowed = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Class("w-40");
+
+        var least = UiDatePickerTests.RootClass(unsized.ToHtml(), "time-picker");
+        var sized = UiDatePickerTests.RootClass(narrowed.ToHtml(), "time-picker");
+
+        Assert.Equal("block min-w-[12rem] sm:min-w-[240px]", least);
+        Assert.Equal("block [:where(&)]:min-w-0 w-40", sized);
+    }
+
+    [Fact]
+    public void A_picker_of_several_times_grows_no_wider_than_its_least_width_and_cuts_the_list_off()
+    {
+        var several = Ui.TimePicker.Value(new List<TimeOnly> { new(9, 0), new(10, 30), new(13, 0), new(15, 30) }).Locale("en-US");
+
+        var html = several.ToHtml();
+
+        Assert.Equal("block min-w-[12rem] sm:min-w-[240px] [:where(&)]:max-w-[12rem] sm:[:where(&)]:max-w-[240px]", UiDatePickerTests.RootClass(html, "time-picker"));
+        Assert.Matches("<div class=\"overflow-hidden\"[^>]*>9:00 AM, 10:30 AM, 1:00 PM, 3:30 PM</div>", html);
     }
 
     [Fact]

@@ -596,6 +596,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   for it. The pickers' and the listbox's slot hangs from `top-0` with the TRIGGER's height, never `bottom-0`: a
   flex row or a grid cell stretches the control's root to its tallest neighbour. `Ui.Input`'s slots keep
   `top-0 bottom-0` — the owner, 2026-10-12: Flux's own input drifts 40px there, and the input stays Flux's.
+  Width (measured 2026-10-26): both pickers are never under 12rem, 15rem from `sm` — until the call site passes a
+  class, which takes the minimum away (`flex-1`, `sm:w-40` → `min-width: 0`); `UiPickerWidth` is that one rule. A time
+  picker of several times also keeps a maximum of the same size (Flux's `multiple`, no class of the page's).
   `node scripts/flux/clear-placement.mjs` holds every clear button to its trigger on the pseudo-page
   `clear-placement` (`ClearPlacementParity`: alone, labelled, in a row, grown, in a grid cell; 1920 and 390).
   The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
@@ -630,7 +633,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   write nothing — and leave the calendar's own mark, so the sheet opens again with that day lit and "Select
   date" still writes it (a quirk, kept). The range's button reads "Select range". The standalone calendar
   changes the same way (it has no footer). The TIME picker does not: same popover and rows under 640 px, only
-  its trigger is 12rem and 16px there (the kit's is 240px and 14px at every width — measured, not built).
+  its trigger is 12rem and 16px there, as the kit's.
   How the kit does it: ONE markup, `sm:` / `max-sm:` utilities, the popup still a `popover` (the kit's
   translation of Flux's dialog at every width, so no focus trap — Tab leaves and closes it, as on a desktop).
   The anchor rules moved from the dialog's `style` into `sm:` classes (only `position-anchor` stays inline,

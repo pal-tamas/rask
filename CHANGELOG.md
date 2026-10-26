@@ -133,6 +133,14 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A class on `Ui.DatePicker` / `Ui.TimePicker` sizes it, as it does Flux's.** Both pickers kept a 240px minimum
+  under every class, so `Ui.TimePicker.Class("w-40")` stayed 240px wide and the docs' "Separate date and time" row
+  ran wider than Flux's. Measured on fluxui.dev: the pickers are never narrower than 12rem (15rem from `sm` up) until
+  the call site gives them a class of their own; then the class alone decides. The kit now does the same, and the
+  time picker's minimum is 12rem on a phone too (it was 240px at every width). `Ui.TimePicker` of several times
+  grows no wider than that minimum and cuts its list off, as Flux's `multiple` does. Before:
+  `Ui.TimePicker.Bind(() => m.At).Class("w-40")` → 240px. After: 160px.
+
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
