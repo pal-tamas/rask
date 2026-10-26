@@ -80,6 +80,55 @@ public class HookEventScopeTests
         await WaitFor.True(() => held.Disposed, "the scope of a hook whose component has gone to be disposed");
     }
 
+    // A report's hook takes its unit of work, then hands the slow read to a task of its own and returns: the page
+    // never waits for that read, and the read lands over the socket once there is one.
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_first_request_whose_hook_detaches_its_read_is_answered_at_once_and_the_rows_follow(LiveTransportKind transport)
+    {
+        var host = Host();
+        using var answered = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var gates = host.Server.Services.GetRequiredService<HookScopeGates>();
+
+        var html = await host.Http.GetStringAsync("/hook-scope/report", answered.Token);
+        await using var page = await AttachAsync(host, transport, html);
+        gates.Open("report", 1);
+
+        await page.Shows("report row");
+        await WaitFor.True(() => gates.Read("report").First!.Disposed, "the report's scope to go once its read is back");
+    }
+
+    [Fact]
+    public async Task Closing_a_report_mid_read_disposes_its_scope_with_the_session()
+    {
+        var host = Host(o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(200));
+        var gates = host.Server.Services.GetRequiredService<HookScopeGates>();
+        var html = await host.Http.GetStringAsync("/hook-scope/report", TestContext.Current.CancellationToken);
+        await using var page = await AttachAsync(host, LiveTransportKind.WebSocket, html);
+        await gates.Reached("report", 1);
+        var db = gates.Read("report").First!;
+
+        await page.Leave();
+
+        await WaitFor.True(() => db.DisposeStarted, "the report's scope to be disposed with the session it was read for");
+        gates.Open("report", 1);
+        await WaitFor.True(() => db.Disposed, "the dispose to finish once the read it waited for is back");
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_navigation_whose_hook_detaches_its_read_is_sent_and_the_rows_follow(LiveTransportKind transport)
+    {
+        await using var page = await OpenAsync(transport);
+
+        await page.Navigate("/hook-scope/report");
+        await page.Gates.Reached("report", 1);
+        await page.Click("nothing");
+        page.Gates.Open("report", 1);
+
+        await page.Shows("report row");
+    }
+
     [Fact]
     public async Task The_session_ending_disposes_the_scope_a_hook_still_holds()
     {
@@ -90,20 +139,29 @@ public class HookEventScopeTests
         var held = page.Gates.Read("countries").First!;
         await page.Session.DisposeAsync();
 
-        Assert.True(held.Disposed);
+        await WaitFor.True(() => held.Disposed, "the scope to be disposed with the session");
         page.Gates.Open("countries", 1);
         page.Gates.Open("countries", 2);
     }
 
-    private static async Task<OpenPage> OpenAsync(LiveTransportKind transport)
-    {
-        var host = RaskTestHost.Create<HookScopeApp>(
+    private static RaskTestHost Host(Action<RaskServerOptions>? configure = null) =>
+        RaskTestHost.Create<HookScopeApp>(
             services =>
             {
                 services.AddSingleton<HookScopeGates>();
                 services.AddScoped<HookScopeDb>();
-            });
+            },
+            configureServer: configure);
+
+    private static async Task<OpenPage> OpenAsync(LiveTransportKind transport)
+    {
+        var host = Host();
         var html = await host.Http.GetStringAsync("/hook-scope", TestContext.Current.CancellationToken);
+        return await AttachAsync(host, transport, html);
+    }
+
+    private static async Task<OpenPage> AttachAsync(RaskTestHost host, LiveTransportKind transport, string html)
+    {
         var session = host.Store.Peek(MarkupAssert.SessionId(html))!;
         var settled = session.AttachesSettled;
         var connection = await LiveTestConnection.OpenAsync(host, transport, session.Id);
@@ -115,6 +173,8 @@ public class HookEventScopeTests
     private sealed class OpenPage(RaskTestHost host, ILiveTestConnection connection, LiveSession session, string html)
         : IAsyncDisposable
     {
+        private bool _left;
+
         public LiveSession Session => session;
 
         public HookScopeGates Gates => host.Server.Services.GetRequiredService<HookScopeGates>();
@@ -128,13 +188,24 @@ public class HookEventScopeTests
             await connection.SettledAsync();
         }
 
+        // The tab closes: the session waits out its grace for a reconnect, then ends.
+        public async Task Leave()
+        {
+            _left = true;
+            await connection.DisposeAsync();
+        }
+
         public Task Shows(string text) =>
             connection.ReceiveUntilAsync(frame => frame.Contains(text, StringComparison.Ordinal), $"a frame showing {text}");
 
         public async ValueTask DisposeAsync()
         {
             Gates.OpenAll();
-            await connection.DisposeAsync();
+            if (!_left)
+            {
+                await connection.DisposeAsync();
+            }
+
             await host.StopAsync();
             host.Dispose();
         }
@@ -186,10 +257,15 @@ public sealed class HookScopeRead
     public bool Done { get; set; }
 }
 
-// The app's DbContext: unusable once its scope is disposed.
+// The app's DbContext: unusable once its scope is disposed, and — as SqlConnection.Close waits for the command in
+// flight — disposing it waits for a read it is still serving.
 public sealed class HookScopeDb : IDisposable
 {
+    private readonly ManualResetEventSlim _idle = new(initialState: true);
+
     public bool Disposed { get; private set; }
+
+    public bool DisposeStarted { get; private set; }
 
     public string[] Rows(string page)
     {
@@ -197,7 +273,17 @@ public sealed class HookScopeDb : IDisposable
         return [page + " row"];
     }
 
-    public void Dispose() => Disposed = true;
+    public void BeginRead() => _idle.Reset();
+
+    public void EndRead() => _idle.Set();
+
+    public void Dispose()
+    {
+        DisposeStarted = true;
+        _idle.Wait(TimeSpan.FromSeconds(30));
+        Disposed = true;
+        _idle.Dispose();
+    }
 }
 
 // A helper with no constructor, as an app's catalogue is: it reaches the event's services by itself.
@@ -262,4 +348,54 @@ public sealed partial class HookScopeRefunds : Component
     protected override async Task OnUpdated() => _rows = await HookScopeCatalogue.Load("refunds");
 
     protected override Component? Render() => P[string.Join(", ", _rows)];
+}
+
+// The report as Eszaf writes it: the hook awaits a first read, takes its unit of work, then detaches the slow read
+// — a task of its own that reads through the event's services — and returns. Its end repaints the page by itself.
+[Route("/hook-scope/report")]
+public sealed partial class HookScopeReport : Component
+{
+    private string[] _rows = [];
+    private int _turn;
+
+    protected override async Task OnUpdated()
+    {
+        await Task.Yield();
+        _ = Current.Service<HookScopeDb>();
+
+        // Detached on purpose, as the app does: the page goes out without the rows, and they follow.
+        _ = Run(++_turn);
+    }
+
+    protected override Component? Render() => P[string.Join(", ", _rows)];
+
+    private async Task Run(int turn)
+    {
+        var rows = await Read();
+        if (turn == _turn)
+        {
+            _rows = rows;
+        }
+    }
+
+    private static Task<string[]> Read()
+    {
+        var services = Current.Service<IServiceProvider>();
+        var gates = services.GetRequiredService<HookScopeGates>();
+        return Task.Run(async () =>
+        {
+            var db = services.GetRequiredService<HookScopeDb>();
+            gates.Read("report").First = db;
+            db.BeginRead();
+            try
+            {
+                await gates.Pass("report", 1);
+                return db.Rows("report");
+            }
+            finally
+            {
+                db.EndRead();
+            }
+        });
+    }
 }

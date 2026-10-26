@@ -11,9 +11,9 @@ public sealed partial class UiCheckbox : IUiFilterField
     }
 
     /// <inheritdoc />
-    void IUiFilterField.Take()
+    void IUiFilterField.Take(UiFilters set)
     {
-        var cell = UiFilterCell<bool?>.Over(Bind, "Ui.Checkbox");
+        var cell = UiFilterCell<bool?>.Over(Bind, "Ui.Checkbox").In(set);
         if (cell.IsNot(Bind))
         {
             Id ??= UiFieldId.Derive(null, Bind, Label);

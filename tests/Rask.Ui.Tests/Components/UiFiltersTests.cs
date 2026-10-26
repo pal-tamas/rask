@@ -75,7 +75,8 @@ internal static class FilteredOrders
     /// <summary>How many times the reader opened the panel.</summary>
     internal static int Opened { get; set; }
 
-    private static readonly Query<string[]> Rows =
+    /// <summary>The rows every filtered list here is drawn from.</summary>
+    internal static readonly Query<string[]> Rows =
         new SessionQueryClient(new NothingToAsk()).Query(QueryKey.Of("filtered-orders"), _ => Task.FromResult<string[]>(["#3102"]));
 
     /// <summary>The list the filters drive: a table drawn from a query.</summary>

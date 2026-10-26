@@ -132,6 +132,13 @@ them until tagged releases begin.
   keeps them in the model, excluded from migrations, so the next `rask db add` neither drops nor touches them (read
   off the app's own model snapshot). The model is cached per set of switches, so apps in one process (a test suite)
   with different batteries off no longer share one. See [docs/configuration.md](docs/configuration.md#battery-tables).
+- **A filter change takes the list `Ui.Filters` drives back to its first page; the sort stays.** Before: on
+  `/orders?page=3&sort=name`, picking a driver landed on `?page=3&sort=name&driver=ada` — page 3 of the narrowed list,
+  often empty — and a badge's cross and Clear all kept `page` too. After: `?sort=name&driver=ada`, the list starting at
+  page 1, with no code at the call site (Livewire's `resetPage()` in `updatingSearch`, a Pagy/Kaminari filter form
+  submitting without `page`). The set finds the key from the table's own pager: with `.Href(page => …)` it is the key
+  `Href(1)` and `Href(2)` disagree on, taken out (or set as page one writes it) in the same move of the address, one
+  history entry; with `.OnPage(…)` alone the pager is told `OnPage(1)`. Turning the pager keeps the filters.
 
 - **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
   on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
@@ -165,6 +172,14 @@ them until tagged releases begin.
   navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
   most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
   an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
+- **A first request whose hook detaches its slow read is answered at once, and the rows follow.** A report page's
+  `OnUpdated` took `Current.Service<IServiceProvider>()` and read its rows in a `Task.Run` it did not await; the
+  scope that read used was disposed as the response ended, on the response's own thread, and a `DbContext` waits
+  as it is disposed for the query still running on it — so `GET /reports/{id}/view` was not answered until the whole
+  report had been read (and a navigation held its session as long). A scope is now never disposed on the thread of
+  a response or an event, and the provider a hook takes is its event's wherever it is used: it keeps the scope until
+  the detached work comes back to the page, then lets it go. Work that never comes back keeps it until its component
+  has left the page (ten seconds more at most) or the session ends.
 - **`rask deploy` no longer waits forever on a stalled step.** A deploy sat 42 minutes in its build — the last
   line apt's download of `libllvm20` inside the image build, then nothing — holding the app's lock the whole
   time, because no docker call had a deadline. Now the build may run 45 minutes and go 15 minutes without a

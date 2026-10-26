@@ -22,7 +22,8 @@ namespace Rask;
 ///     a pick moves the address (replacing the history entry), the router writes the member and the page hears
 ///     <c>OnUpdated</c>, as for any move of its query. A filter applies as it is chosen — a text field once typing
 ///     pauses — so the panel has no Apply button. <see cref="Badges" /> says "Driver: Ada" for each filter in force,
-///     with a button that takes it off, and <see cref="Active" /> counts them.
+///     with a button that takes it off, and <see cref="Active" /> counts them. A filter change takes the table the set
+///     drives back to its first page, and leaves the sort.
 ///     </para>
 ///     <para>
 ///     The panel is a lazy flyout: its fields reach the browser only when it opens. Not a Flux component: the
@@ -139,7 +140,7 @@ public sealed partial class UiFilters : Component
     {
         foreach (var field in (Children ?? []).OfType<IUiFilterField>())
         {
-            field.Take();
+            field.Take(this);
         }
 
         var name = "ui-filters-" + _instance.ToString(CultureInfo.InvariantCulture);
@@ -234,19 +235,37 @@ public sealed partial class UiFilters : Component
         return entries;
     }
 
-    private static async Task RemoveAsync(UiFilterEntry entry)
+    /// <summary>
+    ///     A filter change: written to the address in one move, with the list it drives taken back to its first page.
+    /// </summary>
+    /// <param name="filters">The keys the change writes; one with no value is taken out.</param>
+    /// <returns>A pager of buttons being told it is on page one.</returns>
+    internal Task Narrow(params KeyValuePair<string, string?>[] filters)
+    {
+        var pager = _table?.Paginate as UiPagination;
+        KeyValuePair<string, string?>[] move = [.. filters, .. UiFilterFirstPage.Keys(pager)];
+        if (move.Length > 0)
+        {
+            Go.With(move);
+        }
+
+        return UiFilterFirstPage.Turn(pager);
+    }
+
+    private async Task RemoveAsync(UiFilterEntry entry)
     {
         if (entry.Key is { } key)
         {
-            Go.With(key, null);
+            await Narrow(new KeyValuePair<string, string?>(key, null)).ConfigureAwait(false);
             return;
         }
 
         await entry.OnRemove.Invoke().ConfigureAwait(false);
+        await Narrow().ConfigureAwait(false);
     }
 
-    // Every filter off in one move of the address: the keys the fields are kept under, and nothing else the page keeps
-    // there, so its sort and its page survive.
+    // Every filter off in one move of the address: the keys the fields are kept under, and the list's page, and
+    // nothing else the page keeps there, so its sort survives.
     private async Task ClearAsync()
     {
         var entries = Entries();
@@ -255,10 +274,7 @@ public sealed partial class UiFilters : Component
             await entry.OnRemove.Invoke().ConfigureAwait(false);
         }
 
-        KeyValuePair<string, string?>[] keys = [.. entries.Where(entry => entry.Key is not null).Select(entry => new KeyValuePair<string, string?>(entry.Key!, null))];
-        if (keys.Length > 0)
-        {
-            Go.With(keys);
-        }
+        await Narrow([.. entries.Where(entry => entry.Key is not null).Select(entry => new KeyValuePair<string, string?>(entry.Key!, null))])
+            .ConfigureAwait(false);
     }
 }

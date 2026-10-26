@@ -893,13 +893,16 @@ Ui.Card[                                                   // Flux's full-bleed 
 Placed, it draws a small Filters button (a funnel, and the count once a filter is in force) that opens a lazy flyout
 of the fields, with Clear filters and Close under them. It drives the first `Ui.Table.Of(…)` built after it: every
 field, badge cross, Clear all and Clear filters names that table in `aria-controls` (giving it an id when it has
-none), so the table's rows turn into skeleton rows at the press, as for its own pager. Each control is bound to a `[QueryParam]` member and the set
+none), so the table's rows turn into skeleton rows at the press, as for its own pager. A filter change (a pick, a
+badge's cross, Clear all, Clear filters) takes that table back to its first page, the sort staying: a pager with
+`Href` has the key its first two pages' addresses disagree on (`page`) taken out — or set as page one writes it — in
+the same move of the address, and a pager with only `OnPage` is told `OnPage(1)`; no code at the call site. Each control is bound to a `[QueryParam]` member and the set
 binds it to the address instead, so the router stays the only writer of the member and the page hears `OnUpdated`:
 a pick moves the query (replacing the history entry), a text field once typing pauses for 150 ms, and a call site's
 own `Debounce` wins. A member without `[QueryParam]` fails as the page renders, naming the declaration to write.
 `filters.Badges` is a badge for each filter in force in its control's own words — "Driver: Ada Lovelace", a range
 as its picker writes it or the preset that made it, a checkbox's label alone — each with a cross that takes that key
-out, and Clear all from two on, which takes every filter's key out in one move and leaves the sort alone.
+out, and Clear all from two on, which takes every filter's key (and the page) out in one move and leaves the sort alone.
 `Ui.Filters.OnOpen(…)` runs as the panel opens. A filter no control can say — a select of several answers, until a
 collection `[QueryParam]` exists — goes in `Ui.Filter.Label("Labels").Shown(…).OnRemove(…)[control]`. A range is one
 query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made

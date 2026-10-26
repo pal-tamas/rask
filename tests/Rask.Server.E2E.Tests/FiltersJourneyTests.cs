@@ -125,6 +125,53 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
         Assert.NotNull(table);
         Assert.Equal(table, fields);
     }
+
+    [Fact]
+    public async Task A_pick_on_page_three_lands_on_the_first_page_and_keeps_the_sort()
+    {
+        await using var session = await OpenAsync("/filters-journey?page=3&sort=name");
+        var page = session.Page;
+        await Expect(page.Locator("[data-ui-pagination] [aria-current=page]").Last).ToHaveTextAsync("3");
+
+        await page.ClickAsync("[data-ui-filters] [data-ui-modal-trigger] button");
+        await page.Locator(Panel + " [data-ui-select-button]").ClickAsync();
+        await page.Locator(Panel + " [data-ui-option]").Filter(new() { HasTextString = "Bob Ross" }).ClickAsync();
+
+        await Expect(page).ToHaveURLAsync(new Regex(@"driver=bob"));
+        Assert.Contains("sort=name", page.Url, StringComparison.Ordinal);
+        Assert.DoesNotContain("page=", page.Url, StringComparison.Ordinal);
+        await Expect(page.Locator("[data-ui-pagination] [aria-current=page]").Last).ToHaveTextAsync("1");
+    }
+
+    [Fact]
+    public async Task A_badge_taken_off_and_Clear_all_drop_the_page_and_keep_the_sort()
+    {
+        await using var removed = await OpenAsync("/filters-journey?driver=bob&page=3&sort=name");
+        await using var cleared = await OpenAsync("/filters-journey?driver=ada&q=tea&page=3&sort=name");
+
+        await removed.Page.ClickAsync("[aria-label='Remove filter Driver']");
+        await cleared.Page.Locator("[data-ui-filters-badges] button").Filter(new() { HasTextString = "Clear all" }).ClickAsync();
+
+        await Expect(removed.Page).ToHaveURLAsync(new Regex(@"/filters-journey\?sort=name$"));
+        await Expect(cleared.Page).ToHaveURLAsync(new Regex(@"/filters-journey\?sort=name$"));
+        await Expect(removed.Page.Locator("[data-ui-pagination] [aria-current=page]").Last).ToHaveTextAsync("1");
+    }
+
+    [Fact]
+    public async Task A_pick_tells_a_pager_of_buttons_it_is_on_page_one()
+    {
+        await using var session = await OpenAsync("/filters-journey/turned");
+        var page = session.Page;
+        await page.Locator("[data-ui-pagination] button").Filter(new() { HasTextString = "4" }).Last.ClickAsync();
+        await Expect(page.Locator("#page")).ToHaveTextAsync("4");
+
+        await page.ClickAsync("[data-ui-filters] [data-ui-modal-trigger] button");
+        await page.Locator(Panel + " [data-ui-select-button]").ClickAsync();
+        await page.Locator(Panel + " [data-ui-option]").Filter(new() { HasTextString = "Ada Lovelace" }).ClickAsync();
+
+        await Expect(page).ToHaveURLAsync(new Regex(@"/filters-journey/turned\?driver=ada$"));
+        await Expect(page.Locator("#page")).ToHaveTextAsync("1");
+    }
 }
 
 /// <summary>The app: its router, and nothing else.</summary>
@@ -149,6 +196,8 @@ public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
 
     [QueryParam("sort")] public string? Sort { get; set; }
 
+    [QueryParam("page")] public int? Page { get; set; }
+
     protected override Component? Render()
     {
         var filters = Ui.Filters[
@@ -165,11 +214,26 @@ public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
             filters.Badges,
             P.Id("rows")[string.Join(" · ", Driver ?? "anyone", Search ?? string.Empty, Sort ?? string.Empty)],
             P.Id("count")[filters.Active.ToString(CultureInfo.InvariantCulture)],
-            Ui.Table.Of(Orders).Class("w-full")[
+            Ui.Table.Of(Orders).Class("w-full").Paginate(
+                Ui.Pagination.Paginator(new UiPaginator { Page = Page ?? 1, PerPage = 3, Total = 15 }).Href(page => Link(page)))[
                 Ui.TableColumns[Ui.TableColumn["Order"]],
                 Ui.TableRows[(Orders.Data ?? []).Select(order => Ui.TableRow.Key(order)[Ui.TableCell[order]])]
             ]
         ];
+    }
+
+    // Each page's address, as the app writes it: the first with no page in it.
+    private RouteUrl Link(int page)
+    {
+        KeyValuePair<string, string?>[] query =
+        [
+            new("driver", Driver),
+            new("q", Search),
+            new("page", page == 1 ? null : page.ToString(CultureInfo.InvariantCulture)),
+            new("sort", Sort),
+        ];
+
+        return "/filters-journey?" + string.Join('&', query.Where(pair => pair.Value is not null).Select(pair => pair.Key + "=" + Uri.EscapeDataString(pair.Value!)));
     }
 
     // The rows, read again — slowly enough to be seen — whenever the address changes what they are filtered by.
@@ -200,5 +264,32 @@ public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
         public IAsyncEnumerable<TEvent> Subscribe<TEvent>(
             ISubscription<TEvent> subscription, CancellationToken cancellationToken = default)
             where TEvent : IEvent => throw new NotSupportedException();
+    }
+}
+
+/// <summary>An orders list whose page is the page's own state, turned by the pager's buttons.</summary>
+[Route("/filters-journey/turned")]
+public sealed partial class FiltersJourneyTurnedPage : Component
+{
+    private int _page = 1;
+
+    [QueryParam("driver")] public string? Driver { get; set; }
+
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[
+            Ui.Select.Bind(() => Driver).Label("Driver").Listbox.Clearable().Placeholder("Anyone")[Ui.SelectOption.Value("ada")["Ada Lovelace"]]
+        ];
+
+        return Main.Class("p-6 space-y-4")[
+            filters,
+            filters.Badges,
+            P.Id("page")[_page.ToString(CultureInfo.InvariantCulture)],
+            Ui.Table.Loading(false).Class("w-full").Paginate(
+                Ui.Pagination.Paginator(new UiPaginator { Page = _page, PerPage = 3, Total = 15 }).OnPage(page => { _page = page; }))[
+                Ui.TableColumns[Ui.TableColumn["Order"]],
+                Ui.TableRows[Ui.TableRow[Ui.TableCell["order " + _page.ToString(CultureInfo.InvariantCulture)]]]
+            ]
+        ];
     }
 }

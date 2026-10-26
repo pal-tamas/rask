@@ -107,6 +107,22 @@ public class RaskLiveHealthCheckTests
         Assert.Equal(HealthStatus.Healthy, await Status(store, memoryLoad: 0.0));
     }
 
+    [Fact]
+    public void A_readable_memory_position_is_the_fraction_of_the_limit_in_use()
+    {
+        var load = RaskLiveHealthCheck.MemoryLoad(loadBytes: 3, availableBytes: 4);
+
+        Assert.Equal(0.75, load);
+    }
+
+    [Fact]
+    public void A_memory_position_without_a_known_limit_reads_as_empty()
+    {
+        var load = RaskLiveHealthCheck.MemoryLoad(loadBytes: 4_096, availableBytes: 0);
+
+        Assert.Equal(0, load);
+    }
+
     // The memory reading defaults to PINNED, not to the real one. The check judges memory first and
     // lets it outrank the session count — correct for the product, and fatal for a test about the
     // SESSION branch, because a machine already past DegradedMemoryLoad makes every one of these
