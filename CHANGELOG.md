@@ -111,6 +111,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **One rule decides which field holds a secret, for its value and for what the page heard.** Before: the value
+  rule matched `autocomplete` only when it was exactly `current-password`/`new-password`/`one-time-code`, so
+  `autocomplete="username current-password"` wrote the password back, and a field the app marked
+  `.Data("rask-secret")` kept its text out of `data-rask-heard` but still got its value written. After: a credential
+  token anywhere in `autocomplete`, in any case, or the `data-rask-secret` mark, makes the field a secret for both,
+  and the mark is written once.
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
