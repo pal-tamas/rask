@@ -26,6 +26,21 @@ public sealed class KeptJobsContextModelSnapshot : ModelSnapshot
         });
 }
 
+/// <summary>An app with migrations that never had jobs: its snapshot holds other tables only.</summary>
+public sealed class NeverHadJobsContext(DbContextOptions<RaskAppDbContext> options) : RaskAppDbContext(options);
+
+[DbContext(typeof(NeverHadJobsContext))]
+public sealed class NeverHadJobsContextModelSnapshot : ModelSnapshot
+{
+    protected override void BuildModel(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity("Rask.Caching.CacheEntry", b =>
+        {
+            b.Property<string>("Key");
+            b.HasKey("Key");
+            b.ToTable("CacheEntries");
+        });
+}
+
 /// <summary>
 /// A battery's tables are mapped while it is on: a new app's migrations carry what it uses, and turning one off in an
 /// app that has its tables never drops them.
@@ -83,6 +98,17 @@ public sealed class BatteryTablesTests
         Assert.True(kept.IsTableExcludedFromMigrations());
         Assert.DoesNotContain(operations, op => op is DropTableOperation);
         Assert.DoesNotContain(operations, op => op is ITableMigrationOperation { Table: var t } && t == table);
+    }
+
+    [Fact]
+    public void An_app_whose_migrations_never_made_a_battery_s_table_does_not_get_one_while_it_is_off()
+    {
+        using var off = Open(o => new NeverHadJobsContext(o), JobsOff);
+
+        var model = off.GetService<IDesignTimeModel>().Model;
+
+        Assert.Null(model.FindEntityType(typeof(Job)));
+        Assert.False(model.FindEntityType(typeof(CacheEntry))!.IsTableExcludedFromMigrations());
     }
 
     // The migrations are looked for in the context's own assembly, which for KeptJobsContext is this one.
