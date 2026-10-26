@@ -111,6 +111,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A filter change takes the list `Ui.Filters` drives back to its first page; the sort stays.** Before: on
+  `/orders?page=3&sort=name`, picking a driver landed on `?page=3&sort=name&driver=ada` — page 3 of the narrowed list,
+  often empty — and a badge's cross and Clear all kept `page` too. After: `?sort=name&driver=ada`, the list starting at
+  page 1, with no code at the call site (Livewire's `resetPage()` in `updatingSearch`, a Pagy/Kaminari filter form
+  submitting without `page`). The set finds the key from the table's own pager: with `.Href(page => …)` it is the key
+  `Href(1)` and `Href(2)` disagree on, taken out (or set as page one writes it) in the same move of the address, one
+  history entry; with `.OnPage(…)` alone the pager is told `OnPage(1)`. Turning the pager keeps the filters.
+
 - **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
   on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
   `shadow-none`, and a disabled day keeps the hover rule while `pointer-events: none` keeps it from ever lighting. A

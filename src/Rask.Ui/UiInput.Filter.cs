@@ -17,9 +17,9 @@ public sealed partial class UiInput<T> : IUiFilterField
     }
 
     /// <inheritdoc />
-    void IUiFilterField.Take()
+    void IUiFilterField.Take(UiFilters set)
     {
-        var cell = UiFilterCell<T>.Over(Bind, "Ui.Input");
+        var cell = UiFilterCell<T>.Over(Bind, "Ui.Input").In(set);
         if (cell.IsNot(Bind))
         {
             Id ??= UiFieldId.Derive(null, Bind, Label);
