@@ -110,27 +110,29 @@ public sealed class RuntimeSignalTests
     public async Task Health_reports_memory_even_when_sessions_are_uncapped()
     {
         using var host = RaskTestHost.Create<Shell>();
-        var check = new RaskLiveHealthCheck(host.Store);
+        var check = new RaskLiveHealthCheck(host.Store) { MemoryLoadReader = () => 0.4567 };
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
-        Assert.True(result.Data.ContainsKey("memoryLoad"));
         Assert.True(result.Data.ContainsKey("connectedSessions"));
-        var load = Assert.IsType<double>(result.Data["memoryLoad"]);
-        Assert.InRange(load, 0.0, 1.0);
+        Assert.Equal(0.457, Assert.IsType<double>(result.Data["memoryLoad"]));
     }
 
     /// <summary>A host that cannot read its own memory position must not report that as unhealthy.</summary>
+    /// <remarks>
+    ///     The reading is pinned to what an unreadable position yields. Reading the real machine made this
+    ///     red on any CI runner already past <see cref="RaskLiveHealthCheck.DegradedMemoryLoad" />.
+    /// </remarks>
     [Fact]
     public async Task An_unreadable_memory_position_is_not_treated_as_a_full_one()
     {
         using var host = RaskTestHost.Create<Shell>();
-        var check = new RaskLiveHealthCheck(host.Store);
+        var unreadable = RaskLiveHealthCheck.MemoryLoad(loadBytes: 4_096, availableBytes: 0);
+        var check = new RaskLiveHealthCheck(host.Store) { MemoryLoadReader = () => unreadable };
 
         var result = await check.CheckHealthAsync(new HealthCheckContext(), TestContext.Current.CancellationToken);
 
-        // On any normal test machine the process is nowhere near its ceiling, so the only way this is not
-        // Healthy is the memory branch misfiring on an unusable reading.
+        Assert.Equal(0, unreadable);
         Assert.Equal(HealthStatus.Healthy, result.Status);
     }
 }
