@@ -80,6 +80,17 @@ public sealed class RaskAppDocumentTests
     }
 
     [Fact]
+    public async Task An_app_that_writes_its_own_head_and_shell_still_gets_the_appearance_script()
+    {
+        var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0")).Build<OwnShellApp>();
+
+        var html = await PageAsync(app);
+
+        Assert.Single(Regex.Matches(html, "data-rask-appearance=\""));
+        Assert.Contains("<html lang=\"hu\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task An_app_that_writes_its_own_appearance_script_gets_exactly_one_and_it_is_its_own()
     {
         var app = RaskApp.Create([], b => b.WebHost.UseSetting("urls", "http://127.0.0.1:0")).Build<OwnAppearanceApp>();
