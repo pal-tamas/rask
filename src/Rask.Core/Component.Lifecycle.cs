@@ -264,6 +264,7 @@ public abstract partial class Component
 
         if (task.IsCompleted)
         {
+            ctx.HookDone = true;
             if (task.IsFaulted)
             {
                 ReportLifecycleFault(this, task.Exception, beforeItsFirstAwait: true);
@@ -315,6 +316,7 @@ public abstract partial class Component
 #pragma warning disable S8969 // the compiler needs it: unboxing an object? is CS8605 without it
         var (comp, ctx) = ((Component, LifecycleSyncContext))state!;
 #pragma warning restore S8969
+        ctx.HookDone = true;
         if (t.IsFaulted)
         {
             ReportLifecycleFault(comp, t.Exception);

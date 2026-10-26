@@ -143,6 +143,14 @@ them until tagged releases begin.
   navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
   most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
   an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
+- **A first request whose hook detaches its slow read is answered at once, and the rows follow.** A report page's
+  `OnUpdated` took `Current.Service<IServiceProvider>()` and read its rows in a `Task.Run` it did not await; the
+  scope that read used was disposed as the response ended, on the response's own thread, and a `DbContext` waits
+  as it is disposed for the query still running on it — so `GET /reports/{id}/view` was not answered until the whole
+  report had been read (and a navigation held its session as long). A scope is now never disposed on the thread of
+  a response or an event, and the provider a hook takes is its event's wherever it is used: it keeps the scope until
+  the detached work comes back to the page, then lets it go. Work that never comes back keeps it until its component
+  has left the page (ten seconds more at most) or the session ends.
 - **`rask deploy` no longer waits forever on a stalled step.** A deploy sat 42 minutes in its build — the last
   line apt's download of `libllvm20` inside the image build, then nothing — holding the app's lock the whole
   time, because no docker call had a deadline. Now the build may run 45 minutes and go 15 minutes without a

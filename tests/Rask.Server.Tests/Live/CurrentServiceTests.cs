@@ -37,7 +37,7 @@ public class CurrentServiceTests
 
         Assert.Equal(2, page.Log.Seen.Count);
         Assert.NotSame(page.Log.Seen[0].First, page.Log.Seen[1].First);
-        Assert.All(page.Log.Seen, s => Assert.True(s.First.Disposed));
+        await WaitFor.True(() => page.Log.Seen.TrueForAll(s => s.First.Disposed), "each event's scope to be disposed");
         Assert.Null(page.Session.OpenedEventScope);
     }
 
