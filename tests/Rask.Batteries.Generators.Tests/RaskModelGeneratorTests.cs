@@ -29,7 +29,7 @@ public class RaskModelGeneratorTests
             {
                 public sealed class TaModel : Rask.Data.IRaskModel
                 {
-                    public static void Model(Microsoft.EntityFrameworkCore.ModelBuilder m) => m.HasDefaultSchema("dbo");
+                    public static void Model(Microsoft.EntityFrameworkCore.ModelBuilder m) => m.Ignore<string>();
                 }
             }
             """,

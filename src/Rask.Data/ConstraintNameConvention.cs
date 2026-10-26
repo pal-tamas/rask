@@ -30,23 +30,23 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
             foreach (var key in entityType.GetDeclaredKeys())
             {
                 var kind = key.IsPrimaryKey() ? ConstraintKind.PrimaryKey : ConstraintKind.Unique;
-                Name(kind, table, store, key.Properties, limit, key.SetName);
+                Name(kind, table, store, key.Properties, limit, key.Builder.HasName);
             }
 
             foreach (var index in entityType.GetDeclaredIndexes())
             {
                 var kind = index.IsUnique ? ConstraintKind.Unique : ConstraintKind.Index;
-                Name(kind, table, store, index.Properties, limit, index.SetDatabaseName);
+                Name(kind, table, store, index.Properties, limit, index.Builder.HasDatabaseName);
             }
 
             foreach (var foreignKey in entityType.GetDeclaredForeignKeys().Where(k => IsConstraint(k, table)))
             {
-                Name(ConstraintKind.ForeignKey, table, store, foreignKey.Properties, limit, foreignKey.SetConstraintName);
+                Name(ConstraintKind.ForeignKey, table, store, foreignKey.Properties, limit, foreignKey.Builder.HasConstraintName);
             }
 
             if (namesDefaults && !string.Equals(entityType.GetMappingStrategy(), RelationalAnnotationNames.TpcMappingStrategy, StringComparison.Ordinal))
             {
-                foreach (var property in entityType.GetDeclaredProperties().Where(HasDefault))
+                foreach (var property in entityType.GetDeclaredProperties().Where(NamesItsDefaultByConvention))
                 {
                     Name(ConstraintKind.Default, table, store, [property], limit, property.SetDefaultConstraintName);
                 }
@@ -59,8 +59,11 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
         key.PrincipalEntityType.GetTableName() is { } principal &&
         !(key.IsOwnership && string.Equals(principal, table, StringComparison.Ordinal));
 
-    private static bool HasDefault(IConventionProperty property) =>
-        property.GetDefaultValueSql() is not null || property.TryGetDefaultValue(out _);
+    // A default with no name stated: the metadata setter would overwrite one, so the source is asked first (the builders
+    // used for every other kind ask it themselves).
+    private static bool NamesItsDefaultByConvention(IConventionProperty property) =>
+        (property.GetDefaultValueSql() is not null || property.TryGetDefaultValue(out _)) &&
+        property.GetDefaultConstraintNameConfigurationSource() is not (ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation);
 
     private void Name(
         ConstraintKind kind,
@@ -68,7 +71,7 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
         StoreObjectIdentifier store,
         IReadOnlyList<IConventionProperty> properties,
         int? limit,
-        Func<string?, bool, string?> set)
+        Func<string?, bool, object?> set)
     {
         var columns = properties.Select(p => p.GetColumnName(store) ?? p.GetColumnName()).ToArray();
         if (name(new Constraint(kind, table, columns)) is not { Length: > 0 } named)
