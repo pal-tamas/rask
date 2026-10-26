@@ -127,7 +127,7 @@ public class LiveEventListenerTests
         await WaitFor.True(() => log.Scoped.Count == 2, "the second is heard");
 
         Assert.NotSame(log.Scoped[0], log.Scoped[1]);
-        Assert.True(log.Scoped[0].Disposed);
+        await WaitFor.True(() => log.Scoped[0].Disposed, "the first delivery's scope is disposed");
     }
 
     [Fact]

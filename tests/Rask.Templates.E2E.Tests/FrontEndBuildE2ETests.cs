@@ -54,9 +54,7 @@ public sealed partial class FrontEndBuildE2ETests
             var client = Path.Combine(project, "client");
             var published = Path.Combine(work, "published");
             // As `rask new` does: the newest versions that install together, chosen from the live registry.
-            var (scaffold, unchosen) = await FrontEndVersions.PinAsync(
-                TemplateBuildE2ETests.Scaffold(key, project, name, version, islands: []), NpmRegistry.Public, CancellationToken.None);
-            Assert.True(unchosen is null, $"--template {key}: {unchosen}");
+            var scaffold = await TemplateBuildE2ETests.ScaffoldWithChosenVersions(key, project, name, version, islands: []);
             TemplateBuildE2ETests.Write(scaffold, project, feed);
 
             var (publish, publishOutput) = await CliBuildE2E.RunDotnet(

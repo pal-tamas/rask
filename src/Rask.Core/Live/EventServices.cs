@@ -62,13 +62,20 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
     {
         if (serviceType == typeof(IServiceProvider))
         {
-            return this;
+            // A hook that takes the provider itself is about to hand it to work of its own: that work keeps the event.
+            return SynchronizationContext.Current is LifecycleSyncContext hook ? Lease(hook) : this;
         }
 
         return catalog.OwnsPerEvent(serviceType)
             ? Open().GetService(serviceType)
             : session.Services.GetService(serviceType);
     }
+
+    /// <summary>A service of <paramref name="life" />'s event, whichever event is in progress now.</summary>
+    internal object? GetService(EventLife life, Type serviceType) =>
+        catalog.OwnsPerEvent(serviceType)
+            ? Open(life).GetService(serviceType)
+            : session.Services.GetService(serviceType);
 
     public object? GetKeyedService(Type serviceType, object? serviceKey) =>
         (session.Services as IKeyedServiceProvider)?.GetKeyedService(serviceType, serviceKey);
@@ -146,7 +153,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
         if (done is { } scope)
         {
-            _ = DisposeAsync(scope);
+            DisposeLater(scope);
         }
 
         if (stillReading is not null)
@@ -172,7 +179,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
         if (done is { } scope)
         {
-            _ = DisposeAsync(scope);
+            DisposeLater(scope);
         }
     }
 
@@ -197,7 +204,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
         foreach (var scope in open)
         {
-            _ = DisposeAsync(scope);
+            DisposeLater(scope);
         }
     }
 
@@ -232,32 +239,74 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         return _current ??= new EventLife();
     }
 
+    // The provider handed to a hook that asked for it: held until the work it detached comes back, its component
+    // has left the page, or the session ends — whichever is first.
+    private IServiceProvider Lease(LifecycleSyncContext hook)
+    {
+        EventHold hold;
+        EventLife life;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return this;
+            }
+
+            life = Life();
+            life.Holds++;
+            hold = new EventHold(this, life);
+        }
+
+        hold.OrAfter(TeardownGrace, hook.Component.CallbackLifetime);
+        HookLeases.Add(hook, hold);
+        return new EventServicesLease(this, life);
+    }
+
     private IServiceProvider Open()
     {
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var life = Life();
-            if (life.Scope is { } open)
-            {
-                return open.ServiceProvider;
-            }
-
-            var scope = scopes.CreateAsyncScope();
-            try
-            {
-                session.SeedEventScope(scope.ServiceProvider);
-            }
-            catch
-            {
-                _ = DisposeAsync(scope);
-                throw;
-            }
-
-            life.Scope = scope;
-            return scope.ServiceProvider;
+            return OpenIn(Life());
         }
     }
+
+    private IServiceProvider Open(EventLife life)
+    {
+        lock (_gate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return OpenIn(life);
+        }
+    }
+
+    // Under the gate.
+    private IServiceProvider OpenIn(EventLife life)
+    {
+        if (life.Scope is { } open)
+        {
+            return open.ServiceProvider;
+        }
+
+        var scope = scopes.CreateAsyncScope();
+        try
+        {
+            session.SeedEventScope(scope.ServiceProvider);
+        }
+        catch
+        {
+            DisposeLater(scope);
+            throw;
+        }
+
+        life.Scope = scope;
+        return scope.ServiceProvider;
+    }
+
+    // Never on the caller's thread: a DbContext waits, as it is disposed, for a query still running on it — a read a
+    // hook detached — and the caller is a response going out or a dispatch holding the session.
+    private static void DisposeLater(AsyncServiceScope scope) =>
+        _ = Task.Run(() => DisposeAsync(scope), CancellationToken.None);
 
     private static async Task DisposeAsync(AsyncServiceScope scope)
     {
