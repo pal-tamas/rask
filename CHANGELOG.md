@@ -177,6 +177,10 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A one-time code typed faster than the page answers reaches the next action whole.** Each character the page
+  hears is a render of the cells, so the last one arrives from an older page — and the bound field's handler,
+  made of one render's view, was a different one every render: it ran nothing, and a Resend pressed straight after
+  `4321` read `432`. It reads the field as last drawn when it runs, as `Ui.Slider`'s thumb does.
 - **`Ui.DatetimePicker`'s button joins the date and the time in the picker's `Locale`, from Unicode CLDR, as Flux's
   does.** Before: a hand table — " at " for English, a space for Hungarian, English for every other language
   (`.Locale("fr")` read `29 oct. 2026 at 14:00`). After: `29 oct. 2026 à 14:00`, `29. Okt. 2026 um 14:00`, and where

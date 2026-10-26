@@ -126,7 +126,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
         var cells = Children?.Any() == true ? Children.ToList() : Drawn();
         var total = Number(cells, 0);
         var mode = Mode ?? Ui.OtpMode.Numeric;
-        var live = new Cells(accessor, context, UiOtpCode.Filter(current, mode, total), mode, total);
+        var live = _latest = new Cells(accessor, context, UiOtpCode.Filter(current, mode, total), mode, total);
         var scope = new UiOtpScope(
             live.Code.Length,
             total,
@@ -143,7 +143,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
                 .Role("group")
                 .Aria(Names(field))[
                 Input.Value(Shown(live))
-                    .OnInput(raw => TypedAsync(live, raw))
+                    .OnInput(raw => TypedAsync(Latest, raw))
                     // A code typed into a field that waits is held for the next action: its `input` only draws it.
                     .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
                     .Type(InputType.Hidden)
@@ -219,5 +219,12 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
     }
 
     // What one render resolved, for the handler it registered.
+    // What the last render drew. The bound field's handler reads it when it runs and closes over none of it: a code
+    // typed faster than the page answers is sent from an older page, and a handler made of one render's view is a
+    // different one every render — the last character ran nothing, and the next action read the code one short.
+    private Cells? _latest;
+
+    private Cells Latest => _latest ?? throw new InvalidOperationException("The code field has not been drawn.");
+
     private sealed record Cells(ExpressionAccessor.Accessor? Accessor, EditContext? Context, string Code, Ui.OtpMode Mode, int Total);
 }
